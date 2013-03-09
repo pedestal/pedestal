@@ -135,27 +135,27 @@
                                                        messages))))
         (hide-and-return-messages id event-name messages)))))
 
-(defn generic-modal-collect-input [parent-id id dispatcher event-name messages]
+(defn generic-modal-collect-input [parent-id id input-queue event-name messages]
   (let [modal-continue-button-id (modal-continue-button-id id event-name)]
     (d/append! (d/by-id parent-id)
                (modal-input-html id event-name messages))
     (events/send-on-click (d/by-id modal-continue-button-id)
-                      dispatcher
+                      input-queue
                       (submit-dialog-fn id event-name messages))
     (js/showModal (modal-id id event-name))))
 
-(defn modal-collect-input [r dispatcher path event-name messages]
+(defn modal-collect-input [r input-queue path event-name messages]
   (let [path (conj path :modal)
         parent-id (render/get-parent-id r path)
         id (render/new-id! r path)]
-    (generic-modal-collect-input parent-id id dispatcher event-name messages)))
+    (generic-modal-collect-input parent-id id input-queue event-name messages)))
 
-(defn render-event-enter [r [_ path event-name messages] dispatcher]
+(defn render-event-enter [r [_ path event-name messages] input-queue]
   (let [control-id (render/get-id r (conj path "control"))
         button-id (render/new-id! r (conj path "control" event-name))]
     (let [messages (map (partial msg/add-message-type event-name) messages)
           syms (msg/message-params messages)]
-      (assert dispatcher "Dispatcher is nil")
+      (assert input-queue "Input-Queue is nil")
       (d/append! (d/by-id control-id)
                  (str "<a class='btn btn-primary' style='margin-top:5px;margin-right:5px;' "
                       "id='" button-id "'>"
@@ -167,10 +167,10 @@
                        :click
                        (fn [e]
                          (event/prevent-default e)
-                         (modal-collect-input r dispatcher path event-name messages)))
+                         (modal-collect-input r input-queue path event-name messages)))
         ;; Gather input and send messages
         (events/send-on-click (d/by-id button-id)
-                          dispatcher
+                          input-queue
                           (get-missing-input (mapv #(assoc % :from :ui) messages))))
       
       (log/debug :on-destroy! path)
@@ -180,7 +180,7 @@
                                                           button-id))
                                       (event/unlisten! (d/by-id button-id) :click))))))
 
-(defn render-node-enter [r [_ path] dispatcher]
+(defn render-node-enter [r [_ path] input-queue]
   (let [parent (render/get-parent-id r path)
         id (render/new-id! r path)
         data-id (render/new-id! r (conj path "data"))
@@ -228,17 +228,17 @@
     (let [id (render/get-id r path)]
       (d/append! (d/by-id id) (f v)))))
 
-(defn attach-click-event [id event-name messages dispatcher]
+(defn attach-click-event [id event-name messages input-queue]
   (let [messages (map (partial msg/add-message-type event-name) messages)]
     (events/send-on-click (d/by-id id)
-                      dispatcher
-                      (get-missing-input messages))))
+                          input-queue
+                          (get-missing-input messages))))
 
 (defn event-enter
   ([]
      (event-enter nil))
   ([modal-path]
-     (fn [r [_ path event-name messages] dispatcher]
+     (fn [r [_ path event-name messages] input-queue]
        (let [modal-path (or modal-path path)
              item-id (render/get-id r path)]
          (let [messages (map (partial msg/add-message-type event-name) messages)
@@ -253,10 +253,10 @@
                               ;; dialog is not tied to any node and will
                               ;; not be deleted when a node is
                               ;; deleted.
-                              (modal-collect-input r dispatcher modal-path event-name messages)))
+                              (modal-collect-input r input-queue modal-path event-name messages)))
              (events/send-on-click (d/by-id item-id)
-                               dispatcher
-                               (get-missing-input messages))))))))
+                                   input-queue
+                                   (get-missing-input messages))))))))
 
 (defn event-exit [r [_ path event-name] _]
   (let [node-id (render/get-id r path)

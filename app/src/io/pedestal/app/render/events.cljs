@@ -29,19 +29,19 @@
   (if (fn? messages) (messages e) messages))
 
 (defn send-on
-  ([event-type dc dispatcher event-name messages]
+  ([event-type dc input-queue event-name messages]
      (send-on event-type
               dc
-              dispatcher
+              input-queue
               (fn [e] (map (partial msg/add-message-type event-name)
                           (produce-messages messages e)))))
-  ([event-type dc dispatcher messages]
+  ([event-type dc input-queue messages]
      (event/listen! (-coerce-to-dom-content dc)
                     event-type
                     (fn [e]
                       (event/prevent-default e)
                       (doseq [message (produce-messages messages e)]
-                        (p/put-message dispatcher message))))))
+                        (p/put-message input-queue message))))))
 
 (defn send-on-click [& args]
   (apply send-on :click args))
@@ -55,7 +55,7 @@
           {}
           input-map))
 
-(defn collect-and-send [event-type dc dispatcher event-name messages input-map]
-  (send-on event-type dc dispatcher
+(defn collect-and-send [event-type dc input-queue event-name messages input-map]
+  (send-on event-type dc input-queue
            (fn [_]
              (msg/fill event-name messages (collect-inputs input-map)))))

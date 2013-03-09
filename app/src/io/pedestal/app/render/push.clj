@@ -130,9 +130,9 @@
   ([root-id handlers log-fn]
      (let [handlers (if (vector? handlers) (add-handlers handlers) handlers)
            renderer (->DomRenderer (atom {:id root-id}))]
-       (fn [deltas dispatcher]
+       (fn [deltas input-queue]
          (log-fn deltas)
          (doseq [d deltas]
            (let [[op path] d
                  handler (find-handler handlers op path)]
-             (when handler (handler renderer d dispatcher))))))))
+             (when handler (handler renderer d input-queue))))))))

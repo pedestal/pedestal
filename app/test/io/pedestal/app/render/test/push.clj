@@ -323,7 +323,7 @@
                  (add-handler :transform-enable [:t :chart] chart-event-enter)
                  (add-handler :* [:t :chart :back-button] bb-enter)
                  (add-handler :node-destroy [:**] d/default-exit))
-          ;; create a dispatcher
+          ;; create a mock input-queue
           last-user-action (atom nil)
           input-queue (->TestQueue last-user-action)
           ;; create renderer
