@@ -1,0 +1,11 @@
+pom.xml
+target/
+.lein-deps-sum
+.lein-failures
+.lein-repl-history
+.DS_Store
+*~
+out/
+tmp/
+logs/
+generated-js/

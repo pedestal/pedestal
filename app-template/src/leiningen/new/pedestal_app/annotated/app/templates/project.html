@@ -1,0 +1,47 @@
+<!--
+ The Pedestal application development tools provide a very simple
+ system for composing documents. This partial will be included
+ "within" the application.html file. The div with id "content" in that
+ file will be replaced with the div with id "content" in this file.
+
+ This feature is only part of the tool. It has nothing to do with the
+ ClojureScript application that you are building.
+-->
+<_within file="application.html">
+  
+  <div id="content">
+
+    <!--
+        In the markup below, a template named "hello" is
+        defined. This template has two fields: id and message.
+
+        In the file
+
+        app/src/{{sanitized}}/html_templates.clj
+
+        this template can be extracted by calling
+
+        (def template-fn (tfn (tnodes "{{name}}.html" "hello")))
+
+        template-fn is a function which, when called with a map of
+        values, will return a string of HTML with filled-in values.
+
+        (template-fn {:id 42 :message "Hello"})
+
+        The field attribute takes a comma delimited list of
+
+        html-element-attribute-name:map-key
+
+        content is a special case which means that the content
+        (innerHTML) of the element will be set to this value.
+    -->
+    
+    <div template="hello" field="id:id">
+
+      <div field="content:message" class="message">A Message</div>
+
+    </div>
+
+  </div>
+
+</_within>

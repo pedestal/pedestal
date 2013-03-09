@@ -1,0 +1,741 @@
+;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
+
+(ns io.pedestal.service.http.route-test
+  (:use io.pedestal.service.http.route
+        clojure.pprint
+        clojure.test
+        clojure.repl
+        clojure.tools.namespace.repl)
+  (:require [clojure.set :as set]
+            ring.middleware.resource
+            [ring.util.response :as ring-response]
+            [io.pedestal.service.interceptor :as interceptor
+             :refer [defhandler defon-request defbefore definterceptor definterceptorfn handler]]
+            [io.pedestal.service.impl.interceptor :as interceptor-impl]
+            [io.pedestal.service.http.route :as route]
+            [io.pedestal.service.http.route.definition.verbose :as verbose]
+            [io.pedestal.service.http.route.definition :refer [defroutes expand-routes]]))
+
+(defhandler home-page
+  [request]
+  "home-page")
+(defhandler  list-users
+  [request]
+  "list-users")
+(defhandler view-user
+  [request]
+  "view-user")
+(defhandler add-user
+  [request]
+  "add-user")
+(defhandler update-user
+  [request]
+  "update-user")
+(defhandler logout
+  [request]
+  "logout")
+(defhandler delete-user
+  [request]
+  "delete-user")
+(defhandler search-form
+  [request]
+  "search-form")
+(defhandler search-id
+  [request]
+  "search-id")
+(defhandler search-query
+  [request]
+  "search-query")
+(defhandler trailing-slash
+  [request]
+  "trailing-slash")
+
+(defhandler request-inspection
+  [req] {:request req})
+
+(defon-request interceptor-1
+  [req] (assoc req ::interceptor-1 :fired))
+
+(defon-request interceptor-2
+  [req] (if (= :fired (::interceptor-1 req))
+          (assoc req ::interceptor-1 :clobbered)
+          (assoc req ::interceptor-2 :fired-without-1)))
+
+(definterceptorfn interceptor-3
+  ([] (interceptor-3 ::fn-called-implicitly))
+  ([value]
+     (interceptor/on-request
+      (fn [req] (assoc req ::interceptor-3 value)))))
+
+(defn site-demo [site-name]
+  (fn [req] (ring-response/response (str "demo page for " site-name))))
+
+;; schemes, hosts, path, verb and maybe query string
+(verbose/defroutes verbose-routes ;; the verbose hierarchical data structure
+  [{:app-name :public
+    :host "example.com"
+    ;;    :interceptors []
+    :children [{:path "/"
+                ;; :interceptors []
+                ;;                :verbs {:get {:handler home-page :interceptors []}
+                :verbs {:get home-page}
+                :children [{:path "/child-path"
+                            :verbs {:get trailing-slash}}]}
+               {:path "/user"
+                :verbs {:get list-users
+                        :post add-user}
+                :children [{:path "/:user-id"
+                            :constraints {:user-id #"[0-9]+"}
+                            :verbs {:put update-user}
+                            :children [{:constraints {:view #"long|short"}
+                                        :verbs {:get view-user}}]}]}]}
+   {:app-name :admin
+    :scheme :https
+    :host "admin.example.com"
+    :children [{:path "/demo/site-one/*site-path"
+                ;; :verbs {:get {:name :site-one-demo :handler (site-demo "one") :interceptors []}}
+                :verbs {:get {:route-name :site-one-demo
+                              :handler (site-demo "one")}}}
+               {:path "/demo/site-two/*site-path"
+                :verbs {:get {:route-name :site-two-demo
+                              :handler (site-demo "two")}}}
+               {:path "/user/:user-id/delete"
+                :verbs {:delete delete-user}}]}
+   {:children [{:path "/logout"
+                :verbs {:any logout}}
+               {:path "/search"
+                :verbs {:get search-form}
+                :children [{:constraints {:id #"[0-9]+"}
+                            :verbs {:get search-id}}
+                           {:constraints {:q #".+"}
+                            :verbs {:get search-query}}]}
+               {:path "/intercepted"
+                :verbs {:get {:route-name :intercepted
+                              :handler request-inspection}}
+                :interceptors [interceptor-1 interceptor-2]}
+               {:path "/intercepted-by-fn-symbol"
+                :verbs {:get {:route-name :intercepted-by-fn-symbol
+                              :handler request-inspection}}
+                :interceptors [interceptor-3]}
+               {:path "/intercepted-by-fn-list"
+                :verbs {:get {:route-name :intercepted-by-fn-list
+                              :handler request-inspection}}
+                :interceptors [(interceptor-3 ::fn-called-explicitly)]}
+               {:path "/trailing-slash/"
+                :children [{:path "/child-path"
+                            :verbs {:get {:route-name :admin-trailing-slash
+                                          :handler trailing-slash}}}]}
+               {:path "/hierarchical"
+                :interceptors [interceptor-1]
+                :children [{:path "/intercepted"
+                            :interceptors [interceptor-2]
+                            :verbs {:get {:route-name :hierarchical-intercepted
+                                          :handler request-inspection}}}]}
+               {:path "/terminal/intercepted"
+                :verbs {:get {:route-name :terminal-intercepted
+                              :handler request-inspection
+                              :interceptors [interceptor-1 interceptor-2]}}}]}])
+
+(defroutes terse-routes ;; the terse hierarchical data structure
+  [[:public "example.com"
+    ["/" {:get home-page}
+     ["/child-path" {:get trailing-slash}]]
+    ["/user" {:get list-users
+              :post add-user}
+     ["/:user-id"
+      ^:constraints {:user-id #"[0-9]+"}
+      {:put update-user}
+      [^:constraints {:view #"long|short"}
+       {:get view-user}]]]]
+   [:admin :https "admin.example.com"
+    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
+    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
+    ["/user/:user-id/delete" {:delete delete-user}]]
+   [["/logout" {:any logout}]
+    ["/search" {:get search-form}
+     [^:constraints {:id #"[0-9]+"} {:get search-id}]
+     [^:constraints {:q #".+"} {:get search-query}]]
+    ["/intercepted" {:get [:intercepted request-inspection]}
+     ^:interceptors [interceptor-1 interceptor-2]]
+    ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+     ^:interceptors [interceptor-3]]
+    ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+     ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+    ["/trailing-slash/"
+     ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+    ["/hierarchical" ^:interceptors [interceptor-1]
+     ["/intercepted" ^:interceptors [interceptor-2]
+      {:get [:hierarchical-intercepted request-inspection]}]]
+    ["/terminal/intercepted"
+     {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+
+(def data-routes
+  (expand-routes
+   [[:public "example.com"
+     ["/" {:get home-page}
+      ["/child-path" {:get trailing-slash}]]
+     ["/user" {:get list-users
+               :post add-user}
+      ["/:user-id"
+       ^:constraints {:user-id #"[0-9]+"}
+       {:put update-user}
+       [^:constraints {:view #"long|short"}
+        {:get view-user}]]]]
+    [:admin :https "admin.example.com"
+     ["/demo/site-one/*site-path" {:get [:site-one-demo (handler :site-one (site-demo "one"))]}]
+     ["/demo/site-two/*site-path" {:get [:site-two-demo (handler :site-two (site-demo "two"))]}]
+     ["/user/:user-id/delete" {:delete delete-user}]]
+    [["/logout" {:any logout}]
+     ["/search" {:get search-form}
+      [^:constraints {:id #"[0-9]+"} {:get search-id}]
+      [^:constraints {:q #".+"} {:get search-query}]]
+     ["/intercepted" {:get [:intercepted request-inspection]}
+      ^:interceptors [interceptor-1 interceptor-2]]
+     ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+      ^:interceptors [(interceptor-3)]]
+     ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+      ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+     ["/trailing-slash/"
+      ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+     ["/hierarchical" ^:interceptors [interceptor-1]
+      ["/intercepted" ^:interceptors [interceptor-2]
+       {:get [:hierarchical-intercepted request-inspection]}]]
+     ["/terminal/intercepted"
+      {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]]))
+
+(def syntax-quote-data-routes
+  (expand-routes
+   (let [one "one"
+         two "two"]
+     `[[:public "example.com"
+        ["/" {:get home-page}
+         ["/child-path" {:get trailing-slash}]]
+        ["/user" {:get list-users
+                  :post add-user}
+         ["/:user-id"
+          ^:constraints {:user-id #"[0-9]+"}
+          {:put update-user}
+          [^:constraints {:view #"long|short"}
+           {:get view-user}]]]]
+       [:admin :https "admin.example.com"
+        ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo ~one)]}]
+        ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo ~two)]}]
+        ["/user/:user-id/delete" {:delete delete-user}]]
+       [["/logout" {:any logout}]
+        ["/search" {:get search-form}
+         [^:constraints {:id #"[0-9]+"} {:get search-id}]
+         [^:constraints {:q #".+"} {:get search-query}]]
+        ["/intercepted" {:get [:intercepted request-inspection]}
+         ^:interceptors [interceptor-1 interceptor-2]]
+        ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+         ^:interceptors [interceptor-3]]
+        ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+         ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+        ["/trailing-slash/"
+         ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+        ["/hierarchical" ^:interceptors [interceptor-1]
+         ["/intercepted" ^:interceptors [interceptor-2]
+          {:get [:hierarchical-intercepted request-inspection]}]]
+        ["/terminal/intercepted"
+         {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])))
+
+;; HTTP verb-smuggling in query string is disabled here:
+(defn make-linker
+  [routes]
+  (url-for-routes routes :method-param nil))
+;; but enabled here:
+(defn make-action
+  [routes]
+  (form-action-for-routes routes))
+;; and here:
+(defn app-router
+  [routes]
+  (router routes)) ;; switch to routes-2, routes-3
+
+(defbefore print-context
+  [context] (pprint context) context)
+
+(defn test-match
+  ([table method uri]
+     (test-match table "do-not-match-scheme" "do-not-match-host" method uri nil))
+  ([table host method uri]
+     (test-match table "do-not-match-scheme" host method uri nil))
+  ([table scheme host method uri]
+     (test-match table scheme host method uri nil))
+  ([table scheme host method uri qs]
+     (let [{:keys [route request]}
+           (-> {:request {:request-method method
+                          :scheme scheme
+                          :server-name host
+                          :uri uri
+                          :query-string qs}}
+               (interceptor-impl/enqueue query-params
+                                         (method-param)
+                                         (app-router table))
+               interceptor-impl/execute)]
+       (when route
+         (merge
+          {:route-name (:route-name route)
+           :path-params (:path-params request)}
+          (when-let [query-params (:query-params request)]
+            {:query-params query-params}))))))
+
+(defn test-query-execute
+  [table query]
+  (-> query
+      (interceptor-impl/enqueue query-params
+                           (method-param)
+                           (app-router table))
+      interceptor-impl/execute))
+
+(defn test-query-match [table uri params]
+  (-> (test-query-execute table {:request {:request-method :get
+                                           :scheme "do-not-match-scheme"
+                                           :server-name "do-not-match-host"
+                                           :uri uri
+                                           :query-string params}})
+      :route
+      :route-name))
+
+(deftest fire-interceptors
+  (are [routes] (= :clobbered
+                   (-> (test-query-execute routes {:request {:request-method :get
+                                                             :scheme "do-not-match-scheme"
+                                                             :server-name "do-not-match-host"
+                                                             :uri "/intercepted"
+                                                             :query-params {}}})
+                       :response
+                       :request
+                       ::interceptor-1))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest fire-hierarchical-interceptors
+  (are [routes] (= :clobbered
+                   (-> (test-query-execute routes {:request {:request-method :get
+                                                             :scheme "do-not-match-scheme"
+                                                             :server-name "do-not-match-host"
+                                                             :uri "/hierarchical/intercepted"
+                                                             :query-params {}}})
+                       :response
+                       :request
+                       ::interceptor-1))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest fire-terminal-interceptors
+  (are [routes] (= :clobbered
+                   (-> (test-query-execute routes {:request {:request-method :get
+                                                             :scheme "do-not-match-scheme"
+                                                             :server-name "do-not-match-host"
+                                                             :uri "/terminal/intercepted"
+                                                             :query-params {}}})
+                       :response
+                       :request
+                       ::interceptor-1))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest fire-interceptor-fn-symbol
+  (are [routes] (= ::fn-called-implicitly
+                   (-> (test-query-execute routes {:request {:request-method :get
+                                                             :scheme "do-not-match-scheme"
+                                                             :server-name "do-not-match-host"
+                                                             :uri "/intercepted-by-fn-symbol"
+                                                             :query-params {}}})
+                       :response
+                       :request
+                       ::interceptor-3))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest fire-interceptor-fn-list
+  (are [routes] (= ::fn-called-explicitly
+                   (-> (test-query-execute routes {:request {:request-method :get
+                                                             :scheme "do-not-match-scheme"
+                                                             :server-name "do-not-match-host"
+                                                             :uri "/intercepted-by-fn-list"
+                                                             :query-params {}}})
+                       :response
+                       :request
+                       ::interceptor-3))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-root
+  (are [routes] (= {:route-name ::home-page :path-params {}}
+                   (test-match routes "example.com" :get "/"))
+       verbose-routes
+       terse-routes))
+
+(deftest match-update-user
+  (are [routes] (= {:route-name ::update-user
+                    :path-params {:user-id "123"}}
+                   (test-match routes "example.com" :put "/user/123"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-logout
+  (are [routes] (= {:route-name ::logout :path-params {}}
+                   (test-match routes :post "/logout"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-non-root-trailing-slash
+  (are [routes] (= {:route-name :admin-trailing-slash :path "/trailing-slash/child-path"}
+                   (-> routes
+                       (test-query-execute
+                        {:request {:request-method :get
+                                   :uri "/trailing-slash/child-path"}})
+                       :route
+                       (select-keys [:route-name :path])))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-root-trailing-slash
+  (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
+                   (-> routes
+                       (test-query-execute
+                        {:request {:request-method :get
+                                   :server-name "example.com"
+                                   :uri "/child-path"}})
+                       :route
+                       (select-keys [:route-name :path])))
+       verbose-routes
+       terse-routes       
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest check-host
+  (are [routes] (nil? (test-match
+                       routes "admin.example.com" :put "/user/123"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-demo-one
+  (are [routes] (= {:route-name :site-one-demo
+                    :path-params {:site-path "foo/bar/baz"}}
+                   (test-match routes :https "admin.example.com"
+                               :get "/demo/site-one/foo/bar/baz"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-user-constraints
+  (are [routes] (= {:path-params {:user-id "123"} :route-name ::update-user}
+                   (test-match routes "example.com" :put "/user/123"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= nil
+                   (test-match routes "example.com" :put "/user/abc"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= {:path-params {:user-id "123"} :query-params {:view "long"} :route-name ::view-user}
+                   (test-match routes :http "example.com" :get "/user/123" "view=long"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= nil
+                   (test-match routes :http "example.com" :get "/user/123" "view=none"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= nil
+                   (test-match routes :http "example.com" :get "/user/abc" "view=long"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-query
+  (are [routes] (= ::search-id
+                   (test-query-match routes "/search" "id=123"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= ::search-query
+                   (test-query-match routes "/search" "q=foo"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= ::search-form
+                   (test-query-match routes "/search" nil))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)
+  (are [routes] (= ::search-form
+                   (test-query-match routes "/search" "id=not-a-number"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest trailing-slash-link
+  (are [routes] (= "/child-path" ((make-linker routes)
+                                  ::trailing-slash
+                                  :app-name :public
+                                  :request {:server-name "example.com"}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest logout-link
+  (are [routes] (= "/logout" ((make-linker routes) ::logout :app-name :public))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest view-user-link
+  (are [routes] (= "//example.com/user/456"
+                   ((make-linker routes) ::view-user :app-name :public :params {:user-id 456}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-link
+  (are [routes] (= "https://admin.example.com/user/456/delete"
+                   ((make-linker routes) ::delete-user :app-name :admin :params {:user-id 456}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-action
+  (are [routes] (= {:action "https://admin.example.com/user/456/delete?_method=delete"
+                    :method "post"}
+                   ((make-action routes) ::delete-user :app-name :admin :params {:user-id 456}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-action-without-verb-smuggling
+  (are [routes] (= {:action "https://admin.example.com/user/456/delete"
+                    :method "delete"}
+                   ((make-action routes) ::delete-user
+                    :method-param nil
+                    :app-name :admin
+                    :params {:user-id 456}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-action-with-alternate-verb-param
+  (are [routes] (= {:action "https://admin.example.com/user/456/delete?verb=delete"
+                    :method "post"}
+                   ((make-action routes) ::delete-user
+                    :method-param "verb"
+                    :app-name :admin
+                    :params {:user-id 456}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-link-with-scheme
+  (are [routes] (= "//admin.example.com/user/456/delete"
+                   ((make-linker routes) ::delete-user
+                    :app-name :admin
+                    :params {:user-id 456}
+                    :request {:scheme :https}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-link-with-host
+  (are [routes] (= "/user/456/delete"
+                   ((make-linker routes) ::delete-user
+                    :app-name :admin
+                    :params {:user-id 456}
+                    :request {:scheme :https :server-name "admin.example.com"}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest delete-user-action-with-host
+  (are [routes] (= {:action "/user/456/delete?_method=delete"
+                    :method "post"}
+                   ((make-action routes) ::delete-user
+                    :app-name :admin
+                    :params {:user-id 456}
+                    :request {:scheme :https :server-name "admin.example.com"}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest search-id-link
+  (are [routes] (= "/search?id=456"
+                   ((make-linker routes) ::search-id :params {:id 456}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest search-id-link-with-extra-params
+  (are [routes] (let [s ((make-linker routes) ::search-id :params {:id 456 :limit 100})]
+                  (is (#{"/search?id=456&limit=100"
+                         "/search?limit=100&id=456"} s)))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes)) ; order is undefined
+
+(deftest search-query-link
+  (are [routes] (= "/search?q=Hello%2C+World%21"
+                   ((make-linker routes) ::search-query :params {:q "Hello, World!"}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest query-encoding
+  (are [s] (= s (decode-query-part (encode-query-part s)))
+       "♠♥♦♣"  ; outside the basic multilingual plane
+       "䷂䷖䷬䷴"  ; three-byte UTF-8 characters
+       "\"Houston, we have a problem!\""
+       "/?:@-._~!$'()* ,;=="))
+
+(deftest t-query-params
+  (are [s m] (= m (parse-query-string s))
+       "a=1&b=2"
+       {:a "1" :b "2"}
+       "a=&b=2"
+       {:a "" :b "2"}
+       "message=%22Houston%2C+we+have+a+problem!%22"
+       {:message "\"Houston, we have a problem!\""}
+       "hexagrams=%E4%B7%82%E4%B7%96%E4%B7%AC%E4%B7%B4"
+       {:hexagrams "䷂䷖䷬䷴"}  ; three-byte UTF-8 characters
+       "suits=%E2%99%A0%E2%99%A5%E2%99%A6%E2%99%A3"
+       {:suits "♠♥♦♣"}  ; outside the basic multilingual plane
+       "Hello%2C%20World!=Hello%2C%20World!"
+       {(keyword "Hello, World!") "Hello, World!"}
+       "/?:@-._~!$'()*+,;=/?:@-._~!$'()*+,;=="
+       {(keyword "/?:@-._~!$'()* ,;") "/?:@-._~!$'()* ,;=="}))
+
+(defn ring-style
+  "A ring style request handler."
+  [req]
+  {:status 200
+   :body "Oppa Ring Style!"
+   :headers {}})
+
+(defhandler ring-adapted
+  "An interceptor created by adapting ring-style to the interceptor
+  model. Should not be adapted."
+  ring-style)
+
+(definterceptorfn make-ring-adapted
+  "An interceptor fn which returns ring-adapted when called."
+  []
+  ring-adapted)
+
+(defroutes ring-adaptation-routes ;; When the handler for a verb is a ring style middleware, automagically treat it as an interceptor
+  [[:ring-adaptation "ring-adapt.pedestal"
+    ["/adapted" {:get ring-style}]
+    ["/verbatim" {:get ring-adapted}]
+    ["/returned" {:get make-ring-adapted}]]])
+
+(deftest ring-adapting
+  (are [path] (= "Oppa Ring Style!" (-> ring-adaptation-routes
+                                        (test-query-execute {:request {:request-method :get
+                                                                       :scheme "do-not-match-scheme"
+                                                                       :server-name "ring-adapt.pedestal"
+                                                                       :uri path
+                                                                       :query-params {}}})
+                                        :response
+                                        :body))
+       "/adapted"
+       "/verbatim"
+       "/returned"))
+
+(defn overridden-handler
+  "A handler which will be overridden."
+  [req]
+  {:status 200
+   :body "Overridden"
+   :headers {}})
+
+(defn overriding-handler
+  "A handler which will override."
+  [req]
+  {:status 200
+   :body "Overriding"
+   :headers {}})
+
+(defroutes overridden-routes
+  [[:overridden-routes "overridden.pedestal"
+    ["/resource" {:get overridden-handler}]]])
+
+(defroutes overriding-routes
+  [[:overridden-routes "overridden.pedestal"
+    ["/resource" {:get overriding-handler}]]])
+
+(deftest overriding-routes-test
+  (let [router (app-router #(deref #'overridden-routes))
+        query {:request {:request-method :get
+                         :scheme "do-not-match-scheme"
+                         :server-name "overridden.pedestal"
+                         :uri "/resource"
+                         :query-params {}}}]
+    (is (= "Overridden" (-> (interceptor-impl/enqueue query
+                                                      query-params
+                                                      (method-param)
+                                                      router)
+                            interceptor-impl/execute
+                            :response
+                            :body))
+        "When the overridden-routes have their base binding, routing dispatches to the base binding")
+    (is (= "Overriding" (with-redefs [overridden-routes overriding-routes]
+                          (-> (interceptor-impl/enqueue query
+                                                        query-params
+                                                        (method-param)
+                                                        router)
+                              interceptor-impl/execute
+                              :response
+                              :body)))
+        "When the overridden-routes have their binding overridden, routing dispatches to the overridden binding")))
+
+(deftest route-names-match-test
+  (let [verbose-route-names (set (map :route-name verbose-routes))
+        terse-route-names (set (map :route-name terse-routes))
+        data-route-names (set (map :route-name data-routes))
+        syntax-quote-data-route-names (set (map :route-name syntax-quote-data-routes))]
+    (is (and (empty? (set/difference verbose-route-names terse-route-names))
+             (empty? (set/difference terse-route-names data-route-names))
+             (empty? (set/difference data-route-names syntax-quote-data-route-names)))
+        "Route names for all routing syntaxes match")))

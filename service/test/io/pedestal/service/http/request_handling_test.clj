@@ -1,0 +1,75 @@
+(ns ^{:doc "Integration tests of request handling."}
+  io.pedestal.service.http.request-handling-test
+  (:require [io.pedestal.service.http.route :as route]
+            [io.pedestal.service.http.route.definition :refer [defroutes]]
+            [io.pedestal.service.interceptor :as interceptor :refer [defhandler]]
+            [io.pedestal.service.http :as service])
+  (:use [clojure.test]
+        [clojure.pprint]
+        [io.pedestal.service.test]))
+
+(defhandler terminator
+  "An interceptor that creates a valid ring response and places it in
+  the context, terminating the interceptor chain."
+  [request]
+  {:status 200
+   :body "Terminated."
+   :headers {}})
+
+(defhandler leaf-handler
+  "An interceptor that creates a valid ring response and places it in
+  the context."
+  [request]
+  {:status 200
+   :body "Leaf handled!"
+   :headers {}})
+
+(defroutes request-handling-routes
+  [[:request-handling "request-handling.pedestal"
+    ["/terminated" ^:interceptors [terminator]
+     ["/leaf" {:get [:leaf1 leaf-handler]}]]
+    ["/unterminated"
+     ["/leaf" {:get [:leaf2 leaf-handler]}]]]])
+
+(let [file (java.io.File/createTempFile "request-handling-test" ".txt")]
+  (def tempfile-url
+    (->> file
+     .getName
+     (str "http://request-handling.pedestal/")))
+  (def tempdir
+    (.getParent file))
+  (spit file "some test data"))
+
+
+(def app
+  (::service/service-fn (-> {::service/routes request-handling-routes
+                         ::service/file-path tempdir}
+                        service/default-interceptors
+                        service/service-fn)))
+
+(deftest termination-test
+  (are [url body] (= body (->> url
+                               (response-for app :get)
+                               :body))
+       "http://request-handling.pedestal/terminated/leaf" "Terminated."
+       "http://request-handling.pedestal/unterminated/leaf" "Leaf handled!"
+       "http://request-handling.pedestal/unrouted" "Not Found"
+       "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
+       tempfile-url "some test data"))
+
+(let [file (java.io.File/createTempFile "request-handling-test" ".css")]
+  (def tempfile-url
+    (->> file
+     .getName
+     (str "http://request-handling.pedestal/")))
+  (def tempdir
+    (.getParent file))
+  (spit file "some test data"))
+
+(deftest content-type-test
+  (are [url content-type] (= content-type (get (->> url
+                                                    (response-for app :get)
+                                                    :headers) "Content-Type"))
+       "http://request-handling.pedestal/test.html" "text/html"
+       "http://request-handling.pedestal/test.js" "text/javascript"
+       tempfile-url "text/css"))
