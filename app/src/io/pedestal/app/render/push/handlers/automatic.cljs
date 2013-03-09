@@ -150,7 +150,7 @@
         id (render/new-id! r path)]
     (generic-modal-collect-input parent-id id dispatcher transform-name messages)))
 
-(defn render-event-enter [r [_ path transform-name messages] dispatcher]
+(defn render-transform-enable [r [_ path transform-name messages] dispatcher]
   (let [control-id (render/get-id r (conj path "control"))
         button-id (render/new-id! r (conj path "control" transform-name))]
     (let [messages (map (partial msg/add-message-type transform-name) messages)
@@ -234,9 +234,9 @@
                       dispatcher
                       (get-missing-input messages))))
 
-(defn event-enter
+(defn transform-enable
   ([]
-     (event-enter nil))
+     (transform-enable nil))
   ([modal-path]
      (fn [r [_ path transform-name messages] dispatcher]
        (let [modal-path (or modal-path path)
@@ -258,7 +258,7 @@
                                dispatcher
                                (get-missing-input messages))))))))
 
-(defn event-exit [r [_ path transform-name] _]
+(defn transform-disable [r [_ path transform-name] _]
   (let [node-id (render/get-id r path)
         default-button-id (render/get-id r (conj path "control" transform-name))
         id (or default-button-id node-id)]
@@ -270,12 +270,12 @@
 
 (defn destroy! [r path]
   (if-let [id (render/get-id r path)]
-    (do (log/debug :in :default-exit :msg (str "deleteing id " id " for path " path))
+    (do (log/debug :in :destroy! :msg (str "deleteing id " id " for path " path))
         (render/delete-id! r path)
         (d/destroy! (d/by-id id)))
-    (log/debug :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
+    (log/debug :in :destroy! :msg (str "warning! no id " id " found for path " (pr-str path)))))
 
-(defn default-exit [r [_ path] d]
+(defn default-destroy [r [_ path] d]
   (destroy! r path))
 
 (defn sync-class! [pred id class-name]
@@ -287,11 +287,11 @@
         (d/remove-class! element class-name)))))
 
 (def data-renderer-config
-  [[:node-create    []    (constantly nil)]
-   [:node-destroy   []    (constantly nil)]
-   [:node-create    [:**] render-node-enter]
-   [:node-destroy   [:**] default-exit]
-   [:value          [:**] render-value-update]
-   [:attr           [:**] (constantly nil)]
-   [:transform-enable  [:**] render-event-enter]
-   [:transform-disable [:**] event-exit]])
+  [[:node-create       []    (constantly nil)]
+   [:node-destroy      []    (constantly nil)]
+   [:node-create       [:**] render-node-enter]
+   [:node-destroy      [:**] default-destroy]
+   [:value             [:**] render-value-update]
+   [:attr              [:**] (constantly nil)]
+   [:transform-enable  [:**] render-transform-enable]
+   [:transform-disable [:**] transform-disable]])

@@ -18,5 +18,5 @@
 
 (defn render-config []
   [[:node-create  [:io.pedestal.app/view-example-model] render-page]
-   [:node-destroy   [:io.pedestal.app/view-example-model] d/default-exit]
+   [:node-destroy   [:io.pedestal.app/view-example-model] d/default-destroy]
    [:value [:io.pedestal.app/view-example-model] render-message]])

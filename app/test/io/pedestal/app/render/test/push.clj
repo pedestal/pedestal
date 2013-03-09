@@ -152,7 +152,7 @@
                  (add-handler :node-create [:a :b] b-enter)
                  (add-handler :value [:a :b :c] c-update)
                  (add-handler :node-destroy [:a :b :c] c-exit)
-                 (add-handler :node-destroy [:**] d/default-exit))
+                 (add-handler :node-destroy [:**] d/default-destroy))
           ;; create renderer
           r (renderer :root ls)]
       
@@ -323,7 +323,7 @@
                  (add-handler :value            [:t :chart :data :*] data-update)
                  (add-handler :transform-enable [:t :chart] chart-transform-enter)
                  (add-handler :*                [:t :chart :back-button] bb-enter)
-                 (add-handler :node-destroy     [:**] d/default-exit))
+                 (add-handler :node-destroy     [:**] d/default-destroy))
           ;; create a dispatcher
           last-user-action (atom nil)
           input-queue (->TestQueue last-user-action)

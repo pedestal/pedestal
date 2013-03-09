@@ -64,8 +64,8 @@
    ;; behavior.
    [:node-create  [:io.pedestal.app/view-example-model] render-page]
    ;; All :node-destroy deltas for this path will be handled by the
-   ;; library function `d/default-exit`.
-   [:node-destroy   [:io.pedestal.app/view-example-model] d/default-exit]
+   ;; library function `d/default-destroy`.
+   [:node-destroy   [:io.pedestal.app/view-example-model] d/default-destroy]
    ;; All :node-create deltas for this path will be handled by the
    ;; function `render-message`.
    [:value [:io.pedestal.app/view-example-model] render-message]])

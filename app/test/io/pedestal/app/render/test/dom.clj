@@ -179,7 +179,7 @@
                         :children [{:content "d" :attrs {:id :d :class "button"}}]}
                        {:content "c" :attrs {:id :c}}]}))))
 
-(defn default-exit [r [_ path] _]
+(defn default-destroy [r [_ path] _]
   (destroy! (render/get-id r path))
   (render/delete-id! r path))
 
