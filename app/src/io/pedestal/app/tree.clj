@@ -56,9 +56,6 @@
         (vector? x) :vector
         :else :unknown))
 
-(defn- real-path-exists? [tree r-path]
-  (get-in tree r-path))
-
 (defn- existing-node-has-same-type? [tree r-path type]
   (if-let [node (get-in tree r-path)]
     (= (node-type (:children node)) type)
@@ -104,7 +101,7 @@
                      (get-in tree r-path) "\n"
                      "delta:\n"
                      delta))
-        (if (real-path-exists? tree r-path)
+        (if (get-in tree r-path)
           tree
           (-> tree
               (assoc-in r-path (new-node children))
@@ -167,9 +164,6 @@
       (remove-children tree path children)
       tree)))
 
-(defn- value-exists? [tree path]
-  (get-in tree path))
-
 (defn- same-value? [tree path v]
   (= (get-in tree path) v))
 
@@ -216,20 +210,17 @@
           (remove-empty (conj r-path :attrs))
           (update-in [:this-tx] conj [op path k o n])))))
 
-(defn- event-exists? [tree path]
-  (get-in tree path))
-
-(defn- same-event-msgs? [tree path msgs]
+(defn- same-transform? [tree path msgs]
   (= (get-in tree path) msgs))
 
 (defmethod apply-to-tree :transform-enable [tree delta]
   (let [[_ path k msgs] delta
         r-path (real-path path)
         e-path (conj r-path :events k)]
-    (assert (or (not (event-exists? tree e-path))
-                (same-event-msgs? tree e-path msgs))
+    (assert (or (not (get-in tree e-path))
+                (same-transform? tree e-path msgs))
             (str "A different event " k " at path " path " already exists."))
-    (if (event-exists? tree e-path)
+    (if (get-in tree e-path)
       tree
       (-> tree
           (assoc-in e-path msgs)
@@ -240,7 +231,7 @@
         r-path (real-path path)
         events-path (conj r-path :events)
         e-path (conj events-path k)]
-    (if (event-exists? tree e-path)
+    (if (get-in tree e-path)
       (-> tree
           (update-in [:this-tx] conj (conj delta (get-in tree e-path)))
           (update-in events-path dissoc k)
@@ -413,7 +404,7 @@
 
 (defn node-exists? [tree path]
   (let [r-path (real-path path)]
-    (real-path-exists? tree r-path)))
+    (get-in tree r-path)))
 
 (def new-app-model
   (map->Tree
