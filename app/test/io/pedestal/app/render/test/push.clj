@@ -253,9 +253,9 @@
   (put-message [this message]
     (reset! action message)))
 
-(defn event-messages [events event-name env]
-  (assert (contains? events event-name) (str "There is no event named " event-name))
-  (map (partial msg/add-message-type event-name) (event-name events)))
+(defn event-messages [events transform-name env]
+  (assert (contains? events transform-name) (str "There is no event named " transform-name))
+  (map (partial msg/add-message-type transform-name) (transform-name events)))
 
 (deftest test-render-timeline
   
@@ -272,12 +272,12 @@
                               id (new-id! r path :chart)]
                           (d/append! parent {:content "Timeline Chart" :attrs {:id id}})))
           
-          chart-event-enter (fn [r [_ path event-name msgs] d]
+          chart-event-enter (fn [r [_ path transform-name msgs] d]
                               (let [id (get-id r path)]
                                 (d/listen! id
                                            :click
                                            (fn [e]
-                                             (p/put-message d (event-messages {event-name msgs}
+                                             (p/put-message d (event-messages {transform-name msgs}
                                                                               :group-selected
                                                                               {}))))
                                 (on-destroy! r path #(d/unlisten! id :click))))
@@ -306,11 +306,11 @@
                          :node-create (d/append! parent {:attrs {:id id :class :button}})
                          :value (d/set-content! id (last delta))
                          :transform-enable
-                         (let [[_ _ event-name msgs] delta]
+                         (let [[_ _ transform-name msgs] delta]
                            (d/listen! id
                                       :click
                                       (fn [e]
-                                        (p/put-message d (event-messages {event-name msgs} :nav {}))))
+                                        (p/put-message d (event-messages {transform-name msgs} :nav {}))))
                            (on-destroy! r path #(d/unlisten! id :click))))))
           
           ;; create listeners

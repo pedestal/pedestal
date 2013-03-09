@@ -61,7 +61,7 @@
                  :on-success (constantly nil)
                  :on-error (constantly nil))))
 
-(defmethod d/modal-title ::recording-info [event-name messages]
+(defmethod d/modal-title ::recording-info [transform-name messages]
   "Configure Recording")
 
 (defn valid-position? [x]
