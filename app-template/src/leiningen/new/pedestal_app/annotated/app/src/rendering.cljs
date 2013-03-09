@@ -44,7 +44,7 @@
     (dom/append! (dom/by-id parent) (html {:id id :message ""}))))
 
 (defn render-message [renderer [_ path _ new-value] transmitter]
-  ;; This function responds to a :value event. It uses the
+  ;; This function responds to a :value delta. It uses the
   ;; `update-t` function to update the template at `path` with the new
   ;; values in the passed map.
   (templates/update-t renderer path {:message new-value}))

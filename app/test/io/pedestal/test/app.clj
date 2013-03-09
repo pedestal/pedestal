@@ -297,7 +297,7 @@
             :emitters {:emitter-answer {:fn :emitter-answer-fn :input #{:model-x :view-sum}}}}))))
 
 (deftest build-system
-  (let [desc {:models {:model-a {:init "" :fn (fn [old event] (:value event))}}}
+  (let [desc {:models {:model-a {:init "" :fn (fn [old message] (:value message))}}}
         app (build desc)]
     (is (= (dissoc @(:state app) :ui)
            {:events [] :output []}))))
@@ -347,10 +347,10 @@
 ;; Simplest possible application
 ;; ================================================================================
 
-(defn number-model [old event]
-  (case (msg/type event)
-    :io.pedestal.app.messages/init (:value event)
-    (:n event)))
+(defn number-model [old message]
+  (case (msg/type message)
+    :io.pedestal.app.messages/init (:value message)
+    (:n message)))
 
 (def simplest-possible-app
   {:models {:model-a {:init 0 :fn number-model}}})
@@ -497,8 +497,8 @@
 ;; including:
 ;;
 ;; - Views which have other views as input
-;; - Views which generate events
-;; - Recursive event processing within a single transaction
+;; - Views which generate messages
+;; - Recursive message processing within a single transaction
 
 (defn good-enough? [state inputs]
   (let [{:keys [accuracy half]} inputs
@@ -519,7 +519,7 @@
 
 ;; Calculate square root using Heron's method
 ;; ================================================================================
-;; this will be the first time that test recursion based on an events function
+;; this will be the first time that we test recursion based on an events function
 
 (def square-root-app
   {:models  {:guess    {:init 0 :fn number-model}
@@ -683,7 +683,7 @@
 ;; ================================================================================
 
 (defn echo-output [service-name]
-  (fn [event old-model new-model]
+  (fn [message old-model new-model]
     {:output [{msg/topic {:service service-name} :n new-model}]
      :events [{msg/topic :y :n (str new-model)}]}))
 
