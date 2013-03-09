@@ -99,11 +99,11 @@
   (let [ui new-app-model
         deltas [{:a {:value 42
                      :attrs {:color :red :size 10}
-                     :events {:x [{:y :z}]}
+                     :transforms {:x [{:y :z}]}
                      :children {:b
                                 {:c
                                  [{:value 2
-                                   :events {:f [{:x :p}]}}
+                                   :transforms {:f [{:x :p}]}}
                                   {:value 3
                                    :attrs {:color :blue}}]}}}}]
         start (test-apply-deltas ui deltas)
@@ -132,11 +132,11 @@
                 :tree {:children
                        {:a {:attrs {:color :red :size 10}
                             :value 42
-                            :events {:x [{:y :z}]}
+                            :transforms {:x [{:y :z}]}
                             :children
                             {:b {:children
                                  {:c {:children [{:value 2
-                                                  :events {:f [{:x :p}]}
+                                                  :transforms {:f [{:x :p}]}
                                                   :children {}}]}}}}}}}
                 :seq 17
                 :t 2}))))
@@ -160,7 +160,7 @@
                 :tree {:children
                        {:a {:attrs {:color :red :size 10}
                             :value 42
-                            :events {:x [{:y :z}]}
+                            :transforms {:x [{:y :z}]}
                             :children
                             {:b {:children {}}}}}}
                 :seq 21
@@ -180,7 +180,7 @@
                 :tree {:children
                        {:a {:attrs {:color :red :size 10}
                             :value 42
-                            :events {:x [{:y :z}]}
+                            :transforms {:x [{:y :z}]}
                             :children
                             {:b {:children {}}}}}}
                 :seq 21
@@ -257,7 +257,7 @@
     (is (= (map->deltas {:children
                          {:a {:value "Hello"
                               :attrs {:color :red}
-                              :events {:x [{:y :z}]}
+                              :transforms {:x [{:y :z}]}
                               :children
                               {:b {:children {}}}}}}
                         [])
@@ -269,7 +269,7 @@
             [:node-create [:a :b] :map]]))
     (is (= (map->deltas {:a {:value "Hello"
                              :attrs {:color :red}
-                             :events {:x [{:y :z}]}
+                             :transforms {:x [{:y :z}]}
                              :children
                              {:b {}}}}
                         [])
@@ -294,11 +294,11 @@
             [:value [:a :b 0] 2]]))
     (is (= (map->deltas {:a {:value 42
                              :attrs {:color :red :size 10}
-                             :events {:x [{:y :z}]}
+                             :transforms {:x [{:y :z}]}
                              :children {:b
                                         {:c
                                          [{:value 2
-                                           :events {:f [{:x :p}]}}
+                                           :transforms {:f [{:x :p}]}}
                                           {:value 3
                                            :attrs {:color :blue}}]}}}}
                         [])
@@ -483,7 +483,7 @@
                   [:attr [:a :b 0] :color nil :blue]]]
       (is (= (:tree start) (:tree (isomorphic start deltas)))))))
 
-(deftest test-event-enter
+(deftest test-transform-enter
   (let [ui new-app-model
         deltas [[:node-create [] :map]
                 [:node-create [:a] :map]
@@ -502,7 +502,7 @@
                        1 [{:delta [:transform-enable [:a :b] :x [{:y :z}]] :seq 4 :t 1}
                           {:delta [:transform-enable [:a :b] :m [{:p :t}]] :seq 5 :t 1}]}
               :this-tx []
-              :tree {:children {:a {:children {:b {:events {:x [{:y :z}]
+              :tree {:children {:a {:children {:b {:transforms {:x [{:y :z}]
                                                             :m [{:p :t}]}
                                                    :children [{:children {}}]}}}}}
               :seq 6
@@ -510,10 +510,10 @@
     (let [deltas [[:transform-enable [:a :b] :x [{:y :z}]]
                   [:transform-enable [:a :b] :x [{:j :k}]]]]
       (is (thrown-with-msg? AssertionError
-            #"A different event :x at path \[:a :b\] already exists."
+            #"A different transform :x at path \[:a :b\] already exists."
             (test-apply-deltas start deltas))))))
 
-(deftest test-event-exit
+(deftest test-transform-exit
   (let [ui new-app-model
         deltas [[:node-create [] :map]
                 [:node-create [:a] :map]
@@ -533,12 +533,12 @@
                           {:delta [:transform-enable [:a :b] :m [{:p :t}]] :seq 5 :t 0}]
                        1 [{:delta [:transform-disable [:a :b] :x [{:y :z}]] :seq 6 :t 1}]}
               :this-tx []
-              :tree {:children {:a {:children {:b {:events {:m [{:p :t}]}
+              :tree {:children {:a {:children {:b {:transforms {:m [{:p :t}]}
                                                    :children [{:children {}}]}}}}}
               :seq 7
               :t 2})))))
 
-(deftest test-event-isomorphism
+(deftest test-transform-isomorphism
   (let [ui new-app-model
         deltas [[:node-create [] :map]
                 [:node-create [:a] :map]
@@ -632,11 +632,11 @@
     (let [ui new-app-model
           deltas [{:a {:value 42
                        :attrs {:color :red :size 10}
-                       :events {:x [{:y :z}]}
+                       :transforms {:x [{:y :z}]}
                        :children {:b
                                   {:c
                                    [{:value 2
-                                     :events {:f [{:x :p}]}}
+                                     :transforms {:f [{:x :p}]}}
                                     {:value 3
                                      :attrs {:color :blue}}]}}}}]]
       (is (= (test-apply-deltas ui deltas)
@@ -658,11 +658,11 @@
               :tree {:children
                      {:a {:attrs {:color :red :size 10}
                           :value 42
-                          :events {:x [{:y :z}]}
+                          :transforms {:x [{:y :z}]}
                           :children
                           {:b {:children
                                {:c {:children [{:value 2
-                                                :events {:f [{:x :p}]}
+                                                :transforms {:f [{:x :p}]}
                                                 :children {}}
                                                {:attrs {:color :blue}
                                                 :value 3
@@ -673,47 +673,47 @@
 ;; Query Tests
 ;; ================================================================================
 
-(deftest test-event->entities
-  (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
-        event->entities #'io.pedestal.app.tree/event->entities]
-    (reset! next-eid-atom 10)
-    (is (= (event->entities :navigate
+(deftest test-transform->entities
+  (let [next-id-atom @#'io.pedestal.app.tree/next-id-atom
+        transform->entities #'io.pedestal.app.tree/transform->entities]
+    (reset! next-id-atom 10)
+    (is (= (transform->entities :navigate
                             [{:page :page/configuration}
                              {msg/topic :y :style :awesome}]
                             1)
-           [{:t/transform-name :navigate :t/id 11 :t/node 1 :t/type :t/event}
-            {:page :page/configuration :t/event 11 :t/id 12 :t/type :t/message}
-            {:style :awesome :t/event 11 :t/id 13 :t/type :t/message msg/topic :y}]))))
+           [{:t/transform-name :navigate :t/id 11 :t/node 1 :t/type :t/transform}
+            {:page :page/configuration :t/transform 11 :t/id 12 :t/type :t/message}
+            {:style :awesome :t/transform 11 :t/id 13 :t/type :t/message msg/topic :y}]))))
 
-(deftest test-events->entities
-  (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
-        events->entities #'io.pedestal.app.tree/events->entities]
-    (reset! next-eid-atom 10)
-    (let [result (events->entities {:navigate [{:page :page/configuration}
+(deftest test-transforms->entities
+  (let [next-id-atom @#'io.pedestal.app.tree/next-id-atom
+        transforms->entities #'io.pedestal.app.tree/transforms->entities]
+    (reset! next-id-atom 10)
+    (let [result (transforms->entities {:navigate [{:page :page/configuration}
                                                {msg/topic :y :style :awesome}]
                                     :subscribe [{msg/topic :model/timeline :interval 'interval}]}
                                    1)]
       (is (= (count result) 5))
       (is (= (set (map :t/id result)) #{11 12 13 14 15}))
-      (is (= (set (keep :t/event result)) #{11 12}))
-      (is (= (set (map #(dissoc % :t/id :t/event) result))
-             #{{:t/transform-name :subscribe :t/node 1 :t/type :t/event}
+      (is (= (set (keep :t/transform result)) #{11 12}))
+      (is (= (set (map #(dissoc % :t/id :t/transform) result))
+             #{{:t/transform-name :subscribe :t/node 1 :t/type :t/transform}
                {:interval 'interval :t/type :t/message msg/topic :model/timeline}
-               {:t/transform-name :navigate :t/node 1 :t/type :t/event}
+               {:t/transform-name :navigate :t/node 1 :t/type :t/transform}
                {:page :page/configuration :t/type :t/message}
                {:style :awesome :t/type :t/message msg/topic :y}})))))
 
 (deftest test-attrs-entities
-  (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
+  (let [next-id-atom @#'io.pedestal.app.tree/next-id-atom
         attrs->entities #'io.pedestal.app.tree/attrs->entities]
-    (reset! next-eid-atom 10)
+    (reset! next-id-atom 10)
     (is (= (attrs->entities {:color :red :size 10} 1)
            [{:color :red :size 10 :t/id 11 :t/node 1 :t/type :t/attrs}]))))
 
 (deftest test-node->entites
-  (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
+  (let [next-id-atom @#'io.pedestal.app.tree/next-id-atom
         node->entities #'io.pedestal.app.tree/node->entities]
-    (reset! next-eid-atom 10)
+    (reset! next-id-atom 10)
     (testing "empty node with no parent"
       (is (= (node->entities {} [:a :b] nil 5)
              [{:t/id 5 :t/path [:a :b] :t/segment :b :t/type :t/node}])))
@@ -724,31 +724,31 @@
       (is (= (node->entities {:value 42} [:a :b] 1 5)
              [{:t/id 5 :t/parent 1 :t/path [:a :b] :t/segment :b :t/type :t/node :t/value 42}])))
     (testing "node with value and attributes"
-      (reset! next-eid-atom 10)
+      (reset! next-id-atom 10)
       (is (= (node->entities {:value 42
                               :attrs {:color :green}} [:a :b] 1 5)
              [{:t/id 5 :t/parent 1 :t/path [:a :b] :t/segment :b :t/type :t/node :t/value 42}
               {:color :green :t/id 11 :t/node 5 :t/type :t/attrs}])))
     (testing "node with everything"
-      (reset! next-eid-atom 10)
+      (reset! next-id-atom 10)
       (is (= (node->entities {:value 42
                               :attrs {:color :green}
-                              :events {:test [{:x :y}]}} [:a :b] 1 5)
+                              :transforms {:test [{:x :y}]}} [:a :b] 1 5)
              [{:t/id 5 :t/parent 1 :t/path [:a :b] :t/segment :b :t/type :t/node :t/value 42}
               {:color :green :t/id 11 :t/node 5 :t/type :t/attrs}
-              {:t/transform-name :test :t/id 12 :t/node 5 :t/type :t/event}
-              {:x :y :t/event 12 :t/id 13 :t/type :t/message}])))))
+              {:t/transform-name :test :t/id 12 :t/node 5 :t/type :t/transform}
+              {:x :y :t/transform 12 :t/id 13 :t/type :t/message}])))))
 
 (deftest test-tree->entities
   (let [tree->entities #'io.pedestal.app.tree/tree->entities]
     (let [ui new-app-model
           deltas [{:a {:value 42
                        :attrs {:color :red :size 10}
-                       :events {:x [{:y :z}]}
+                       :transforms {:x [{:y :z}]}
                        :children {:b
                                   {:c
                                    [{:value 2
-                                     :events {:f [{:x :p}]}}
+                                     :transforms {:f [{:x :p}]}}
                                     {:value 3
                                      :attrs {:color :blue}}]}}}}]
           tree (test-apply-deltas ui deltas)
@@ -757,7 +757,7 @@
              6))
       (is (= (count (filter #(= (:t/type %) :t/attrs) result))
              2))
-      (is (= (count (filter #(= (:t/type %) :t/event) result))
+      (is (= (count (filter #(= (:t/type %) :t/transform) result))
              2))
       (is (= (count (filter #(= (:t/type %) :t/message) result))
              2))
@@ -775,11 +775,11 @@
     (let [ui new-app-model
           deltas [{:a {:value 42
                        :attrs {:color :red :size 10}
-                       :events {:x [{:y :z}]}
+                       :transforms {:x [{:y :z}]}
                        :children {:b
                                   {:c
                                    [{:value 2
-                                     :events {:f [{:x :p}]}}
+                                     :transforms {:f [{:x :p}]}}
                                     {:value 3
                                      :attrs {:color :blue}}]}}}}]
           tree (test-apply-deltas ui deltas)
@@ -790,7 +790,7 @@
              6))
       (is (= (count (filter #(= (last %) :t/attrs) result))
              2))
-      (is (= (count (filter #(= (last %) :t/event) result))
+      (is (= (count (filter #(= (last %) :t/transform) result))
              2))
       (is (= (count (filter #(= (last %) :t/message) result))
              2))
@@ -802,22 +802,22 @@
     {:title {:value "Datomic"}
      :items [{:value "Configuration"
               :attrs {:active true}
-              :events {:navigate [{:page :page/configuration}]}}
+              :transforms {:navigate [{:page :page/configuration}]}}
              {:value "Timeline"
-              :events {:navigate [{:page :page/timeline}]}}
+              :transforms {:navigate [{:page :page/timeline}]}}
              {:value "Attributes"
-              :events {:navigate [{:page :page/attributes}]}}
+              :transforms {:navigate [{:page :page/attributes}]}}
              {:value "Entities"
-              :events {:navigate [{:page :page/entity-navigator (msg/param :eid) {}}
+              :transforms {:navigate [{:page :page/entity-navigator (msg/param :eid) {}}
                                   {msg/topic :model/entity-navigator msg/type :entity-selected (msg/param :eid) {}}]}}
              {:value "Actions"
               :attrs {:active true}
               :children [{:value "Disconnect"
-                          :events {:disconnect [{msg/topic :model/configuration}
+                          :transforms {:disconnect [{msg/topic :model/configuration}
                                                 {msg/type :navigate :page :page/configuration}]}}
                          {:value "Subscribe"
                           :attrs {:color :blue :active true}
-                          :events {:subscribe [{msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
+                          :transforms {:subscribe [{msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
 
 (def test-tree
   (apply-deltas new-app-model deltas))
@@ -840,12 +840,12 @@
              #{[[:navigation :items 4]]
                [[:navigation :items 4 1]]
                [[:navigation :items 0]]})))
-    (testing "the value and path of the node which has an event with a message
-              with key :event and value :entity-selected"
+    (testing "the value and path of the node which has an transform with a message
+              with key :transform and value :entity-selected"
       (is (= (set (q `[:find ?v ?p
                        :where
                        [?m ~msg/type :entity-selected]
-                       [?m :t/event ?e]
+                       [?m :t/transform ?e]
                        [?e :t/node ?n]
                        [?n :t/value ?v]
                        [?n :t/path ?p]]
@@ -861,7 +861,7 @@
                      test-tree))
              #{[[:navigation :items 4 0]]
                [[:navigation :items 4 1]]})))
-    (testing "the paths to all events on this page"
+    (testing "the paths to all transforms on this page"
       (is (= (set (q '[:find ?p ?e-name :where
                        [?e :t/transform-name ?e-name]
                        [?e :t/node ?n]
@@ -873,7 +873,7 @@
                [[:navigation :items 3] :navigate]
                [[:navigation :items 4 0] :disconnect]
                [[:navigation :items 4 1] :subscribe]})))
-    (testing "the paths to all :navigate events on this page"
+    (testing "the paths to all :navigate transforms on this page"
       (is (= (set (q '[:find ?p :where
                        [?e :t/transform-name :navigate]
                        [?e :t/node ?n]
@@ -887,7 +887,7 @@
       (is (= (set (remove #(= (first %) :t/node)
                           (q `[:find ?attr ?value :where
                                [?m ~msg/topic :model/timeline]
-                               [?m :t/event ?e]
+                               [?m :t/transform ?e]
                                [?e :t/node ?n]
                                [?a :t/type :t/attrs]
                                [?a :t/node ?n]
@@ -896,11 +896,11 @@
              #{[:active true]
                [:color :blue]
                [:t/type :t/attrs]})))
-    (testing "the event names with a msg/topic key in the message"
+    (testing "the transform names with a msg/topic key in the message"
       (is (= (set (remove #(= (first %) :t/node)
                           (q `[:find ?n :where
                                [?m ~msg/topic]
-                               [?m :t/event ?e]
+                               [?m :t/transform ?e]
                                [?e :t/transform-name ?n]]
                              test-tree)))
              #{[:disconnect] [:navigate] [:subscribe]})))))
@@ -917,7 +917,7 @@
                    :where
                    [?n :t/value "Attributes"]
                    [?e :t/node ?n]
-                   [$ ?m :t/event ?e]
+                   [$ ?m :t/transform ?e]
                    [$ ?m :page ?p]
                    [$views ?p ?c]]
                  test-tree
@@ -930,7 +930,7 @@
                    :where
                    [$ ?n :t/value ?a-name]
                    [$ ?e :t/node ?n]
-                   [$ ?m :t/event ?e]
+                   [$ ?m :t/transform ?e]
                    [$ ?m :page ?p]
                    [$views ?p ?c]]
                  test-tree
