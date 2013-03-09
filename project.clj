@@ -8,8 +8,4 @@
         "app-tools"
         "app-template"]
   :profiles {:test {:sub ["service"
-                          "service-template"
-                          "samples/template-server"
-                          "samples/server-with-links"
-                          "samples/ring-middleware"
-                          "samples/chat/chat-server"]}})
+                          "service-template"]}})
