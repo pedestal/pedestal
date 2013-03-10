@@ -16,8 +16,8 @@
                            :node-destroy #{:node-* :*}
                            :value #{:value :*}
                            :attr #{:attr :*}
-                           :transform-enable #{:event-* :*}
-                           :transform-disable #{:event-* :*}})
+                           :transform-enable #{:transform-* :*}
+                           :transform-disable #{:transform-* :*}})
 
 (defn- real-path [op path]
   (cons op (conj (vec (interleave (repeat :children) path)) :handler)))
