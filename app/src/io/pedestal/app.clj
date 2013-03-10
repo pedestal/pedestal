@@ -4,7 +4,7 @@
     "Implementaiton of Pedestal's application behavior model. Allows for behavior to be
     written as pure functions linked by a dataflow.
 
-    Application behavior is defined in terms of five funcitons:
+    Application behavior is defined in terms of five functions:
 
     * model - reduce message streams into a value
 
