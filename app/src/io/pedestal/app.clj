@@ -7,7 +7,7 @@
     Application behavior is defined in terms of five functions.
 
     There is one function for handling input (model), three for
-    handling output (output, events, and emitter) and one for building
+    handling output (output, feedback, and emitter) and one for building
     up dataflows which transform data from the data model to something
     that is easy to consume by one of the output functions.
 
@@ -17,7 +17,7 @@
 
     * view functions transform and combine data models in arbitrary dataflows
 
-    * events functions generate new messages as input to models
+    * feedback functions generate new messages as input to models
 
     * emitter functions generate changes to the application model
     "
@@ -41,7 +41,7 @@
 (defn default-view-fn [state input-name old new]
   new)
 
-(defn default-events-fn [view-name old-view new-view]
+(defn default-feedback-fn [view-name old-view new-view]
   nil)
 
 (defn default-emitter-fn
@@ -106,7 +106,7 @@
 
   This data structure will be used to drive each transaction."
   [description]
-  (let [{:keys [models output views events emitters]} description
+  (let [{:keys [models output views feedback emitters]} description
         input->views (reduce (fn [a k] (assoc a k (views-for-input views k)))
                              {}
                              (keys models))
@@ -130,7 +130,7 @@
      :models (reduce (fn [a [k v]] (assoc a k (:fn v))) {} models)
      :model->output (reduce (fn [a [k _]] (assoc a k (or (get output k) default-output-fn))) {} models)
      :input->views input->views
-     :view->events (reduce (fn [a v] (assoc a v (or (get events v) default-events-fn))) {} all-view-names)
+     :view->feedback (reduce (fn [a v] (assoc a v (or (get feedback v) default-feedback-fn))) {} all-view-names)
      :input->emitters input->emitters
      :views (add-defaults default-view-fn views all-view-names input->views)
      :emitters (add-defaults default-emitter-fn emitters all-emitter-names input->emitters)}))
@@ -212,7 +212,7 @@
     (if out
       (-> state
           (update-in [:output] into (:output out))
-          (update-in [:events] into (:events out)))
+          (update-in [:feedback] into (:feedback out)))
       state)))
 
 (defn topo-sort [flow view-names]
@@ -254,12 +254,12 @@
                 view-names))
       state)))
 
-(defn run-events [state old-state flow modified-inputs]
+(defn run-feedback [state old-state flow modified-inputs]
   (reduce (fn [s [view-name {:keys [old new]}]]
-            (let [event-fn (get-in flow [:view->events view-name])
-                  events (event-fn view-name old new)]
-              (if events
-                (update-in s [:events] into events)
+            (let [feedback-fn (get-in flow [:view->feedback view-name])
+                  feedback (feedback-fn view-name old new)]
+              (if feedback
+                (update-in s [:feedback] into feedback)
                 s)))
           state
           modified-inputs))
@@ -303,13 +303,13 @@
         modified-views (find-modified-inputs :views old-state new-state)
         modified-models (find-modified-inputs :models old-state new-state)
         result (-> new-state
-                   (run-events old-state flow modified-views)
+                   (run-feedback old-state flow modified-views)
                    (run-emitters old-state flow (merge modified-views modified-models)))]
-    (if (not (empty? (:events result)))
+    (if (not (empty? (:feedback result)))
       (reduce (fn [s message]
-                (run-dataflow (assoc s :events []) flow message))
+                (run-dataflow (assoc s :feedback []) flow message))
               result
-              (:events result))
+              (:feedback result))
       result)))
 
 (defn- path-starts-with? [path prefix]
@@ -343,7 +343,7 @@
 (defn pre-tx-state [state]
   (assoc state
     :output []
-    :events []))
+    :feedback []))
 
 (defn transact-one [state flow message]
   (process-message (assoc (pre-tx-state state) :input message) flow message))
@@ -388,9 +388,9 @@
   output queues for sending and receiving messages.
 
   The description map contains a subset of the keys:
-  :models, :output, :views, :events, :emitters and :navigation."
+  :models, :output, :views, :feedback, :emitters and :navigation."
   [description]
-  (let [app-atom (atom {:output [] :events []})
+  (let [app-atom (atom {:output [] :feedback []})
         flow (make-flow description)
         input-queue (queue/queue :input)
         output-queue (queue/queue :output)

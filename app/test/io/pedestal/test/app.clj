@@ -48,8 +48,8 @@
                    :model-b default-output-fn}
    :input->views {:model-a #{:io.pedestal.app/view-model-a}
                   :model-b #{:io.pedestal.app/view-model-b}}
-   :view->events {:io.pedestal.app/view-model-a default-events-fn
-                  :io.pedestal.app/view-model-b default-events-fn}
+   :view->feedback {:io.pedestal.app/view-model-a default-feedback-fn
+                  :io.pedestal.app/view-model-b default-feedback-fn}
    :input->emitters {:io.pedestal.app/view-model-a #{:io.pedestal.app/default-emitter}
                      :io.pedestal.app/view-model-b #{:io.pedestal.app/default-emitter}}
    :views {:io.pedestal.app/view-model-a {:fn default-view-fn :input #{:model-a}}
@@ -65,7 +65,7 @@
             :models {:model-a :function-a}
             :model->output {:model-a default-output-fn}
             :input->views {:model-a #{:io.pedestal.app/view-model-a}}
-            :view->events {:io.pedestal.app/view-model-a default-events-fn}
+            :view->feedback {:io.pedestal.app/view-model-a default-feedback-fn}
             :input->emitters {:io.pedestal.app/view-model-a #{:io.pedestal.app/default-emitter}}
             :views {:io.pedestal.app/view-model-a {:fn default-view-fn :input #{:model-a}}}
             :emitters {:io.pedestal.app/default-emitter
@@ -89,8 +89,8 @@
             two-model-system-flow-defaults
             {:input->views {:model-a #{:view-a}
                             :model-b #{:io.pedestal.app/view-model-b}}
-             :view->events {:view-a default-events-fn
-                            :io.pedestal.app/view-model-b default-events-fn}
+             :view->feedback {:view-a default-feedback-fn
+                            :io.pedestal.app/view-model-b default-feedback-fn}
              :input->emitters {:view-a #{:io.pedestal.app/default-emitter}
                                :io.pedestal.app/view-model-b #{:io.pedestal.app/default-emitter}}
              :views {:view-a {:fn :view-a-fn :input #{:model-a}}
@@ -107,8 +107,8 @@
             two-model-system-flow-defaults
             {:input->views {:model-a #{:view-a}
                             :model-b #{:view-b}}
-             :view->events {:view-a default-events-fn
-                            :view-b default-events-fn}
+             :view->feedback {:view-a default-feedback-fn
+                            :view-b default-feedback-fn}
              :input->emitters {:view-a #{:io.pedestal.app/default-emitter}
                                :view-b #{:io.pedestal.app/default-emitter}}
              :views {:view-a {:fn :view-a-fn :input #{:model-a}}
@@ -126,9 +126,9 @@
             two-model-system-flow-defaults
             {:input->views {:model-a #{:view-a :view-c}
                             :model-b #{:view-b :view-c}}
-             :view->events {:view-a default-events-fn
-                            :view-b default-events-fn
-                            :view-c default-events-fn}
+             :view->feedback {:view-a default-feedback-fn
+                            :view-b default-feedback-fn
+                            :view-c default-feedback-fn}
              :input->emitters {:view-a #{:io.pedestal.app/default-emitter}
                                :view-b #{:io.pedestal.app/default-emitter}
                                :view-c #{:io.pedestal.app/default-emitter}}
@@ -150,10 +150,10 @@
             {:input->views {:model-a #{:view-a :view-c :view-d}
                             :model-b #{:view-b :view-c}
                             :view-b #{:view-d}}
-             :view->events {:view-a default-events-fn
-                            :view-b default-events-fn
-                            :view-c default-events-fn
-                            :view-d default-events-fn}
+             :view->feedback {:view-a default-feedback-fn
+                            :view-b default-feedback-fn
+                            :view-c default-feedback-fn
+                            :view-d default-feedback-fn}
              :input->emitters {:view-a #{:io.pedestal.app/default-emitter}
                                :view-b #{:io.pedestal.app/default-emitter}
                                :view-c #{:io.pedestal.app/default-emitter}
@@ -165,18 +165,18 @@
              :emitters {:io.pedestal.app/default-emitter
                         {:fn default-emitter-fn
                          :input #{:view-a :view-b :view-c :view-d}}}}))))
-  (testing "provide events"
+  (testing "provide feedback"
     (is (= (make-flow {:models {:model-a {:init "" :fn :model-a-fn}
                                 :model-b {:init "" :fn :model-b-fn}}
                        :views {:view-a {:fn :view-a-fn :input #{:model-a}}
                                :view-b {:fn :view-b-fn :input #{:model-b}}}
-                       :events {:view-a :events-a-fn}})
+                       :feedback {:view-a :feedback-a-fn}})
            (merge
             two-model-system-flow-defaults
             {:input->views {:model-a #{:view-a}
                             :model-b #{:view-b}}
-             :view->events {:view-a :events-a-fn
-                            :view-b default-events-fn}
+             :view->feedback {:view-a :feedback-a-fn
+                            :view-b default-feedback-fn}
              :input->emitters {:view-a #{:io.pedestal.app/default-emitter}
                                :view-b #{:io.pedestal.app/default-emitter}}
              :views {:view-a {:fn :view-a-fn :input #{:model-a}}
@@ -195,8 +195,8 @@
             {:default-emitter :emitter-a
              :input->views {:model-a #{:view-a}
                             :model-b #{:view-b}}
-             :view->events {:view-a default-events-fn
-                            :view-b default-events-fn}
+             :view->feedback {:view-a default-feedback-fn
+                            :view-b default-feedback-fn}
              :input->emitters {:view-a #{:emitter-a}
                                :view-b #{:emitter-a}}
              :views {:view-a {:fn :view-a-fn :input #{:model-a}}
@@ -215,8 +215,8 @@
             {:default-emitter :emitter-a
              :input->views {:model-a #{:view-a}
                             :model-b #{:view-b}}
-             :view->events {:view-a default-events-fn
-                            :view-b default-events-fn}
+             :view->feedback {:view-a default-feedback-fn
+                            :view-b default-feedback-fn}
              :input->emitters {:view-a #{:emitter-a}
                                :view-b #{:emitter-b}}
              :views {:view-a {:fn :view-a-fn :input #{:model-a}}
@@ -231,8 +231,8 @@
                                 :model-b :output-b-fn}
                        :views {:view-a {:fn :view-a-fn :input #{:model-a}}
                                :view-b {:fn :view-b-fn :input #{:model-b}}}
-                       :events {:view-a :events-a-fn
-                                :view-b :events-b-fn}
+                       :feedback {:view-a :feedback-a-fn
+                                :view-b :feedback-b-fn}
                        :emitters {:emitter-a {:fn :emitter-a-fn :input #{:view-a}}
                                   :emitter-b {:fn :emitter-b-fn :input #{:view-b}}}})
            (merge
@@ -242,8 +242,8 @@
                             :model-b #{:view-b}}
              :model->output {:model-a :output-a-fn
                              :model-b :output-b-fn}
-             :view->events {:view-a :events-a-fn
-                            :view-b :events-b-fn}
+             :view->feedback {:view-a :feedback-a-fn
+                            :view-b :feedback-b-fn}
              :input->emitters {:view-a #{:emitter-a}
                                :view-b #{:emitter-b}}
              :views {:view-a {:fn :view-a-fn :input #{:model-a}}
@@ -265,9 +265,9 @@
                            :view-divide #{:view-sum}}
             :model->output {:model-guess default-output-fn
                             :model-x default-output-fn}
-            :view->events {:view-divide default-events-fn
-                           :view-x default-events-fn
-                           :view-sum default-events-fn}
+            :view->feedback {:view-divide default-feedback-fn
+                           :view-x default-feedback-fn
+                           :view-sum default-feedback-fn}
             :input->emitters {:view-x #{:emitter-answer}
                               :view-sum #{:emitter-answer}}
             :views {:view-divide {:fn :view-divide-fn :input #{:model-x :model-guess}}
@@ -288,8 +288,8 @@
                            :view-divide #{:view-sum}}
             :model->output {:model-guess default-output-fn
                             :model-x default-output-fn}
-            :view->events {:view-divide default-events-fn
-                           :view-sum default-events-fn}
+            :view->feedback {:view-divide default-feedback-fn
+                           :view-sum default-feedback-fn}
             :input->emitters {:model-x #{:emitter-answer}
                               :view-sum #{:emitter-answer}}
             :views {:view-divide {:fn :view-divide-fn :input #{:model-x :model-guess}}
@@ -297,10 +297,10 @@
             :emitters {:emitter-answer {:fn :emitter-answer-fn :input #{:model-x :view-sum}}}}))))
 
 (deftest build-system
-  (let [desc {:models {:model-a {:init "" :fn (fn [old event] (:value event))}}}
+  (let [desc {:models {:model-a {:init "" :fn (fn [old message] (:value message))}}}
         app (build desc)]
     (is (= (dissoc @(:state app) :ui)
-           {:events [] :output []}))))
+           {:feedback [] :output []}))))
 
 
 ;; Support functions
@@ -324,11 +324,11 @@
   [states]
   (mapv (fn [x] {:input (:input x) :emitter (set (:emitter-deltas x))}) states))
 
-(defn input->events
+(defn input->feedback
   "Given a sequence of states return a sequence of maps with :input
   and :emitter."
   [states]
-  (mapv (fn [x] {:input (:input x) :events (:events x)}) states))
+  (mapv (fn [x] {:input (:input x) :feedback (:feedback x)}) states))
 
 (deftest test-topo-sort
   (let [flow (make-flow {:models {:model-guess    {:init 0 :fn :fn-a}
@@ -347,10 +347,10 @@
 ;; Simplest possible application
 ;; ================================================================================
 
-(defn number-model [old event]
-  (case (msg/type event)
-    :io.pedestal.app.messages/init (:value event)
-    (:n event)))
+(defn number-model [old message]
+  (case (msg/type message)
+    :io.pedestal.app.messages/init (:value message)
+    (:n message)))
 
 (def simplest-possible-app
   {:models {:model-a {:init 0 :fn number-model}}})
@@ -377,7 +377,7 @@
             :subscriptions [[]]
             :models {:model-a 0}
             :views {:io.pedestal.app/view-model-a 0}
-            :events []
+            :feedback []
             :output []
             :emitter-deltas [[:node-create [] :map]
                              [:node-create [:io.pedestal.app/view-model-a] :map]
@@ -387,7 +387,7 @@
             :models {:model-a 42}
             :subscriptions [[]]
             :views {:io.pedestal.app/view-model-a 42}
-            :events []
+            :feedback []
             :output []
             :emitter-deltas [[:value [:io.pedestal.app/view-model-a] 0 42]]}))
     (is (= (input->emitter-output results)
@@ -497,8 +497,8 @@
 ;; including:
 ;;
 ;; - Views which have other views as input
-;; - Views which generate events
-;; - Recursive event processing within a single transaction
+;; - Views which generate feedback
+;; - Recursive message processing within a single transaction
 
 (defn good-enough? [state inputs]
   (let [{:keys [accuracy half]} inputs
@@ -519,7 +519,7 @@
 
 ;; Calculate square root using Heron's method
 ;; ================================================================================
-;; this will be the first time that test recursion based on an events function
+;; this will be the first time that test recursion based on an feedback function
 
 (def square-root-app
   {:models  {:guess    {:init 0 :fn number-model}
@@ -529,7 +529,7 @@
              :sum          {:fn sum :input #{:guess :divide}}
              :half         {:fn half :input #{:sum}}
              :good-enough? {:fn good-enough? :input #{:half :accuracy}}}
-   :events  {:good-enough? continue-calc}
+   :feedback  {:good-enough? continue-calc}
    :emitters {:answer {:fn default-emitter-fn :input #{:x :half}}}})
 
 (deftest test-square-root
@@ -683,9 +683,9 @@
 ;; ================================================================================
 
 (defn echo-output [service-name]
-  (fn [event old-model new-model]
+  (fn [message old-model new-model]
     {:output [{msg/topic {:service service-name} :n new-model}]
-     :events [{msg/topic :y :n (str new-model)}]}))
+     :feedback [{msg/topic :y :n (str new-model)}]}))
 
 (defn capture-queue [n queue-name app state]
   (when (pos? n)
