@@ -35,34 +35,35 @@
                        :children {:** {:handler :b}}}})))
 
 (deftest test-find-handler
-  (let [handlers (-> {}
-                     (add-handler :node-create   []                :_node-enter-root)
-                     (add-handler :node-create   [:**]             :_node-enter-any)
-                     (add-handler :node-create   [:a :b :*]        :_node-enter-a-b-any)
-                     (add-handler :transform-enable [:a :b :*]        :_event-enter-a-b-any)
-                     (add-handler :event-*       [:a :b :*]        :_event-any-a-b-any)
-                     (add-handler :transform-enable [:a :b :* :d :e]  :_event-enter-a-b-any-d-e)
-                     (add-handler :transform-enable [:* :* :* :d :*]  :_event-enter-any-any-any-d-any)
-                     (add-handler :transform-enable [:* :* :* :f :**] :_event-enter-any-any-any-f-any)
-                     (add-handler :transform-enable [:a :b :* :d :e]  :_event-enter-a-b-any-d-e))]
+  (let [handlers
+        (-> {}
+            (add-handler :node-create      []                :_node-enter-root)
+            (add-handler :node-create      [:**]             :_node-enter-any)
+            (add-handler :node-create      [:a :b :*]        :_node-enter-a-b-any)
+            (add-handler :transform-enable [:a :b :*]        :_transform-enter-a-b-any)
+            (add-handler :transform-*      [:a :b :*]        :_transform-any-a-b-any)
+            (add-handler :transform-enable [:a :b :* :d :e]  :_transform-enter-a-b-any-d-e)
+            (add-handler :transform-enable [:* :* :* :d :*]  :_transform-enter-any-any-any-d-any)
+            (add-handler :transform-enable [:* :* :* :f :**] :_transform-enter-any-any-any-f-any)
+            (add-handler :transform-enable [:a :b :* :d :e]  :_transform-enter-a-b-any-d-e))]
     (is (= (find-handler handlers :node-create [])
            :_node-enter-root))
     (is (= (find-handler handlers :node-create [:a :b :c :d])
            :_node-enter-any))
     (is (= (find-handler handlers :transform-enable [:a :b :c])
-           :_event-enter-a-b-any))
+           :_transform-enter-a-b-any))
     (is (= (find-handler handlers :transform-enable [:a :b :g])
-           :_event-enter-a-b-any))
+           :_transform-enter-a-b-any))
     (is (= (find-handler handlers :transform-disable [:a :b :g])
-           :_event-any-a-b-any))
+           :_transform-any-a-b-any))
     (is (= (find-handler handlers :transform-enable [:a :b :c :d :e])
-           :_event-enter-a-b-any-d-e))
+           :_transform-enter-a-b-any-d-e))
     (is (= (find-handler handlers :transform-enable [:a :b :c :d :e])
-           :_event-enter-a-b-any-d-e))
+           :_transform-enter-a-b-any-d-e))
     (is (= (find-handler handlers :transform-enable [:z :b :c :d :e])
-           :_event-enter-any-any-any-d-any))
+           :_transform-enter-any-any-any-d-any))
     (is (= (find-handler handlers :transform-enable [:a :b :c :f :e])
-           :_event-enter-any-any-any-f-any))
+           :_transform-enter-any-any-any-f-any))
     (is (= (find-handler handlers :node-create [:a :b :c])
            :_node-enter-a-b-any))))
 
@@ -151,7 +152,7 @@
                  (add-handler :node-create [:a :b] b-enter)
                  (add-handler :value [:a :b :c] c-update)
                  (add-handler :node-destroy [:a :b :c] c-exit)
-                 (add-handler :node-destroy [:**] d/default-exit))
+                 (add-handler :node-destroy [:**] d/default-destroy))
           ;; create renderer
           r (renderer :root ls)]
       
@@ -253,9 +254,9 @@
   (put-message [this message]
     (reset! action message)))
 
-(defn event-messages [events event-name env]
-  (assert (contains? events event-name) (str "There is no event named " event-name))
-  (map (partial msg/add-message-type event-name) (event-name events)))
+(defn fill-messages [messages transform-name env]
+  (assert (contains? messages transform-name) (str "There is no transform named " transform-name))
+  (map (partial msg/add-message-type transform-name) (transform-name messages)))
 
 (deftest test-render-timeline
   
@@ -272,15 +273,15 @@
                               id (new-id! r path :chart)]
                           (d/append! parent {:content "Timeline Chart" :attrs {:id id}})))
           
-          chart-event-enter (fn [r [_ path event-name msgs] d]
-                              (let [id (get-id r path)]
-                                (d/listen! id
-                                           :click
-                                           (fn [e]
-                                             (p/put-message d (event-messages {event-name msgs}
-                                                                              :group-selected
-                                                                              {}))))
-                                (on-destroy! r path #(d/unlisten! id :click))))
+          chart-transform-enter (fn [r [_ path transform-name msgs] d]
+                                  (let [id (get-id r path)]
+                                    (d/listen! id
+                                               :click
+                                               (fn [e]
+                                                 (p/put-message d (fill-messages {transform-name msgs}
+                                                                                 :group-selected
+                                                                                 {}))))
+                                    (on-destroy! r path #(d/unlisten! id :click))))
           
           data-enter (fn [r [_ path] _]
                        (let [parent (get-parent-id r path)
@@ -306,23 +307,23 @@
                          :node-create (d/append! parent {:attrs {:id id :class :button}})
                          :value (d/set-content! id (last delta))
                          :transform-enable
-                         (let [[_ _ event-name msgs] delta]
+                         (let [[_ _ transform-name msgs] delta]
                            (d/listen! id
                                       :click
                                       (fn [e]
-                                        (p/put-message d (event-messages {event-name msgs} :nav {}))))
+                                        (p/put-message d (fill-messages {transform-name msgs} :nav {}))))
                            (on-destroy! r path #(d/unlisten! id :click))))))
           
           ;; create listeners
           ls (-> {}
-                 (add-handler :node-create [:t] t-enter)
-                 (add-handler :node-create [:t :chart] chart-enter)
-                 (add-handler :node-create [:t :chart :data] data-enter)
-                 (add-handler :node-create [:t :chart :data :*] add-chart-data-node)
-                 (add-handler :value [:t :chart :data :*] data-update)
-                 (add-handler :transform-enable [:t :chart] chart-event-enter)
-                 (add-handler :* [:t :chart :back-button] bb-enter)
-                 (add-handler :node-destroy [:**] d/default-exit))
+                 (add-handler :node-create      [:t] t-enter)
+                 (add-handler :node-create      [:t :chart] chart-enter)
+                 (add-handler :node-create      [:t :chart :data] data-enter)
+                 (add-handler :node-create      [:t :chart :data :*] add-chart-data-node)
+                 (add-handler :value            [:t :chart :data :*] data-update)
+                 (add-handler :transform-enable [:t :chart] chart-transform-enter)
+                 (add-handler :*                [:t :chart :back-button] bb-enter)
+                 (add-handler :node-destroy     [:**] d/default-destroy))
           ;; create a dispatcher
           last-user-action (atom nil)
           input-queue (->TestQueue last-user-action)
@@ -337,7 +338,7 @@
               :attrs {:id :root}
               :children [{:content nil :attrs {:id :timeline}}]}))
 
-      ;; check that no events are available
+      ;; check that no transforms are available
       (d/click! :back-button)
       
       (is (= @last-user-action nil))
@@ -363,7 +364,7 @@
                                                  {:content "Back to Index"
                                                   :attrs {:id :back-button :class :button}}]}]}]}))
 
-      ;; check that events are hooked up
+      ;; check that transforms are hooked up
       (d/click! :back-button)
       
       (is (= @last-user-action [{msg/type :nav :page :attributes}]))
@@ -457,7 +458,7 @@
               :attrs {:id :root}
               :children [{:content nil :attrs {:id :timeline} :children []}]}))
       
-      ;; check that all events have been removed
+      ;; check that all transforms have been removed
       (p/put-message input-queue nil)
       (is (nil? @last-user-action))
       (d/click! :back-button)

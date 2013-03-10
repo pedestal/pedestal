@@ -14,7 +14,7 @@
 (deftest test-add-message-type
   (is (= {topic :todo msg/type :clear-completed}
          (add-message-type :clear-completed {topic :todo}))
-      "injects the event-name into message as type")
+      "injects the transform-name into message as type")
   (is (= {topic :todo msg/type :my-other-type}
          (add-message-type :clear-completed {topic :todo msg/type :my-other-type}))
       "returns the original message if type is already present"))

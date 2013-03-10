@@ -4,20 +4,18 @@
     "A tree structure which can be used to represent the user
      interface of an application.
 
-    A tree node may contain a value, attributes and events.
+    A tree node may contain a value, attributes and data model transformations.
 
     Values are arbitrary Clojure data.
 
     Attributes are a map of keys to values.
 
-    Events are maps of event names to collections of data which
-    represent the runtime events/messages which can be sent to an
-    application's Behavior.
+    Data model transformations are maps of transform names to
+    collections of messages which can update an application's data
+    model.
 
     The purpose of this tree is provide an information model for a
-    user interface. The data in this tree are all that is required to
-    render the user interface. The tree contains no information about
-    how the user interface should be rendered."
+    application."
     (:require [clojure.set :as set]
               [io.pedestal.app.util.log :as log]
               [io.pedestal.app.query :as query]))
@@ -38,11 +36,11 @@
 (defmethod inverse :attr [[op path k o n]]
   [op path k n o])
 
-(defmethod inverse :transform-enable [[op path event-name msgs]]
-  [:transform-disable path event-name msgs])
+(defmethod inverse :transform-enable [[op path transform-name msgs]]
+  [:transform-disable path transform-name msgs])
 
-(defmethod inverse :transform-disable [[op path event-name msgs]]
-  [:transform-enable path event-name msgs])
+(defmethod inverse :transform-disable [[op path transform-name msgs]]
+  [:transform-enable path transform-name msgs])
 
 (defn invert [deltas]
   (mapv inverse (reverse deltas)))
@@ -57,9 +55,6 @@
   (cond (map? x) :map
         (vector? x) :vector
         :else :unknown))
-
-(defn- real-path-exists? [tree r-path]
-  (get-in tree r-path))
 
 (defn- existing-node-has-same-type? [tree r-path type]
   (if-let [node (get-in tree r-path)]
@@ -106,7 +101,7 @@
                      (get-in tree r-path) "\n"
                      "delta:\n"
                      delta))
-        (if (real-path-exists? tree r-path)
+        (if (get-in tree r-path)
           tree
           (-> tree
               (assoc-in r-path (new-node children))
@@ -145,7 +140,7 @@
                 tree (if (:value node-to-remove)
                        (apply-to-tree tree [:value path (:value node-to-remove) nil])
                        tree)
-                tree (if-let [ks (:events node-to-remove)]
+                tree (if-let [ks (:transforms node-to-remove)]
                        (reduce apply-to-tree tree (map (fn [[k v]] [:transform-disable path k]) ks))
                        tree)
                 tree (if-let [ks (:attrs node-to-remove)]
@@ -168,9 +163,6 @@
     (if (not (empty? children))
       (remove-children tree path children)
       tree)))
-
-(defn- value-exists? [tree path]
-  (get-in tree path))
 
 (defn- same-value? [tree path v]
   (= (get-in tree path) v))
@@ -218,20 +210,17 @@
           (remove-empty (conj r-path :attrs))
           (update-in [:this-tx] conj [op path k o n])))))
 
-(defn- event-exists? [tree path]
-  (get-in tree path))
-
-(defn- same-event-msgs? [tree path msgs]
+(defn- same-transform? [tree path msgs]
   (= (get-in tree path) msgs))
 
 (defmethod apply-to-tree :transform-enable [tree delta]
   (let [[_ path k msgs] delta
         r-path (real-path path)
-        e-path (conj r-path :events k)]
-    (assert (or (not (event-exists? tree e-path))
-                (same-event-msgs? tree e-path msgs))
-            (str "A different event " k " at path " path " already exists."))
-    (if (event-exists? tree e-path)
+        e-path (conj r-path :transforms k)]
+    (assert (or (not (get-in tree e-path))
+                (same-transform? tree e-path msgs))
+            (str "A different transform " k " at path " path " already exists."))
+    (if (get-in tree e-path)
       tree
       (-> tree
           (assoc-in e-path msgs)
@@ -240,27 +229,27 @@
 (defmethod apply-to-tree :transform-disable [tree delta]
   (let [[_ path k] delta
         r-path (real-path path)
-        events-path (conj r-path :events)
-        e-path (conj events-path k)]
-    (if (event-exists? tree e-path)
+        transforms-path (conj r-path :transforms)
+        e-path (conj transforms-path k)]
+    (if (get-in tree e-path)
       (-> tree
           (update-in [:this-tx] conj (conj delta (get-in tree e-path)))
-          (update-in events-path dissoc k)
-          (remove-empty events-path))
+          (update-in transforms-path dissoc k)
+          (remove-empty transforms-path))
       tree)))
 
-(defn- node-deltas [{:keys [value events attrs]} path]
+(defn- node-deltas [{:keys [value transforms attrs]} path]
   (concat []
           (when value [[:value path value]])
           (when attrs (vec (map (fn [[k v]]
                                   [:attr path k v])
                                 attrs)))
-          (when events (vec (map (fn [[k v]]
+          (when transforms (vec (map (fn [[k v]]
                                    [:transform-enable path k v])
-                                 events)))))
+                                 transforms)))))
 
 (defn- map->deltas [tree path]
-  (let [node-keys #{:children :events :value :attrs}
+  (let [node-keys #{:children :transforms :value :attrs}
         node? (and (map? tree) (not (empty? (set/intersection (set (keys tree)) node-keys))))
         children (if node? (or (:children tree) {}) tree)
         children-type (node-type children)
@@ -299,27 +288,27 @@
 ;; Query
 ;; ================================================================================
 
-(def ^:private next-eid-atom (atom 0))
+(def ^:private next-id-atom (atom 0))
 
-(defn- next-eid []
-  (swap! next-eid-atom inc))
+(defn- next-id []
+  (swap! next-id-atom inc))
 
-(defn- event->entities [event-name msgs node-id]
-  (let [event-id (next-eid)]
-    (concat [{:t/id event-id :t/event-name event-name :t/node node-id :t/type :t/event}]
-            (map (fn [m] (merge m {:t/id (next-eid) :t/event event-id :t/type :t/message})) msgs))))
+(defn- transform->entities [transform-name msgs node-id]
+  (let [transform-id (next-id)]
+    (concat [{:t/id transform-id :t/transform-name transform-name :t/node node-id :t/type :t/transform}]
+            (map (fn [m] (merge m {:t/id (next-id) :t/transform transform-id :t/type :t/message})) msgs))))
 
-(defn- events->entities [events node-id]
-  (reduce (fn [acc [event-name msgs]]
-            (concat acc (event->entities event-name msgs node-id)))
+(defn- transforms->entities [transforms node-id]
+  (reduce (fn [acc [transform-name msgs]]
+            (concat acc (transform->entities transform-name msgs node-id)))
           []
-          events))
+          transforms))
 
 (defn- attrs->entities [attrs node-id]
-  (when (not (empty? attrs)) [(merge attrs {:t/id (next-eid) :t/node node-id :t/type :t/attrs})]))
+  (when (not (empty? attrs)) [(merge attrs {:t/id (next-id) :t/node node-id :t/type :t/attrs})]))
 
 (defn- node->entities [node path parent-id node-id]
-  (let [{:keys [value attrs events]} node
+  (let [{:keys [value attrs transforms]} node
         node-e {:t/id node-id :t/path path :t/type :t/node :t/segment (last path)}
         node-e (if parent-id
                  (assoc node-e :t/parent parent-id)
@@ -328,13 +317,13 @@
                  (assoc node-e :t/value value)
                  node-e)
         attrs-es (attrs->entities attrs node-id)
-        event-es (events->entities events node-id)]
-    (concat [node-e] attrs-es event-es)))
+        transform-es (transforms->entities transforms node-id)]
+    (concat [node-e] attrs-es transform-es)))
 
 (defn- tree->entities [tree path parent-id]
   (let [{:keys [children]} tree
         ks (child-keys children)
-        node-id (next-eid)
+        node-id (next-id)
         node-tuples (node->entities tree path parent-id node-id)]
     (concat node-tuples
             (mapcat (fn [k] (tree->entities (get-in tree [:children k]) (conj path k) node-id))
@@ -415,7 +404,7 @@
 
 (defn node-exists? [tree path]
   (let [r-path (real-path path)]
-    (real-path-exists? tree r-path)))
+    (get-in tree r-path)))
 
 (def new-app-model
   (map->Tree

@@ -4,12 +4,12 @@
 
 (def ^:private listeners (atom {}))
 
-(defn publish [event-type event]
-  (doseq [f (get @listeners event-type)]
-    (f event)))
+(defn publish [topic message]
+  (doseq [f (get @listeners topic)]
+    (f message)))
 
-(defn subscribe [event-type f]
-  (swap! listeners update-in [event-type] (fnil conj []) f))
+(defn subscribe [topic f]
+  (swap! listeners update-in [topic] (fnil conj []) f))
 
 (defn clear []
   (reset! listeners {}))

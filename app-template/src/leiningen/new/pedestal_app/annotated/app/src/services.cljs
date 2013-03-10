@@ -6,7 +6,7 @@
 ;; behavior.
 ;;
 ;; This namespace will usually contain a function which can be
-;; configured to receive output events from the bahavior in the file
+;; configured to receive output messages from the behavior in the file
 ;;
 ;; app/src/{{sanitized}}/start.cljs
 ;;
@@ -15,7 +15,7 @@
 ;;
 ;; (app/consume-output app services-fn)
 ;;
-;; A very simple example of a services function which echos all events
+;; A very simple example of a services function which echos all messages
 ;; back to the behavior is shown below
 
 (comment

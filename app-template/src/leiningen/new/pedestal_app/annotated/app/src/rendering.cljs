@@ -44,7 +44,7 @@
     (dom/append! (dom/by-id parent) (html {:id id :message ""}))))
 
 (defn render-message [renderer [_ path _ new-value] transmitter]
-  ;; This function responds to a :value event. It uses the
+  ;; This function responds to a :value delta. It uses the
   ;; `update-t` function to update the template at `path` with the new
   ;; values in the passed map.
   (templates/update-t renderer path {:message new-value}))
@@ -64,8 +64,8 @@
    ;; behavior.
    [:node-create  [:io.pedestal.app/view-example-model] render-page]
    ;; All :node-destroy deltas for this path will be handled by the
-   ;; library function `d/default-exit`.
-   [:node-destroy   [:io.pedestal.app/view-example-model] d/default-exit]
+   ;; library function `d/default-destroy`.
+   [:node-destroy   [:io.pedestal.app/view-example-model] d/default-destroy]
    ;; All :node-create deltas for this path will be handled by the
    ;; function `render-message`.
    [:value [:io.pedestal.app/view-example-model] render-message]])
