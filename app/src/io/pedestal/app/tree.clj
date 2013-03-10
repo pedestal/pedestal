@@ -212,7 +212,7 @@
           (remove-empty (conj r-path :attrs))
           (update-in [:this-tx] conj [op path k o n])))))
 
-(defn- same-event-msgs? [tree path msgs]
+(defn- same-transform? [tree path msgs]
   (= (get-in tree path) msgs))
 
 (defmethod apply-to-tree :transform-enable [tree delta]
@@ -220,8 +220,8 @@
         r-path (real-path path)
         e-path (conj r-path :transforms k)]
     (assert (or (not (get-in tree e-path))
-                (same-event-msgs? tree e-path msgs))
-            (str "A different event " k " at path " path " already exists."))
+                (same-transform? tree e-path msgs))
+            (str "A different transform " k " at path " path " already exists."))
     (if (get-in tree e-path)
       tree
       (-> tree
@@ -231,13 +231,13 @@
 (defmethod apply-to-tree :transform-disable [tree delta]
   (let [[_ path k] delta
         r-path (real-path path)
-        events-path (conj r-path :transforms)
-        e-path (conj events-path k)]
+        transforms-path (conj r-path :transforms)
+        e-path (conj transforms-path k)]
     (if (get-in tree e-path)
       (-> tree
           (update-in [:this-tx] conj (conj delta (get-in tree e-path)))
-          (update-in events-path dissoc k)
-          (remove-empty events-path))
+          (update-in transforms-path dissoc k)
+          (remove-empty transforms-path))
       tree)))
 
 (defn- node-deltas [{:keys [value transforms attrs]} path]
@@ -295,16 +295,16 @@
 (defn- next-eid []
   (swap! next-eid-atom inc))
 
-(defn- event->entities [transform-name msgs node-id]
-  (let [event-id (next-eid)]
-    (concat [{:t/id event-id :t/transform-name transform-name :t/node node-id :t/type :t/event}]
-            (map (fn [m] (merge m {:t/id (next-eid) :t/event event-id :t/type :t/message})) msgs))))
+(defn- transform->entities [transform-name msgs node-id]
+  (let [transform-id (next-eid)]
+    (concat [{:t/id transform-id :t/transform-name transform-name :t/node node-id :t/type :t/transform}]
+            (map (fn [m] (merge m {:t/id (next-eid) :t/transform transform-id :t/type :t/message})) msgs))))
 
-(defn- events->entities [events node-id]
+(defn- transforms->entities [transforms node-id]
   (reduce (fn [acc [transform-name msgs]]
-            (concat acc (event->entities transform-name msgs node-id)))
+            (concat acc (transform->entities transform-name msgs node-id)))
           []
-          events))
+          transforms))
 
 (defn- attrs->entities [attrs node-id]
   (when (not (empty? attrs)) [(merge attrs {:t/id (next-eid) :t/node node-id :t/type :t/attrs})]))
@@ -319,8 +319,8 @@
                  (assoc node-e :t/value value)
                  node-e)
         attrs-es (attrs->entities attrs node-id)
-        event-es (events->entities transforms node-id)]
-    (concat [node-e] attrs-es event-es)))
+        transform-es (transforms->entities transforms node-id)]
+    (concat [node-e] attrs-es transform-es)))
 
 (defn- tree->entities [tree path parent-id]
   (let [{:keys [children]} tree

@@ -483,7 +483,7 @@
                   [:attr [:a :b 0] :color nil :blue]]]
       (is (= (:tree start) (:tree (isomorphic start deltas)))))))
 
-(deftest test-event-enter
+(deftest test-transform-enter
   (let [ui new-app-model
         deltas [[:node-create [] :map]
                 [:node-create [:a] :map]
@@ -510,10 +510,10 @@
     (let [deltas [[:transform-enable [:a :b] :x [{:y :z}]]
                   [:transform-enable [:a :b] :x [{:j :k}]]]]
       (is (thrown-with-msg? AssertionError
-            #"A different event :x at path \[:a :b\] already exists."
+            #"A different transform :x at path \[:a :b\] already exists."
             (test-apply-deltas start deltas))))))
 
-(deftest test-event-exit
+(deftest test-transform-exit
   (let [ui new-app-model
         deltas [[:node-create [] :map]
                 [:node-create [:a] :map]
@@ -538,7 +538,7 @@
               :seq 7
               :t 2})))))
 
-(deftest test-event-isomorphism
+(deftest test-transform-isomorphism
   (let [ui new-app-model
         deltas [[:node-create [] :map]
                 [:node-create [:a] :map]
@@ -673,33 +673,33 @@
 ;; Query Tests
 ;; ================================================================================
 
-(deftest test-event->entities
+(deftest test-transform->entities
   (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
-        event->entities #'io.pedestal.app.tree/event->entities]
+        transform->entities #'io.pedestal.app.tree/transform->entities]
     (reset! next-eid-atom 10)
-    (is (= (event->entities :navigate
+    (is (= (transform->entities :navigate
                             [{:page :page/configuration}
                              {msg/topic :y :style :awesome}]
                             1)
-           [{:t/transform-name :navigate :t/id 11 :t/node 1 :t/type :t/event}
-            {:page :page/configuration :t/event 11 :t/id 12 :t/type :t/message}
-            {:style :awesome :t/event 11 :t/id 13 :t/type :t/message msg/topic :y}]))))
+           [{:t/transform-name :navigate :t/id 11 :t/node 1 :t/type :t/transform}
+            {:page :page/configuration :t/transform 11 :t/id 12 :t/type :t/message}
+            {:style :awesome :t/transform 11 :t/id 13 :t/type :t/message msg/topic :y}]))))
 
-(deftest test-events->entities
+(deftest test-transforms->entities
   (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
-        events->entities #'io.pedestal.app.tree/events->entities]
+        transforms->entities #'io.pedestal.app.tree/transforms->entities]
     (reset! next-eid-atom 10)
-    (let [result (events->entities {:navigate [{:page :page/configuration}
+    (let [result (transforms->entities {:navigate [{:page :page/configuration}
                                                {msg/topic :y :style :awesome}]
                                     :subscribe [{msg/topic :model/timeline :interval 'interval}]}
                                    1)]
       (is (= (count result) 5))
       (is (= (set (map :t/id result)) #{11 12 13 14 15}))
-      (is (= (set (keep :t/event result)) #{11 12}))
-      (is (= (set (map #(dissoc % :t/id :t/event) result))
-             #{{:t/transform-name :subscribe :t/node 1 :t/type :t/event}
+      (is (= (set (keep :t/transform result)) #{11 12}))
+      (is (= (set (map #(dissoc % :t/id :t/transform) result))
+             #{{:t/transform-name :subscribe :t/node 1 :t/type :t/transform}
                {:interval 'interval :t/type :t/message msg/topic :model/timeline}
-               {:t/transform-name :navigate :t/node 1 :t/type :t/event}
+               {:t/transform-name :navigate :t/node 1 :t/type :t/transform}
                {:page :page/configuration :t/type :t/message}
                {:style :awesome :t/type :t/message msg/topic :y}})))))
 
@@ -736,8 +736,8 @@
                               :transforms {:test [{:x :y}]}} [:a :b] 1 5)
              [{:t/id 5 :t/parent 1 :t/path [:a :b] :t/segment :b :t/type :t/node :t/value 42}
               {:color :green :t/id 11 :t/node 5 :t/type :t/attrs}
-              {:t/transform-name :test :t/id 12 :t/node 5 :t/type :t/event}
-              {:x :y :t/event 12 :t/id 13 :t/type :t/message}])))))
+              {:t/transform-name :test :t/id 12 :t/node 5 :t/type :t/transform}
+              {:x :y :t/transform 12 :t/id 13 :t/type :t/message}])))))
 
 (deftest test-tree->entities
   (let [tree->entities #'io.pedestal.app.tree/tree->entities]
@@ -757,7 +757,7 @@
              6))
       (is (= (count (filter #(= (:t/type %) :t/attrs) result))
              2))
-      (is (= (count (filter #(= (:t/type %) :t/event) result))
+      (is (= (count (filter #(= (:t/type %) :t/transform) result))
              2))
       (is (= (count (filter #(= (:t/type %) :t/message) result))
              2))
@@ -790,7 +790,7 @@
              6))
       (is (= (count (filter #(= (last %) :t/attrs) result))
              2))
-      (is (= (count (filter #(= (last %) :t/event) result))
+      (is (= (count (filter #(= (last %) :t/transform) result))
              2))
       (is (= (count (filter #(= (last %) :t/message) result))
              2))
@@ -840,12 +840,12 @@
              #{[[:navigation :items 4]]
                [[:navigation :items 4 1]]
                [[:navigation :items 0]]})))
-    (testing "the value and path of the node which has an event with a message
-              with key :event and value :entity-selected"
+    (testing "the value and path of the node which has an transform with a message
+              with key :transform and value :entity-selected"
       (is (= (set (q `[:find ?v ?p
                        :where
                        [?m ~msg/type :entity-selected]
-                       [?m :t/event ?e]
+                       [?m :t/transform ?e]
                        [?e :t/node ?n]
                        [?n :t/value ?v]
                        [?n :t/path ?p]]
@@ -861,7 +861,7 @@
                      test-tree))
              #{[[:navigation :items 4 0]]
                [[:navigation :items 4 1]]})))
-    (testing "the paths to all events on this page"
+    (testing "the paths to all transforms on this page"
       (is (= (set (q '[:find ?p ?e-name :where
                        [?e :t/transform-name ?e-name]
                        [?e :t/node ?n]
@@ -873,7 +873,7 @@
                [[:navigation :items 3] :navigate]
                [[:navigation :items 4 0] :disconnect]
                [[:navigation :items 4 1] :subscribe]})))
-    (testing "the paths to all :navigate events on this page"
+    (testing "the paths to all :navigate transforms on this page"
       (is (= (set (q '[:find ?p :where
                        [?e :t/transform-name :navigate]
                        [?e :t/node ?n]
@@ -887,7 +887,7 @@
       (is (= (set (remove #(= (first %) :t/node)
                           (q `[:find ?attr ?value :where
                                [?m ~msg/topic :model/timeline]
-                               [?m :t/event ?e]
+                               [?m :t/transform ?e]
                                [?e :t/node ?n]
                                [?a :t/type :t/attrs]
                                [?a :t/node ?n]
@@ -896,11 +896,11 @@
              #{[:active true]
                [:color :blue]
                [:t/type :t/attrs]})))
-    (testing "the event names with a msg/topic key in the message"
+    (testing "the transform names with a msg/topic key in the message"
       (is (= (set (remove #(= (first %) :t/node)
                           (q `[:find ?n :where
                                [?m ~msg/topic]
-                               [?m :t/event ?e]
+                               [?m :t/transform ?e]
                                [?e :t/transform-name ?n]]
                              test-tree)))
              #{[:disconnect] [:navigate] [:subscribe]})))))
@@ -917,7 +917,7 @@
                    :where
                    [?n :t/value "Attributes"]
                    [?e :t/node ?n]
-                   [$ ?m :t/event ?e]
+                   [$ ?m :t/transform ?e]
                    [$ ?m :page ?p]
                    [$views ?p ?c]]
                  test-tree
@@ -930,7 +930,7 @@
                    :where
                    [$ ?n :t/value ?a-name]
                    [$ ?e :t/node ?n]
-                   [$ ?m :t/event ?e]
+                   [$ ?m :t/transform ?e]
                    [$ ?m :page ?p]
                    [$views ?p ?c]]
                  test-tree
