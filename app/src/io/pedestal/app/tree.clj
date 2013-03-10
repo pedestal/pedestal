@@ -4,20 +4,20 @@
     "A tree structure which can be used to represent the user
      interface of an application.
 
-    A tree node may contain a value, attributes and events.
+    A tree node may contain a value, attributes and data model
+    transformations.
 
     Values are arbitrary Clojure data.
 
     Attributes are a map of keys to values.
 
-    Events are maps of event names to collections of data which
-    represent the runtime events/messages which can be sent to an
-    application's Behavior.
+    Data model transformations are maps of transform names to
+    collections of messages which can transform the data model.
 
-    The purpose of this tree is provide an information model for a
-    user interface. The data in this tree are all that is required to
-    render the user interface. The tree contains no information about
-    how the user interface should be rendered."
+    The purpose of this tree is to provide an information model for an
+    application. This model contains all of the information that is
+    required to render a user interface without including information
+    about how to render it."
     (:require [clojure.set :as set]
               [io.pedestal.app.util.log :as log]
               [io.pedestal.app.query :as query]))
