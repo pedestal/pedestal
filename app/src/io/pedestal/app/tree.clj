@@ -38,11 +38,11 @@
 (defmethod inverse :attr [[op path k o n]]
   [op path k n o])
 
-(defmethod inverse :transform-enable [[op path event-name msgs]]
-  [:transform-disable path event-name msgs])
+(defmethod inverse :transform-enable [[op path transform-name msgs]]
+  [:transform-disable path transform-name msgs])
 
-(defmethod inverse :transform-disable [[op path event-name msgs]]
-  [:transform-enable path event-name msgs])
+(defmethod inverse :transform-disable [[op path transform-name msgs]]
+  [:transform-enable path transform-name msgs])
 
 (defn invert [deltas]
   (mapv inverse (reverse deltas)))
@@ -304,14 +304,14 @@
 (defn- next-eid []
   (swap! next-eid-atom inc))
 
-(defn- event->entities [event-name msgs node-id]
+(defn- event->entities [transform-name msgs node-id]
   (let [event-id (next-eid)]
-    (concat [{:t/id event-id :t/event-name event-name :t/node node-id :t/type :t/event}]
+    (concat [{:t/id event-id :t/transform-name transform-name :t/node node-id :t/type :t/event}]
             (map (fn [m] (merge m {:t/id (next-eid) :t/event event-id :t/type :t/message})) msgs))))
 
 (defn- events->entities [events node-id]
-  (reduce (fn [acc [event-name msgs]]
-            (concat acc (event->entities event-name msgs node-id)))
+  (reduce (fn [acc [transform-name msgs]]
+            (concat acc (event->entities transform-name msgs node-id)))
           []
           events))
 

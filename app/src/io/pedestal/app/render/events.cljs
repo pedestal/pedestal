@@ -29,11 +29,11 @@
   (if (fn? messages) (messages e) messages))
 
 (defn send-on
-  ([event-type dc input-queue event-name messages]
+  ([event-type dc input-queue transform-name messages]
      (send-on event-type
               dc
               input-queue
-              (fn [e] (map (partial msg/add-message-type event-name)
+              (fn [e] (map (partial msg/add-message-type transform-name)
                           (produce-messages messages e)))))
   ([event-type dc input-queue messages]
      (event/listen! (-coerce-to-dom-content dc)
@@ -55,7 +55,7 @@
           {}
           input-map))
 
-(defn collect-and-send [event-type dc input-queue event-name messages input-map]
+(defn collect-and-send [event-type dc input-queue transform-name messages input-map]
   (send-on event-type dc input-queue
            (fn [_]
-             (msg/fill event-name messages (collect-inputs input-map)))))
+             (msg/fill transform-name messages (collect-inputs input-map)))))

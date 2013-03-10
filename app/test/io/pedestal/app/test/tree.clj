@@ -681,7 +681,7 @@
                             [{:page :page/configuration}
                              {msg/topic :y :style :awesome}]
                             1)
-           [{:t/event-name :navigate :t/id 11 :t/node 1 :t/type :t/event}
+           [{:t/transform-name :navigate :t/id 11 :t/node 1 :t/type :t/event}
             {:page :page/configuration :t/event 11 :t/id 12 :t/type :t/message}
             {:style :awesome :t/event 11 :t/id 13 :t/type :t/message msg/topic :y}]))))
 
@@ -697,9 +697,9 @@
       (is (= (set (map :t/id result)) #{11 12 13 14 15}))
       (is (= (set (keep :t/event result)) #{11 12}))
       (is (= (set (map #(dissoc % :t/id :t/event) result))
-             #{{:t/event-name :subscribe :t/node 1 :t/type :t/event}
+             #{{:t/transform-name :subscribe :t/node 1 :t/type :t/event}
                {:interval 'interval :t/type :t/message msg/topic :model/timeline}
-               {:t/event-name :navigate :t/node 1 :t/type :t/event}
+               {:t/transform-name :navigate :t/node 1 :t/type :t/event}
                {:page :page/configuration :t/type :t/message}
                {:style :awesome :t/type :t/message msg/topic :y}})))))
 
@@ -736,7 +736,7 @@
                               :events {:test [{:x :y}]}} [:a :b] 1 5)
              [{:t/id 5 :t/parent 1 :t/path [:a :b] :t/segment :b :t/type :t/node :t/value 42}
               {:color :green :t/id 11 :t/node 5 :t/type :t/attrs}
-              {:t/event-name :test :t/id 12 :t/node 5 :t/type :t/event}
+              {:t/transform-name :test :t/id 12 :t/node 5 :t/type :t/event}
               {:x :y :t/event 12 :t/id 13 :t/type :t/message}])))))
 
 (deftest test-tree->entities
@@ -863,7 +863,7 @@
                [[:navigation :items 4 1]]})))
     (testing "the paths to all events on this page"
       (is (= (set (q '[:find ?p ?e-name :where
-                       [?e :t/event-name ?e-name]
+                       [?e :t/transform-name ?e-name]
                        [?e :t/node ?n]
                        [?n :t/path ?p]]
                      test-tree))
@@ -875,7 +875,7 @@
                [[:navigation :items 4 1] :subscribe]})))
     (testing "the paths to all :navigate events on this page"
       (is (= (set (q '[:find ?p :where
-                       [?e :t/event-name :navigate]
+                       [?e :t/transform-name :navigate]
                        [?e :t/node ?n]
                        [?n :t/path ?p]]
                      test-tree))
@@ -901,7 +901,7 @@
                           (q `[:find ?n :where
                                [?m ~msg/topic]
                                [?m :t/event ?e]
-                               [?e :t/event-name ?n]]
+                               [?e :t/transform-name ?n]]
                              test-tree)))
              #{[:disconnect] [:navigate] [:subscribe]})))))
 
