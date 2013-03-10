@@ -254,9 +254,9 @@
   (put-message [this message]
     (reset! action message)))
 
-(defn event-messages [events transform-name env]
-  (assert (contains? events transform-name) (str "There is no event named " transform-name))
-  (map (partial msg/add-message-type transform-name) (transform-name events)))
+(defn fill-messages [messages transform-name env]
+  (assert (contains? messages transform-name) (str "There is no transform named " transform-name))
+  (map (partial msg/add-message-type transform-name) (transform-name messages)))
 
 (deftest test-render-timeline
   
@@ -273,12 +273,12 @@
                               id (new-id! r path :chart)]
                           (d/append! parent {:content "Timeline Chart" :attrs {:id id}})))
           
-          chart-event-enter (fn [r [_ path transform-name msgs] d]
+          chart-transform-enable (fn [r [_ path transform-name msgs] d]
                               (let [id (get-id r path)]
                                 (d/listen! id
                                            :click
                                            (fn [e]
-                                             (p/put-message d (event-messages {transform-name msgs}
+                                             (p/put-message d (fill-messages {transform-name msgs}
                                                                               :group-selected
                                                                               {}))))
                                 (on-destroy! r path #(d/unlisten! id :click))))
@@ -311,7 +311,7 @@
                            (d/listen! id
                                       :click
                                       (fn [e]
-                                        (p/put-message d (event-messages {transform-name msgs} :nav {}))))
+                                        (p/put-message d (fill-messages {transform-name msgs} :nav {}))))
                            (on-destroy! r path #(d/unlisten! id :click))))))
           
           ;; create listeners
@@ -321,7 +321,7 @@
                  (add-handler :node-create [:t :chart :data] data-enter)
                  (add-handler :node-create [:t :chart :data :*] add-chart-data-node)
                  (add-handler :value [:t :chart :data :*] data-update)
-                 (add-handler :transform-enable [:t :chart] chart-event-enter)
+                 (add-handler :transform-enable [:t :chart] chart-transform-enable)
                  (add-handler :* [:t :chart :back-button] bb-enter)
                  (add-handler :node-destroy [:**] d/default-exit))
           ;; create a mock input-queue
@@ -338,7 +338,7 @@
               :attrs {:id :root}
               :children [{:content nil :attrs {:id :timeline}}]}))
 
-      ;; check that no events are available
+      ;; check that no transforms are available
       (d/click! :back-button)
       
       (is (= @last-user-action nil))
@@ -364,7 +364,7 @@
                                                  {:content "Back to Index"
                                                   :attrs {:id :back-button :class :button}}]}]}]}))
 
-      ;; check that events are hooked up
+      ;; check that transforms are hooked up
       (d/click! :back-button)
       
       (is (= @last-user-action [{msg/type :nav :page :attributes}]))
@@ -458,7 +458,7 @@
               :attrs {:id :root}
               :children [{:content nil :attrs {:id :timeline} :children []}]}))
       
-      ;; check that all events have been removed
+      ;; check that all transforms have been removed
       (p/put-message input-queue nil)
       (is (nil? @last-user-action))
       (d/click! :back-button)

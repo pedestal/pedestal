@@ -5,8 +5,8 @@
 ;; correct. For examples of various kinds of tests, see
 ;; test/{{sanitized}}/test/behavior.clj.
 
-(defn example-model [model-state event]
-  (:value event))
+(defn example-model [model-state message]
+  (:value message))
 
 (def example-app
   {:models {:example-model {:init "Hello World!" :fn example-model}}})
@@ -34,14 +34,14 @@
   
   ;; model
   
-  (defn example-model [model-state event]
+  (defn example-model [model-state message]
     ;; returns new state
     )
   
   ;; output
   
-  (defn example-output [event old-model-state new-model-state]
-    ;; returns vector of messages or map of {:events [] :messages []}
+  (defn example-output [message old-model-state new-model-state]
+    ;; returns vector of messages or map of {:feedback [] :messages []}
     )
   
   ;; view
@@ -55,9 +55,9 @@
     ;; returns new view state
     )
   
-  ;; events
+  ;; feedback
   
-  (defn example-events [view-name old-view-state new-view-state]
+  (defn example-feedback [view-name old-view-state new-view-state]
     ;; returns vector of messages
     )
   
@@ -79,7 +79,7 @@
   {:models {:example-model {:init "" :fn example-model}}
    :output {:example-model example-output}
    :views {:example-view {:fn example-view-1 :input #{:example-model}}}
-   :events {:examle-view example-event}
+   :feedback {:examle-view example-feedback}
    :emitters {:example-emitter {:fn example-emitter :input #{:example-view}}}
    :navigation {:home [[:a-path]]
                 :default :home}}
