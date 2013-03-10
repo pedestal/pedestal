@@ -6,6 +6,4 @@
         "service-template"
         "app"
         "app-tools"
-        "app-template"]
-  :profiles {:test {:sub ["service"
-                          "service-template"]}})
+        "app-template"])

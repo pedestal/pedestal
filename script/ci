@@ -6,4 +6,4 @@ THIS_DIR=`dirname $0`
 cd "$THIS_DIR/.."
 lein sub install
 
-lein -U with-profile test sub test
+lein sub test
