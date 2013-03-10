@@ -35,7 +35,7 @@
 ;; Default functions
 ;; ================================================================================
 
-(defn default-output-fn [event old-model new-model]
+(defn default-output-fn [message old-model new-model]
   nil)
 
 (defn default-view-fn [state input-name old new]
@@ -191,23 +191,23 @@
   (let [{:keys [name]} message]
     (update-in state [:named-paths] dissoc name)))
 
-(defn get-receiver [event]
-  (let [to (msg/topic event)]
+(defn get-receiver [message]
+  (let [to (msg/topic message)]
     (if (keyword? to)
       to
       (or (:node to) (:model to) (:service to)))))
 
-(defn run-model [state flow model-name event]
+(defn run-model [state flow model-name message]
   (assert (get-in flow [:models model-name])
-          (str "Model with name " model-name " does not exist. Message is " event))
+          (str "Model with name " model-name " does not exist. Message is " message))
   (let [model-fn (get-in flow [:models model-name])]
-    (update-in state [:models model-name] model-fn event)))
+    (update-in state [:models model-name] model-fn message)))
 
-(defn run-output [state old-state flow model-name event]
+(defn run-output [state old-state flow model-name message]
   (let [output-fn (get-in flow [:model->output model-name])
         old-model (get-in old-state [:models model-name])
         new-model (get-in state [:models model-name])
-        out (when output-fn (output-fn event old-model new-model))
+        out (when output-fn (output-fn message old-model new-model))
         out (if (vector? out) {:output out} out)]
     (if out
       (-> state
@@ -291,14 +291,14 @@
             n-views)))
 
 (defn- run-dataflow
-  "Starting with the given input event, run the dataflow producing a
+  "Starting with the given input message, run the dataflow producing a
   new state."
-  [state flow event]
+  [state flow message]
   (let [old-state state
-        model-name (get-receiver event)
+        model-name (get-receiver message)
         new-state (-> state
-                      (run-model flow model-name event)
-                      (run-output old-state flow model-name event)
+                      (run-model flow model-name message)
+                      (run-output old-state flow model-name message)
                       (run-views old-state flow model-name :models))
         modified-views (find-modified-inputs :views old-state new-state)
         modified-models (find-modified-inputs :models old-state new-state)
@@ -306,8 +306,8 @@
                    (run-events old-state flow modified-views)
                    (run-emitters old-state flow (merge modified-views modified-models)))]
     (if (not (empty? (:events result)))
-      (reduce (fn [s event]
-                (run-dataflow (assoc s :events []) flow event))
+      (reduce (fn [s message]
+                (run-dataflow (assoc s :events []) flow message))
               result
               (:events result))
       result)))
@@ -327,8 +327,8 @@
                         (some (fn [s] (path-starts-with? path s)) subscriptions)))
                   (mapcat tree/expand-map deltas)))))
 
-(defn process-event
-  "Using the given flow, process the given event producing a new
+(defn process-message
+  "Using the given flow, process the given message producing a new
   state."
   [state flow message]
   (let [old-state state
@@ -345,14 +345,14 @@
     :output []
     :events []))
 
-(defn transact-one [state flow event]
-  (process-event (assoc (pre-tx-state state) :input event) flow event))
+(defn transact-one [state flow message]
+  (process-message (assoc (pre-tx-state state) :input message) flow message))
 
-(defn transact-many [state flow events]
-  (reduce (fn [a event]
-            (process-event (assoc a :input event) flow event))
+(defn transact-many [state flow messages]
+  (reduce (fn [a message]
+            (process-message (assoc a :input message) flow message))
           (pre-tx-state state)
-          events))
+          messages))
 
 
 ;; Build and interface with the outside world
@@ -449,8 +449,8 @@
 (defn run! [app script]
   (assert (or (vector? script) (list? script)) "The passed script must be a vector or list")
   (assert (every? map? script) "Each element of the passed script must be a map")
-  (doseq [event script]
-    (p/put-message (:input app) event)))
+  (doseq [message script]
+    (p/put-message (:input app) message)))
 
 
 ;; Queue consumers
