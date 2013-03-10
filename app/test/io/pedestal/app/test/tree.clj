@@ -99,11 +99,11 @@
   (let [ui new-app-model
         deltas [{:a {:value 42
                      :attrs {:color :red :size 10}
-                     :events {:x [{:y :z}]}
+                     :transforms {:x [{:y :z}]}
                      :children {:b
                                 {:c
                                  [{:value 2
-                                   :events {:f [{:x :p}]}}
+                                   :transforms {:f [{:x :p}]}}
                                   {:value 3
                                    :attrs {:color :blue}}]}}}}]
         start (test-apply-deltas ui deltas)
@@ -132,11 +132,11 @@
                 :tree {:children
                        {:a {:attrs {:color :red :size 10}
                             :value 42
-                            :events {:x [{:y :z}]}
+                            :transforms {:x [{:y :z}]}
                             :children
                             {:b {:children
                                  {:c {:children [{:value 2
-                                                  :events {:f [{:x :p}]}
+                                                  :transforms {:f [{:x :p}]}
                                                   :children {}}]}}}}}}}
                 :seq 17
                 :t 2}))))
@@ -160,7 +160,7 @@
                 :tree {:children
                        {:a {:attrs {:color :red :size 10}
                             :value 42
-                            :events {:x [{:y :z}]}
+                            :transforms {:x [{:y :z}]}
                             :children
                             {:b {:children {}}}}}}
                 :seq 21
@@ -180,7 +180,7 @@
                 :tree {:children
                        {:a {:attrs {:color :red :size 10}
                             :value 42
-                            :events {:x [{:y :z}]}
+                            :transforms {:x [{:y :z}]}
                             :children
                             {:b {:children {}}}}}}
                 :seq 21
@@ -257,7 +257,7 @@
     (is (= (map->deltas {:children
                          {:a {:value "Hello"
                               :attrs {:color :red}
-                              :events {:x [{:y :z}]}
+                              :transforms {:x [{:y :z}]}
                               :children
                               {:b {:children {}}}}}}
                         [])
@@ -269,7 +269,7 @@
             [:node-create [:a :b] :map]]))
     (is (= (map->deltas {:a {:value "Hello"
                              :attrs {:color :red}
-                             :events {:x [{:y :z}]}
+                             :transforms {:x [{:y :z}]}
                              :children
                              {:b {}}}}
                         [])
@@ -294,11 +294,11 @@
             [:value [:a :b 0] 2]]))
     (is (= (map->deltas {:a {:value 42
                              :attrs {:color :red :size 10}
-                             :events {:x [{:y :z}]}
+                             :transforms {:x [{:y :z}]}
                              :children {:b
                                         {:c
                                          [{:value 2
-                                           :events {:f [{:x :p}]}}
+                                           :transforms {:f [{:x :p}]}}
                                           {:value 3
                                            :attrs {:color :blue}}]}}}}
                         [])
@@ -502,7 +502,7 @@
                        1 [{:delta [:transform-enable [:a :b] :x [{:y :z}]] :seq 4 :t 1}
                           {:delta [:transform-enable [:a :b] :m [{:p :t}]] :seq 5 :t 1}]}
               :this-tx []
-              :tree {:children {:a {:children {:b {:events {:x [{:y :z}]
+              :tree {:children {:a {:children {:b {:transforms {:x [{:y :z}]
                                                             :m [{:p :t}]}
                                                    :children [{:children {}}]}}}}}
               :seq 6
@@ -533,7 +533,7 @@
                           {:delta [:transform-enable [:a :b] :m [{:p :t}]] :seq 5 :t 0}]
                        1 [{:delta [:transform-disable [:a :b] :x [{:y :z}]] :seq 6 :t 1}]}
               :this-tx []
-              :tree {:children {:a {:children {:b {:events {:m [{:p :t}]}
+              :tree {:children {:a {:children {:b {:transforms {:m [{:p :t}]}
                                                    :children [{:children {}}]}}}}}
               :seq 7
               :t 2})))))
@@ -632,11 +632,11 @@
     (let [ui new-app-model
           deltas [{:a {:value 42
                        :attrs {:color :red :size 10}
-                       :events {:x [{:y :z}]}
+                       :transforms {:x [{:y :z}]}
                        :children {:b
                                   {:c
                                    [{:value 2
-                                     :events {:f [{:x :p}]}}
+                                     :transforms {:f [{:x :p}]}}
                                     {:value 3
                                      :attrs {:color :blue}}]}}}}]]
       (is (= (test-apply-deltas ui deltas)
@@ -658,11 +658,11 @@
               :tree {:children
                      {:a {:attrs {:color :red :size 10}
                           :value 42
-                          :events {:x [{:y :z}]}
+                          :transforms {:x [{:y :z}]}
                           :children
                           {:b {:children
                                {:c {:children [{:value 2
-                                                :events {:f [{:x :p}]}
+                                                :transforms {:f [{:x :p}]}
                                                 :children {}}
                                                {:attrs {:color :blue}
                                                 :value 3
@@ -733,7 +733,7 @@
       (reset! next-eid-atom 10)
       (is (= (node->entities {:value 42
                               :attrs {:color :green}
-                              :events {:test [{:x :y}]}} [:a :b] 1 5)
+                              :transforms {:test [{:x :y}]}} [:a :b] 1 5)
              [{:t/id 5 :t/parent 1 :t/path [:a :b] :t/segment :b :t/type :t/node :t/value 42}
               {:color :green :t/id 11 :t/node 5 :t/type :t/attrs}
               {:t/transform-name :test :t/id 12 :t/node 5 :t/type :t/event}
@@ -744,11 +744,11 @@
     (let [ui new-app-model
           deltas [{:a {:value 42
                        :attrs {:color :red :size 10}
-                       :events {:x [{:y :z}]}
+                       :transforms {:x [{:y :z}]}
                        :children {:b
                                   {:c
                                    [{:value 2
-                                     :events {:f [{:x :p}]}}
+                                     :transforms {:f [{:x :p}]}}
                                     {:value 3
                                      :attrs {:color :blue}}]}}}}]
           tree (test-apply-deltas ui deltas)
@@ -775,11 +775,11 @@
     (let [ui new-app-model
           deltas [{:a {:value 42
                        :attrs {:color :red :size 10}
-                       :events {:x [{:y :z}]}
+                       :transforms {:x [{:y :z}]}
                        :children {:b
                                   {:c
                                    [{:value 2
-                                     :events {:f [{:x :p}]}}
+                                     :transforms {:f [{:x :p}]}}
                                     {:value 3
                                      :attrs {:color :blue}}]}}}}]
           tree (test-apply-deltas ui deltas)
@@ -802,22 +802,22 @@
     {:title {:value "Datomic"}
      :items [{:value "Configuration"
               :attrs {:active true}
-              :events {:navigate [{:page :page/configuration}]}}
+              :transforms {:navigate [{:page :page/configuration}]}}
              {:value "Timeline"
-              :events {:navigate [{:page :page/timeline}]}}
+              :transforms {:navigate [{:page :page/timeline}]}}
              {:value "Attributes"
-              :events {:navigate [{:page :page/attributes}]}}
+              :transforms {:navigate [{:page :page/attributes}]}}
              {:value "Entities"
-              :events {:navigate [{:page :page/entity-navigator (msg/param :eid) {}}
+              :transforms {:navigate [{:page :page/entity-navigator (msg/param :eid) {}}
                                   {msg/topic :model/entity-navigator msg/type :entity-selected (msg/param :eid) {}}]}}
              {:value "Actions"
               :attrs {:active true}
               :children [{:value "Disconnect"
-                          :events {:disconnect [{msg/topic :model/configuration}
+                          :transforms {:disconnect [{msg/topic :model/configuration}
                                                 {msg/type :navigate :page :page/configuration}]}}
                          {:value "Subscribe"
                           :attrs {:color :blue :active true}
-                          :events {:subscribe [{msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
+                          :transforms {:subscribe [{msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
 
 (def test-tree
   (apply-deltas new-app-model deltas))
