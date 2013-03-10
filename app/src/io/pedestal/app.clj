@@ -4,17 +4,22 @@
     "Implementaiton of Pedestal's application behavior model. Allows for behavior to be
     written as pure functions linked by a dataflow.
 
-    Application behavior is defined in terms of five funcitons:
+    Application behavior is defined in terms of five functions.
 
-    * model - reduce event streams into a value
+    There is one function for handling input (model), three for
+    handling output (output, events, and emitter) and one for building
+    up dataflows which transform data from the data model to something
+    that is easy to consume by one of the output functions.
 
-    * output - generate events to send to external services
+    * model functions receive messages and produce a new data model
 
-    * view - transform and combine event streams (models) in arbitrary dataflows
+    * output functions generate messages to send to external services
 
-    * events - generate new events - supporting event composition
+    * view functions transform and combine data models in arbitrary dataflows
 
-    * emitter - generate changes to the application model
+    * events functions generate new messages as input to models
+
+    * emitter functions generate changes to the application model
     "
     (:require [io.pedestal.app.protocols :as p]
               [io.pedestal.app.messages :as msg]
@@ -383,7 +388,7 @@
   output queues for sending and receiving messages.
 
   The description map contains a subset of the keys:
-  :default-emitter, :models, :output, :views, :events and :emitters."
+  :models, :output, :views, :events, :emitters and :navigation."
   [description]
   (let [app-atom (atom {:output [] :events []})
         flow (make-flow description)
