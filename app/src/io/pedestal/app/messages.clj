@@ -37,9 +37,8 @@
     (str (namespace dummy-kw) ".param")))
 
 (defn param
-  "Return a namespaced version of kw. This keyword is intended for use in event
-   deltas and will be replaced with the raw kw and provided value in the final
-   delivered message.
+  "Return a keyword with name `kw` which can be used mark a missing
+  value in a message.
 
   Example:
   (param :age)
