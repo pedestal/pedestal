@@ -51,8 +51,6 @@
                            name
                            str/upper-case))
      (getRequestURL [this] url)
-     (getLocalPort [this] -1)
-     (getLocalName [this] host)
      (getServerPort [this] -1)
      (getServerName [this] host)
      (getRemoteAddr [this] "127.0.0.1")
