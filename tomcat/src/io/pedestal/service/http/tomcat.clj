@@ -1,6 +1,6 @@
 ;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
 
-(ns pedestal.service.http.tomcat
+(ns io.pedestal.service.http.tomcat
   (:require [clojure.java.io :as io])
   (:import (org.apache.catalina.startup Tomcat)
            (javax.servlet Servlet)))
