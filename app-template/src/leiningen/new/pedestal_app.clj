@@ -10,7 +10,7 @@
     (render "app/assets/stylesheets/project.css" data)]
    ["app/assets/javascripts/xpath.js"
     (render "app/assets/javascripts/xpath.js" data)]
-   
+
    ["tools/public/404.html" (render "tools/public/404.html" data)]
    ["tools/public/design.html" (render "tools/public/design.html" data)]
    ["tools/public/favicon.ico" (render "tools/public/favicon.ico" data)]
@@ -29,7 +29,8 @@
    ["config/config.clj" (render "config/config.clj" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
    ["dev/user.clj" (render "dev/user.clj" data)]
-   
+   ["dev/dev.clj" (render "dev/dev.clj" data)]
+
    ["test/{{sanitized}}/test/behavior.clj" (render "test/behavior.clj" data)]])
 
 (defn annotated-project [data]
