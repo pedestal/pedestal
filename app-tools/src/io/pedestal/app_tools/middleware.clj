@@ -10,5 +10,5 @@
   (if (and (= (get headers "Content-Type") "text/javascript")
            (= (type body) File))
     (assoc-in response [:headers "Content-Type"]
-              "text/javscript; charset=utf-8")
+              "text/javascript; charset=utf-8")
     response))
