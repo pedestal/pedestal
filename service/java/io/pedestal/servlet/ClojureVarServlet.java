@@ -1,4 +1,4 @@
-package pedestal.servlet;
+package io.pedestal.servlet;
 
 import clojure.lang.IFn;
 import clojure.lang.Var;
