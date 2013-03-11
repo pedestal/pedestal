@@ -1,6 +1,6 @@
 ;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
 
-(ns pedestal.log-bench 
+(ns io.pedestal.log-bench
   (:require io.pedestal.service.log
             clojure.tools.logging
             [criterium.core :as criterium])
