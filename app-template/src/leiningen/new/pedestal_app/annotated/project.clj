@@ -6,5 +6,7 @@
                  [ch.qos.logback/logback-classic "1.0.6"]
                  [io.pedestal/pedestal.app "0.0.9-SNAPSHOT"]
                  [io.pedestal/pedestal.app-tools "0.0.9-SNAPSHOT"]]
-  :profiles {:dev {:source-paths ["config" "app/src" "app/templates"]}}
+  :profiles {:dev {:source-paths ["dev"]}}
+  :source-paths ["app/src" "app/templates"]
+  :resource-paths ["config"]
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
