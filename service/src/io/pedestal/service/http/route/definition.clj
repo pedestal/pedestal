@@ -46,14 +46,14 @@
   (expand-verb-action [interceptor]
     {:handler interceptor}))
 
-(defn expand-verbs
+(defn- expand-verbs
   "Expand tersely specified verb-map into a verbose verb-map."
   [verb-map]
   (into {}
         (map (fn [[k v]] [k (expand-verb-action v)])
              verb-map)))
 
-(defn expand-abstract-constraint
+(defn- expand-abstract-constraint
   "Expand all of the directives in specs, adding them to routing-tree-node."
   [routing-tree-node specs]
   (let [vectors (filter #(isa? (type %) clojure.lang.APersistentVector)
@@ -70,58 +70,58 @@
             (not (empty? interceptors)) (assoc :interceptors (vec (apply concat interceptors)))
             (not (empty? children)) (assoc :children (map expand-constraint children)))))
 
-(defn expand-path
+(defn- expand-path
   "Expand a path node in the routing tree to a node specifying its
   path, constraints, verbs, and children."
   [[path & specs]]
   (expand-abstract-constraint {:path path} specs))
 
-(defn expand-query-constraint
+(defn- expand-query-constraint
   "Expand a query constraint node in the routing tree to a node
   specifying its constraints, verbs, and children."
   [specs]
   (expand-abstract-constraint {:constraints {} #_query-constraint} specs))
 
-(defn extract-children
+(defn- extract-children
   "Return the children, if present, from route-domain."
   [route-domain]
   (filter #(isa? (type %) clojure.lang.APersistentVector) route-domain))
 
-(defn add-children
+(defn- add-children
   "Add the :children key to verbose-map from route-domain, if appropriate."
   [verbose-map route-domain]
   (if-let [children (extract-children route-domain)]
     (assoc verbose-map :children (map expand-constraint children))
     verbose-map))
 
-(defn extract-host
-  "Return the app name, if present, from route-domain."
+(defn- extract-host
+  "Return the host, if present, from route-domain."
   [route-domain]
   (first (filter #(isa? (type %) String) route-domain)))
 
-(defn add-host
+(defn- add-host
   "Add the :host key to verbose-map from route-domain, if appropriate."
   [verbose-map route-domain]
   (if-let [host (extract-host route-domain)]
     (assoc verbose-map :host host)
     verbose-map))
 
-(defn extract-scheme
-  "Return the app name, if present, from route-domain."
+(defn- extract-scheme
+  "Return the scheme, if present, from route-domain."
   [route-domain]
   (first (set/intersection (set (filter #(isa? (type %)
                                                clojure.lang.Keyword)
                                         route-domain))
                            schemes)))
 
-(defn add-scheme
+(defn- add-scheme
   "Add the :scheme key to verbose-map from route-domain, if appropriate."
   [verbose-map route-domain]
   (if-let [scheme (extract-scheme route-domain)]
     (assoc verbose-map :scheme scheme)
     verbose-map))
 
-(defn extract-app-name
+(defn- extract-app-name
   "Return the app name, if present, from route-domain."
   [route-domain]
   (first (set/difference (set (filter #(isa? (type %)
@@ -129,14 +129,14 @@
                                       route-domain))
                          schemes)))
 
-(defn add-app-name
+(defn- add-app-name
   "Add the :app-name key to verbose-map from route-domain, if appropriate."
   [verbose-map route-domain]
   (if-let [app-name (extract-app-name route-domain)]
     (assoc verbose-map :app-name app-name)
     verbose-map))
 
-(defn expand-terse-route-domain
+(defn- expand-terse-route-domain
   "Expand a top-level routing domain to a verbose-style
   map of route entries."
   [route-domain]

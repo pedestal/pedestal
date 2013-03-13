@@ -67,7 +67,7 @@
                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
       (throw t))))
 
-(defn ^ScheduledFuture schedule-heartbeart [context heartbeat-delay]
+(defn- ^ScheduledFuture schedule-heartbeart [context heartbeat-delay]
   (let [f #(do-heartbeat context)]
     (.scheduleWithFixedDelay scheduler f 0 heartbeat-delay TimeUnit/SECONDS)))
 

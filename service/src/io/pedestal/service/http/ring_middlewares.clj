@@ -15,7 +15,7 @@
             [ring.middleware.resource :as resource]
             [ring.middleware.session :as session]))
 
-(defn response-fn-adapter
+(defn- response-fn-adapter
   "Adapts a ring middleware fn taking a response and request to an interceptor context."
   [response-fn & [opts]]
   (fn [{:keys [request response] :as context}]
@@ -24,7 +24,7 @@
              (response-fn response request opts)
              (response-fn response request)))))
 
-(defn leave-interceptor
+(defn- leave-interceptor
   "Defines an leave only interceptor given a ring fn."
   [name response-fn & args]
   (interceptor/after name (apply response-fn-adapter response-fn args)))

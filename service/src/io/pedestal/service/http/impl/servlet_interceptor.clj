@@ -298,7 +298,7 @@
    ::terminator-injector
    terminator-inject))
 
-(defn interceptor-service-fn
+(defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,

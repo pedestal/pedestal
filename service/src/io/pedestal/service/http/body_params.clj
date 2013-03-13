@@ -1,7 +1,7 @@
 (ns io.pedestal.service.http.body-params
   (:require [clojure.edn :as edn]
             [clojure.data.json :as json]
-            [clojure.string :as str]   
+            [clojure.string :as str]
             [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
             [io.pedestal.service.log :as log]
             [ring.middleware.params :as params]))
@@ -25,7 +25,7 @@
       (assoc :content-type content-type)
       (assoc-in [:headers "content-type"] content-type)))
 
-(defn convert-middleware
+(defn- convert-middleware
   "Turn a ring middleware into a parser. If a content type is given, return a parser
    that will ensure that the handler sees that content type in the request"
   ([wrap-fn] (fn [request] (wrap-fn identity)))
@@ -49,7 +49,7 @@
     (assoc request
       :edn-params (->
                    (:body request)
-                   (java.io.InputStreamReader. encoding) 
+                   (java.io.InputStreamReader. encoding)
                    java.io.PushbackReader.
                    edn/read))))
 
@@ -58,7 +58,7 @@
     (assoc request
       :json-params (->
                     (:body request)
-                    (java.io.InputStreamReader. encoding) 
+                    (java.io.InputStreamReader. encoding)
                     json/read))))
 
 (defn form-parser [request]

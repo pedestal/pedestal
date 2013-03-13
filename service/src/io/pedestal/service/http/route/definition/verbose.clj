@@ -66,7 +66,7 @@
        :handler (resolve-interceptor handler (or route-name handler-name))
        :interceptors (vec (map #(resolve-interceptor % nil) interceptors))})))
 
-(defn add-terminal-info
+(defn- add-terminal-info
   "Merge in data from `handler-map` to `start-terminal`"
   [{:keys [interceptors] :as start-terminal}
    {new-interceptors :interceptors :or {:interceptors []} :as handler-map}]
@@ -76,7 +76,7 @@
                             (conj (:handler handler-map)))
           :route-name (:route-name handler-map)}))
 
-(defn generate-verb-terminal
+(defn- generate-verb-terminal
   "Return a new route table entry based on `dna` `path`, and a vector
   of `[verb handler]` pairs."
   [dna [verb handler]]
@@ -86,11 +86,11 @@
       (merge dna)
       (add-terminal-info (handler-map handler))))
 
-(defn capture-constraint
-  "Add parenthesis to a regex in order to capture it's value during evaluation."
+(defn- capture-constraint
+  "Add parenthesis to a regex in order to capture its value during evaluation."
   [[k v]] [k (str "(" v ")")])
 
-(defn update-constraints
+(defn- update-constraints
   "Return a new DNA based on the contents of `dna` and
   `constraints`. Constraints are added to path-constraints if no verbs
   are defined in the current DNA, and are sorted and added to
@@ -106,7 +106,7 @@
           (update-in [:query-constraints] merge query-constraints)))))
 
 
-(defn update-dna
+(defn- update-dna
   "Return new DNA based on the contents of `parent-dna` and
   `current-node`"
   [{^String parent-path :path :as parent-dna}
@@ -124,7 +124,7 @@
                                   (map #(resolve-interceptor % nil) interceptors))))
 
 
-(defn generate-route-entries
+(defn- generate-route-entries
   "Return a list of route table entries based on the treeish structure
   of `route-map` and `dna`"
   [dna {:keys [path verbs children] :as route-map}]
@@ -132,7 +132,7 @@
     (concat (map (partial generate-verb-terminal current-dna) verbs)
             (mapcat (partial generate-route-entries current-dna) children))))
 
-(defn uniquely-add-route-path
+(defn- uniquely-add-route-path
   "Append `route-path` to `route-paths` if route-paths doesn't contain it
   already."
   [route-paths route-path]
@@ -140,7 +140,7 @@
     route-paths
     (conj route-paths route-path)))
 
-(defn sort-by-constraints
+(defn- sort-by-constraints
   "Sort the grouping of route entries whcih all correspond to
   `route-path` from `groupings` such that the most constrained route
   table entries appear first and the least constrained appear last."
@@ -148,7 +148,7 @@
   (let [grouping (groupings route-path)]
     (sort-by (comp - count :query-constraints) grouping)))
 
-(defn prioritize-constraints
+(defn- prioritize-constraints
   "Sort a flat routing table of entries to guarantee that the most
   constrained route entries appear in the table prior to entries which
   have fewer constraints or no constraints."
@@ -165,7 +165,7 @@
    :path-params []
    :interceptors []})
 
-(defn verify-unique-route-names
+(defn- verify-unique-route-names
   [routing-table]
   (let [non-unique-names (->> routing-table
                               (group-by :route-name)
