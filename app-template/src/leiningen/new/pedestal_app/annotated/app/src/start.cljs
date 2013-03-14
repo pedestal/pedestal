@@ -33,8 +33,8 @@
         ;; renderer.
         app-model (render/consume-app-model app render-fn)]
     ;; If services existed, configure the application to send all
-    ;; output there.
-    ;; (app/consume-output app services-fn)
+    ;; effects there.
+    ;; (app/consume-effect app services-fn)
     ;;
     ;; Start the application
     (app/begin app)

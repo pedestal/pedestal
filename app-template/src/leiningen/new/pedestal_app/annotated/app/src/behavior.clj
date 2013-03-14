@@ -5,11 +5,11 @@
 ;; correct. For examples of various kinds of tests, see
 ;; test/{{sanitized}}/test/behavior.clj.
 
-(defn example-model [model-state message]
+(defn example-transform [transform-state message]
   (:value message))
 
 (def example-app
-  {:models {:example-model {:init "Hello World!" :fn example-model}}})
+  {:transform {:example-transform {:init "Hello World!" :fn example-transform}}})
 
 
 ;; Once this behavior works, run the Data UI and record
@@ -32,41 +32,41 @@
   ;; The examples below show the signature of each type of function
   ;; that is used to build a behavior dataflow.
   
-  ;; model
+  ;; transform
   
-  (defn example-model [model-state message]
+  (defn example-transform [transform-state message]
     ;; returns new state
     )
   
-  ;; output
+  ;; effect
   
-  (defn example-output [message old-model-state new-model-state]
-    ;; returns vector of messages or map of {:feedback [] :messages []}
+  (defn example-effect [message old-transform-state new-transform-state]
+    ;; returns vector of messages to be added to input queue for future processing
     )
   
-  ;; view
+  ;; combine
   
-  (defn example-view-1 [view-state input-name old-model-state new-model-state]
-    ;; returns new view state
+  (defn example-combine-1 [combine-state input-name old-transform-state new-transform-state]
+    ;; returns new combine state
     )
   
-  (defn example-view-2 [view-state inputs]
+  (defn example-combine-2 [combine-state inputs]
     ;; inputs are a map of input names to their old and new state
-    ;; returns new view state
+    ;; returns new combine state
     )
   
-  ;; feedback
+  ;; continue
   
-  (defn example-feedback [view-name old-view-state new-view-state]
-    ;; returns vector of messages
+  (defn example-continue [combine-name old-combine-state new-combine-state]
+    ;; returns vector of messages to be processed as part of current data flow execution
     )
   
-  ;; emitter
+  ;; emit
   
-  (defn example-emitter
+  (defn example-emit
     ([input]
        ;; input is a map of input names to their old and new state
-       ;; called when emitter is first displayed - returns rendering data
+       ;; called when emit is first displayed - returns rendering data
        )
     ([input changed-input]
        ;; input is a map of input names to their old and new state
@@ -76,12 +76,12 @@
   
   ;; example dataflow map
   
-  {:models {:example-model {:init "" :fn example-model}}
-   :output {:example-model example-output}
-   :views {:example-view {:fn example-view-1 :input #{:example-model}}}
-   :feedback {:examle-view example-feedback}
-   :emitters {:example-emitter {:fn example-emitter :input #{:example-view}}}
-   :navigation {:home [[:a-path]]
+  {:transform {:example-transform {:init "" :fn example-transform}}
+   :effect {:example-transform example-effect}
+   :combine {:example-combine {:fn example-combine-1 :input #{:example-transform}}}
+   :continue {:example-combine example-continue}
+   :emit {:example-emit {:fn example-emit :input #{:example-combine}}}
+   :focus {:home [[:a-path]]
                 :default :home}}
   
   )
