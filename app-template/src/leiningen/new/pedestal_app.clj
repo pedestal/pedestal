@@ -47,7 +47,7 @@
            ["app/templates/{{name}}.html" (render "app/templates/project.html" data)]
            (base-files render data))))
 
-(defn default-project [data]
+(defn unannotated-project [data]
   (let [render (renderer "pedestal-app/plain")]
     (apply ->files data
            ["app/src/{{sanitized}}/behavior.clj" (render "app/src/behavior.clj" data)]
@@ -65,5 +65,5 @@
   (let [data {:name name
               :sanitized (name-to-path name)}]
     (case (first args)
-      "annotated" (annotated-project data)
-      (default-project data))))
+      "no-comment" (unannotated-project data)
+      (annotated-project data))))
