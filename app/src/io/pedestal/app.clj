@@ -392,7 +392,7 @@
   (let [key-map {:transform :models
                  :combine :views
                  :emit :emitters
-                 :ramify :emitters
+                 :treeify :emitters
                  :effect :output
                  :continue :feedback
                  :focus :navigation}
@@ -483,3 +483,7 @@
 
 (defn consume-output [app services-fn]
   (consume-output-queue (:output app) (:input app) services-fn))
+
+;; renaming
+(defn consume-effects [app services-fn]
+  (consume-output app services-fn))
