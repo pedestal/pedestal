@@ -171,6 +171,10 @@
            :deltas (into (mapv #(vector :navigate-node-destroy %) old-paths)
                          deltas))))
 
+;; map :set-focus to :navigate message
+(defmethod process-app-model-message :set-focus [state flow message]
+  (process-app-model-message state flow (assoc message msg/type :navigate)))
+
 (defmethod process-app-model-message :subscribe [state flow message]
   (let [deltas (refresh-emitters state flow)]
     (-> state
@@ -382,6 +386,20 @@
                                    msg/type :deltas
                                    :deltas deltas}))))))
 
+;; support new and old description keys
+(defn- rekey-description
+  [description]
+  (let [key-map {:transform :models
+                 :combine :views
+                 :emit :emitters
+                 :treeify :emitters
+                 :effect :output
+                 :continue :feedback
+                 :focus :navigation}
+        key-values (vals key-map)]
+    (into {} (map (fn [[k v]] [(or (key-map k)
+                                   (some #{k} key-values)) v]) description))))
+
 (defn build
   "Given a map which describes the application and a renderer, return
   a new application. The returned application map contains input and
@@ -390,7 +408,8 @@
   The description map contains a subset of the keys:
   :models, :output, :views, :feedback, :emitters and :navigation."
   [description]
-  (let [app-atom (atom {:output [] :feedback []})
+  (let [description (rekey-description description)
+        app-atom (atom {:output [] :feedback []})
         flow (make-flow description)
         input-queue (queue/queue :input)
         output-queue (queue/queue :output)
@@ -464,3 +483,7 @@
 
 (defn consume-output [app services-fn]
   (consume-output-queue (:output app) (:input app) services-fn))
+
+;; renaming
+(defn consume-effects [app services-fn]
+  (consume-output app services-fn))
