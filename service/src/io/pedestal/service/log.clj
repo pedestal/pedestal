@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.service.log
   "Logging via slf4j. Each logging level is a macro: trace, debug,
   info, warn, and error. Each namespace gets its own Logger. Arguments

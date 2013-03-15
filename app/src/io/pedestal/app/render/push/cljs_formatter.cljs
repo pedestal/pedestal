@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 ;; This namespace was copied from
 ;; https://github.com/stuartsierra/cljs-formatter. Once that library
 ;; has a release, we can add a dependency.

@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns ^:shared io.pedestal.app
     "Implementaiton of Pedestal's application behavior model. Allows for behavior to be
     written as pure functions linked by a dataflow.

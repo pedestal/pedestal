@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.app-tools.compile
   (:use [cljs.closure :only [build -compile dependency-order Compilable]])
   (:require [clojure.java.io :as io]

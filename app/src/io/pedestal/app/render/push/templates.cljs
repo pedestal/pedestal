@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.app.render.push.templates
   (:require [io.pedestal.app.render.push :as render]
             [domina :as d]))

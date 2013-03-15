@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.service.http.servlet
   "Generic Servlet adapter that closes over its implementation
   functions."

@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.app-tools.compile.repl
   (:use [io.pedestal.app-tools.compile :only [thread-safe-compile!]]
         [io.pedestal.app-tools.compile.config :only [cljs-compilation-options]]

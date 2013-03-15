@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns ^{:doc "Make network requests."}
   io.pedestal.app.net.xhr
   (:require [goog.net.XhrManager :as manager]

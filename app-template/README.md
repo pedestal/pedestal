@@ -40,8 +40,3 @@ At the REPL type:
 and then open a browser to `http://localhost:3000`. 
 
 You now have a working development environment!
-
-
-## License
-
-Copyright (c) 2013 Relevance, Inc. All rights reserved.

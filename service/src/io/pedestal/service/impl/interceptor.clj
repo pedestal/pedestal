@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2012 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.service.impl.interceptor
   "Interceptor pattern. Executes a chain of Interceptor functions on a
   common \"context\" map, maintaining a virtual \"stack\", with error
