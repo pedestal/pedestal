@@ -392,6 +392,7 @@
   (let [key-map {:transform :models
                  :combine :views
                  :emit :emitters
+                 :treeify :emitters
                  :effect :output
                  :continue :feedback
                  :focus :navigation}
