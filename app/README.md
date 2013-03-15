@@ -1,4 +1,6 @@
-# Copyright 2013 Relevance, Inc.
+Copyright
+---------
+Copyright 2013 Relevance, Inc.
 
 # Pedestal Applications
 
