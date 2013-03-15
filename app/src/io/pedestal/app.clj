@@ -128,9 +128,16 @@
                            (first all-emitter-names))]
     {:default-emitter default-emitter
      :models (reduce (fn [a [k v]] (assoc a k (:fn v))) {} models)
-     :model->output (reduce (fn [a [k _]] (assoc a k (or (get output k) default-output-fn))) {} models)
+     :input->output (reduce (fn [a [k]]
+                              (if-let [o (get output k)]
+                                (assoc a k o)
+                                a))
+                            {}
+                            (merge models views))
      :input->views input->views
-     :view->feedback (reduce (fn [a v] (assoc a v (or (get feedback v) default-feedback-fn))) {} all-view-names)
+     :view->feedback (reduce (fn [a v] (assoc a v (or (get feedback v) default-feedback-fn)))
+                             {}
+                             all-view-names)
      :input->emitters input->emitters
      :views (add-defaults default-view-fn views all-view-names input->views)
      :emitters (add-defaults default-emitter-fn emitters all-emitter-names input->emitters)}))
@@ -139,12 +146,14 @@
 ;; Run dataflow
 ;; ================================================================================
 
+(defn- model-or-view [state k]
+  (or (get-in state [:models k])
+      (get-in state [:views k])))
+
 (defn- old-and-new [ks o n]
   (reduce (fn [a k]
-            (assoc a k {:old (or (get-in o [:models k])
-                                 (get-in o [:views k]))
-                        :new (or (get-in n [:models k])
-                                 (get-in n [:views k]))}))
+            (assoc a k {:old (model-or-view o k)
+                        :new (model-or-view n k)}))
           {}
           ks))
 
@@ -203,10 +212,10 @@
   (let [model-fn (get-in flow [:models model-name])]
     (update-in state [:models model-name] model-fn message)))
 
-(defn run-output [state old-state flow model-name message]
-  (let [output-fn (get-in flow [:model->output model-name])
-        old-model (get-in old-state [:models model-name])
-        new-model (get-in state [:models model-name])
+(defn run-output [state old-state flow input-name message]
+  (let [output-fn (get-in flow [:input->output input-name])
+        old-model (model-or-view old-state input-name)
+        new-model (model-or-view state input-name)
         out (when output-fn (output-fn message old-model new-model))
         out (if (vector? out) {:output out} out)]
     (if out
@@ -214,6 +223,14 @@
           (update-in [:output] into (:output out))
           (update-in [:feedback] into (:feedback out)))
       state)))
+
+(defn run-outputs [state old-state flow message modified-inputs]
+  (reduce (fn [new-state [input-name]]
+            (if (get-in flow [:input->output input-name])
+              (run-output new-state old-state flow input-name message)
+              new-state))
+          state
+          modified-inputs))
 
 (defn topo-sort [flow view-names]
   (let [c (fn [a b]
@@ -298,7 +315,6 @@
         model-name (get-receiver message)
         new-state (-> state
                       (run-model flow model-name message)
-                      (run-output old-state flow model-name message)
                       (run-views old-state flow model-name :models))
         modified-views (find-modified-inputs :views old-state new-state)
         modified-models (find-modified-inputs :models old-state new-state)
@@ -332,11 +348,15 @@
   state."
   [state flow message]
   (let [old-state state
-        state (if (= (msg/topic message) msg/app-model)
-                (process-app-model-message state flow message)
-                (run-dataflow state flow message))
-        new-deltas (filter-deltas state (:deltas state))]
-    (-> state
+        new-state (if (= (msg/topic message) msg/app-model)
+                    (process-app-model-message state flow message)
+                    (run-dataflow state flow message))
+        new-deltas (filter-deltas new-state (:deltas new-state))
+        modified-views (find-modified-inputs :views old-state new-state)
+        modified-models (find-modified-inputs :models old-state new-state)
+        result (run-outputs new-state old-state flow message
+                            (merge modified-views modified-models))]
+    (-> result
         (assoc :emitter-deltas new-deltas)
         (dissoc :deltas))))
 
