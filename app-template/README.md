@@ -1,7 +1,3 @@
-Copyright
----------
-Copyright 2013 Relevance, Inc.
-
 # Pedestal Application template
 
 Generate a new Pedestal Application.
@@ -40,3 +36,8 @@ At the REPL type:
 and then open a browser to `http://localhost:3000`. 
 
 You now have a working development environment!
+
+Copyright
+---------
+Copyright 2013 Relevance, Inc.
+

@@ -1,3 +1,18 @@
+Pedestal
+========
+
+The Pedestal web application framework
+
+### Installing Libraries ###
+
+
+Run `lein sub install` in the top level directory to install all the
+library components in your local Maven repository.
+
+The demo project uses Leiningen checkouts to allow simultaneous
+development of libraries and the application. See the [Leiningen FAQ](https://github.com/technomancy/leiningen/blob/master/doc/FAQ.md)
+for details.
+
 Copyright
 ---------
 Copyright 2013 Relevance, Inc.
@@ -13,17 +28,3 @@ the terms of this license.
 
 You must not remove this notice, or any other, from this software.
 
-Pedestal
-========
-
-The Pedestal web application framework
-
-### Installing Libraries ###
-
-
-Run `lein sub install` in the top level directory to install all the
-library components in your local Maven repository.
-
-The demo project uses Leiningen checkouts to allow simultaneous
-development of libraries and the application. See the [Leiningen FAQ](https://github.com/technomancy/leiningen/blob/master/doc/FAQ.md)
-for details.

@@ -1,7 +1,3 @@
-Copyright
----------
-Copyright 2013 Relevance, Inc.
-
 # Pedestal Applications
 
 Follow these instructions to create a new Pedestal Application project
@@ -70,3 +66,7 @@ server and not run the development server. Run:
 
 from the application project to automatically build the `:development`
 environment when sources change.
+
+Copyright
+---------
+Copyright 2013 Relevance, Inc.
