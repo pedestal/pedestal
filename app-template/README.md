@@ -1,4 +1,4 @@
-; Copyright 2013 Relevance, Inc.
+# Copyright 2013 Relevance, Inc.
 
 # Pedestal Application template
 
