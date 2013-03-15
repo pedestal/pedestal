@@ -1,3 +1,5 @@
+; Copyright 2013 Relevance, Inc.
+
 Pedestal.Server
 ========================================
 

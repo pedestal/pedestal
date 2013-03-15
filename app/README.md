@@ -1,3 +1,5 @@
+; Copyright 2013 Relevance, Inc.
+
 # Pedestal Applications
 
 Follow these instructions to create a new Pedestal Application project

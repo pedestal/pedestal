@@ -1,3 +1,5 @@
+; Copyright 2013 Relevance, Inc.
+
 # Pedestal Server Template
 
 Generate a new Pedestal Server.
