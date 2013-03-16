@@ -17,4 +17,4 @@ To configure logging see config/logback.xml. By default, the app logs to stdout 
 To learn more about configuring Logback, read its [documentation](http://logback.qos.ch/documentation.html).
 
 ## Links
-* [Other examples](https://github.com/relevance/platform/wiki/Hello-World-App)
+* [Other examples](https://github.com/pedestal/samples)
