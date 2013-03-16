@@ -4,7 +4,7 @@ Follow these instructions to create a new Pedestal Application project
 based on these libraries. This project requires [Leiningen 2.0](https://github.com/technomancy/leiningen).
 
 ```bash
-git clone git@github.com:relevance/platform.git
+git clone https://github.com/pedestal/pedestal.git
 cd platform/app
 lein install
 cd ../app-tools
