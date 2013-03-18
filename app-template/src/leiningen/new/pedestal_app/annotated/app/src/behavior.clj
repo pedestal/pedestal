@@ -1,12 +1,19 @@
 (ns ^:shared {{name}}.behavior
-    (:require [clojure.string :as string]))
+    (:require [clojure.string :as string]
+              [io.pedestal.app.messages :as msg]))
 
 ;; While creating new behavior, write tests to confirm that it is
 ;; correct. For examples of various kinds of tests, see
 ;; test/{{sanitized}}/test/behavior.clj.
 
+;; You'll always receive a message with the type msg/init when your
+;; app starts up. This message will include a :value key with the
+;; value of the :init key from your dataflow.
+
 (defn example-transform [transform-state message]
-  (:value message))
+  (condp = (msg/type message)
+    msg/init (:value message)
+    transform-state))
 
 (def example-app
   {:transform {:example-transform {:init "Hello World!" :fn example-transform}}})

@@ -10,20 +10,20 @@
         [io.pedestal.app.query :only [q]]))
 
 (deftest test-example-transform
-  (is (= (example-transform {} {:value "x"})
+  (is (= (example-transform {} {msg/type msg/init, :value "x"})
          "x")))
 
 (deftest test-app-state
   (let [app (app/build example-app)]
     (app/begin app)
-    (is (true? (test/run-sync! app [{msg/topic :example-transform :value "x"}])))
+    (is (true? (test/run-sync! app [{msg/topic :example-transform, msg/type msg/init, :value "x"}])))
     (is (= (-> app :state deref :models :example-transform) "x"))))
 
 (deftest test-query-ui
   (let [app (app/build example-app)
         app-model (render/consume-app-model app (constantly nil))]
     (app/begin app)
-    (is (test/run-sync! app [{msg/topic :example-transform :value "x"}]))
+    (is (test/run-sync! app [{msg/topic :example-transform, msg/type msg/init, :value "x"}]))
     (is (= (q '[:find ?v
                 :where
                 [?n :t/path [:io.pedestal.app/view-example-transform]]
