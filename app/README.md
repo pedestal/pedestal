@@ -13,16 +13,6 @@ cd ../app-template
 lein install
 ```
 
-This will install the current version of each library into your local
-Maven repository. One of the installed libraries is a Leiningen 'new'
-template for creating a new application. Add this plugin to your
-Leiningen user profiles in `~/.lein/profiles.clj`. You may need to
-create this file if this is your first project.
-
-```clj
-{:user {:plugins [[pedestal-app/lein-template "0.0.8-SNAPSHOT"]]}}
-```
-
 ## Usage
 
 `cd` into any directory and execute the following:
@@ -43,6 +33,7 @@ of some of these functions, type:
 To begin working on an application, execute:
 
 ```clj
+(dev)
 (run)
 ```
 
