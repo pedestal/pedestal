@@ -30,7 +30,4 @@ clojure.tools.logging.
 Benchmarking code is in the `bench` directory and includes a Logback
 configuration file.
 
-Copyright
----------
-Copyright 2013 Relevance, Inc.
-
+<!-- Copyright 2013 Relevance, Inc. -->
