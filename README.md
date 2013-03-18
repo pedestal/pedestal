@@ -13,6 +13,14 @@ The demo project uses Leiningen checkouts to allow simultaneous
 development of libraries and the application. See the [Leiningen FAQ](https://github.com/technomancy/leiningen/blob/master/doc/FAQ.md)
 for details.
 
+
+## Find out more
+
+* Visit [our website](http://pedestal.io/)
+* Follow [@pedestal_team on Twitter](http://twitter.com/pedestal_team)
+* Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users) and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
+
+
 Copyright
 ---------
 Copyright 2013 Relevance, Inc.
