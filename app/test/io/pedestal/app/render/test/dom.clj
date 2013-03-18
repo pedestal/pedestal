@@ -9,9 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) Brenton Ashworth and Relevance, Inc. All rights reserved.
-;; You must not remove this notice, or any other, from this software.
-
 (ns io.pedestal.app.render.test.dom
   "In order to test the rendering code, it would be nice to write
   rendering functions which manipulate the DOM. This namespace
