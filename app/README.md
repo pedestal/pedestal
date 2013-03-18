@@ -43,6 +43,7 @@ of some of these functions, type:
 To begin working on an application, execute:
 
 ```clj
+(dev)
 (run)
 ```
 
