@@ -23,7 +23,13 @@ cd my-project
 lein repl
 ```
 
-The `user` namespace contains several useful functions. To see a list
+Call the (dev) function to load the `dev` namespace.
+
+```clj
+(dev)
+```
+
+It contains several useful functions. To see a list
 of some of these functions, type:
 
 ```clj
@@ -33,7 +39,6 @@ of some of these functions, type:
 To begin working on an application, execute:
 
 ```clj
-(dev)
 (run)
 ```
 
