@@ -58,6 +58,4 @@ server and not run the development server. Run:
 from the application project to automatically build the `:development`
 environment when sources change.
 
-Copyright
----------
-Copyright 2013 Relevance, Inc.
+<!-- Copyright 2013 Relevance, Inc. -->

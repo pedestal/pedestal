@@ -2,7 +2,4 @@
 
 Tools for building Pedestal applications.
 
-Copyright
----------
-Copyright 2013 Relevance, Inc.
-
+<!-- Copyright 2013 Relevance, Inc. -->
