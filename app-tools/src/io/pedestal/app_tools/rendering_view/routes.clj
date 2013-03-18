@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2013 Relevance, Inc. All rights reserved.
-
 (ns io.pedestal.app-tools.rendering-view.routes
   (:use [io.pedestal.app.templates :only [load-html construct-html render]])
   (:require [clojure.java.io :as io]

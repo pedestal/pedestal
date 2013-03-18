@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2013 Relevance, Inc. All rights reserved.
-
 (ns ^:shared io.pedestal.app.messages
   (:require [clojure.set :as set])
   (:refer-clojure :exclude [type]))

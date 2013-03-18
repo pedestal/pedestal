@@ -9,8 +9,6 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-;; Copyright (c) 2013 Relevance, Inc. All rights reserved.
-
 (ns ^:shared io.pedestal.app.queue
   "A very simple application message queue implementation which can be used from both
   Clojure and ClojureScript. In the future, there will be both Clojure and ClojureScript
