@@ -9,7 +9,7 @@
                  ;; Remove this line and uncomment the next line to
                  ;; use Tomcat instead of Jetty:
                  [io.pedestal/pedestal.jetty "0.1.1-SNAPSHOT"]
-                 ;; [io.pedestal/pedestal.tomcat "0.0.1-SNAPSHOT"]
+                 ;; [io.pedestal/pedestal.tomcat "0.1.1-SNAPSHOT"]
 
                  ;; Logging
                  [ch.qos.logback/logback-classic "1.0.7"]
