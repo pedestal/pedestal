@@ -7,6 +7,7 @@
                  [io.pedestal/pedestal.app "0.1.1-SNAPSHOT"]
                  [io.pedestal/pedestal.app-tools "0.1.1-SNAPSHOT"]]
   :profiles {:dev {:source-paths ["dev"]}}
+  :min-lein-version "2.0.0"
   :source-paths ["app/src" "app/templates"]
   :resource-paths ["config"]
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
