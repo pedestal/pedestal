@@ -29,7 +29,7 @@
         parent (render/get-parent-id renderer path)
         ;; Use the `new-id!` function to associate a new id to the
         ;; given path. With two arguments, this function will generate
-        ;; a random unique id. With three arguemnts, the given id will
+        ;; a random unique id. With three arguments, the given id will
         ;; be associated with the given path.
         id (render/new-id! renderer path)
         ;; Get the dynamic template named :{{name}}-page
@@ -71,5 +71,5 @@
    [:value [:io.pedestal.app/view-example-transform] render-message]])
 
 ;; In render-config, paths can use wildcard keywords :* and :**. :*
-;; means exatcly one segment with any value. :** means 0 or more
+;; means exactly one segment with any value. :** means 0 or more
 ;; elements.
