@@ -6,17 +6,17 @@
 ;; behavior.
 ;;
 ;; This namespace will usually contain a function which can be
-;; configured to receive effect events from the bahavior in the file
+;; configured to receive effect events from the behavior in the file:
 ;;
 ;; app/src/{{sanitized}}/start.cljs
 ;;
 ;; After creating a new application, set the effect handler function
-;; to recieve effect
+;; to receive effects...
 ;;
 ;; (app/consume-effect app services-fn)
 ;;
-;; A very simple example of a services function which echos all events
-;; back to the behavior is shown below
+;; A very simple example of a services function which echoes all events
+;; back to the behavior is shown below.
 
 (comment
 
@@ -25,12 +25,12 @@
   ;; will convey messages to the application.
   (defn echo-services-fn [message queue]
     (put-message queue message))
-  
+
   )
 
 ;; During development, it is helpful to implement services which
-;; simulate communication with the real services. This implementaiton
-;; can be placed in the file
+;; simulate communication with the real services. This implementation
+;; can be placed in the file:
 ;;
 ;; app/src/{{sanitized}}/simulated/services.cljs
 ;;
