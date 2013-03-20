@@ -53,8 +53,7 @@
   {:default-emitter :io.pedestal.app/default-emitter
    :models {:model-a :model-a-fn
             :model-b :model-b-fn}
-   :model->output {:model-a default-output-fn
-                   :model-b default-output-fn}
+   :input->output {}
    :input->views {:model-a #{:io.pedestal.app/view-model-a}
                   :model-b #{:io.pedestal.app/view-model-b}}
    :view->feedback {:io.pedestal.app/view-model-a default-feedback-fn
@@ -72,7 +71,7 @@
     (is (= (make-flow {:models {:model-a {:init "" :fn :function-a}}})
            {:default-emitter :io.pedestal.app/default-emitter
             :models {:model-a :function-a}
-            :model->output {:model-a default-output-fn}
+            :input->output {}
             :input->views {:model-a #{:io.pedestal.app/view-model-a}}
             :view->feedback {:io.pedestal.app/view-model-a default-feedback-fn}
             :input->emitters {:io.pedestal.app/view-model-a #{:io.pedestal.app/default-emitter}}
@@ -88,8 +87,7 @@
                                 :model-b {:init "" :fn :model-b-fn}}
                        :output {:model-a :output-fn-a}})
            (merge two-model-system-flow-defaults
-                  {:model->output {:model-a :output-fn-a
-                                   :model-b default-output-fn}}))))
+                  {:input->output {:model-a :output-fn-a}}))))
   (testing "provide one view fn"
     (is (= (make-flow {:models {:model-a {:init "" :fn :model-a-fn}
                                 :model-b {:init "" :fn :model-b-fn}}
@@ -249,7 +247,7 @@
             {:default-emitter :emitter-a
              :input->views {:model-a #{:view-a}
                             :model-b #{:view-b}}
-             :model->output {:model-a :output-a-fn
+             :input->output {:model-a :output-a-fn
                              :model-b :output-b-fn}
              :view->feedback {:view-a :feedback-a-fn
                             :view-b :feedback-b-fn}
@@ -272,8 +270,7 @@
             :input->views {:model-guess #{:view-divide :view-sum}
                            :model-x #{:view-x :view-divide}
                            :view-divide #{:view-sum}}
-            :model->output {:model-guess default-output-fn
-                            :model-x default-output-fn}
+            :input->output {}
             :view->feedback {:view-divide default-feedback-fn
                            :view-x default-feedback-fn
                            :view-sum default-feedback-fn}
@@ -295,8 +292,7 @@
             :input->views {:model-guess #{:view-divide :view-sum}
                            :model-x #{:view-divide}
                            :view-divide #{:view-sum}}
-            :model->output {:model-guess default-output-fn
-                            :model-x default-output-fn}
+            :input->output {}
             :view->feedback {:view-divide default-feedback-fn
                            :view-sum default-feedback-fn}
             :input->emitters {:model-x #{:emitter-answer}
@@ -693,8 +689,7 @@
 
 (defn echo-output [service-name]
   (fn [message old-model new-model]
-    {:output [{msg/topic {:service service-name} :n new-model}]
-     :feedback [{msg/topic :y :n (str new-model)}]}))
+    [{msg/topic {:service service-name} :n new-model}]))
 
 (defn capture-queue [n queue-name app state]
   (when (pos? n)
@@ -704,43 +699,52 @@
                       (capture-queue (dec n) queue-name app state)))))
 
 (deftest test-output-app
-  (let [services-state (atom [])
-        output-app {:models   {:x      {:init 0 :fn number-model}
-                               :y      {:init 0 :fn number-model}}
+  (let [expected [{:input {msg/topic msg/app-model
+                           msg/type :subscribe
+                           :paths [[]]}
+                   :emitter #{[:node-create [] :map]
+                              [:node-create [:x] :map]
+                              [:value [:x] nil 0]
+                              [:node-create [:sum] :map]
+                              [:value [:sum] nil 0.0]}}
+                  {:input {msg/topic :x :n 42}
+                   :emitter #{[:value [:x] 0 42]
+                              [:value [:sum] 0.0 1827.0]}}
+                  {:input {msg/topic :x :n 12}
+                   :emitter #{[:value [:x] 42 12]
+                              [:value [:sum] 1827.0 162.0]}}]
+        output-app {:models   {:x      {:init 0 :fn number-model}}
                     :views    {:half   {:fn half :input #{:x}}
                                :square {:fn square :input #{:x}}
                                :sum    {:fn sum :input #{:half :x :square}}}
                     :output   {:x (echo-output :s)}
-                    :emitters  {:answer {:fn default-emitter-fn :input #{:x :y :sum}}}}
-        app (build output-app)
-        _ (capture-queue 3 :output app services-state)
-        _ (begin app)
-        results (run-script app [{msg/topic :x :n 42}
-                                 {msg/topic :x :n 12}])
-        results (standardize-results results)]
-    (is (= @services-state
-           [{msg/topic {:service :s} :n 0}
-            {msg/topic {:service :s} :n 42}
-            {msg/topic {:service :s} :n 12}]))
-    (is (= (input->emitter-output results)
-           [{:input {msg/topic msg/app-model
-                     msg/type :subscribe
-                     :paths [[]]}
-             :emitter #{[:node-create [] :map]
-                        [:node-create [:x] :map]
-                        [:value [:x] nil 0]
-                        [:node-create [:y] :map]
-                        [:value [:y] nil 0]
-                        [:node-create [:sum] :map]
-                        [:value [:sum] nil 0.0]}}
-            {:input {msg/topic :x :n 42}
-             :emitter #{[:value [:x] 0 42]
-                        [:value [:y] 0 "42"]
-                        [:value [:sum] 0.0 1827.0]}}
-            {:input {msg/topic :x :n 12}
-             :emitter #{[:value [:x] 42 12]
-                        [:value [:y] "42" "12"]
-                        [:value [:sum] 1827.0 162.0]}}]))))
+                    :emitters {:answer {:fn default-emitter-fn :input #{:x :sum}}}}]
+    (testing "with input from model"
+      (let [services-state (atom [])
+            app (build output-app)
+            _ (capture-queue 3 :output app services-state)
+            _ (begin app)
+            results (run-script app [{msg/topic :x :n 42}
+                                     {msg/topic :x :n 12}])
+            results (standardize-results results)]
+        (is (= @services-state
+               [{msg/topic {:service :s} :n 0}
+                {msg/topic {:service :s} :n 42}
+                {msg/topic {:service :s} :n 12}]))
+        (is (= (input->emitter-output results) expected))))
+    (testing "with input from view"
+      (let [services-state (atom [])
+            app (build (assoc output-app :output {:half (echo-output :s)}))
+            _ (capture-queue 3 :output app services-state)
+            _ (begin app)
+            results (run-script app [{msg/topic :x :n 42}
+                                     {msg/topic :x :n 12}])
+            results (standardize-results results)]
+        (is (= @services-state
+               [{msg/topic {:service :s} :n 0.0}
+                {msg/topic {:service :s} :n 21.0}
+                {msg/topic {:service :s} :n 6.0}]))
+        (is (= (input->emitter-output results) expected))))))
 
 
 ;; Test with Renderer
