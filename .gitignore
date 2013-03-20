@@ -9,3 +9,5 @@ out/
 tmp/
 logs/
 generated-js/
+app/docs
+service/docs
