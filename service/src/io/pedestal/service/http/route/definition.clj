@@ -167,4 +167,4 @@
 (defmacro defroutes
   "Define a routing table from the terse routing syntax."
   [name route-spec]
-  `(verbose/defroutes ~name ~(map expand-terse-route-domain route-spec)))
+  `(def ~name (expand-routes (quote ~route-spec))))
