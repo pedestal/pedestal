@@ -29,6 +29,7 @@
   :warn-on-reflection true
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.service.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
+  :aot [io.pedestal.service.impl.interceptor]
   :profiles {:default [:dev :provided :user :base]
              :provided
              {:dependencies [[javax.servlet/javax.servlet-api "3.0.1"]]}
