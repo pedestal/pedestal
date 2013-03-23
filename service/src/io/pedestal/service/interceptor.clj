@@ -21,7 +21,7 @@
 
 (defn interceptor-name
   [n]
-  (if-not (keyword? n)
+  (if-not (or (nil? n) (keyword? n))
     (throw (ex-info "Name must be keyword or nil" {:name n}))
     n))
 

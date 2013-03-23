@@ -181,36 +181,36 @@
 (def data-routes
   (expand-routes
    [[:public "example.com"
-     ["/" {:get home-page}
-      ["/child-path" {:get trailing-slash}]]
-     ["/user" {:get list-users
-               :post add-user}
-      ["/:user-id"
-       ^:constraints {:user-id #"[0-9]+"}
-       {:put update-user}
-       [^:constraints {:view #"long|short"}
-        {:get view-user}]]]]
-    [:admin :https "admin.example.com"
-     ["/demo/site-one/*site-path" {:get [:site-one-demo (handler :site-one (site-demo "one"))]}]
-     ["/demo/site-two/*site-path" {:get [:site-two-demo (handler :site-two (site-demo "two"))]}]
-     ["/user/:user-id/delete" {:delete delete-user}]]
-    [["/logout" {:any logout}]
-     ["/search" {:get search-form}
-      [^:constraints {:id #"[0-9]+"} {:get search-id}]
-      [^:constraints {:q #".+"} {:get search-query}]]
-     ["/intercepted" {:get [:intercepted request-inspection]}
-      ^:interceptors [interceptor-1 interceptor-2]]
-     ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
-      ^:interceptors [(interceptor-3)]]
-     ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
-      ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
-     ["/trailing-slash/"
-      ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
-     ["/hierarchical" ^:interceptors [interceptor-1]
-      ["/intercepted" ^:interceptors [interceptor-2]
-       {:get [:hierarchical-intercepted request-inspection]}]]
-     ["/terminal/intercepted"
-      {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]]))
+      ["/" {:get home-page}
+       ["/child-path" {:get trailing-slash}]]
+      ["/user" {:get list-users
+                :post add-user}
+       ["/:user-id"
+        ^:constraints {:user-id #"[0-9]+"}
+        {:put update-user}
+        [^:constraints {:view #"long|short"}
+         {:get view-user}]]]]
+     [:admin :https "admin.example.com"
+      ["/demo/site-one/*site-path" {:get [:site-one-demo (handler :site-one (site-demo "one"))]}]
+      ["/demo/site-two/*site-path" {:get [:site-two-demo (handler :site-two (site-demo "two"))]}]
+      ["/user/:user-id/delete" {:delete delete-user}]]
+     [["/logout" {:any logout}]
+      ["/search" {:get search-form}
+       [^:constraints {:id #"[0-9]+"} {:get search-id}]
+       [^:constraints {:q #".+"} {:get search-query}]]
+      ["/intercepted" {:get [:intercepted request-inspection]}
+       ^:interceptors [interceptor-1 interceptor-2]]
+      ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+       ^:interceptors [(interceptor-3)]]
+      ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+       ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+      ["/trailing-slash/"
+       ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+      ["/hierarchical" ^:interceptors [interceptor-1]
+       ["/intercepted" ^:interceptors [interceptor-2]
+        {:get [:hierarchical-intercepted request-inspection]}]]
+      ["/terminal/intercepted"
+       {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]]))
 
 (def syntax-quote-data-routes
   (expand-routes
