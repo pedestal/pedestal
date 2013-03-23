@@ -80,7 +80,7 @@
 (defn- add-terminal-info
   "Merge in data from `handler-map` to `start-terminal`"
   [{:keys [interceptors] :as start-terminal}
-   {new-interceptors :interceptors :or {:interceptors []} :as handler-map}]
+   {new-interceptors :interceptors :or {new-interceptors []} :as handler-map}]
   (merge start-terminal
          {:interceptors (-> interceptors
                             (into new-interceptors)
