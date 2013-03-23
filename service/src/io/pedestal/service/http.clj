@@ -138,7 +138,7 @@
 (defn server
   [{servlet ::servlet
     type ::type
-    :or {::type :jetty}
+    :or {type :jetty}
     :as service-map}]
   (let [server-ns (symbol (str "io.pedestal.service.http." (name type)))
         server-fn (do (require server-ns)
