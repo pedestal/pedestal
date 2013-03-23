@@ -26,7 +26,7 @@
 (def ^:dynamic *public* "out/public")
 
 (defn- split-path [s]
-  (string/split s (re-pattern File/separator)))
+  (string/split s (re-pattern (java.util.regex.Pattern/quote File/separator))))
 
 (defn- ensure-ends-with-sep [p]
   (if (.endsWith p File/separator) p (str p File/separator)))
