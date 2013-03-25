@@ -157,13 +157,18 @@
       [^:constraints {:view #"long|short"}
        {:get view-user}]]]]
    [:admin :https "admin.example.com"
-    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
-    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
+
+    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}] ;; nil
+    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}] ;; nil
+
     ["/user/:user-id/delete" {:delete delete-user}]]
    [["/logout" {:any logout}]
     ["/search" {:get search-form}
      [^:constraints {:id #"[0-9]+"} {:get search-id}]
      [^:constraints {:q #".+"} {:get search-query}]]
+
+;; all these are nil
+
     ["/intercepted" {:get [:intercepted request-inspection]}
      ^:interceptors [interceptor-1 interceptor-2]]
     ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
