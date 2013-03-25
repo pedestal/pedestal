@@ -69,7 +69,7 @@
   [context]
   (if (valid-response? (:response context))
     context
-    (assoc context :response (ring-response/not-found "Not Found")))  )
+    (assoc context :response (ring-response/not-found "Not Found"))))
 
 (defn add-content-type
   "Based on the given `interceptor`, returns a new interceptor that
