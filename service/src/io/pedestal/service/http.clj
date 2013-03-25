@@ -60,9 +60,11 @@
 (interceptor/defafter not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
   [context]
-  (if (ring-response/response? (:response context))
-    context
-    (assoc context :response (ring-response/not-found "Not Found"))))
+  (let [resp (:response context)]
+    (if (and (map? resp)
+             (integer? (:status resp)))
+      context
+      (assoc context :response (ring-response/not-found "Not Found"))))  )
 
 (defn add-content-type
   "Based on the given `interceptor`, returns a new interceptor that
