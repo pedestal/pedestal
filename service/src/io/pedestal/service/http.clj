@@ -128,7 +128,7 @@
 
 (defn- service-map->server-options
   [service-map]
-  (let [server-keys [::port ::join? ::jetty-options]]
+  (let [server-keys [::host ::port ::join? ::jetty-options]]
     (into {} (map (fn [[k v]] [(keyword (name k)) v]) (select-keys service-map server-keys)))))
 
 (defn- server-map->service-map
