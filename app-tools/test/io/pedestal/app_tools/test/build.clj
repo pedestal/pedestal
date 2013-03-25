@@ -14,12 +14,9 @@
             [io.pedestal.app.messages :as msg]
             [io.pedestal.app.tree :as tree])
   (:use io.pedestal.app-tools.build
-        clojure.test)
-  (:import [java.nio.file Paths]))
-
-
+        clojure.test))
 
 (deftest test-split-path
   (let [split-path #'io.pedestal.app-tools.build/split-path
-        path (Paths/get "some" (into-array ["path"]))] ; Behold, the ugliness that is varargs 
+        path (str (clojure.java.io/file "some" "path"))] ; Behold, the ugliness that is varargs 
     (is (= (split-path (str path)) ["some" "path"]))))
