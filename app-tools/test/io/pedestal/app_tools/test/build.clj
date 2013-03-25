@@ -18,5 +18,5 @@
 
 (deftest test-split-path
   (let [split-path #'io.pedestal.app-tools.build/split-path
-        path (str (clojure.java.io/file "some" "path"))] ; Behold, the ugliness that is varargs 
+        path (str (clojure.java.io/file "some" "path"))]
     (is (= (split-path (str path)) ["some" "path"]))))
