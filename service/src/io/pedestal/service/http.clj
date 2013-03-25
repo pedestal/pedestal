@@ -57,14 +57,19 @@
                          (:uri request)))
   request)
 
+(defn- valid-response?
+  "A valid response is any map that includes an integer :status
+  value."
+  [resp]
+  (and (map? resp)
+       (integer? (:status resp))))
+
 (interceptor/defafter not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
   [context]
-  (let [resp (:response context)]
-    (if (and (map? resp)
-             (integer? (:status resp)))
-      context
-      (assoc context :response (ring-response/not-found "Not Found"))))  )
+  (if (valid-response? (:response context))
+    context
+    (assoc context :response (ring-response/not-found "Not Found")))  )
 
 (defn add-content-type
   "Based on the given `interceptor`, returns a new interceptor that
