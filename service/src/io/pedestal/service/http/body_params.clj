@@ -34,7 +34,7 @@
   [request content-type]
   (-> request
       (assoc :content-type content-type)
-      (assoc-in [:headers "content-type"] content-type)))
+      (assoc-in [:headers "Content-Type"] content-type)))
 
 (defn- convert-middleware
   "Turn a ring middleware into a parser. If a content type is given, return a parser
