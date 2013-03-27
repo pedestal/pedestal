@@ -201,9 +201,6 @@
   [{:keys [^HttpServletRequest servlet-request servlet-response response]
     response-sent ::response-sent
     :as context}]
-  (log/info :in :leave-ring-response
-            :response-sent (::response-sent context)
-            :context context)
   (if-not (empty? response)
     (if-not response-sent
       (send-response servlet-response response)

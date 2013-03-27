@@ -17,7 +17,6 @@
             [io.pedestal.service.impl.interceptor :as interceptor-impl]
             [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.service.http.route.definition :refer [defroutes]]
-            [io.pedestal.service.log :as log]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream)))
 
@@ -43,7 +42,6 @@
 
 (defbefore send-response-directly
   [ctx]
-  (log/info :in :send-response-directly)
   (let [ctx (servlet-interceptor/take-response-ability ctx ::send-response-directly)
         servlet-response (get-in ctx [:request :servlet-response])
         response (ring-resp/response "Responding directly")]
@@ -51,14 +49,10 @@
     (servlet-interceptor/write-body-to-stream
      (:body response)
      (.getOutputStream servlet-response))
-    (log/info :in :send-response-directly
-              :response-sent (::servlet-interceptor/response-sent ctx)
-              :context ctx)
     ctx))
 
 (defafter add-response-after
   [ctx]
-  (log/info :in :add-response-after)
   (assoc ctx :response (ring-resp/response "I'm responding")))
 
 (defroutes app-routes
