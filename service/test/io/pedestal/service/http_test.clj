@@ -29,6 +29,8 @@
 (defn hello-page
   [request] (ring-resp/response "HELLO"))
 
+(defn just-status-page
+  [request] {:status 200})
 
 (defn get-edn
   [request] (ring-resp/response {:a 1}))
@@ -63,10 +65,10 @@
   [[["/about" {:get [:about about-page]}]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
     ["/edn" {:get get-edn}]
+    ["/just-status" {:get just-status-page}]
     ["/direct-response-1" {:get [::direct-response-1 send-response-directly]}]
     ["/direct-response-2" {:get [::direct-response-2 send-response-directly]}
-     ^:interceptors [add-response-after]
-     ]]])
+     ^:interceptors [add-response-after]]]])
 
 (def app-interceptors
   (service/default-interceptors {::service/routes app-routes}))
@@ -89,6 +91,12 @@
          (->> "/hello"
               (response-for app :get)
               :body))))
+
+(deftest response-with-only-status-works
+  (is (= 200
+         (->> "/just-status"
+              (response-for app :get)
+              :status))))
 
 (def with-bindings*-atom
   (atom 0))
