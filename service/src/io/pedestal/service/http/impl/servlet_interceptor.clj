@@ -69,7 +69,7 @@
   (default-content-type [_] nil)
   (write-body-to-stream [_ _] ()))
 
-(defn- write-body [^HttpServletResponse servlet-resp resp-map]
+(defn write-body [^HttpServletResponse servlet-resp resp-map]
   (let [{:keys [body]} resp-map
         output-stream (.getOutputStream servlet-resp)]
     (write-body-to-stream body output-stream)))
@@ -98,17 +98,20 @@
     (doseq [[k vs] headers]
       (set-header servlet-resp k vs))))
 
+(defn- send-response [^HttpServletResponse servlet-resp resp-map]
+  (when-not (.isCommitted servlet-resp)
+    (set-response servlet-resp resp-map))
+  (write-body servlet-resp resp-map)
+  (.flushBuffer servlet-resp))
+
+
 (defn take-response-ability [context value]
   (assoc context ::response-sent value))
 
 (defn response-sent? [context]
   (::response-sent context))
 
-(defn- send-response [^HttpServletResponse servlet-resp resp-map]
-  (when-not (.isCommitted servlet-resp)
-    (set-response servlet-resp resp-map))
-  (write-body servlet-resp resp-map)
-  (.flushBuffer servlet-resp))
+
 
 ;;; HTTP Request
 
@@ -201,15 +204,17 @@
   [{:keys [^HttpServletRequest servlet-request servlet-response response]
     response-sent ::response-sent
     :as context}]
-  (if-not (empty? response)
-    (if-not response-sent
-      (send-response servlet-response response)
-      (throw (ex-info "Response already sent"
-                      {:response-sent response-sent
-                       :response response})))
-    (when-not response-sent
-      (send-error servlet-response "Internal server error: no response")))
-  context)
+  (when (and response response-sent)
+    (throw (ex-info "Response already sent"
+                    {:response-sent response-sent
+                     :response response})))
+  (let [context (take-response-ability context ::leave-ring-response)]
+    (cond
+     (and response (not response-sent)) (send-response servlet-response response)
+     ;; may want to allow sending no response for security reasons, i.e., rejecting a cors request
+     (not (or response response-sent)) (send-error servlet-response
+                                                   "Internal server error: no response"))
+    context))
 
 (defn- terminator-inject
   [context]
