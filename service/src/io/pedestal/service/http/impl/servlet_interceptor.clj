@@ -69,15 +69,14 @@
   (default-content-type [_] nil)
   (write-body-to-stream [_ _] ()))
 
-(defn write-body [^HttpServletResponse servlet-resp resp-map]
-  (let [{:keys [body]} resp-map
-        output-stream (.getOutputStream servlet-resp)]
+(defn- write-body [^HttpServletResponse servlet-resp body]
+  (let [output-stream (.getOutputStream servlet-resp)]
     (write-body-to-stream body output-stream)))
 
 ;; Should we also set character encoding explicitly - if so, where
 ;; should it be stored in the response map, headers? If not,
 ;; should we provide help for adding it to content-type string?
-(defn set-header [^HttpServletResponse servlet-resp h vs]
+(defn- set-header [^HttpServletResponse servlet-resp h vs]
   (cond
    (= h "Content-Type") (.setContentType servlet-resp vs)
    (= h "Content-Length") (.setContentLength servlet-resp (Integer/parseInt vs))
@@ -86,32 +85,39 @@
    :else
    (throw (ex-info "Invalid header value" {:value vs}))))
 
-(defn get-default-content-type
+(defn- set-default-content-type
   [{:keys [headers body] :or {headers {}} :as resp-map}]
   (let [content-type (headers "Content-Type")]
     (update-in resp-map [:headers] merge {"Content-Type" (or content-type
                                                              (default-content-type body))})))
 
-(defn set-response [^HttpServletResponse servlet-resp resp-map]
-  (let [{:keys [status headers]} (get-default-content-type resp-map)]
-    (.setStatus servlet-resp status)
-    (doseq [[k vs] headers]
-      (set-header servlet-resp k vs))))
+(defn set-response
+  ([^HttpServletResponse servlet-resp resp-map]
+     (let [{:keys [status headers]} (set-default-content-type resp-map)]
+       (.setStatus servlet-resp status)
+       (doseq [[k vs] headers]
+         (set-header servlet-resp k vs)))))
 
 (defn- send-response [^HttpServletResponse servlet-resp resp-map]
   (when-not (.isCommitted servlet-resp)
     (set-response servlet-resp resp-map))
-  (write-body servlet-resp resp-map)
+  (write-body servlet-resp (:body resp-map))
   (.flushBuffer servlet-resp))
 
+(defn write-response-body
+  [{^HttpServletResponse servlet-resp :servlet-response} body]
+  (write-body servlet-resp body))
 
-(defn take-response-ability [context value]
-  (assoc context ::response-sent value))
+(defn write-response
+  [{^HttpServletResponse servlet-resp :servlet-response} resp-map]
+  (send-response servlet-resp resp-map))
+
+(defn flush-response
+  [{^HttpServletResponse servlet-resp :servlet-response}]
+  (.flushBuffer servlet-resp))
 
 (defn response-sent? [context]
-  (::response-sent context))
-
-
+  (.isCommitted (:servlet-response context)))
 
 ;;; HTTP Request
 
@@ -184,11 +190,6 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
-(defn- send-error [servlet-response message]
-  (log/info :msg "sending error"
-            :message message)
-  (send-response servlet-response {:status 500 :body message}))
-
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
   (assoc context :request
@@ -200,15 +201,22 @@
   (when async? (.complete (.getAsyncContext servlet-request)))
   context)
 
+(defn- send-error [servlet-response message]
+  (log/info :msg "sending error"
+            :message message)
+  (send-response servlet-response {:status 500 :body message}))
+
 (defn- leave-ring-response
   [{:keys [^HttpServletRequest servlet-request servlet-response response]
-    response-sent ::response-sent
     :as context}]
-  (when (and response response-sent)
-    (throw (ex-info "Response already sent"
-                    {:response-sent response-sent
-                     :response response})))
-  (let [context (take-response-ability context ::leave-ring-response)]
+  (let [response-sent (response-sent? context)]
+    (log/debug :in :leave-ring-response
+               :response response
+               :response-sent response-sent)
+    (when (and response response-sent)
+      (throw (ex-info "Response already sent"
+                      {:response-sent response-sent
+                       :response response})))
     (cond
      (and response (not response-sent)) (send-response servlet-response response)
      ;; may want to allow sending no response for security reasons, i.e., rejecting a cors request
@@ -338,6 +346,8 @@
                           :servlet-response servlet-response
                           :servlet-config (.getServletConfig servlet)
                           :servlet servlet})]
+      (log/info :in :interceptor-service-fn
+                :context context)
       (try
         (let [final-context (interceptor-impl/execute
                              (apply interceptor-impl/enqueue context interceptors))]

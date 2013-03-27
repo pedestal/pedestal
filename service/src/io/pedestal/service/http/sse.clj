@@ -41,45 +41,39 @@
   (apply str (map #(str "data:" % "\r\n")
                   (string/split data #"\r?\n"))))
 
-(defn flush-response [^ServletResponse resp]
-  (.flushBuffer resp))
-
-(defn send-event [{response :servlet-response output-stream :output-stream :as context} name data]
+(defn send-event [stream-context name data]
   (log/trace :msg "writing event to stream"
-             :servlet-response response
              :name name
              :data data)
   (try
-    (locking response
+    (locking (:servlet-response stream-context)
       (let [data (mk-data data)]
-        (servlet-interceptor/write-body-to-stream EVENT_FIELD output-stream)
-        (servlet-interceptor/write-body-to-stream (get-bytes name) output-stream)
-        (servlet-interceptor/write-body-to-stream CRLF output-stream)
-        (servlet-interceptor/write-body-to-stream data output-stream)
-        (servlet-interceptor/write-body-to-stream CRLF output-stream))
-      (flush-response response))
+        (servlet-interceptor/write-response-body stream-context EVENT_FIELD)
+        (servlet-interceptor/write-response-body stream-context (get-bytes name))
+        (servlet-interceptor/write-response-body stream-context CRLF)
+        (servlet-interceptor/write-response-body stream-context data)
+        (servlet-interceptor/write-response-body stream-context CRLF))
+      (servlet-interceptor/flush-response stream-context))
     (catch Throwable t
       (log/error :msg "exception sending event"
                  :throwable t
                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
       (throw t))))
 
-(defn do-heartbeat [{rsp :servlet-response
-                     out :output-stream
-                     :as context}]
+(defn do-heartbeat [stream-context]
   (try
-    (locking rsp
+    (locking (:servlet-response stream-context)
       (log/trace :msg "writing heartbeat to stream")
-      (servlet-interceptor/write-body-to-stream CRLF out)
-      (flush-response rsp))
+      (servlet-interceptor/write-response-body stream-context CRLF)
+      (servlet-interceptor/flush-response stream-context))
     (catch Throwable t
       (log/error :msg "exception sending heartbeat"
                  :throwable t
                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
       (throw t))))
 
-(defn- ^ScheduledFuture schedule-heartbeart [context heartbeat-delay]
-  (let [f #(do-heartbeat context)]
+(defn- ^ScheduledFuture schedule-heartbeart [stream-context heartbeat-delay]
+  (let [f #(do-heartbeat stream-context)]
     (.scheduleWithFixedDelay scheduler f 0 heartbeat-delay TimeUnit/SECONDS)))
 
 (defn end-event-stream
@@ -93,29 +87,25 @@
   reference to an end-stream function into context. An application
   must use this function to clean up a stream when it is no longer
   needed."
-  [{{^ServletResponse servlet-response :servlet-response :as request} :request :as context} heartbeat-delay]
+  [stream-context heartbeat-delay]
   (let [response (-> (ring-response/response "")
                      (ring-response/content-type "text/event-stream")
                      (ring-response/charset "UTF-8")
                      (ring-response/header "Connection" "close")
-                     (ring-response/header "Cache-control" "no-cache"))
-        new-context (merge context
-                           (servlet-interceptor/take-response-ability context ::start-stream)
-                           {:servlet-response servlet-response
-                            :output-stream (.getOutputStream servlet-response)})]
+                     (ring-response/header "Cache-control" "no-cache"))]
 
     (log/trace :msg "starting sse handler")
-    (servlet-interceptor/set-response servlet-response response)
-    (flush-response servlet-response)
+    (servlet-interceptor/write-response stream-context response)
+    (servlet-interceptor/flush-response stream-context)
     (log/trace :msg "response headers sent")
 
-    (let [hb-future (schedule-heartbeart new-context heartbeat-delay)]
-      (assoc new-context ::end-event-stream
+    (let [hb-future (schedule-heartbeart stream-context heartbeat-delay)]
+      (assoc stream-context ::end-event-stream
              (fn []
                (log/trace :msg "resuming after streaming"
-                          :context new-context)
+                          :context stream-context)
                (.cancel hb-future true)
-               (interceptor-impl/resume new-context))))))
+               (interceptor-impl/resume stream-context))))))
 
 (defn stream-events-fn
   "Stream events to the client by establishing an output stream as

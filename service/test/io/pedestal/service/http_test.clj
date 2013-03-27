@@ -42,13 +42,10 @@
 
 (defbefore send-response-directly
   [ctx]
-  (let [ctx (servlet-interceptor/take-response-ability ctx ::send-response-directly)
-        servlet-response (get-in ctx [:request :servlet-response])
-        response (ring-resp/response "Responding directly")]
-    (servlet-interceptor/set-response servlet-response response)
-    (servlet-interceptor/write-body-to-stream
-     (:body response)
-     (.getOutputStream servlet-response))
+  (let [response (ring-resp/response "Responding directly")]
+    (servlet-interceptor/write-response ctx (dissoc response :body))
+    (servlet-interceptor/write-response-body ctx (:body response))
+    (servlet-interceptor/flush-response ctx)
     ctx))
 
 (defafter add-response-after
@@ -175,8 +172,4 @@
                 (response-for patched-app :get)
                 :body)))
     (is (= "Response already sent"
-           (.getMessage @error-signal)))
-    (is (= ::send-response-directly
-           (-> @error-signal
-               (.getData)
-               :response-sent)))))
+           (.getMessage @error-signal)))))

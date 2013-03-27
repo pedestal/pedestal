@@ -21,19 +21,19 @@
         {byte-array-output-stream :output-stream
          status :status
          headers-map :headers-map} (meta test-servlet-response)
-        fake-context {:request {:servlet-response test-servlet-response}}
+        fake-context {:request {:servlet-response test-servlet-response}
+                      :servlet-response test-servlet-response}
         semaphore (promise)
         sse-rig (fn [sse-context]
                   (log/info :msg "in sse rig")
                   (send-event sse-context "test" "passes")
                   (end-event-stream sse-context)
-                  (deliver semaphore sse-context))
+                  (deliver semaphore (.isCommitted (:servlet-response sse-context))))
         interceptor-context (interceptor/enqueue fake-context (sse-setup sse-rig))]
     (log/info :context interceptor-context
               :queue (seq (:io.pedestal.service.impl.interceptor/queue interceptor-context)))
     (log/info :execution-call (interceptor/execute interceptor-context))
-    (is (= (:io.pedestal.service.http.impl.servlet-interceptor/response-sent @semaphore)
-           :io.pedestal.service.http.sse/start-stream))
+    (is (= @semaphore true))
     (is (= 200 @status) "A successful status code is sent to the client.")
     (is (= "text/event-stream; charset=UTF-8" (:content-type @headers-map)) "The mime type and character encoding are set with the servlet setContentType method")
     #_(is (= "text/event-stream; charset=UTF-8" ((:set-header @headers-map) "Content-Type")) "The transmitted headers include the correct mime type and character encoding")

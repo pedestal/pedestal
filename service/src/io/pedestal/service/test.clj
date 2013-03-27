@@ -98,6 +98,7 @@
   (let [output-stream (test-servlet-output-stream)
         headers-map (atom {})
         status-val (atom nil)
+        committed (atom false)
         meta-data {:output-stream (:output-stream (meta output-stream))
                    :status status-val
                    :headers-map headers-map}]
@@ -109,8 +110,8 @@
                  (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
-                 (flushBuffer [this])
-                 (isCommitted [this] false))
+                 (flushBuffer [this] (reset! committed true))
+                 (isCommitted [this] @committed))
       meta-data)))
 
 (defn test-servlet-response-status
