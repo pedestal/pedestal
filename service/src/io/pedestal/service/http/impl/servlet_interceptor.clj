@@ -98,6 +98,12 @@
     (doseq [[k vs] headers]
       (set-header servlet-resp k vs))))
 
+(defn take-response-ability [context value]
+  (assoc context ::response-sent value))
+
+(defn response-sent? [context]
+  (::response-sent context))
+
 (defn- send-response [^HttpServletResponse servlet-resp resp-map]
   (when-not (.isCommitted servlet-resp)
     (set-response servlet-resp resp-map))
@@ -193,10 +199,19 @@
 
 (defn- leave-ring-response
   [{:keys [^HttpServletRequest servlet-request servlet-response response]
+    response-sent ::response-sent
     :as context}]
-  (if response
-    (send-response servlet-response response)
-    (send-error servlet-response "Internal server error: no response"))
+  (log/info :in :leave-ring-response
+            :response-sent (::response-sent context)
+            :context context)
+  (if-not (empty? response)
+    (if-not response-sent
+      (send-response servlet-response response)
+      (throw (ex-info "Response already sent"
+                      {:response-sent response-sent
+                       :response response})))
+    (when-not response-sent
+      (send-error servlet-response "Internal server error: no response")))
   context)
 
 (defn- terminator-inject
@@ -212,7 +227,7 @@
   (log/error :msg "error-stylobate triggered"
              :exception exception
              :context context)
-  context)
+  (leave-stylobate context))
 
 (defn- error-ring-response
   "Makes sure we send an error response on an exception, even in the
@@ -225,30 +240,6 @@
              :context context)
   (send-error servlet-response "Internal server error: exception")
   context)
-
-(defn- error-debug
-  "When an error propogates to this interceptor error fn, trap it,
-  print it to the output stream of the HTTP request, and do not
-  rethrow it."
-  [{:keys [servlet-response] :as context} exception]
-  (assoc context
-    :response (ring-response/response
-               (with-out-str (println "Error processing request!")
-                 (println "Exception:\n")
-                 (stacktrace/print-cause-trace exception)
-                 (println "\nContext:\n")
-                 (pprint/pprint context)))))
-
-(definterceptor exception-debug
-  "An interceptor which catches errors, renders them to readable text
-  and sends them to the user. This interceptor is intended for
-  development time assistance in debugging problems in pedestal
-  services. Including it in interceptor paths on production systems
-  may present a security risk by exposing call stacks of the
-  application when exceptions are encountered."
-  (interceptor/interceptor
-   :name ::exception-debug
-   :error error-debug))
 
 (defn- pause-stylobate
   [{:keys [servlet-request], async? ::async?, :as context}]
@@ -308,6 +299,30 @@
   (interceptor/before
    ::terminator-injector
    terminator-inject))
+
+(defn- error-debug
+  "When an error propogates to this interceptor error fn, trap it,
+  print it to the output stream of the HTTP request, and do not
+  rethrow it."
+  [{:keys [servlet-response] :as context} exception]
+  (assoc context
+    :response (ring-response/response
+               (with-out-str (println "Error processing request!")
+                 (println "Exception:\n")
+                 (stacktrace/print-cause-trace exception)
+                 (println "\nContext:\n")
+                 (pprint/pprint context)))))
+
+(definterceptor exception-debug
+  "An interceptor which catches errors, renders them to readable text
+  and sends them to the user. This interceptor is intended for
+  development time assistance in debugging problems in pedestal
+  services. Including it in interceptor paths on production systems
+  may present a security risk by exposing call stacks of the
+  application when exceptions are encountered."
+  (interceptor/interceptor
+   :name ::exception-debug
+   :error error-debug))
 
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the

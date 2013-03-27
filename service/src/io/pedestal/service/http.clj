@@ -16,7 +16,7 @@
             [io.pedestal.service.http.ring-middlewares :as middlewares]
             [io.pedestal.service.interceptor :as interceptor]
             [io.pedestal.service.http.servlet :as servlet]
-            [io.pedestal.service.http.impl.servlet-interceptor :as http-servlet-interceptor]
+            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
             [ring.util.mime-type :as ring-mime]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
@@ -60,9 +60,11 @@
 (interceptor/defafter not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
   [context]
-  (if (ring-response/response? (:response context))
-    context
-    (assoc context :response (ring-response/not-found "Not Found"))))
+  (if-not (servlet-interceptor/response-sent? context)
+    (if-not (ring-response/response? (:response context))
+      (assoc context :response (ring-response/not-found "Not Found"))
+      context)
+    context))
 
 (defn add-content-type
   "Based on the given `interceptor`, returns a new interceptor that
@@ -104,13 +106,13 @@
 (defn dev-interceptors
   [service-map]
   (update-in service-map [::interceptors]
-             #(vec (cons http-servlet-interceptor/exception-debug %))))
+             #(vec (cons servlet-interceptor/exception-debug %))))
 
 (defn service-fn
   [{interceptors ::interceptors
     :as service-map}]
   (assoc service-map ::service-fn
-         (http-servlet-interceptor/http-interceptor-service-fn interceptors)))
+         (servlet-interceptor/http-interceptor-service-fn interceptors)))
 
 (defn servlet
   [{service-fn ::service-fn

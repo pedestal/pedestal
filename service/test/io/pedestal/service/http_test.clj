@@ -13,9 +13,11 @@
   (:require [clojure.test :refer :all]
             [io.pedestal.service.test :refer :all]
             [io.pedestal.service.http :as service]
-            [io.pedestal.service.interceptor :as interceptor :refer [defon-response]]
-            [io.pedestal.service.http.impl.servlet-interceptor]
+            [io.pedestal.service.interceptor :as interceptor :refer [defon-response defbefore defafter]]
+            [io.pedestal.service.impl.interceptor :as interceptor-impl]
+            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.service.http.route.definition :refer [defroutes]]
+            [io.pedestal.service.log :as log]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream)))
 
@@ -37,16 +39,44 @@
          (format "You must go to %s!"
                  (io.pedestal.service.http.route/url-for :about))))
 
+(defbefore send-response-directly
+  [ctx]
+  (log/info :in :send-response-directly)
+  (let [ctx (servlet-interceptor/take-response-ability ctx ::send-response-directly)
+        servlet-response (get-in ctx [:request :servlet-response])
+        response (ring-resp/response "Responding directly")]
+    (servlet-interceptor/set-response servlet-response response)
+    (servlet-interceptor/write-body-to-stream
+     (:body response)
+     (.getOutputStream servlet-response))
+    (log/info :in :send-response-directly
+              :response-sent (::servlet-interceptor/response-sent ctx)
+              :context ctx)
+    ctx))
+
+(defafter add-response-after
+  [ctx]
+  (log/info :in :add-response-after)
+  (assoc ctx :response (ring-resp/response "I'm responding")))
+
 (defroutes app-routes
   [[["/about" {:get [:about about-page]}]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
-    ["/edn" {:get get-edn}]]])
+    ["/edn" {:get get-edn}]
+    ["/direct-response-1" {:get [::direct-response-1 send-response-directly]}]
+    ["/direct-response-2" {:get [::direct-response-2 send-response-directly]}
+     ^:interceptors [add-response-after]
+     ]]])
 
-(def app
-  (-> {::service/routes app-routes}
-      service/default-interceptors
+(def app-interceptors
+  (service/default-interceptors {::service/routes app-routes}))
+
+(defn make-app [interceptors]
+  (-> interceptors
       service/service-fn
       ::service/service-fn))
+
+(def app (make-app app-interceptors))
 
 (deftest enter-linker-generates-correct-link
   (is (= "Yeah, this is a self-link to /about"
@@ -121,3 +151,30 @@
                (.flush output-stream)
                (.close output-stream)
                (.toString output-stream "UTF-8"))))))
+
+(deftest direct-response-test
+  (is (= "Responding directly"
+         (->> "/direct-response-1"
+              (response-for app :get)
+              :body))))
+
+(deftest direct-response-with-later-response-test
+  (let [error-signal (promise)
+        patched-interceptors (concat [@#'servlet-interceptor/terminator-injector
+                                      (assoc @#'servlet-interceptor/stylobate :error
+                                             (fn [ctx exception]
+                                               (deliver error-signal exception)
+                                               ctx))
+                                      @#'servlet-interceptor/ring-response]
+                                     (::service/interceptors app-interceptors))
+        patched-app (#'servlet-interceptor/interceptor-service-fn patched-interceptors {})]
+    (is (= "Responding directly"
+           (->> "/direct-response-2"
+                (response-for patched-app :get)
+                :body)))
+    (is (= "Response already sent"
+           (.getMessage @error-signal)))
+    (is (= ::send-response-directly
+           (-> @error-signal
+               (.getData)
+               :response-sent)))))

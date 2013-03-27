@@ -27,14 +27,17 @@
                   (log/info :msg "in sse rig")
                   (send-event sse-context "test" "passes")
                   (end-event-stream sse-context)
-                  (deliver semaphore nil))
+                  (deliver semaphore sse-context))
         interceptor-context (interceptor/enqueue fake-context (sse-setup sse-rig))]
     (log/info :context interceptor-context
               :queue (seq (:io.pedestal.service.impl.interceptor/queue interceptor-context)))
     (log/info :execution-call (interceptor/execute interceptor-context))
-    (is (nil? @semaphore))
+    (is (= (:io.pedestal.service.http.impl.servlet-interceptor/response-sent @semaphore)
+           :io.pedestal.service.http.sse/start-stream))
     (is (= 200 @status) "A successful status code is sent to the client.")
     (is (= "text/event-stream; charset=UTF-8" (:content-type @headers-map)) "The mime type and character encoding are set with the servlet setContentType method")
     #_(is (= "text/event-stream; charset=UTF-8" ((:set-header @headers-map) "Content-Type")) "The transmitted headers include the correct mime type and character encoding")
     (is (= "close" ((:set-header @headers-map) "Connection")) "The client is instructed to close the connection.")
     (is (= "no-cache" ((:set-header @headers-map) "Cache-control")) "The client is instructed not to cache the event stream")))
+
+

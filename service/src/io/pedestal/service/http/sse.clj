@@ -99,9 +99,10 @@
                      (ring-response/charset "UTF-8")
                      (ring-response/header "Connection" "close")
                      (ring-response/header "Cache-control" "no-cache"))
-        new-context (merge context {:servlet-response servlet-response
-                                    :output-stream (.getOutputStream servlet-response)
-                                    :response response})]
+        new-context (merge context
+                           (servlet-interceptor/take-response-ability context ::start-stream)
+                           {:servlet-response servlet-response
+                            :output-stream (.getOutputStream servlet-response)})]
 
     (log/trace :msg "starting sse handler")
     (servlet-interceptor/set-response servlet-response response)
@@ -132,14 +133,19 @@
                        :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
             (throw t)))))))
 
-(definterceptorfn sse-setup
+(definterceptorfn start-event-stream
   "Returns an interceptor which will start a Server Sent Event stream
   with the requesting client, and set the ServletRepsonse to go
   async. After the request handling context has been paused in the
   Servlet thread, `stream-ready-fn` will be called in a future, with
   the resulting context from setting up the SSE event stream."
-  ([stream-ready-fn] (sse-setup stream-ready-fn 10))
+  ([stream-ready-fn] (start-event-stream stream-ready-fn 10))
   ([stream-ready-fn heartbeat-delay]
      (interceptor/interceptor
       :name "io.pedestal.service.http.sse/sse-setup"
       :enter (stream-events-fn stream-ready-fn heartbeat-delay))))
+
+(defn sse-setup
+  "See start-event-stream. This function is for backward compatibility."
+  [& args]
+  (apply start-event-stream args))
