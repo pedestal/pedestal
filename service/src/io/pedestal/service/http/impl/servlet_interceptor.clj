@@ -104,6 +104,9 @@
   (write-body servlet-resp (:body resp-map))
   (.flushBuffer servlet-resp))
 
+(defn lockable [context]
+  (:servlet-response context))
+
 (defn write-response-body
   [{^HttpServletResponse servlet-resp :servlet-response} body]
   (write-body servlet-resp body))

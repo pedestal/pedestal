@@ -46,7 +46,7 @@
              :name name
              :data data)
   (try
-    (locking (:servlet-response stream-context)
+    (locking (servlet-interceptor/lockable stream-context)
       (let [data (mk-data data)]
         (servlet-interceptor/write-response-body stream-context EVENT_FIELD)
         (servlet-interceptor/write-response-body stream-context (get-bytes name))
@@ -62,7 +62,7 @@
 
 (defn do-heartbeat [stream-context]
   (try
-    (locking (:servlet-response stream-context)
+    (locking (servlet-interceptor/lockable stream-context)
       (log/trace :msg "writing heartbeat to stream")
       (servlet-interceptor/write-response-body stream-context CRLF)
       (servlet-interceptor/flush-response stream-context))
