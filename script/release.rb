@@ -41,7 +41,7 @@ puts "Found git #{git_version}"
 project_cljs = Dir['**/project.clj']
 versions = []
 
-snapshot_defproject_re = /\(defproject io\.pedestal\/(.+) "(\d+\.\d+\.\d+)-SNAPSHOT"/
+snapshot_defproject_re = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "(\d+\.\d+\.\d+)-SNAPSHOT"/
 
 project_cljs.each do |project_clj|
   File.open(project_clj) do |file|
@@ -60,7 +60,7 @@ release_version = versions.uniq.first
 release_version =~ /(\d+\.\d+\.)(\d+)/
 bumped_subminor = (($2.to_i)+1).to_s
 pre_release_version = "#{$1}#{bumped_subminor}-SNAPSHOT"
-release_defproject_re = /\(defproject io\.pedestal\/(.+) "#{release_version}"/
+release_defproject_re = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "#{release_version}"/
 # Confirm the release operation
 
 puts "Current released version will be #{release_version}"
@@ -80,7 +80,7 @@ end
 project_cljs.each do |project_clj|
   contents = File.read project_clj
   File.open(project_clj,"w") do |file|
-    redefined = contents.gsub(snapshot_defproject_re, '(defproject io.pedestal/\1 "'+ release_version + '"')
+    redefined = contents.gsub(snapshot_defproject_re, '(defproject \1 "'+ release_version + '"')
     redepended = redefined.gsub(/\[io.pedestal\/(.+) "#{release_version}-SNAPSHOT"/,
                                '[io.pedestal/\1 "'+release_version+'"')
     file.puts redepended
@@ -106,7 +106,7 @@ end
 project_cljs.each do |project_clj|
   contents = File.read project_clj
   File.open(project_clj,"w") do |file|
-    redefined = contents.gsub(release_defproject_re, '(defproject io.pedestal/\1 "'+ pre_release_version + '"')
+    redefined = contents.gsub(release_defproject_re, '(defproject \1 "'+ pre_release_version + '"')
     redepended = redefined.gsub(/\[io.pedestal\/(.+) "#{release_version}"/,
                                '[io.pedestal/\1 "'+pre_release_version+'"')
     file.puts redepended
