@@ -33,10 +33,35 @@ unless version_report =~ /git version ([0-9\.]+)/
 end
 
 git_version = $1
-
 puts "Found git #{git_version}"
 
-# Git found. Precalculate the pending release and the new development stream.
+# Check for encrypted credentials. We won't support cleartext credentials.
+
+credentials_file ="#{ENV['HOME']}/.lein/credentials.clj.gpg"
+unless File.exist?(credentials_file)
+  puts "No stored credentials found. Please read https://github.com/technomancy/leiningen/blob/master/doc/DEPLOY.md and place your Clojars deployment credentials in #{credentials_file}"
+  exit -1
+end
+
+# Check for a credential entry to clojars.
+
+found_clojars = false
+IO.popen("gpg -d #{credentials_file}") do |credential_contents|
+  credential_contents.each do |line|
+    found_clojars = true if line =~ /#"https:\/\/clojars\\\.org\/repo"/
+  end
+end
+unless found_clojars
+  puts "Credentials plaintext does not appear to have an entry for clojars."
+  puts "Please add an entry like the following to your credentials.clj and encrypt it:"
+  puts <<CREDENTIALS_EXAMPLE
+  #"https://clojars\\.org/repo"
+  {:username "pedestal"
+   :password <pedestal clojars password here>}
+CREDENTIALS_EXAMPLE
+  exit -1
+end
+# Pre-requisites met. Precalculate the pending release and the new development stream.
 
 project_cljs = Dir['**/project.clj']
 versions = []
