@@ -11,56 +11,41 @@
 
 (ns io.pedestal.service.http.cors
   (:require [io.pedestal.service.interceptor :refer :all]
+            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.service.log :as log]
             [ring.util.response :as ring-response]))
 
-(defn origin
-  "Returns the Origin request header."
-  [request] (get (:headers request) "origin"))
-
-(defn allow-request?
-  "Returns true if the request's origin matches the access control
-  origin, otherwise false."
-  [request access-control]
-  (let [origin (origin request)
-        allowed (:access-control-allow-origin access-control)]
-    (if (and origin allowed (some #(re-matches % origin) (if (sequential? allowed) allowed [allowed])))
-      true false)))
-
-(defn header-name
-  "Returns the capitalized header name as a string."
-  [header] (if header (join "-" (map capitalize (split (name header) #"-")))))
-
-(defn normalize-headers
-  "Normalize the headers by converting them to capitalized strings."
-  [headers] (reduce #(assoc %1 (header-name (first %2)) (last %2)) {} headers))
-
-(defn add-access-control
-  "Add the access control headers using the request's origin to the response."
-  [request response access-control]
-  (if-let [origin (origin request)]
-    (let [access-headers (normalize-headers (assoc access-control :access-control-allow-origin origin))]
-      (assoc response :headers (merge (:headers response) access-headers)))
-    response))
-
-;; in dev mode - if no Origin, let it go; if Origin, say yes to everything and reply with correct header
-;; in prod mode - if no Origin, fail; if Origin not in set, fail
+(defn allowed?
+  [allowed-origins origin]
+  (some #(re-find % origin) allowed-origins))
 
 (definterceptorfn allow-origin
-  [origin-whitelist]
-  (around ::origin
+  [allowed-origins]
+  (around ::allow-origin
           (fn [context]
-            (let [origin (get-in context [:request :headers "Origin"] "")
-                  access-control {:access-control-allow-origin #"localhost:8080"}]
-              (if (cors/allow-request? request access-control)
-                (do (log/debug :msg "allowing request"
-                               :request request
-                               :access-control access-control)
-                    (update-in context [:response] #(cors/add-access-control request % access-control)))
-                (do (log/debug :msg "not allowing request") context))))
+            (if-let [origin (get-in context [:request :headers "origin"])]
+              (let [allowed (allowed? allowed-origins origin)]
+                (log/debug :msg "cors processing"
+                           :origin origin
+                           :allowed allowed)
+                (if allowed
+                  (assoc context :cors-headers {"Access-Control-Allow-Origin" origin})
+                  (assoc context :response {:status 403 :body "Forbidden" :headers {}})))
+              context))
           (fn [context]
-            )))
+            (if-not (servlet-interceptor/response-sent? context)
+              (update-in context [:response :headers] merge (:cors-headers context))
+              context))))
 
+(defbefore dev-allow-origin
+  [context]
+  (let [origin (get-in context [:request :headers "origin"])]
+    (log/debug :msg "cors dev processing"
+               :origin origin
+               :context context)
+    (if-not origin
+      (assoc-in context [:request :headers "origin"] "")
+      context)))
 
 #_(defbefore cors-options-interceptor
   "Interceptor that adds CORS headers when the origin matches the authorized origin."
@@ -78,7 +63,7 @@
                  (ring-response/header "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, OPTIONS, HEAD")
                  (ring-response/header "Access-Control-Allow-Headers" preflight-headers))))))
 
-(defbefore cors-sse-clever-hack-interceptor
+#_(defbefore cors-sse-clever-hack-interceptor
   [context]
   (let [request (:request context)
         servlet-response (:servlet-response request)
@@ -92,4 +77,3 @@
     (servlet-interceptor/set-response servlet-response response)
     (.flushBuffer servlet-response)
     context))
-

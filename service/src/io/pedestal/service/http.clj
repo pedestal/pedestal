@@ -17,6 +17,7 @@
             [io.pedestal.service.interceptor :as interceptor]
             [io.pedestal.service.http.servlet :as servlet]
             [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.service.http.cors :as cors]
             [ring.util.mime-type :as ring-mime]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
@@ -95,14 +96,16 @@
     file-path ::file-path
     resource-path ::resource-path
     method-param-name ::method-param-name
+    allowed-origins ::allowed-origins
     :or {file-path nil
          resource-path "public"
          method-param-name :_method}
     :as service-map}]
   (assoc service-map ::interceptors
          (cond-> []
-                 true (conj not-found)
                  true (conj log-request)
+                 (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
+                 true (conj not-found)
                  true (conj middlewares/content-type)
                  true (conj route/query-params)
                  true (conj (route/method-param method-param-name))
@@ -113,7 +116,9 @@
 (defn dev-interceptors
   [service-map]
   (update-in service-map [::interceptors]
-             #(vec (cons servlet-interceptor/exception-debug %))))
+             #(vec (->> %
+                        (cons cors/dev-allow-origin)
+                        (cons servlet-interceptor/exception-debug)))))
 
 (defn service-fn
   [{interceptors ::interceptors
