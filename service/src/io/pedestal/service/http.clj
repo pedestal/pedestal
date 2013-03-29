@@ -57,10 +57,17 @@
                          (:uri request)))
   request)
 
+(defn- valid-response?
+  "A valid response is any map that includes an integer :status
+  value."
+  [resp]
+  (and (map? resp)
+       (integer? (:status resp))))
+
 (interceptor/defafter not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
   [context]
-  (if (ring-response/response? (:response context))
+  (if (valid-response? (:response context))
     context
     (assoc context :response (ring-response/not-found "Not Found"))))
 
@@ -128,7 +135,7 @@
 
 (defn- service-map->server-options
   [service-map]
-  (let [server-keys [::port ::join? ::jetty-options]]
+  (let [server-keys [::host ::port ::join? ::jetty-options]]
     (into {} (map (fn [[k v]] [(keyword (name k)) v]) (select-keys service-map server-keys)))))
 
 (defn- server-map->service-map
@@ -138,7 +145,7 @@
 (defn server
   [{servlet ::servlet
     type ::type
-    :or {::type :jetty}
+    :or {type :jetty}
     :as service-map}]
   (let [server-ns (symbol (str "io.pedestal.service.http." (name type)))
         server-fn (do (require server-ns)

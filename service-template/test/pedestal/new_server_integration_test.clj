@@ -35,4 +35,7 @@
   (is (.exists (io/file full-app-name "README.md")))
   (is (.exists (io/file full-app-name "src" "test_app" "service.clj")))
   (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "test"))))
+  (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "with-profile" "production" "compile" ":all"))))
   (sh/sh "rm" "-rf" full-app-name))
+
+

@@ -14,7 +14,8 @@
             [io.pedestal.app.messages :as msg]
             [io.pedestal.app.tree :as tree])
   (:use io.pedestal.app
-        clojure.test))
+        clojure.test
+        [io.pedestal.app.util.test :only [run-sync!]]))
 
 (deftest test-views-for-input
   (let [views-for-input #'io.pedestal.app/views-for-input]
@@ -311,18 +312,6 @@
 ;; Support functions
 ;; ================================================================================
 
-(defn run-script
-  "Send each message in the script to the applcation and return a
-  sequence of all generated states."
-  [app script]
-  (reduce (fn [a message]
-            (p/put-message (:input app) message)
-            ;; TODO: Fix this
-            (Thread/sleep 20)
-            (conj a @(:state app)))
-          [@(:state app)]
-          script))
-
 (defn input->emitter-output
   "Given a sequence of states return a sequence of maps with :input
   and :emitter."
@@ -372,7 +361,7 @@
 (deftest test-simplest-possible-app
   (let [app (build simplest-possible-app)
         _ (begin app)
-        results (run-script app [{msg/topic :model-a :n 42}])
+        results (run-sync! app [{msg/topic :model-a :n 42}])
         results (standardize-results results)]
     (is (= (count results) 2))
     (is (= (first results)
@@ -416,7 +405,7 @@
 (deftest test-two-models-app
   (let [app (build two-models-app)
         _ (begin app)
-        results (run-script app [{msg/topic :model-a :n 42}
+        results (run-sync! app [{msg/topic :model-a :n 42}
                                  {msg/topic :model-b :n 11}
                                  {msg/topic :model-a :n 3}])
         results (standardize-results results)]
@@ -472,7 +461,7 @@
 (deftest test-two-views-app
   (let [app (build two-views-app)
         _ (begin app)
-        results (run-script app [{msg/topic :model-a :n 42}
+        results (run-sync! app [{msg/topic :model-a :n 42}
                                  {msg/topic :model-b :n 10}
                                  {msg/topic :model-a :n 3}])
         results (standardize-results results)]
@@ -540,7 +529,7 @@
 (deftest test-square-root
   (let [app (build square-root-app)
         _ (begin app)
-        results (run-script app [{msg/topic :accuracy :n 0.000001}
+        results (run-sync! app [{msg/topic :accuracy :n 0.000001}
                                  {msg/topic :x :n 42}
                                  {msg/topic :guess :n 7}])
         results (standardize-results results)]
@@ -564,7 +553,7 @@
 (deftest test-square-root-modify-inputs
   (let [app (build square-root-app)
         _ (begin app)
-        results (run-script app [{msg/topic :accuracy :n 0.000001}
+        results (run-sync! app [{msg/topic :accuracy :n 0.000001}
                                  {msg/topic :x :n 42}
                                  {msg/topic :guess :n 7}
                                  {msg/topic :x :n 50}])
@@ -611,7 +600,7 @@
 (deftest test-dependent-views-which-depend-on-one-model
   (let [app (build dependent-views-app)
         _ (begin app)
-        results (run-script app [{msg/topic :x :n 42}
+        results (run-sync! app [{msg/topic :x :n 42}
                                  {msg/topic :x :n 12}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
@@ -639,7 +628,7 @@
 (deftest test-two-views-with-same-input-old-values
   (let [app (build two-views-with-same-input-old-values)
         _ (begin app)
-        results (run-script app [{msg/topic :x :n 1}
+        results (run-sync! app [{msg/topic :x :n 1}
                                  {msg/topic :x :n 2}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
@@ -665,7 +654,7 @@
 (deftest test-two-views-with-same-input-new-values
   (let [app (build two-views-with-same-input-new-values)
         _ (begin app)
-        results (run-script app [{msg/topic :x :n 1}
+        results (run-sync! app [{msg/topic :x :n 1}
                                  {msg/topic :x :n 2}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
@@ -724,7 +713,7 @@
             app (build output-app)
             _ (capture-queue 3 :output app services-state)
             _ (begin app)
-            results (run-script app [{msg/topic :x :n 42}
+            results (run-sync! app [{msg/topic :x :n 42}
                                      {msg/topic :x :n 12}])
             results (standardize-results results)]
         (is (= @services-state
@@ -737,7 +726,7 @@
             app (build (assoc output-app :output {:half (echo-output :s)}))
             _ (capture-queue 3 :output app services-state)
             _ (begin app)
-            results (run-script app [{msg/topic :x :n 42}
+            results (run-sync! app [{msg/topic :x :n 42}
                                      {msg/topic :x :n 12}])
             results (standardize-results results)]
         (is (= @services-state
@@ -755,7 +744,7 @@
         _ (begin app)
         renderer-state (atom [])]
     (capture-queue 3 :app-model app renderer-state)
-    (let [results (run-script app [{msg/topic :x :n 42}
+    (let [results (run-sync! app [{msg/topic :x :n 42}
                                    {msg/topic :x :n 12}])
           results (standardize-results results)]
       (is (= (set @renderer-state)
@@ -808,7 +797,7 @@
 (deftest test-dataflow-one
   (let [app (build dataflow-test-one)
         _ (begin app)
-        results (run-script app [{msg/topic :x :n 1}
+        results (run-sync! app [{msg/topic :x :n 1}
                                  {msg/topic :x :n 2}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
@@ -842,7 +831,7 @@
 (deftest test-dataflow-two
   (let [app (build dataflow-test-two)
         _ (begin app)
-        results (run-script app [{msg/topic :x :n 1}
+        results (run-sync! app [{msg/topic :x :n 1}
                                  {msg/topic :x :n 2}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
@@ -891,7 +880,7 @@
   (testing "only view the default paths"
     (let [app (build navigation-app)
           _ (begin app)
-          results (run-script app [{msg/topic :a :n 10}
+          results (run-sync! app [{msg/topic :a :n 10}
                                    {msg/topic :b :n 11}
                                    {msg/topic :c :n 12}])
           results (standardize-results results)]
@@ -911,7 +900,7 @@
   (testing "navigate between paths"
     (let [app (build navigation-app)
           _ (begin app)
-          results (run-script app [{msg/topic :a :n 10}
+          results (run-sync! app [{msg/topic :a :n 10}
                                    {msg/topic :b :n 11}
                                    {msg/topic msg/app-model msg/type :navigate :name :b}
                                    {msg/topic :b :n 12}
@@ -962,7 +951,7 @@
 (deftest test-subscribe-and-unsubscribe-app
   (let [app (build subscribe-and-unsubscribe-app)
         _ (begin app [{msg/topic msg/app-model msg/type :noop}])
-        results (run-script app [{msg/topic :a :n 10}
+        results (run-sync! app [{msg/topic :a :n 10}
                                  {msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
                                  {msg/topic :b :n 11}
                                  {msg/topic :c :n 12}
