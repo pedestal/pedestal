@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.1.2-SNAPSHOT"
+(defproject io.pedestal/pedestal.service "0.1.2"
   :description "Pedestal Service"
   :dependencies [[org.clojure/clojure "1.5.0"]
                  ;; logging
@@ -38,7 +38,7 @@
                              [org.clojure/java.classpath "0.2.0"]
                              [org.clojure/tools.namespace "0.2.2"]
                              [clj-http "0.6.4"]
-                             [io.pedestal/pedestal.jetty "0.1.2-SNAPSHOT"]
+                             [io.pedestal/pedestal.jetty "0.1.2"]
                              [javax.servlet/javax.servlet-api "3.0.1"]
                              ;; Logging:
                              [ch.qos.logback/logback-classic "1.0.7"]
