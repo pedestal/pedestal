@@ -1,7 +1,9 @@
-Pedestal
+Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
 ========
 
 The Pedestal web application framework
+
+
 
 ### Installing Libraries ###
 

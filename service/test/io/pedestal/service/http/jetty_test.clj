@@ -8,6 +8,7 @@
   (:use clojure.test
         io.pedestal.service.http.jetty)
   (:require [clj-http.client :as http]
+            [clojure.edn]
             [io.pedestal.service.interceptor :as interceptor :refer [defhandler definterceptorfn handler]]
             [io.pedestal.service.http.servlet :as servlet]
             [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor])
@@ -113,7 +114,8 @@
       (let [response (http/get "http://localhost:4347/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
         (is (= (:status response) 200))
         (is (= (:body response) "hello"))
-        (let [request-map (read-string (get-in response [:headers "request-map"]))]
+        (let [request-map (clojure.edn/read-string
+                           (get-in response [:headers "request-map"]))]
           (is (= (:query-string request-map) "surname=jones&age=123"))
           (is (= (:uri request-map) "/foo/bar/baz"))
           (is (= (:content-length request-map) 5))
