@@ -24,6 +24,5 @@
                  [io.pedestal/pedestal.service "0.1.3-SNAPSHOT"]
                  [io.pedestal/pedestal.jetty "0.1.3-SNAPSHOT"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
-                 [domina "1.0.1"]
-                 [clj-http "0.5.5"]]
+                 [domina "1.0.1"]]
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
