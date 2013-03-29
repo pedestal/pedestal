@@ -118,4 +118,4 @@ unless system('git add -u') && system("git commit -m \"Start #{pre_release_versi
   exit -1
 end
 
-puts "Release #{release_verison} pushed to Clojars, tagged and committed.\nRelease #{pre_release_version} set as the latest development stream.\n\nDO NOT FORGET TO 'git push' WHEN YOU ARE READY!"
+puts "Release #{release_version} pushed to Clojars, tagged and committed.\nRelease #{pre_release_version} set as the latest development stream.\n\nDO NOT FORGET TO 'git push' WHEN YOU ARE READY!"
