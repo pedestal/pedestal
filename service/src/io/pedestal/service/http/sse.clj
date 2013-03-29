@@ -132,7 +132,7 @@
   ([stream-ready-fn] (start-event-stream stream-ready-fn 10))
   ([stream-ready-fn heartbeat-delay]
      (interceptor/interceptor
-      :name "io.pedestal.service.http.sse/sse-setup"
+      :name "io.pedestal.service.http.sse/start-event-stream"
       :enter (stream-events-fn stream-ready-fn heartbeat-delay))))
 
 (defn sse-setup
