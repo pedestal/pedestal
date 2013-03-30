@@ -28,7 +28,7 @@
 
 (defn valid-sort? [seq]
   (every? #(not (some (partial descendent? (:output %)) (:inputs %)))
-          (:return (reduce (fn [a [out f ins]]
+          (:return (reduce (fn [a [f ins out]]
                              {:inputs (concat (:inputs a) ins)
                               :return (conj (:return a) {:output out :inputs (:inputs a)})})
                            {:inputs []
@@ -36,37 +36,37 @@
                            seq))))
 
 (deftest test-sort-derive-fns
-  (is (= (sort-derive-fns [[[:b] 'b #{[:a]}]
-                           [[:c] 'c #{[:b]}]])
-         [[[:b] 'b #{[:a]}]
-          [[:c] 'c #{[:b]}]]))
-  (is (valid-sort? (sort-derive-fns [[[:b] 'b #{[:a]}]
-                                     [[:c] 'c #{[:b]}]])))
-  (is (= (sort-derive-fns [[[:c] 'c #{[:b]}]
-                           [[:b] 'b #{[:a]}]])
-         [[[:b] 'b #{[:a]}]
-          [[:c] 'c #{[:b]}]]))
-  (is (valid-sort? (sort-derive-fns [[[:c] 'c #{[:b]}]
-                                     [[:b] 'b #{[:a]}]])))
-  (is (valid-sort? (sort-derive-fns [[[:k]       'k #{[:d :*]}]
-                                     [[:c]       'c #{[:b]}]
-                                     [[:d :e]    'd #{[:b :c]}]
-                                     [[:g :h :i] 'g #{[:d :e :f]}]
-                                     [[:b]       'b #{[:a]}]])))
-  (is (valid-sort? (sort-derive-fns [[[:d] 'd #{[:c]}]
-                                     [[:e] 'e #{[:d]}]
-                                     [[:b] 'b #{[:a]}]
-                                     [[:a] 'a #{[:x]}]
-                                     [[:c] 'c #{[:b]}]])))
-  (is (= (sort-derive-fns [[[:e] 'e #{[:c] [:d]}]
-                           [[:d] 'd #{[:b]}]
-                           [[:b] 'b #{[:a]}]
-                           [[:c] 'c #{[:b]}]])
-         [[[:b] 'b #{[:a]}]
-          [[:c] 'c #{[:b]}]
-          [[:d] 'd #{[:b]}]
-          [[:e] 'e #{[:c] [:d]}]]))
-  (is (valid-sort? (sort-derive-fns [[[:d] 'd #{[:b]}]
-                                     [[:e] 'e #{[:c] [:d]}]
-                                     [[:c] 'c #{[:b]}]
-                                     [[:b] 'b #{[:a]}]]))))
+  (is (= (sort-derive-fns [['b #{[:a]} [:b]]
+                           ['c #{[:b]} [:c]]])
+         [['b #{[:a]} [:b]]
+          ['c #{[:b]} [:c]]]))
+  (is (valid-sort? (sort-derive-fns [['b #{[:a]} [:b]]
+                                     ['c #{[:b]} [:c]]])))
+  (is (= (sort-derive-fns [['c #{[:b]} [:c]]
+                           ['b #{[:a]} [:b]]])
+         [['b #{[:a]} [:b]]
+          ['c #{[:b]} [:c]]]))
+  (is (valid-sort? (sort-derive-fns [['c #{[:b]} [:c]]
+                                     ['b #{[:a]} [:b]]])))
+  (is (valid-sort? (sort-derive-fns [['k #{[:d :*]}    [:k]]
+                                     ['c #{[:b]}       [:c]]
+                                     ['d #{[:b :c]}    [:d :e]]
+                                     ['g #{[:d :e :f]} [:g :h :i]]
+                                     ['b #{[:a]}       [:b]]])))
+  (is (valid-sort? (sort-derive-fns [['d #{[:c]} [:d]]
+                                     ['e #{[:d]} [:e]]
+                                     ['b #{[:a]} [:b]]
+                                     ['a #{[:x]} [:a]]
+                                     ['c #{[:b]} [:c]]])))
+  (is (= (sort-derive-fns [['e #{[:c] [:d]} [:e]]
+                           ['d #{[:b]}      [:d]]
+                           ['b #{[:a]}      [:b]]
+                           ['c #{[:b]}      [:c]]])
+         [['b #{[:a]}      [:b]]
+          ['c #{[:b]}      [:c]]
+          ['d #{[:b]}      [:d]]
+          ['e #{[:c] [:d]} [:e]]]))
+  (is (valid-sort? (sort-derive-fns [['d #{[:b]}      [:d]]
+                                     ['e #{[:c] [:d]} [:e]]
+                                     ['c #{[:b]}      [:c]]
+                                     ['b #{[:a]}      [:b]]]))))

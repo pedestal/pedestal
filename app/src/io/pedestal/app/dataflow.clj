@@ -33,8 +33,8 @@
   "Return a sorted sequence of derive function configurations. The
   input sequence will have the following shape:
 
-  [[[:a] 'a #{[:x]}]
-   [[:b] 'b #{[:y]}]]
+  [['a #{[:x]} [:a]]
+   ['b #{[:y]} [:b]]]
 
   This is a vector of vectors where each vector contains three
   elements: the output path, the function and a set of input paths.
@@ -42,12 +42,13 @@
   This is not a fast sort so it should only be done once when creating
   a new dataflow."
   [derive-fns]
-  (let [index (reduce (fn [a [_ f :as xs]] (assoc a f xs)) {} derive-fns)
-        deps (for [[out f in] derive-fns i in] [i out f])
+  (let [index (reduce (fn [a [f :as xs]] (assoc a f xs)) {} derive-fns)
+        deps (for [[f ins out] derive-fns in ins] [f in out])
         graph (reduce
-               (fn [a [in _ f]]
-                 (assoc a f {:deps (set (map last
-                                             (filter (fn [[_ out]] (descendent? in out)) deps)))}))
+               (fn [a [f in]]
+                 (assoc a f {:deps (set (map first
+                                             (filter (fn [[_ _ out]] (descendent? in out))
+                                                     deps)))}))
                {}
                deps)]
     (reduce (fn [a b]
