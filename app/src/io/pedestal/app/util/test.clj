@@ -17,10 +17,15 @@
   ([app script]
      (run-sync! app script 1000))
   ([app script timeout]
-     (app/run! app script)
-     (loop [timeout timeout]
-       (when (pos? timeout)
-         (if (= (-> app :state deref :input) (last script))
-           true
-           (do (Thread/sleep 20)
-               (recur (- timeout 20))))))))
+     (let [script (conj (vec (butlast script)) (with-meta (last script) {::last true}))
+           record-states (atom [@(:state app)])]
+       (add-watch (:state app) :state-watch
+                  (fn [_ _ _ n]
+                    (swap! record-states conj n)))
+       (app/run! app script)
+       (loop [timeout timeout]
+         (when (pos? timeout)
+           (if (= (meta (-> app :state deref :input)) {::last true})
+             @record-states
+             (do (Thread/sleep 20)
+                 (recur (- timeout 20)))))))))

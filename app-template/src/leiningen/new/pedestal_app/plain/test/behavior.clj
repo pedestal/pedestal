@@ -16,7 +16,8 @@
 (deftest test-app-state
   (let [app (app/build example-app)]
     (app/begin app)
-    (is (true? (test/run-sync! app [{msg/topic :example-transform, msg/type msg/init, :value "x"}])))
+    (is (vector?
+         (test/run-sync! app [{msg/topic :example-transform, msg/type msg/init, :value "x"}])))
     (is (= (-> app :state deref :models :example-transform) "x"))))
 
 (deftest test-query-ui

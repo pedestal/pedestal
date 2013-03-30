@@ -1,0 +1,13 @@
+language: clojure
+lein: lein2
+script: lein2 sub install; LEIN_CMD=lein2 lein2 sub test
+branches:
+  only:
+    - master
+jdk:
+  - openjdk6
+  - openjdk7
+  - oraclejdk7
+notifications:
+  email:
+    - pedestal@thinkrelevance.com
