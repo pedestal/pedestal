@@ -70,3 +70,9 @@
                                      ['e #{[:c] [:d]} [:e]]
                                      ['c #{[:b]}      [:c]]
                                      ['b #{[:a]}      [:b]]]))))
+
+(deftest test-build
+  (is (= (build {:derive {'b {:in #{[:a]} :out [:b]}
+                          'c {:in #{[:b]} :out [:c]}}})
+         {:derive [['b #{[:a]} [:b]]
+                   ['c #{[:b]} [:c]]]})))

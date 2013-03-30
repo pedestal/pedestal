@@ -55,3 +55,21 @@
               (conj a (get index b)))
             []
             (::order (reduce topo-visit (assoc graph ::order []) (keys graph))))))
+
+(defn transform-derive [derive-fns]
+  (sort-derive-fns
+   (mapv (fn [[f {:keys [in out]}]] [f in out]) derive-fns)))
+
+(defn build
+  "Given a dataflow description map, return a dataflow engine. An example dataflow
+  configuration is shown below:
+
+  {:transform [[:op [:path :to :update] transform-fn]]
+   :effect {effect-fn #{[:input :path]}}
+   :derive {derive-fn {:out [:output :path] :in #{[:input :path]}}}
+   :continue {some-continue-fn #{[:input :path]}}
+   :emit [[[:path :in :data :model] {:init emit-init-fn :change emit-change-fn}]]}
+  "
+  [description]
+  (-> description
+      (update-in [:derive] transform-derive)))
