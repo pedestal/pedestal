@@ -15,27 +15,27 @@
             [io.pedestal.service.log :as log]
             [ring.util.response :as ring-response]))
 
-(defn allowed?
-  [allowed-origins origin]
-  (some #(re-find % origin) allowed-origins))
 
 (definterceptorfn allow-origin
   [allowed-origins]
-  (around ::allow-origin
-          (fn [context]
-            (if-let [origin (get-in context [:request :headers "origin"])]
-              (let [allowed (allowed? allowed-origins origin)]
-                (log/debug :msg "cors processing"
-                           :origin origin
-                           :allowed allowed)
-                (if allowed
-                  (assoc context :cors-headers {"Access-Control-Allow-Origin" origin})
-                  (assoc context :response {:status 403 :body "Forbidden" :headers {}})))
-              context))
-          (fn [context]
-            (if-not (servlet-interceptor/response-sent? context)
-              (update-in context [:response :headers] merge (:cors-headers context))
-              context))))
+  (let [allowed? (if (fn? allowed-origins)
+                   allowed-origins
+                   (fn [origin] (some #(= % origin) (seq allowed-origins))))] 
+    (around ::allow-origin
+            (fn [context]
+              (if-let [origin (get-in context [:request :headers "origin"])]
+                (let [allowed (allowed? origin)]
+                  (log/debug :msg "cors processing"
+                             :origin origin
+                             :allowed allowed)
+                  (if allowed
+                    (assoc context :cors-headers {"Access-Control-Allow-Origin" origin})
+                    (assoc context :response {:status 403 :body "Forbidden" :headers {}})))
+                context))
+            (fn [context]
+              (if-not (servlet-interceptor/response-sent? context)
+                (update-in context [:response :headers] merge (:cors-headers context))
+                context)))))
 
 (defbefore dev-allow-origin
   [context]

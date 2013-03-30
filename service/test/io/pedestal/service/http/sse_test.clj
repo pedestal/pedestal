@@ -59,7 +59,7 @@
                   (end-event-stream sse-context)
                   (deliver semaphore (.isCommitted (:servlet-response sse-context))))
         interceptor-context (interceptor/enqueue fake-context
-                                                 (cors/allow-origin [#"foo.com"])
+                                                 (cors/allow-origin ["http://foo.com:8080"])
                                                  (start-event-stream sse-rig))]
     (log/info :context interceptor-context
               :queue (seq (:io.pedestal.service.impl.interceptor/queue interceptor-context)))

@@ -29,7 +29,7 @@
 
 (def app
   (::service/service-fn (-> {::service/routes routes
-                             ::service/allowed-origins [#"foo.com"]}
+                             ::service/allowed-origins ["http://foo.com:8080"]}
                             service/default-interceptors
                             service/service-fn)))
 
