@@ -47,33 +47,4 @@
       (assoc-in context [:request :headers "origin"] "")
       context)))
 
-#_(defbefore cors-options-interceptor
-  "Interceptor that adds CORS headers when the origin matches the authorized origin."
-  [context]
-  ;; special case options request
-  (let [request (:request context)
-        _ (log/debug :msg "options request headers" :headers (:headers request))
-        preflight-origin (get-in request [:headers "origin"])
-        preflight-headers (get-in request [:headers "access-control-request-headers"])]
-    (log/debug :msg "access-control-request-headers" :preflight-headers preflight-headers)
-    (assoc context :response
-           (when (= (:request-method request) :options)
-             (-> (ring-response/response "")
-                 (ring-response/header "Access-Control-Allow-Origin" preflight-origin)
-                 (ring-response/header "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, OPTIONS, HEAD")
-                 (ring-response/header "Access-Control-Allow-Headers" preflight-headers))))))
 
-#_(defbefore cors-sse-clever-hack-interceptor
-  [context]
-  (let [request (:request context)
-        servlet-response (:servlet-response request)
-        access-control {:access-control-allow-origin #"localhost:8080"}
-        response (-> (ring-response/response "")
-                     (ring-response/content-type "text/event-stream")
-                     (ring-response/charset "UTF-8")
-                     (ring-response/header "Connection" "close")
-                     (ring-response/header "Cache-control" "no-cache")
-                     (#(cors/add-access-control request % access-control)))]
-    (servlet-interceptor/set-response servlet-response response)
-    (.flushBuffer servlet-response)
-    context))
