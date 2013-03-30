@@ -12,6 +12,7 @@
 (ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
   io.pedestal.service.test
   (:require [io.pedestal.service.http.servlet :as servlets]
+            [io.pedestal.service.log :as log]
             [clojure.string :as str]
             clojure.java.io)
   (:import (javax.servlet.http HttpServlet HttpServletRequest HttpServletResponse)
@@ -35,10 +36,23 @@
           :path path
           :query-string query-string}))))
 
-(def empty-enumeration
-  (reify Enumeration
-    (hasMoreElements [this] false)
-    (nextElement [this] (throw (NoSuchElementException. "Attempted to fetch element from io.pedestal.service.test/empty-enumeration.")))))
+(defn- enumerator
+  [data kw]
+  (let [data (atom (seq data))]
+    (reify Enumeration
+      (hasMoreElements [this] (not (nil? (first @data))))
+      (nextElement [this]
+        (log/debug :in :enumerator/nextElement
+                   :data @data
+                   :hasMoreElements (not (nil? (first @data)))
+                   :first (first @data)
+                   :rest (rest @data))
+        (let [result (first @data)]
+          (when (nil? result)
+            (throw
+             (NoSuchElementException. (str "Attempt to fetch element from " kw))))
+          (swap! data rest)
+          result)))))
 
 (defn- test-servlet-input-stream
   ([]
@@ -71,7 +85,9 @@
      (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
      (getProtocol [this] "HTTP/1.1")
      (isAsyncSupported [this] false)
-     (getHeaderNames [this] empty-enumeration)
+     (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
+     (getHeader [this header] (get-in options [:headers header]))
+     ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
      (getContentLength [this] (int 0))
      (getContentType [this] "")
      (getCharacterEncoding [this] "UTF-8")
@@ -160,11 +176,14 @@
   the servlet infrastructure.
   Options:
 
-  :body : An optional string that is the request body."
+  :body : An optional string that is the request body.
+  :headers : An optional map that are the headers"
   [interceptor-service-fn verb url & options]
   (let [servlet-resp (apply servlet-response-for interceptor-service-fn verb url options)]
-    (update-in servlet-resp [:headers] #(merge (:set-headers %)
-                                               (:add-headers %)
+    (log/debug :in :response-for
+               :servlet-resp servlet-resp)
+    (update-in servlet-resp [:headers] #(merge (:set-header %)
+                                               (:added-headers %)
                                                (when-let [content-type (:content-type %)]
                                                  {"Content-Type" content-type})
                                                (when-let [content-length (:content-length %)]
