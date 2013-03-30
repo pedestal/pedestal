@@ -30,9 +30,16 @@
               ;; default interceptors will be ignored.
               ;; :bootstrap/interceptors []
               ::bootstrap/routes routes
+
+              ;; Uncomment next line to enable CORS support, add
+              ;; regex(s) for whitelisted domain(s)
+              ;;::boostrap/allowed-origins [#"allowed-domain-regex"]
+
               ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"
+
               ;; Either :jetty or :tomcat (see comments in project.clj
               ;; to enable Tomcat)
+              ;;::bootstrap/host "localhost"
               ::bootstrap/type :jetty
               ::bootstrap/port 8080})

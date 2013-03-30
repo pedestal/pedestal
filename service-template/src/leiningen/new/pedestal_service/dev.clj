@@ -15,10 +15,14 @@
             [{{name}}.service :as service]
             [{{name}}.server :as server]))
 
-(def service (-> service/service
+(def service (-> service/service ;; start with production configuration
                  (merge  {:env :dev
+                          ;; do not block thread that starts web server
                           ::bootstrap/join? false
-                          ::bootstrap/routes #(deref #'service/routes)})
+                          ;; reload routes on every request
+                          ::bootstrap/routes #(deref #'service/routes)
+                          ;; all origins are allowed in dev mode
+                          ::bootstrap/allowed-origins [#""]})
                  (bootstrap/default-interceptors)
                  (bootstrap/dev-interceptors)))
 
