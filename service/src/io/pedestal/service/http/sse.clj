@@ -93,8 +93,8 @@
                      (ring-response/charset "UTF-8")
                      (ring-response/header "Connection" "close")
                      (ring-response/header "Cache-control" "no-cache")
-                     (merge (:cors-headers stream-context)))]
-
+                     (update-in [:headers] merge (:cors-headers stream-context)))]
+    (log/debug :in :start-stream :response response)
     (log/trace :msg "starting sse handler")
     (servlet-interceptor/write-response stream-context response)
     (servlet-interceptor/flush-response stream-context)
