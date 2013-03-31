@@ -1,4 +1,5 @@
-(ns ^:shared io.pedestal.app.dataflow)
+(ns ^:shared io.pedestal.app.dataflow
+  (:require [io.pedestal.app.messages :as msg]))
 
 (defn matching-path-element?
   "Return true if the two elements match."
@@ -56,7 +57,10 @@
             []
             (::order (reduce topo-visit (assoc graph ::order []) (keys graph))))))
 
-(defn transform-derive [derive-fns]
+(defn sorted-derive-vector
+  "Convert derive function config to a vector and sort in dependency
+  order."
+  [derive-fns]
   (sort-derive-fns
    (mapv (fn [[f {:keys [in out]}]] [f in out]) derive-fns)))
 
@@ -64,12 +68,111 @@
   "Given a dataflow description map, return a dataflow engine. An example dataflow
   configuration is shown below:
 
-  {:transform [[:op [:path :to :update] transform-fn]]
+  {:transform [[:op [:output :path] transform-fn]]
    :effect {effect-fn #{[:input :path]}}
-   :derive {derive-fn {:out [:output :path] :in #{[:input :path]}}}
+   :derive {derive-fn {:in #{[:input :path]} :out [:output :path]}}
    :continue {some-continue-fn #{[:input :path]}}
-   :emit [[[:path :in :data :model] {:init emit-init-fn :change emit-change-fn}]]}
+   :emit [[#{[:input :path]} emit-fn]]}
   "
   [description]
-  (-> description
-      (update-in [:derive] transform-derive)))
+  (update-in description [:derive] sorted-derive-vector))
+
+(defn find-transform [transforms message]
+  (let [{topic ::msg/topic type ::msg/type} message]
+    (first (filter (fn [[op path]] (and (= op type) (= path topic))) transforms))))
+
+(defn transform-phase
+  "Find the first transform function that matches the message and
+  execute it, returning the an updated flow state."
+  [{:keys [new dataflow context] :as state}]
+  (let [message (:message context)
+        transforms (:transform dataflow)
+        [_ _ transform-fn] (find-transform transforms message)]
+    (if transform-fn
+      (-> state
+          (assoc :old new)
+          (update-in (concat [:new :data-model] (::msg/topic message))
+                     transform-fn message))
+      state)))
+
+(defn changed?
+  "Return true is the data at any path in path-set has changed."
+  [path-set old-model new-model]
+  (some (fn [path] (not= (get-in old-model path)
+                        (get-in new-model path)))
+        path-set))
+
+(defn gather-inputs
+  "Given an old and new model and a set of paths, return an input map.
+  An input map is a map of paths to the old and new values at the
+  path.
+
+  {[:path] {:old {...} :new {...}}}
+  "
+  [path-set old-model new-model]
+  (reduce (fn [a b]
+            (assoc a b {:old (get-in old-model b)
+                        :new (get-in new-model b)}))
+          {}
+          path-set))
+
+(defn updated-inputs
+  "Given an inputs map, return the set of keys that have different old
+  and new values."
+  [inputs]
+  (reduce (fn [a [k {:keys [old new]}]]
+            (if (not= old new)
+              (conj a k)
+              a))
+          #{}
+          inputs))
+
+(defn derive-phase
+  "Execute each derive function in dependency order only if some input to the
+  function has changed. Return an updated flow state."
+  [{:keys [dataflow context] :as state}]
+  (let [derives (:derive dataflow)]
+    (reduce (fn [{:keys [old new] :as acc} [derive-fn ins out-path]]
+              ;; TODO: Figure out what wildcards in input paths mean
+              ;; TODO: Support wildcards in input paths.
+              (if (changed? ins (:data-model old) (:data-model new))
+                (let [inputs (gather-inputs ins (:data-model old) (:data-model new))
+                      context (assoc context :updated (updated-inputs inputs))]
+                  (-> acc
+                      (assoc :old new)
+                      (update-in (concat [:new :data-model] out-path)
+                                 derive-fn inputs context)))
+                acc))
+            state
+            derives)))
+
+(defn output-phase [state]
+  state)
+
+(defn effect-phase [state]
+  state)
+
+(defn emit-phase [state]
+  state)
+
+(defn flow-step
+  "Given a dataflow, a state and a message, run the message through
+  the dataflow and return the updated state. The dataflow will be
+  run only once. The state is a map with:
+
+  {:data-model {}
+   :emit       []
+   :output     []
+   :continue   []}
+   "
+  [dataflow state message]
+  (let [flow-state {:new state
+                    :old state
+                    :dataflow dataflow
+                    :context {:message message}}]
+    (:new (-> flow-state
+              transform-phase
+              derive-phase
+              output-phase
+              effect-phase
+              emit-phase))))

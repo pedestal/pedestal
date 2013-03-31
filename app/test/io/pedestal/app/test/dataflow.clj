@@ -1,4 +1,5 @@
 (ns io.pedestal.app.test.dataflow
+  (:require [io.pedestal.app.messages :as msg])
   (:use io.pedestal.app.dataflow
         clojure.test))
 
@@ -76,3 +77,18 @@
                           'c {:in #{[:b]} :out [:c]}}})
          {:derive [['b #{[:a]} [:b]]
                    ['c #{[:b]} [:c]]]})))
+
+(defn inc-transform [old-value message]
+  (inc old-value))
+
+(defn double-derive [_ inputs _]
+  (* 2 (apply + (map :new (vals inputs)))))
+
+(defn simple-emit [inputs context])
+
+(deftest test-flow-step
+  (let [dataflow (build {:transform [[:inc [:a] inc-transform]]
+                         :derive {double-derive {:in #{[:a]} :out [:b]}}
+                         :emit [#{[]} simple-emit]})]
+    (is (= (flow-step dataflow {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+           {:data-model {:a 1 :b 2}}))))
