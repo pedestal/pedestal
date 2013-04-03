@@ -14,7 +14,7 @@
             [io.pedestal.service.log :as log]
             ;; the impl dependencies will go away
             ;; these next two will collapse to one
-            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
+            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn defon-response]]
             [io.pedestal.service.http :as bootstrap]
             [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.service.http.route.definition :refer [expand-routes]]
@@ -39,6 +39,9 @@
          (assoc context :response (ring-response/redirect (str "http://" host ":" port uri)))
          context)))))
 
+(defon-response default-cache-control-to-no-cache
+  [response]
+  (update-in response [:headers "Cache-Control"] #(or % "no-cache")))
 
 ;; define service routes
 (defn dev-routes
@@ -56,7 +59,8 @@
    ;; sure you include routing and set it up right for
    ;; dev-mode. If you do, many other keys for configuring
    ;; default interceptors will be ignored.
-   ::bootstrap/interceptors [bootstrap/not-found
+   ::bootstrap/interceptors [default-cache-control-to-no-cache
+                             bootstrap/not-found
                              bootstrap/log-request
                              servlet-interceptor/exception-debug
                              middlewares/cookies
