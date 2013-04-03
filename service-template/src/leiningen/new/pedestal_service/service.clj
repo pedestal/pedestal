@@ -32,8 +32,12 @@
               ::bootstrap/routes routes
 
               ;; Uncomment next line to enable CORS support, add
-              ;; regex(s) for whitelisted domain(s)
-              ;;::boostrap/allowed-origins [#"allowed-domain-regex"]
+              ;; string(s) specifying scheme, host and port for
+              ;; allowed source(s):
+              ;;
+              ;; "http://localhost:8080"
+              ;;
+              ;;::boostrap/allowed-origins ["scheme://host:port"]
 
               ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"

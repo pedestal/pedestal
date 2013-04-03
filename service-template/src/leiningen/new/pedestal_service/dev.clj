@@ -10,7 +10,7 @@
                           ;; reload routes on every request
                           ::bootstrap/routes #(deref #'service/routes)
                           ;; all origins are allowed in dev mode
-                          ::bootstrap/allowed-origins [#""]})
+                          ::bootstrap/allowed-origins (constantly true)})
                  (bootstrap/default-interceptors)
                  (bootstrap/dev-interceptors)))
 
