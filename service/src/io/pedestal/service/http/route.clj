@@ -13,7 +13,8 @@
   (:require [clojure.string :as str]
             [clojure.core.incubator :refer (dissoc-in)]
             [io.pedestal.service.interceptor :as interceptor :refer [definterceptor definterceptorfn]]
-            [io.pedestal.service.impl.interceptor :as interceptor-impl])
+            [io.pedestal.service.impl.interceptor :as interceptor-impl]
+            [io.pedestal.service.log :as log])
   (:import (java.util.regex Pattern)
            (java.net URLEncoder URLDecoder)))
 
@@ -94,7 +95,7 @@
   (let [{:keys [path-re path-params]} route]
     (fn [req]
       (when req
-       (when-let [m (re-matches path-re (:uri req))]
+       (when-let [m (re-matches path-re (:path-info req))]
          (zipmap path-params (rest m)))))))
 
 (defn- matcher-components [route]
@@ -274,6 +275,11 @@
   [route opts]
   (let [{:keys [path-params query-params request]} opts
         {:keys [scheme host path-parts]} route
+        {:keys [context-path]} request
+        split-context-path (str/split context-path #"/")
+        path-parts (do (log/info :path-parts path-parts
+                                 :split-context-path split-context-path)
+                       (concat split-context-path (rest path-parts)))
         path (str/join \/ (map #(get path-params % %) path-parts))]
     (str
      (when (and scheme (not= scheme (:scheme request)))

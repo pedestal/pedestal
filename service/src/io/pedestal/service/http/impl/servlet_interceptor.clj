@@ -148,6 +148,9 @@
    :servlet-request   servlet-req
    :servlet-response  servlet-resp
    :servlet-context   (.getServletContext ^ServletConfig servlet)
+   :context-path      (.getContextPath servlet-req)
+   :servlet-path      (.getServletPath servlet-req)
+   :path-info         (.getPathInfo servlet-req)
    ::protocol         (.getProtocol servlet-req)
    ::async-supported? (.isAsyncSupported servlet-req)})
 
