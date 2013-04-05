@@ -43,11 +43,11 @@
 
 (defn edn-response
   [obj]
-  (data-response (partial pr obj) "application/edn;charset=UTF-8"))
+  (data-response #(pr obj) "application/edn;charset=UTF-8"))
 
 (defn json-response
   [obj]
-  (data-response (partial json/pprint obj) "application/json;charset=UTF-8"))
+  (data-response #(json/pprint obj) "application/json;charset=UTF-8"))
 
 ;; interceptors
 
@@ -73,6 +73,24 @@
       (assoc context :response (ring-response/not-found "Not Found"))
       context)
     context))
+
+(interceptor/defon-response html-body
+  [response]
+  (let [body (:body response)
+        content-type (get-in response [:header "Content-Type"])]
+    (if (and (string? body) (not content-type))
+      (ring-response/content-type response "text/html")
+      response)))
+
+(interceptor/defon-response json-body
+  [response]
+  (let [body (:body response)
+        content-type (get-in response [:header "Content-Type"])]
+    (if (and (coll? body) (not content-type))
+      (-> response
+          (ring-response/content-type "application/json;charset=UTF-8")
+          (assoc :body (print-fn #(json/pprint body))))
+      response)))
 
 (defn add-content-type
   "Based on the given `interceptor`, returns a new interceptor that

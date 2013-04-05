@@ -59,7 +59,11 @@
     ["/just-status" {:get just-status-page}]
     ["/direct-response-1" {:get [::direct-response-1 send-response-directly]}]
     ["/direct-response-2" {:get [::direct-response-2 send-response-directly]}
-     ^:interceptors [add-response-after]]]])
+     ^:interceptors [add-response-after]]
+    ["/text-as-html" {:get [::text-as-html hello-page]}
+     ^:interceptors [service/html-body]]
+    ["/data-as-json" {:get [::data-as-json get-edn]}
+     ^:interceptors [service/json-body]]]])
 
 (def app-interceptors
   (service/default-interceptors {::service/routes app-routes}))
@@ -70,6 +74,14 @@
       ::service/service-fn))
 
 (def app (make-app app-interceptors))
+
+(deftest html-body-test
+  (let [response (response-for app :get "/text-as-html")]
+    (is (= "text/html" (get-in response [:headers "Content-Type"])))))
+
+(deftest json-body-test
+  (let [response (response-for app :get "/data-as-json")]
+    (is (= "application/json;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
 
 (deftest enter-linker-generates-correct-link
   (is (= "Yeah, this is a self-link to /about"
