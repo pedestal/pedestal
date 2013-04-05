@@ -175,7 +175,7 @@
   (->> route-maps
        (mapcat (partial generate-route-entries default-dna))
        prioritize-constraints
-       #_verify-unique-route-names))
+       verify-unique-route-names))
 
 (defmacro defroutes
   "Define a routing table from a collection of route maps."
