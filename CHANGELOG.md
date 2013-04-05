@@ -1,5 +1,7 @@
 # Pedestal Changelog
 
+**NOTE:** Whenever upgrading versions of pedestal-app, please clean your projects `out` directory (`rm -rf out/*`).
+
 ## 0.1.3 - April 05, 2013
 
 ### App
