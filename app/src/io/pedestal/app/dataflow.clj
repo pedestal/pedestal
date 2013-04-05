@@ -62,7 +62,7 @@
   order."
   [derive-fns]
   (sort-derive-fns
-   (mapv (fn [[f {:keys [in out]}]] [f in out]) derive-fns)))
+   (mapv (fn [[{:keys [in out]} f]] [f in out]) derive-fns)))
 
 (defn build
   "Given a dataflow description map, return a dataflow engine. An example dataflow
@@ -77,9 +77,21 @@
   [description]
   (update-in description [:derive] sorted-derive-vector))
 
-(defn find-transform [transforms message]
-  (let [{topic ::msg/topic type ::msg/type} message]
-    (first (filter (fn [[op path]] (and (= op type) (= path topic))) transforms))))
+;; TODO: Once we have a way to measure performance, add memoization
+(defn find-transform
+  "Given a transform configuration vector, find the first transform
+  function which matches the given message."
+  [transforms topic type]
+  (last
+   (first (filter (fn [[op path]]
+                    (let [[path topic] (if (= (last path) :**)
+                                         (let [c (count path)]
+                                           [(conj (vec (take (dec c) path)) :*)
+                                            (vec (take c topic))])
+                                         [path topic])]
+                      (and (matching-path-element? op type)
+                           (matching-path? path topic))))
+                  transforms))))
 
 (defn transform-phase
   "Find the first transform function that matches the message and
@@ -87,62 +99,78 @@
   [{:keys [new dataflow context] :as state}]
   (let [message (:message context)
         transforms (:transform dataflow)
-        [_ _ transform-fn] (find-transform transforms message)]
+        transform-fn (find-transform transforms (::msg/topic message) (::msg/type message))]
     (if transform-fn
-      (-> state
-          (assoc :old new)
-          (update-in (concat [:new :data-model] (::msg/topic message))
-                     transform-fn message))
+      (let [change-path (concat [:new :data-model] (::msg/topic message))]
+        (-> state
+            (update-in [:change-paths] conj change-path)
+            (update-in change-path transform-fn message)))
       state)))
 
-(defn changed?
-  "Return true is the data at any path in path-set has changed."
-  [path-set old-model new-model]
-  (some (fn [path] (not= (get-in old-model path)
-                        (get-in new-model path)))
-        path-set))
-
-(defn gather-inputs
-  "Given an old and new model and a set of paths, return an input map.
-  An input map is a map of paths to the old and new values at the
-  path.
-
-  {[:path] {:old {...} :new {...}}}
-  "
-  [path-set old-model new-model]
+;; TODO: Once we have a way to measure performance, add memoization
+(defn partition-wildcard-path [path]
   (reduce (fn [a b]
-            (assoc a b {:old (get-in old-model b)
-                        :new (get-in new-model b)}))
-          {}
-          path-set))
+            (if (and (= (first b) :*) (> (count b) 1))
+              (apply conj a (repeat (count b) [:*]))
+              (conj a b)))
+          []
+          (partition-by #(= % :*) path)))
 
-(defn updated-inputs
-  "Given an inputs map, return the set of keys that have different old
-  and new values."
-  [inputs]
-  (reduce (fn [a [k {:keys [old new]}]]
-            (if (not= old new)
-              (conj a k)
-              a))
-          #{}
-          inputs))
+(defn components-for-path [m wildcard-path]
+  (reduce (fn [components sub-path]
+            (if (= sub-path [:*])
+              (reduce (fn [c [path data]]
+                        (assert (map? data) ":* can only be applied to maps")
+                        (reduce (fn [c' [k v]]
+                                  (assoc c' (conj path k) v))
+                                c
+                                data))
+                      {}
+                      components)
+              (reduce (fn [c [path data]]
+                        (assoc c (into path sub-path) (get-in data sub-path)))
+                      {}
+                      components)))
+          {[] m}
+          (partition-wildcard-path wildcard-path)))
+
+(defn components [m paths]
+  (reduce (fn [acc path]
+            (merge acc (components-for-path m path)))
+          {}
+          paths))
+
+(defn remap [components]
+  (reduce (fn [a [path v]]
+            (if (map? v)
+              (update-in a path merge v)
+              (assoc-in a path v)))
+          {}
+          components))
+
+(defn changes [context]
+  {:added #{}
+   :removed #{}
+   :updated #{}})
 
 (defn derive-phase
   "Execute each derive function in dependency order only if some input to the
   function has changed. Return an updated flow state."
-  [{:keys [dataflow context] :as state}]
+  [{:keys [dataflow context change-paths] :as state}]
   (let [derives (:derive dataflow)]
-    (reduce (fn [{:keys [old new] :as acc} [derive-fn ins out-path]]
-              ;; TODO: Figure out what wildcards in input paths mean
-              ;; TODO: Support wildcards in input paths.
-              (if (changed? ins (:data-model old) (:data-model new))
-                (let [inputs (gather-inputs ins (:data-model old) (:data-model new))
-                      context (assoc context :updated (updated-inputs inputs))]
-                  (-> acc
-                      (assoc :old new)
-                      (update-in (concat [:new :data-model] out-path)
-                                 derive-fn inputs context)))
-                acc))
+    (reduce (fn [{:keys [old new] :as acc} [derive-fn input-paths out-path]]
+              (let [old-components (components (:data-model old) ins)
+                    new-components (components (:data-model new) ins)]
+                (if (not= old-components new-components)
+                  (let [old-input (remap old-components)
+                        new-input (remap new-components)]
+                    (update-in acc (concat [:new :data-model] out-path)
+                               derive-fn old-input new-input
+                               (-> context
+                                   (assoc :inputs (keys new-components))
+                                   (assoc :old-components old-components)
+                                   (assoc :new-components new-components))))
+                  acc)))
             state
             derives)))
 
@@ -168,6 +196,7 @@
   [dataflow state message]
   (let [flow-state {:new state
                     :old state
+                    :updated #{}
                     :dataflow dataflow
                     :context {:message message}}]
     (:new (-> flow-state
