@@ -134,6 +134,13 @@
                (rest names)))
       (persistent! out))))
 
+(defn- path-info [^HttpServletRequest request]
+  (let [path-info (.substring (.getRequestURI request)
+                              (.length (.getContextPath request)))]
+    (if (.isEmpty path-info)
+      "/"
+      path-info)))
+
 (defn- base-request-map [servlet ^HttpServletRequest servlet-req servlet-resp]
   {:server-port       (.getServerPort servlet-req)
    :server-name       (.getServerName servlet-req)
@@ -150,7 +157,7 @@
    :servlet-context   (.getServletContext ^ServletConfig servlet)
    :context-path      (.getContextPath servlet-req)
    :servlet-path      (.getServletPath servlet-req)
-   :path-info         (.getPathInfo servlet-req)
+   :path-info         (path-info servlet-req)
    ::protocol         (.getProtocol servlet-req)
    ::async-supported? (.isAsyncSupported servlet-req)})
 
