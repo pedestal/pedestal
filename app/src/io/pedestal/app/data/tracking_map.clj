@@ -1,4 +1,4 @@
-(ns io.pedestal.app.tracking-map)
+(ns io.pedestal.app.data.tracking-map)
 
 (defn context-meta [map key val]
   (with-meta val (update-in (meta map) [:context] (fnil conj []) key)))
@@ -6,7 +6,7 @@
 (deftype TrackingMap [map]
   clojure.lang.IPersistentMap
   (assoc [this key val]
-    (let [{:keys [context changed] :as md} (meta map)
+    (let [{:keys [context updated] :as md} (meta map)
           change (if (seq context)
                    (conj context key)
                    [key])
@@ -14,7 +14,7 @@
           md (if (get map key)
                (update-in md [:updated] (fnil conj #{}) change)
                (update-in md [:added] (fnil conj #{}) change))
-          md (merge-with (comp set concat) md (meta val))]
+          md (merge-with (comp set concat) md (dissoc (meta val) :context))]
       (TrackingMap. (with-meta (.assoc map key val) md))))
   (assocEx [this key val]
     (TrackingMap. (with-meta (.assocEx map key val)
@@ -23,20 +23,17 @@
     (TrackingMap. (with-meta (.without map key)
                     (update-in (meta map) [:removed] (fnil conj []) key))))
   clojure.lang.ILookup
-  (valAt [this key]
-    (let [v (.valAt map key)]
-      (cond (instance? TrackingMap v) (context-meta map key v)
-            (map? v) (TrackingMap. (context-meta map key v))
-            :else v)))
   (valAt [this key not-found]
     (if-let [v (.valAt map key)]
-      v
+      (cond (instance? TrackingMap v) (context-meta map key v)
+            (map? v) (TrackingMap. (context-meta map key v))
+            :else v)
       not-found))
+  (valAt [this key]
+    (.valAt this key nil))
   clojure.lang.IFn
   (invoke [this arg]
-    (if (keyword? arg)
-      (get map arg)
-      (throw (IllegalArgumentException. "Only a keyword argument is supported."))))
+    (.invoke map arg))
   java.util.Map
   (clear [this]
     (.clear map))
@@ -77,7 +74,7 @@
     (seq map))
   clojure.lang.IObj
   (withMeta [this meta]
-    (.withMeta map meta))
+    (TrackingMap. (.withMeta map meta)))
   clojure.lang.IMeta
   (meta [this]
     (.meta map)))
@@ -94,16 +91,22 @@
   (meta (assoc-in (->TrackingMap {:a {:b {:c 3}}}) [:a :b :c] 1))
   
   (meta (update-in (->TrackingMap {:a {:b {:c 3}}}) [:a :b :c] inc))
-
+  
+  (meta (get (->TrackingMap {:a {:b {:c 3}}}) :a))
+  
   (-> (TrackingMap. {:a {}})
       (assoc :a {:b {}})
       (assoc :c 11)
       (assoc-in [:a :b :c] 10))
-
+  
   (meta (-> (TrackingMap. {:a {}})
             (assoc :a {:b {}})
             (assoc :c 11)
             (assoc-in [:a :b :c] 10)))
+  
+  (meta (-> (TrackingMap. {:a {}})
+            (assoc-in [:a :b :c] 10)
+            (update-in [:a :b :c] (fnil inc 0))))
   
   )
 
