@@ -159,8 +159,8 @@
   [{:keys [dataflow context change-paths] :as state}]
   (let [derives (:derive dataflow)]
     (reduce (fn [{:keys [old new] :as acc} [derive-fn input-paths out-path]]
-              (let [old-components (components (:data-model old) ins)
-                    new-components (components (:data-model new) ins)]
+              (let [old-components (components (:data-model old) input-paths)
+                    new-components (components (:data-model new) input-paths)]
                 (if (not= old-components new-components)
                   (let [old-input (remap old-components)
                         new-input (remap new-components)]
