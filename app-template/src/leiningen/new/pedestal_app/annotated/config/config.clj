@@ -42,7 +42,7 @@
                              :order 0}}
     ;; Enable built-in features of the application development
     ;; tool. In the example below we enable the rendering view.
-    :built-in {:render {;; The directory where rendering scripts will
+    :built-in {:render {;; The directory where rendering scripts
                         ;; are stored
                         :dir "{{name}}"
                         ;; The namespace which contains the renderer
