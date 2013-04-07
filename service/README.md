@@ -8,17 +8,6 @@ You will need:
 
 * Leiningen 2
 
-
-Docs
---------------------
-Generate docs with the installed lein plugin for marginalia.
-
-    lein marg
-
-This will generate literate-programming-style documentation for all
-source files in ./src and place them in ./docs.
-
-
 Benchmarks
 --------------------
 

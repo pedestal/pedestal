@@ -5,7 +5,7 @@ The Pedestal web application framework
 
 
 
-### Installing Libraries ###
+### Installing Libraries
 
 
 Run `lein sub install` in the top level directory to install all the
@@ -14,6 +14,13 @@ library components in your local Maven repository.
 The demo project uses Leiningen checkouts to allow simultaneous
 development of libraries and the application. See the [Leiningen FAQ](https://github.com/technomancy/leiningen/blob/master/doc/FAQ.md)
 for details.
+
+### Library Docs
+
+To generate literate-programming-style documentation for the libraries, add the
+[lein plugin for marginalia](https://github.com/fogus/lein-marginalia) to
+your lein user profile. You can then `cd` into a library directory and run
+`lein marg`. Docs will be placed in the ./docs directory of the respective library.
 
 ## Find out more
 
