@@ -10,9 +10,15 @@
 (deftest home-page-test
   (is (=
        (:body (response-for service :get "/"))
-       "Hello World!")))
+       "Hello World!"))
+  (is (=
+       (:headers (response-for service :get "/"))
+       {"Content-Type" "text/html"})))
 
 (deftest about-page-test
   (is (.contains
        (:body (response-for service :get "/about"))
-       "Clojure 1.5")))
+       "Clojure 1.5"))
+  (is (=
+       (:headers (response-for service :get "/about"))
+       {"Content-Type" "text/html"})))
