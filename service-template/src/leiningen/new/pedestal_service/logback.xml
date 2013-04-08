@@ -31,7 +31,7 @@
     </encoder>
     <!-- Only log level INFO and above -->
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>WARN</level>
+      <level>INFO</level>
     </filter>
   </appender>
 
