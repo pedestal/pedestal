@@ -17,19 +17,18 @@
   
   clojure.lang.IPersistentMap
   (assoc [this key val]
-    (TrackingMap. (.assoc map key val) (new-changes :assoc map key val change-map)))
+    (TrackingMap. (.assoc map key (if (instance? TrackingMap val) (.map val) val))
+                  (new-changes :assoc map key val change-map)))
   (assocEx [this key val]
     (TrackingMap. (.assocEx map key val) (new-changes :assoc map key val change-map)))
   (without [this key]
-    (TrackingMap. (.without map key) (new-changes :dissoc map key val change-map)
-                  #_(update-in change-map [:removed] (fnil conj #{}) key)))
+    (TrackingMap. (.without map key) (new-changes :dissoc map key val change-map)))
   
   clojure.lang.ILookup
   (valAt [this key not-found]
     (if-let [v (.valAt map key)]
       (cond (instance? TrackingMap v)
-            (TrackingMap. (.map v)
-                          (update-in change-map [:context] (fnil conj []) key))
+            (TrackingMap. (.map v) (update-in change-map [:context] (fnil conj []) key))
             
             (map? v)
             (TrackingMap. v (update-in change-map [:context] (fnil conj []) key))
@@ -123,7 +122,7 @@
              (update-in [:d :b] dissoc :c)))
   (changes d)
   (changes (update-in d [:d :b] dissoc :c))
-  
+    
   (changes (:a (assoc (->TrackingMap {} {}) :a (with-meta {} {:name "Brenton"}))))
   
   (changes (assoc (->TrackingMap {} {}) :a 1))
