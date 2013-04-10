@@ -2,26 +2,27 @@
 
 (declare changes)
 
+(defn new-changes [action map key val change-map]
+  (let [{:keys [context updated] :as cs} change-map
+        change (if (seq context)
+                 (conj context key)
+                 [key])
+        cs (dissoc cs :context)
+        cs (cond (= action :dissoc) (update-in cs [:removed] (fnil conj #{}) change)
+                 (get map key) (update-in cs [:updated] (fnil conj #{}) change)
+                 :else (update-in cs [:added] (fnil conj #{}) change))]
+    (merge-with (comp set concat) cs (dissoc (changes val) :context))))
+
 (deftype TrackingMap [map change-map]
   
   clojure.lang.IPersistentMap
   (assoc [this key val]
-    (let [{:keys [context updated] :as cs} change-map
-          change (if (seq context)
-                   (conj context key)
-                   [key])
-          cs (dissoc cs :context)
-          cs (if (get map key)
-               (update-in cs [:updated] (fnil conj #{}) change)
-               (update-in cs [:added] (fnil conj #{}) change))
-          cs (merge-with (comp set concat) cs (dissoc (changes val) :context))]
-      (TrackingMap. (.assoc map key val) cs)))
+    (TrackingMap. (.assoc map key val) (new-changes :assoc map key val change-map)))
   (assocEx [this key val]
-    (TrackingMap. (.assocEx map key val)
-                  (update-in change-map [:added] (fnil conj []) key)))
+    (TrackingMap. (.assocEx map key val) (new-changes :assoc map key val change-map)))
   (without [this key]
-    (TrackingMap. (.without map key)
-                  (update-in change-map [:removed] (fnil conj []) key)))
+    (TrackingMap. (.without map key) (new-changes :dissoc map key val change-map)
+                  #_(update-in change-map [:removed] (fnil conj #{}) key)))
   
   clojure.lang.ILookup
   (valAt [this key not-found]
@@ -115,10 +116,13 @@
   (changes b)
   (def c (assoc b :c 2))
   (changes c)
-  (changes (-> c
-               (assoc :d {:b {}})
-               (assoc-in [:d :b :c] 10)
-               (update-in [:d :b :c] inc)))
+  (def d (-> c
+             (assoc :d {:b {}})
+             (assoc-in [:d :b :c] 10)
+             (update-in [:d :b :c] inc)
+             (update-in [:d :b] dissoc :c)))
+  (changes d)
+  (changes (update-in d [:d :b] dissoc :c))
   
   (changes (:a (assoc (->TrackingMap {} {}) :a (with-meta {} {:name "Brenton"}))))
   
@@ -152,5 +156,48 @@
   (count c)
   (:a c)
   (c :a)
-    
+
+  (def a (->TrackingMap {} {}))
+  (changes a)
+  (def b (assoc a :a 1))
+  (changes b)
+  (def c (assoc b :c 2))
+  (changes c)
+  (def d (-> c
+             (assoc :d {:b {}})
+             (assoc-in [:d :b :c] 10)
+             (update-in [:d :b :c] inc)
+             (update-in [:d :b] dissoc :c)))
+
+  (def z (-> (->TrackingMap {} {})
+             (assoc :a 1)
+             (assoc :c 2)
+             (assoc :d {:b {}})
+             (assoc-in [:d :b :c] 10)
+             (update-in [:d :b :c] inc)
+             (update-in [:d :b] dissoc :c)))
+
+  {:d {:b {}}, :c 2, :a 1}
+  
+  {:updated #{[:d] ;; delete this
+              [:d :b] ;; delete this
+              [:d :b :c]}
+   :added #{[:a]
+            [:c]
+            [:d] ;; [:d :b :c] supercedes [:d]
+            [:d :b :c]}
+   :removed #{[:d :b :c]}}
+
+  ;; becomes
+
+  {}
+
+  {:updated #{}
+   :added #{[:a]
+            [:c]
+            [:d :b :c]}
+   :removed #{[:d :b :c]}}
+  
+  {:d {:b {}} :c 2 :a 1}
+     
   )
