@@ -3,6 +3,11 @@
 (defn context-meta [map key val]
   (with-meta val (update-in (meta map) [:context] (fnil conj []) key)))
 
+(defn remove-meta [val]
+  (if (map? val)
+    (with-meta val nil)
+    val))
+
 (deftype TrackingMap [map]
   clojure.lang.IPersistentMap
   (assoc [this key val]
@@ -15,7 +20,7 @@
                (update-in md [:updated] (fnil conj #{}) change)
                (update-in md [:added] (fnil conj #{}) change))
           md (merge-with (comp set concat) md (dissoc (meta val) :context))]
-      (TrackingMap. (with-meta (.assoc map key val) md))))
+      (TrackingMap. (with-meta (.assoc map key (remove-meta val)) md))))
   (assocEx [this key val]
     (TrackingMap. (with-meta (.assocEx map key val)
                     (update-in (meta map) [:added] (fnil conj []) key))))
@@ -79,10 +84,26 @@
   (meta [this]
     (.meta map)))
 
+(defn chg [v]
+  (when (instance? TrackingMapTwo v) (.changes v)))
+
 (defmethod clojure.core/print-method TrackingMap [tm writer]
   (pr (.map tm)))
 
 (comment
+
+  (def a (->TrackingMap {}))
+  (meta a)
+  (def b (assoc a :a 1))
+  (meta b)
+  (def c (assoc b :c 2))
+  (meta c)
+  (meta (-> c
+            (assoc :d {:b {}})
+            (assoc-in [:d :b :c] 10)
+            (update-in [:d :b :c] inc)))
+  
+  (meta (:a (assoc (->TrackingMap {}) :a (with-meta {} {:name "Brenton"}))))
   
   (meta (assoc (->TrackingMap {}) :a 1))
   (meta (assoc (->TrackingMap {:a 0}) :a 1))
@@ -94,10 +115,13 @@
   
   (meta (get (->TrackingMap {:a {:b {:c 3}}}) :a))
   
-  (-> (TrackingMap. {:a {}})
-      (assoc :a {:b {}})
-      (assoc :c 11)
-      (assoc-in [:a :b :c] 10))
+  (def d (-> (TrackingMap. {:a {}})
+             (assoc :a {:b {}})
+             (assoc :c 11)
+             (assoc-in [:a :b :c] 10)
+             (update-in [:a :b :c] inc)))
+  (meta d)
+  (meta (get-in d [:a :b]))
   
   (meta (-> (TrackingMap. {:a {}})
             (assoc :a {:b {}})
@@ -107,6 +131,6 @@
   (meta (-> (TrackingMap. {:a {}})
             (assoc-in [:a :b :c] 10)
             (update-in [:a :b :c] (fnil inc 0))))
-  
+
   )
 
