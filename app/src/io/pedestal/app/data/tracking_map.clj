@@ -2,7 +2,7 @@
 
 (declare changes)
 
-(defn new-changes [action map key val change-map]
+(defn- new-changes [action map key val change-map]
   (let [{:keys [context updated] :as cs} change-map
         change (if (seq context)
                  (conj context key)

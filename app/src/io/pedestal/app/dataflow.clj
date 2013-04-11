@@ -1,5 +1,6 @@
 (ns ^:shared io.pedestal.app.dataflow
-  (:require [io.pedestal.app.messages :as msg]))
+    (:require [io.pedestal.app.messages :as msg]
+              [io.pedestal.app.data.tracking-map :as tm]))
 
 (defn matching-path-element?
   "Return true if the two elements match."
@@ -43,26 +44,28 @@
   This is not a fast sort so it should only be done once when creating
   a new dataflow."
   [derive-fns]
-  (let [index (reduce (fn [a [f :as xs]] (assoc a f xs)) {} derive-fns)
-        deps (for [[f ins out] derive-fns in ins] [f in out])
+  (let [derive-fns (map (fn [[f ins out]] [(gensym) f ins out]) derive-fns)
+        index (reduce (fn [a [id f :as xs]] (assoc a id xs)) {} derive-fns)
+        deps (for [[id f ins out] derive-fns in ins] [id in out])
         graph (reduce
-               (fn [a [f in]]
+               (fn [a [f _ out]]
                  (assoc a f {:deps (set (map first
-                                             (filter (fn [[_ _ out]] (descendent? in out))
+                                             (filter (fn [[_ in]] (descendent? in out))
                                                      deps)))}))
                {}
                deps)]
-    (reduce (fn [a b]
-              (conj a (get index b)))
-            []
-            (::order (reduce topo-visit (assoc graph ::order []) (keys graph))))))
+    (reverse (reduce (fn [a b]
+                       (let [[_ f ins out] (get index b)]
+                         (conj a [f ins out])))
+                     []
+                     (::order (reduce topo-visit (assoc graph ::order []) (keys graph)))))))
 
 (defn sorted-derive-vector
   "Convert derive function config to a vector and sort in dependency
   order."
   [derive-fns]
   (sort-derive-fns
-   (mapv (fn [[{:keys [in out]} f]] [f in out]) derive-fns)))
+   (mapv (fn [{:keys [in out fn]}] [fn in out]) derive-fns)))
 
 (defn build
   "Given a dataflow description map, return a dataflow engine. An example dataflow
@@ -70,7 +73,7 @@
 
   {:transform [[:op [:output :path] transform-fn]]
    :effect {effect-fn #{[:input :path]}}
-   :derive {derive-fn {:in #{[:input :path]} :out [:output :path]}}
+   :derive [{:fn derive-fn :in #{[:input :path]} :out [:output :path]}]
    :continue {some-continue-fn #{[:input :path]}}
    :emit [[#{[:input :path]} emit-fn]]}
   "
@@ -93,84 +96,58 @@
                            (matching-path? path topic))))
                   transforms))))
 
+(defn- merge-changes [old-changes new-changes]
+  (merge-with into old-changes new-changes))
+
+(defn update-flow-state [state tracking-map]
+  (-> state
+      (assoc-in [:new :data-model] (.map tracking-map))
+      (update-in [:change] merge-changes (tm/changes tracking-map))))
+
+(defn track-update-in [data-model out-path f & args]
+  (apply update-in (tm/->TrackingMap data-model {}) out-path f args))
+
+(defn apply-in [state out-path f & args]
+  (let [data-model (get-in state [:new :data-model])
+        new-data-model (apply track-update-in data-model out-path f args)]
+    (update-flow-state state new-data-model)))
+
 (defn transform-phase
   "Find the first transform function that matches the message and
-  execute it, returning the an updated flow state."
+  execute it, returning the updated flow state."
   [{:keys [new dataflow context] :as state}]
   (let [message (:message context)
         transforms (:transform dataflow)
         transform-fn (find-transform transforms (::msg/topic message) (::msg/type message))]
     (if transform-fn
-      (let [change-path (concat [:new :data-model] (::msg/topic message))]
-        (-> state
-            (update-in [:change-paths] conj change-path)
-            (update-in change-path transform-fn message)))
+      (apply-in state (::msg/topic message) transform-fn message)
       state)))
 
-;; TODO: Once we have a way to measure performance, add memoization
-(defn partition-wildcard-path [path]
-  (reduce (fn [a b]
-            (if (and (= (first b) :*) (> (count b) 1))
-              (apply conj a (repeat (count b) [:*]))
-              (conj a b)))
-          []
-          (partition-by #(= % :*) path)))
+(defn inputs-changed? [change input-paths]
+  (let [all-inputs (reduce into (vals change))]
+    (some (fn [x] (some (partial descendent? x) all-inputs)) input-paths)))
 
-(defn components-for-path [m wildcard-path]
-  (reduce (fn [components sub-path]
-            (if (= sub-path [:*])
-              (reduce (fn [c [path data]]
-                        (assert (map? data) ":* can only be applied to maps")
-                        (reduce (fn [c' [k v]]
-                                  (assoc c' (conj path k) v))
-                                c
-                                data))
-                      {}
-                      components)
-              (reduce (fn [c [path data]]
-                        (assoc c (into path sub-path) (get-in data sub-path)))
-                      {}
-                      components)))
-          {[] m}
-          (partition-wildcard-path wildcard-path)))
+(defn filter-inputs [input-paths changes]
+  (set (filter (fn [x] (some (partial descendent? x) input-paths)) changes)))
 
-(defn components [m paths]
-  (reduce (fn [acc path]
-            (merge acc (components-for-path m path)))
-          {}
-          paths))
-
-(defn remap [components]
-  (reduce (fn [a [path v]]
-            (if (map? v)
-              (update-in a path merge v)
-              (assoc-in a path v)))
-          {}
-          components))
-
-(defn changes [context]
-  {:added #{}
-   :removed #{}
-   :updated #{}})
+(defn flow-input [context state input-paths change]
+  (-> context
+      (assoc :new-model (get-in state [:new :data-model]))
+      (assoc :old-model (get-in state [:old :data-model]))
+      (assoc :input-paths input-paths)
+      (assoc :added (filter-inputs input-paths (:added change)))
+      (assoc :updated (filter-inputs input-paths (:updated change)))
+      (assoc :removed (filter-inputs input-paths (:removed change)))))
 
 (defn derive-phase
   "Execute each derive function in dependency order only if some input to the
   function has changed. Return an updated flow state."
-  [{:keys [dataflow context change-paths] :as state}]
+  [{:keys [dataflow context] :as state}]
   (let [derives (:derive dataflow)]
-    (reduce (fn [{:keys [old new] :as acc} [derive-fn input-paths out-path]]
-              (let [old-components (components (:data-model old) input-paths)
-                    new-components (components (:data-model new) input-paths)]
-                (if (not= old-components new-components)
-                  (let [old-input (remap old-components)
-                        new-input (remap new-components)]
-                    (update-in acc (concat [:new :data-model] out-path)
-                               derive-fn old-input new-input
-                               (-> context
-                                   (assoc :inputs (keys new-components))
-                                   (assoc :old-components old-components)
-                                   (assoc :new-components new-components))))
-                  acc)))
+    (reduce (fn [{:keys [old new change] :as acc} [derive-fn input-paths out-path]]
+              (if (inputs-changed? change input-paths)
+                (apply-in acc out-path derive-fn (flow-input context acc input-paths change))
+                acc))
             state
             derives)))
 
@@ -205,3 +182,11 @@
               output-phase
               effect-phase
               emit-phase))))
+
+;; Public API
+;; ================================================================================
+
+(defn input-vals [{:keys [new-model input-paths]}]
+  ;; TODO: Update to work with wildcard paths
+  (map #(get-in new-model %) input-paths))
+
