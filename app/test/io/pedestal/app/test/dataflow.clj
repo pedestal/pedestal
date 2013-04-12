@@ -168,7 +168,52 @@
             :new {:data-model {:a 2 :b 4 :c 4}}
             :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]
                                 [double-sum-fn #{[:a]} [:c]]]}
+            :context {}}))
+    (testing "returned maps record change"
+      (let [d (fn [_ input] {:x {:y 11}})]
+        (is (= (derive-phase {:change {:updated #{[:a]}}
+                              :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
+                              :new {:data-model {:a 2 :b {:c {:x {:y 10 :z 15}}}}}
+                              :dataflow {:derive [[d #{[:a]} [:b :c]]]}
+                              :context {}})
+               {:change {:updated #{[:a] [:b] [:b :c]} :inspect #{[:b :c]}}
+                :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
+                :new {:data-model {:a 2 :b {:c {:x {:y 11}}}}}
+                :dataflow {:derive [[d #{[:a]} [:b :c]]]}
+                :context {}}))))))
+
+(deftest test-continue-phase
+  (let [continue-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])]
+    (is (= (continue-phase {:change {:updated #{[:a]}}
+                          :old {:data-model {:a 0}}
+                          :new {:data-model {:a 2}}
+                          :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
+                          :context {}})
+           {:change {:updated #{[:a]}}
+            :old {:data-model {:a 0}}
+            :new {:data-model {:a 2}
+                  :continue [{::msg/topic :x ::msg/type :y :value 2}]}
+            :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
             :context {}}))))
+
+(deftest test-effect-phase
+  (let [output-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])]
+    (is (= (effect-phase {:change {:updated #{[:a]}}
+                          :old {:data-model {:a 0}}
+                          :new {:data-model {:a 2}}
+                          :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
+                          :context {}})
+           {:change {:updated #{[:a]}}
+            :old {:data-model {:a 0}}
+            :new {:data-model {:a 2}
+                  :effect [{::msg/topic :x ::msg/type :y :value 2}]}
+            :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
+            :context {}}))))
+
+
+
+;; Complete dataflow tests
+;; ================================================================================
 
 (defn inc-transform [old-value message]
   (inc old-value))
@@ -176,14 +221,74 @@
 (defn double-derive [_ input]
   (* 2 (reduce + (input-vals input))))
 
-(defn simple-emit [old-input new-input context])
+(defn continue-min [n]
+  (fn [input]
+    (when (< (single-val input) n)
+      [{::msg/topic [:a] ::msg/type :inc}])))
+
+(def flows
+  {:one-derive     {:transform [[:inc [:a] inc-transform]]
+                    :derive #{{:in #{[:a]} :out [:b] :fn double-derive}}}
+   
+   :continue-to-10 {:transform [[:inc [:a] inc-transform]]
+                    :derive #{{:fn double-derive :in #{[:a]} :out [:b]}}
+                    :continue #{{:fn (continue-min 10) :in #{[:b]}}}}})
+
+(defn flow [k]
+  (build (k flows)))
 
 (deftest test-flow-step
-  (let [dataflow (build {:transform [[:inc [:a] inc-transform]]
-                         :derive [{:in #{[:a]} :out [:b] :fn double-derive}]
-                         :emit [#{[]} simple-emit]})]
-    (is (= (flow-step dataflow {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
-           {:data-model {:a 1 :b 2}}))))
+  (is (= (flow-step (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 1 :b 2}}))
+  (is (= (flow-step (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 1 :b 2}
+          :continue [{::msg/topic [:a] ::msg/type :inc}]})))
+
+(deftest test-run-flow
+  (is (= (run-flow (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 1 :b 2}}))
+  (is (= (run-flow (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 5 :b 10}})))
+
+(deftest test-process-message
+  (is (= (process-message (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 1 :b 2}}))
+  (is (= (process-message (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 5 :b 10}})))
+
+(deftest test-get-path
+  (is (= (get-path {:x {0 {:y {0 {:a 1
+                                  :b 5}}}
+                        1 {:y {0 {:a 1}
+                               1 {:b 2}}}}
+                    :sum {:b 7
+                          :a 2}}
+                   [:x :*])
+         [[[:x 0] {:y {0 {:a 1 :b 5}}}]
+          [[:x 1] {:y {0 {:a 1} 1 {:b 2}}}]])))
+
+(deftest test-input-map
+  (is (= (input-map {:new-model {:a 3 :b 5}
+                     :input-paths #{[:a] [:b]}})
+         {[:a] 3 [:b] 5}))
+  (is (= (input-map {:new-model {:a {0 {:g 1}
+                                     1 {:g 2}}
+                                 :b 5}
+                     :input-paths #{[:a :* :g] [:b]}})
+         {[:a 0 :g] 1
+          [:a 1 :g] 2
+          [:b]      5})))
+
+(deftest test-input-vals
+  (is (= (set (input-vals {:new-model {:a 3 :b 5}
+                           :input-paths #{[:a] [:b]}}))
+         #{3 5}))
+  (is (= (set (input-vals {:new-model {:a {0 {:g 1}
+                                           1 {:g 2}}
+                                       :b 5}
+                           :input-paths #{[:a :* :g] [:b]}}))
+         #{1 2 5})))
+
 
 ;; Ported tests
 ;; ================================================================================
@@ -191,27 +296,43 @@
 (defn sum [_ input]
   (reduce + (input-vals input)))
 
-(deftest test-topo-sort-again
-  (let [topo-visit #'io.pedestal.app.dataflow/topo-visit
-        graph {1 {:deps #{}}
-               2 {:deps #{1}}
-               3 {:deps #{2}}
-               4 {:deps #{1 2}}
-               5 {:deps #{3 6}}
-               6 {:deps #{4 5}}}]
-    (is (= (:io.pedestal.app.dataflow/order
-            (reduce topo-visit (assoc graph :io.pedestal.app.dataflow/order []) (keys graph)))
-           [1 2 3 4 6 5]))))
-
-(def dataflow-test-one
-  {:transform [[:inc [:x] inc-transform]]
-   :derive    [{:fn sum :in #{[:x]}      :out [:a]}
-               {:fn sum :in #{[:x] [:a]} :out [:b]}
-               {:fn sum :in #{[:b]}      :out [:c]}
-               {:fn sum :in #{[:a]}      :out [:d]}
-               {:fn sum :in #{[:c] [:d]} :out [:e]}]})
-
-(deftest test-dataflow-one
-  (let [dataflow (build dataflow-test-one)]
+(deftest test-dataflows
+  (let [dataflow (build {:transform [[:inc [:x] inc-transform]]
+                         :derive    #{{:fn sum :in #{[:x]}      :out [:a]}
+                                      {:fn sum :in #{[:x] [:a]} :out [:b]}
+                                      {:fn sum :in #{[:b]}      :out [:c]}
+                                      {:fn sum :in #{[:a]}      :out [:d]}
+                                      {:fn sum :in #{[:c] [:d]} :out [:e]}}})]
     (is (= (flow-step dataflow {:data-model {:x 0}} {::msg/topic [:x] ::msg/type :inc})
-           {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}}))))
+           {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}})))
+  
+  (let [dataflow (build {:transform [[:inc [:x] inc-transform]]
+                         :derive    #{{:fn sum :in #{[:x]}           :out [:a]}
+                                      {:fn sum :in #{[:a]}           :out [:b]}
+                                      {:fn sum :in #{[:a]}           :out [:c]}
+                                      {:fn sum :in #{[:c]}           :out [:d]}
+                                      {:fn sum :in #{[:c]}           :out [:e]}
+                                      {:fn sum :in #{[:d] [:e]}      :out [:f]}
+                                      {:fn sum :in #{[:a] [:b] [:f]} :out [:g]}
+                                      {:fn sum :in #{[:g]}           :out [:h]}
+                                      {:fn sum :in #{[:g] [:f]}      :out [:i]}
+                                      {:fn sum :in #{[:i] [:f]}      :out [:j]}
+                                      {:fn sum :in #{[:h] [:g] [:j]} :out [:k]}}})]
+    (is (= (flow-step dataflow {:data-model {:x 0}} {::msg/topic [:x] ::msg/type :inc})
+           {:data-model {:x 1 :a 1 :b 1 :c 1 :d 1 :e 1 :f 2 :g 4 :h 4 :i 6 :j 8 :k 16}})))
+  
+  (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-transform]]
+                         :derive    [{:fn sum :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
+    (is (= (flow-step dataflow {:data-model {:x {0 {:y {0 {:a 1
+                                                           :b 5}}}
+                                                 1 {:y {0 {:a 1}
+                                                        1 {:b 2}}}}
+                                             :sum {:b 7
+                                                   :a 2}}}
+                      {::msg/topic [:x 1 :y 1 :b] ::msg/type :inc})
+           {:data-model {:x {0 {:y {0 {:a 1
+                                       :b 5}}}
+                             1 {:y {0 {:a 1}
+                                    1 {:b 3}}}}
+                         :sum {:a 2
+                               :b 8}}}))))

@@ -67,20 +67,6 @@
   (sort-derive-fns
    (mapv (fn [{:keys [in out fn]}] [fn in out]) derive-fns)))
 
-(defn build
-  "Given a dataflow description map, return a dataflow engine. An example dataflow
-  configuration is shown below:
-
-  {:transform [[:op [:output :path] transform-fn]]
-   :effect {effect-fn #{[:input :path]}}
-   :derive [{:fn derive-fn :in #{[:input :path]} :out [:output :path]}]
-   :continue {some-continue-fn #{[:input :path]}}
-   :emit [[#{[:input :path]} emit-fn]]}
-  "
-  [description]
-  (update-in description [:derive] sorted-derive-vector))
-
-;; TODO: Once we have a way to measure performance, add memoization
 (defn find-transform
   "Given a transform configuration vector, find the first transform
   function which matches the given message."
@@ -151,42 +137,104 @@
             state
             derives)))
 
-(defn output-phase [state]
-  state)
+(defn- output-phase
+  "Execute each function. Return an updated flow state."
+  [{:keys [dataflow context] :as state} k]
+  (let [fns (k dataflow)]
+    (reduce (fn [{:keys [old new change] :as acc} {f :fn input-paths :in}]
+              (update-in state [:new k] (fnil into [])
+                         (f (flow-input context acc input-paths change))))
+            state
+            fns)))
 
-(defn effect-phase [state]
-  state)
+(defn continue-phase
+  "Execute each continue function. Return an updated flow state."
+  [state]
+  (output-phase state :continue))
+
+(defn effect-phase
+  "Execute each effect function. Return an updated flow state."
+  [state]
+  (output-phase state :effect))
 
 (defn emit-phase [state]
   state)
+
+(defn- flow-state [old-state new-state dataflow message]
+  {:old old-state
+   :new new-state
+   :dataflow dataflow
+   :context {:message message}})
 
 (defn flow-step
   "Given a dataflow, a state and a message, run the message through
   the dataflow and return the updated state. The dataflow will be
   run only once. The state is a map with:
 
-  {:data-model {}
-   :emit       []
-   :output     []
-   :continue   []}
+  {:data-model {}}
    "
   [dataflow state message]
-  (let [flow-state {:new state
-                    :old state
-                    :updated #{}
-                    :dataflow dataflow
-                    :context {:message message}}]
-    (:new (-> flow-state
+  (let [state (dissoc state :continue)]
+    (:new (-> (flow-state state state dataflow message)
               transform-phase
               derive-phase
-              output-phase
+              continue-phase))))
+
+(defn run-flow
+  [dataflow state message]
+  (let [{:keys [continue] :as result} (flow-step dataflow state message)]
+    (if (empty? continue)
+      (dissoc result :continue)
+      (reduce (fn [a c-message]
+                (run-flow dataflow a c-message))
+              result
+              continue))))
+
+(defn process-message
+  [dataflow state message]
+  (let [new-state (run-flow dataflow state message)]
+    (:new (-> (flow-state state new-state dataflow message)
               effect-phase
               emit-phase))))
+
 
 ;; Public API
 ;; ================================================================================
 
-(defn input-vals [{:keys [new-model input-paths]}]
-  ;; TODO: Update to work with wildcard paths
-  (map #(get-in new-model %) input-paths))
+(defn build
+  "Given a dataflow description map, return a dataflow engine. An example dataflow
+  configuration is shown below:
 
+  {:transform [[:op [:output :path] transform-fn]]
+   :effect {effect-fn #{[:input :path]}}
+   :derive [{:fn derive-fn :in #{[:input :path]} :out [:output :path]}]
+   :continue {some-continue-fn #{[:input :path]}}
+   :emit [[#{[:input :path]} emit-fn]]}
+  "
+  [description]
+  (update-in description [:derive] sorted-derive-vector))
+
+(defn get-path
+  "Returns a sequence of [path value] tuples"
+  ([data path]
+     (get-path data [] path))
+  ([data context [x & xs]]
+     (if x
+       (if (= x :*)
+         (mapcat #(get-path (get data %) (conj context %) xs) (keys data))
+         (get-path (get data x) (conj context x) xs))
+       [[context data]])))
+
+(defn input-map [{:keys [new-model input-paths]}]
+  (into {} (for [path input-paths
+                 [k v] (get-path new-model path)
+                 :when v]
+             [k v])))
+
+(defn input-vals [inputs]
+  (vals (input-map inputs)))
+
+(defn single-val [inputs]
+  (let [m (input-map inputs)]
+    (assert (= 1 (count m)) "input is expected to contain exactly one value")
+    (first (vals m))))
