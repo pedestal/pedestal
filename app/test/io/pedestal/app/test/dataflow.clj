@@ -113,32 +113,30 @@
            'i))))
 
 (deftest test-transform-phase
-  (let [inc-fn (fn [o _] (inc o))]
-    (is (= (transform-phase {:old {:data-model {:a 0}}
-                             :new {:data-model {:a 0}}
-                             :dataflow {:input identity
-                                        :transform [[:inc [:a] inc-fn]]}
-                             :context {:message {:out [:a] :key :inc}}})
-           {:change {:updated #{[:a]}}
-            :old {:data-model {:a 0}}
-            :new {:data-model {:a 1}}
-            :dataflow {:input identity
-                       :transform [[:inc [:a] inc-fn]]}
-            :context {:message {:out [:a] :key :inc}}}))))
+  (let [inc-fn (fn [o _] (inc o))
+        state {:old {:data-model {:a 0}}
+               :new {:data-model {:a 0}}
+               :dataflow {:input identity
+                          :transform [[:inc [:a] inc-fn]]}
+               :context {:message {:out [:a] :key :inc}}}]
+    (is (= (transform-phase state)
+           (-> state
+               (assoc-in [:change :updated] #{[:a]})
+               (assoc-in [:new :data-model :a] 1))))))
 
 (deftest test-filter-inputs
-  (is (= (filter-inputs #{[:a]} #{[:a]})
+  (is (= (input-set #{[:a]} filter #{[:a]})
          #{[:a]}))
-  (is (= (filter-inputs #{[:a]} #{[:a] [:b]})
+  (is (= (input-set #{[:a] [:b]} filter #{[:a]})
          #{[:a]}))
   (let [changes #{[:a :b 1] [:g 1 :h 2] [:m :n 3 :x]}]
-    (is (= (filter-inputs #{[:a :* :*]} changes)
+    (is (= (input-set changes filter #{[:a :* :*]})
            #{[:a :b 1]}))
-    (is (= (filter-inputs #{[:a :b :*]} changes)
+    (is (= (input-set changes filter #{[:a :b :*]})
            #{[:a :b 1]}))
-    (is (= (filter-inputs #{[:a :b :*] [:m :n :* :*]} changes)
+    (is (= (input-set changes filter #{[:a :b :*] [:m :n :* :*]})
            #{[:a :b 1] [:m :n 3 :x]}))
-    (is (= (filter-inputs #{[:a :b :*] [:g :* :h :*]} changes)
+    (is (= (input-set changes filter #{[:a :b :*] [:g :* :h :*]})
            #{[:a :b 1] [:g 1 :h 2]}))))
 
 (deftest test-inputs-changed?
@@ -150,68 +148,66 @@
 
 (deftest test-derive-phase
   (let [double-sum-fn (fn [_ input] (* 2 (reduce + (input-vals input))))]
-    (is (= (derive-phase {:change {:updated #{[:a]}}
-                          :old {:data-model {:a 0}}
-                          :new {:data-model {:a 2}}
-                          :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]]}
-                          :context {}})
-           {:change {:added #{[:b]} :updated #{[:a]}}
-            :old {:data-model {:a 0}}
-            :new {:data-model {:a 2 :b 4}}
-            :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]]}
-            :context {}}))
-    (is (= (derive-phase {:change {:updated #{[:a]}}
-                          :old {:data-model {:a 0}}
-                          :new {:data-model {:a 2}}
-                          :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]
-                                              [double-sum-fn #{[:a]} [:c]]]}
-                          :context {}})
-           {:change {:added #{[:b] [:c]} :updated #{[:a]}}
-            :old {:data-model {:a 0}}
-            :new {:data-model {:a 2 :b 4 :c 4}}
-            :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]
-                                [double-sum-fn #{[:a]} [:c]]]}
-            :context {}}))
+    (let [state {:change {:updated #{[:a]}}
+                 :old {:data-model {:a 0}}
+                 :new {:data-model {:a 2}}
+                 :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]]}
+                 :context {}}]
+      (is (= (derive-phase state)
+             (-> state
+                 (assoc-in [:change :added] #{[:b]})
+                 (assoc-in [:new :data-model :b] 4)))))
+    (let [state {:change {:updated #{[:a]}}
+                 :old {:data-model {:a 0}}
+                 :new {:data-model {:a 2}}
+                 :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]
+                                     [double-sum-fn #{[:a]} [:c]]]}
+                 :context {}}]
+      (is (= (derive-phase state)
+             (-> state
+                 (assoc-in [:change :added] #{[:b] [:c]})
+                 (update-in [:new :data-model] assoc :b 4 :c 4)))))
     (testing "returned maps record change"
-      (let [d (fn [_ input] {:x {:y 11}})]
-        (is (= (derive-phase {:change {:updated #{[:a]}}
-                              :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
-                              :new {:data-model {:a 2 :b {:c {:x {:y 10 :z 15}}}}}
-                              :dataflow {:derive [[d #{[:a]} [:b :c]]]}
-                              :context {}})
-               {:change {:updated #{[:a] [:b] [:b :c]} :inspect #{[:b :c]}}
-                :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
-                :new {:data-model {:a 2 :b {:c {:x {:y 11}}}}}
-                :dataflow {:derive [[d #{[:a]} [:b :c]]]}
-                :context {}}))))))
+      (let [d (fn [_ input] {:x {:y 11}})
+            state {:change {:updated #{[:a]}}
+                   :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
+                   :new {:data-model {:a 2 :b {:c {:x {:y 10 :z 15}}}}}
+                   :dataflow {:derive [[d #{[:a]} [:b :c]]]}
+                   :context {}}]
+        (is (= (derive-phase state)
+               (merge state
+                      {:change {:updated #{[:a] [:b] [:b :c]} :inspect #{[:b :c]}}
+                       :new {:data-model {:a 2 :b {:c {:x {:y 11}}}}}})))))))
 
 (deftest test-continue-phase
-  (let [continue-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])]
-    (is (= (continue-phase {:change {:updated #{[:a]}}
-                          :old {:data-model {:a 0}}
-                          :new {:data-model {:a 2}}
-                          :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
-                          :context {}})
-           {:change {:updated #{[:a]}}
-            :old {:data-model {:a 0}}
-            :new {:data-model {:a 2}
-                  :continue [{::msg/topic :x ::msg/type :y :value 2}]}
-            :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
-            :context {}}))))
+  (let [continue-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])
+        state {:change {:updated #{[:a]}}
+               :old {:data-model {:a 0}}
+               :new {:data-model {:a 2}}
+               :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
+               :context {}}]
+    (is (= (continue-phase state)
+           (assoc-in state [:new :continue] [{::msg/topic :x ::msg/type :y :value 2}])))))
 
 (deftest test-effect-phase
-  (let [output-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])]
-    (is (= (effect-phase {:change {:updated #{[:a]}}
-                          :old {:data-model {:a 0}}
-                          :new {:data-model {:a 2}}
-                          :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
-                          :context {}})
-           {:change {:updated #{[:a]}}
-            :old {:data-model {:a 0}}
-            :new {:data-model {:a 2}
-                  :effect [{::msg/topic :x ::msg/type :y :value 2}]}
-            :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
-            :context {}}))))
+  (let [output-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])
+        state {:change {:updated #{[:a]}}
+               :old {:data-model {:a 0}}
+               :new {:data-model {:a 2}}
+               :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
+               :context {}}]
+    (is (= (effect-phase state)
+           (assoc-in state [:new :effect] [{::msg/topic :x ::msg/type :y :value 2}])))))
+
+(deftest test-emit-phase
+  (let [emit-fn (fn [input] [{:value (single-val input)}])
+        state {:change {:updated #{[:a]}}
+               :old {:data-model {:a 0}}
+               :new {:data-model {:a 2}}
+               :dataflow {:emit [[#{[:a]} emit-fn]]}
+               :context {}}]
+    (is (= (emit-phase state)
+           (assoc-in state [:new :emit] [{:value 2}])))))
 
 
 
