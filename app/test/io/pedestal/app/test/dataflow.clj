@@ -237,24 +237,25 @@
 (defn flow [k]
   (build (k flows)))
 
-(deftest test-flow-step
-  (is (= (flow-step (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+(deftest test-flow-phases-step
+  (is (= (flow-phases-step (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
          {:data-model {:a 1 :b 2}}))
-  (is (= (flow-step (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+  (is (= (flow-phases-step (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
          {:data-model {:a 1 :b 2}
           :continue [{::msg/topic [:a] ::msg/type :inc}]})))
 
-(deftest test-run-flow
-  (is (= (run-flow (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+(deftest test-run-flow-phases
+  (is (= (run-flow-phases (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
          {:data-model {:a 1 :b 2}}))
-  (is (= (run-flow (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+  (is (= (run-flow-phases (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
          {:data-model {:a 5 :b 10}})))
 
-(deftest test-process-message
-  (is (= (process-message (flow :one-derive) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+(deftest test-run
+  (is (= (run (flow :one-derive) {:a 0} {::msg/topic [:a] ::msg/type :inc})
          {:data-model {:a 1 :b 2}}))
-  (is (= (process-message (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
+  (is (= (run (flow :continue-to-10) {:a 0} {::msg/topic [:a] ::msg/type :inc})
          {:data-model {:a 5 :b 10}})))
+
 
 (deftest test-get-path
   (is (= (get-path {:x {0 {:y {0 {:a 1
@@ -303,7 +304,7 @@
                                       {:fn sum :in #{[:b]}      :out [:c]}
                                       {:fn sum :in #{[:a]}      :out [:d]}
                                       {:fn sum :in #{[:c] [:d]} :out [:e]}}})]
-    (is (= (flow-step dataflow {:data-model {:x 0}} {::msg/topic [:x] ::msg/type :inc})
+    (is (= (run dataflow {:x 0} {::msg/topic [:x] ::msg/type :inc})
            {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}})))
   
   (let [dataflow (build {:transform [[:inc [:x] inc-transform]]
@@ -318,17 +319,17 @@
                                       {:fn sum :in #{[:g] [:f]}      :out [:i]}
                                       {:fn sum :in #{[:i] [:f]}      :out [:j]}
                                       {:fn sum :in #{[:h] [:g] [:j]} :out [:k]}}})]
-    (is (= (flow-step dataflow {:data-model {:x 0}} {::msg/topic [:x] ::msg/type :inc})
+    (is (= (run dataflow {:x 0} {::msg/topic [:x] ::msg/type :inc})
            {:data-model {:x 1 :a 1 :b 1 :c 1 :d 1 :e 1 :f 2 :g 4 :h 4 :i 6 :j 8 :k 16}})))
   
   (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-transform]]
                          :derive    [{:fn sum :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
-    (is (= (flow-step dataflow {:data-model {:x {0 {:y {0 {:a 1
-                                                           :b 5}}}
-                                                 1 {:y {0 {:a 1}
-                                                        1 {:b 2}}}}
-                                             :sum {:b 7
-                                                   :a 2}}}
+    (is (= (run dataflow {:x {0 {:y {0 {:a 1
+                                        :b 5}}}
+                              1 {:y {0 {:a 1}
+                                     1 {:b 2}}}}
+                          :sum {:b 7
+                                :a 2}}
                       {::msg/topic [:x 1 :y 1 :b] ::msg/type :inc})
            {:data-model {:x {0 {:y {0 {:a 1
                                        :b 5}}}
