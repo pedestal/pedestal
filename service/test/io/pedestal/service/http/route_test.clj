@@ -281,7 +281,7 @@
            (-> {:request {:request-method method
                           :scheme scheme
                           :server-name host
-                          :uri uri
+                          :path-info uri
                           :query-string qs}}
                (interceptor-impl/enqueue query-params
                                          (method-param)
@@ -306,7 +306,7 @@
   (-> (test-query-execute table {:request {:request-method :get
                                            :scheme "do-not-match-scheme"
                                            :server-name "do-not-match-host"
-                                           :uri uri
+                                           :path-info uri
                                            :query-string params}})
       :route
       :route-name))
@@ -316,7 +316,7 @@
                    (-> (test-query-execute routes {:request {:request-method :get
                                                              :scheme "do-not-match-scheme"
                                                              :server-name "do-not-match-host"
-                                                             :uri "/intercepted"
+                                                             :path-info "/intercepted"
                                                              :query-params {}}})
                        :response
                        :request
@@ -331,7 +331,7 @@
                    (-> (test-query-execute routes {:request {:request-method :get
                                                              :scheme "do-not-match-scheme"
                                                              :server-name "do-not-match-host"
-                                                             :uri "/hierarchical/intercepted"
+                                                             :path-info "/hierarchical/intercepted"
                                                              :query-params {}}})
                        :response
                        :request
@@ -346,7 +346,7 @@
                    (-> (test-query-execute routes {:request {:request-method :get
                                                              :scheme "do-not-match-scheme"
                                                              :server-name "do-not-match-host"
-                                                             :uri "/terminal/intercepted"
+                                                             :path-info "/terminal/intercepted"
                                                              :query-params {}}})
                        :response
                        :request
@@ -361,7 +361,7 @@
                    (-> (test-query-execute routes {:request {:request-method :get
                                                              :scheme "do-not-match-scheme"
                                                              :server-name "do-not-match-host"
-                                                             :uri "/intercepted-by-fn-symbol"
+                                                             :path-info "/intercepted-by-fn-symbol"
                                                              :query-params {}}})
                        :response
                        :request
@@ -376,7 +376,7 @@
                    (-> (test-query-execute routes {:request {:request-method :get
                                                              :scheme "do-not-match-scheme"
                                                              :server-name "do-not-match-host"
-                                                             :uri "/intercepted-by-fn-list"
+                                                             :path-info "/intercepted-by-fn-list"
                                                              :query-params {}}})
                        :response
                        :request
@@ -414,7 +414,7 @@
                    (-> routes
                        (test-query-execute
                         {:request {:request-method :get
-                                   :uri "/trailing-slash/child-path"}})
+                                   :path-info "/trailing-slash/child-path"}})
                        :route
                        (select-keys [:route-name :path])))
        verbose-routes
@@ -428,7 +428,7 @@
                        (test-query-execute
                         {:request {:request-method :get
                                    :server-name "example.com"
-                                   :uri "/child-path"}})
+                                   :path-info "/child-path"}})
                        :route
                        (select-keys [:route-name :path])))
        verbose-routes
@@ -689,7 +689,7 @@
                                         (test-query-execute {:request {:request-method :get
                                                                        :scheme "do-not-match-scheme"
                                                                        :server-name "ring-adapt.pedestal"
-                                                                       :uri path
+                                                                       :path-info path
                                                                        :query-params {}}})
                                         :response
                                         :body))
@@ -724,7 +724,7 @@
         query {:request {:request-method :get
                          :scheme "do-not-match-scheme"
                          :server-name "overridden.pedestal"
-                         :uri "/resource"
+                         :path-info "/resource"
                          :query-params {}}}]
     (is (= "Overridden" (-> (interceptor-impl/enqueue query
                                                       query-params

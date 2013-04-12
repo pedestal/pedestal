@@ -269,17 +269,33 @@
       (merge-param-options route)
       (merge-method-param route)))
 
+(defn- context-path
+  [{:keys [context request] :as opts}]
+  (log/info :in :context-path
+            :context context
+            :context-type (type context)
+            :resolved-context (when (symbol? context) (resolve context))
+            :request request)
+  (when-let [context-str (cond
+                       (string? context) context
+                       (fn? context) (context)
+                       (symbol? context) ((resolve context))
+                       :else (:context-path request))]
+    (str/split context-str #"/")))
+
 (defn- link-str
   "Returns a string for a route. opts is a map as described in the
   docstring for 'url-for'."
   [route opts]
   (let [{:keys [path-params query-params request]} opts
         {:keys [scheme host path-parts]} route
-        {:keys [context-path]} request
-        split-context-path (str/split context-path #"/")
-        path-parts (do (log/info :path-parts path-parts
-                                 :split-context-path split-context-path)
-                       (concat split-context-path (rest path-parts)))
+        context-path-parts (context-path opts)
+        path-parts (do (log/info :in :link-str
+                                 :path-parts path-parts
+                                 :context-path-parts context-path-parts)
+                       (if (and context-path-parts (empty? (first path-parts)))
+                         (concat context-path-parts (rest path-parts))
+                         path-parts))
         path (str/join \/ (map #(get path-params % %) path-parts))]
     (str
      (when (and scheme (not= scheme (:scheme request)))
@@ -339,6 +355,11 @@
                     to place the HTTP method name, if it is neither
                     GET nor POST. If nil, the HTTP method name will
                     not be included in the query string. Default is nil.
+
+     :context       A string, function that returns a string, or symbol
+                    that resolves to a function that returns a string
+                    that specifies a root context for the URL. Default
+                    is nil.
 
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned

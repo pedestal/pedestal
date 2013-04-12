@@ -80,6 +80,8 @@
      (getServerName [this] host)
      (getRemoteAddr [this] "127.0.0.1")
      (getRequestURI [this] (str "/" path))
+     (getServletPath [this] (.getRequestURI this))
+     (getContextPath [this] "")
      (getQueryString [this] query-string)
      (getScheme [this] scheme)
      (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
