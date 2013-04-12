@@ -1,6 +1,5 @@
 (ns ^:shared io.pedestal.app.dataflow
-    (:require [io.pedestal.app.messages :as msg]
-              [io.pedestal.app.data.tracking-map :as tm]))
+    (:require [io.pedestal.app.data.tracking-map :as tm]))
 
 (defn matching-path-element?
   "Return true if the two elements match."
@@ -102,11 +101,11 @@
   "Find the first transform function that matches the message and
   execute it, returning the updated flow state."
   [{:keys [new dataflow context] :as state}]
-  (let [message (:message context)
+  (let [{out-path :out key :key} ((:input dataflow) (:message context))
         transforms (:transform dataflow)
-        transform-fn (find-transform transforms (::msg/topic message) (::msg/type message))]
+        transform-fn (find-transform transforms out-path key)]
     (if transform-fn
-      (apply-in state (::msg/topic message) transform-fn message)
+      (apply-in state out-path transform-fn (:message context))
       state)))
 
 (defn inputs-changed? [change input-paths]
@@ -201,6 +200,9 @@
 ;; Public API
 ;; ================================================================================
 
+(defn add-default [v d]
+  (or v d))
+
 (defn build
   "Given a dataflow description map, return a dataflow engine. An example dataflow
   configuration is shown below:
@@ -212,7 +214,9 @@
    :emit [[#{[:input :path]} emit-fn]]}
   "
   [description]
-  (update-in description [:derive] sorted-derive-vector))
+  (-> description
+      (update-in [:derive] sorted-derive-vector)
+      (update-in [:input] add-default identity)))
 
 (defn run [dataflow model message]
   (run-all-phases dataflow {:data-model model} message))
