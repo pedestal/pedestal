@@ -1,28 +1,17 @@
 (ns io.pedestal.app.data.tracking-map)
 
-(declare changes)
-
-(defn- new-changes [action map key val change-map]
-  (let [{:keys [context updated] :as cs} change-map
-        change (if (seq context)
-                 (conj context key)
-                 [key])
-        cs (dissoc cs :context)
-        cs (cond (= action :dissoc) (update-in cs [:removed] (fnil conj #{}) change)
-                 (get map key) (update-in cs [:updated] (fnil conj #{}) change)
-                 :else (update-in cs [:added] (fnil conj #{}) change))]
-    (merge-with (comp set concat) cs (dissoc (changes val) :context))))
+(declare changes record-change)
 
 (deftype TrackingMap [map change-map]
   
   clojure.lang.IPersistentMap
   (assoc [this key val]
     (TrackingMap. (.assoc map key (if (instance? TrackingMap val) (.map val) val))
-                  (new-changes :assoc map key val change-map)))
+                  (record-change :assoc map key val change-map)))
   (assocEx [this key val]
-    (TrackingMap. (.assocEx map key val) (new-changes :assoc map key val change-map)))
+    (TrackingMap. (.assocEx map key val) (record-change :assoc map key val change-map)))
   (without [this key]
-    (TrackingMap. (.without map key) (new-changes :dissoc map key val change-map)))
+    (TrackingMap. (.without map key) (record-change :dissoc map key val change-map)))
   
   clojure.lang.ILookup
   (valAt [this key not-found]
@@ -100,6 +89,20 @@
     (.equiv map (if (instance? TrackingMap m)
                   (.map m)
                   m))))
+
+(defn- record-change [action map key val change-map]
+  (let [{:keys [context updated] :as cs} change-map
+        change (if (seq context)
+                 (conj context key)
+                 [key])
+        cs (dissoc cs :context)
+        cs (cond (= action :dissoc) (update-in cs [:removed] (fnil conj #{}) change)
+                 (get map key) (update-in cs [:updated] (fnil conj #{}) change)
+                 :else (update-in cs [:added] (fnil conj #{}) change))
+        cs (if (and (= action :assoc) (map? val) (not (instance? TrackingMap val)))
+             (update-in cs [:inspect] (fnil conj #{}) change)
+             cs)]
+    (merge-with (comp set concat) cs (dissoc (changes val) :context))))
 
 (defn changes [v]
   (when (instance? TrackingMap v) (.change-map v)))
