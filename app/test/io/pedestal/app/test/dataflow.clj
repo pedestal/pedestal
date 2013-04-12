@@ -27,6 +27,18 @@
   (is (not (descendent? [:a :b :c] [:a :b :g])))
   (is (not (descendent? [:a :* :c] [:a :b :g]))))
 
+(deftest test-topo-sort
+  (let [topo-visit #'io.pedestal.app.dataflow/topo-visit
+        graph {1 {:deps #{}}
+               2 {:deps #{1}}
+               3 {:deps #{2}}
+               4 {:deps #{1 2}}
+               5 {:deps #{3 6}}
+               6 {:deps #{4 5}}}]
+    (is (= (:io.pedestal.app.dataflow/order
+            (reduce topo-visit (assoc graph :io.pedestal.app.dataflow/order []) (keys graph)))
+           [1 2 3 4 6 5]))))
+
 (defn valid-sort? [seq]
   (every? #(not (some (partial descendent? (:output %)) (:inputs %)))
           (:return (reduce (fn [a [f ins out]]
