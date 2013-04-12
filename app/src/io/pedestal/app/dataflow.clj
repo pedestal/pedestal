@@ -112,17 +112,22 @@
   (let [all-inputs (reduce into (vals change))]
     (some (fn [x] (some (partial descendent? x) all-inputs)) input-paths)))
 
-(defn filter-inputs [input-paths changes]
-  (set (filter (fn [x] (some (partial descendent? x) input-paths)) changes)))
+(defn input-set [changes f input-paths]
+  (set (f (fn [x] (some (partial descendent? x) input-paths)) changes)))
+
+(defn update-input-sets [m ks f input-paths]
+  (reduce (fn [a k]
+            (update-in a [k] input-set f input-paths))
+          m
+          ks))
 
 (defn flow-input [context state input-paths change]
   (-> context
       (assoc :new-model (get-in state [:new :data-model]))
       (assoc :old-model (get-in state [:old :data-model]))
       (assoc :input-paths input-paths)
-      (assoc :added (filter-inputs input-paths (:added change)))
-      (assoc :updated (filter-inputs input-paths (:updated change)))
-      (assoc :removed (filter-inputs input-paths (:removed change)))))
+      (merge (select-keys change [:added :updated :removed]))
+      (update-input-sets [:added :updated :removed] filter input-paths)))
 
 (defn derive-phase
   "Execute each derive function in dependency order only if some input to the
@@ -140,7 +145,7 @@
   "Execute each function. Return an updated flow state."
   [{:keys [dataflow context] :as state} k]
   (let [fns (k dataflow)]
-    (reduce (fn [{:keys [old new change] :as acc} {f :fn input-paths :in}]
+    (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in}]
               (update-in state [:new k] (fnil into [])
                          (f (flow-input context acc input-paths change))))
             state
@@ -156,8 +161,23 @@
   [state]
   (output-phase state :effect))
 
-(defn emit-phase [state]
-  state)
+(defn remove-matching-changes [change input-paths]
+  (update-input-sets change [:inspect :added :updated :removed] remove input-paths))
+
+(defn emit-phase
+  [{:keys [dataflow context change] :as state}]
+  (let [all-change change
+        emits (:emit dataflow)]
+    (-> (reduce (fn [{:keys [change] :as acc} [input-paths emit-fn]]
+                  (if (inputs-changed? change input-paths)
+                    (-> acc
+                        (update-in [:change] remove-matching-changes input-paths)
+                        (update-in [:new :emit] (fnil into [])
+                                   (emit-fn (flow-input context acc input-paths change))))
+                    acc))
+                state
+                emits)
+        (assoc :change all-change))))
 
 (defn- flow-state [old-state new-state dataflow message]
   {:old old-state
