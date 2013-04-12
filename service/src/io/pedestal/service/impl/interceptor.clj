@@ -162,7 +162,7 @@
       (if (empty? stack)
         context
         (let [interceptor (peek stack)
-              pre-binding (:binding context)
+              pre-binding (:bindings context)
               execution-id (::execution-id context)
               f (get interceptor stage)
               skipped (nil? f)
@@ -174,7 +174,7 @@
                      :skipped? skipped
                      :execution-id execution-id
                      :fn f)
-          (if (not= (:binding context) pre-binding)
+          (if (not= (:bindings context) pre-binding)
             (assoc context ::rebind true)
             (recur context)))))))
 
