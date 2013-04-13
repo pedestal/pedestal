@@ -70,8 +70,8 @@
   "Given a transform configuration vector, find the first transform
   function which matches the given message."
   [transforms topic type]
-  (last
-   (first (filter (fn [[op path]]
+  (:fn
+   (first (filter (fn [{op :key path :out}]
                     (let [[path topic] (if (= (last path) :**)
                                          (let [c (count path)]
                                            [(conj (vec (take (dec c) path)) :*)
@@ -109,8 +109,9 @@
       state)))
 
 (defn inputs-changed? [change input-paths]
-  (let [all-inputs (reduce into (vals change))]
-    (some (fn [x] (some (partial descendent? x) all-inputs)) input-paths)))
+  (when (seq change)
+    (let [all-inputs (reduce into (vals change))]
+      (some (fn [x] (some (partial descendent? x) all-inputs)) input-paths))))
 
 (defn input-set [changes f input-paths]
   (set (f (fn [x] (some (partial descendent? x) input-paths)) changes)))
@@ -168,7 +169,7 @@
   [{:keys [dataflow context change] :as state}]
   (let [all-change change
         emits (:emit dataflow)]
-    (-> (reduce (fn [{:keys [change] :as acc} [input-paths emit-fn]]
+    (-> (reduce (fn [{:keys [change] :as acc} {input-paths :in emit-fn :fn}]
                   (if (inputs-changed? change input-paths)
                     (-> acc
                         (update-in [:change] remove-matching-changes input-paths)
@@ -179,40 +180,37 @@
                 emits)
         (assoc :change all-change))))
 
-(defn- flow-state [old-state new-state dataflow message]
-  {:old old-state
-   :new new-state
-   :dataflow dataflow
-   :context {:message message}})
-
 (defn flow-phases-step
   "Given a dataflow, a state and a message, run the message through
   the dataflow and return the updated state. The dataflow will be
-  run only once. The state is a map with:
-
-  {:data-model {}}
-   "
+  run only once."
   [dataflow state message]
-  (let [state (dissoc state :continue)]
-    (:new (-> (flow-state state state dataflow message)
-              transform-phase
-              derive-phase
-              continue-phase))))
+  (let [state (update-in state [:new] dissoc :continue)]
+    (-> state
+        transform-phase
+        derive-phase
+        continue-phase)))
 
 (defn run-flow-phases
   [dataflow state message]
-  (let [{:keys [continue] :as result} (flow-phases-step dataflow state message)]
+  (let [{{continue :continue} :new :as result} (flow-phases-step dataflow state message)]
     (if (empty? continue)
-      (dissoc result :continue)
+      (update-in result [:new] dissoc :continue)
       (reduce (fn [a c-message]
                 (run-flow-phases dataflow a c-message))
               result
               continue))))
 
 (defn run-all-phases
-  [dataflow state message]
-  (let [new-state (run-flow-phases dataflow state message)]
-    (:new (-> (flow-state state new-state dataflow message)
+  [dataflow model message]
+  (let [dm {:data-model model}
+        state {:old dm
+               :new dm
+               :change {}
+               :dataflow dataflow
+               :context {:message message}}
+        new-state (run-flow-phases dataflow state message)]
+    (:new (-> new-state
               effect-phase
               emit-phase))))
 
@@ -222,6 +220,27 @@
 
 (defn add-default [v d]
   (or v d))
+
+(defn transform-maps [transforms]
+  (mapv (fn [x]
+          (if (vector? x)
+            (let [[key out fn] x] {:key key :out out :fn fn})
+            x))
+        transforms))
+
+(defn derive-maps [derives]
+  (mapv (fn [x]
+          (if (vector? x)
+            (let [[in out fn] x] {:in in :out out :fn fn})
+            x))
+        derives))
+
+(defn output-maps [outputs]
+  (mapv (fn [x]
+          (if (vector? x)
+            (let [[in fn] x] {:in in :fn fn})
+            x))
+        outputs))
 
 (defn build
   "Given a dataflow description map, return a dataflow engine. An example dataflow
@@ -235,11 +254,16 @@
   "
   [description]
   (-> description
+      (update-in [:transform] transform-maps)
+      (update-in [:derive] derive-maps)
+      (update-in [:continue] (comp set output-maps))
+      (update-in [:effect] (comp set output-maps))
+      (update-in [:emit] output-maps)
       (update-in [:derive] sorted-derive-vector)
       (update-in [:input] add-default identity)))
 
 (defn run [dataflow model message]
-  (run-all-phases dataflow {:data-model model} message))
+  (run-all-phases dataflow model message))
 
 (defn get-path
   "Returns a sequence of [path value] tuples"
@@ -265,3 +289,9 @@
   (let [m (input-map inputs)]
     (assert (= 1 (count m)) "input is expected to contain exactly one value")
     (first (vals m))))
+
+(defn update-map [{:keys [new-model updated]}]
+  (into {} (for [path updated
+                 [k v] (get-path new-model path)
+                 :when v]
+             [k v])))

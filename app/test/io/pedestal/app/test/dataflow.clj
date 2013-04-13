@@ -95,14 +95,60 @@
                           {:in #{[:b]} :out [:c] :fn 'c}]})
          {:input identity
           :derive [['b #{[:a]} [:b]]
-                   ['c #{[:b]} [:c]]]})))
+                   ['c #{[:b]} [:c]]]
+          :transform []
+          :continue #{}
+          :effect #{}
+          :emit []}))
+  (is (= (build {:transform [[:inc [:a] 'x]
+                             {:key :dec :out [:b] :fn 'y}]})
+         {:input identity
+          :transform [{:key :inc :out [:a] :fn 'x}
+                      {:key :dec :out [:b] :fn 'y}]
+          :derive ()
+          :continue #{}
+          :effect #{}
+          :emit []}))
+  (is (= (build {:transform [[:inc [:a] 'x]
+                             {:key :dec :out [:b] :fn 'y}]
+                 :derive [{:in #{[:a]} :out [:b] :fn 'b}
+                          [#{[:b]} [:c] 'c]]})
+         {:input identity
+          :transform [{:key :inc :out [:a] :fn 'x}
+                      {:key :dec :out [:b] :fn 'y}]
+          :derive [['b #{[:a]} [:b]]
+                   ['c #{[:b]} [:c]]]
+          :continue #{}
+          :effect #{}
+          :emit []}))
+  (is (= (build {:transform [[:inc [:a] 'a]
+                             {:key :dec :out [:b] :fn 'b}]
+                 :derive [{:in #{[:a]} :out [:b] :fn 'c}
+                          [#{[:b]} [:c] 'd]]
+                 :continue #{{:in #{[:x]} :fn 'e}
+                             [#{[:y]} 'f]}
+                 :effect #{{:in #{[:w]} :fn 'g}
+                           [#{[:p]} 'h]}
+                 :emit [{:in #{[:q]} :fn 'i}
+                        [#{[:s]} 'j]]})
+         {:input identity
+          :transform [{:key :inc :out [:a] :fn 'a}
+                      {:key :dec :out [:b] :fn 'b}]
+          :derive [['c #{[:a]} [:b]]
+                   ['d #{[:b]} [:c]]]
+          :continue #{{:in #{[:x]} :fn 'e}
+                      {:in #{[:y]} :fn 'f}}
+          :effect #{{:in #{[:w]} :fn 'g}
+                    {:in #{[:p]} :fn 'h}}
+          :emit [{:in #{[:q]} :fn 'i}
+                 {:in #{[:s]} :fn 'j}]})))
 
 (deftest test-find-transform
-  (let [config [[:a [:b] 'x]
-                [:c [:d] 'y]
-                [:g [:d :e :*] 'z]
-                [:g [:d :e :**] 'j]
-                [:* [:d :* :f] 'i]]]
+  (let [config [{:key :a :out [:b] :fn 'x}
+                {:key :c :out [:d] :fn 'y}
+                {:key :g :out [:d :e :*] :fn 'z}
+                {:key :g :out [:d :e :**] :fn 'j}
+                {:key :* :out [:d :* :f] :fn 'i}]]
     (is (= (find-transform config [:d] :c)
            'y))
     (is (= (find-transform config [:d :e :f] :g)
@@ -117,7 +163,7 @@
         state {:old {:data-model {:a 0}}
                :new {:data-model {:a 0}}
                :dataflow {:input identity
-                          :transform [[:inc [:a] inc-fn]]}
+                          :transform [{:key :inc :out [:a] :fn inc-fn}]}
                :context {:message {:out [:a] :key :inc}}}]
     (is (= (transform-phase state)
            (-> state
@@ -200,62 +246,90 @@
            (assoc-in state [:new :effect] [{::msg/topic :x ::msg/type :y :value 2}])))))
 
 (deftest test-emit-phase
-  (let [emit-fn (fn [input] [{:value (single-val input)}])
-        state {:change {:updated #{[:a]}}
-               :old {:data-model {:a 0}}
-               :new {:data-model {:a 2}}
-               :dataflow {:emit [[#{[:a]} emit-fn]]}
+  (let [emit-fn (fn [k] (fn [input] [{k {:inputs (input-map input)
+                                       :updates (update-map input)}}]))
+        emit (fn [x] (set (get-in x [:new :emit])))
+        state {:old {:data-model {:a 0
+                                  :b 11
+                                  :c {1 {:x 6 :y 5 :z 2}
+                                      2 {:x 4 :y 7 :z 3}
+                                      3 {:x 8 :y 1 :z 4}}}}
+               :new {:data-model {:a 0
+                                  :b 11
+                                  :c {1 {:x 6 :y 5 :z 2}
+                                      2 {:x 4 :y 7 :z 3}
+                                      3 {:x 8 :y 1 :z 4}}}}
+               :dataflow {:emit [{:in #{[:a]}       :fn (emit-fn :one)}
+                                 {:in #{[:b]}       :fn (emit-fn :two)}
+                                 {:in #{[:c :* :x]} :fn (emit-fn :three)}
+                                 {:in #{[:c :* :y]} :fn (emit-fn :four)}
+                                 {:in #{[:c :*]}    :fn (emit-fn :five)}
+                                 {:in #{[:*]}       :fn (emit-fn :six)}]}
                :context {}}]
     (is (= (emit-phase state)
-           (assoc-in state [:new :emit] [{:value 2}])))))
-
-
-
-;; Complete dataflow tests
-;; ================================================================================
-
-(defn inc-transform [old-value message]
-  (inc old-value))
-
-(defn double-derive [_ input]
-  (* 2 (reduce + (input-vals input))))
-
-(defn continue-min [n]
-  (fn [input]
-    (when (< (single-val input) n)
-      [{::msg/topic [:a] ::msg/type :inc}])))
-
-(def flows
-  {:one-derive     {:transform [[:inc [:a] inc-transform]]
-                    :derive #{{:in #{[:a]} :out [:b] :fn double-derive}}}
-   
-   :continue-to-10 {:input (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
-                    :transform [[:inc [:a] inc-transform]]
-                    :derive #{{:fn double-derive :in #{[:a]} :out [:b]}}
-                    :continue #{{:fn (continue-min 10) :in #{[:b]}}}}})
-
-(defn flow [k]
-  (build (k flows)))
-
-(deftest test-flow-phases-step
-  (is (= (flow-phases-step (flow :one-derive) {:data-model {:a 0}} {:out [:a] :key :inc})
-         {:data-model {:a 1 :b 2}}))
-  (is (= (flow-phases-step (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
-         {:data-model {:a 1 :b 2}
-          :continue [{::msg/topic [:a] ::msg/type :inc}]})))
-
-(deftest test-run-flow-phases
-  (is (= (run-flow-phases (flow :one-derive) {:data-model {:a 0}} {:out [:a] :key :inc})
-         {:data-model {:a 1 :b 2}}))
-  (is (= (run-flow-phases (flow :continue-to-10) {:data-model {:a 0}} {::msg/topic [:a] ::msg/type :inc})
-         {:data-model {:a 5 :b 10}})))
-
-(deftest test-run
-  (is (= (run (flow :one-derive) {:a 0} {:out [:a] :key :inc})
-         {:data-model {:a 1 :b 2}}))
-  (is (= (run (flow :continue-to-10) {:a 0} {::msg/topic [:a] ::msg/type :inc})
-         {:data-model {:a 5 :b 10}})))
-
+           (assoc state :change nil)))
+    (let [state (-> state
+                    (assoc-in [:new :data-model :a] 1)
+                    (assoc :change {:updated #{[:a]}})
+                    (assoc-in [:dataflow :emit] [{:in #{[:*]} :fn (emit-fn :six)}]))]
+      (is (= (emit (emit-phase state))
+             #{{:six {:inputs {[:a] 1
+                               [:b] 11
+                               [:c] {1 {:x 6 :y 5 :z 2}
+                                     2 {:x 4 :y 7 :z 3}
+                                     3 {:x 8 :y 1 :z 4}}}
+                      :updates {[:a] 1}}}})))
+    (let [state (-> state
+                    (assoc :change {:updated #{[:a]}})
+                    (assoc-in [:new :data-model :a] 1))]
+      (is (= (emit (emit-phase state))
+             #{{:one {:inputs {[:a] 1}
+                      :updates {[:a] 1}}}})))
+    (let [state (-> state
+                    (assoc :change {:updated #{[:c 1 :z]}})
+                    (assoc-in [:new :data-model :c 1 :z] 9))]
+      (is (= (emit (emit-phase state))
+             #{{:five {:inputs {[:c 1] {:x 6 :y 5 :z 9}
+                                [:c 2] {:x 4 :y 7 :z 3}
+                                [:c 3] {:x 8 :y 1 :z 4}}
+                       :updates {[:c 1 :z] 9}}}})))
+    (let [state (-> state
+                    (assoc :change {:updated #{[:c 1 :x]}})
+                    (assoc-in [:new :data-model :c 1 :x] 9))]
+      (is (= (emit (emit-phase state))
+             #{{:three {:inputs {[:c 1 :x] 9
+                                 [:c 2 :x] 4
+                                 [:c 3 :x] 8}
+                        :updates {[:c 1 :x] 9}}}})))
+    (let [state (-> state
+                    (assoc :change {:updated #{[:c 1 :x] [:c 2 :y]}})
+                    (assoc-in [:new :data-model :c 1 :x] 9)
+                    (assoc-in [:new :data-model :c 2 :y] 15))]
+      (is (= (emit (emit-phase state))
+             #{{:three {:inputs {[:c 1 :x] 9
+                                 [:c 2 :x] 4
+                                 [:c 3 :x] 8}
+                        :updates {[:c 1 :x] 9}}}
+               {:four {:inputs {[:c 1 :y] 5
+                                [:c 2 :y] 15
+                                [:c 3 :y] 1}
+                       :updates {[:c 2 :y] 15}}}})))
+    (let [state (-> state
+                    (assoc :change {:updated #{[:a] [:c 1 :y] [:c 2 :z]}})
+                    (assoc-in [:new :data-model :a] 21)
+                    (assoc-in [:new :data-model :c 1 :y] 22)
+                    (assoc-in [:new :data-model :c 2 :z] 23))]
+      (is (= (emit (emit-phase state))
+             #{{:one {:inputs {[:a] 21}
+                      :updates {[:a] 21}}}
+               {:four {:inputs {[:c 1 :y] 22
+                                [:c 2 :y] 7
+                                [:c 3 :y] 1}
+                       :updates {[:c 1 :y] 22}}}
+               {:five {:inputs {[:c 1] {:x 6 :y 22 :z 2}
+                                [:c 2] {:x 4 :y 7 :z 23}
+                                [:c 3] {:x 8 :y 1 :z 4}}
+                       :updates {[:c 2 :z] 23}}}})))))
 
 (deftest test-get-path
   (is (= (get-path {:x {0 {:y {0 {:a 1
@@ -291,39 +365,136 @@
          #{1 2 5})))
 
 
+;; Complete dataflow tests
+;; ================================================================================
+
+(defn inc-t [old-value message]
+  (inc old-value))
+
+(defn sum-d [_ input]
+  (reduce + (input-vals input)))
+
+(defn double-d [_ input]
+  (* 2 (single-val input)))
+
+(defn min-c [n]
+  (fn [input]
+    (when (< (single-val input) n)
+      [{::msg/topic [:a] ::msg/type :inc}])))
+
+(def flows
+  {:one-derive     {:transform [[:inc [:a] inc-t]]
+                    :derive #{[#{[:a]} [:b] double-d]}}
+   
+   :continue-to-10 {:input (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
+                    :transform [{:key :inc :out [:a] :fn inc-t}]
+                    :derive #{{:fn double-d :in #{[:a]} :out [:b]}}
+                    :continue #{{:fn (min-c 10) :in #{[:b]}}}}
+   
+   :everything {:input (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
+                :transform [{:out [:a] :key :inc :fn inc-t}]
+                :derive    #{{:fn double-d :in #{[:a]} :out [:b]}
+                             {:fn sum-d :in #{[:a]} :out [:c]}
+                             {:fn sum-d :in #{[:b] [:c]} :out [:d]}}
+                :continue  #{{:fn (min-c 10) :in #{[:d]}}}
+                :effect    #{{:fn (comp vector input-map) :in #{[:d]}}}
+                :emit      [[#{[:d]} (comp vector input-vals)]]}})
+
+(defn flow [k]
+  (build (k flows)))
+
+(deftest test-flow-phases-step
+  (is (= (:new (flow-phases-step (flow :one-derive)
+                                 {:old {:data-model {:a 0}}
+                                  :new {:data-model {:a 0}}
+                                  :dataflow (flow :one-derive)
+                                  :context {:message {:out [:a] :key :inc}}}
+                                 {:out [:a] :key :inc}))
+         {:data-model {:a 1 :b 2}}))
+  (is (= (:new (flow-phases-step (flow :continue-to-10)
+                                 {:new {:data-model {:a 0}}
+                                  :old {:data-model {:a 0}}
+                                  :dataflow (flow :continue-to-10)
+                                  :context {:message {::msg/topic [:a] ::msg/type :inc}}}
+                                 {::msg/topic [:a] ::msg/type :inc}))
+         {:data-model {:a 1 :b 2}
+          :continue [{::msg/topic [:a] ::msg/type :inc}]}))
+  (is (= (:new (flow-phases-step (flow :everything)
+                                 {:new {:data-model {:a 0}}
+                                  :old {:data-model {:a 0}}
+                                  :dataflow (flow :everything)
+                                  :context {:message {::msg/topic [:a] ::msg/type :inc}}}
+                                 {::msg/topic [:a] ::msg/type :inc}))
+         {:data-model {:a 1 :b 2 :c 1 :d 3}
+          :continue [{::msg/topic [:a] ::msg/type :inc}]})))
+
+(deftest test-run-flow-phases
+  (is (= (:new (run-flow-phases (flow :one-derive)
+                                {:old {:data-model {:a 0}}
+                                 :new {:data-model {:a 0}}
+                                 :dataflow (flow :one-derive)
+                                 :context {:message {:out [:a] :key :inc}}}
+                                {:out [:a] :key :inc}))
+         {:data-model {:a 1 :b 2}}))
+  (is (= (:new (run-flow-phases (flow :continue-to-10)
+                                {:new {:data-model {:a 0}}
+                                 :old {:data-model {:a 0}}
+                                 :dataflow (flow :continue-to-10)
+                                 :context {:message {::msg/topic [:a] ::msg/type :inc}}}
+                                {::msg/topic [:a] ::msg/type :inc}))
+         {:data-model {:a 5 :b 10}}))
+  (is (= (:new (run-flow-phases (flow :everything)
+                                {:new {:data-model {:a 0}}
+                                 :old {:data-model {:a 0}}
+                                 :dataflow (flow :everything)
+                                 :context {:message {::msg/topic [:a] ::msg/type :inc}}}
+                                {::msg/topic [:a] ::msg/type :inc}))
+         {:data-model {:a 4 :b 8 :c 4 :d 12}})))
+
+(deftest test-run
+  (is (= (run (flow :one-derive) {:a 0} {:out [:a] :key :inc})
+         {:data-model {:a 1 :b 2}}))
+  (is (= (run (flow :continue-to-10) {:a 0} {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 5 :b 10}}))
+  (is (= (run (flow :everything)
+              {:a 0}
+              {::msg/topic [:a] ::msg/type :inc})
+         {:data-model {:a 4 :b 8 :c 4 :d 12}
+          :effect [{[:d] 12}]
+          :emit [[12]]})))
+
+
+
 ;; Ported tests
 ;; ================================================================================
 
-(defn sum [_ input]
-  (reduce + (input-vals input)))
-
 (deftest test-dataflows
-  (let [dataflow (build {:transform [[:inc [:x] inc-transform]]
-                         :derive    #{{:fn sum :in #{[:x]}      :out [:a]}
-                                      {:fn sum :in #{[:x] [:a]} :out [:b]}
-                                      {:fn sum :in #{[:b]}      :out [:c]}
-                                      {:fn sum :in #{[:a]}      :out [:d]}
-                                      {:fn sum :in #{[:c] [:d]} :out [:e]}}})]
+  (let [dataflow (build {:transform [[:inc [:x] inc-t]]
+                         :derive    #{{:fn sum-d :in #{[:x]}      :out [:a]}
+                                      {:fn sum-d :in #{[:x] [:a]} :out [:b]}
+                                      {:fn sum-d :in #{[:b]}      :out [:c]}
+                                      {:fn sum-d :in #{[:a]}      :out [:d]}
+                                      {:fn sum-d :in #{[:c] [:d]} :out [:e]}}})]
     (is (= (run dataflow {:x 0} {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}})))
   
-  (let [dataflow (build {:transform [[:inc [:x] inc-transform]]
-                         :derive    #{{:fn sum :in #{[:x]}           :out [:a]}
-                                      {:fn sum :in #{[:a]}           :out [:b]}
-                                      {:fn sum :in #{[:a]}           :out [:c]}
-                                      {:fn sum :in #{[:c]}           :out [:d]}
-                                      {:fn sum :in #{[:c]}           :out [:e]}
-                                      {:fn sum :in #{[:d] [:e]}      :out [:f]}
-                                      {:fn sum :in #{[:a] [:b] [:f]} :out [:g]}
-                                      {:fn sum :in #{[:g]}           :out [:h]}
-                                      {:fn sum :in #{[:g] [:f]}      :out [:i]}
-                                      {:fn sum :in #{[:i] [:f]}      :out [:j]}
-                                      {:fn sum :in #{[:h] [:g] [:j]} :out [:k]}}})]
+  (let [dataflow (build {:transform [[:inc [:x] inc-t]]
+                         :derive    #{{:fn sum-d :in #{[:x]}           :out [:a]}
+                                      {:fn sum-d :in #{[:a]}           :out [:b]}
+                                      {:fn sum-d :in #{[:a]}           :out [:c]}
+                                      {:fn sum-d :in #{[:c]}           :out [:d]}
+                                      {:fn sum-d :in #{[:c]}           :out [:e]}
+                                      {:fn sum-d :in #{[:d] [:e]}      :out [:f]}
+                                      {:fn sum-d :in #{[:a] [:b] [:f]} :out [:g]}
+                                      {:fn sum-d :in #{[:g]}           :out [:h]}
+                                      {:fn sum-d :in #{[:g] [:f]}      :out [:i]}
+                                      {:fn sum-d :in #{[:i] [:f]}      :out [:j]}
+                                      {:fn sum-d :in #{[:h] [:g] [:j]} :out [:k]}}})]
     (is (= (run dataflow {:x 0} {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 1 :c 1 :d 1 :e 1 :f 2 :g 4 :h 4 :i 6 :j 8 :k 16}})))
   
-  (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-transform]]
-                         :derive    [{:fn sum :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
+  (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-t]]
+                         :derive    [{:fn sum-d :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
     (is (= (run dataflow {:x {0 {:y {0 {:a 1
                                         :b 5}}}
                               1 {:y {0 {:a 1}
