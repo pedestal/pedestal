@@ -88,8 +88,8 @@
      (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
      (getHeader [this header] (get-in options [:headers header]))
      ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
-     (getContentLength [this] (int 0))
-     (getContentType [this] "")
+     (getContentLength [this] (get-in options [:headers "Content-Length"] (int 0)))
+     (getContentType [this] (get-in options [:headers "Content-Type"] ""))
      (getCharacterEncoding [this] "UTF-8")
      (getAttribute [this attribute] nil))))
 
