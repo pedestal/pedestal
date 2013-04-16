@@ -1,3 +1,14 @@
+; Copyright 2013 Relevance, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.app.test.dataflow
   (:require [io.pedestal.app.messages :as msg])
   (:use io.pedestal.app.dataflow
@@ -93,7 +104,7 @@
 (deftest test-build
   (is (= (build {:derive [{:in #{[:a]} :out [:b] :fn 'b}
                           {:in #{[:b]} :out [:c] :fn 'c}]})
-         {:input identity
+         {:input-adapter identity
           :derive [['b #{[:a]} [:b]]
                    ['c #{[:b]} [:c]]]
           :transform []
@@ -102,7 +113,7 @@
           :emit []}))
   (is (= (build {:transform [[:inc [:a] 'x]
                              {:key :dec :out [:b] :fn 'y}]})
-         {:input identity
+         {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'x}
                       {:key :dec :out [:b] :fn 'y}]
           :derive ()
@@ -113,7 +124,7 @@
                              {:key :dec :out [:b] :fn 'y}]
                  :derive [{:in #{[:a]} :out [:b] :fn 'b}
                           [#{[:b]} [:c] 'c]]})
-         {:input identity
+         {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'x}
                       {:key :dec :out [:b] :fn 'y}]
           :derive [['b #{[:a]} [:b]]
@@ -131,7 +142,7 @@
                            [#{[:p]} 'h]}
                  :emit [{:in #{[:q]} :fn 'i}
                         [#{[:s]} 'j]]})
-         {:input identity
+         {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'a}
                       {:key :dec :out [:b] :fn 'b}]
           :derive [['c #{[:a]} [:b]]
@@ -162,7 +173,7 @@
   (let [inc-fn (fn [o _] (inc o))
         state {:old {:data-model {:a 0}}
                :new {:data-model {:a 0}}
-               :dataflow {:input identity
+               :dataflow {:input-adapter identity
                           :transform [{:key :inc :out [:a] :fn inc-fn}]}
                :context {:message {:out [:a] :key :inc}}}]
     (is (= (transform-phase state)
@@ -386,12 +397,12 @@
   {:one-derive     {:transform [[:inc [:a] inc-t]]
                     :derive #{[#{[:a]} [:b] double-d]}}
    
-   :continue-to-10 {:input (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
+   :continue-to-10 {:input-adapter (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
                     :transform [{:key :inc :out [:a] :fn inc-t}]
                     :derive #{{:fn double-d :in #{[:a]} :out [:b]}}
                     :continue #{{:fn (min-c 10) :in #{[:b]}}}}
    
-   :everything {:input (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
+   :everything {:input-adapter (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
                 :transform [{:out [:a] :key :inc :fn inc-t}]
                 :derive    #{{:fn double-d :in #{[:a]} :out [:b]}
                              {:fn sum-d :in #{[:a]} :out [:c]}

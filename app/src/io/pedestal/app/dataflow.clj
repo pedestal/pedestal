@@ -112,7 +112,7 @@
   "Find the first transform function that matches the message and
   execute it, returning the updated flow state."
   [{:keys [new dataflow context] :as state}]
-  (let [{out-path :out key :key} ((:input dataflow) (:message context))
+  (let [{out-path :out key :key} ((:input-adapter dataflow) (:message context))
         transforms (:transform dataflow)
         transform-fn (find-transform transforms out-path key)]
     (if transform-fn
@@ -271,7 +271,7 @@
       (update-in [:effect] (comp set output-maps))
       (update-in [:emit] output-maps)
       (update-in [:derive] sorted-derive-vector)
-      (update-in [:input] add-default identity)))
+      (update-in [:input-adapter] add-default identity)))
 
 (defn run [dataflow model message]
   (run-all-phases dataflow model message))
@@ -303,6 +303,13 @@
 
 (defn update-map [{:keys [new-model updated]}]
   (into {} (for [path updated
+                 [k v] (get-path new-model path)
+                 :when v]
+             [k v])))
+
+;; TODO: Change to add-map or new-map
+(defn added-map [{:keys [new-model added]}]
+  (into {} (for [path added
                  [k v] (get-path new-model path)
                  :when v]
              [k v])))
