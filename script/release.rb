@@ -100,6 +100,13 @@ end
 
 # Confirmed, DO ALL THE THINGS
 
+# Clean up output directories
+
+unless system('lein sub clean')
+  puts "Failed to clean project directories. Aborting."
+  exit -1
+end
+
 # Bump SNAPSHOT versions up to released versions, commit and tag.
 
 project_cljs.each do |project_clj|
