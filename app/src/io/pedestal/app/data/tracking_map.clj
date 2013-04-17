@@ -9,34 +9,42 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.app.data.tracking-map)
+(ns io.pedestal.app.data.tracking-map
+  (require [io.pedestal.app.data.change :as chg]))
 
-(declare changes record-change)
+(declare plain-map merge-when-tracking-map record-change)
 
-(deftype TrackingMap [map change-map]
+(deftype TrackingMap [basis map change-map]
+
+  java.io.Serializable
+  clojure.lang.MapEquivalence
   
   clojure.lang.IPersistentMap
   (assoc [this key val]
-    (TrackingMap. (.assoc map key (if (instance? TrackingMap val) (.map val) val))
+    (TrackingMap. basis
+                  (.assoc map key (plain-map val))
                   (record-change :assoc map key val change-map)))
   (assocEx [this key val]
-    (TrackingMap. (.assocEx map key val) (record-change :assoc map key val change-map)))
+    (TrackingMap. basis
+                  (.assocEx map key val) (record-change :assoc map key val change-map)))
   (without [this key]
-    (TrackingMap. (.without map key) (record-change :dissoc map key val change-map)))
+    (TrackingMap. basis
+                  (.without map key) (record-change :dissoc map key val change-map)))
   
   clojure.lang.ILookup
   (valAt [this key not-found]
     (if-let [v (.valAt map key)]
       (cond (instance? TrackingMap v)
-            (TrackingMap. (.map v) (update-in change-map [:context] (fnil conj []) key))
+            (TrackingMap. basis (.map v) (update-in change-map [:context] (fnil conj []) key))
             
             (map? v)
-            (TrackingMap. v (update-in change-map [:context] (fnil conj []) key))
+            (TrackingMap. basis v (update-in change-map [:context] (fnil conj []) key))
             
             :else v)
       not-found))
   (valAt [this key]
     (.valAt this key nil))
+  
   clojure.lang.IFn
   (invoke [this arg]
     (.invoke map arg))
@@ -85,7 +93,7 @@
   
   clojure.lang.IObj
   (withMeta [this meta]
-    (TrackingMap. (.withMeta map meta) change-map))
+    (TrackingMap. basis (.withMeta map meta) change-map))
   
   clojure.lang.IMeta
   (meta [this]
@@ -95,11 +103,34 @@
   (empty [this]
     (.empty map))
   (cons [this o]
-    (.cons map this o))
+    (TrackingMap. basis (.cons map o)
+                  (let [{:keys [context]} change-map
+                        inspect-paths (mapv #(if (seq context) (conj context %) [%])
+                                            (keys o))
+                        cs (-> change-map
+                               (dissoc :context)
+                               (update-in [:inspect] #(apply (fnil conj #{}) % inspect-paths)))]
+                    (merge-when-tracking-map cs o))))
   (equiv [this m]
-    (.equiv map (if (instance? TrackingMap m)
-                  (.map m)
-                  m))))
+    (.equiv map (plain-map m)))
+
+  clojure.lang.IEditableCollection
+  (asTransient [this]
+    (.asTransient map))
+
+  clojure.lang.IHashEq
+  (hasheq [this]
+    (.hasheq map)))
+
+(defn- plain-map [m]
+  (if (instance? TrackingMap m) (.map m) m))
+
+(defn- merge-when-tracking-map [change-map tracking-map]
+  (merge-with (comp set concat)
+              change-map
+              (dissoc (when (instance? TrackingMap tracking-map)
+                        (.change-map tracking-map))
+                      :context)))
 
 (defn- record-change [action map key val change-map]
   (let [{:keys [context updated] :as cs} change-map
@@ -107,110 +138,24 @@
                  (conj context key)
                  [key])
         cs (dissoc cs :context)
-        cs (cond (= action :dissoc) (update-in cs [:removed] (fnil conj #{}) change)
-                 (get map key) (update-in cs [:updated] (fnil conj #{}) change)
-                 :else (update-in cs [:added] (fnil conj #{}) change))
+        cs (cond (= action :dissoc)
+                 (update-in cs [:removed] (fnil conj #{}) change)
+                 
+                 (and (get map key) (not= (get map key) (plain-map val)))
+                 (update-in cs [:updated] (fnil conj #{}) change)
+                 
+                 (not (get map key)) (update-in cs [:added] (fnil conj #{}) change))
         cs (if (and (= action :assoc) (map? val) (not (instance? TrackingMap val)))
              (update-in cs [:inspect] (fnil conj #{}) change)
              cs)]
-    (merge-with (comp set concat) cs (dissoc (changes val) :context))))
+    (merge-when-tracking-map cs val)))
 
 (defn changes [v]
-  (when (instance? TrackingMap v) (.change-map v)))
+  (when (instance? TrackingMap v)
+    (chg/compact (.basis v) (.map v) (.change-map v))))
 
 (defmethod clojure.core/print-method TrackingMap [tm writer]
   (pr (.map tm)))
 
-(comment
-  
-  (def a (->TrackingMap {} {}))
-  (changes a)
-  (def b (assoc a :a 1))
-  (changes b)
-  (def c (assoc b :c 2))
-  (changes c)
-  (def d (-> c
-             (assoc :d {:b {}})
-             (assoc-in [:d :b :c] 10)
-             (update-in [:d :b :c] inc)
-             (update-in [:d :b] dissoc :c)))
-  (changes d)
-  (changes (update-in d [:d :b] dissoc :c))
-    
-  (changes (:a (assoc (->TrackingMap {} {}) :a (with-meta {} {:name "Brenton"}))))
-  
-  (changes (assoc (->TrackingMap {} {}) :a 1))
-  (changes (assoc (->TrackingMap {:a 0} {}) :a 1))
-  (changes (assoc-in (->TrackingMap {} {}) [:a :b :c] 1))
-  (changes (assoc-in (->TrackingMap {:a {:b {}}} {}) [:a :b :c] 1))
-  (changes (assoc-in (->TrackingMap {:a {:b {:c 3}}} {}) [:a :b :c] 1))
-  
-  (changes (update-in (->TrackingMap {:a {:b {:c 3}}} {}) [:a :b :c] inc))
-  
-  (changes (get (->TrackingMap {:a {:b {:c 3}}} {}) :a))
-  
-  (def d (-> (TrackingMap. {:a {}} {})
-             (assoc :a {:b {}})
-             (assoc :c 11)
-             (assoc-in [:a :b :c] 10)
-             (update-in [:a :b :c] inc)))
-  (changes d)
-  (changes (get-in d [:a :b]))
-  
-  (changes (-> (TrackingMap. {:a {}} {})
-               (assoc :a {:b {}})
-               (assoc :c 11)
-               (assoc-in [:a :b :c] 10)))
-  
-  (changes (-> (TrackingMap. {:a {}} {})
-               (assoc-in [:a :b :c] 10)
-               (update-in [:a :b :c] (fnil inc 0))))
-  
-  (count c)
-  (:a c)
-  (c :a)
-
-  (def a (->TrackingMap {} {}))
-  (changes a)
-  (def b (assoc a :a 1))
-  (changes b)
-  (def c (assoc b :c 2))
-  (changes c)
-  (def d (-> c
-             (assoc :d {:b {}})
-             (assoc-in [:d :b :c] 10)
-             (update-in [:d :b :c] inc)
-             (update-in [:d :b] dissoc :c)))
-
-  (def z (-> (->TrackingMap {} {})
-             (assoc :a 1)
-             (assoc :c 2)
-             (assoc :d {:b {}})
-             (assoc-in [:d :b :c] 10)
-             (update-in [:d :b :c] inc)
-             (update-in [:d :b] dissoc :c)))
-
-  {:d {:b {}}, :c 2, :a 1}
-  
-  {:updated #{[:d] ;; delete this
-              [:d :b] ;; delete this
-              [:d :b :c]}
-   :added #{[:a]
-            [:c]
-            [:d] ;; [:d :b :c] supercedes [:d]
-            [:d :b :c]}
-   :removed #{[:d :b :c]}}
-
-  ;; becomes
-
-  {}
-
-  {:updated #{}
-   :added #{[:a]
-            [:c]
-            [:d :b :c]}
-   :removed #{[:d :b :c]}}
-  
-  {:d {:b {}} :c 2 :a 1}
-     
-  )
+(defn tracking-map [map]
+  (->TrackingMap map map {}))
