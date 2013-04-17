@@ -233,7 +233,7 @@
                    :context {}}]
         (is (= (derive-phase state)
                (merge state
-                      {:change {:updated #{[:a] [:b] [:b :c]} :inspect #{[:b :c]}}
+                      {:change {:updated #{[:a] [:b :c :x :y]} :removed #{[:b :c :x :z]}}
                        :new {:data-model {:a 2 :b {:c {:x {:y 11}}}}}})))))))
 
 (deftest test-continue-phase
