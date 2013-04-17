@@ -197,7 +197,7 @@
   run only once."
   [dataflow state message]
   (let [state (update-in state [:new] dissoc :continue)]
-    (-> state
+    (-> (assoc-in state [:context :message] message)
         transform-phase
         derive-phase
         continue-phase)))
@@ -208,7 +208,9 @@
     (if (empty? continue)
       (update-in result [:new] dissoc :continue)
       (reduce (fn [a c-message]
-                (run-flow-phases dataflow a c-message))
+                (run-flow-phases dataflow
+                                 (assoc a :old (:new a))
+                                 c-message))
               result
               continue))))
 
@@ -219,9 +221,9 @@
                :new dm
                :change {}
                :dataflow dataflow
-               :context {:message message}}
+               :context {}}
         new-state (run-flow-phases dataflow state message)]
-    (:new (-> new-state
+    (:new (-> (assoc-in new-state [:context :message] message)
               effect-phase
               emit-phase))))
 
