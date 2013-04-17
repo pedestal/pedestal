@@ -101,7 +101,7 @@
       (update-in [:change] merge-changes (tm/changes tracking-map))))
 
 (defn track-update-in [data-model out-path f & args]
-  (apply update-in (tm/->TrackingMap data-model {}) out-path f args))
+  (apply update-in (tm/tracking-map data-model) out-path f args))
 
 (defn apply-in [state out-path f & args]
   (let [data-model (get-in state [:new :data-model])
