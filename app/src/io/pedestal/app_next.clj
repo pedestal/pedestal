@@ -32,11 +32,13 @@
 (defn- refresh-emitters [state flow]
   (reduce (fn [deltas {in :in init-emitter :init}]
             (let [dm (:data-model state)
-                  inputs {:old dm
-                          :new dm
-                          :change {}
-                          :dataflow flow
-                          :context {:message (:input state)}}]
+                  inputs {:new-model dm
+                          :old-model dm
+                          :input-paths in
+                          :added in
+                          :updated #{}
+                          :removed #{}
+                          :message (:input state)}]
               (if init-emitter
                 (into deltas (init-emitter inputs))
                 deltas)))
@@ -282,16 +284,26 @@
           #{}
           continues))
 
+(defn- convert-effect [effects]
+  (reduce (fn [a [k effect-fn]]
+            (conj a {:in #{[k]}
+                     :fn (fn [inputs]
+                           (effect-fn (-> inputs :context :message)
+                                      (get-in inputs [:old-model k])
+                                      (get-in inputs [:new-model k])))}))
+          #{}
+          effects))
+
 (defn- convert-emit [emits]
   (reduce (fn [a [k {emit-fn :fn in :input}]]
             (let [input-vecs (set (map vector in))]
               (conj a {:in input-vecs
                        :init (fn [inputs]
-                               (emit-fn (old-style-inputs (assoc inputs :input-paths input-vecs))))
+                               (emit-fn (old-style-inputs inputs)))
                        :fn (fn [inputs]
                              (let [added (dataflow/added-map inputs)
                                    updated (dataflow/update-map inputs)]
-                               (emit-fn (old-style-inputs (assoc inputs :input-paths input-vecs))
+                               (emit-fn (old-style-inputs inputs)
                                         (set (map first (concat (keys updated)
                                                                 (keys added)))))))})))
           []
@@ -303,6 +315,7 @@
       (update-in [:transform] convert-transform)
       (update-in [:derive] convert-derive)
       (update-in [:continue] convert-continue)
+      (update-in [:effect] convert-effect)
       (update-in [:emit] convert-emit)))
 
 (defn adapt-build [description]
