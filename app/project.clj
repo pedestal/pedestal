@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.app "0.1.4-SNAPSHOT"
+(defproject io.pedestal/pedestal.app "0.1.6-SNAPSHOT"
   :description "Pedestal applications"
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.5.0"]
@@ -17,6 +17,5 @@
                  [ch.qos.logback/logback-classic "1.0.6"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.1"]]
-  :plugins [[lein-marginalia "0.7.1"]]
   :profiles {:dev {:source-paths ["dev"]}}
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
