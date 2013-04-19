@@ -11,32 +11,13 @@
 
 (ns io.pedestal.app.util.test
   (:require [io.pedestal.app :as app]
-            [io.pedestal.app-next :as app-next]
             [io.pedestal.app.util.platform :as platform]))
 
 (defn run-sync!
   ([app script]
-     (run-sync! app script 1000))
-  ([app script timeout]
-     (let [script (conj (vec (butlast script)) (with-meta (last script) {::last true}))
-           record-states (atom [@(:state app)])]
-       (add-watch (:state app) :state-watch
-                  (fn [_ _ _ n]
-                    (swap! record-states conj n)))
-       (app/run! app script)
-       (loop [timeout timeout]
-         (when (pos? timeout)
-           (if (= (meta (-> app :state deref :input)) {::last true})
-             @record-states
-             (do (Thread/sleep 20)
-                 (recur (- timeout 20)))))))))
-
-
-(defn test-run-sync!
-  ([app script]
-     (test-run-sync! app nil script 1000))
+     (run-sync! app nil script 1000))
   ([app init script]
-     (test-run-sync! app init script 1000))
+     (run-sync! app init script 1000))
   ([app init script timeout]
      (let [script (conj (vec (butlast script)) (with-meta (last script) {::last true}))
            record-states (atom [@(:state app)])]
@@ -44,9 +25,9 @@
                   (fn [_ _ _ n]
                     (swap! record-states conj n)))
        (if init
-         (app-next/begin app init)
-         (app-next/begin app))
-       (app-next/run! app script)
+         (app/begin app init)
+         (app/begin app))
+       (app/run! app script)
        (loop [timeout timeout]
          (when (pos? timeout)
            (if (= (meta (-> app :state deref :input)) {::last true})
