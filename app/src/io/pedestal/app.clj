@@ -313,12 +313,15 @@
               (conj a {:in input-vecs
                        :init (fn [inputs]
                                (emit-fn (old-style-inputs inputs)))
+                       :mode :always
                        :fn (fn [inputs]
                              (let [added (dataflow/added-map inputs)
-                                   updated (dataflow/update-map inputs)]
+                                   updated (dataflow/update-map inputs)
+                                   removed (dataflow/removed-map inputs)]
                                (emit-fn (old-style-inputs inputs)
                                         (set (map first (concat (keys updated)
-                                                                (keys added)))))))})))
+                                                                (keys added)
+                                                                (keys removed)))))))})))
           []
           emits))
 
