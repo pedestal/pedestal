@@ -334,9 +334,15 @@
           {}
           description))
 
+(defn- remove-topic-map [message]
+  (let [t (::msg/topic message)]
+    (cond (map? t) (:model t)
+          :else t)))
+
 (defn- adapt-description [description]
   (-> description
-      (assoc :input-adapter (fn [m] {:out [(::msg/topic m)] :key (::msg/topic m)}))
+      (assoc :input-adapter (fn [m] {:out [(remove-topic-map m)]
+                                    :key (remove-topic-map m)}))
       (update-in [:transform] convert-transform)
       (update-in [:derive] convert-derive)
       (update-in [:continue] convert-continue)
