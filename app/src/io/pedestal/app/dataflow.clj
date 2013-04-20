@@ -158,8 +158,10 @@
   [{:keys [dataflow context] :as state} k]
   (let [fns (k dataflow)]
     (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in}]
-              (update-in state [:new k] (fnil into [])
-                         (f (flow-input context acc input-paths change))))
+              (if (inputs-changed? change input-paths)
+                (update-in acc [:new k] (fnil into [])
+                           (f (flow-input context acc input-paths change)))
+                acc))
             state
             fns)))
 
