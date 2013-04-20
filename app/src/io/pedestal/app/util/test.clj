@@ -29,9 +29,10 @@
          (app/begin app))
        (app/run! app script)
        (loop [timeout timeout]
-         (when (pos? timeout)
+         (if (pos? timeout)
            (if (= (meta (-> app :state deref :input)) {::last true})
              @record-states
              (do (Thread/sleep 20)
-                 (recur (- timeout 20)))))))))
+                 (recur (- timeout 20))))
+           (throw (Exception. (str "Test timeout after " timeout "ms."))))))))
 
