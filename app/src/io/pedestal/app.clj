@@ -301,7 +301,7 @@
   (reduce (fn [a [k effect-fn]]
             (conj a {:in #{[k]}
                      :fn (fn [inputs]
-                           (effect-fn (-> inputs :context :message)
+                           (effect-fn (:message inputs)
                                       (get-in inputs [:old-model k])
                                       (get-in inputs [:new-model k])))}))
           #{}
