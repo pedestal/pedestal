@@ -260,8 +260,7 @@
             (conj a {:key k
                      :out [k]
                      :init [{::msg/topic k ::msg/type ::msg/init :value init}]
-                     :fn (fn [old-value message]
-                           (transform-fn init message))}))
+                     :fn transform-fn}))
           []
           transforms))
 
