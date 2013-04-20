@@ -307,20 +307,18 @@
     (assert (= 1 (count m)) "input is expected to contain exactly one value")
     (first (vals m))))
 
-(defn update-map [{:keys [new-model updated]}]
-  (into {} (for [path updated
-                 [k v] (get-path new-model path)
-                 :when v]
-             [k v])))
+(defn- change-map [inputs model-key change-key]
+  (let [[model change-paths] ((juxt model-key change-key) inputs)]
+    (into {} (for [path change-paths
+                   [k v] (get-path model path)
+                   :when v]
+               [k v]))))
 
-(defn added-map [{:keys [new-model added]}]
-  (into {} (for [path added
-                 [k v] (get-path new-model path)
-                 :when v]
-             [k v])))
+(defn updated-map [inputs]
+  (change-map inputs :new-model :updated))
 
-(defn removed-map [{:keys [old-model removed]}]
-  (into {} (for [path removed
-                 [k v] (get-path old-model path)
-                 :when v]
-             [k v])))
+(defn added-map [inputs]
+  (change-map inputs :new-model :added))
+
+(defn removed-map [inputs]
+  (change-map inputs :old-model :removed))

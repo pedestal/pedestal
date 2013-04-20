@@ -33,7 +33,7 @@
                  (mapcat (fn [[k v]] [[:node-create k :map]
                                      [:value k v]])
                          added))
-               (let [updates (dataflow/update-map inputs)]
+               (let [updates (dataflow/updated-map inputs)]
                  (mapv (fn [[k v]] [:value k v]) updates)))))
 
 (defmulti process-app-model-message (fn [state flow message] (msg/type message)))
@@ -316,7 +316,7 @@
                        :mode :always
                        :fn (fn [inputs]
                              (let [added (dataflow/added-map inputs)
-                                   updated (dataflow/update-map inputs)
+                                   updated (dataflow/updated-map inputs)
                                    removed (dataflow/removed-map inputs)]
                                (emit-fn (old-style-inputs inputs)
                                         (set (map first (concat (keys updated)

@@ -258,7 +258,7 @@
 
 (deftest test-emit-phase
   (let [emit-fn (fn [k] (fn [input] [{k {:inputs (input-map input)
-                                       :updates (update-map input)}}]))
+                                       :updates (updated-map input)}}]))
         emit (fn [x] (set (get-in x [:new :emit])))
         state {:old {:data-model {:a 0
                                   :b 11
