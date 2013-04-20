@@ -61,6 +61,13 @@
                        adds))
                updates)))
 
+(defn- remove-updates-covered-by-removes [updates removes]
+  (set (remove (fn [u]
+                 (some (fn [r]
+                         (descendent? r u))
+                       removes))
+               updates)))
+
 (defn compact [old-m new-m {:keys [added updated removed inspect] :as change}]
   (let [change (reduce (fn [a change-path]
                          (find-changes a old-m new-m change-path))
@@ -74,6 +81,9 @@
                  change)
         change (if (:updated change)
                  (update-in change [:updated] remove-updates-covered-by-adds (:added change))
+                 change)
+        change (if (:updated change)
+                 (update-in change [:updated] remove-updates-covered-by-removes (:removed change))
                  change)]
     (reduce (fn [a [k v]]
               (if (empty? v)
