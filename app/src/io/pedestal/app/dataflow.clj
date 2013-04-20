@@ -313,9 +313,14 @@
                  :when v]
              [k v])))
 
-;; TODO: Change to add-map or new-map
 (defn added-map [{:keys [new-model added]}]
   (into {} (for [path added
                  [k v] (get-path new-model path)
+                 :when v]
+             [k v])))
+
+(defn removed-map [{:keys [old-model removed]}]
+  (into {} (for [path removed
+                 [k v] (get-path old-model path)
                  :when v]
              [k v])))
