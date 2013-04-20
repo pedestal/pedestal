@@ -562,7 +562,7 @@
        syntax-quote-data-routes))
 
 (deftest delete-user-link
-  (are [routes] (= "https://admin.example.com/user/456/delete"
+  (are [routes] (= "https://admin.example.com:9999/user/456/delete"
                    ((make-linker routes) ::delete-user :app-name :admin :params {:user-id 456}))
        verbose-routes
        terse-routes
@@ -570,7 +570,7 @@
        syntax-quote-data-routes))
 
 (deftest delete-user-action
-  (are [routes] (= {:action "https://admin.example.com/user/456/delete?_method=delete"
+  (are [routes] (= {:action "https://admin.example.com:9999/user/456/delete?_method=delete"
                     :method "post"}
                    ((make-action routes) ::delete-user :app-name :admin :params {:user-id 456}))
        verbose-routes
@@ -579,7 +579,7 @@
        syntax-quote-data-routes))
 
 (deftest delete-user-action-without-verb-smuggling
-  (are [routes] (= {:action "https://admin.example.com/user/456/delete"
+  (are [routes] (= {:action "https://admin.example.com:9999/user/456/delete"
                     :method "delete"}
                    ((make-action routes) ::delete-user
                     :method-param nil
@@ -591,7 +591,7 @@
        syntax-quote-data-routes))
 
 (deftest delete-user-action-with-alternate-verb-param
-  (are [routes] (= {:action "https://admin.example.com/user/456/delete?verb=delete"
+  (are [routes] (= {:action "https://admin.example.com:9999/user/456/delete?verb=delete"
                     :method "post"}
                    ((make-action routes) ::delete-user
                     :method-param "verb"
@@ -603,7 +603,7 @@
        syntax-quote-data-routes))
 
 (deftest delete-user-link-with-scheme
-  (are [routes] (= "//admin.example.com/user/456/delete"
+  (are [routes] (= "//admin.example.com:9999/user/456/delete"
                    ((make-linker routes) ::delete-user
                     :app-name :admin
                     :params {:user-id 456}
@@ -618,7 +618,7 @@
                    ((make-linker routes) ::delete-user
                     :app-name :admin
                     :params {:user-id 456}
-                    :request {:scheme :https :server-name "admin.example.com"}))
+                    :request {:scheme :https :server-name "admin.example.com" :server-port 9999}))
        verbose-routes
        terse-routes
        data-routes
@@ -630,7 +630,7 @@
                    ((make-action routes) ::delete-user
                     :app-name :admin
                     :params {:user-id 456}
-                    :request {:scheme :https :server-name "admin.example.com"}))
+                    :request {:scheme :https :server-name "admin.example.com" :server-port 9999}))
        verbose-routes
        terse-routes
        data-routes

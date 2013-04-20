@@ -290,7 +290,7 @@
   docstring for 'url-for'."
   [route opts]
   (let [{:keys [path-params query-params request]} opts
-        {:keys [scheme host path-parts]} route
+        {:keys [scheme host port path-parts]} route
         context-path-parts (context-path opts)
         path-parts (do (log/info :in :link-str
                                  :path-parts path-parts
@@ -298,13 +298,14 @@
                        (if (and context-path-parts (empty? (first path-parts)))
                          (concat context-path-parts (rest path-parts))
                          path-parts))
-        path (str/join \/ (map #(get path-params % %) path-parts))]
+        path (str/join \/ (map #(get path-params % %) path-parts))
+        scheme-match (or (nil? scheme) (= scheme (:scheme request)))
+        host-match (or (nil? host) (= host (:server-name request)))
+        port-match (or (nil? port) (= port (:server-port request)))]
     (str
-     (when (and scheme (not= scheme (:scheme request)))
-       (str (name scheme) \:))
-     (when (and host (not= host (:server-name request)))
-       (str "//" host))
-     ;; special case for routes with root path /
+     (when-not scheme-match (str (name scheme) \:))
+     (when-not (and scheme-match host-match port-match)
+       (str "//" host (when port (str ":" port))))
      (str (when-not (.startsWith path "/") "/") path)
      (when (seq query-params)
        (str \?
