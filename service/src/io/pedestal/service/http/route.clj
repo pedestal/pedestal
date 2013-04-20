@@ -27,6 +27,7 @@
    :method     :post               ; or :any, :get, :put, ...
    :scheme     :https              ; optional
    :host       "example.com"       ; optional
+   :port       "8080"              ; optional
    :interceptors [...]             ; vector of interceptors to
                                    ; be enqueued on the context
 
@@ -99,9 +100,10 @@
          (zipmap path-params (rest m)))))))
 
 (defn- matcher-components [route]
-  (let [{:keys [method scheme host path query-constraints]} route]
+  (let [{:keys [method scheme host port path query-constraints]} route]
     (list (when (and method (not= method :any)) #(= method (:request-method %)))
           (when host   #(= host (:server-name %)))
+          (when port   #(= port (:server-port %)))
           (when scheme #(= scheme (:scheme %)))
           (when query-constraints
             (fn [request]

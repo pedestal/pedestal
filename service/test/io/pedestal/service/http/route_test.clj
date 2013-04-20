@@ -16,6 +16,7 @@
         clojure.repl
         clojure.tools.namespace.repl)
   (:require [clojure.set :as set]
+            [clojure.string :as str]
             ring.middleware.resource
             [ring.util.response :as ring-response]
             [io.pedestal.service.interceptor :as interceptor
@@ -101,6 +102,7 @@
    {:app-name :admin
     :scheme :https
     :host "admin.example.com"
+    :port 9999
     :children [{:path "/demo/site-one/*site-path"
                 ;; :verbs {:get {:name :site-one-demo :handler (site-demo "one") :interceptors []}}
                 :verbs {:get {:route-name :site-one-demo
@@ -156,19 +158,14 @@
       {:put update-user}
       [^:constraints {:view #"long|short"}
        {:get view-user}]]]]
-   [:admin :https "admin.example.com"
-
-    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}] ;; nil
-    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}] ;; nil
-
+   [:admin :https "admin.example.com" 9999
+    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
+    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
     ["/user/:user-id/delete" {:delete delete-user}]]
    [["/logout" {:any logout}]
     ["/search" {:get search-form}
      [^:constraints {:id #"[0-9]+"} {:get search-id}]
      [^:constraints {:q #".+"} {:get search-query}]]
-
-;; all these are nil
-
     ["/intercepted" {:get [:intercepted request-inspection]}
      ^:interceptors [interceptor-1 interceptor-2]]
     ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
@@ -195,7 +192,7 @@
         {:put update-user}
         [^:constraints {:view #"long|short"}
          {:get view-user}]]]]
-     [:admin :https "admin.example.com"
+     [:admin :https "admin.example.com" 9999
       ["/demo/site-one/*site-path" {:get [:site-one-demo (handler :site-one (site-demo "one"))]}]
       ["/demo/site-two/*site-path" {:get [:site-two-demo (handler :site-two (site-demo "two"))]}]
       ["/user/:user-id/delete" {:delete delete-user}]]
@@ -231,7 +228,7 @@
           {:put update-user}
           [^:constraints {:view #"long|short"}
            {:get view-user}]]]]
-       [:admin :https "admin.example.com"
+       [:admin :https "admin.example.com" 9999
         ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo ~one)]}]
         ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo ~two)]}]
         ["/user/:user-id/delete" {:delete delete-user}]]
@@ -269,7 +266,7 @@
 (defbefore print-context
   [context] (pprint context) context)
 
-(defn test-match
+#_(defn test-match
   ([table method uri]
      (test-match table "do-not-match-scheme" "do-not-match-host" method uri nil))
   ([table host method uri]
@@ -293,6 +290,31 @@
            :path-params (:path-params request)}
           (when-let [query-params (:query-params request)]
             {:query-params query-params}))))))
+
+(defn test-match
+  [route-table method uri & args]
+  (let [{:keys [scheme host port query]
+         :or {scheme "do-not-match-scheme"
+              host "do-not-match-host"
+              port -1}}
+        (apply hash-map args)
+        {:keys [route request]}
+        (-> {:request {:request-method method
+                       :scheme scheme
+                       :server-name host
+                       :server-port port
+                       :path-info uri
+                       :query-string query}}
+            (interceptor-impl/enqueue query-params
+                                      (method-param)
+                                      (app-router route-table))
+            interceptor-impl/execute)]
+    (when route
+      (merge
+       {:route-name (:route-name route)
+        :path-params (:path-params request)}
+       (when-let [query-params (:query-params request)]
+         {:query-params query-params})))))
 
 (defn test-query-execute
   [table query]
@@ -388,14 +410,14 @@
 
 (deftest match-root
   (are [routes] (= {:route-name ::home-page :path-params {}}
-                   (test-match routes "example.com" :get "/"))
+                   (test-match routes :get "/" :host "example.com"))
        verbose-routes
        terse-routes))
 
 (deftest match-update-user
   (are [routes] (= {:route-name ::update-user
                     :path-params {:user-id "123"}}
-                   (test-match routes "example.com" :put "/user/123"))
+                   (test-match routes :put "/user/123" :host "example.com"))
        verbose-routes
        terse-routes
        data-routes
@@ -438,7 +460,7 @@
 
 (deftest check-host
   (are [routes] (nil? (test-match
-                       routes "admin.example.com" :put "/user/123"))
+                       routes :put "/user/123" :host "admin.example.com"))
        verbose-routes
        terse-routes
        data-routes
@@ -447,8 +469,10 @@
 (deftest match-demo-one
   (are [routes] (= {:route-name :site-one-demo
                     :path-params {:site-path "foo/bar/baz"}}
-                   (test-match routes :https "admin.example.com"
-                               :get "/demo/site-one/foo/bar/baz"))
+                   (test-match routes :get "/demo/site-one/foo/bar/baz"
+                               :scheme :https
+                               :host "admin.example.com"
+                               :port 9999))
        verbose-routes
        terse-routes
        data-routes
@@ -456,31 +480,31 @@
 
 (deftest match-user-constraints
   (are [routes] (= {:path-params {:user-id "123"} :route-name ::update-user}
-                   (test-match routes "example.com" :put "/user/123"))
+                   (test-match routes :put "/user/123" :host "example.com"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= nil
-                   (test-match routes "example.com" :put "/user/abc"))
+                   (test-match routes :put "/user/abc" :host "example.com"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= {:path-params {:user-id "123"} :query-params {:view "long"} :route-name ::view-user}
-                   (test-match routes :http "example.com" :get "/user/123" "view=long"))
+                   (test-match routes :get "/user/123" :scheme :http :host "example.com" :query "view=long"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= nil
-                   (test-match routes :http "example.com" :get "/user/123" "view=none"))
+                   (test-match routes :get "/user/123" :scheme :http :host "example.com" :query "view=none"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= nil
-                   (test-match routes :http "example.com" :get "/user/abc" "view=long"))
+                   (test-match routes :get "/user/abc" :scheme :http :host "example.com" :query "view=long"))
        verbose-routes
        terse-routes
        data-routes

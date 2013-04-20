@@ -104,7 +104,7 @@
   [{^String parent-path :path :as parent-dna}
    {:keys [constraints verbs interceptors path] :as current-node}]
   (cond-> parent-dna
-          true (merge (select-keys current-node [:app-name :scheme :host]))
+          true (merge (select-keys current-node [:app-name :scheme :host :port]))
           path (route/parse-path path)
           ;; special case case where parent-path is "/" so we don't have double "//"
           path (assoc :path (str (if (and parent-path (.endsWith parent-path "/"))
@@ -145,10 +145,10 @@
   constrained route entries appear in the table prior to entries which
   have fewer constraints or no constraints."
   [routing-table]
-  (let [route-paths (map #(map % [:app-name :scheme :host :path-parts])
+  (let [route-paths (map #(map % [:app-name :scheme :host :port :path-parts])
                                         routing-table)
         unique-route-paths (reduce uniquely-add-route-path [] route-paths)
-        groupings (group-by #(map % [:app-name :scheme :host :path-parts])
+        groupings (group-by #(map % [:app-name :scheme :host :port :path-parts])
                             routing-table)]
     (mapcat (partial sort-by-constraints groupings) unique-route-paths)))
 

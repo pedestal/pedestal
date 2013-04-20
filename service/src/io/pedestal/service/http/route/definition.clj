@@ -105,6 +105,18 @@
     (assoc verbose-map :children (map expand-constraint children))
     verbose-map))
 
+(defn- extract-port
+  "Return the port, if present, from route-domain."
+  [route-domain]
+  (first (filter #(isa? (type %) Long) route-domain)))
+
+(defn- add-port
+  "Add the :host key to verbose-map from route-domain, if appropriate."
+  [verbose-map route-domain]
+  (if-let [port (extract-port route-domain)]
+    (assoc verbose-map :port port)
+    verbose-map))
+
 (defn- extract-host
   "Return the host, if present, from route-domain."
   [route-domain]
@@ -155,6 +167,7 @@
       (add-app-name route-domain)
       (add-scheme route-domain)
       (add-host route-domain)
+      (add-port route-domain)
       (add-children route-domain)))
 
 (defn expand-routes
