@@ -145,9 +145,12 @@
                  (update-in cs [:updated] (fnil conj #{}) change)
                  
                  (not (get map key)) (update-in cs [:added] (fnil conj #{}) change))
-        cs (if (and (= action :assoc) (map? val) (not (instance? TrackingMap val)))
-             (update-in cs [:inspect] (fnil conj #{}) change)
-             cs)]
+        cs (cond (and (= action :assoc) (map? val) (not (instance? TrackingMap val)))
+                 (update-in cs [:inspect] (fnil conj #{}) change)
+                 (and (= action :assoc) (nil? val))
+                 (update-in cs [:inspect] (fnil conj #{}) change)
+                 :else
+                 cs)]
     (merge-when-tracking-map cs val)))
 
 (defn changes [v]
