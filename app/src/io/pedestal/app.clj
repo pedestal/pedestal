@@ -124,10 +124,6 @@
 (defn transact-one [state flow message]
   (process-message (assoc state :input message) flow message))
 
-(defn transact-many [state flow messages]
-  (doseq [msg messages]
-    (swap! state transact-one flow msg)))
-
 
 ;; Build and interface with the outside world
 ;; ================================================================================
@@ -205,9 +201,9 @@
                                 ;; this makes simple one-screen apps
                                 ;; easire to confgure
                                 [{msg/topic msg/app-model msg/type :subscribe :paths [[]]}])]
-       (transact-many (:state app) dataflow start-messages)
        (let [init-messages (vec (mapcat :init (:transform description)))]
-         (transact-many (:state app) dataflow init-messages)))))
+         (doseq [message (concat start-messages init-messages)]
+           (p/put-message (:input app) message))))))
 
 
 ;; Queue consumers
