@@ -46,7 +46,7 @@
 
 (deftest test-simplest-possible-app
   (let [app (build simplest-possible-app)
-        results (run-sync! app [{msg/topic :model-a :n 42}])
+        results (run-sync! app [{msg/topic :model-a :n 42}] :begin :default)
         results (standardize-results results)]
     (is (not (nil? app)))
     (is (= (count results) 4))
@@ -91,7 +91,8 @@
   (let [app (build two-models-app)
         results (run-sync! app [{msg/topic :model-a :n 42}
                                 {msg/topic :model-b :n 11}
-                                {msg/topic :model-a :n 3}])
+                                {msg/topic :model-a :n 3}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -154,7 +155,8 @@
   (let [app (build two-views-app)
         results (run-sync! app [{msg/topic :model-a :n 42}
                                 {msg/topic :model-b :n 10}
-                                {msg/topic :model-a :n 3}])
+                                {msg/topic :model-a :n 3}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -232,7 +234,8 @@
   (let [app (build square-root-app)
         results (run-sync! app [{msg/topic :accuracy :n 0.000001}
                                 {msg/topic :x :n 42}
-                                {msg/topic :guess :n 7}])
+                                {msg/topic :guess :n 7}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -264,7 +267,8 @@
         results (run-sync! app [{msg/topic :accuracy :n 0.000001}
                                 {msg/topic :x :n 42}
                                 {msg/topic :guess :n 7}
-                                {msg/topic :x :n 50}])
+                                {msg/topic :x :n 50}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -314,7 +318,8 @@
 (deftest test-dependent-views-which-depend-on-one-model
   (let [app (build dependent-views-app)
         results (run-sync! app [{msg/topic :x :n 42}
-                                {msg/topic :x :n 12}])
+                                {msg/topic :x :n 12}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -346,7 +351,8 @@
 (deftest test-two-views-with-same-input-old-values
   (let [app (build two-views-with-same-input-old-values)
         results (run-sync! app [{msg/topic :x :n 1}
-                                {msg/topic :x :n 2}])
+                                {msg/topic :x :n 2}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -377,7 +383,8 @@
 (deftest test-two-views-with-same-input-new-values
   (let [app (build two-views-with-same-input-new-values)
         results (run-sync! app [{msg/topic :x :n 1}
-                                {msg/topic :x :n 2}])
+                                {msg/topic :x :n 2}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -445,7 +452,8 @@
             app (build output-app)
             _ (capture-queue 3 :output app output-state)
             results (run-sync! app [{msg/topic :x :n 42}
-                                    {msg/topic :x :n 12}])
+                                    {msg/topic :x :n 12}]
+                                :begin :default)
             results (standardize-results results)]
         (is (= @output-state
                [{msg/topic {:service :s} :n 0}
@@ -458,7 +466,8 @@
                               (adapt-v1 {:output {:half (echo-output :s)}})))
             _ (capture-queue 3 :output app output-state)
             results (run-sync! app [{msg/topic :x :n 42}
-                                    {msg/topic :x :n 12}])
+                                    {msg/topic :x :n 12}]
+                                :begin :default)
             results (standardize-results results)]
         (is (= @output-state
                [{msg/topic {:service :s} :n 0.0}
@@ -475,7 +484,8 @@
         renderer-state (atom [])]
     (capture-queue 4 :app-model app renderer-state)
     (let [results (run-sync! app [{msg/topic :x :n 42}
-                                       {msg/topic :x :n 12}])
+                                  {msg/topic :x :n 12}]
+                              :begin :default)
           results (standardize-results results)]
       (is (= (set @renderer-state)
              #{{msg/topic msg/app-model
@@ -533,7 +543,8 @@
 (deftest test-dataflow-one
   (let [app (build dataflow-test-one)
         results (run-sync! app [{msg/topic :x :n 1}
-                                     {msg/topic :x :n 2}])
+                                {msg/topic :x :n 2}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -570,7 +581,8 @@
 (deftest test-dataflow-two
   (let [app (build dataflow-test-two)
         results (run-sync! app [{msg/topic :x :n 1}
-                                     {msg/topic :x :n 2}])
+                                {msg/topic :x :n 2}]
+                            :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
@@ -636,8 +648,9 @@
   (testing "only view the default paths"
     (let [app (build navigation-app)
           results (run-sync! app [{msg/topic :a :n 10}
-                                       {msg/topic :b :n 11}
-                                       {msg/topic :c :n 12}])
+                                  {msg/topic :b :n 11}
+                                  {msg/topic :c :n 12}]
+                              :begin :default)
           results (standardize-results results)]
       (is (= (partition-sets (input->emitter-output results) [4 1 3 1 1 1])
              [#{{:input nil :emitter #{}}
@@ -669,14 +682,15 @@
   (testing "navigate between paths"
     (let [app (build navigation-app)
           results (run-sync! app [{msg/topic :a :n 10}
-                                       {msg/topic :b :n 11}
-                                       {msg/topic msg/app-model msg/type :navigate :name :b}
-                                       {msg/topic :b :n 12}
-                                       {msg/topic :c :n 13}
-                                       {msg/topic msg/app-model msg/type :navigate :name :c}
-                                       {msg/topic :c :n 14}
-                                       {msg/topic :a :n 15}
-                                       {msg/topic msg/app-model msg/type :navigate :name :a}])
+                                  {msg/topic :b :n 11}
+                                  {msg/topic msg/app-model msg/type :navigate :name :b}
+                                  {msg/topic :b :n 12}
+                                  {msg/topic :c :n 13}
+                                  {msg/topic msg/app-model msg/type :navigate :name :c}
+                                  {msg/topic :c :n 14}
+                                  {msg/topic :a :n 15}
+                                  {msg/topic msg/app-model msg/type :navigate :name :a}]
+                             :begin :default)
           results (standardize-results results)]
       (is (= (input->emitter-output results)
              [{:input nil :emitter #{}}
@@ -740,22 +754,22 @@
 (deftest test-subscribe-and-unsubscribe-app
   (let [app (build subscribe-and-unsubscribe-app)
         results (run-sync! app
-                                [{msg/topic msg/app-model msg/type :noop}]
-                                [{msg/topic :a :n 10}
-                                 {msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
-                                 {msg/topic :b :n 11}
-                                 {msg/topic :c :n 12}
-                                 {msg/topic :a :n 13}
-                                 {msg/topic msg/app-model msg/type :unsubscribe :paths [[:a]]}
-                                 {msg/topic :c :n 14}
-                                 {msg/topic msg/app-model msg/type :subscribe :paths [[:b] [:c]]}
-                                 {msg/topic :a :n 15}
-                                 {msg/topic :b :n 16}
-                                 {msg/topic :c :n 17}
-                                 {msg/topic msg/app-model msg/type :unsubscribe :paths [[:b]]}
-                                 {msg/topic :a :n 18}
-                                 {msg/topic :b :n 19}
-                                 {msg/topic :c :n 20}])
+                           [{msg/topic :a :n 10}
+                            {msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
+                            {msg/topic :b :n 11}
+                            {msg/topic :c :n 12}
+                            {msg/topic :a :n 13}
+                            {msg/topic msg/app-model msg/type :unsubscribe :paths [[:a]]}
+                            {msg/topic :c :n 14}
+                            {msg/topic msg/app-model msg/type :subscribe :paths [[:b] [:c]]}
+                            {msg/topic :a :n 15}
+                            {msg/topic :b :n 16}
+                            {msg/topic :c :n 17}
+                            {msg/topic msg/app-model msg/type :unsubscribe :paths [[:b]]}
+                            {msg/topic :a :n 18}
+                            {msg/topic :b :n 19}
+                            {msg/topic :c :n 20}]
+                           :begin [{msg/topic msg/app-model msg/type :noop}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
