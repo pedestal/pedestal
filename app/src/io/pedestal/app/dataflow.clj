@@ -180,18 +180,20 @@
 
 (defn emit-phase
   [{:keys [dataflow context change] :as state}]
-  (let [all-change change
-        emits (:emit dataflow)]
-    (-> (reduce (fn [{:keys [change] :as acc} {input-paths :in emit-fn :fn}]
-                  (if (inputs-changed? change input-paths)
-                    (-> acc
-                        (update-in [:change] remove-matching-changes input-paths)
-                        (update-in [:new :emit] (fnil into [])
-                                   (emit-fn (flow-input context acc input-paths change))))
-                    acc))
-                state
+  (let [emits (:emit dataflow)]
+    (-> (reduce (fn [{:keys [change remaining-change] :as acc} {input-paths :in
+                                                               emit-fn :fn
+                                                               mode :mode}]
+                  (let [report-change (if (= mode :always) change remaining-change)]
+                    (if (inputs-changed? report-change input-paths)
+                      (-> acc
+                          (update-in [:remaining-change] remove-matching-changes input-paths)
+                          (update-in [:new :emit] (fnil into [])
+                                     (emit-fn (flow-input context acc input-paths report-change))))
+                      acc)))
+                (assoc state :remaining-change change)
                 emits)
-        (assoc :change all-change))))
+        (dissoc :remaining-change))))
 
 (defn flow-phases-step
   "Given a dataflow, a state and a message, run the message through
