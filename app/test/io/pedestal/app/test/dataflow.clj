@@ -277,8 +277,7 @@
                                  {:in #{[:c :*]}    :fn (emit-fn :five)}
                                  {:in #{[:*]}       :fn (emit-fn :six)}]}
                :context {}}]
-    (is (= (emit-phase state)
-           (assoc state :change nil)))
+    (is (= (emit-phase state) state))
     (let [state (-> state
                     (assoc-in [:new :data-model :a] 1)
                     (assoc :change {:updated #{[:a]}})
