@@ -52,7 +52,7 @@
     (is (= (count results) 4))
     (is (= (first (drop 2 results))
            {:input {msg/topic :model-a
-                    msg/type ::msg/init
+                    msg/type msg/init
                     :value 0}
             :subscriptions [[]]
             :data-model {:model-a 0}
@@ -66,12 +66,12 @@
             :emitter-deltas [[:value [:model-a] 0 42]]}))
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic ::msg/app-model
+            {:input {msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{}}
             {:input {msg/topic :model-a
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:node-create [] :map]
                         [:node-create [:model-a] :map]
@@ -96,18 +96,18 @@
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic ::msg/app-model
+            {:input {msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{}}
             {:input {msg/topic :model-a
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:node-create [] :map]
                         [:node-create [:model-a] :map]
                         [:value [:model-a] nil 0]}}
             {:input {msg/topic :model-b
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:node-create [:model-b] :map]
                         [:value [:model-b] nil 0]}}
@@ -162,13 +162,13 @@
            [{:input nil :emitter #{}}
             {:input {msg/topic msg/app-model msg/type :subscribe :paths [[]]}
              :emitter #{}}
-            {:input {msg/topic :model-a msg/type ::msg/init :value 0}
+            {:input {msg/topic :model-a msg/type msg/init :value 0}
              :emitter #{[:node-create [] :map]
                         [:node-create [:model-a] :map]
                         [:value [:model-a] nil 0]
                         [:node-create [:view-sum] :map]
                         [:value [:view-sum] nil 0]}}
-            {:input {msg/topic :model-b msg/type ::msg/init :value 0}
+            {:input {msg/topic :model-b msg/type msg/init :value 0}
              :emitter #{[:node-create [:view-half] :map]
                         [:value [:view-half] nil 0.0]
                         [:node-create [:model-b] :map]
@@ -246,15 +246,15 @@
                         [:node-create [:x] :map]
                         [:node-create [:half] :map]}}
             {:input {msg/topic :guess
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:half] nil :NaN]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:x] nil 0]}}
             {:input {msg/topic :accuracy
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{}}
             {:input {msg/topic :accuracy :n 0.000001} :emitter #{}}
@@ -279,15 +279,15 @@
                         [:node-create [:x] :map]
                         [:node-create [:half] :map]}}
             {:input {msg/topic :guess
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:half] nil :NaN]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:x] nil 0]}}
             {:input {msg/topic :accuracy
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{}}
             {:input {msg/topic :accuracy :n 0.000001} :emitter #{}}
@@ -330,7 +330,7 @@
                         [:node-create [:x] :map]
                         [:node-create [:sum] :map]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:x] nil 0]
                         [:value [:sum] nil 0.0]}}
@@ -363,7 +363,7 @@
                         [:node-create [:a] :map]
                         [:node-create [:b] :map]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{}}
             {:input {msg/topic :x :n 1}
@@ -395,7 +395,7 @@
                         [:node-create [:a] :map]
                         [:node-create [:b] :map]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:a] nil 0]
                         [:value [:b] nil 0]}}
@@ -430,7 +430,7 @@
                               [:node-create [:x] :map]
                               [:node-create [:sum] :map]}}
                   {:input {msg/topic :x
-                           msg/type ::msg/init
+                           msg/type msg/init
                            :value 0}
                    :emitter #{[:value [:x] nil 0]
                               [:value [:sum] nil 0.0]}}
@@ -515,7 +515,7 @@
                           [:node-create [:x] :map]
                           [:node-create [:sum] :map]}}
               {:input {msg/topic :x
-                       msg/type ::msg/init
+                       msg/type msg/init
                        :value 0}
                :emitter #{[:value [:x] nil 0]
                           [:value [:sum] nil 0.0]}}
@@ -554,7 +554,7 @@
              :emitter #{[:node-create [] :map]
                         [:node-create [:e] :map]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:e] nil 0]}}
             {:input {msg/topic :x :n 1}
@@ -592,7 +592,7 @@
              :emitter #{[:node-create [] :map]
                         [:node-create [:k] :map]}}
             {:input {msg/topic :x
-                     msg/type ::msg/init
+                     msg/type msg/init
                      :value 0}
              :emitter #{[:value [:k] nil 0]}}
             {:input {msg/topic :x :n 1}
@@ -664,11 +664,11 @@
               {:input {msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:node-create [] :map] [:node-create [:a] :map]}}
               
-              #{{:input {msg/topic :a msg/type ::msg/init :value 1}
+              #{{:input {msg/topic :a msg/type msg/init :value 1}
                  :emitter #{[:value [:a] nil 1]}}
-                {:input {msg/topic :b msg/type ::msg/init :value 2}
+                {:input {msg/topic :b msg/type msg/init :value 2}
                  :emitter #{}}
-                {:input {msg/topic :c msg/type ::msg/init :value 3}
+                {:input {msg/topic :c msg/type msg/init :value 3}
                  :emitter #{}}}
               
               {:input {msg/topic :a :n 10}
@@ -704,11 +704,11 @@
               {:input {msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:node-create [] :map] [:node-create [:a] :map]}}
               
-              {:input {msg/topic :a msg/type ::msg/init :value 1}
+              {:input {msg/topic :a msg/type msg/init :value 1}
                :emitter #{[:value [:a] nil 1]}}
-              {:input {msg/topic :b msg/type ::msg/init :value 2}
+              {:input {msg/topic :b msg/type msg/init :value 2}
                :emitter #{}}
-              {:input {msg/topic :c msg/type ::msg/init :value 3}
+              {:input {msg/topic :c msg/type msg/init :value 3}
                :emitter #{}}
               
               {:input {msg/topic :a :n 10} :emitter #{[:value [:a] 1 10]}}
@@ -776,11 +776,11 @@
             {:input {msg/topic msg/app-model msg/type :noop}
              :emitter #{}}
             
-            {:input {msg/topic :a msg/type ::msg/init :value 1}
+            {:input {msg/topic :a msg/type msg/init :value 1}
              :emitter #{}}
-            {:input {msg/topic :b msg/type ::msg/init :value 2}
+            {:input {msg/topic :b msg/type msg/init :value 2}
              :emitter #{}}
-            {:input {msg/topic :c msg/type ::msg/init :value 3}
+            {:input {msg/topic :c msg/type msg/init :value 3}
              :emitter #{}}
 
             {:input {msg/topic :a :n 10} :emitter #{}}

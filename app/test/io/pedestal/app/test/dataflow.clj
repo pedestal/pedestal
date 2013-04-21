@@ -237,24 +237,24 @@
                        :new {:data-model {:a 2 :b {:c {:x {:y 11}}}}}})))))))
 
 (deftest test-continue-phase
-  (let [continue-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])
+  (let [continue-fn (fn [input] [{msg/topic :x msg/type :y :value (single-val input)}])
         state {:change {:updated #{[:a]}}
                :old {:data-model {:a 0}}
                :new {:data-model {:a 2}}
                :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
                :context {}}]
     (is (= (continue-phase state)
-           (assoc-in state [:new :continue] [{::msg/topic :x ::msg/type :y :value 2}])))))
+           (assoc-in state [:new :continue] [{msg/topic :x msg/type :y :value 2}])))))
 
 (deftest test-effect-phase
-  (let [output-fn (fn [input] [{::msg/topic :x ::msg/type :y :value (single-val input)}])
+  (let [output-fn (fn [input] [{msg/topic :x msg/type :y :value (single-val input)}])
         state {:change {:updated #{[:a]}}
                :old {:data-model {:a 0}}
                :new {:data-model {:a 2}}
                :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
                :context {}}]
     (is (= (effect-phase state)
-           (assoc-in state [:new :effect] [{::msg/topic :x ::msg/type :y :value 2}])))))
+           (assoc-in state [:new :effect] [{msg/topic :x msg/type :y :value 2}])))))
 
 (deftest test-emit-phase
   (let [emit-fn (fn [k] (fn [input] [{k {:inputs (input-map input)
@@ -390,18 +390,18 @@
 (defn min-c [n]
   (fn [input]
     (when (< (single-val input) n)
-      [{::msg/topic [:a] ::msg/type :inc}])))
+      [{msg/topic [:a] msg/type :inc}])))
 
 (def flows
   {:one-derive     {:transform [[:inc [:a] inc-t]]
                     :derive #{[#{[:a]} [:b] double-d]}}
    
-   :continue-to-10 {:input-adapter (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
+   :continue-to-10 {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                     :transform [{:key :inc :out [:a] :fn inc-t}]
                     :derive #{{:fn double-d :in #{[:a]} :out [:b]}}
                     :continue #{{:fn (min-c 10) :in #{[:b]}}}}
    
-   :everything {:input-adapter (fn [m] {:out (::msg/topic m) :key (::msg/type m)})
+   :everything {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                 :transform [{:out [:a] :key :inc :fn inc-t}]
                 :derive    #{{:fn double-d :in #{[:a]} :out [:b]}
                              {:fn sum-d :in #{[:a]} :out [:c]}
@@ -425,18 +425,18 @@
                                  {:new {:data-model {:a 0}}
                                   :old {:data-model {:a 0}}
                                   :dataflow (flow :continue-to-10)
-                                  :context {:message {::msg/topic [:a] ::msg/type :inc}}}
-                                 {::msg/topic [:a] ::msg/type :inc}))
+                                  :context {:message {msg/topic [:a] msg/type :inc}}}
+                                 {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 1 :b 2}
-          :continue [{::msg/topic [:a] ::msg/type :inc}]}))
+          :continue [{msg/topic [:a] msg/type :inc}]}))
   (is (= (:new (flow-phases-step (flow :everything)
                                  {:new {:data-model {:a 0}}
                                   :old {:data-model {:a 0}}
                                   :dataflow (flow :everything)
-                                  :context {:message {::msg/topic [:a] ::msg/type :inc}}}
-                                 {::msg/topic [:a] ::msg/type :inc}))
+                                  :context {:message {msg/topic [:a] msg/type :inc}}}
+                                 {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 1 :b 2 :c 1 :d 3}
-          :continue [{::msg/topic [:a] ::msg/type :inc}]})))
+          :continue [{msg/topic [:a] msg/type :inc}]})))
 
 (deftest test-run-flow-phases
   (is (= (:new (run-flow-phases (flow :one-derive)
@@ -450,25 +450,25 @@
                                 {:new {:data-model {:a 0}}
                                  :old {:data-model {:a 0}}
                                  :dataflow (flow :continue-to-10)
-                                 :context {:message {::msg/topic [:a] ::msg/type :inc}}}
-                                {::msg/topic [:a] ::msg/type :inc}))
+                                 :context {:message {msg/topic [:a] msg/type :inc}}}
+                                {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 5 :b 10}}))
   (is (= (:new (run-flow-phases (flow :everything)
                                 {:new {:data-model {:a 0}}
                                  :old {:data-model {:a 0}}
                                  :dataflow (flow :everything)
-                                 :context {:message {::msg/topic [:a] ::msg/type :inc}}}
-                                {::msg/topic [:a] ::msg/type :inc}))
+                                 :context {:message {msg/topic [:a] msg/type :inc}}}
+                                {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 4 :b 8 :c 4 :d 12}})))
 
 (deftest test-run
   (is (= (run (flow :one-derive) {:a 0} {:out [:a] :key :inc})
          {:data-model {:a 1 :b 2}}))
-  (is (= (run (flow :continue-to-10) {:a 0} {::msg/topic [:a] ::msg/type :inc})
+  (is (= (run (flow :continue-to-10) {:a 0} {msg/topic [:a] msg/type :inc})
          {:data-model {:a 5 :b 10}}))
   (is (= (run (flow :everything)
               {:a 0}
-              {::msg/topic [:a] ::msg/type :inc})
+              {msg/topic [:a] msg/type :inc})
          {:data-model {:a 4 :b 8 :c 4 :d 12}
           :effect [{[:d] 12}]
           :emit [[12]]})))

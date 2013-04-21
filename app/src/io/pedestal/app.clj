@@ -255,7 +255,7 @@
   (reduce (fn [a [k {init :init transform-fn :fn}]]
             (conj a {:key k
                      :out [k]
-                     :init [{::msg/topic k ::msg/type ::msg/init :value init}]
+                     :init [{msg/topic k msg/type msg/init :value init}]
                      :fn transform-fn}))
           []
           transforms))
@@ -331,7 +331,7 @@
           description))
 
 (defn- remove-topic-map [message]
-  (let [t (::msg/topic message)]
+  (let [t (msg/topic message)]
     (cond (map? t) (:model t)
           :else t)))
 
