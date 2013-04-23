@@ -35,12 +35,17 @@ else
         CLJSC_CP="${CLJSC_CP}:${next}"
     done
 
-    java -server -cp "$CLJSC_CP" clojure.main "$CLOJURESCRIPT_HOME/bin/cljsc.clj" test "{:optimizations :simple}" >out/advanced-test.js
+    echo "Compiling with simple optimizations..."
+    java -server -cp "$CLJSC_CP" clojure.main "$CLOJURESCRIPT_HOME/bin/cljsc.clj" test "{:optimizations :simple}" >out/simple-test.js
+    echo "Compiling with advanced optimizations..."
+    java -server -cp "$CLJSC_CP" clojure.main "$CLOJURESCRIPT_HOME/bin/cljsc.clj" test "{:optimizations :advanced}" >out/advanced-test.js
     
     if [ "$V8_HOME" = "" ]; then
         echo "V8_HOME not set, skipping V8 tests"
     else
-        echo "Testing with V8"
+        echo "Testing simple compilation with V8"
+        "${V8_HOME}/d8" out/simple-test.js
+        echo "Testing advanced compilation with V8"
         "${V8_HOME}/d8" out/advanced-test.js
         ran=$[ran+1]
     fi
