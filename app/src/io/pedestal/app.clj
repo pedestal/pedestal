@@ -243,6 +243,7 @@
   [description]
   (let [key-map {:models :transform
                  :views :derive
+                 :combine :derive
                  :emitters :emit
                  :output :effect
                  :feedback :continue
