@@ -322,3 +322,22 @@
 
 (defn removed-map [inputs]
   (change-map inputs :old-model :removed))
+
+(defn- changed-inputs [inputs f]
+  (let [input-m (input-map inputs)
+        changed (keys (f inputs))]
+    (reduce (fn [a [k v]]
+              (if (some #(descendent? k %) changed)
+                (assoc a k v)
+                a))
+            {}
+            input-m)))
+
+(defn added-inputs [inputs]
+  (changed-inputs inputs added-map))
+
+(defn updated-inputs [inputs]
+  (changed-inputs inputs updated-map))
+
+(defn removed-inputs [inputs]
+  (changed-inputs inputs removed-map))

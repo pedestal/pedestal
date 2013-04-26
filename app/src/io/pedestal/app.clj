@@ -29,12 +29,14 @@
            changed-inputs)))
 
 (defn default-emitter [inputs]
-  (vec (concat (let [added (dataflow/added-map inputs)]
+  (vec (concat (let [added (dataflow/added-inputs inputs)]
                  (mapcat (fn [[k v]] [[:node-create k :map]
                                      [:value k v]])
                          added))
-               (let [updates (dataflow/updated-map inputs)]
-                 (mapv (fn [[k v]] [:value k v]) updates)))))
+               (let [updates (dataflow/updated-inputs inputs)]
+                 (mapv (fn [[k v]] [:value k v]) updates))
+               (let [removed (dataflow/removed-map inputs)]
+                 (mapv (fn [[k v]] [:node-destroy k]) removed)))))
 
 (defmulti process-app-model-message (fn [state flow message] (msg/type message)))
 
