@@ -97,7 +97,7 @@
 
 (defn update-flow-state [state tracking-map]
   (-> state
-      (assoc-in [:new :data-model] (.map tracking-map))
+      (assoc-in [:new :data-model] @tracking-map)
       (update-in [:change] merge-changes (tm/changes tracking-map))))
 
 (defn track-update-in [data-model out-path f & args]

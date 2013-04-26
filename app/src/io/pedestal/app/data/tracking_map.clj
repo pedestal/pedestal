@@ -120,7 +120,10 @@
 
   clojure.lang.IHashEq
   (hasheq [this]
-    (.hasheq map)))
+    (.hasheq map))
+
+  clojure.lang.IDeref
+  (deref [this] map))
 
 (defn- plain-map [m]
   (if (instance? TrackingMap m) (.map m) m))

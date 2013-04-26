@@ -83,7 +83,10 @@
   (-invoke [_ k not-found] (-lookup map k not-found))
   
   IEditableCollection
-  (-as-transient [_] (-as-transient map)))
+  (-as-transient [_] (-as-transient map))
+
+  IDeref
+  (-deref [o] map))
 
 (defn- plain-map [m]
   (if (instance? TrackingMap m) (.-map m) m))
