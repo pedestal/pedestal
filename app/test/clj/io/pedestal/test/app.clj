@@ -817,3 +817,85 @@
             {:input {msg/topic :a :n 18} :emitter #{}}
             {:input {msg/topic :b :n 19} :emitter #{}}
             {:input {msg/topic :c :n 20} :emitter #{[:value [:c] 17 20]}}]))))
+
+
+;; Compare old and new style apps
+;; ================================================================================
+
+(deftest test-old-and-new-two-counters
+  (testing "old style app with two counters"
+    (let [count-transform (fn [t-state message]
+                            (condp = (msg/type message)
+                              msg/init (:value message)
+                              :inc (update-in (or t-state {}) [(:key message)] inc)
+                              t-state))
+          
+          a-combine (fn [c-state t-name t-old-val t-new-val]
+                      (:a t-new-val))
+          
+          b-combine (fn [c-state t-name t-old-val t-new-val]
+                      (:b t-new-val))
+          
+          counter-emit (fn
+                         ([inputs] [{:counter {:a {} :b {}}}])
+                         ([inputs changed-inputs]
+                            (concat []
+                                    (when (changed-inputs :a-combine)
+                                      [[:value [:counter :a]
+                                        (-> inputs :a-combine :new)]])
+                                    (when (changed-inputs :b-combine)
+                                      [[:value [:counter :b]
+                                        (-> inputs :b-combine :new)]]))))]
+      (let [dataflow (adapt-v1
+                      {:transform {:count-transform {:init {:a 0 :b 0} :fn count-transform}}
+                       :combine {:a-combine {:fn a-combine :input #{:count-transform}}
+                                 :b-combine {:fn b-combine :input #{:count-transform}}}
+                       :emit {:counter-emit {:fn counter-emit :input #{:a-combine :b-combine}}}})
+            app (build dataflow)
+            _ (begin app)
+            results (run-sync! app [{msg/topic :count-transform msg/type :inc :key :a}])
+            results (standardize-results results)]
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:counter] :map]
+                [:node-create [:counter :a] :map]
+                [:node-create [:counter :b] :map]
+                [:value [:counter :a] nil 0]
+                [:value [:counter :b] nil 0]
+                [:value [:counter :a] 0 1]])))))
+  
+  (testing "new style app with two counters"
+    (let [init-transform (fn [t-state message] (:value message))
+          count-transform (fn [t-state message] ((fnil inc 0) t-state))]
+      (let [dataflow {:transform [[:init [:counter :*] init-transform]
+                                  {:key :inc :out [:counter :*] :fn count-transform
+                                   :init [{msg/topic [:counter :a] msg/type :init :value 0}
+                                          {msg/topic [:counter :b] msg/type :init :value 0}]}]
+                      :emit [{:in #{[:counter :*]} :fn default-emitter
+                              :init (fn [_] [{:counter {:a {} :b {}}}])}]}
+            app (build dataflow)
+            _ (begin app)
+            results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
+            results (standardize-results results)]
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:counter] :map]
+                [:node-create [:counter :a] :map]
+                [:node-create [:counter :b] :map]
+                [:value [:counter :a] nil 0]
+                [:value [:counter :b] nil 0]
+                [:value [:counter :a] 0 1]])))))
+  
+  (testing "new style app with two counters"
+    (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))]
+      (let [dataflow {:transform [[:inc [:counter :*] count-transform]]
+                      :emit [[#{[:counter :*]} default-emitter]]}
+            app (build dataflow)
+            _ (begin app)
+            results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
+            results (standardize-results results)]
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:counter] :map]
+                [:node-create [:counter :a] :map]
+                [:value [:counter :a] nil 1]]))))))
