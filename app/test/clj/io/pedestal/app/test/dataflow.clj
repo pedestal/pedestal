@@ -408,19 +408,31 @@
                              {:fn sum-d :in #{[:b] [:c]} :out [:d]}}
                 :continue  #{{:fn (min-c 10) :in #{[:d]}}}
                 :effect    #{{:fn (comp vector input-map) :in #{[:d]}}}
-                :emit      [[#{[:d]} (comp vector input-vals)]]}})
+                :emit      [[#{[:d]} (comp vector input-vals)]]}
+
+   :always-emit {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
+                 :transform [{:key :inc :fn inc-t         :out [:a]}]
+                 :derive    #{{:fn double-d :in #{[:a]}   :out [:b]}
+                              {:fn sum-d :in #{[:a]}      :out [:c]}
+                              {:fn sum-d :in #{[:b] [:c]} :out [:d]}}
+                 :continue  #{{:fn (min-c 10) :in #{[:d]}}}
+                 :effect    #{{:fn (comp vector input-map) :in #{[:d]}}}
+                 :emit      [{:in #{[:a]} :fn (fn [i] [[:always1 (input-map i)]]) :mode :always}
+                             {:in #{[:a]} :fn (fn [i] [[:always2 (input-map i)]]) :mode :always}
+                             [#{[:d] [:a]} (fn [i] [[:order3 (input-map i)]])]
+                             [#{[:a]} (fn [i] [[:order4 (input-map i)]])]]}})
 
 (defn flow [k]
   (build (k flows)))
 
 (deftest test-flow-phases-step
   (is (= (:new (flow-phases-step (flow :one-derive)
-                                 {:old {:data-model {:a 0}}
-                                  :new {:data-model {:a 0}}
+                                 {:old {:data-model {:a 1}}
+                                  :new {:data-model {:a 1}}
                                   :dataflow (flow :one-derive)
                                   :context {:message {:out [:a] :key :inc}}}
                                  {:out [:a] :key :inc}))
-         {:data-model {:a 1 :b 2}}))
+         {:data-model {:a 2 :b 4}}))
   (is (= (:new (flow-phases-step (flow :continue-to-10)
                                  {:new {:data-model {:a 0}}
                                   :old {:data-model {:a 0}}
@@ -471,7 +483,15 @@
               {msg/topic [:a] msg/type :inc})
          {:data-model {:a 4 :b 8 :c 4 :d 12}
           :effect [{[:d] 12}]
-          :emit [[12]]})))
+          :emit [[12]]}))
+  (is (= (run (flow :always-emit)
+              {:a 0}
+              {msg/topic [:a] msg/type :inc})
+         {:data-model {:a 4 :b 8 :c 4 :d 12}
+          :effect [{[:d] 12}]
+          :emit [[:always1 {[:a] 4}]
+                 [:always2 {[:a] 4}]
+                 [:order3 {[:a] 4 [:d] 12}]]})))
 
 
 
