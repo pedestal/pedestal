@@ -28,7 +28,7 @@
 (defn parse-url
   [url]
   (->> url
-      (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]+)(?:\?(.*))?)?")
+      (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?")
       (drop 1)
       ((fn [[scheme host path query-string]]
          {:scheme scheme
