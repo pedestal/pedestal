@@ -119,10 +119,24 @@
       (apply-in state out-path transform-fn (:message context))
       state)))
 
-(defn inputs-changed? [change input-paths]
-  (when (seq change)
-    (let [all-inputs (reduce into (vals change))]
-      (some (fn [x] (some (partial descendent? x) all-inputs)) input-paths))))
+(defn- input-change-propagator
+  "The default propagator predicate. Return true if any of the changed
+  paths are on the same path as the input path."
+  [state changed-inputs input-path]
+  (some (partial descendent? input-path) changed-inputs))
+
+(defn propagate?
+  "Return true if a dependent function should be run based on the
+  state of its input paths.
+
+  Custom propagator predicates can be provided by attaching
+  :propagator metadata to any input path."
+  [{:keys [change] :as state} input-paths]
+  (let [changed-inputs (if (seq change) (reduce into (vals change)) [])]
+    (some (fn [input-path]
+            (let [propagator-pred (:propagator (meta input-path))]
+              (propagator-pred state changed-inputs input-path)))
+          input-paths)))
 
 (defn input-set [changes f input-paths]
   (set (f (fn [x] (some (partial descendent? x) input-paths)) changes)))
@@ -146,8 +160,8 @@
   function has changed. Return an updated flow state."
   [{:keys [dataflow context] :as state}]
   (let [derives (:derive dataflow)]
-    (reduce (fn [{:keys [old new change] :as acc} [derive-fn input-paths out-path]]
-              (if (inputs-changed? change input-paths)
+    (reduce (fn [{:keys [change] :as acc} [derive-fn input-paths out-path]]
+              (if (propagate? acc input-paths)
                 (apply-in acc out-path derive-fn (flow-input context acc input-paths change))
                 acc))
             state
@@ -158,7 +172,7 @@
   [{:keys [dataflow context] :as state} k]
   (let [fns (k dataflow)]
     (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in}]
-              (if (inputs-changed? change input-paths)
+              (if (propagate? acc input-paths)
                 (update-in acc [:new k] (fnil into [])
                            (f (flow-input context acc input-paths change)))
                 acc))
@@ -185,7 +199,7 @@
                                                                emit-fn :fn
                                                                mode :mode}]
                   (let [report-change (if (= mode :always) change remaining-change)]
-                    (if (inputs-changed? report-change input-paths)
+                    (if (propagate? (assoc acc :change report-change) input-paths)
                       (-> acc
                           (update-in [:remaining-change] remove-matching-changes input-paths)
                           (update-in [:new :emit] (fnil into [])
@@ -238,6 +252,21 @@
 (defn add-default [v d]
   (or v d))
 
+(defn with-propagator
+  "Add a propagator predicate to each input path returning a set of
+  input paths.
+
+  The single argument version will add the default propagator
+  predicate."
+  ([ins]
+     (with-propagator ins input-change-propagator))
+  ([ins propagator]
+     (set (mapv (fn [i]
+                  (if (:propagator (meta i))
+                    i
+                    (vary-meta i assoc :propagator propagator)))
+                ins))))
+
 (defn transform-maps [transforms]
   (mapv (fn [x]
           (if (vector? x)
@@ -248,15 +277,15 @@
 (defn derive-maps [derives]
   (mapv (fn [x]
           (if (vector? x)
-            (let [[in out fn] x] {:in in :out out :fn fn})
-            x))
+            (let [[in out fn] x] {:in (with-propagator in) :out out :fn fn})
+            (update-in x [:in] with-propagator)))
         derives))
 
 (defn output-maps [outputs]
   (mapv (fn [x]
           (if (vector? x)
-            (let [[in fn] x] {:in in :fn fn})
-            x))
+            (let [[in fn] x] {:in (with-propagator in) :fn fn})
+            (update-in x [:in] with-propagator)))
         outputs))
 
 (defn build
@@ -264,10 +293,10 @@
   configuration is shown below:
 
   {:transform [[:op [:output :path] transform-fn]]
-   :effect {effect-fn #{[:input :path]}}
-   :derive [{:fn derive-fn :in #{[:input :path]} :out [:output :path]}]
-   :continue {some-continue-fn #{[:input :path]}}
-   :emit [[#{[:input :path]} emit-fn]]}
+   :effect    #{{:fn effect-fn :in #{[:input :path]}}}
+   :derive    #{{:fn derive-fn :in #{[:input :path]} :out [:output :path]}}
+   :continue  #{{:fn some-continue-fn :in #{[:input :path]}}}
+   :emit      [[#{[:input :path]} emit-fn]]}
   "
   [description]
   (-> description

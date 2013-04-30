@@ -196,19 +196,24 @@
     (is (= (input-set changes filter #{[:a :b :*] [:g :* :h :*]})
            #{[:a :b 1] [:g 1 :h 2]}))))
 
-(deftest test-inputs-changed?
-  (is (inputs-changed? {:updated #{[:a]}} #{[:a]}))
-  (is (inputs-changed? {:updated #{[:a]} :added #{[:b]}} #{[:a]}))
-  (is (inputs-changed? {:updated #{[:a]} :added #{[:b]}} #{[:a]}))
-  (is (inputs-changed? {:updated #{[:a :b :c]}} #{[:a :*]}))
-  (is (not (inputs-changed? {:updated #{[:a :b :c]}} #{[:b :*]}))))
+(deftest test-propagate?
+  (is (propagate? {:change {:updated #{[:a]}}}
+                  (with-propagator #{[:a]})))
+  (is (propagate? {:change {:updated #{[:a]} :added #{[:b]}}}
+                  (with-propagator #{[:a]})))
+  (is (propagate? {:change {:updated #{[:a]} :added #{[:b]}}}
+                  (with-propagator #{[:a]})))
+  (is (propagate? {:change {:updated #{[:a :b :c]}}}
+                  (with-propagator #{[:a :*]})))
+  (is (not (propagate? {:change {:updated #{[:a :b :c]}}}
+                       (with-propagator #{[:b :*]})))))
 
 (deftest test-derive-phase
   (let [double-sum-fn (fn [_ input] (* 2 (reduce + (input-vals input))))]
     (let [state {:change {:updated #{[:a]}}
                  :old {:data-model {:a 0}}
                  :new {:data-model {:a 2}}
-                 :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]]}
+                 :dataflow {:derive [[double-sum-fn (with-propagator #{[:a]}) [:b]]]}
                  :context {}}]
       (is (= (derive-phase state)
              (-> state
@@ -217,8 +222,8 @@
     (let [state {:change {:updated #{[:a]}}
                  :old {:data-model {:a 0}}
                  :new {:data-model {:a 2}}
-                 :dataflow {:derive [[double-sum-fn #{[:a]} [:b]]
-                                     [double-sum-fn #{[:a]} [:c]]]}
+                 :dataflow {:derive [[double-sum-fn (with-propagator #{[:a]}) [:b]]
+                                     [double-sum-fn (with-propagator #{[:a]}) [:c]]]}
                  :context {}}]
       (is (= (derive-phase state)
              (-> state
@@ -229,7 +234,7 @@
             state {:change {:updated #{[:a]}}
                    :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
                    :new {:data-model {:a 2 :b {:c {:x {:y 10 :z 15}}}}}
-                   :dataflow {:derive [[d #{[:a]} [:b :c]]]}
+                   :dataflow {:derive [[d (with-propagator #{[:a]}) [:b :c]]]}
                    :context {}}]
         (is (= (derive-phase state)
                (merge state
@@ -241,7 +246,7 @@
         state {:change {:updated #{[:a]}}
                :old {:data-model {:a 0}}
                :new {:data-model {:a 2}}
-               :dataflow {:continue #{{:fn continue-fn :in #{[:a]}}}}
+               :dataflow {:continue #{{:fn continue-fn :in (with-propagator #{[:a]})}}}
                :context {}}]
     (is (= (continue-phase state)
            (assoc-in state [:new :continue] [{msg/topic :x msg/type :y :value 2}])))))
@@ -251,7 +256,7 @@
         state {:change {:updated #{[:a]}}
                :old {:data-model {:a 0}}
                :new {:data-model {:a 2}}
-               :dataflow {:effect #{{:fn output-fn :in #{[:a]}}}}
+               :dataflow {:effect #{{:fn output-fn :in (with-propagator #{[:a]})}}}
                :context {}}]
     (is (= (effect-phase state)
            (assoc-in state [:new :effect] [{msg/topic :x msg/type :y :value 2}])))))
@@ -270,18 +275,19 @@
                                   :c {1 {:x 6 :y 5 :z 2}
                                       2 {:x 4 :y 7 :z 3}
                                       3 {:x 8 :y 1 :z 4}}}}
-               :dataflow {:emit [{:in #{[:a]}       :fn (emit-fn :one)}
-                                 {:in #{[:b]}       :fn (emit-fn :two)}
-                                 {:in #{[:c :* :x]} :fn (emit-fn :three)}
-                                 {:in #{[:c :* :y]} :fn (emit-fn :four)}
-                                 {:in #{[:c :*]}    :fn (emit-fn :five)}
-                                 {:in #{[:*]}       :fn (emit-fn :six)}]}
+               :dataflow {:emit [{:in (with-propagator #{[:a]})       :fn (emit-fn :one)}
+                                 {:in (with-propagator #{[:b]})       :fn (emit-fn :two)}
+                                 {:in (with-propagator #{[:c :* :x]}) :fn (emit-fn :three)}
+                                 {:in (with-propagator #{[:c :* :y]}) :fn (emit-fn :four)}
+                                 {:in (with-propagator #{[:c :*]})    :fn (emit-fn :five)}
+                                 {:in (with-propagator #{[:*]})       :fn (emit-fn :six)}]}
                :context {}}]
     (is (= (emit-phase state) state))
     (let [state (-> state
                     (assoc-in [:new :data-model :a] 1)
                     (assoc :change {:updated #{[:a]}})
-                    (assoc-in [:dataflow :emit] [{:in #{[:*]} :fn (emit-fn :six)}]))]
+                    (assoc-in [:dataflow :emit] [{:in (with-propagator #{[:*]})
+                                                  :fn (emit-fn :six)}]))]
       (is (= (emit (emit-phase state))
              #{{:six {:inputs {[:a] 1
                                [:b] 11
@@ -396,6 +402,10 @@
   {:one-derive     {:transform [[:inc [:a] inc-t]]
                     :derive #{[#{[:a]} [:b] double-d]}}
    
+   :identity       {:transform [[:id [:a] (fn [old-value message] old-value)]]
+                    :effect #{{:fn (comp vector input-map)
+                               :in (with-propagator #{[:a]} (constantly true))}}}
+   
    :continue-to-10 {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                     :transform [{:key :inc :out [:a] :fn inc-t}]
                     :derive #{{:fn double-d :in #{[:a]} :out [:b]}}
@@ -491,7 +501,13 @@
           :effect [{[:d] 12}]
           :emit [[:always1 {[:a] 4}]
                  [:always2 {[:a] 4}]
-                 [:order3 {[:a] 4 [:d] 12}]]})))
+                 [:order3 {[:a] 4 [:d] 12}]]}))
+  (testing "custom propagator works"
+    (is (= (run (flow :identity)
+                {:a 1}
+                {:out [:a] :key :id})
+           {:data-model {:a 1}
+            :effect [{[:a] 1}]}))))
 
 
 
