@@ -870,7 +870,7 @@
     (let [init-transform (fn [t-state message] (:value message))
           count-transform (fn [t-state message] ((fnil inc 0) t-state))]
       (let [dataflow {:transform [[:init [:counter :*] init-transform]
-                                  {:key :inc :out [:counter :*] :fn count-transform
+                                  {msg/type :inc msg/topic [:counter :*] :fn count-transform
                                    :init [{msg/topic [:counter :a] msg/type :init :value 0}
                                           {msg/topic [:counter :b] msg/type :init :value 0}]}]
                       :emit [{:in #{[:counter :*]} :fn default-emitter

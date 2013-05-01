@@ -10,7 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^:shared io.pedestal.app
-    (:require [io.pedestal.app.protocols :as p]
+    (:require [clojure.set :as set]
+              [io.pedestal.app.protocols :as p]
               [io.pedestal.app.messages :as msg]
               [io.pedestal.app.queue :as queue]
               [io.pedestal.app.tree :as tree]
@@ -158,14 +159,28 @@
                                    msg/type :deltas
                                    :deltas deltas}))))))
 
+(defn- ensure-default-emitter [emit]
+  (if (empty? emit)
+    [[#{[:*]} default-emitter]]
+    emit))
+
+(defn- ensure-input-adapter [input-adapter]
+  (if-not input-adapter
+    (fn [m] {:key (msg/type m) :out (msg/topic m)})
+    input-adapter))
+
+(defn- rekey-transforms [transforms]
+  (mapv #(if (map? %)
+           (set/rename-keys % {msg/type :key msg/topic :out})
+           %)
+        transforms))
+
 (defn build [description]
   (let [app-atom (atom {:data-model {}})
-        description (if (empty? (:emit description))
-                      (assoc description :emit [[#{[:*]} default-emitter]])
-                      description)
-        description (if-not (:input-adapter description)
-                      (assoc description :input-adapter (fn [m] {:key (msg/type m) :out (msg/topic m)}))
-                      description)
+        description (-> description
+                        (update-in [:emit] ensure-default-emitter)
+                        (update-in [:input-adapter] ensure-input-adapter)
+                        (update-in [:transform] rekey-transforms))
         dataflow (dataflow/build description)
         input-queue (queue/queue :input)
         output-queue (queue/queue :output)
