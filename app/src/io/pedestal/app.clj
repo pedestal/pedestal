@@ -38,7 +38,7 @@
                (let [removed (dataflow/removed-map inputs)]
                  (mapv (fn [[k v]] [:node-destroy k]) removed)))))
 
-(defmulti process-app-model-message (fn [state flow message] (msg/type message)))
+(defmulti ^:private process-app-model-message (fn [state flow message] (msg/type message)))
 
 (defmethod process-app-model-message :default [state flow message]
   state)
@@ -95,9 +95,9 @@
   (= (take (count prefix) path)
      prefix))
 
-(def special-ops {:navigate-node-destroy :node-destroy})
+(def ^:private special-ops {:navigate-node-destroy :node-destroy})
 
-(defn filter-deltas [state deltas]
+(defn- filter-deltas [state deltas]
   (let [subscriptions (:subscriptions state)]
     (mapv (fn [[op & xs :as delta]]
             (if (special-ops op) (apply vector (special-ops op) xs) delta))
@@ -106,11 +106,11 @@
                         (some (fn [s] (path-starts-with? path s)) subscriptions)))
                   (mapcat tree/expand-map deltas)))))
 
-(defn run-dataflow [state flow message]
+(defn- run-dataflow [state flow message]
   (let [result (dataflow/run flow (:data-model state) message)]
     (merge state result)))
 
-(defn process-message
+(defn- process-message
   "Using the given flow, process the given message producing a new
   state."
   [state flow message]
@@ -123,7 +123,7 @@
         (assoc :emitter-deltas new-deltas)
         (dissoc :emit))))
 
-(defn transact-one [state flow message]
+(defn- transact-one [state flow message]
   (process-message (assoc state :input message) flow message))
 
 

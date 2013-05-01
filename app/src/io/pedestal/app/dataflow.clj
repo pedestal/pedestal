@@ -12,18 +12,18 @@
 (ns ^:shared io.pedestal.app.dataflow
     (:require [io.pedestal.app.data.tracking-map :as tm]))
 
-(defn matching-path-element?
+(defn- matching-path-element?
   "Return true if the two elements match."
   [a b]
   (or (= a b) (= a :*) (= b :*)))
 
-(defn matching-path?
+(defn- matching-path?
   "Return true if the two paths match."
   [path-a path-b]
   (and (= (count path-a) (count path-b))
        (every? true? (map (fn [a b] (matching-path-element? a b)) path-a path-b))))
 
-(defn descendent?
+(defn- descendent?
   "Return true if one path could be the parent of the other."
   [path-a path-b]
   (let [[small large] (if (< (count path-a) (count path-b))
@@ -41,7 +41,7 @@
             graph (reduce topo-visit graph (:deps n))]
         (assoc graph ::order (conj (::order graph) node))))))
 
-(defn sort-derive-fns
+(defn- sort-derive-fns
   "Return a sorted sequence of derive function configurations. The
   input sequence will have the following shape:
 
@@ -70,14 +70,14 @@
                      []
                      (::order (reduce topo-visit (assoc graph ::order []) (keys graph)))))))
 
-(defn sorted-derive-vector
+(defn- sorted-derive-vector
   "Convert derive function config to a vector and sort in dependency
   order."
   [derive-fns]
   (sort-derive-fns
    (mapv (fn [{:keys [in out fn]}] [fn in out]) derive-fns)))
 
-(defn find-transform
+(defn- find-transform
   "Given a transform configuration vector, find the first transform
   function which matches the given message."
   [transforms topic type]
@@ -95,20 +95,20 @@
 (defn- merge-changes [old-changes new-changes]
   (merge-with into old-changes new-changes))
 
-(defn update-flow-state [state tracking-map]
+(defn- update-flow-state [state tracking-map]
   (-> state
       (assoc-in [:new :data-model] @tracking-map)
       (update-in [:change] merge-changes (tm/changes tracking-map))))
 
-(defn track-update-in [data-model out-path f & args]
+(defn- track-update-in [data-model out-path f & args]
   (apply update-in (tm/tracking-map data-model) out-path f args))
 
-(defn apply-in [state out-path f & args]
+(defn- apply-in [state out-path f & args]
   (let [data-model (get-in state [:new :data-model])
         new-data-model (apply track-update-in data-model out-path f args)]
     (update-flow-state state new-data-model)))
 
-(defn transform-phase
+(defn- transform-phase
   "Find the first transform function that matches the message and
   execute it, returning the updated flow state."
   [{:keys [new dataflow context] :as state}]
@@ -125,7 +125,7 @@
   [state changed-inputs input-path]
   (some (partial descendent? input-path) changed-inputs))
 
-(defn propagate?
+(defn- propagate?
   "Return true if a dependent function should be run based on the
   state of its input paths.
 
@@ -138,16 +138,16 @@
               (propagator-pred state changed-inputs input-path)))
           input-paths)))
 
-(defn input-set [changes f input-paths]
+(defn- input-set [changes f input-paths]
   (set (f (fn [x] (some (partial descendent? x) input-paths)) changes)))
 
-(defn update-input-sets [m ks f input-paths]
+(defn- update-input-sets [m ks f input-paths]
   (reduce (fn [a k]
             (update-in a [k] input-set f input-paths))
           m
           ks))
 
-(defn flow-input [context state input-paths change]
+(defn- flow-input [context state input-paths change]
   (-> context
       (assoc :new-model (get-in state [:new :data-model]))
       (assoc :old-model (get-in state [:old :data-model]))
@@ -155,7 +155,7 @@
       (merge (select-keys change [:added :updated :removed]))
       (update-input-sets [:added :updated :removed] filter input-paths)))
 
-(defn derive-phase
+(defn- derive-phase
   "Execute each derive function in dependency order only if some input to the
   function has changed. Return an updated flow state."
   [{:keys [dataflow context] :as state}]
@@ -179,12 +179,12 @@
             state
             fns)))
 
-(defn continue-phase
+(defn- continue-phase
   "Execute each continue function. Return an updated flow state."
   [state]
   (output-phase state :continue))
 
-(defn effect-phase
+(defn- effect-phase
   "Execute each effect function. Return an updated flow state."
   [state]
   (output-phase state :effect))
@@ -192,7 +192,7 @@
 (defn remove-matching-changes [change input-paths]
   (update-input-sets change [:inspect :added :updated :removed] remove input-paths))
 
-(defn emit-phase
+(defn- emit-phase
   [{:keys [dataflow context change] :as state}]
   (let [emits (:emit dataflow)]
     (-> (reduce (fn [{:keys [change remaining-change] :as acc} {input-paths :in
@@ -209,7 +209,7 @@
                 emits)
         (dissoc :remaining-change))))
 
-(defn flow-phases-step
+(defn- flow-phases-step
   "Given a dataflow, a state and a message, run the message through
   the dataflow and return the updated state. The dataflow will be
   run only once."
@@ -220,7 +220,7 @@
         derive-phase
         continue-phase)))
 
-(defn run-flow-phases
+(defn- run-flow-phases
   [dataflow state message]
   (let [{{continue :continue} :new :as result} (flow-phases-step dataflow state message)]
     (if (empty? continue)
@@ -232,7 +232,7 @@
               result
               continue))))
 
-(defn run-all-phases
+(defn- run-all-phases
   [dataflow model message]
   (let [dm {:data-model model}
         state {:old dm
@@ -245,11 +245,7 @@
               effect-phase
               emit-phase))))
 
-
-;; Public API
-;; ================================================================================
-
-(defn add-default [v d]
+(defn- add-default [v d]
   (or v d))
 
 (defn with-propagator
@@ -267,21 +263,21 @@
                     (vary-meta i assoc :propagator propagator)))
                 ins))))
 
-(defn transform-maps [transforms]
+(defn- transform-maps [transforms]
   (mapv (fn [x]
           (if (vector? x)
             (let [[key out fn] x] {:key key :out out :fn fn})
             x))
         transforms))
 
-(defn derive-maps [derives]
+(defn- derive-maps [derives]
   (mapv (fn [x]
           (if (vector? x)
             (let [[in out fn] x] {:in (with-propagator in) :out out :fn fn})
             (update-in x [:in] with-propagator)))
         derives))
 
-(defn output-maps [outputs]
+(defn- output-maps [outputs]
   (mapv (fn [x]
           (if (vector? x)
             (let [[in fn] x] {:in (with-propagator in) :fn fn})
@@ -311,7 +307,7 @@
 (defn run [dataflow model message]
   (run-all-phases dataflow model message))
 
-(defn get-path
+(defn- get-path
   "Returns a sequence of [path value] tuples"
   ([data path]
      (get-path data [] path))

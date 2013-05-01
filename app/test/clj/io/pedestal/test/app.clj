@@ -17,6 +17,8 @@
         io.pedestal.app.util.test
         clojure.test))
 
+(refer-privates io.pedestal.app filter-deltas)
+
 (defn input->emitter-output
   "Given a sequence of states return a sequence of maps with :input
   and :emitter."

@@ -12,7 +12,10 @@
 (ns io.pedestal.app.test.dataflow
   (:require [io.pedestal.app.messages :as msg])
   (:use io.pedestal.app.dataflow
+        io.pedestal.app.util.test
         clojure.test))
+
+(refer-privates io.pedestal.app.dataflow :all)
 
 (deftest test-matching-path?
   (is (matching-path? [] []))
@@ -39,8 +42,7 @@
   (is (not (descendent? [:a :* :c] [:a :b :g]))))
 
 (deftest test-topo-sort
-  (let [topo-visit #'io.pedestal.app.dataflow/topo-visit
-        graph {1 {:deps #{}}
+  (let [graph {1 {:deps #{}}
                2 {:deps #{1}}
                3 {:deps #{2}}
                4 {:deps #{1 2}}
