@@ -365,4 +365,12 @@
   (changed-inputs inputs updated-map))
 
 (defn removed-inputs [inputs]
-  (changed-inputs inputs removed-map))
+  (let [removed (keys (removed-map inputs))
+        paths (concat (keys (input-map inputs))
+                      removed)]
+    (reduce (fn [a path]
+              (if (some #(descendent? path %) removed)
+                (assoc a path (get-in inputs (concat [:new-model] path)))
+                a))
+            {}
+            paths)))

@@ -901,3 +901,103 @@
                 [:node-create [:counter] :map]
                 [:node-create [:counter :a] :map]
                 [:value [:counter :a] nil 1]]))))))
+
+(deftest test-default-emitter
+  (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))
+        dissoc-transform (fn [t-state message] (dissoc t-state (:key message)))]
+    (let [dataflow {:transform [[:inc [:* :counter :*] count-transform]
+                                [:dissoc [:**] dissoc-transform]]
+                    :emit [[#{[:*]} default-emitter]]
+                    :focus {:a [[:a]]
+                            :b [[:b]]
+                            :default :a}}
+          messages [{msg/topic [:a :counter :a] msg/type :inc}
+                    {msg/topic [:a :counter :b] msg/type :inc}
+                    {msg/topic [:b :counter :c] msg/type :inc}
+                    {msg/topic [:b :counter :d] msg/type :inc}
+                    {msg/topic msg/app-model msg/type :navigate :name :b}
+                    {msg/topic [:b :counter] msg/type :dissoc :key :d}
+                    {msg/topic [:b :counter :c] msg/type :inc}
+                    {msg/topic [:b] msg/type :dissoc :key :counter}
+                    {msg/topic msg/app-model msg/type :navigate :name :a}]]
+      (let [app (build dataflow)
+            _ (begin app)
+            results (run-sync! app messages)
+            results (standardize-results results)]
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:a] :map]
+                [:value [:a] nil {:counter {:a 1}}]
+                [:value [:a] {:counter {:a 1}} {:counter {:a 1 :b 1}}]
+                [:value [:a] {:counter {:a 1 :b 1}} nil]
+                [:node-destroy [:a] :map]
+                [:node-create [:b] :map]
+                [:value [:b] nil {:counter {:c 1 :d 1}}]
+                [:value [:b] {:counter {:c 1 :d 1}} {:counter {:c 1}}]
+                [:value [:b] {:counter {:c 1}} {:counter {:c 2}}]
+                [:value [:b] {:counter {:c 2}} {}]
+                [:value [:b] {} nil]
+                [:node-destroy [:b] :map]
+                [:node-create [:a] :map]
+                [:value [:a] nil {:counter {:a 1 :b 1}}]])))
+      (let [app (build (assoc dataflow :emit [[#{[:* :*]} default-emitter]]))
+            _ (begin app)
+            results (run-sync! app messages)
+            results (standardize-results results)]
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:a] :map]
+                [:node-create [:a :counter] :map]
+                [:value [:a :counter] nil {:a 1}]
+                [:value [:a :counter] {:a 1} {:a 1 :b 1}]
+                [:value [:a :counter] {:a 1 :b 1} nil]
+                [:node-destroy [:a :counter] :map]
+                [:node-destroy [:a] :map]
+                [:node-create [:b] :map]
+                [:node-create [:b :counter] :map]
+                [:value [:b :counter] nil {:c 1 :d 1}]
+                [:value [:b :counter] {:c 1 :d 1} {:c 1}]
+                [:value [:b :counter] {:c 1} {:c 2}]
+                [:value [:b :counter] {:c 2} nil]
+                [:node-destroy [:b :counter] :map]
+                [:node-destroy [:b] :map]
+                [:node-create [:a] :map]
+                [:node-create [:a :counter] :map]
+                [:value [:a :counter] nil {:a 1 :b 1}]])))
+      (let [app (build (assoc dataflow :emit [[#{[:* :* :*]} default-emitter]]))
+            _ (begin app)
+            results (run-sync! app messages)
+            results (standardize-results results)]
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:a] :map]
+                [:node-create [:a :counter] :map]
+                [:node-create [:a :counter :a] :map]
+                [:value [:a :counter :a] nil 1]
+                [:node-create [:a :counter :b] :map]
+                [:value [:a :counter :b] nil 1]
+                [:value [:a :counter :b] 1 nil]
+                [:node-destroy [:a :counter :b] :map]
+                [:value [:a :counter :a] 1 nil]
+                [:node-destroy [:a :counter :a] :map]
+                [:node-destroy [:a :counter] :map]
+                [:node-destroy [:a] :map]
+                [:node-create [:b] :map]
+                [:node-create [:b :counter] :map]
+                [:node-create [:b :counter :c] :map]
+                [:value [:b :counter :c] nil 1]
+                [:node-create [:b :counter :d] :map]
+                [:value [:b :counter :d] nil 1]
+                [:value [:b :counter :d] 1 nil]
+                [:node-destroy [:b :counter :d] :map]
+                [:value [:b :counter :c] 1 2]
+                [:value [:b :counter :c] 2 nil]
+                [:node-destroy [:b :counter :c] :map]
+                [:node-destroy [:b :counter] :map]
+                [:node-destroy [:b] :map]
+                [:node-create [:a] :map]
+                [:node-create [:a :counter] :map]
+                [:node-create [:a :counter :a] :map]
+                [:value [:a :counter :a] nil 1]
+                [:node-create [:a :counter :b] :map]
+                [:value [:a :counter :b] nil 1]]))))))

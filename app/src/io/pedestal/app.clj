@@ -16,8 +16,9 @@
               [io.pedestal.app.tree :as tree]
               [io.pedestal.app.dataflow :as dataflow]))
 
-;; the default emitter fn used by version 1.0 dataflow
 (defn default-emitter-fn
+  "The default emitter function used by the previous dataflow
+  version. All new dataflows should use the default-emitter function."
   ([inputs]
      (vec (mapcat (fn [[k v]]
                     [[:node-create [k] :map]
@@ -35,8 +36,11 @@
                          added))
                (let [updates (dataflow/updated-inputs inputs)]
                  (mapv (fn [[k v]] [:value k v]) updates))
-               (let [removed (dataflow/removed-map inputs)]
-                 (mapv (fn [[k v]] [:node-destroy k]) removed)))))
+               (let [removed (dataflow/removed-inputs inputs)]
+                 (mapcat (fn [[k v]]
+                           (if v
+                             [[:value k v]]
+                             [[:value k v] [:node-destroy k]])) removed)))))
 
 (defmulti ^:private process-app-model-message (fn [state flow message] (msg/type message)))
 
@@ -44,8 +48,9 @@
   state)
 
 (defn- refresh-emitters [state flow]
-  (reduce (fn [deltas {in :in init-emitter :init}]
-            (let [dm (:data-model state)
+  (reduce (fn [deltas {in :in init-emitter :init emitter :fn}]
+            (let [init-emitter (or init-emitter emitter)
+                  dm (:data-model state)
                   inputs {:new-model dm
                           :old-model dm
                           :input-paths in
