@@ -54,3 +54,17 @@
                        (inc c)
                        0)))))))
     @record-states))
+
+(defmacro refer-privates
+  "Refer private functions into the current namespace. Use
+
+  (refer-privates :all)
+
+  to refer all privates."
+  [ns s & syms]
+  (let [xs (if (= s :all)
+             (for [[_ v] (ns-interns ns)
+                   :when (:private (meta v))]
+               [(:name (meta v)) v])
+             (mapv (fn [sym] [sym (ns-resolve ns sym)]) (cons s syms))) ]
+    `(do ~@(mapv (fn [[s v]] `(def ~s ~v)) xs))))
