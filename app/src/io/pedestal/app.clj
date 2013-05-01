@@ -266,16 +266,14 @@
 ;; support new and old description keys
 (defn- rekey-description
   [description]
-  (let [key-map {:models :transform
-                 :views :derive
-                 :combine :derive
-                 :emitters :emit
-                 :output :effect
-                 :feedback :continue
-                 :navigation :focus}
-        key-values (vals key-map)]
-    (into {} (map (fn [[k v]] [(or (key-map k)
-                                  (some #{k} key-values)) v]) description))))
+  (set/rename-keys description
+                   {:models :transform
+                    :views :derive
+                    :combine :derive
+                    :emitters :emit
+                    :output :effect
+                    :feedback :continue
+                    :navigation :focus}))
 
 (defn- convert-transform [transforms]
   (reduce (fn [a [k {init :init transform-fn :fn}]]
