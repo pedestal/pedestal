@@ -873,41 +873,44 @@
                                   {msg/type :inc msg/topic [:counter :*] :fn count-transform
                                    :init [{msg/topic [:counter :a] msg/type :init :value 0}
                                           {msg/topic [:counter :b] msg/type :init :value 0}]}]
-                      :emit [{:in #{[:counter :*]} :fn default-emitter
-                              :init (fn [_] [{:counter {:a {} :b {}}}])}]}
+                      :emit [{:in #{[:counter :*]} :fn (default-emitter :root)
+                              :init (fn [_] [{:root {:counter {:a {} :b {}}}}])}]}
             app (build dataflow)
             _ (begin app)
             results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
             results (standardize-results results)]
         (is (= (apply concat (map :emitter-deltas results))
                [[:node-create [] :map]
-                [:node-create [:counter] :map]
-                [:node-create [:counter :a] :map]
-                [:node-create [:counter :b] :map]
-                [:value [:counter :a] nil 0]
-                [:value [:counter :b] nil 0]
-                [:value [:counter :a] 0 1]])))))
+                [:node-create [:root] :map]
+                [:node-create [:root :counter] :map]
+                [:node-create [:root :counter :a] :map]
+                [:node-create [:root :counter :b] :map]
+                [:value [:root :counter :a] nil 0]
+                [:value [:root :counter :b] nil 0]
+                [:value [:root :counter :a] 0 1]])))))
   
-  (testing "new style app with two counters"
+  (testing "shorter version of new style app with two counters"
     (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))]
       (let [dataflow {:transform [[:inc [:counter :*] count-transform]]
-                      :emit [[#{[:counter :*]} default-emitter]]}
+                      :emit [[#{[:counter :*]} (default-emitter [:root :path])]]}
             app (build dataflow)
             _ (begin app)
             results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
             results (standardize-results results)]
         (is (= (apply concat (map :emitter-deltas results))
                [[:node-create [] :map]
-                [:node-create [:counter] :map]
-                [:node-create [:counter :a] :map]
-                [:value [:counter :a] nil 1]]))))))
+                [:node-create [:root] :map]
+                [:node-create [:root :path] :map]
+                [:node-create [:root :path :counter] :map]
+                [:node-create [:root :path :counter :a] :map]
+                [:value [:root :path :counter :a] nil 1]]))))))
 
 (deftest test-default-emitter
   (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))
         dissoc-transform (fn [t-state message] (dissoc t-state (:key message)))]
     (let [dataflow {:transform [[:inc [:* :counter :*] count-transform]
                                 [:dissoc [:**] dissoc-transform]]
-                    :emit [[#{[:*]} default-emitter]]
+                    :emit [[#{[:*]} (default-emitter [])]]
                     :focus {:a [[:a]]
                             :b [[:b]]
                             :default :a}}
@@ -940,7 +943,7 @@
                 [:node-destroy [:b] :map]
                 [:node-create [:a] :map]
                 [:value [:a] nil {:counter {:a 1 :b 1}}]])))
-      (let [app (build (assoc dataflow :emit [[#{[:* :*]} default-emitter]]))
+      (let [app (build (assoc dataflow :emit [[#{[:* :*]} (default-emitter [])]]))
             _ (begin app)
             results (run-sync! app messages)
             results (standardize-results results)]
@@ -964,7 +967,7 @@
                 [:node-create [:a] :map]
                 [:node-create [:a :counter] :map]
                 [:value [:a :counter] nil {:a 1 :b 1}]])))
-      (let [app (build (assoc dataflow :emit [[#{[:* :* :*]} default-emitter]]))
+      (let [app (build (assoc dataflow :emit [[#{[:* :* :*]} (default-emitter [])]]))
             _ (begin app)
             results (run-sync! app messages)
             results (standardize-results results)]

@@ -30,18 +30,24 @@
              [:value [changed-input] (:new (get inputs changed-input))])
            changed-inputs)))
 
-(defn default-emitter [inputs]
-  (vec (concat (let [added (dataflow/added-inputs inputs)]
-                 (mapcat (fn [[k v]] [[:node-create k :map]
-                                     [:value k v]])
-                         added))
-               (let [updates (dataflow/updated-inputs inputs)]
-                 (mapv (fn [[k v]] [:value k v]) updates))
-               (let [removed (dataflow/removed-inputs inputs)]
-                 (mapcat (fn [[k v]]
-                           (if v
-                             [[:value k v]]
-                             [[:value k v] [:node-destroy k]])) removed)))))
+(letfn [(prefixed [k p] (vec (concat (if (keyword? p) [p] p) k)))]
+  (defn default-emitter [prefix]
+    (fn [inputs]
+      (vec (concat (let [added (dataflow/added-inputs inputs)]
+                     (mapcat (fn [[k v]]
+                               (let [k (prefixed k prefix)]
+                                 [[:node-create k :map]
+                                  [:value k v]]))
+                             added))
+                   (let [updates (dataflow/updated-inputs inputs)]
+                     (mapv (fn [[k v]] [:value (prefixed k prefix) v]) updates))
+                   (let [removed (dataflow/removed-inputs inputs)]
+                     (mapcat (fn [[k v]]
+                               (let [k (prefixed k prefix)]
+                                 (if v
+                                   [[:value k v]]
+                                   [[:value k v] [:node-destroy k]])))
+                             removed)))))))
 
 (defmulti ^:private process-app-model-message (fn [state flow message] (msg/type message)))
 
@@ -161,7 +167,7 @@
 
 (defn- ensure-default-emitter [emit]
   (if (empty? emit)
-    [[#{[:*]} default-emitter]]
+    [[#{[:*]} (default-emitter [])]]
     emit))
 
 (defn- ensure-input-adapter [input-adapter]
