@@ -127,9 +127,11 @@
   state."
   [state flow message]
   (let [old-state state
-        new-state (if (= (msg/topic message) msg/app-model)
-                    (process-app-model-message state flow message)
-                    (run-dataflow state flow message))
+        new-state (cond (= (msg/topic message) msg/app-model)
+                        (process-app-model-message state flow message)
+                        (= (msg/topic message) msg/output)
+                        (assoc state :effect [(:payload message)])
+                        :else (run-dataflow state flow message))
         new-deltas (filter-deltas new-state (:emit new-state))]
     (-> new-state
         (assoc :emitter-deltas new-deltas)

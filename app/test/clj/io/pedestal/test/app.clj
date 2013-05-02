@@ -12,7 +12,8 @@
 (ns io.pedestal.test.app
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app.messages :as msg]
-            [io.pedestal.app.tree :as tree])
+            [io.pedestal.app.tree :as tree]
+            [io.pedestal.app.dataflow :as dataflow])
   (:use io.pedestal.app
         io.pedestal.app.util.test
         clojure.test))
@@ -476,6 +477,47 @@
                 {msg/topic {:service :s} :n 21.0}
                 {msg/topic {:service :s} :n 6.0}]))
         (is (= (input->emitter-output results) expected))))))
+
+(deftest test-new-output-app
+  (let [output-app {:transform [{msg/type :number msg/topic [:x]
+                                 :fn number-model
+                                 :init [{msg/type :number msg/topic [:x] :n 0}]}]
+                    :derive #{{:in #{[:x]}
+                               :out [:half]
+                               :fn (fn [x in] (/ (dataflow/single-val in) 2.0))}
+                              {:in #{[:x]}
+                               :out [:square]
+                               :fn (fn [x in] (* (dataflow/single-val in)
+                                                (dataflow/single-val in)))}
+                              {:in #{[:half] [:x] [:square]}
+                               :out [:sum]
+                               :fn (fn [x in] (apply + (dataflow/input-vals in)))}}
+                    :effect #{{:in #{[:x]} :fn dataflow/input-map}}
+                    :emit [[#{[:x] [:sum]} (default-emitter [])]]}]
+    (testing "with input from model and direct-to-output"
+      (let [output-state (atom [])
+            app (build output-app)
+            _ (capture-queue 4 :output app output-state)
+            results (run-sync! app [{msg/topic [:x] msg/type :number :n 42}
+                                    {msg/topic msg/output :payload [[:z] 9999]}
+                                    {msg/topic [:x] msg/type :number :n 12}]
+                               :begin :default)
+            results (standardize-results results)]
+        (is (= @output-state
+               [[[:x] 0]
+                [[:x] 42]
+                [[:z] 9999]
+                [[:x] 12]]))
+        (is (= (apply concat (map :emitter-deltas results))
+               [[:node-create [] :map]
+                [:node-create [:sum] :map]
+                [:value [:sum] nil 0.0]
+                [:node-create [:x] :map]
+                [:value [:x] nil 0]
+                [:value [:sum] 0.0 1827.0]
+                [:value [:x] 0 42]
+                [:value [:sum] 1827.0 162.0]
+                [:value [:x] 42 12]]))))))
 
 
 ;; Test with Renderer
