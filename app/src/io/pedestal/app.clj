@@ -31,7 +31,10 @@
            changed-inputs)))
 
 (letfn [(prefixed [k p] (vec (concat (if (keyword? p) [p] p) k)))]
-  (defn default-emitter [prefix]
+  (defn default-emitter
+    "Return an emitter function which will emit deltas under the
+    provided path prefix."
+    [prefix]
     (fn [inputs]
       (vec (concat (let [added (dataflow/added-inputs inputs)]
                      (mapcat (fn [[k v]]
@@ -139,10 +142,6 @@
 
 (defn- transact-one [state flow message]
   (process-message (assoc state :input message) flow message))
-
-
-;; Build and interface with the outside world
-;; ================================================================================
 
 (defn- pre-process [flow message]
   (let [{out-path :out key :key} ((:input-adapter flow) message)
