@@ -156,19 +156,19 @@
           :emit [{:in #{[:q]} :fn 'i}
                  {:in #{[:s]} :fn 'j}]})))
 
-(deftest test-find-transform
+(deftest test-find-message-transformer
   (let [config [{:key :a :out [:b] :fn 'x}
                 {:key :c :out [:d] :fn 'y}
                 {:key :g :out [:d :e :*] :fn 'z}
                 {:key :g :out [:d :e :**] :fn 'j}
                 {:key :* :out [:d :* :f] :fn 'i}]]
-    (is (= (find-transform config [:d] :c)
+    (is (= (find-message-transformer config [:d] :c)
            'y))
-    (is (= (find-transform config [:d :e :f] :g)
+    (is (= (find-message-transformer config [:d :e :f] :g)
            'z))
-    (is (= (find-transform config [:d :e :f :g] :g)
+    (is (= (find-message-transformer config [:d :e :f :g] :g)
            'j))
-    (is (= (find-transform config [:d :e :f] :z)
+    (is (= (find-message-transformer config [:d :e :f] :z)
            'i))))
 
 (deftest test-transform-phase

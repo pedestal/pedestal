@@ -517,7 +517,36 @@
                 [:value [:sum] 0.0 1827.0]
                 [:value [:x] 0 42]
                 [:value [:sum] 1827.0 162.0]
-                [:value [:x] 42 12]]))))))
+                [:value [:x] 42 12]]))))
+    (testing "pre processing"
+      (letfn [(copy-to-output [message]
+                [{msg/topic msg/output :payload message}
+                 message])]
+        (let [output-state (atom [])
+              output-app (assoc output-app :pre [[:number [:x] copy-to-output]])
+              app (build output-app)
+              _ (capture-queue 6 :output app output-state)
+              results (run-sync! app [{msg/topic [:x] msg/type :number :n 42}
+                                      {msg/topic [:x] msg/type :number :n 12}]
+                                 :begin :default)
+              results (standardize-results results)]
+          (is (= @output-state
+                 [{msg/topic [:x] msg/type :number :n 0}
+                  [[:x] 0]
+                  {msg/topic [:x] msg/type :number :n 42}
+                  [[:x] 42]
+                  {msg/topic [:x] msg/type :number :n 12}
+                  [[:x] 12]]))
+          (is (= (apply concat (map :emitter-deltas results))
+                 [[:node-create [] :map]
+                  [:node-create [:sum] :map]
+                  [:value [:sum] nil 0.0]
+                  [:node-create [:x] :map]
+                  [:value [:x] nil 0]
+                  [:value [:sum] 0.0 1827.0]
+                  [:value [:x] 0 42]
+                  [:value [:sum] 1827.0 162.0]
+                  [:value [:x] 42 12]])))))))
 
 
 ;; Test with Renderer

@@ -144,10 +144,20 @@
 ;; Build and interface with the outside world
 ;; ================================================================================
 
+(defn- pre-process [flow message]
+  (let [{out-path :out key :key} ((:input-adapter flow) message)
+        pre-fn (dataflow/find-message-transformer (:pre flow) out-path key)]
+    (if pre-fn
+      (pre-fn message)
+      [message])))
+
 (defn- receive-input-message [state flow input-queue]
   (p/take-message input-queue
                   (fn [message]
-                    (swap! state transact-one flow message)
+                    (if (:pre flow)
+                      (doseq [message (pre-process flow message)]
+                        (swap! state transact-one flow message))
+                      (swap! state transact-one flow message))
                     (receive-input-message state flow input-queue))))
 
 (defn- send-output [app output-queue]
@@ -183,9 +193,15 @@
            %)
         transforms))
 
+(defn- standardize-pre-if-exists [description]
+  (if (:pre description)
+    (update-in description [:pre] dataflow/transform-maps)
+    description))
+
 (defn build [description]
   (let [app-atom (atom {:data-model {}})
         description (-> description
+                        standardize-pre-if-exists
                         (update-in [:emit] ensure-default-emitter)
                         (update-in [:input-adapter] ensure-input-adapter)
                         (update-in [:transform] rekey-transforms))

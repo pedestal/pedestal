@@ -77,19 +77,19 @@
   (sort-derive-fns
    (mapv (fn [{:keys [in out fn]}] [fn in out]) derive-fns)))
 
-(defn- find-transform
+(defn find-message-transformer
   "Given a transform configuration vector, find the first transform
   function which matches the given message."
-  [transforms topic type]
+  [transforms out-path key]
   (:fn
    (first (filter (fn [{op :key path :out}]
-                    (let [[path topic] (if (= (last path) :**)
-                                         (let [c (count path)]
-                                           [(conj (vec (take (dec c) path)) :*)
-                                            (vec (take c topic))])
-                                         [path topic])]
-                      (and (matching-path-element? op type)
-                           (matching-path? path topic))))
+                    (let [[path out-path] (if (= (last path) :**)
+                                            (let [c (count path)]
+                                              [(conj (vec (take (dec c) path)) :*)
+                                               (vec (take c out-path))])
+                                            [path out-path])]
+                      (and (matching-path-element? op key)
+                           (matching-path? path out-path))))
                   transforms))))
 
 (defn- merge-changes [old-changes new-changes]
@@ -113,8 +113,7 @@
   execute it, returning the updated flow state."
   [{:keys [new dataflow context] :as state}]
   (let [{out-path :out key :key} ((:input-adapter dataflow) (:message context))
-        transforms (:transform dataflow)
-        transform-fn (find-transform transforms out-path key)]
+        transform-fn (find-message-transformer (:transform dataflow) out-path key)]
     (if transform-fn
       (apply-in state out-path transform-fn (:message context))
       state)))
@@ -263,7 +262,7 @@
                     (vary-meta i assoc :propagator propagator)))
                 ins))))
 
-(defn- transform-maps [transforms]
+(defn transform-maps [transforms]
   (mapv (fn [x]
           (if (vector? x)
             (let [[key out fn] x] {:key key :out out :fn fn})
