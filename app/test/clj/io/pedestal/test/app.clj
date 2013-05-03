@@ -1112,3 +1112,33 @@
                 [:value [:a :counter :a] nil 1]
                 [:node-create [:a :counter :b] :map]
                 [:value [:a :counter :b] nil 1]]))))))
+
+(deftest test-post-processing
+  (let [inc-t (fn [old message] ((fnil inc 0) old))
+        test-matcher (fn [p] (fn [x] (= (first x) p)))
+        tag-out (fn [tag] (fn [m] [(cons tag m)]))
+        value-as-currency (fn [[op path v]] [[op path (str "$" v)]])
+        flow {:transform [[:inc [:*] inc-t]]
+              :effect #{[#{[:a]} dataflow/input-map]
+                        [#{[:b]} dataflow/input-map]}
+              :post {:effect    [[(test-matcher [:a]) (tag-out :a-tag)]
+                                 [(test-matcher [:b]) (tag-out :b-tag)]]
+                     :app-model [[:value [:a] value-as-currency]]}}]
+    (let [output-state (atom [])
+          app-model-state (atom [])
+          app (build flow)
+          _ (capture-queue 6 :output app output-state)
+          _ (capture-queue 6 :app-model app app-model-state)
+          _ (run-sync! app [{msg/topic [:a] msg/type :inc}
+                            {msg/topic msg/output :payload [[:z] 9999]}
+                            {msg/topic [:b] msg/type :inc}]
+                       :begin :default)]
+      (is (= @output-state
+             [[:a-tag [:a] 1]
+              [[:z] 9999]
+              [:b-tag [:b] 1]]))
+      (is (= (mapcat :deltas @app-model-state)
+             [[:node-create [:a] :map]
+              [:value [:a] "$1"]
+              [:node-create [:b] :map]
+              [:value [:b] 1]])))))

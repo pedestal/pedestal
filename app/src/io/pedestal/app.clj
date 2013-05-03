@@ -15,7 +15,8 @@
               [io.pedestal.app.messages :as msg]
               [io.pedestal.app.queue :as queue]
               [io.pedestal.app.tree :as tree]
-              [io.pedestal.app.dataflow :as dataflow]))
+              [io.pedestal.app.dataflow :as dataflow]
+              [io.pedestal.app.render.push :as render]))
 
 (defn default-emitter-fn
   "The default emitter function used by the previous dataflow
@@ -160,22 +161,44 @@
                       (swap! state transact-one flow message))
                     (receive-input-message state flow input-queue))))
 
-(defn- send-output [app output-queue]
-  (add-watch app :output-watcher
+(defn- post-process-effects [flow message]
+  (let [post-fn (some (fn [[pred f]] (when (pred message) f))
+                      (-> flow :post :effect))]
+    (if post-fn
+      (post-fn message)
+      [message])))
+
+(defn- send-effects [app flow output-queue]
+  (add-watch app :effects-watcher
              (fn [_ _ _ new-state]
                (doseq [message (:effect new-state)]
-                 (p/put-message output-queue message)))))
+                 (if (-> flow :post :effect)
+                   (doseq [message (post-process-effects flow message)]
+                     (p/put-message output-queue message))
+                   (p/put-message output-queue message))))))
 
-(defn- send-app-model-deltas [app app-model-queue]
+(defn- post-process-deltas [flow deltas]
+  (let [handlers (-> flow :post :app-model)]
+    (reduce (fn [acc [op path :as delta]]
+              (if-let [handler (render/find-handler (render/add-handlers {} handlers) op path)]
+                (into acc (handler delta))
+                (conj acc delta)))
+            []
+            deltas)))
+
+(defn- send-app-model-deltas [app flow app-model-queue]
   (add-watch app :app-model-delta-watcher
              (fn [_ _ old-state new-state]
                (let [deltas (:emitter-deltas new-state)]
                  (when (not (or (empty? deltas)
                                 (= (:emitter-deltas old-state) deltas)))
-                   (p/put-message app-model-queue
-                                  {msg/topic msg/app-model
-                                   msg/type :deltas
-                                   :deltas deltas}))))))
+                   (let [deltas (if (-> flow :post :app-model)
+                                  (post-process-deltas flow deltas)
+                                  deltas)]
+                     (p/put-message app-model-queue
+                                    {msg/topic msg/app-model
+                                     msg/type :deltas
+                                     :deltas deltas})))))))
 
 (defn- ensure-default-emitter [emit]
   (if (empty? emit)
@@ -210,8 +233,8 @@
         output-queue (queue/queue :output)
         app-model-queue (queue/queue :app-model)]
     (receive-input-message app-atom dataflow input-queue)
-    (send-output app-atom output-queue)
-    (send-app-model-deltas app-atom app-model-queue)
+    (send-effects app-atom dataflow output-queue)
+    (send-app-model-deltas app-atom dataflow app-model-queue)
     {:state app-atom
      :description description
      :dataflow dataflow
