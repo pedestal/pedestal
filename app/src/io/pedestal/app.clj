@@ -77,9 +77,10 @@
 (defmethod process-app-model-message :navigate [state flow message]
   (let [deltas (refresh-emitters state flow)
         paths (get-in state [:named-paths (:name message)])
-        old-paths (:subscriptions state)]
+        old-paths (:subscriptions state)
+        destroy-paths (remove (set paths) old-paths)]
     (assoc state :subscriptions paths
-           :emit (into (mapv #(vector :navigate-node-destroy %) old-paths)
+           :emit (into (mapv #(vector :navigate-node-destroy %) destroy-paths)
                        deltas))))
 
 ;; map :set-focus to :navigate message

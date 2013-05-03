@@ -811,6 +811,43 @@
                           [:node-create [:a] :map]
                           [:value [:a] nil 15]}}])))))
 
+(deftest test-focus
+  (let [inc-t (fn [old message] ((fnil inc 0) old))
+        flow {:transform [[:inc [:*] inc-t]]
+              :focus {:x [[:a] [:b]]
+                      :y [[:a] [:c]]
+                      :z [[:d]]
+                      :default :x}}
+        app (build flow)
+        results (run-sync! app [{msg/topic [:a] msg/type :inc}
+                                {msg/topic [:b] msg/type :inc}
+                                {msg/topic [:c] msg/type :inc}
+                                {msg/topic msg/app-model msg/type :set-focus :name :y}
+                                {msg/topic [:a] msg/type :inc}
+                                {msg/topic [:c] msg/type :inc}
+                                {msg/topic [:d] msg/type :inc}
+                                {msg/topic msg/app-model msg/type :navigate :name :z}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (apply concat (map :emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:a] :map]
+            [:value [:a] nil 1]
+            [:node-create [:b] :map]
+            [:value [:b] nil 1]
+            [:value [:b] 1 nil]
+            [:node-destroy [:b] :map]
+            [:node-create [:c] :map]
+            [:value [:c] nil 1]
+            [:value [:a] 1 2]
+            [:value [:c] 1 2]
+            [:value [:a] 2 nil]
+            [:node-destroy [:a] :map]
+            [:value [:c] 2 nil]
+            [:node-destroy [:c] :map]
+            [:node-create [:d] :map]
+            [:value [:d] nil 1]]))))
+
 
 ;; Navigate using only :subscribe and :unsubscribe
 ;; ================================================================================
