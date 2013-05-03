@@ -6,7 +6,7 @@
 
 ### Service
 
-* Context path's now work with JBoss
+* Context paths now work with JBoss
 * It is now possible to specify TCP port in routes (default: 8080). Specified ports will also be reflected in generated URL.
 
         (defroutes routes
