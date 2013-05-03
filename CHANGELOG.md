@@ -1,6 +1,48 @@
 # Pedestal Changelog
 
-**NOTE:** Whenever upgrading versions of pedestal-app, please clean your project's `out` directory (`rm -rf out`).
+**NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
+
+## 0.1.6 - May 03, 2013
+
+### Service
+
+* Context path's now work with JBoss
+* It is now possible to specify TCP port in routes (default: 8080). Specified ports will also be reflected in generated URL.
+
+        (defroutes routes
+          [[:app1 8080
+            ["/" {:get app1-root}]]
+           [:app2 8181
+            ["/" {:get app2-root}]]]
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see a [comparison](https://github.com/pedestal/pedestal/compare/0.1.5...0.1.6).
+
+## 0.1.4/0.1.5 - April 05, 2013
+
+We encountered a bug deploying version 0.1.4 so that release was re-done as version 0.1.5
+
+### App
+
+* `lein clean` now correctly deletes `out` directory.
+
+### Service
+
+* Added `text-as-html` and `data-as-json` interceptors.
+* Newly generated service apps assume content is `text/html` if not specified otherwise.
+
+
+### Miscellaneous bug-fixes and improvements
+
+Special thanks to [@ddeaguiar](https://github.com/ddeaguiar) for grammar and
+spelling corrections, as well as his help in removing
+[lein-marginalia](https://github.com/fogus/lein-marginalia) as a dependency.
+We've updated the [documentation](http://pedestal.io/documentation/) with
+instructions on how to continue to generate marginalia documentation.
+
+For a full list of changes, please see a
+[comparison](https://github.com/pedestal/pedestal/compare/0.1.3...0.1.5).
 
 ## 0.1.3 - April 05, 2013
 
