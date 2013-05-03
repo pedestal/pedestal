@@ -15,8 +15,7 @@
               [io.pedestal.app.messages :as msg]
               [io.pedestal.app.queue :as queue]
               [io.pedestal.app.tree :as tree]
-              [io.pedestal.app.dataflow :as dataflow]
-              [io.pedestal.app.render.push :as render]))
+              [io.pedestal.app.dataflow :as dataflow]))
 
 (defn default-emitter-fn
   "The default emitter function used by the previous dataflow
@@ -178,10 +177,10 @@
                    (p/put-message output-queue message))))))
 
 (defn- post-process-deltas [flow deltas]
-  (let [handlers (-> flow :post :app-model)]
+  (let [post-processors (-> flow :post :app-model)]
     (reduce (fn [acc [op path :as delta]]
-              (if-let [handler (render/find-handler (render/add-handlers {} handlers) op path)]
-                (into acc (handler delta))
+              (if-let [post-fn (dataflow/find-message-transformer post-processors path op)]
+                (into acc (post-fn delta))
                 (conj acc delta)))
             []
             deltas)))
@@ -221,10 +220,16 @@
     (update-in description [:pre] dataflow/transform-maps)
     description))
 
+(defn- standardize-post-app-model-if-exists [description]
+  (if (-> description :post :app-model)
+    (update-in description [:post :app-model] dataflow/transform-maps)
+    description))
+
 (defn build [description]
   (let [app-atom (atom {:data-model {}})
         description (-> description
                         standardize-pre-if-exists
+                        standardize-post-app-model-if-exists
                         (update-in [:emit] ensure-default-emitter)
                         (update-in [:input-adapter] ensure-input-adapter)
                         (update-in [:transform] rekey-transforms))
