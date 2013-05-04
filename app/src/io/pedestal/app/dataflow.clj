@@ -212,7 +212,7 @@
   "Given a dataflow, a state and a message, run the message through
   the dataflow and return the updated state. The dataflow will be
   run only once."
-  [dataflow state message]
+  [state dataflow message]
   (let [state (update-in state [:new] dissoc :continue)]
     (-> (assoc-in state [:context :message] message)
         transform-phase
@@ -220,26 +220,25 @@
         continue-phase)))
 
 (defn- run-flow-phases
-  [dataflow state message]
-  (let [{{continue :continue} :new :as result} (flow-phases-step dataflow state message)]
+  [state dataflow message]
+  (let [{{continue :continue} :new :as result} (flow-phases-step state dataflow message)]
     (if (empty? continue)
       (update-in result [:new] dissoc :continue)
       (reduce (fn [a c-message]
-                (run-flow-phases dataflow
-                                 (assoc a :old (:new a))
+                (run-flow-phases (assoc a :old (:new a))
+                                 dataflow
                                  c-message))
               result
               continue))))
 
 (defn- run-all-phases
-  [dataflow model message]
-  (let [dm {:data-model model}
-        state {:old dm
-               :new dm
+  [model dataflow message]
+  (let [state {:old model
+               :new model
                :change {}
                :dataflow dataflow
                :context {}}
-        new-state (run-flow-phases dataflow state message)]
+        new-state (run-flow-phases state dataflow message)]
     (:new (-> (assoc-in new-state [:context :message] message)
               effect-phase
               emit-phase))))
@@ -303,8 +302,8 @@
       (update-in [:derive] sorted-derive-vector)
       (update-in [:input-adapter] add-default identity)))
 
-(defn run [dataflow model message]
-  (run-all-phases dataflow model message))
+(defn run [model dataflow message]
+  (run-all-phases model dataflow message))
 
 (defn- get-path
   "Returns a sequence of [path value] tuples"

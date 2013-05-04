@@ -123,8 +123,7 @@
                   (mapcat tree/expand-map deltas)))))
 
 (defn- run-dataflow [state flow message]
-  (let [result (dataflow/run flow (:data-model state) message)]
-    (merge state result)))
+  (dataflow/run (dissoc state :effect) flow message))
 
 (defn- process-message
   "Using the given flow, process the given message producing a new

@@ -438,66 +438,66 @@
   (build (k flows)))
 
 (deftest test-flow-phases-step
-  (is (= (:new (flow-phases-step (flow :one-derive)
-                                 {:old {:data-model {:a 1}}
+  (is (= (:new (flow-phases-step {:old {:data-model {:a 1}}
                                   :new {:data-model {:a 1}}
                                   :dataflow (flow :one-derive)
                                   :context {:message {:out [:a] :key :inc}}}
+                                 (flow :one-derive)
                                  {:out [:a] :key :inc}))
          {:data-model {:a 2 :b 4}}))
-  (is (= (:new (flow-phases-step (flow :continue-to-10)
-                                 {:new {:data-model {:a 0}}
+  (is (= (:new (flow-phases-step {:new {:data-model {:a 0}}
                                   :old {:data-model {:a 0}}
                                   :dataflow (flow :continue-to-10)
                                   :context {:message {msg/topic [:a] msg/type :inc}}}
+                                 (flow :continue-to-10)
                                  {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 1 :b 2}
           :continue [{msg/topic [:a] msg/type :inc}]}))
-  (is (= (:new (flow-phases-step (flow :everything)
-                                 {:new {:data-model {:a 0}}
+  (is (= (:new (flow-phases-step {:new {:data-model {:a 0}}
                                   :old {:data-model {:a 0}}
                                   :dataflow (flow :everything)
                                   :context {:message {msg/topic [:a] msg/type :inc}}}
+                                 (flow :everything)
                                  {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 1 :b 2 :c 1 :d 3}
           :continue [{msg/topic [:a] msg/type :inc}]})))
 
 (deftest test-run-flow-phases
-  (is (= (:new (run-flow-phases (flow :one-derive)
-                                {:old {:data-model {:a 0}}
+  (is (= (:new (run-flow-phases {:old {:data-model {:a 0}}
                                  :new {:data-model {:a 0}}
                                  :dataflow (flow :one-derive)
                                  :context {:message {:out [:a] :key :inc}}}
+                                (flow :one-derive)
                                 {:out [:a] :key :inc}))
          {:data-model {:a 1 :b 2}}))
-  (is (= (:new (run-flow-phases (flow :continue-to-10)
-                                {:new {:data-model {:a 0}}
+  (is (= (:new (run-flow-phases {:new {:data-model {:a 0}}
                                  :old {:data-model {:a 0}}
                                  :dataflow (flow :continue-to-10)
                                  :context {:message {msg/topic [:a] msg/type :inc}}}
+                                (flow :continue-to-10)
                                 {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 5 :b 10}}))
-  (is (= (:new (run-flow-phases (flow :everything)
-                                {:new {:data-model {:a 0}}
+  (is (= (:new (run-flow-phases {:new {:data-model {:a 0}}
                                  :old {:data-model {:a 0}}
                                  :dataflow (flow :everything)
                                  :context {:message {msg/topic [:a] msg/type :inc}}}
+                                (flow :everything)
                                 {msg/topic [:a] msg/type :inc}))
          {:data-model {:a 4 :b 8 :c 4 :d 12}})))
 
 (deftest test-run
-  (is (= (run (flow :one-derive) {:a 0} {:out [:a] :key :inc})
+  (is (= (run {:data-model {:a 0}} (flow :one-derive) {:out [:a] :key :inc})
          {:data-model {:a 1 :b 2}}))
-  (is (= (run (flow :continue-to-10) {:a 0} {msg/topic [:a] msg/type :inc})
+  (is (= (run {:data-model {:a 0}} (flow :continue-to-10) {msg/topic [:a] msg/type :inc})
          {:data-model {:a 5 :b 10}}))
-  (is (= (run (flow :everything)
-              {:a 0}
+  (is (= (run {:data-model {:a 0}}
+              (flow :everything)
               {msg/topic [:a] msg/type :inc})
          {:data-model {:a 4 :b 8 :c 4 :d 12}
           :effect [{[:d] 12}]
           :emit [[12]]}))
-  (is (= (run (flow :always-emit)
-              {:a 0}
+  (is (= (run {:data-model {:a 0}}
+              (flow :always-emit)
               {msg/topic [:a] msg/type :inc})
          {:data-model {:a 4 :b 8 :c 4 :d 12}
           :effect [{[:d] 12}]
@@ -505,8 +505,8 @@
                  [:always2 {[:a] 4}]
                  [:order3 {[:a] 4 [:d] 12}]]}))
   (testing "custom propagator works"
-    (is (= (run (flow :identity)
-                {:a 1}
+    (is (= (run {:data-model {:a 1}}
+                (flow :identity)
                 {:out [:a] :key :id})
            {:data-model {:a 1}
             :effect [{[:a] 1}]}))))
@@ -523,7 +523,7 @@
                                       {:fn sum-d :in #{[:b]}      :out [:c]}
                                       {:fn sum-d :in #{[:a]}      :out [:d]}
                                       {:fn sum-d :in #{[:c] [:d]} :out [:e]}}})]
-    (is (= (run dataflow {:x 0} {:out [:x] :key :inc})
+    (is (= (run {:data-model {:x 0}} dataflow {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}})))
   
   (let [dataflow (build {:transform [[:inc [:x] inc-t]]
@@ -538,18 +538,19 @@
                                       {:fn sum-d :in #{[:g] [:f]}      :out [:i]}
                                       {:fn sum-d :in #{[:i] [:f]}      :out [:j]}
                                       {:fn sum-d :in #{[:h] [:g] [:j]} :out [:k]}}})]
-    (is (= (run dataflow {:x 0} {:out [:x] :key :inc})
+    (is (= (run {:data-model {:x 0}} dataflow {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 1 :c 1 :d 1 :e 1 :f 2 :g 4 :h 4 :i 6 :j 8 :k 16}})))
   
   (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-t]]
                          :derive    [{:fn sum-d :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
-    (is (= (run dataflow {:x {0 {:y {0 {:a 1
-                                        :b 5}}}
-                              1 {:y {0 {:a 1}
-                                     1 {:b 2}}}}
-                          :sum {:b 7
-                                :a 2}}
-                      {:out [:x 1 :y 1 :b] :key :inc})
+    (is (= (run {:data-model {:x {0 {:y {0 {:a 1
+                                            :b 5}}}
+                                  1 {:y {0 {:a 1}
+                                         1 {:b 2}}}}
+                              :sum {:b 7
+                                    :a 2}}}
+                dataflow
+                {:out [:x 1 :y 1 :b] :key :inc})
            {:data-model {:x {0 {:y {0 {:a 1
                                        :b 5}}}
                              1 {:y {0 {:a 1}
