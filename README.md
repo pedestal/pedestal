@@ -1,12 +1,8 @@
-Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
-========
+# Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
 
 The Pedestal web application framework
 
-
-
-### Installing Libraries
-
+## Installing Libraries
 
 Run `lein sub install` in the top level directory to install all the
 library components in your local Maven repository.
@@ -15,12 +11,24 @@ The demo project uses Leiningen checkouts to allow simultaneous
 development of libraries and the application. See the [Leiningen FAQ](https://github.com/technomancy/leiningen/blob/master/doc/FAQ.md)
 for details.
 
-### Library Docs
+## Library Docs
 
 To generate literate-programming-style documentation for the libraries, add the
 [lein plugin for marginalia](https://github.com/fogus/lein-marginalia) to
 your lein user profile. You can then `cd` into a library directory and run
 `lein marg`. Docs will be placed in the ./docs directory of the respective library.
+
+## Supported Platforms
+
+At present Pedestal supports OSX and Linux environments.
+
+At this time we do not support using Pedestal on a Windows environment.
+
+**Some good news**: We will still gladly accept pull requests extending our
+Windows support
+
+**The bad news**: We will not invest significant amounts of time into
+diagnosing or correcting Windows issues.
 
 ## Find out more
 
@@ -28,8 +36,10 @@ your lein user profile. You can then `cd` into a library directory and run
 * Follow [@pedestal_team on Twitter](http://twitter.com/pedestal_team)
 * Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users) and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
 
-License
--------
+<br/>
+<hr/>
+
+## License
 Copyright 2013 Relevance, Inc.
 
 The use and distribution terms for this software are covered by the
