@@ -34,11 +34,14 @@
     (app/run! app script)
     ;; Wait for all messages to be processed
     (loop [tout timeout]
-      (if (pos? tout)
-        (when (not= (meta (-> app :state deref :input)) {::last true})
-          (do (Thread/sleep 20)
-              (recur (- tout 20))))
-        (throw (Exception. (str "Test timeout after " timeout "ms.")))))
+      (let [last-input (-> app :state deref :io.pedestal.app/input)]
+        (when (not= (meta last-input) {::last true})
+          (if (neg? tout)
+            (throw (Exception. (str "Test timeout after " timeout "ms.\n"
+                                    " Last input: " last-input "\n"
+                                    " Meta: " (meta last-input))))
+            (do (Thread/sleep 20)
+                (recur (- tout 20)))))))
     ;; Wait for specified queues to be consumed
     (if (seq wait-for)
       (doseq [k wait-for]
