@@ -67,7 +67,7 @@
                           :added in
                           :updated #{}
                           :removed #{}
-                          :message (:input state)}]
+                          :message (::input state)}]
               (if init-emitter
                 (into deltas (init-emitter inputs))
                 deltas)))
@@ -76,10 +76,10 @@
 
 (defmethod process-app-model-message :navigate [state flow message]
   (let [deltas (refresh-emitters state flow)
-        paths (get-in state [:named-paths (:name message)])
-        old-paths (:subscriptions state)
+        paths (get-in state [::named-paths (:name message)])
+        old-paths (::subscriptions state)
         destroy-paths (remove (set paths) old-paths)]
-    (assoc state :subscriptions paths
+    (assoc state ::subscriptions paths
            :emit (into (mapv #(vector :navigate-node-destroy %) destroy-paths)
                        deltas))))
 
@@ -90,22 +90,22 @@
 (defmethod process-app-model-message :subscribe [state flow message]
   (let [deltas (refresh-emitters state flow)]
     (-> state
-        (update-in [:subscriptions] (fnil into []) (:paths message))
+        (update-in [::subscriptions] (fnil into []) (:paths message))
         (assoc :emit deltas))))
 
 (defmethod process-app-model-message :unsubscribe [state flow message]
   (let [paths (set (:paths message))]
     (-> state
-        (update-in [:subscriptions] (fn [s] (remove #(contains? paths %) s)))
+        (update-in [::subscriptions] (fn [s] (remove #(contains? paths %) s)))
         (assoc :emit (mapv #(vector :navigate-node-destroy %) paths)))))
 
 (defmethod process-app-model-message :add-named-paths [state flow message]
   (let [{:keys [paths name]} message]
-    (assoc-in state [:named-paths name] paths)))
+    (assoc-in state [::named-paths name] paths)))
 
 (defmethod process-app-model-message :remove-named-paths [state flow message]
   (let [{:keys [name]} message]
-    (update-in state [:named-paths] dissoc name)))
+    (update-in state [::named-paths] dissoc name)))
 
 (defn- path-starts-with? [path prefix]
   (= (take (count prefix) path)
@@ -114,7 +114,7 @@
 (def ^:private special-ops {:navigate-node-destroy :node-destroy})
 
 (defn- filter-deltas [state deltas]
-  (let [subscriptions (:subscriptions state)]
+  (let [subscriptions (::subscriptions state)]
     (mapv (fn [[op & xs :as delta]]
             (if (special-ops op) (apply vector (special-ops op) xs) delta))
           (filter (fn [[op path]]
@@ -137,11 +137,11 @@
                         :else (run-dataflow state flow message))
         new-deltas (filter-deltas new-state (:emit new-state))]
     (-> new-state
-        (assoc :emitter-deltas new-deltas)
+        (assoc ::emitter-deltas new-deltas)
         (dissoc :emit))))
 
 (defn- transact-one [state flow message]
-  (process-message (assoc state :input message) flow message))
+  (process-message (assoc state ::input message) flow message))
 
 (defn- pre-process [flow message]
   (let [{out-path :out key :key} ((:input-adapter flow) message)
@@ -187,9 +187,9 @@
 (defn- send-app-model-deltas [app flow app-model-queue]
   (add-watch app :app-model-delta-watcher
              (fn [_ _ old-state new-state]
-               (let [deltas (:emitter-deltas new-state)]
+               (let [deltas (::emitter-deltas new-state)]
                  (when (not (or (empty? deltas)
-                                (= (:emitter-deltas old-state) deltas)))
+                                (= (::emitter-deltas old-state) deltas)))
                    (let [deltas (if (-> flow :post :app-model)
                                   (post-process-deltas flow deltas)
                                   deltas)]

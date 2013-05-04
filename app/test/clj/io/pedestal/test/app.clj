@@ -24,7 +24,8 @@
   "Given a sequence of states return a sequence of maps with :input
   and :emitter."
   [states]
-  (mapv (fn [x] {:input (:input x) :emitter (set (:emitter-deltas x))}) states))
+  (mapv (fn [x] {:input (:io.pedestal.app/input x)
+                :emitter (set (:io.pedestal.app/emitter-deltas x))}) states))
 
 
 ;; Simplest possible application
@@ -41,10 +42,10 @@
 (defn standardize-results [results]
   (let [tree (atom tree/new-app-model)]
     (mapv (fn [r]
-            (let [d (:emitter-deltas r)
+            (let [d (:io.pedestal.app/emitter-deltas r)
                   old-tree @tree
                   new-tree (swap! tree tree/apply-deltas d)]
-              (assoc r :emitter-deltas (tree/since-t new-tree (tree/t old-tree)))))
+              (assoc r :io.pedestal.app/emitter-deltas (tree/since-t new-tree (tree/t old-tree)))))
           results)))
 
 (deftest test-simplest-possible-app
@@ -54,19 +55,19 @@
     (is (not (nil? app)))
     (is (= (count results) 4))
     (is (= (first (drop 2 results))
-           {:input {msg/topic :model-a
-                    msg/type msg/init
-                    :value 0}
-            :subscriptions [[]]
+           {:io.pedestal.app/input {msg/topic :model-a
+                                    msg/type msg/init
+                                    :value 0}
+            :io.pedestal.app/subscriptions [[]]
             :data-model {:model-a 0}
-            :emitter-deltas [[:node-create [] :map]
-                             [:node-create [:model-a] :map]
-                             [:value [:model-a] nil 0]]}))
+            :io.pedestal.app/emitter-deltas [[:node-create [] :map]
+                                             [:node-create [:model-a] :map]
+                                             [:value [:model-a] nil 0]]}))
     (is (= (last results)
-           {:input {msg/topic :model-a :n 42}
+           {:io.pedestal.app/input {msg/topic :model-a :n 42}
             :data-model {:model-a 42}
-            :subscriptions [[]]
-            :emitter-deltas [[:value [:model-a] 0 42]]}))
+            :io.pedestal.app/subscriptions [[]]
+            :io.pedestal.app/emitter-deltas [[:value [:model-a] 0 42]]}))
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
             {:input {msg/topic msg/app-model
@@ -508,7 +509,7 @@
                 [[:x] 42]
                 [[:z] 9999]
                 [[:x] 12]]))
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:sum] :map]
                 [:value [:sum] nil 0.0]
@@ -537,7 +538,7 @@
                   [[:x] 42]
                   {msg/topic [:x] msg/type :number :n 12}
                   [[:x] 12]]))
-          (is (= (apply concat (map :emitter-deltas results))
+          (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                  [[:node-create [] :map]
                   [:node-create [:sum] :map]
                   [:value [:sum] nil 0.0]
@@ -678,7 +679,7 @@
 ;; ================================================================================
 
 (deftest test-filter-deltas
-  (is (= (filter-deltas {:subscriptions [[:a :b] [:a :j]]}
+  (is (= (filter-deltas {:io.pedestal.app/subscriptions [[:a :b] [:a :j]]}
                         [[:_ [:a]]
                          [:_ [:a :b]]
                          [:_ [:a :b :c]]
@@ -829,7 +830,7 @@
                                 {msg/topic msg/app-model msg/type :navigate :name :z}]
                            :begin :default)
         results (standardize-results results)]
-    (is (= (apply concat (map :emitter-deltas results))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
            [[:node-create [] :map]
             [:node-create [:a] :map]
             [:value [:a] nil 1]
@@ -965,7 +966,7 @@
             _ (begin app)
             results (run-sync! app [{msg/topic :count-transform msg/type :inc :key :a}])
             results (standardize-results results)]
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:counter] :map]
                 [:node-create [:counter :a] :map]
@@ -987,7 +988,7 @@
             _ (begin app)
             results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
             results (standardize-results results)]
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:root] :map]
                 [:node-create [:root :counter] :map]
@@ -1005,7 +1006,7 @@
             _ (begin app)
             results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
             results (standardize-results results)]
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:root] :map]
                 [:node-create [:root :path] :map]
@@ -1035,7 +1036,7 @@
             _ (begin app)
             results (run-sync! app messages)
             results (standardize-results results)]
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:a] :map]
                 [:value [:a] nil {:counter {:a 1}}]
@@ -1055,7 +1056,7 @@
             _ (begin app)
             results (run-sync! app messages)
             results (standardize-results results)]
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:a] :map]
                 [:node-create [:a :counter] :map]
@@ -1079,7 +1080,7 @@
             _ (begin app)
             results (run-sync! app messages)
             results (standardize-results results)]
-        (is (= (apply concat (map :emitter-deltas results))
+        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
                 [:node-create [:a] :map]
                 [:node-create [:a :counter] :map]
