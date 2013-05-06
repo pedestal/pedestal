@@ -163,20 +163,23 @@
           (cons 'str seq))))
 
 (defn- change-index [fields]
-  (apply merge (for [x fields y (field-pairs x)]
-                 {(keyword (second y))
-                  (merge {:field x
-                          :type (if (= (first y) "content")
-                                  :content
-                                  :attr)
-                          :attr-name (first y)})})))
+  (let [pairs (mapcat field-pairs fields)
+        data-fields (set (map second pairs))
+        vec-fn (fn [field] 
+                 (map (fn [field-pair] 
+                        {:field (str (first field-pair) ":" (second field-pair))
+                         :type (if (= (first field-pair) "content")
+                                 :content
+                                 :attr)
+                         :attr-name (first field-pair)}) (filter #(= field (second %)) pairs)))]
+    (into {} (map (fn [field] {(keyword field) (vec-fn field)}) data-fields))))
 
-(defn make-dynamic-template [nodes key info]
-  (reduce (fn [a [k v]]
+(defn make-dynamic-template [nodes key infos]
+  (reduce (fn [a info]
             (transform a [[(attr= :field (:field info))]]
                        (set-attr :field (str (:field info) "," "id:" (:id info)))))
           nodes
-          (field-pairs (:field info))))
+          infos))
 
 (defn dtfn [nodes static-fields]
   (let [map-sym (gensym)
@@ -187,7 +190,7 @@
                         {}
                         ts)
         change-index (reduce (fn [a [k v]]
-                               (assoc a k (assoc v :id (get ts-syms (:field v)))))
+                               (assoc a k (map (fn [info] (assoc info :id (get ts-syms (:field info)))) v)))
                              {}
                              (change-index ts))
         changes (reduce (fn [a [k v]]
@@ -201,11 +204,11 @@
                       nodes
                       changes)
         changes (reduce (fn [a [k v]]
-                          (assoc a k (-> (if (= (:type v) :content) (dissoc v :attr-name) v)
-                                         (dissoc :field))))
+                          (assoc a k (into [] (map (fn [info] (-> (if (= (:type info) :content) (dissoc info :attr-name) info)
+                                                       (dissoc :field))) v))))
                         {}
                         changes)
-        ids (map :id (vals changes))]
+        ids (mapcat (fn [[k v]] (map :id v)) changes)]
     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
            [changes (list 'fn [map-sym]
                           (list (tfn nodes)

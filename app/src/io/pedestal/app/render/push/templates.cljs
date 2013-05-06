@@ -20,7 +20,7 @@
   (vec (butlast path)))
 
 (defn update-template [t m]
-  (doseq [[k {:keys [id type attr-name]}] t]
+  (doseq [[k v] t {:keys [id type attr-name]} v]
     (case type
       :attr (cond (and (contains? m k) (nil? (get m k)))
                   (d/remove-attr! (d/by-id id) attr-name)
@@ -32,10 +32,11 @@
 
 (defn- add-in-template [f t m]
   (doseq [[k v] m]
-    (assert (= (get-in t [k :type]) :content)
-            "You may only add to content.")
+    (assert (every? (fn [info] (= :content (:type info))) (get t k))
+            "You may only add to content")
     (when (contains? t k)
-      (f (d/by-id (get-in t [k :id])) v))))
+      (doseq [info (get t k)]
+        (f (d/by-id (:id info)) v)))))
 
 (defn update-t [r path data]
   (let [template (render/get-data r (conj path ::template))]
