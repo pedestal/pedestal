@@ -17,7 +17,7 @@
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app.util.platform :as platform]))
 
-(defn- pop-message [queue-state]
+(defn- pop-message-internal [queue-state]
   (let [{:keys [queue]} queue-state]
     (if (seq queue)
       (assoc queue-state
@@ -27,7 +27,7 @@
 
 (defn- process-next-item [queue f]
   (if (seq (:queue @queue))
-    (if-let [item (:item (swap! queue pop-message))]
+    (if-let [item (:item (swap! queue pop-message-internal))]
       (f item)
       (platform/create-timeout 10 (fn [] (process-next-item queue f))))
     (platform/create-timeout 10 (fn [] (process-next-item queue f)))))
@@ -38,6 +38,8 @@
     (let [q (swap! state update-in [:queue] conj message)]
       (count (:queue q))))
   p/TakeMessage
+  (pop-message [this]
+    (:item (swap! state pop-message-internal)))
   (take-message [this f]
     (process-next-item state f)))
 

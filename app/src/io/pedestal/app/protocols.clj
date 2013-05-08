@@ -21,6 +21,8 @@
     "Put a message in a queue."))
 
 (defprotocol TakeMessage
+  (pop-message [this]
+    "Return the next message if one exists, otherwise return nil.")
   (take-message [this f]
     "When the next message is available, call (f message). Ensures that no
     other function gets the same message."))
