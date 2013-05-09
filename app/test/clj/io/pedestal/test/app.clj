@@ -37,7 +37,7 @@
     (:n message)))
 
 (def simplest-possible-app
-  (adapt-v1 {:models {:model-a {:init 0 :fn number-model}}}))
+  {:models {:model-a {:init 0 :fn number-model}}})
 
 (defn standardize-results [results]
   (let [tree (atom tree/new-app-model)]
@@ -88,8 +88,8 @@
 ;; ================================================================================
 
 (def two-models-app
-  (adapt-v1 {:models {:model-a {:init 0 :fn number-model}
-                      :model-b {:init 0 :fn number-model}}}))
+  {:models {:model-a {:init 0 :fn number-model}
+            :model-b {:init 0 :fn number-model}}})
 
 (deftest test-two-models-app
   (let [app (build two-models-app)
@@ -149,11 +149,10 @@
     (double (/ new 2))))
 
 (def two-views-app
-  (adapt-v1
-   {:models  {:model-a {:init 0 :fn number-model}
-              :model-b {:init 0 :fn number-model}}
-    :views   {:view-sum  {:fn sum  :input #{:model-a :model-b}}
-              :view-half {:fn half :input #{:model-b}}}}))
+  {:models  {:model-a {:init 0 :fn number-model}
+             :model-b {:init 0 :fn number-model}}
+   :views   {:view-sum  {:fn sum  :input #{:model-a :model-b}}
+             :view-half {:fn half :input #{:model-b}}}})
 
 (deftest test-two-views-app
   (let [app (build two-views-app)
@@ -223,16 +222,15 @@
 ;; this will be the first time that test recursion based on an feedback function
 
 (def square-root-app
-  (adapt-v1
-   {:models  {:guess    {:init 0 :fn number-model}
-              :x        {:init 0 :fn number-model}
-              :accuracy {:init 0 :fn number-model}}
-    :views   {:divide       {:fn (divider :x :guess) :input #{:x :guess}}
-              :sum          {:fn sum :input #{:guess :divide}}
-              :half         {:fn half :input #{:sum}}
-              :good-enough? {:fn good-enough? :input #{:half :accuracy}}}
-    :feedback  {:good-enough? continue-calc}
-    :emitters {:answer {:fn default-emitter-fn :input #{:x :half}}}}))
+  {:models  {:guess    {:init 0 :fn number-model}
+             :x        {:init 0 :fn number-model}
+             :accuracy {:init 0 :fn number-model}}
+   :views   {:divide       {:fn (divider :x :guess) :input #{:x :guess}}
+             :sum          {:fn sum :input #{:guess :divide}}
+             :half         {:fn half :input #{:sum}}
+             :good-enough? {:fn good-enough? :input #{:half :accuracy}}}
+   :feedback  {:good-enough? continue-calc}
+   :emitters {:answer {:fn default-emitter-fn :input #{:x :half}}}})
 
 (deftest test-square-root
   (let [app (build square-root-app)
@@ -312,12 +310,11 @@
     (* new new)))
 
 (def dependent-views-app
-  (adapt-v1
-   {:models  {:x      {:init 0 :fn number-model}}
-    :views   {:half   {:fn half :input #{:x}}
-              :square {:fn square :input #{:x}}
-              :sum    {:fn sum :input #{:half :x :square}}}
-    :emitters {:answer {:fn default-emitter-fn :input #{:x :sum}}}}))
+  {:models  {:x      {:init 0 :fn number-model}}
+   :views   {:half   {:fn half :input #{:x}}
+             :square {:fn square :input #{:x}}
+             :sum    {:fn sum :input #{:half :x :square}}}
+   :emitters {:answer {:fn default-emitter-fn :input #{:x :sum}}}})
 
 (deftest test-dependent-views-which-depend-on-one-model
   (let [app (build dependent-views-app)
@@ -346,11 +343,10 @@
                         [:value [:sum] 1827.0 162.0]}}]))))
 
 (def two-views-with-same-input-old-values
-  (adapt-v1
-   {:models  {:x {:init 0 :fn number-model}}
-    :views   {:a {:fn (fn [_ _ o _] o) :input #{:x}}
-              :b {:fn (fn [_ _ o _] o) :input #{:x}}}
-    :emitters {:answer {:fn default-emitter-fn :input #{:a :b}}}}))
+  {:models  {:x {:init 0 :fn number-model}}
+   :views   {:a {:fn (fn [_ _ o _] o) :input #{:x}}
+             :b {:fn (fn [_ _ o _] o) :input #{:x}}}
+   :emitters {:answer {:fn default-emitter-fn :input #{:a :b}}}})
 
 (deftest test-two-views-with-same-input-old-values
   (let [app (build two-views-with-same-input-old-values)
@@ -378,11 +374,10 @@
                         [:value [:b] 0 1]}}]))))
 
 (def two-views-with-same-input-new-values
-  (adapt-v1
-   {:models  {:x {:init 0 :fn number-model}}
-    :views   {:a {:fn (fn [_ _ _ n] n) :input #{:x}}
-              :b {:fn (fn [_ _ _ n] n) :input #{:x}}}
-    :emitters {:answer {:fn default-emitter-fn :input #{:a :b}}}}))
+  {:models  {:x {:init 0 :fn number-model}}
+   :views   {:a {:fn (fn [_ _ _ n] n) :input #{:x}}
+             :b {:fn (fn [_ _ _ n] n) :input #{:x}}}
+   :emitters {:answer {:fn default-emitter-fn :input #{:a :b}}}})
 
 (deftest test-two-views-with-same-input-new-values
   (let [app (build two-views-with-same-input-new-values)
@@ -444,13 +439,12 @@
                   {:input {msg/topic :x :n 12}
                    :emitter #{[:value [:x] 42 12]
                               [:value [:sum] 1827.0 162.0]}}]
-        output-app (adapt-v1
-                    {:models   {:x      {:init 0 :fn number-model}}
-                     :views    {:half   {:fn half :input #{:x}}
-                                :square {:fn square :input #{:x}}
-                                :sum    {:fn sum :input #{:half :x :square}}}
-                     :output   {:x (echo-output :s)}
-                     :emitters {:answer {:fn default-emitter-fn :input #{:x :sum}}}})]
+        output-app {:models   {:x      {:init 0 :fn number-model}}
+                    :views    {:half   {:fn half :input #{:x}}
+                               :square {:fn square :input #{:x}}
+                               :sum    {:fn sum :input #{:half :x :square}}}
+                    :output   {:x (echo-output :s)}
+                    :emitters {:answer {:fn default-emitter-fn :input #{:x :sum}}}}]
     (testing "with input from model"
       (let [output-state (atom [])
             app (build output-app)
@@ -467,7 +461,7 @@
     (testing "with input from view"
       (let [output-state (atom [])
             app (build (merge output-app
-                              (adapt-v1 {:output {:half (echo-output :s)}})))
+                              {:output {:half (echo-output :s)}}))
             _ (capture-queue 3 :output app output-state)
             results (run-sync! app [{msg/topic :x :n 42}
                                     {msg/topic :x :n 12}]
@@ -480,7 +474,8 @@
         (is (= (input->emitter-output results) expected))))))
 
 (deftest test-new-output-app
-  (let [output-app {:transform [{msg/type :number msg/topic [:x]
+  (let [output-app {:version 2
+                    :transform [{msg/type :number msg/topic [:x]
                                  :fn number-model
                                  :init [{msg/type :number msg/topic [:x] :n 0}]}]
                     :derive #{{:in #{[:x]}
@@ -605,14 +600,13 @@
 ;; ================================================================================
 
 (def dataflow-test-one
-  (adapt-v1
-   {:models  {:x {:init 0 :fn number-model}}
-    :views   {:a {:fn sum :input #{:x}}
-              :b {:fn sum :input #{:x :a}}
-              :c {:fn sum :input #{:b}}
-              :d {:fn sum :input #{:a}}
-              :e {:fn sum :input #{:c :d}}}
-    :emitters {:answer {:fn default-emitter-fn :input #{:e}}}}))
+  {:models  {:x {:init 0 :fn number-model}}
+   :views   {:a {:fn sum :input #{:x}}
+             :b {:fn sum :input #{:x :a}}
+             :c {:fn sum :input #{:b}}
+             :d {:fn sum :input #{:a}}
+             :e {:fn sum :input #{:c :d}}}
+   :emitters {:answer {:fn default-emitter-fn :input #{:e}}}})
 
 (deftest test-dataflow-one
   (let [app (build dataflow-test-one)
@@ -637,20 +631,19 @@
              :emitter #{[:value [:e] 3 6]}}]))))
 
 (def dataflow-test-two
-  (adapt-v1
-   {:models  {:x {:init 0 :fn number-model}}
-    :views   {:a {:fn sum :input #{:x}}
-              :b {:fn sum :input #{:a}}
-              :c {:fn sum :input #{:a}}
-              :d {:fn sum :input #{:c}}
-              :e {:fn sum :input #{:c}}
-              :f {:fn sum :input #{:d :e}}
-              :g {:fn sum :input #{:a :b :f}}
-              :h {:fn sum :input #{:g}}
-              :i {:fn sum :input #{:g :f}}
-              :j {:fn sum :input #{:i :f}}
-              :k {:fn sum :input #{:h :g :j}}}
-    :emitters {:answer {:fn default-emitter-fn :input #{:k}}}}))
+  {:models  {:x {:init 0 :fn number-model}}
+   :views   {:a {:fn sum :input #{:x}}
+             :b {:fn sum :input #{:a}}
+             :c {:fn sum :input #{:a}}
+             :d {:fn sum :input #{:c}}
+             :e {:fn sum :input #{:c}}
+             :f {:fn sum :input #{:d :e}}
+             :g {:fn sum :input #{:a :b :f}}
+             :h {:fn sum :input #{:g}}
+             :i {:fn sum :input #{:g :f}}
+             :j {:fn sum :input #{:i :f}}
+             :k {:fn sum :input #{:h :g :j}}}
+   :emitters {:answer {:fn default-emitter-fn :input #{:k}}}})
 
 (deftest test-dataflow-two
   (let [app (build dataflow-test-two)
@@ -694,17 +687,16 @@
 ;; ================================================================================
 
 (def navigation-app
-  (adapt-v1
-   {:models  {:a {:init 1 :fn number-model}
-              :b {:init 2 :fn number-model}
-              :c {:init 3 :fn number-model}}
-    :emitters {:ea {:fn default-emitter-fn :input #{:a}}
-               :eb {:fn default-emitter-fn :input #{:b}}
-               :ec {:fn default-emitter-fn :input #{:c}}}
-    :navigation {:a [[:a]]
-                 :b [[:b]]
-                 :c [[:c]]
-                 :default :a}}))
+  {:models  {:a {:init 1 :fn number-model}
+             :b {:init 2 :fn number-model}
+             :c {:init 3 :fn number-model}}
+   :emitters {:ea {:fn default-emitter-fn :input #{:a}}
+              :eb {:fn default-emitter-fn :input #{:b}}
+              :ec {:fn default-emitter-fn :input #{:c}}}
+   :navigation {:a [[:a]]
+                :b [[:b]]
+                :c [[:c]]
+                :default :a}})
 
 (defn- partition-sets [coll sizes]
   (loop [partition []
@@ -814,7 +806,8 @@
 
 (deftest test-focus
   (let [inc-t (fn [old message] ((fnil inc 0) old))
-        flow {:transform [[:inc [:*] inc-t]]
+        flow {:version 2
+              :transform [[:inc [:*] inc-t]]
               :focus {:x [[:a] [:b]]
                       :y [[:a] [:c]]
                       :z [[:d]]
@@ -854,13 +847,12 @@
 ;; ================================================================================
 
 (def subscribe-and-unsubscribe-app
-  (adapt-v1
-   {:models  {:a {:init 1 :fn number-model}
-              :b {:init 2 :fn number-model}
-              :c {:init 3 :fn number-model}}
-    :emitters {:ea {:fn default-emitter-fn :input #{:a}}
-               :eb {:fn default-emitter-fn :input #{:b}}
-               :ec {:fn default-emitter-fn :input #{:c}}}}))
+  {:models  {:a {:init 1 :fn number-model}
+             :b {:init 2 :fn number-model}
+             :c {:init 3 :fn number-model}}
+   :emitters {:ea {:fn default-emitter-fn :input #{:a}}
+              :eb {:fn default-emitter-fn :input #{:b}}
+              :ec {:fn default-emitter-fn :input #{:c}}}})
 
 (deftest test-subscribe-and-unsubscribe-app
   (let [app (build subscribe-and-unsubscribe-app)
@@ -957,11 +949,10 @@
                                     (when (changed-inputs :b-combine)
                                       [[:value [:counter :b]
                                         (-> inputs :b-combine :new)]]))))]
-      (let [dataflow (adapt-v1
-                      {:transform {:count-transform {:init {:a 0 :b 0} :fn count-transform}}
-                       :combine {:a-combine {:fn a-combine :input #{:count-transform}}
-                                 :b-combine {:fn b-combine :input #{:count-transform}}}
-                       :emit {:counter-emit {:fn counter-emit :input #{:a-combine :b-combine}}}})
+      (let [dataflow {:transform {:count-transform {:init {:a 0 :b 0} :fn count-transform}}
+                      :combine {:a-combine {:fn a-combine :input #{:count-transform}}
+                                :b-combine {:fn b-combine :input #{:count-transform}}}
+                      :emit {:counter-emit {:fn counter-emit :input #{:a-combine :b-combine}}}}
             app (build dataflow)
             _ (begin app)
             results (run-sync! app [{msg/topic :count-transform msg/type :inc :key :a}])
@@ -978,7 +969,8 @@
   (testing "new style app with two counters"
     (let [init-transform (fn [t-state message] (:value message))
           count-transform (fn [t-state message] ((fnil inc 0) t-state))]
-      (let [dataflow {:transform [[:init [:counter :*] init-transform]
+      (let [dataflow {:version 2
+                      :transform [[:init [:counter :*] init-transform]
                                   {msg/type :inc msg/topic [:counter :*] :fn count-transform
                                    :init [{msg/topic [:counter :a] msg/type :init :value 0}
                                           {msg/topic [:counter :b] msg/type :init :value 0}]}]
@@ -1000,7 +992,8 @@
   
   (testing "shorter version of new style app with two counters"
     (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))]
-      (let [dataflow {:transform [[:inc [:counter :*] count-transform]]
+      (let [dataflow {:version 2
+                      :transform [[:inc [:counter :*] count-transform]]
                       :emit [[#{[:counter :*]} (default-emitter [:root :path])]]}
             app (build dataflow)
             _ (begin app)
@@ -1017,7 +1010,8 @@
 (deftest test-default-emitter
   (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))
         dissoc-transform (fn [t-state message] (dissoc t-state (:key message)))]
-    (let [dataflow {:transform [[:inc [:* :counter :*] count-transform]
+    (let [dataflow {:version 2
+                    :transform [[:inc [:* :counter :*] count-transform]
                                 [:dissoc [:**] dissoc-transform]]
                     :emit [[#{[:*]} (default-emitter [])]]
                     :focus {:a [[:a]]
@@ -1119,7 +1113,8 @@
         test-matcher (fn [p] (fn [x] (= (first x) p)))
         tag-out (fn [tag] (fn [m] [(cons tag m)]))
         value-as-currency (fn [[op path v]] [[op path (str "$" v)]])
-        flow {:transform [[:inc [:*] inc-t]]
+        flow {:version 2
+              :transform [[:inc [:*] inc-t]]
               :effect #{[#{[:a]} dataflow/input-map]
                         [#{[:b]} dataflow/input-map]}
               :post {:effect    [[(test-matcher [:a]) (tag-out :a-tag)]
