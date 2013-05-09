@@ -34,21 +34,22 @@ you submit. It's super-cool and automatic!
 But lets be serious, we won't accept pull requests unless they're either well
 tested or sufficiently trivial (think docstring changes).
 
-## Contributors Agreement
+## Contributor's Agreement
 
-When it comes to code contributions there is but one more thing we need from
-you: a signed contributors agreement.
+When it comes to code contributions there is one more thing we need from
+you: a signed contributor's agreement.
 
-_**Say wha!?**_ Yep, we don't like it much either,
-but the fact of the matter is we use Pedestal on large projects for large
-companies. These big orgs often care *a lot* about the *provenance* of
-code--that is to say they **need** to know where code came from and who owns
-it.
+We know that a contributor's agreement can be a pain, but we want everyone
+to be able to use Pedestal, including developers working on projects for very
+large companies. Many of these big organizations care *a lot* about the provenance of
+the code they use -- that is they need to know where the code came from and who owns it.
+The contributor's agreement simply puts down in writing what we think is the
+standard open source arrangement: Mostly it says that you are donating code that 
+you wrote to the project. By submitting a signed contributor's agreement,
+you are helping to ensure that your work will be available to the largest possible audience.
 
-For this reason we must ask you submit a signed CA before we can accept any code submissions.
-
-To submit a signed contributors agreement you merely need to submit a copy of the CA with
-your signature (and a few other details) to [contribute@pedestal.io](mailto:contribute@pedestal.io).
+It is an extra step, but there really is not much to executing the Pedestal contributor's agreement: You just need to send a copy of the CA with your signature
+(and a few other details)  to [contribute@pedestal.io](mailto:contribute@pedestal.io).
 
 [See here](http://pedestal.io/#contribute) to get your hands on the CA form and
-find out more about the process.
+find out more about getting it done.
