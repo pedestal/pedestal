@@ -1,4 +1,4 @@
-(ns io.pedestal.app.util.adapters
+(ns ^:shared io.pedestal.app.util.adapters
   (:require [clojure.set :as set]
             [io.pedestal.app.dataflow :as dataflow]
             [io.pedestal.app.messages :as msg]))
