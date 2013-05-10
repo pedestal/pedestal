@@ -22,8 +22,21 @@ the thinking (or at least too much of it) and immediately submit an
 [issue](https://github.com/pedestal/pedestal/issues/new).
 
 At minimum include details about the platform you are running and steps to
-reproduce--you know we're going to ask. Even better, include a link to a gist
-or repository where we can jump straight to the problem.
+reproduce--you know we're going to ask. A good starting point is the following:
+
+* Operating System (including version).
+    * e.g. "OS X 10.8"
+* Your current Leiningen version (`lein --version`)
+    * e.g. "Leiningen 2.0.0 on Java 1.6.0_45 Java HotSpot(TM) 64-Bit Server VM"
+* Pedestal version
+    * e.g. "0.1.6"
+    * or, for a SNAPSHOT: "0.1.6-SNAPSHOT at 57d4911"
+* Steps to reproduce:
+    * e.g. "When you create a new pedestal app, and do X, Y and Z you will
+      see this error: ..."
+
+Even better, include a link to a gist or repository where we can jump straight
+to the problem.
 
 ### Tests
 
