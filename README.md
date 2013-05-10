@@ -36,8 +36,7 @@ diagnosing or correcting Windows issues.
 * Follow [@pedestal_team on Twitter](http://twitter.com/pedestal_team)
 * Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users) and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
 
-<br/>
-<hr/>
+---
 
 ## License
 Copyright 2013 Relevance, Inc.
