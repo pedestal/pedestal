@@ -393,7 +393,7 @@
   [route-name & options]
   (if *url-for*
     (apply *url-for* route-name options)
-    (throw (ex-info "*url-for* not bound"))))
+    (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol RouterSpecification
   (router-spec [specification] "Returns an interceptor which attempts to match each route against

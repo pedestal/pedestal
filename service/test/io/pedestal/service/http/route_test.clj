@@ -777,3 +777,7 @@
              (empty? (set/difference terse-route-names data-route-names))
              (empty? (set/difference data-route-names syntax-quote-data-route-names)))
         "Route names for all routing syntaxes match")))
+
+(deftest url-for-without-*url-for*-should-error-properly
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"\*url-for\* not bound"
+                        (url-for :my-route))))
