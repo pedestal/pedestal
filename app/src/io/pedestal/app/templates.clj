@@ -162,17 +162,14 @@
     (list 'fn [map-sym]
           (cons 'str seq))))
 
-(defn- change-index [fields]
-  (let [pairs (mapcat field-pairs fields)
-        data-fields (set (map second pairs))
-        vec-fn (fn [field] 
-                 (map (fn [field-pair] 
-                        {:field (str (first field-pair) ":" (second field-pair))
-                         :type (if (= (first field-pair) "content")
-                                 :content
-                                 :attr)
-                         :attr-name (first field-pair)}) (filter #(= field (second %)) pairs)))]
-    (into {} (map (fn [field] {(keyword field) (vec-fn field)}) data-fields))))
+(defn change-index [fields]
+  (let [r-f (fn [acc item-vec] (let [k (first item-vec)
+                                     v (second item-vec)]
+                                 (update-in acc [k] (fn [x] (if x (conj x v) (list v))))))]
+	  (reduce r-f {} (for [x fields y (field-pairs x)]
+		                 [(keyword (second y)) {:field x    
+                                            :type (if (= (first y) "content") :content :attr)
+		                                        :attr-name (first y)}]))))
 
 (defn make-dynamic-template [nodes key infos]
   (reduce (fn [a info]
@@ -208,7 +205,7 @@
                                                        (dissoc :field))) v))))
                         {}
                         changes)
-        ids (mapcat (fn [[k v]] (map :id v)) changes)]
+        ids (set (mapcat (fn [[k v]] (map :id v)) changes))]
     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
            [changes (list 'fn [map-sym]
                           (list (tfn nodes)
