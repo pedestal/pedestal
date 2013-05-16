@@ -168,26 +168,3 @@
 
   (assert (= (get-in (tracking-map {:a {:b 2 :c 4}}) [:a :c])
              4)))
-
-(deftest test-multiple-deep-changes
-  (let [results (atom nil)
-        t (fn [state message]
-            (-> state
-                (update-in [:c] (fnil inc 0))
-                (update-in [:d] (fnil inc 0))))
-        e (fn [inputs]
-            (reset! results inputs)
-            [])
-        dataflow (build {:transform [[:a [:b] t]]
-                         :emit [[#{[:* :*]} e]]})]
-    (is (= (run {:data-model {:b {}}} dataflow {:key :a :out [:b]})
-           {:data-model {:b {:c 1 :d 1}}
-            :emit []}))
-    (is (= @results
-           {:added #{[:b :c] [:b :d]}
-            :input-paths #{[:* :*]}
-            :message {:key :a, :out [:b]}
-            :new-model {:b {:c 1, :d 1}}
-            :old-model {:b {}}
-            :removed #{}
-            :updated #{}}))))

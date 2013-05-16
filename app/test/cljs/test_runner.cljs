@@ -10,11 +10,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns test-runner
-  (:require [io.pedestal.app.data.test.tracking-map :as test-tracking-map]))
+  (:require [io.pedestal.app.data.test.tracking-map :as test-tracking-map]
+            [io.pedestal.app.test.dataflow :as test-dataflow]))
 
 (set-print-fn! js/print)
 
 (test-tracking-map/test-changes)
 (test-tracking-map/test-as-map)
+(test-dataflow/test-multiple-deep-changes)
+
 
 (println "Tests completed without exception")
