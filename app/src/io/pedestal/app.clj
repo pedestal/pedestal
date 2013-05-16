@@ -17,7 +17,8 @@
               [io.pedestal.app.tree :as tree]
               [io.pedestal.app.dataflow :as dataflow]
               [io.pedestal.app.util.adapters :as adapters]
-              [io.pedestal.app.util.log :as log]))
+              [io.pedestal.app.util.log :as log]
+              [io.pedestal.app.util.platform :as platform]))
 
 (defn default-emitter-fn
   "The default emitter function used by the previous dataflow
