@@ -18,7 +18,7 @@
 
   java.io.Serializable
   clojure.lang.MapEquivalence
-  
+
   clojure.lang.IPersistentMap
   (assoc [this key val]
     (TrackingMap. basis
@@ -30,25 +30,25 @@
   (without [this key]
     (TrackingMap. basis
                   (.without map key) (record-change :dissoc map key val change-map)))
-  
+
   clojure.lang.ILookup
   (valAt [this key not-found]
     (if-let [v (.valAt map key)]
       (cond (instance? TrackingMap v)
             (TrackingMap. basis (.map v) (update-in change-map [:context] (fnil conj []) key))
-            
+
             (map? v)
             (TrackingMap. basis v (update-in change-map [:context] (fnil conj []) key))
-            
+
             :else v)
       not-found))
   (valAt [this key]
     (.valAt this key nil))
-  
+
   clojure.lang.IFn
   (invoke [this arg]
     (.invoke map arg))
-  
+
   java.util.Map
   (clear [this]
     (.clear map))
@@ -78,27 +78,27 @@
     (.size map))
   (values [this]
     (.values map))
-  
+
   clojure.lang.Counted
   (count [this]
     (.count map))
-  
+
   java.lang.Iterable
   (iterator [this]
     (.iterator map))
-  
+
   clojure.lang.Seqable
   (seq [this]
     (seq map))
-  
+
   clojure.lang.IObj
   (withMeta [this meta]
     (TrackingMap. basis (.withMeta map meta) change-map))
-  
+
   clojure.lang.IMeta
   (meta [this]
     (.meta map))
-  
+
   clojure.lang.IPersistentCollection
   (empty [this]
     (.empty map))

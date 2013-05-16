@@ -403,16 +403,16 @@
 (def flows
   {:one-derive     {:transform [[:inc [:a] inc-t]]
                     :derive #{[#{[:a]} [:b] double-d]}}
-   
+
    :identity       {:transform [[:id [:a] (fn [old-value message] old-value)]]
                     :effect #{{:fn (comp vector input-map)
                                :in (with-propagator #{[:a]} (constantly true))}}}
-   
+
    :continue-to-10 {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                     :transform [{:key :inc :out [:a] :fn inc-t}]
                     :derive #{{:fn double-d :in #{[:a]} :out [:b]}}
                     :continue #{{:fn (min-c 10) :in #{[:b]}}}}
-   
+
    :everything {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                 :transform [{:out [:a] :key :inc :fn inc-t}]
                 :derive    #{{:fn double-d :in #{[:a]} :out [:b]}
@@ -525,7 +525,7 @@
                                       {:fn sum-d :in #{[:c] [:d]} :out [:e]}}})]
     (is (= (run {:data-model {:x 0}} dataflow {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}})))
-  
+
   (let [dataflow (build {:transform [[:inc [:x] inc-t]]
                          :derive    #{{:fn sum-d :in #{[:x]}           :out [:a]}
                                       {:fn sum-d :in #{[:a]}           :out [:b]}
@@ -540,7 +540,7 @@
                                       {:fn sum-d :in #{[:h] [:g] [:j]} :out [:k]}}})]
     (is (= (run {:data-model {:x 0}} dataflow {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 1 :c 1 :d 1 :e 1 :f 2 :g 4 :h 4 :i 6 :j 8 :k 16}})))
-  
+
   (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-t]]
                          :derive    [{:fn sum-d :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
     (is (= (run {:data-model {:x {0 {:y {0 {:a 1

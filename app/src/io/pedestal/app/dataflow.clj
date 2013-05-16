@@ -327,7 +327,7 @@
 
 (defn single-val [inputs]
   (let [m (input-map inputs)]
-    (assert (= 1 (count m)) "input is expected to contain exactly one value")
+    (assert (>= 1 (count m)) "input is expected to have 0 or 1 values")
     (first (vals m))))
 
 (defn- change-map [inputs model-key change-key]

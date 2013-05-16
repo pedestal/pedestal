@@ -15,16 +15,16 @@
 (declare plain-map merge-when-tracking-map record-change)
 
 (deftype TrackingMap [basis map change-map]
-  
+
   Object
   (toString [_] (pr-str map))
-  
+
   IWithMeta
   (-with-meta [_ meta] (TrackingMap. basis (-with-meta map meta) change-map))
-  
+
   IMeta
   (-meta [_] (-meta map))
-  
+
   ICollection
   (-conj [coll entry]
     (if (vector? entry)
@@ -33,7 +33,7 @@
 
   IEmptyableCollection
   (-empty [_] (-empty map))
-  
+
   IEquiv
   (-equiv [_ other] (-equiv map other))
 
@@ -53,19 +53,19 @@
     (if-let [v (-lookup map k)]
       (cond (instance? TrackingMap v)
             (TrackingMap. basis (.-map v) (update-in change-map [:context] (fnil conj []) k))
-            
+
             (map? v)
             (TrackingMap. basis v (update-in change-map [:context] (fnil conj []) k))
-            
+
             :else v)
       not-found))
-  
+
   IAssociative
   (-assoc [_ k v]
     (TrackingMap. basis
                   (-assoc map k (plain-map v))
                   (record-change :assoc map k v change-map)))
-  
+
   (-contains-key? [_ k] (-contains-key? map k))
 
   IMap
@@ -73,15 +73,15 @@
     (TrackingMap. basis
                   (-dissoc map k)
                   (record-change :dissoc map k nil change-map)))
-  
+
   IKVReduce
   (-kv-reduce [_ f init] (-kv-reduce map f init))
 
   IFn
   (-invoke [_ k] (-lookup map k))
-  
+
   (-invoke [_ k not-found] (-lookup map k not-found))
-  
+
   IEditableCollection
   (-as-transient [_] (-as-transient map))
 
