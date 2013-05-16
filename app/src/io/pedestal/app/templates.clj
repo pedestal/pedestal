@@ -179,6 +179,10 @@
           infos))
 
 (defn dtfn [nodes static-fields]
+  "Takes sequence of enlive nodes representing a template snippet and a set of static fields and returns a vector
+   of two items - the first items is a map describing dynamic attributes of a template and the second item is a code for
+   function which when called with map of static fields, returns a html string representing a given template filled with 
+   values from static fields map (if there are any)."
   (let [map-sym (gensym)
         field-nodes (-> nodes (select [(attr? :field)]))
         ts (map (fn [x] (-> x :attrs :field)) field-nodes)
@@ -214,6 +218,11 @@
                                                     ids))))]))))
 
 (defn tnodes
+  "Turns template defined in a file into sequence of enlive nodes. Takes two mandatory and one optional argument - the first 
+   argument is the file name where template snippets are defined and the second argument is the name of a template snippet 
+   inside a file. The optional argument is a collection of enlive selectors which should match the part(s) of a template 
+   snippet we don't want to turn into enlive nodes - typical use case is when another inner template snippet(s) resides 
+   inside a template snippet we want to turn into sequence of enlive nodes, which is the return value of this function."
   ([file name]
      (select (html-resource file) [(attr= :template name)]))
   ([file name empty]
