@@ -1,4 +1,4 @@
-(ns {{name}}.service
+(ns {{namespace}}.service
     (:require [io.pedestal.service.http :as bootstrap]
               [io.pedestal.service.http.route :as route]
               [io.pedestal.service.http.body-params :as body-params]
@@ -22,7 +22,7 @@
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))
 
-;; Consumed by {{name}}.server/create-server
+;; Consumed by {{namespace}}.server/create-server
 (def service {:env :prod
               ;; You can bring your own non-default interceptors. Make
               ;; sure you include routing and set it up right for

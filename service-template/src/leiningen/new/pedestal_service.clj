@@ -10,14 +10,18 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns leiningen.new.pedestal-service
-  (:require [leiningen.new.templates :refer [renderer name-to-path ->files]]))
+  (:require [leiningen.new.templates :refer [renderer name-to-path ->files
+                                             project-name sanitize-ns]]))
 
 (defn pedestal-service
   "A pedestal service project template."
   [name & args]
   (let [render (renderer "pedestal-service")
-        data {:name name
-              :sanitized (name-to-path name)}]
+        main-ns (sanitize-ns name)
+        data {:raw-name name
+              :name (project-name name)
+              :namespace main-ns
+              :sanitized (name-to-path main-ns)}]
     (println (str "Generating a pedestal-service application called " name "."))
     (->files data
              ["README.md" (render "README.md" data)]

@@ -1,4 +1,4 @@
-(ns {{name}}.services)
+(ns {{namespace}}.services)
 
 ;; The services namespace responsible for communicating with back-end
 ;; services. It receives messages from the application's behavior,

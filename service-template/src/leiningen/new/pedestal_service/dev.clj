@@ -1,7 +1,7 @@
 (ns dev
   (:require [io.pedestal.service.http :as bootstrap]
-            [{{name}}.service :as service]
-            [{{name}}.server :as server]))
+            [{{namespace}}.service :as service]
+            [{{namespace}}.server :as server]))
 
 (def service (-> service/service ;; start with production configuration
                  (merge  {:env :dev

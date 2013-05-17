@@ -13,7 +13,7 @@
                              :name "Design"
                              :order 0}}
     :built-in {:render {:dir "{{name}}"
-                        :renderer '{{sanitized}}.rendering
+                        :renderer '{{namespace}}.rendering
                         :logging? true
                         :order 2
                         :menu-template "tooling.html"}}
@@ -21,7 +21,7 @@
                         :name "Data UI"
                         :order 1
                         :out-file "{{name}}-data-ui.js"
-                        :main '{{sanitized}}.simulated.start
+                        :main '{{namespace}}.simulated.start
                         :recording? true
                         :logging? true
                         :output-root :tools-public
@@ -29,7 +29,7 @@
               :development {:uri "/{{name}}-dev.html"
                             :name "Development"
                             :out-file "{{name}}-dev.js"
-                            :main '{{sanitized}}.start
+                            :main '{{namespace}}.start
                             :logging? true
                             :order 3}
               :fresh {:uri "/fresh.html"
@@ -43,5 +43,5 @@
                            :name "Production"
                            :optimizations :advanced
                            :out-file "{{name}}.js"
-                           :main '{{sanitized}}.start
+                           :main '{{namespace}}.start
                            :order 5}}}})

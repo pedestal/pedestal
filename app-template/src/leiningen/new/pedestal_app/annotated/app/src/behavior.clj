@@ -1,4 +1,4 @@
-(ns ^:shared {{name}}.behavior
+(ns ^:shared {{namespace}}.behavior
     (:require [clojure.string :as string]
               [io.pedestal.app.messages :as msg]))
 
