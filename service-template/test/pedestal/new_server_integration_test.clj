@@ -22,7 +22,8 @@
    io/file .getParent io/file .getParent))
 
 (let [file (java.io.File/createTempFile "filler" ".txt")]
-  (def tempdir (.getParent file)))
+  (def tempdir (doto (io/file (.getParent file) (str (java.util.UUID/randomUUID)))
+                 .mkdirs)))
 
 (def app-name "test-app")
 (def full-app-name (.getPath (io/file tempdir app-name)))
