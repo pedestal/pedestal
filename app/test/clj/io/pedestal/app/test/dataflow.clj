@@ -580,3 +580,14 @@
             :old-model {:b {}}
             :removed #{}
             :updated #{}}))))
+
+(deftest test-removed-inputs
+  (is (= (removed-inputs {:updated #{}
+                          :added #{}
+                          :removed #{[:b :counter :d]}
+                          :input-paths #{[:*]}
+                          :old-model {:b {:counter {:d 1, :c 1}}, :a {:counter {:b 1, :a 1}}}
+                          :new-model {:b {:counter {:c 1}}, :a {:counter {:b 1, :a 1}}}
+                          :message {:io.pedestal.app.messages/topic [:b :counter]
+                                    :io.pedestal.app.messages/type :dissoc, :key :d}})
+         {[:b] {:counter {:c 1}}})))

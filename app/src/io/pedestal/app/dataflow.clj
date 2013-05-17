@@ -364,8 +364,7 @@
 
 (defn removed-inputs [inputs]
   (let [removed (keys (removed-map inputs))
-        paths (concat (keys (input-map inputs))
-                      removed)]
+        paths (keys (input-map inputs))]
     (reduce (fn [a path]
               (if (some #(descendent? path %) removed)
                 (assoc a path (get-in inputs (concat [:new-model] path)))
