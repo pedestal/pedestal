@@ -193,9 +193,12 @@
   (let [parent (render/get-parent-id r path)
         id (render/new-id! r path)
         data-id (render/new-id! r (conj path "data"))
-        control-id (render/new-id! r (conj path "control"))]
+        control-id (render/new-id! r (conj path "control"))
+        path-length (count path)]
     (d/append! (d/by-id parent)
-               (str "<div id='" id "'>"
+               (str "<div id='" id "' class='" (if (<= path-length 1)
+                                                 "root-node-section"
+                                                 "node-section") "'>"
                     "  <div class='row-fluid'>"
                     "    <div class='span3' style='text-align:right' id='" control-id "'></div>"
                     "    <div class='span9'>"
@@ -288,7 +291,7 @@
   (destroy! r path))
 
 (defn sync-class! [pred id class-name]
-  (let [element (d/by-id id)] 
+  (let [element (d/by-id id)]
     (if pred
       (when (not (d/has-class? element class-name))
         (d/add-class! element class-name))
