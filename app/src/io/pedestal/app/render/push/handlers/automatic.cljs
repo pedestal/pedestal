@@ -181,7 +181,7 @@
         (events/send-on-click (d/by-id button-id)
                           input-queue
                           (get-missing-input (mapv #(assoc % :from :ui) messages))))
-      
+
       (log/debug :on-destroy! path)
       (render/on-destroy! r path #(do (log/debug :in (str "data render unlisten! path: "
                                                           path

@@ -726,23 +726,23 @@
                  :emitter #{}}
                 {:input {msg/topic msg/app-model msg/type :add-named-paths :name :b :paths [[:b]]}
                  :emitter #{}}}
-              
+
               {:input {msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:node-create [] :map] [:node-create [:a] :map]}}
-              
+
               #{{:input {msg/topic :a msg/type msg/init :value 1}
                  :emitter #{[:value [:a] nil 1]}}
                 {:input {msg/topic :b msg/type msg/init :value 2}
                  :emitter #{}}
                 {:input {msg/topic :c msg/type msg/init :value 3}
                  :emitter #{}}}
-              
+
               {:input {msg/topic :a :n 10}
                :emitter #{[:value [:a] 1 10]}}
-              
+
               {:input {msg/topic :b :n 11}
                :emitter #{}}
-              
+
               {:input {msg/topic :c :n 12}
                :emitter #{}}]))))
   (testing "navigate between paths"
@@ -766,38 +766,38 @@
                :emitter #{}}
               {:input {msg/topic msg/app-model msg/type :add-named-paths :name :b :paths [[:b]]}
                :emitter #{}}
-              
+
               {:input {msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:node-create [] :map] [:node-create [:a] :map]}}
-              
+
               {:input {msg/topic :a msg/type msg/init :value 1}
                :emitter #{[:value [:a] nil 1]}}
               {:input {msg/topic :b msg/type msg/init :value 2}
                :emitter #{}}
               {:input {msg/topic :c msg/type msg/init :value 3}
                :emitter #{}}
-              
+
               {:input {msg/topic :a :n 10} :emitter #{[:value [:a] 1 10]}}
               {:input {msg/topic :b :n 11} :emitter #{}}
-              
+
               {:input {msg/topic msg/app-model msg/type :navigate :name :b}
                :emitter #{[:value [:a] 10 nil]
                           [:node-destroy [:a] :map]
                           [:node-create [:b] :map]
                           [:value [:b] nil 11]}}
-              
+
               {:input {msg/topic :b :n 12} :emitter #{[:value [:b] 11 12]}}
               {:input {msg/topic :c :n 13} :emitter #{}}
-              
+
               {:input {msg/topic msg/app-model msg/type :navigate :name :c}
                :emitter #{[:value [:b] 12 nil]
                           [:node-destroy [:b] :map]
                           [:node-create [:c] :map]
                           [:value [:c] nil 13]}}
-              
+
               {:input {msg/topic :c :n 14} :emitter #{[:value [:c] 13 14]}}
               {:input {msg/topic :a :n 15} :emitter #{}}
-              
+
               {:input {msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:value [:c] 14 nil]
                           [:node-destroy [:c] :map]
@@ -878,7 +878,7 @@
            [{:input nil :emitter #{}}
             {:input {msg/topic msg/app-model msg/type :noop}
              :emitter #{}}
-            
+
             {:input {msg/topic :a msg/type msg/init :value 1}
              :emitter #{}}
             {:input {msg/topic :b msg/type msg/init :value 2}
@@ -932,13 +932,13 @@
                               msg/init (:value message)
                               :inc (update-in (or t-state {}) [(:key message)] inc)
                               t-state))
-          
+
           a-combine (fn [c-state t-name t-old-val t-new-val]
                       (:a t-new-val))
-          
+
           b-combine (fn [c-state t-name t-old-val t-new-val]
                       (:b t-new-val))
-          
+
           counter-emit (fn
                          ([inputs] [{:counter {:a {} :b {}}}])
                          ([inputs changed-inputs]
@@ -965,7 +965,7 @@
                 [:value [:counter :a] nil 0]
                 [:value [:counter :b] nil 0]
                 [:value [:counter :a] 0 1]])))))
-  
+
   (testing "new style app with two counters"
     (let [init-transform (fn [t-state message] (:value message))
           count-transform (fn [t-state message] ((fnil inc 0) t-state))]
@@ -989,7 +989,7 @@
                 [:value [:root :counter :a] nil 0]
                 [:value [:root :counter :b] nil 0]
                 [:value [:root :counter :a] 0 1]])))))
-  
+
   (testing "shorter version of new style app with two counters"
     (let [count-transform (fn [t-state message] ((fnil inc 0) t-state))]
       (let [dataflow {:version 2
