@@ -72,6 +72,10 @@
     (= (node-type (:children node)) type)
     true))
 
+(defn node-exists? [tree path]
+  (let [r-path (real-path path)]
+    (get-in tree r-path)))
+
 (defn- parent-exists? [tree path]
   (if (= path [])
     true
@@ -90,6 +94,22 @@
 
 (declare map->deltas)
 
+(defn- ensure-parents-exist
+  "Given a tree and a path, ensure that all the parent nodes in the
+  tree exist."
+  [tree path]
+  (if (parent-exists? tree path)
+    tree
+    (apply-to-tree tree [:node-create (vec (butlast path)) :map])))
+
+(defn- ensure-node-exists
+  "Given a tree and a path, create the node at path if it does not
+  aleary exist."
+  [tree path]
+  (if (node-exists? tree path)
+    tree
+    (apply-to-tree tree [:node-create path :map])))
+
 (defmethod apply-to-tree :node-create [tree delta]
   (let [[_ path type] delta]
     (if (map? type)
@@ -100,12 +120,7 @@
             children (condp = type
                        :vector []
                        :map {})
-            tree (if (parent-exists? tree path)
-                   tree
-                   (let [children-type (if (keyword? (last path)) :map :vector)]
-                     (apply-to-tree tree [:node-create (vec (butlast path)) children-type])))]
-        (assert (parent-exists? tree path)
-                (str "The parent of " path " does not exist."))
+            tree (ensure-parents-exist tree path)]
         (assert (existing-node-has-same-type? tree r-path type)
                 (str "The node at " path " exists and is not the same type as the requested node.\n"
                      "node:\n"
@@ -183,12 +198,15 @@
     (update-in tree (butlast path) dissoc (last path))
     (assoc-in tree path v)))
 
+
+
 (defmethod apply-to-tree :value [tree delta]
   (let [[op path o n] delta
         r-path (real-path path)
         v-path (conj r-path :value)
         old-value (get-in tree v-path)
-        [o n] (if (= (count delta) 4) [o n] [old-value o])]
+        [o n] (if (= (count delta) 4) [o n] [old-value o])
+        tree (ensure-node-exists tree path)]
     (assert (= o old-value)
             (str "The old value at path " path " is " old-value
                  " but was expected to be " o "."))
@@ -208,7 +226,8 @@
         r-path (real-path path)
         a-path (conj r-path :attrs k)
         old-value (get-in tree a-path)
-        [o n] (if (= (count delta) 5) [o n] [old-value o])]
+        [o n] (if (= (count delta) 5) [o n] [old-value o])
+        tree (ensure-node-exists tree path)]
     (assert (= o old-value)
             (str "Error:" (pr-str delta) "\n"
                  "The old attribute value for " k " is "
@@ -227,7 +246,8 @@
 (defmethod apply-to-tree :transform-enable [tree delta]
   (let [[_ path k msgs] delta
         r-path (real-path path)
-        e-path (conj r-path :transforms k)]
+        e-path (conj r-path :transforms k)
+        tree (ensure-node-exists tree path)]
     (assert (or (not (get-in tree e-path))
                 (same-transform? tree e-path msgs))
             (str "A different transform " k " at path " path " already exists."))
@@ -412,10 +432,6 @@
 (defn value [tree path]
   (let [r-path (real-path path)]
     (get-in tree (conj r-path :value))))
-
-(defn node-exists? [tree path]
-  (let [r-path (real-path path)]
-    (get-in tree r-path)))
 
 (def new-app-model
   (map->Tree

@@ -137,7 +137,7 @@
 
 (defn divider [dividend divisor]
   (fn [state inputs]
-    (let [dividend (:new (get inputs dividend)) 
+    (let [dividend (:new (get inputs dividend))
           divisor (:new (get inputs divisor))]
       (if (== divisor 0)
         :NaN
@@ -1094,9 +1094,9 @@
                 [:value [:b :counter :c] nil 1]
                 [:node-create [:b :counter :d] :map]
                 [:value [:b :counter :d] nil 1]
+                [:value [:b :counter :c] 1 2]
                 [:value [:b :counter :d] 1 nil]
                 [:node-destroy [:b :counter :d] :map]
-                [:value [:b :counter :c] 1 2]
                 [:value [:b :counter :c] 2 nil]
                 [:node-destroy [:b :counter :c] :map]
                 [:node-destroy [:b :counter] :map]
