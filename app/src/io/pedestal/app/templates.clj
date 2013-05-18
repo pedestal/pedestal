@@ -247,7 +247,7 @@
                     [field-name (simplify-maps info-maps)])
                   change-index))))
 
-(defn dtfn [nodes static-fields]
+(defn dtfn
   "Takes sequence of enlive nodes representing a template snippet and
    a set of static fields and returns a vector of two items - the
    first items is a map describing dynamic attributes of a template
@@ -255,6 +255,7 @@
    map of static fields, returns a html string representing a given
    template filled with values from static fields map (if there are
    any)."
+  [nodes static-fields]
   (let [map-sym (gensym)
         field-nodes (-> nodes (select [(attr? :field)]))
         ts (map (fn [x] (-> x :attrs :field)) field-nodes)
