@@ -68,3 +68,9 @@
   (send-on event-type dc input-queue
            (fn [_]
              (msg/fill transform-name messages (collect-inputs input-map)))))
+
+(defn remove-event [event-type dc]
+  (event/unlisten! (-coerce-to-dom-content dc) event-type))
+
+(defn remove-click-event [dc]
+  (remove-event :click dc))
