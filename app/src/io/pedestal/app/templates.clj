@@ -162,23 +162,99 @@
     (list 'fn [map-sym]
           (cons 'str seq))))
 
-(defn- change-index [fields]
-  (apply merge (for [x fields y (field-pairs x)]
-                 {(keyword (second y))
-                  (merge {:field x
-                          :type (if (= (first y) "content")
-                                  :content
-                                  :attr)
-                          :attr-name (first y)})})))
+(defn- field-information-pair
+  "Takes a field name, target attribute and original field string.
 
-(defn make-dynamic-template [nodes key info]
+   Returns a pair of name and map of information about field.
+
+   Example:
+
+   (field-information-pair \"name\" \"content\" \"content:name\")
+   ; -> [:name {:field \"content:name\",
+                :type :content
+                :attr-name \"content\"}]"
+  [name target field-string]
+  [(keyword name) {:field field-string
+                   :type (if (= target "content") :content :attr)
+                   :attr-name target}])
+
+(defn- gen-change-index
+  "Takes a list of raw field attribute strings.
+
+   Returns a map of field name keywords to a list of associated field
+   information maps.
+
+   Example:
+   (gen-change-index [\"content:name\", \"value:name\"])
+   ; -> {:name ({:field \"value:name\", :type :attr, :attr-name \"value\"}
+                {:field \"content:name\", :type :content, :attr-name \"content\"})}"
+  [fields]
+  (reduce
+   (fn [acc [k v]] (update-in acc [k] #(conj % v)))
+   {}
+   (for [field-string fields
+         [target name] (field-pairs field-string)]
+     (field-information-pair name target field-string))))
+
+(defn- insert-ids
+  "Takes a change-index and unique-symbols, a map of field-string to
+   unique symbols.
+
+   Returns a change-index where unique symbols from unique-symbols
+   have been assoced into change-index's field-infos where
+   field-info's :field value matches a key in unique-symbols"
+   [change-index unique-symbols]
   (reduce (fn [a [k v]]
+            (assoc a k (map (fn [field-info] (assoc field-info :id (get unique-symbols (:field field-info)))) v)))
+          {}
+          change-index))
+
+(defn- remove-static-fields
+  "Takes a change-index and a list of static-fields.
+
+   Returns a new change-index with field matching static-fields
+   removed."
+  [change-index static-fields]
+  (let [filtered-fields (set static-fields)]
+    (into {} (remove (fn [[field _]] (contains? filtered-fields field))
+                     change-index))))
+
+(defn- append-field-ids
+  "Takes enlive nodes and info maps containing :field and :id keys.
+
+   Returns nodes where :id values from infos have been appended onto
+   nodes field attributes (where :field values match the field attribute.)"
+  [nodes infos]
+  (reduce (fn [a info]
             (transform a [[(attr= :field (:field info))]]
                        (set-attr :field (str (:field info) "," "id:" (:id info)))))
           nodes
-          (field-pairs (:field info))))
+          infos))
+
+(defn- simplify-info-maps
+  "Simplify info-maps in change-index. Removes :attr-name (if :type
+   is :content) and :field keys of each info-map in change index"
+  [change-index]
+  (letfn [(remove-attr-name [info-map]
+            (if (= (:type info-map) :content)
+              (dissoc info-map :attr-name)
+              info-map))
+          (remove-field [info-map]
+            (dissoc info-map :field))
+          (simplify-maps [info-maps]
+            (mapv (comp remove-field remove-attr-name) info-maps))]
+    (into {} (map (fn [[field-name info-maps]]
+                    [field-name (simplify-maps info-maps)])
+                  change-index))))
 
 (defn dtfn [nodes static-fields]
+  "Takes sequence of enlive nodes representing a template snippet and
+   a set of static fields and returns a vector of two items - the
+   first items is a map describing dynamic attributes of a template
+   and the second item is a code for function which when called with
+   map of static fields, returns a html string representing a given
+   template filled with values from static fields map (if there are
+   any)."
   (let [map-sym (gensym)
         field-nodes (-> nodes (select [(attr? :field)]))
         ts (map (fn [x] (-> x :attrs :field)) field-nodes)
@@ -186,34 +262,35 @@
                           (assoc a x (gensym)))
                         {}
                         ts)
-        change-index (reduce (fn [a [k v]]
-                               (assoc a k (assoc v :id (get ts-syms (:field v)))))
-                             {}
-                             (change-index ts))
-        changes (reduce (fn [a [k v]]
-                          (if (contains? static-fields k)
-                            a
-                            (assoc a k v)))
-                        {}
-                        change-index)
-        nodes (reduce (fn [a [k info]]
-                        (make-dynamic-template a key info))
+        changes (-> ts
+                    gen-change-index
+                    (insert-ids ts-syms)
+                    (remove-static-fields static-fields))
+        nodes (reduce (fn [a [_ info-map]]
+                        (append-field-ids a info-map))
                       nodes
                       changes)
-        changes (reduce (fn [a [k v]]
-                          (assoc a k (-> (if (= (:type v) :content) (dissoc v :attr-name) v)
-                                         (dissoc :field))))
-                        {}
-                        changes)
-        ids (map :id (vals changes))]
+        changes (simplify-info-maps changes)
+        ids (set (mapcat (fn [[_ field-infos]] (map :id field-infos))
+                         changes))]
     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
-           [changes (list 'fn [map-sym]
-                          (list (tfn nodes)
-                                (concat ['assoc map-sym]
-                                        (interleave (map keyword ids)
-                                                    ids))))]))))
+                       [changes (list 'fn [map-sym]
+                                      (list (tfn nodes)
+                                            (concat ['assoc map-sym]
+                                                    (interleave (map keyword ids)
+                                                                ids))))]))))
 
 (defn tnodes
+  "Turns template defined in a file into sequence of enlive nodes.
+   Takes two mandatory and one optional argument - the first argument
+   is the file name where template snippets are defined and the second
+   argument is the name of a template snippet inside a file. The
+   optional argument is a collection of enlive selectors which should
+   match the part(s) of a template snippet we don't want to turn into
+   enlive nodes - typical use case is when another inner template
+   snippet(s) resides inside a template snippet we want to turn into
+   sequence of enlive nodes, which is the return value of this
+   function."
   ([file name]
      (select (html-resource file) [(attr= :template name)]))
   ([file name empty]
