@@ -24,7 +24,7 @@
         ;; the code which does all of the rendering as well as the
         ;; render-config which is used to map renderering data to
         ;; specific functions.
-        render-fn (push-render/renderer "content" render-config)
+        render-fn (push-render/renderer "content" render-config render/log-fn)
         ;; This application does not yet have services, but if it did,
         ;; this would be a good place to create it.
         ;; services-fn (fn [message input-queue] ...)
