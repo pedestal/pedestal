@@ -162,23 +162,27 @@
     (list 'fn [map-sym]
           (cons 'str seq))))
 
-(defn- change-index [fields]
-  (apply merge (for [x fields y (field-pairs x)]
-                 {(keyword (second y))
-                  (merge {:field x
-                          :type (if (= (first y) "content")
-                                  :content
-                                  :attr)
-                          :attr-name (first y)})})))
+(defn change-index [fields]
+  (let [r-f (fn [acc item-vec] (let [k (first item-vec)
+                                     v (second item-vec)]
+                                 (update-in acc [k] (fn [x] (if x (conj x v) (list v))))))]
+	  (reduce r-f {} (for [x fields y (field-pairs x)]
+		                 [(keyword (second y)) {:field x    
+                                            :type (if (= (first y) "content") :content :attr)
+		                                        :attr-name (first y)}]))))
 
-(defn make-dynamic-template [nodes key info]
-  (reduce (fn [a [k v]]
+(defn make-dynamic-template [nodes key infos]
+  (reduce (fn [a info]
             (transform a [[(attr= :field (:field info))]]
                        (set-attr :field (str (:field info) "," "id:" (:id info)))))
           nodes
-          (field-pairs (:field info))))
+          infos))
 
 (defn dtfn [nodes static-fields]
+  "Takes sequence of enlive nodes representing a template snippet and a set of static fields and returns a vector
+   of two items - the first items is a map describing dynamic attributes of a template and the second item is a code for
+   function which when called with map of static fields, returns a html string representing a given template filled with 
+   values from static fields map (if there are any)."
   (let [map-sym (gensym)
         field-nodes (-> nodes (select [(attr? :field)]))
         ts (map (fn [x] (-> x :attrs :field)) field-nodes)
@@ -187,7 +191,7 @@
                         {}
                         ts)
         change-index (reduce (fn [a [k v]]
-                               (assoc a k (assoc v :id (get ts-syms (:field v)))))
+                               (assoc a k (map (fn [info] (assoc info :id (get ts-syms (:field info)))) v)))
                              {}
                              (change-index ts))
         changes (reduce (fn [a [k v]]
@@ -201,11 +205,11 @@
                       nodes
                       changes)
         changes (reduce (fn [a [k v]]
-                          (assoc a k (-> (if (= (:type v) :content) (dissoc v :attr-name) v)
-                                         (dissoc :field))))
+                          (assoc a k (into [] (map (fn [info] (-> (if (= (:type info) :content) (dissoc info :attr-name) info)
+                                                       (dissoc :field))) v))))
                         {}
                         changes)
-        ids (map :id (vals changes))]
+        ids (set (mapcat (fn [[k v]] (map :id v)) changes))]
     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
            [changes (list 'fn [map-sym]
                           (list (tfn nodes)
@@ -214,6 +218,11 @@
                                                     ids))))]))))
 
 (defn tnodes
+  "Turns template defined in a file into sequence of enlive nodes. Takes two mandatory and one optional argument - the first 
+   argument is the file name where template snippets are defined and the second argument is the name of a template snippet 
+   inside a file. The optional argument is a collection of enlive selectors which should match the part(s) of a template 
+   snippet we don't want to turn into enlive nodes - typical use case is when another inner template snippet(s) resides 
+   inside a template snippet we want to turn into sequence of enlive nodes, which is the return value of this function."
   ([file name]
      (select (html-resource file) [(attr= :template name)]))
   ([file name empty]
