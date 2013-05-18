@@ -280,6 +280,7 @@
     (when default-button-id
       (d/destroy! (d/by-id default-button-id)))))
 
+;; deprecated - use io.pedestal.app.render.push.handlers/destroy!
 (defn destroy! [r path]
   (if-let [id (render/get-id r path)]
     (do (log/debug :in :default-exit :msg (str "deleteing id " id " for path " path))
@@ -287,6 +288,7 @@
         (d/destroy! (d/by-id id)))
     (log/debug :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
 
+;; deprecated - use io.pedestal.app.render.push.handlers/default-destroy
 (defn default-exit [r [_ path] d]
   (destroy! r path))
 
