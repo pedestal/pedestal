@@ -128,7 +128,7 @@
 (defn simplify-tseq
   "Concats strings together in templates to optimize them slightly"
   [s]
-  (mapcat 
+  (mapcat
    #(if (string? (first %))
       [(apply str %)]
       %)
