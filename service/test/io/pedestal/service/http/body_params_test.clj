@@ -24,53 +24,44 @@
 
 (def i (:enter (body-params)))
 
-(def json-context (as-context "application/json" "{ \"foo\": \"BAR\"}"))
-
 (deftest parses-json
-  (let [new-context (i json-context)
-        new-request (:request new-context)]
+  (let [json-context (as-context "application/json" "{ \"foo\": \"BAR\"}")
+        new-context  (i json-context)
+        new-request  (:request new-context)]
     (is (= (:json-params new-request) {"foo" "BAR"}))))
 
-
-(def form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR"))
-
 (deftest parses-form-data
-    (let [new-context (i form-context)
-          new-request (:request new-context)]
+  (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")
+        new-context  (i form-context)
+        new-request  (:request new-context)]
     (is (= (:form-params new-request) {"foo" "BAR"}))))
 
-
-(def edn-context ( as-context "application/edn" "(i wish i [was in] eden)"))
-
 (deftest parses-edn
-    (let [new-context (i edn-context)
-          new-request (:request new-context)]
+  (let [edn-context (as-context "application/edn" "(i wish i [was in] eden)")
+        new-context (i edn-context)
+        new-request (:request new-context)]
     (is (= (:edn-params new-request) '(i wish i [was in] eden)))))
 
-(def edn-context-with-eval (as-context "application/edn" "#=(eval (println 1234)"))
-
 (deftest throws-an-error-if-eval-in-edn
-  (is (thrown? Exception (i edn-context-with-eval))))
-
-(def empty-body (as-context "application/edn" ""))
+  (is (thrown? Exception (i (as-context "application/edn" "#=(eval (println 1234)")))))
 
 (deftest empty-body-does-nothing
-    (let [new-context (i empty-body)
-          new-request (:request new-context)]
+  (let [empty-body  (as-context "application/edn" "")
+        new-context (i empty-body)
+        new-request (:request new-context)]
       (is (= (:edn-params new-request) nil))))
 
 ;; Translation: "Today is a good day to die."
 (def klingon "Heghlu'meH QaQ jajvam")
-(def unknown-content-type-context (as-context "application/klingon" klingon))
 
 (deftest unknown-content-type-does-nothing
-    (let [new-context (i unknown-content-type-context)
-          new-request (:request new-context)]
-      (is (=  (slurp (:body new-request)) klingon))))
-
-(def nil-content-type-context (as-context nil klingon))
+  (let [unknown-content-type-context (as-context "application/klingon" klingon)
+        new-context (i unknown-content-type-context)
+        new-request (:request new-context)]
+      (is (= (slurp (:body new-request)) klingon))))
 
 (deftest nil-content-type-does-nothing
-    (let [new-context (i nil-content-type-context)
-          new-request (:request new-context)]
-      (is (=  (slurp (:body new-request)) klingon))))
+  (let [nil-content-type-context (as-context nil klingon)
+        new-context (i nil-content-type-context)
+        new-request (:request new-context)]
+    (is (= (slurp (:body new-request)) klingon))))
