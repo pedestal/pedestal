@@ -25,18 +25,28 @@
   (def tempdir (doto (io/file (.getParent file) (str (java.util.UUID/randomUUID)))
                  .mkdirs)))
 
-(def app-name "test-app")
-(def full-app-name (.getPath (io/file tempdir app-name)))
-
 (deftest generated-app-has-correct-files
-  (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
-  (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
-  (println "Created app at" full-app-name)
-  (is (.exists (io/file full-app-name "project.clj")))
-  (is (.exists (io/file full-app-name "README.md")))
-  (is (.exists (io/file full-app-name "src" "test_app" "service.clj")))
-  (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "test"))))
-  (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "with-profile" "production" "compile" ":all"))))
-  (sh/sh "rm" "-rf" full-app-name))
+  (let [app-name "test-app"
+        full-app-name (.getPath (io/file tempdir app-name))]
+    (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
+    (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
+    (println "Created app at" full-app-name)
+    (is (.exists (io/file full-app-name "project.clj")))
+    (is (.exists (io/file full-app-name "README.md")))
+    (is (.exists (io/file full-app-name "src" "test_app" "service.clj")))
+    (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "test"))))
+    (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "with-profile" "production" "compile" ":all"))))
+    (sh/sh "rm" "-rf" full-app-name)))
 
-
+(deftest generated-app-with-namespace-has-correct-files
+  (let [app-name "pedestal.test/test-ns-app"
+        full-app-name (.getPath (io/file tempdir "test-ns-app"))]
+   (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
+   (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
+   (println "Created app at" full-app-name)
+   (is (.exists (io/file full-app-name "project.clj")))
+   (is (.exists (io/file full-app-name "README.md")))
+   (is (.exists (io/file full-app-name "src" "pedestal" "test" "test_ns_app" "service.clj")))
+   (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "test"))))
+   (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "with-profile" "production" "compile" ":all"))))
+   (sh/sh "rm" "-rf" full-app-name)))
