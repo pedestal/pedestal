@@ -52,6 +52,13 @@
 (deftest throws-an-error-if-eval-in-edn
   (is (thrown? Exception (i edn-context-with-eval))))
 
+(def empty-body (as-context "application/edn" ""))
+
+(deftest empty-body-does-nothing
+    (let [new-context (i empty-body)
+          new-request (:request new-context)]
+      (is (= (:edn-params new-request) nil))))
+
 ;; Translation: "Today is a good day to die."
 (def klingon "Heghlu'meH QaQ jajvam")
 (def unknown-content-type-context (as-context "application/klingon" klingon))
