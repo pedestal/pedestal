@@ -46,7 +46,7 @@
 
 (defn generate-control-panel [config environment]
   (html/html-snippet
-   (str "<div id='pedestal-toolbar' 
+   (str "<div id='pedestal-toolbar'
                   style='opacity:0'
                   onmouseover='this.style.opacity=0.75;'
                   onmouseout='this.style.opacity=0;'>"
@@ -124,6 +124,9 @@
         (conj (vec (map first (sort-by second (:requires script))))
               (str (:start script) ";"))))))
 
+(defn- js-path [base file]
+  (str "/" base "/" file))
+
 (defn application-host
   "Given a configuration map and an environment, return HTML (as a
   string) that can host a ClojureScript application. The environment
@@ -143,11 +146,11 @@
   [config environment]
   (let [aspect (get-in config [:aspects environment])
         transform (or (:transform aspect) identity)
-        js (get-in config [:application :generated-javascript])
-        scripts (cons (script (html/set-attr :src (str js "/" (:out-file aspect))))
+        base (get-in config [:application :generated-javascript])
+        scripts (cons (script (html/set-attr :src (js-path base (:out-file aspect))))
                       (mapcat #(script (html/content %)) (get-scripts aspect)))
         scripts (if (goog-base-required? aspect)
-                  (cons (script (html/set-attr :src (str js "/out/goog/base.js")))
+                  (cons (script (html/set-attr :src (js-path base "out/goog/base.js")))
                         scripts)
                   scripts)]
     (render (transform (apply application-view config aspect scripts)))))
