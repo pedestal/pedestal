@@ -3,6 +3,7 @@
             [io.pedestal.app :as app]
             [io.pedestal.app.render.push :as push-render]
             [io.pedestal.app.render :as render]
+            [io.pedestal.app.messages :as msg]
             [{{name}}.behavior :as behavior]
             [{{name}}.rendering :as rendering]))
 
@@ -38,6 +39,8 @@
     ;;
     ;; Start the application
     (app/begin app)
+    ;; Send a message to the application so that it does something.
+    (p/put-message (:input app) {msg/type :set-value msg/topic [:greeting] :value "Hello World!"})
     ;; Returning the app and app-model from the main function allows
     ;; the tooling to add support for useful features like logging
     ;; and recording.

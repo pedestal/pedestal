@@ -53,7 +53,9 @@
                         ;; Enable logging of rendering data when in
                         ;; this view.
                         :logging? true
-                        :order 2}}
+                        :order 2
+                        ;; The render menu uses the tooling.html template
+                        :menu-template "tooling.html"}}
     ;; Each aspect provides a unique way to view and interact with
     ;; this application.
     :aspects {;; Add an aspect that uses the data renderer
@@ -76,7 +78,9 @@
                         ;; Turn on logging
                         :logging? true
                         ;; build output goes to tools/out/public
-                        :output-root :tools-public}
+                        :output-root :tools-public
+                        ;; The data-ui aspect uses the tooling.html template
+                        :template "tooling.html"}
               :development {:uri "/{{name}}-dev.html"
                             :name "Development"
                             :out-file "{{name}}-dev.js"
@@ -88,7 +92,8 @@
                       :out-file "fresh.js"
                       :main 'io.pedestal.app.net.repl_client
                       :order 4
-                      :output-root :tools-public}
+                      :output-root :tools-public
+                      :template "tooling.html"}
               :production {:uri "/{{name}}.html"
                            :name "Production"
                            :optimizations :advanced

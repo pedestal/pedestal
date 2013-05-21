@@ -15,7 +15,8 @@
     :built-in {:render {:dir "{{name}}"
                         :renderer '{{sanitized}}.rendering
                         :logging? true
-                        :order 2}}
+                        :order 2
+                        :menu-template "tooling.html"}}
     :aspects {:data-ui {:uri "/{{name}}-data-ui.html"
                         :name "Data UI"
                         :order 1
@@ -23,7 +24,8 @@
                         :main '{{sanitized}}.simulated.start
                         :recording? true
                         :logging? true
-                        :output-root :tools-public}
+                        :output-root :tools-public
+                        :template "tooling.html"}
               :development {:uri "/{{name}}-dev.html"
                             :name "Development"
                             :out-file "{{name}}-dev.js"
@@ -35,7 +37,8 @@
                       :out-file "fresh.js"
                       :main 'io.pedestal.app.net.repl_client
                       :order 4
-                      :output-root :tools-public}
+                      :output-root :tools-public
+                      :template "tooling.html"}
               :production {:uri "/{{name}}.html"
                            :name "Production"
                            :optimizations :advanced

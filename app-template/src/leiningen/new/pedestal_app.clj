@@ -19,6 +19,11 @@
 
    [(str "app/assets/stylesheets/{{name}}.css")
     (render "app/assets/stylesheets/project.css" data)]
+   [(str "app/assets/stylesheets/bootstrap.css")
+    (render "tools/public/stylesheets/bootstrap.css" data)]
+   [(str "app/assets/stylesheets/pedestal.css")
+    (render "tools/public/stylesheets/pedestal.css" data)]
+   
    ["app/assets/javascripts/xpath.js"
     (render "app/assets/javascripts/xpath.js" data)]
 
@@ -55,6 +60,7 @@
            ["app/src/{{sanitized}}/simulated/services.cljs" (render "app/src/simulated/services.cljs" data)]
            ["app/src/{{sanitized}}/simulated/start.cljs" (render "app/src/simulated/start.cljs" data)]
            ["app/templates/application.html" (render "app/templates/application.html" data)]
+           ["app/templates/tooling.html" (render "app/templates/tooling.html" data)]
            ["app/templates/{{name}}.html" (render "app/templates/project.html" data)]
            (base-files render data))))
 
@@ -67,6 +73,7 @@
            ["app/src/{{sanitized}}/start.cljs" (render "app/src/start.cljs" data)]
            ["app/src/{{sanitized}}/simulated/start.cljs" (render "app/src/simulated/start.cljs" data)]
            ["app/templates/application.html" (render "app/templates/application.html" data)]
+           ["app/templates/tooling.html" (render "app/templates/tooling.html" data)]
            ["app/templates/{{name}}.html" (render "app/templates/project.html" data)]
            (base-files render data))))
 

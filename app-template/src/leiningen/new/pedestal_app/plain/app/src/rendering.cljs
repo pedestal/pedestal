@@ -17,6 +17,6 @@
   (templates/update-t renderer path {:message new-value}))
 
 (defn render-config []
-  [[:node-create  [:io.pedestal.app/view-example-transform] render-page]
-   [:node-destroy   [:io.pedestal.app/view-example-transform] d/default-exit]
-   [:value [:io.pedestal.app/view-example-transform] render-message]])
+  [[:node-create  [:greeting] render-page]
+   [:node-destroy   [:greeting] d/default-exit]
+   [:value [:greeting] render-message]])
