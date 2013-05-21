@@ -100,12 +100,12 @@
   [interceptor]
   (letfn [(content-type [context]
             (let [body (get-in context [:response :body])
-                  content-type (get-in context [:response :headers "Content-Type"])]
+                  content-type (get-in context [:response :headers "Content-Type"])
+                  request (get-in context [:request])]
               (if (and body
-                       (not content-type)
-                       (= (type body) java.io.File))
+                       (not content-type))
                 (update-in context [:response] ring-response/content-type
-                           (ring-mime/ext-mime-type (.getAbsolutePath ^java.io.File body)))
+                           (ring-mime/ext-mime-type (:uri request)))
                 context)))]
     (assoc interceptor :leave content-type)))
 
