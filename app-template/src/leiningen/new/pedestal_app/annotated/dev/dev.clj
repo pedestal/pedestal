@@ -85,11 +85,20 @@
      (watch (vec (keys config/configs)) aspect))
   ([config-names aspect]
      (assert (vector? config-names) "config-names must be a vector")
-     (println "watching" config-names "/" aspect)
-     (let [w (build/watcher (vals (select-keys config/configs config-names)) aspect)]
-       ((:start-fn w))
-       (alter-var-root #'watcher (constantly w))
-       :ok)))
+     (let [configs (select-keys config/configs config-names)
+           missing-aspect (reduce (fn [a [k v]]
+                                    (if (contains? (:aspects v) aspect)
+                                      a
+                                      (conj a k)))
+                                  []
+                                  configs)]
+       (if (seq missing-aspect)
+         (println (str "Error: the configs " missing-aspect " do not contain a " aspect " aspect."))
+         (do (println "watching" config-names "/" aspect)
+             (let [w (build/watcher (vals configs) aspect)]
+               ((:start-fn w))
+               (alter-var-root #'watcher (constantly w))
+               :ok))))))
 
 (defn unwatch
   "Stop the currently running watcher."

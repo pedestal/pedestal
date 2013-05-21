@@ -403,16 +403,16 @@
 (def flows
   {:one-derive     {:transform [[:inc [:a] inc-t]]
                     :derive #{[#{[:a]} [:b] double-d]}}
-   
+
    :identity       {:transform [[:id [:a] (fn [old-value message] old-value)]]
                     :effect #{{:fn (comp vector input-map)
                                :in (with-propagator #{[:a]} (constantly true))}}}
-   
+
    :continue-to-10 {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                     :transform [{:key :inc :out [:a] :fn inc-t}]
                     :derive #{{:fn double-d :in #{[:a]} :out [:b]}}
                     :continue #{{:fn (min-c 10) :in #{[:b]}}}}
-   
+
    :everything {:input-adapter (fn [m] {:out (msg/topic m) :key (msg/type m)})
                 :transform [{:out [:a] :key :inc :fn inc-t}]
                 :derive    #{{:fn double-d :in #{[:a]} :out [:b]}
@@ -525,7 +525,7 @@
                                       {:fn sum-d :in #{[:c] [:d]} :out [:e]}}})]
     (is (= (run {:data-model {:x 0}} dataflow {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 2 :d 1 :c 2 :e 3}})))
-  
+
   (let [dataflow (build {:transform [[:inc [:x] inc-t]]
                          :derive    #{{:fn sum-d :in #{[:x]}           :out [:a]}
                                       {:fn sum-d :in #{[:a]}           :out [:b]}
@@ -540,7 +540,7 @@
                                       {:fn sum-d :in #{[:h] [:g] [:j]} :out [:k]}}})]
     (is (= (run {:data-model {:x 0}} dataflow {:out [:x] :key :inc})
            {:data-model {:x 1 :a 1 :b 1 :c 1 :d 1 :e 1 :f 2 :g 4 :h 4 :i 6 :j 8 :k 16}})))
-  
+
   (let [dataflow (build {:transform [[:inc [:x :* :y :* :b] inc-t]]
                          :derive    [{:fn sum-d :in #{[:x :* :y :* :b]} :out [:sum :b]}]})]
     (is (= (run {:data-model {:x {0 {:y {0 {:a 1
@@ -557,3 +557,37 @@
                                     1 {:b 3}}}}
                          :sum {:a 2
                                :b 8}}}))))
+
+(deftest test-multiple-deep-changes
+  (let [results (atom nil)
+        t (fn [state message]
+            (-> state
+                (update-in [:c] (fnil inc 0))
+                (update-in [:d] (fnil inc 0))))
+        e (fn [inputs]
+            (reset! results inputs)
+            [])
+        dataflow (build {:transform [[:a [:b] t]]
+                         :emit [[#{[:* :*]} e]]})]
+    (is (= (run {:data-model {:b {}}} dataflow {:key :a :out [:b]})
+           {:data-model {:b {:c 1 :d 1}}
+            :emit []}))
+    (is (= @results
+           {:added #{[:b :c] [:b :d]}
+            :input-paths #{[:* :*]}
+            :message {:key :a, :out [:b]}
+            :new-model {:b {:c 1, :d 1}}
+            :old-model {:b {}}
+            :removed #{}
+            :updated #{}}))))
+
+(deftest test-removed-inputs
+  (is (= (removed-inputs {:updated #{}
+                          :added #{}
+                          :removed #{[:b :counter :d]}
+                          :input-paths #{[:*]}
+                          :old-model {:b {:counter {:d 1, :c 1}}, :a {:counter {:b 1, :a 1}}}
+                          :new-model {:b {:counter {:c 1}}, :a {:counter {:b 1, :a 1}}}
+                          :message {:io.pedestal.app.messages/topic [:b :counter]
+                                    :io.pedestal.app.messages/type :dissoc, :key :d}})
+         {[:b] {:counter {:c 1}}})))

@@ -12,6 +12,10 @@
    color: darkgreen;
 }
 
+.node-section {
+    margin-left: 40px;
+}
+
 /* end Clojure data formatter */
 
 /* begin customize bootstrap */

@@ -181,7 +181,7 @@
         (events/send-on-click (d/by-id button-id)
                           input-queue
                           (get-missing-input (mapv #(assoc % :from :ui) messages))))
-      
+
       (log/debug :on-destroy! path)
       (render/on-destroy! r path #(do (log/debug :in (str "data render unlisten! path: "
                                                           path
@@ -193,9 +193,12 @@
   (let [parent (render/get-parent-id r path)
         id (render/new-id! r path)
         data-id (render/new-id! r (conj path "data"))
-        control-id (render/new-id! r (conj path "control"))]
+        control-id (render/new-id! r (conj path "control"))
+        path-length (count path)]
     (d/append! (d/by-id parent)
-               (str "<div id='" id "'>"
+               (str "<div id='" id "' class='" (if (<= path-length 1)
+                                                 "root-node-section"
+                                                 "node-section") "'>"
                     "  <div class='row-fluid'>"
                     "    <div class='span3' style='text-align:right' id='" control-id "'></div>"
                     "    <div class='span9'>"
@@ -277,6 +280,7 @@
     (when default-button-id
       (d/destroy! (d/by-id default-button-id)))))
 
+;; deprecated - use io.pedestal.app.render.push.handlers/destroy!
 (defn destroy! [r path]
   (if-let [id (render/get-id r path)]
     (do (log/debug :in :default-exit :msg (str "deleteing id " id " for path " path))
@@ -284,11 +288,12 @@
         (d/destroy! (d/by-id id)))
     (log/debug :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
 
+;; deprecated - use io.pedestal.app.render.push.handlers/default-destroy
 (defn default-exit [r [_ path] d]
   (destroy! r path))
 
 (defn sync-class! [pred id class-name]
-  (let [element (d/by-id id)] 
+  (let [element (d/by-id id)]
     (if pred
       (when (not (d/has-class? element class-name))
         (d/add-class! element class-name))

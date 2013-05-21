@@ -327,7 +327,7 @@
 
 (defn single-val [inputs]
   (let [m (input-map inputs)]
-    (assert (= 1 (count m)) "input is expected to contain exactly one value")
+    (assert (>= 1 (count m)) "input is expected to have 0 or 1 values")
     (first (vals m))))
 
 (defn- change-map [inputs model-key change-key]
@@ -364,8 +364,7 @@
 
 (defn removed-inputs [inputs]
   (let [removed (keys (removed-map inputs))
-        paths (concat (keys (input-map inputs))
-                      removed)]
+        paths (keys (input-map inputs))]
     (reduce (fn [a path]
               (if (some #(descendent? path %) removed)
                 (assoc a path (get-in inputs (concat [:new-model] path)))

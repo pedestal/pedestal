@@ -105,7 +105,7 @@
            js-file (or (get-in config [:built-in :render :js-file])
                        (get-in config [:aspects :development :out-file]))
            renderer (get-in config [:built-in :render :renderer])
-           log? (or (get-in config [:built-in :render :log?]) false)
+           log? (or (get-in config [:built-in :render :logging?]) false)
            scripts (concat [(host-page/script (html/set-attr :src (str "/" js "/out/goog/base.js")))
                             (host-page/script (html/set-attr :src (str "/" js "/" js-file)))]
                            (mapcat #(host-page/script (html/content %))

@@ -2,10 +2,9 @@
     (:require [clojure.string :as string]
               [io.pedestal.app.messages :as msg]))
 
-(defn example-transform [transform-state message]
-  (condp = (msg/type message)
-    msg/init (:value message)
-    transform-state))
+(defn set-value-transform [old-value message]
+  (:value message))
 
 (def example-app
-  {:transform {:example-transform {:init "Hello World!" :fn example-transform}}})
+  {:version 2
+   :transform [[:set-value [:greeting] set-value-transform]]})

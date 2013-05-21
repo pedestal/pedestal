@@ -52,17 +52,17 @@
   (testing "build a tree"
     (let [expected-tree {:deltas {0 [{:delta [:node-create [] :map] :seq 0 :t 0}
                                      {:delta [:node-create [:a] :map] :seq 1 :t 0}
-                                     {:delta [:node-create [:a :b] :vector] :seq 2 :t 0}
+                                     {:delta [:node-create [:a :b] :map] :seq 2 :t 0}
                                      {:delta [:node-create [:a :b 0] :map] :seq 3 :t 0}]}
                          :this-tx []
-                         :tree {:children {:a {:children {:b {:children [{:children {}}]}}}}}
+                         :tree {:children {:a {:children {:b {:children {0 {:children {}}}}}}}}
                          :seq 4
                          :t 1}]
       (testing "by explicitly describing the change"
         (let [ui new-app-model
               deltas [[:node-create [] :map]
                       [:node-create [:a] :map]
-                      [:node-create [:a :b] :vector]
+                      [:node-create [:a :b] :map]
                       [:node-create [:a :b 0] :map]]]
           (is (= (test-apply-deltas ui deltas) expected-tree))))
       (testing "by partially describing the change"
@@ -73,33 +73,32 @@
         (let [ui new-app-model
               deltas [[:node-create [] :map]
                       [:node-create [:a] :map]
-                      [:node-create [:a :b] :vector]
+                      [:node-create [:a :b] :map]
                       [:node-create [:a] :map]
-                      [:node-create [:a :b] :vector]
+                      [:node-create [:a :b] :map]
                       [:node-create [:a :b 0] :map]]]
           (is (= (test-apply-deltas ui deltas) expected-tree))))
       (testing "by explicit example"
         (let [ui new-app-model
               deltas [{:children
                        {:a {:children
-                            {:b {:children
-                                 [{}]}}}}}]]
+                            {:b {:children {0 {}}}}}}}]]
           (is (= (test-apply-deltas ui deltas) expected-tree))))
       (testing "by compact example"
         (let [ui new-app-model
-              deltas [{:a {:b [{}]}}]]
+              deltas [{:a {:b {0 {}}}}]]
           (is (= (test-apply-deltas ui deltas) expected-tree))))
       (testing "with a path prefix"
         (let [ui new-app-model
-              deltas [[:node-create [:a] {:b [{}]}]]]
+              deltas [[:node-create [:a] {:b {0 {}}}]]]
           (is (= (test-apply-deltas ui deltas) expected-tree))))
       (testing " - can't change the type of node"
         (let [ui new-app-model
               deltas [[:node-create [] :map]
                       [:node-create [:a] :map]
-                      [:node-create [:a :b] :vector]
+                      [:node-create [:a :b] :map]
                       [:node-create [:a] :map]
-                      [:node-create [:a :b] :map]]]
+                      [:node-create [:a :b] :vector]]]
           (is (thrown-with-msg? AssertionError
                 #"The node at \[:a :b\] exists and is*"
                 (test-apply-deltas ui deltas))))))))

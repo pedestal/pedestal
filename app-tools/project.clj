@@ -16,7 +16,7 @@
                  [org.clojure/clojurescript "0.0-1450"]
                  [org.clojure/tools.namespace "0.2.1"]
                  [org.clojure/java.classpath "0.2.0"]
-                 [ch.qos.logback/logback-classic "1.0.7"]
+                 [ch.qos.logback/logback-classic "1.0.7" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.2"]
                  [org.slf4j/jcl-over-slf4j "1.7.2"]
                  [org.slf4j/log4j-over-slf4j "1.7.2"]

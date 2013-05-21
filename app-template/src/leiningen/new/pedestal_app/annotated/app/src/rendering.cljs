@@ -55,20 +55,18 @@
 ;; be used from the tool's "render" view.
 
 (defn render-config []
-  [;; All :node-create deltas for the node at
-   ;; :io.pedestal.app/view-example-transform will be rendered by the
-   ;; `render-page` function. The node name
-   ;; :io.pedestal.app/view-example-transform is a default name that is used
-   ;; when we don't provide our own combines and emits. To name your
-   ;; own nodes, create a custom combine or emit in the application's
-   ;; behavior.
-   [:node-create  [:io.pedestal.app/view-example-transform] render-page]
+  [;; All :node-create deltas for the node at :greeting will
+   ;; be rendered by the `render-page` function. The node name
+   ;; :greeting is a default name that is used when we don't
+   ;; provide our own combines and emits. To name your own nodes,
+   ;; create a custom combine or emit in the application's behavior.
+   [:node-create  [:greeting] render-page]
    ;; All :node-destroy deltas for this path will be handled by the
    ;; library function `d/default-exit`.
-   [:node-destroy   [:io.pedestal.app/view-example-transform] d/default-exit]
+   [:node-destroy   [:greeting] d/default-exit]
    ;; All :value deltas for this path will be handled by the
    ;; function `render-message`.
-   [:value [:io.pedestal.app/view-example-transform] render-message]])
+   [:value [:greeting] render-message]])
 
 ;; In render-config, paths can use wildcard keywords :* and :**. :*
 ;; means exactly one segment with any value. :** means 0 or more
