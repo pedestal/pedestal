@@ -103,13 +103,18 @@
         change (if (seq context)
                  (conj context key)
                  [key])
+        
         cs (cond (= action :dissoc)
                  (update-in cs [:removed] (fnil conj #{}) change)
 
                  (and (get map key) (not= (get map key) (plain-map val)))
                  (update-in cs [:updated] (fnil conj #{}) change)
 
-                 (not (get map key)) (update-in cs [:added] (fnil conj #{}) change))
+                 (not (get map key))
+                 (update-in cs [:added] (fnil conj #{}) change)
+
+                 :else cs)
+        
         cs (cond (and (= action :assoc) (map? val) (not (instance? TrackingMap val)))
                  (update-in cs [:inspect] (fnil conj #{}) change)
                  (and (= action :assoc) (nil? val))

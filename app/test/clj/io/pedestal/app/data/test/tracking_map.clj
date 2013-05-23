@@ -159,7 +159,17 @@
                 
                 {:a {:b nil}}
                 
-                {:removed #{[:a :b]}})))
+                {:removed #{[:a :b]}}))
+
+  (testing "change with reduce"
+    (is-changed (reduce (fn [a [k v]]
+                          (update-in a [k] (fnil + 0) v))
+                        (tracking-map {:a 1 :b 2 :c 3})
+                        {:a 10 :c 12})
+                
+                {:a 11 :b 2 :c 15}
+                
+                {:updated #{[:a] [:c]}})))
 
 (deftest test-as-map
 
@@ -180,3 +190,15 @@
   (is (= (difference (ancestors (class {}))
                      (ancestors (class (tracking-map {}))))
          #{clojure.lang.AFn clojure.lang.APersistentMap})))
+
+(deftest test-change-tracking-preservation
+  (let [add-in (fn [map k n] (dissoc (update-in map [k] (fnil + 0) n) :c))
+        map (assoc (tracking-map {:a 1 :b 1}) :a 2)]
+    (let [result (add-in map :b 0)]
+      (is (= @result {:a 2 :b 1}))
+      (is (= (changes result)
+             {:removed #{[:c]} :updated #{[:a]}})))
+    (let [result (add-in map :b 1)]
+      (is (= @result {:a 2 :b 2}))
+      (is (= (changes result)
+             {:removed #{[:c]} :updated #{[:a] [:b]}})))))
