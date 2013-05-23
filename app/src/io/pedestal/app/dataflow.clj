@@ -17,7 +17,7 @@
   [a b]
   (or (= a b) (= a :*) (= b :*)))
 
-(defn- matching-path?
+(defn matching-path?
   "Return true if the two paths match."
   [path-a path-b]
   (and (= (count path-a) (count path-b))
@@ -188,21 +188,27 @@
   [state]
   (output-phase state :effect))
 
-(defn remove-matching-changes [change input-paths]
-  (update-input-sets change [:inspect :added :updated :removed] remove input-paths))
+(letfn [(remover [change-set input-paths]
+          (set (remove #(some (partial matching-path? %) input-paths) change-set)))]
+  (defn remove-matching-changes [change input-paths]
+    (reduce (fn [a k]
+              (update-in a [k] remover input-paths))
+            change
+            [:inspect :added :updated :removed])))
 
 (defn- emit-phase
   [{:keys [dataflow context change] :as state}]
   (let [emits (:emit dataflow)]
-    (-> (reduce (fn [{:keys [change remaining-change] :as acc} {input-paths :in
-                                                               emit-fn :fn
-                                                               mode :mode}]
+    (-> (reduce (fn [{:keys [change remaining-change processed-inputs] :as acc}
+                    {input-paths :in emit-fn :fn mode :mode}]
                   (let [report-change (if (= mode :always) change remaining-change)]
                     (if (propagate? (assoc acc :change report-change) input-paths)
                       (-> acc
                           (update-in [:remaining-change] remove-matching-changes input-paths)
+                          (update-in [:processed-inputs] (fnil into []) input-paths)
                           (update-in [:new :emit] (fnil into [])
-                                     (emit-fn (flow-input context acc input-paths report-change))))
+                                     (emit-fn (-> (flow-input context acc input-paths report-change)
+                                                  (assoc :mode mode :processed-inputs processed-inputs)))))
                       acc)))
                 (assoc state :remaining-change change)
                 emits)

@@ -310,7 +310,13 @@
              #{{:five {:inputs {[:c 1] {:x 6 :y 5 :z 9}
                                 [:c 2] {:x 4 :y 7 :z 3}
                                 [:c 3] {:x 8 :y 1 :z 4}}
-                       :updates {[:c 1 :z] 9}}}})))
+                       :updates {[:c 1 :z] 9}}}
+               {:six {:inputs {[:a] 0
+                               [:b] 11
+                               [:c] {1 {:x 6 :y 5 :z 9}
+                                     2 {:x 4 :y 7 :z 3}
+                                     3 {:x 8 :y 1 :z 4}}}
+                      :updates {[:c 1 :z] 9}}}})))
     (let [state (-> state
                     (assoc :change {:updated #{[:c 1 :x]}})
                     (assoc-in [:new :data-model :c 1 :x] 9))]
@@ -347,7 +353,13 @@
                {:five {:inputs {[:c 1] {:x 6 :y 22 :z 2}
                                 [:c 2] {:x 4 :y 7 :z 23}
                                 [:c 3] {:x 8 :y 1 :z 4}}
-                       :updates {[:c 2 :z] 23}}}})))))
+                       :updates {[:c 2 :z] 23}}}
+               {:six {:inputs {[:a] 21
+                               [:b] 11
+                               [:c] {1 {:x 6 :y 22 :z 2}
+                                     2 {:x 4 :y 7 :z 23}
+                                     3 {:x 8 :y 1 :z 4}}}
+                      :updates {[:c 2 :z] 23}}}})))))
 
 (deftest test-get-path
   (is (= (get-path {:x {0 {:y {0 {:a 1
@@ -579,7 +591,9 @@
             :new-model {:b {:c 1, :d 1}}
             :old-model {:b {}}
             :removed #{}
-            :updated #{}}))))
+            :updated #{}
+            :mode nil
+            :processed-inputs nil}))))
 
 (deftest test-removed-inputs
   (is (= (removed-inputs {:updated #{}

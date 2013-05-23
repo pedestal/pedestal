@@ -13,10 +13,12 @@
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app.messages :as msg]
             [io.pedestal.app.tree :as tree]
-            [io.pedestal.app.dataflow :as dataflow])
+            [io.pedestal.app.dataflow :as dataflow]
+            [io.pedestal.app.render :as render])
   (:use io.pedestal.app
         io.pedestal.app.util.test
-        clojure.test))
+        clojure.test
+        [io.pedestal.app.query :only [q]]))
 
 (refer-privates io.pedestal.app filter-deltas)
 
@@ -1138,3 +1140,33 @@
               [:value [:a] "$1"]
               [:node-create [:b] :map]
               [:value [:b] 1]])))))
+
+(letfn [(transform-fn [map message]
+          (reduce (fn [m [k v]]
+                    (-> m
+                        (assoc-in [:baz k] v)
+                        (assoc-in [:quux k] v)))
+                  map
+                  (:value message)))]
+  (deftest test-multiple-emit-handlers
+    (let [app (build {:version 2
+                      :transform [[:test-transform [:bar] transform-fn]]
+                      :emit [[#{[:bar :baz :*]} (default-emitter :foo)]
+                             [#{[:bar :quux :*]} (default-emitter :foo)]
+                             [#{[:*]} (default-emitter :foo)]]})
+          app-model (render/consume-app-model app (constantly nil))]
+      (is (run-sync! app [{msg/type :test-transform msg/topic [:bar] :value {:a 10 :b 20}}]
+                     :begin :default
+                     :wait-for [:app-model]))
+      (is (= (-> app :state deref :data-model)
+             {:bar {:quux {:a 10 :b 20}
+                    :baz {:a 10 :b 20}}}))
+      (is (= (set (q '[:find ?seg ?v
+                       :where
+                       [?child :t/value ?v]
+                       [?child :t/segment ?seg]
+                       [?child :t/parent ?e]
+                       [?e :t/path [:foo :bar :quux]]]
+                     @app-model))
+             #{[:a 10] [:b 20]})))))
+
