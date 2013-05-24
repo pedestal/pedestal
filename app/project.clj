@@ -13,7 +13,7 @@
   :description "Pedestal applications"
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.5.0"]
-                 [org.clojure/clojurescript "0.0-1450"]
+                 [org.clojure/clojurescript "0.0-1806"]
                  [ch.qos.logback/logback-classic "1.0.7"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.1"]]
