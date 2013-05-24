@@ -1,28 +1,47 @@
 # Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
 
-The Pedestal web application framework
+Pedestal is a web application framework written in Clojure that aims to bring
+both the language and its principles (Simplicity, Power and Focus) to client and
+server-side development.
 
-## Installing Libraries
+## Getting started
 
-Run `lein sub install` in the top level directory to install all the
-library components in your local Maven repository.
+### Starting a new project
 
-The demo project uses Leiningen checkouts to allow simultaneous
-development of libraries and the application. See the [Leiningen FAQ](https://github.com/technomancy/leiningen/blob/master/doc/FAQ.md)
-for details.
+Use [leiningen](https://github.com/technomancy/leiningen) to create a new
+Pedestal application or service. This will automatically pull templates from
+<http://clojars.org>
 
-## Library Docs
+```bash
+# To create a new client-side application:
+lein new pedestal-app the-next-big-thing
 
-To generate literate-programming-style documentation for the libraries, add the
-[lein plugin for marginalia](https://github.com/fogus/lein-marginalia) to
-your lein user profile. You can then `cd` into a library directory and run
-`lein marg`. Docs will be placed in the ./docs directory of the respective library.
+# To create a new service:
+lein new pedestal-service the-next-big-server-side-thing
+```
 
-## Supported Platforms
+See [documentation](#documentation) for information on Pedestal concepts and
+advice on getting started.
 
-At present Pedestal supports OSX and Linux environments.
+## Digging deeper
 
-At this time we do not support using Pedestal on a Windows environment.
+### Roadmap
+
+Our primary focus for the near future is Pedestal documentation, sample
+applications and improving general ease of use.
+
+### Documentation
+
+* [Pedestal documentation](http://pedestal.io/documentation/): overview of
+  Pedestal concepts and advice on getting started.
+* API Docs: generate literate-programming-style API docs by following the
+  "What about API Documentation?" instructions in the
+  [Pedestal Overview](http://pedestal.io/documentation/).
+
+### Supported Platforms
+
+At present Pedestal supports OSX and Linux environments. At this time we do not
+support using Pedestal on a Windows environment.
 
 **Some good news**: We will still gladly accept pull requests extending our
 Windows support
@@ -30,11 +49,21 @@ Windows support
 **The bad news**: We will not invest significant amounts of time into
 diagnosing or correcting Windows issues.
 
-## Find out more
+### Find out more
 
 * Visit [our website](http://pedestal.io/)
 * Follow [@pedestal_team on Twitter](http://twitter.com/pedestal_team)
-* Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users) and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
+* Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users)
+  and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
+
+### Installing Libraries
+
+To install Pedestal library components in your local Maven repository run
+`lein sub install` from a local checkout of this repository.
 
 ---
 
