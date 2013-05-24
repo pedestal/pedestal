@@ -37,6 +37,13 @@
 (defn- produce-messages [messages e]
   (if (fn? messages) (messages e) messages))
 
+(defn send-transforms
+  ([input-queue messages]
+     (doseq [message messages]
+       (p/put-message input-queue message)))
+  ([input-queue transform-name messages]
+     (send-transforms input-queue (map (partial msg/add-message-type transform-name) messages))))
+
 (defn send-on
   ([event-type dc input-queue transform-name messages]
      (send-on event-type
@@ -49,8 +56,7 @@
                     event-type
                     (fn [e]
                       (event/prevent-default e)
-                      (doseq [message (produce-messages messages e)]
-                        (p/put-message input-queue message))))))
+                      (send-transforms input-queue (produce-messages messages e))))))
 
 (defn send-on-click [& args]
   (apply send-on :click args))
