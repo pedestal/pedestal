@@ -79,7 +79,7 @@
   (let [body (:body response)
         content-type (get-in response [:headers "Content-Type"])]
     (if (and (string? body) (not content-type))
-      (ring-response/content-type response "text/html")
+      (ring-response/content-type response "text/html;charset=UTF-8")
       response)))
 
 (interceptor/defon-response json-body
