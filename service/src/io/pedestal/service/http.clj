@@ -77,7 +77,7 @@
 (interceptor/defon-response html-body
   [response]
   (let [body (:body response)
-        content-type (get-in response [:header "Content-Type"])]
+        content-type (get-in response [:headers "Content-Type"])]
     (if (and (string? body) (not content-type))
       (ring-response/content-type response "text/html")
       response)))
@@ -85,7 +85,7 @@
 (interceptor/defon-response json-body
   [response]
   (let [body (:body response)
-        content-type (get-in response [:header "Content-Type"])]
+        content-type (get-in response [:headers "Content-Type"])]
     (if (and (coll? body) (not content-type))
       (-> response
           (ring-response/content-type "application/json;charset=UTF-8")
