@@ -28,11 +28,18 @@
 (defn hello-page
   [request] (ring-resp/response "HELLO"))
 
+(defn hello-plaintext-page [request]
+  (-> request hello-page (ring-resp/content-type "text/plain")))
+
 (defn just-status-page
   [request] {:status 200})
 
 (defn get-edn
   [request] (ring-resp/response {:a 1}))
+
+(defn get-plaintext-edn
+  [request]
+  (-> request get-edn (ring-resp/content-type "text/plain")))
 
 (defon-response clobberware
   [response]
@@ -62,7 +69,11 @@
      ^:interceptors [add-response-after]]
     ["/text-as-html" {:get [::text-as-html hello-page]}
      ^:interceptors [service/html-body]]
+    ["/plaintext-body-with-html-interceptor" {:get hello-plaintext-page}
+     ^:interceptors [service/html-body]]
     ["/data-as-json" {:get [::data-as-json get-edn]}
+     ^:interceptors [service/json-body]]
+    ["/plaintext-body-with-json-interceptor" {:get get-plaintext-edn}
      ^:interceptors [service/json-body]]]])
 
 (def app-interceptors
@@ -79,9 +90,19 @@
   (let [response (response-for app :get "/text-as-html")]
     (is (= "text/html" (get-in response [:headers "Content-Type"])))))
 
+(deftest plaintext-body-with-html-interceptor-test
+  "Explicit request for plain-text content-type is honored by html-body interceptor."
+  (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
+
 (deftest json-body-test
   (let [response (response-for app :get "/data-as-json")]
     (is (= "application/json;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
+
+(deftest plaintext-body-with-json-interceptor-test
+  "Explicit request for plain-text content-type is honored by json-body interceptor."
+  (let [response (response-for app :get "/plaintext-body-with-json-interceptor")]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest enter-linker-generates-correct-link
   (is (= "Yeah, this is a self-link to /about"
