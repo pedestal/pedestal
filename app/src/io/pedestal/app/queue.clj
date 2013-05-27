@@ -18,19 +18,16 @@
             [io.pedestal.app.util.platform :as platform]))
 
 (defn- pop-message-internal [queue-state]
-  (let [{:keys [queue]} queue-state]
-    (if (seq queue)
-      (assoc queue-state
-        :item (first queue)
-        :queue (vec (rest queue)))
-      (assoc queue-state :item nil))))
+  (let [queue (:queue queue-state)]
+    (assoc queue-state
+      :item (first queue)
+      :queue (vec (rest queue)))))
 
 (defn- process-next-item [queue f]
   (if (seq (:queue @queue))
-    (if-let [item (:item (swap! queue pop-message-internal))]
-      (f item)
-      (platform/create-timeout 10 (fn [] (process-next-item queue f))))
-    (platform/create-timeout 10 (fn [] (process-next-item queue f)))))
+    (when-let [item (:item (swap! queue pop-message-internal))]
+      (f item))
+    (platform/create-timeout 1 (fn [] (process-next-item queue f)))))
 
 (defrecord AppMessageQueue [state]
   p/PutMessage
