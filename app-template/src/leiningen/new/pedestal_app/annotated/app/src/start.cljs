@@ -1,11 +1,11 @@
-(ns {{name}}.start
+(ns {{namespace}}.start
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app :as app]
             [io.pedestal.app.render.push :as push-render]
             [io.pedestal.app.render :as render]
             [io.pedestal.app.messages :as msg]
-            [{{name}}.behavior :as behavior]
-            [{{name}}.rendering :as rendering]))
+            [{{namespace}}.behavior :as behavior]
+            [{{namespace}}.rendering :as rendering]))
 
 ;; In this namespace, the application is built and started.
 

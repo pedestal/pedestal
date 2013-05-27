@@ -1,4 +1,4 @@
-(defproject {{name}} "0.0.1-SNAPSHOT"
+(defproject {{raw-name}} "0.0.1-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -19,4 +19,4 @@
   :profiles {:dev {:source-paths ["dev"]}}
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :main ^{:skip-aot true} {{name}}.server)
+  :main ^{:skip-aot true} {{namespace}}.server)

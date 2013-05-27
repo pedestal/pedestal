@@ -1,4 +1,4 @@
-(ns {{name}}.test.behavior
+(ns {{namespace}}.test.behavior
   (:require [io.pedestal.app :as app]
             [io.pedestal.app.protocols :as p]
             [io.pedestal.app.tree :as tree]
@@ -6,7 +6,7 @@
             [io.pedestal.app.render :as render]
             [io.pedestal.app.util.test :as test])
   (:use clojure.test
-        {{name}}.behavior
+        {{namespace}}.behavior
         [io.pedestal.app.query :only [q]]))
 
 ;; Test a transform function

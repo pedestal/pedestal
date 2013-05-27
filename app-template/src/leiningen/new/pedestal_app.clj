@@ -10,7 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns leiningen.new.pedestal-app
-  (:use [leiningen.new.templates :only [renderer name-to-path ->files]]))
+  (:use [leiningen.new.templates :only [renderer name-to-path ->files
+                                        project-name sanitize-ns]]))
 
 (defn base-files [render data]
   [[".gitignore" (render ".gitignore" data)]
@@ -80,8 +81,11 @@
 (defn pedestal-app
   "A Pedestal application project template."
   [name & args]
-  (let [data {:name name
-              :sanitized (name-to-path name)}]
+  (let [main-ns (sanitize-ns name)
+        data {:raw-name name
+              :name (project-name name)
+              :namespace main-ns
+              :sanitized (name-to-path main-ns)}]
     (case (first args)
       "no-comment" (unannotated-project data)
       (annotated-project data))))
