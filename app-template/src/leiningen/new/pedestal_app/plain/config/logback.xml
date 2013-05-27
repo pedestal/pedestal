@@ -45,6 +45,6 @@
 
 
   <!-- For loggers in the ".*" namespace, log at all levels. -->
-  <logger name="{{sanitized}}" level="INFO" />
+  <logger name="{{namespace}}" level="INFO" />
   
 </configuration>

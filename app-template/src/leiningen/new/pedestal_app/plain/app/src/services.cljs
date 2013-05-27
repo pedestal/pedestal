@@ -1,4 +1,4 @@
-(ns {{name}}.services)
+(ns {{namespace}}.services)
 
 (comment
 
