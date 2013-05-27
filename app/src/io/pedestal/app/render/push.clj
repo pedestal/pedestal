@@ -15,8 +15,7 @@
   to the DOM."
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app.util.platform :as platform]
-            [io.pedestal.app.util.log :as log]
-            [io.pedestal.app.tree :as tree]))
+            [io.pedestal.app.util.log :as log]))
 
 ;; Handlers
 ;; ================================================================================
