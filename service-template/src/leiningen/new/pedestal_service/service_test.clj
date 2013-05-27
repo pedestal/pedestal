@@ -13,7 +13,7 @@
        "Hello World!"))
   (is (=
        (:headers (response-for service :get "/"))
-       {"Content-Type" "text/html"})))
+       {"Content-Type" "text/html;charset=UTF-8"})))
 
 (deftest about-page-test
   (is (.contains
@@ -21,4 +21,4 @@
        "Clojure 1.5"))
   (is (=
        (:headers (response-for service :get "/about"))
-       {"Content-Type" "text/html"})))
+       {"Content-Type" "text/html;charset=UTF-8"})))
