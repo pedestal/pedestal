@@ -14,7 +14,8 @@
   application."
   (:use [io.pedestal.app.templates :only [load-html construct-html render html-parse]])
   (:require [net.cgrand.enlive-html :as html]
-            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]])
+            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
+            [cljs.compiler :as compiler])
   (:import java.io.File))
 
 (def ^:private script-snippet
@@ -113,7 +114,7 @@
 (defn- get-scripts [aspect]
   (if (:scripts aspect)
     (:scripts aspect)
-    (let [main (:main aspect)]
+    (let [main (compiler/munge (:main aspect))]
       (assert main "Config must have :main or :scripts")
       (let [script (-> {:requires (if (goog-base-required? aspect)
                                     {(str "goog.require('" main "');") 0}
