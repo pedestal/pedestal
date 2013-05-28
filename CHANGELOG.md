@@ -2,6 +2,23 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.1.8 - May 29, 2013
+
+### General
+
+* App and service templates now allow creating projects with namespaces [#68](https://github.com/pedestal/pedestal/issues/68).
+            
+            $ lein new pedestal-app com.example/foo
+            ... creates foo/ with src/com/example/foo/*.clj
+
+### Service
+
+* Corrected a test error in the generated service template project.
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.7...0.1.8](https://github.com/pedestal/pedestal/compare/0.1.7...0.1.8).
+
 ## 0.1.7 - May 24, 2013
 
 ### App
