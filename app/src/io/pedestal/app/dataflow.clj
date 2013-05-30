@@ -316,16 +316,16 @@
   ([data path]
      (get-path data [] path))
   ([data context [x & xs]]
-     (if (and x (not= data ::null))
+     (if (and x (not= data ::nokey))
        (if (= x :*)
          (mapcat #(get-path (get data %) (conj context %) xs) (keys data))
-         (get-path (get data x ::null) (conj context x) xs))
+         (get-path (get data x ::nokey) (conj context x) xs))
        [[context data]])))
 
 (defn input-map [{:keys [new-model input-paths]}]
   (into {} (for [path input-paths
                  [k v] (get-path new-model path)
-                 :when (not= v ::null)]
+                 :when (not= v ::nokey)]
              [k v])))
 
 (defn input-vals [inputs]
@@ -340,7 +340,7 @@
   (let [[model change-paths] ((juxt model-key change-key) inputs)]
     (into {} (for [path change-paths
                    [k v] (get-path model path)
-                   :when (not= v ::null)]
+                   :when (not= v ::nokey)]
                [k v]))))
 
 (defn updated-map [inputs]
