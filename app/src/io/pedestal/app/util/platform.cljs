@@ -46,3 +46,7 @@
     (.log js/console (pr-str d)))
   (.log js/console post)
   (.log js/console "\n"))
+
+(defn log-exceptions [f & args]
+  (try (apply f args)
+       (catch js/Error e (.log js/console (pr-str e)))))

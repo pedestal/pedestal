@@ -61,9 +61,9 @@
                                       (filter-changes inputs))]
                      (mapcat (fn [[k v]]
                                (let [k (prefixed k prefix)]
-                                 (if v
-                                   [[:value k v]]
-                                   [[:value k v] [:node-destroy k]])))
+                                 (if (= v :io.pedestal.app.dataflow/removed)
+                                   [[:value k nil] [:node-destroy k]]
+                                   [[:value k v]])))
                              removed)))))))
 
 (defmulti ^:private process-app-model-message (fn [state flow message] (msg/type message)))

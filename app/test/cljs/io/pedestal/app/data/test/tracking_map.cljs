@@ -152,15 +152,15 @@
 
               {:a {:b nil}}
 
-              {:removed #{[:a :b]}})
+              {:updated #{[:a :b]}})
 
   (is-changed (reduce (fn [a [k v]]
                           (update-in a [k] (fnil + 0) v))
                         (tracking-map {:a 1 :b 2 :c 3})
                         {:a 10 :c 12})
-                
+
                 {:a 11 :b 2 :c 15}
-                
+
                 {:updated #{[:a] [:c]}}))
 
 (defn test-as-map []
@@ -179,7 +179,7 @@
              4)))
 
 (defn test-change-tracking-preservation []
-  
+
   (let [add-in (fn [map k n] (dissoc (update-in map [k] (fnil + 0) n) :c))
         map (assoc (tracking-map {:a 1 :b 1}) :a 2)]
     (let [result (add-in map :b 0)]
