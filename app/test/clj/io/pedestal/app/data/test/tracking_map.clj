@@ -151,15 +151,15 @@
               {:a {:b {}}}
               
               {:removed #{[:a :b :c] [:a :b :d]}})
-  
-  (testing "setting a value to nil is the same as removing this value"
+
+  (testing "setting a value to nil does not remove the value"
     (is-changed (assoc-in (tracking-map {:a {:b {:c 1 :d 2}}})
                           [:a :b]
                           nil)
                 
                 {:a {:b nil}}
-                
-                {:removed #{[:a :b]}}))
+
+                {:updated #{[:a :b]}}))
 
   (testing "change with reduce"
     (is-changed (reduce (fn [a [k v]]
