@@ -316,16 +316,16 @@
   ([data path]
      (get-path data [] path))
   ([data context [x & xs]]
-     (if x
+     (if (and x (not= data ::nokey))
        (if (= x :*)
          (mapcat #(get-path (get data %) (conj context %) xs) (keys data))
-         (get-path (get data x) (conj context x) xs))
+         (get-path (get data x ::nokey) (conj context x) xs))
        [[context data]])))
 
 (defn input-map [{:keys [new-model input-paths]}]
   (into {} (for [path input-paths
                  [k v] (get-path new-model path)
-                 :when v]
+                 :when (not= v ::nokey)]
              [k v])))
 
 (defn input-vals [inputs]
@@ -340,7 +340,7 @@
   (let [[model change-paths] ((juxt model-key change-key) inputs)]
     (into {} (for [path change-paths
                    [k v] (get-path model path)
-                   :when v]
+                   :when (not= v ::nokey)]
                [k v]))))
 
 (defn updated-map [inputs]
@@ -368,12 +368,35 @@
 (defn updated-inputs [inputs]
   (changed-inputs inputs updated-map))
 
-(defn removed-inputs [inputs]
-  (let [removed (keys (removed-map inputs))
-        paths (keys (input-map inputs))]
-    (reduce (fn [a path]
-              (if (some #(descendent? path %) removed)
-                (assoc a path (get-in inputs (concat [:new-model] path)))
-                a))
-            {}
-            paths)))
+(letfn [(actual-input-paths [{:keys [old-model input-paths]}]
+          (for [path input-paths
+                [k v] (get-path old-model path)]
+            k))
+        (removed [input-paths changed-paths f]
+          (reduce (fn [acc path]
+                    (reduce (fn [a cp] (f a path cp))
+                            acc
+                            (filter #(descendent? path %) changed-paths)))
+                  {}
+                  input-paths))]
+  (defn removed-inputs [inputs]
+    (let [paths (actual-input-paths inputs)]
+      (into
+       ;; process changes reported as a remove
+       (removed paths (keys (removed-map inputs))
+                (fn [m path changed-path]
+                  (if (<= (count changed-path) (count path))
+                    (assoc m path ::removed)
+                    (assoc m path (get-in inputs (concat [:new-model] path))))))
+       ;; process changes reported as an update
+       (removed paths (keys (updated-map inputs))
+                (fn [m path changed-path]
+                  (if (< (count changed-path) (count path))
+                    (let [new-m (:new-model inputs)
+                          parent (butlast path)
+                          k (last path)
+                          parent-m (if (seq parent) (get-in new-m parent) new-m)]
+                      (if (contains? parent-m k)
+                        (assoc m path (get-in inputs (concat [:new-model] path)))
+                        (assoc m path ::removed)))
+                    m)))))))

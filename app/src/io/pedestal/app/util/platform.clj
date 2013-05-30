@@ -11,6 +11,7 @@
 
 (ns io.pedestal.app.util.platform
   (:require [io.pedestal.app.util.scheduler :as scheduler]
+            [io.pedestal.app.util.log :as log]
             clojure.edn)
   (:import java.util.UUID))
 
@@ -56,3 +57,7 @@
     (println (pr-str d)))
   (println post)
   (println "\n"))
+
+(defn log-exceptions [f & args]
+  (try (apply f args)
+       (catch Throwable e (log/error :exception e))))

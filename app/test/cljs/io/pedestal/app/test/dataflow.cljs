@@ -13,7 +13,7 @@
   (:require [io.pedestal.app.dataflow :as df]))
 
 (defn test-multiple-deep-changes []
-
+  
   (let [results (atom nil)
         t (fn [state message]
             (-> state
@@ -34,4 +34,6 @@
                 :new-model {:b {:c 1, :d 1}}
                 :old-model {:b {}}
                 :removed #{}
-                :updated #{}}))))
+                :updated #{}
+                :mode nil
+                :processed-inputs nil}))))

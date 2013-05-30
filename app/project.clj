@@ -18,6 +18,5 @@
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.1"]]
   :test-paths ["test/clj"]
-  :plugins [[lein-marginalia "0.7.1"]]
   :profiles {:dev {:source-paths ["dev"]}}
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
