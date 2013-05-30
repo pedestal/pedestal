@@ -1170,3 +1170,78 @@
                      @app-model))
              #{[:a 10] [:b 20]})))))
 
+(deftest test-truthy-data-model-values
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value true}
+                                {msg/type :set-value msg/topic [:x] :value false}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x false}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:value [:x] nil true]
+            [:value [:x] true false]])))
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value true}
+                                {msg/type :set-value msg/topic [:x] :value nil}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x nil}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:value [:x] nil true]
+            [:value [:x] true nil]])))
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]
+                    :emit [[#{[:* :*]} (default-emitter [])]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value {:a 1 :b 1}}
+                                {msg/type :set-value msg/topic [:x] :value {:a 0 :b 1}}
+                                {msg/type :set-value msg/topic [:x] :value {:a 0}}
+                                {msg/type :set-value msg/topic [:x] :value {:a nil}}
+                                {msg/type :set-value msg/topic [:x] :value nil}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x nil}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:node-create [:x :b] :map]
+            [:value [:x :b] nil 1]
+            [:node-create [:x :a] :map]
+            [:value [:x :a] nil 1]
+            [:value [:x :a] 1 0]
+            [:value [:x :b] 1 nil]
+            [:node-destroy [:x :b] :map]
+            [:value [:x :a] 0 nil]
+            [:node-destroy [:x :a] :map]])))
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]
+                    :emit [[#{[:* :*]} (default-emitter [])]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value {:a true :b true}}
+                                {msg/type :set-value msg/topic [:x] :value {:a false :b true}}
+                                {msg/type :set-value msg/topic [:x] :value {:a false}}
+                                {msg/type :set-value msg/topic [:x] :value {:a nil}}
+                                {msg/type :set-value msg/topic [:x] :value nil}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x nil}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:node-create [:x :b] :map]
+            [:value [:x :b] nil true]
+            [:node-create [:x :a] :map]
+            [:value [:x :a] nil true]
+            [:value [:x :a] true false]
+            [:value [:x :b] true nil]
+            [:node-destroy [:x :b] :map]
+            [:value [:x :a] false nil]
+            [:node-destroy [:x :a] :map]]))))
