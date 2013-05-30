@@ -12,21 +12,25 @@
 (ns ^:shared io.pedestal.app.data.change)
 
 (defn- find-changes [changes old-map new-map path]
-  (let [o (get-in old-map path)
-        n (get-in new-map path)]
-    (cond (nil? o) (update-in changes [:added] (fnil conj #{}) path)
-          
-          (nil? n) (update-in changes [:removed] (fnil conj #{}) path)
-          
+  (let [parent-path (butlast path)
+        k (last path)
+        old-m (if (seq parent-path) (get-in old-map parent-path) old-map)
+        new-m (if (seq parent-path) (get-in new-map parent-path) new-map)
+        o (get old-m k)
+        n (get new-m k)]
+    (cond (not (contains? old-m k)) (update-in changes [:added] (fnil conj #{}) path)
+
+          (not (contains? new-m k)) (update-in changes [:removed] (fnil conj #{}) path)
+
           (and (not= o n) (or (not (map? o)) (not (map? n))))
           (update-in changes [:updated] (fnil conj #{}) path)
-          
+
           (and (not= o n) (map? o) (map? n))
           (reduce (fn [a k]
                     (find-changes a old-map new-map (conj path k)))
                   changes
                   (into (keys n) (keys o)))
-          
+
           :else changes)))
 
 (defn- merge-changes [c1 c2]

@@ -45,6 +45,6 @@
 
 
   <!-- For loggers in the ".*" namespace, log at all levels. -->
-  <logger name="pedestal.app" level="INFO" />
+  <logger name="io.pedestal" level="INFO" />
   
 </configuration>
