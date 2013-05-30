@@ -52,111 +52,111 @@
                   (assoc :d {:b {}})
                   (assoc-in [:d :b :c] 10)
                   (update-in [:d :b :c] inc))
-              
+
               {:d {:b {:c 11}}}
-              
+
               {:added #{[:d]}})
-  
+
   (is-changed (-> (tracking-map {:a {:b {:c 0}}})
                   (assoc-in [:a :b :e] 10))
-              
+
               {:a {:b {:c 0 :e 10}}}
-              
+
               {:added #{[:a :b :e]}})
-  
+
   (is-changed (-> (tracking-map {:a {:b {:c 0}}})
                   (assoc-in [:a :b :e] 10)
                   (update-in [:a :b :c] inc))
-              
+
               {:a {:b {:c 1 :e 10}}}
-              
+
               {:added #{[:a :b :e]}
                :updated #{[:a :b :c]}})
-  
+
   (is-changed (-> (tracking-map {:a {:b {:c 0 :g 42}}})
                   (assoc-in [:a :b :e] 10)
                   (update-in [:a :b :c] inc)
                   (update-in [:a :b] dissoc :g))
-              
+
               {:a {:b {:c 1 :e 10}}}
-              
+
               {:added #{[:a :b :e]}
                :updated #{[:a :b :c]}
                :removed #{[:a :b :g]}})
-  
+
   (is-changed (assoc (tracking-map {:a {1 :x 2 :y 3 :z}})
                 :a
                 {1 :m 2 :y 4 42})
-              
+
               {:a {1 :m 2 :y 4 42}}
-              
+
               {:added #{[:a 4]}
                :updated #{[:a 1]}
                :removed #{[:a 3]}})
-  
+
   (is-changed (assoc-in (tracking-map {:a {:b {1 :x 2 :y 3 :z}}})
                         [:a :b]
                         {1 :m 2 :y 4 42})
-              
+
               {:a {:b {1 :m 2 :y 4 42}}}
-              
+
               {:added #{[:a :b 4]}
                :updated #{[:a :b 1]}
                :removed #{[:a :b 3]}})
-  
+
   (is-changed (merge (tracking-map {:a 1 :b 2 :c 3})
                      {:a 2})
-              
+
               {:a 2 :b 2 :c 3}
-              
+
               {:updated #{[:a]}})
-  
+
   (is-changed (update-in (tracking-map {:a 1 :b 2 :c {:a 1 :b 2}})
                          [:c]
                          merge
                          {:a 2})
-              
+
               {:a 1 :b 2 :c {:a 2 :b 2}}
-              
+
               {:updated #{[:c :a]}})
-  
+
   (is-changed (update-in (tracking-map {:a 1 :b 2 :c {:a 1 :b 2}})
                          [:c]
                          #(merge {:a 2} %))
-              
+
               {:a 1 :b 2 :c {:a 1 :b 2}}
-              
+
               {})
-  
+
   (is-changed (update-in (tracking-map {:a {:b {:c 1 :d 2}}})
                          [:a :b]
                          #(merge {:c 2} %))
-              
+
               {:a {:b {:c 1 :d 2}}}
-              
+
               {})
 
   (is-changed (update-in (tracking-map {:a {:b {:c 1 :d 2}}})
                          [:a :b]
                          #(merge {:z 2} %))
-              
+
               {:a {:b {:c 1 :d 2 :z 2}}}
-              
+
               {:added #{[:a :b :z]}})
-  
+
   (is-changed (assoc-in (tracking-map {:a {:b {:c 1 :d 2}}})
                         [:a :b]
                         {})
-              
+
               {:a {:b {}}}
-              
+
               {:removed #{[:a :b :c] [:a :b :d]}})
 
   (testing "setting a value to nil does not remove the value"
     (is-changed (assoc-in (tracking-map {:a {:b {:c 1 :d 2}}})
                           [:a :b]
                           nil)
-                
+
                 {:a {:b nil}}
 
                 {:updated #{[:a :b]}}))
@@ -166,9 +166,9 @@
                           (update-in a [k] (fnil + 0) v))
                         (tracking-map {:a 1 :b 2 :c 3})
                         {:a 10 :c 12})
-                
+
                 {:a 11 :b 2 :c 15}
-                
+
                 {:updated #{[:a] [:c]}})))
 
 (deftest test-as-map
