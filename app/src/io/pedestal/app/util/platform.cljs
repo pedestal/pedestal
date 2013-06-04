@@ -25,10 +25,10 @@
   (js/Date.))
 
 (defn create-timeout [msecs f]
-  (.setTimeout js/window f msecs))
+  (js/setTimeout f msecs))
 
 (defn cancel-timeout [timeout]
-  (.clearTimeout js/window timeout))
+  (js/clearTimeout timeout))
 
 (defn read-form-if-string [x]
   (if (string? x)
