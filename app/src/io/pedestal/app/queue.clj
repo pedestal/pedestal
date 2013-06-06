@@ -42,3 +42,12 @@
 
 (defn queue [name]
   (->AppMessageQueue (atom {:queue [] :item nil :name name})))
+
+(defn consume-queue
+  "Recursively process each item on the given queue with the
+  provided function."
+  [queue f]
+  (p/take-message queue
+                  (fn [message]
+                    (f message)
+                    (consume-queue queue f))))
