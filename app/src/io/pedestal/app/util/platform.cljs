@@ -10,8 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.app.util.platform
-  (:require [cljs.reader :as reader]
-            [goog.net.Cookies :as cookies]))
+  (:require [cljs.reader :as reader]))
 
 (defn safe-read-string [s]
   (reader/read-string s))
@@ -35,9 +34,6 @@
     (try (safe-read-string x)
          (catch js/Error _ nil))
     x))
-
-(defn get-cookie [cookie]
-  (.get (goog.net.Cookies. js/document) cookie))
 
 (defn log-group [pre post coll]
   (.log js/console "\n")

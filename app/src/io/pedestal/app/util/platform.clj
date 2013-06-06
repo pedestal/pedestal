@@ -12,10 +12,7 @@
 (ns io.pedestal.app.util.platform
   (:require [io.pedestal.app.util.scheduler :as scheduler]
             [io.pedestal.app.util.log :as log]
-            clojure.edn)
-  (:import java.util.UUID))
-
-(def session-id (.toString (java.util.UUID/randomUUID)))
+            clojure.edn))
 
 (defn safe-read-string [s]
   (clojure.edn/read-string s))
@@ -44,11 +41,6 @@
     (try (safe-read-string x)
          (catch Throwable _ nil))
     x))
-
-(defmulti get-cookie identity)
-
-(defmethod get-cookie :default [cookie]
-  session-id)
 
 (defn log-group [pre post coll]
   (println "\n")
