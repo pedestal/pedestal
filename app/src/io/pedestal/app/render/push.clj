@@ -15,7 +15,8 @@
   to the DOM."
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app.util.platform :as platform]
-            [io.pedestal.app.util.log :as log]))
+            [io.pedestal.app.util.log :as log]
+            [io.pedestal.app.queue :as queue]))
 
 ;; Handlers
 ;; ================================================================================
@@ -144,3 +145,23 @@
            (let [[op path] d
                  handler (find-handler handlers op path)]
              (when handler (handler renderer d input-queue))))))))
+
+(defn push-render-queue
+  "Return a queue for processing rendering deltas. This queue will
+  receive one delta at a time. For each delta placed on the queue, find
+  and then apply a handler to that delta. If no handler is found, the
+  delta will be removed from the queue and no other processing will
+  take place."
+  [root-id handlers input-queue]
+  (let [renderer (->DomRenderer (atom {:id root-id}))
+        handlers (if (vector? handlers) (add-handlers handlers) handlers)
+        render-queue (queue/queue :render-queue)]
+    (letfn [(consume-render-queue []
+              (p/take-message render-queue
+                              (fn [message]
+                                (let [[op path] message
+                                      handler (find-handler handlers op path)]
+                                  (when handler (handler renderer message input-queue)))
+                                (consume-render-queue))))]
+      (consume-render-queue))
+    render-queue))
