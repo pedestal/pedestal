@@ -10,7 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^:shared io.pedestal.app.dataflow
-    (:require [io.pedestal.app.data.tracking-map :as tm]))
+    (:require [io.pedestal.app.data.tracking-map :as tm]
+              [io.pedestal.app.util.platform :as platform]))
 
 (defn- matching-path-element?
   "Return true if the two elements match."
@@ -309,7 +310,14 @@
       (update-in [:input-adapter] add-default identity)))
 
 (defn run [model dataflow message]
-  (run-all-phases model dataflow message))
+  (if (:debug dataflow)
+    (let [start (platform/date)
+          new-model (run-all-phases model dataflow message)
+          end (platform/date)]
+      (run-all-phases new-model
+                      (assoc dataflow :input-adapter identity)
+                      {:key :debug :out [:pedestal :debug :dataflow-time] :value (- end start)}))
+    (run-all-phases model dataflow message)))
 
 (defn- get-path
   "Returns a sequence of [path value] tuples"
