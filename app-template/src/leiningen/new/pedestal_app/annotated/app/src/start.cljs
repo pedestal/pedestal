@@ -35,7 +35,7 @@
         app-model (render/consume-app-model app render-fn)]
     ;; If services existed, configure the application to send all
     ;; effects there.
-    ;; (app/consume-effect app services-fn)
+    ;; (app/consume-effects app services-fn)
     ;;
     ;; Start the application
     (app/begin app)
