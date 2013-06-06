@@ -184,6 +184,22 @@
                                      (get-in config [:aspects aspect :uri])))
           (application-host config aspect))))
 
+(defn compile-worker! [config aspect name whitelist]
+  (let [whitelist (conj whitelist #"io/pedestal/app.*")
+        sources (compile/all-cljs-on-classpath)
+        filtered-sources (filter #(some (fn [x] (re-matches x (:js-file-name %))) whitelist)
+                                 sources)
+        options (-> (cljs-compilation-options *public*
+                                              (update-in config [:aspects aspect]
+                                                         assoc :out-file (str name ".js")
+                                                         :optimizations :advanced)
+                                              aspect)
+                    (dissoc :watch-files :ignore :triggers))]
+    (when (compile/compilation-required? filtered-sources (:output-to options))
+      (doseq [s filtered-sources]
+        (log/info :worker-name name :include-file (:js-file-name s)))
+      (compile/build-sources! filtered-sources options))))
+
 (defn build!
   "Builds the current project into the out directory."
   [config aspect]
@@ -191,6 +207,9 @@
     (ensure-directory output-root)
     (when aspect
       (compile/compile! (cljs-compilation-options *public* config aspect))
+      (when-let [workers (get-in config [:aspects aspect :workers])]
+        (doseq [[name whitelist] workers]
+          (compile-worker! config aspect name whitelist)))
       (make-template config output-root aspect))
     (process-files "tools" "app")))
 
