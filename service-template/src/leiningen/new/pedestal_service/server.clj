@@ -3,7 +3,7 @@
   (:require [{{namespace}}.service :as service]
             [io.pedestal.service.http :as bootstrap]))
 
-(def service-instance
+(defonce service-instance
   "Global var to hold service instance."
   nil)
 

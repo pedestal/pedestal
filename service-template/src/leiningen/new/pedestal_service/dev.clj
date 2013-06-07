@@ -35,7 +35,7 @@
      (require ns-sym :reload))
    (catch Throwable e (.printStackTrace e))))
  
-(def ^:private ^:dynamic *unwatch* nil)
+(defonce ^:private ^:dynamic *unwatch* nil)
 
 (defn unwatch
   []
