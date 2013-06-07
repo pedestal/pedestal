@@ -1,7 +1,8 @@
 (ns dev
   (:require [io.pedestal.service.http :as bootstrap]
             [{{namespace}}.service :as service]
-            [{{namespace}}.server :as server]))
+            [{{namespace}}.server :as server]
+            [ns-tracker.core :as tracker]))
 
 (def service (-> service/service ;; start with production configuration
                  (merge  {:env :dev
@@ -28,3 +29,33 @@
   (stop)
   (start))
 
+(defn- ns-reload [track]
+ (try
+   (doseq [ns-sym (track)]
+     (require ns-sym :reload))
+   (catch Throwable e (.printStackTrace e))))
+ 
+(def ^:private ^:dynamic *unwatch* nil)
+
+(defn unwatch
+  []
+  (when *unwatch* (*unwatch*)))
+
+(defn watch
+  ([] (watch ["src"]))
+  ([src-paths]
+     (let [track (tracker/ns-tracker src-paths)
+           done (atom false)]
+       (unwatch)
+       (alter-var-root #'*unwatch* (constantly (fn [] (swap! done not))))
+       (doto
+           (Thread. (fn []
+                      (while (not @done)
+                        (ns-reload track)
+                        (Thread/sleep 500))))
+         (.setDaemon true)
+         (.start)))))
+
+(defn -main [& args]
+  (start)
+  (watch))
