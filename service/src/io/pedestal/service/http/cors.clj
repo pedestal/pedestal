@@ -25,20 +25,29 @@
   (str/join ", " (map convert-header-name header-names)))
 
 (defn- preflight
-  [context origin]
-  (let [cors-headers {"Access-Control-Allow-Origin" origin
-                      "Access-Control-Allow-Credentials" (str true)
-                      "Access-Control-Allow-Headers"
-                      (str "Content-Type, " (convert-header-names (keys (get-in context [:request :headers]))))
-                      "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD"
-                      "Access-Control-Max-Age" (str 10)}]
+  [context origin opts]
+  (let [cors-headers (merge  {"Access-Control-Allow-Origin" origin
+                              "Access-Control-Allow-Headers"
+                              (str "Content-Type, " (convert-header-names (keys (get-in context [:request :headers]))))
+                              "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD"}
+                             (when-let [creds (:creds opts)]
+                               {"Access-Control-Allow-Credentials" (str creds)})
+                             (when-let [age (:max-age opts)]
+                               {"Access-Control-Max-Age" (str age)}))]
     (log/info :msg "cors preflight"
               :cors-headers cors-headers)
     (assoc context :response {:status 200
                               :headers cors-headers})))
 
 (definterceptorfn allow-origin
-  [allowed-origins]
+  "Builds a CORS interceptor that allows calls from the specified `allowed-origins`, either a sequence of strings or a function of one argument that returns a truthy value when an origin is allowed. Optional arguments:
+
+  :creds - true or false, indicates whether client is allowed to send credentials
+
+  :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request.
+
+  Optional arguments are passed as keywords and values, e.g., (allow-origin (\"localhost:8081\") :creds true)."
+  [allowed-origins & {:as opts}]
   (let [allowed? (if (fn? allowed-origins)
                    allowed-origins
                    (fn [origin] (some #(= % origin) (seq allowed-origins))))] 
@@ -51,18 +60,24 @@
                           :origin origin
                           :allowed allowed)
                 (cond
+                 ;; origin is allowed and this is preflight
                  (and origin allowed preflight-request)
-                 (preflight context origin)
+                 (preflight context origin opts)
 
+                 ;; origin is allowed and this is real
                  (and origin allowed (not preflight-request))
-                 (assoc context :cors-headers {"Access-Control-Allow-Origin" origin
-                                               "Access-Control-Allow-Credentials" (str true)})
+                 (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
+                                                     (when-let [creds (:creds opts)]
+                                                       {"Access-Control-Allow-Credentials" (str creds)})))
 
+                 ;; origin is not allowed
                  (and origin (not allowed))
                  (assoc context :response {:status 403 :body "Forbidden" :headers {}})
 
+                 ;; no origin
                  :else
                  context)))
+
             (fn [{:keys [response cors-headers] :as context}]
               (if-not (servlet-interceptor/response-sent? context)
                 ;; merge cors headers and expose all response headers
