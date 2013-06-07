@@ -29,7 +29,7 @@
   (let [cors-headers {"Access-Control-Allow-Origin" origin
                       "Access-Control-Allow-Credentials" (str true)
                       "Access-Control-Allow-Headers"
-                      (convert-header-names (keys (get-in context [:request :headers])))
+                      (str "Content-Type, " (convert-header-names (keys (get-in context [:request :headers]))))
                       "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD"
                       "Access-Control-Max-Age" (str 10)}]
     (log/info :msg "cors preflight"
