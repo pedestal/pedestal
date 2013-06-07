@@ -46,6 +46,10 @@
   (let [template (render/get-data r (conj path ::template))]
     (add-in-template d/prepend! template data)))
 
+(defn insert-t [r path data idx]
+  (let [template (render/get-data r (conj path ::template))]
+    (add-in-template #(d/insert! %1 %2 idx) template data)))
+
 (defn append-t [r path data]
   (let [template (render/get-data r (conj path ::template))]
     (add-in-template d/append! template data)))
