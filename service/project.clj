@@ -11,7 +11,7 @@
 
 (defproject io.pedestal/pedestal.service "0.1.9-SNAPSHOT"
   :description "Pedestal Service"
-  :dependencies [[org.clojure/clojure "1.5.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  ;; logging
                  [org.slf4j/slf4j-api "1.7.2"]
 
