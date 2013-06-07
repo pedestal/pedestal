@@ -3,9 +3,7 @@
   (:require [{{namespace}}.service :as service]
             [io.pedestal.service.http :as bootstrap]))
 
-(defonce service-instance
-  "Global var to hold service instance."
-  nil)
+(defonce service-instance nil)
 
 (defn create-server
   "Standalone dev/prod mode."

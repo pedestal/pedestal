@@ -35,26 +35,19 @@
      (require ns-sym :reload))
    (catch Throwable e (.printStackTrace e))))
  
-(defonce ^:private ^:dynamic *unwatch* nil)
-
-(defn unwatch
-  []
-  (when *unwatch* (*unwatch*)))
-
 (defn watch
   ([] (watch ["src"]))
   ([src-paths]
      (let [track (tracker/ns-tracker src-paths)
            done (atom false)]
-       (unwatch)
-       (alter-var-root #'*unwatch* (constantly (fn [] (swap! done not))))
        (doto
            (Thread. (fn []
                       (while (not @done)
                         (ns-reload track)
                         (Thread/sleep 500))))
          (.setDaemon true)
-         (.start)))))
+         (.start))
+       (fn [] (swap! done not)))))
 
 (defn -main [& args]
   (start)
