@@ -22,4 +22,5 @@
   :profiles {:dev {:source-paths ["dev"]}}
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
+  :aliases {"run-dev" ["trampoline" "run" "-m" "dev"]}
   :main ^{:skip-aot true} {{namespace}}.server)
