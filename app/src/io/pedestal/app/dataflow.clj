@@ -32,6 +32,96 @@
                         [path-b path-a])]
     (matching-path? small (take (count small) large))))
 
+(defn- get-path
+  "Returns a sequence of [path value] tuples"
+  ([data path]
+     (get-path data [] path))
+  ([data context [x & xs]]
+     (if (and x (not= data ::nokey))
+       (if (= x :*)
+         (mapcat #(get-path (get data %) (conj context %) xs) (keys data))
+         (get-path (get data x ::nokey) (conj context x) xs))
+       [[context data]])))
+
+(defn input-map [{:keys [new-model input-paths]}]
+  (into {} (for [path input-paths
+                 [k v] (get-path new-model path)
+                 :when (not= v ::nokey)]
+             [k v])))
+
+(defn input-vals [inputs]
+  (vals (input-map inputs)))
+
+(defn single-val [inputs]
+  (let [m (input-map inputs)]
+    (assert (>= 1 (count m)) "input is expected to have 0 or 1 values")
+    (first (vals m))))
+
+(defn- change-map [inputs model-key change-key]
+  (let [[model change-paths] ((juxt model-key change-key) inputs)]
+    (into {} (for [path change-paths
+                   [k v] (get-path model path)
+                   :when (not= v ::nokey)]
+               [k v]))))
+
+(defn updated-map [inputs]
+  (change-map inputs :new-model :updated))
+
+(defn added-map [inputs]
+  (change-map inputs :new-model :added))
+
+(defn removed-map [inputs]
+  (change-map inputs :old-model :removed))
+
+(defn- changed-inputs [inputs f]
+  (let [input-m (input-map inputs)
+        changed (keys (f inputs))]
+    (reduce (fn [a [k v]]
+              (if (some #(descendent? k %) changed)
+                (assoc a k v)
+                a))
+            {}
+            input-m)))
+
+(defn added-inputs [inputs]
+  (changed-inputs inputs added-map))
+
+(defn updated-inputs [inputs]
+  (changed-inputs inputs updated-map))
+
+(letfn [(actual-input-paths [{:keys [old-model input-paths]}]
+          (for [path input-paths
+                [k v] (get-path old-model path)]
+            k))
+        (removed [input-paths changed-paths f]
+          (reduce (fn [acc path]
+                    (reduce (fn [a cp] (f a path cp))
+                            acc
+                            (filter #(descendent? path %) changed-paths)))
+                  {}
+                  input-paths))]
+  (defn removed-inputs [inputs]
+    (let [paths (actual-input-paths inputs)]
+      (into
+       ;; process changes reported as a remove
+       (removed paths (keys (removed-map inputs))
+                (fn [m path changed-path]
+                  (if (<= (count changed-path) (count path))
+                    (assoc m path ::removed)
+                    (assoc m path (get-in inputs (concat [:new-model] path))))))
+       ;; process changes reported as an update
+       (removed paths (keys (updated-map inputs))
+                (fn [m path changed-path]
+                  (if (< (count changed-path) (count path))
+                    (let [new-m (:new-model inputs)
+                          parent (butlast path)
+                          k (last path)
+                          parent-m (if (seq parent) (get-in new-m parent) new-m)]
+                      (if (contains? parent-m k)
+                        (assoc m path (get-in inputs (concat [:new-model] path)))
+                        (assoc m path ::removed)))
+                    m)))))))
+
 (defn- topo-visit
   "Perform a topological sort of the provided graph."
   [graph node]
@@ -43,21 +133,11 @@
         (assoc graph ::order (conj (::order graph) node))))))
 
 (defn- sort-derive-fns
-  "Return a sorted sequence of derive function configurations. The
-  input sequence will have the following shape:
-
-  [['a #{[:x]} [:a]]
-   ['b #{[:y]} [:b]]]
-
-  This is a vector of vectors where each vector contains three
-  elements: the output path, the function and a set of input paths.
-
-  This is not a fast sort so it should only be done once when creating
-  a new dataflow."
+  "Return a sorted sequence of derive function configurations."
   [derive-fns]
-  (let [derive-fns (map (fn [[f ins out]] [(gensym) f ins out]) derive-fns)
-        index (reduce (fn [a [id f :as xs]] (assoc a id xs)) {} derive-fns)
-        deps (for [[id f ins out] derive-fns in ins] [id in out])
+  (let [derive-fns (map #(assoc % :id (gensym)) derive-fns)
+        index (reduce (fn [a x] (assoc a (:id x) x)) {} derive-fns)
+        deps (for [{:keys [in out id]} derive-fns i in] [id i out])
         graph (reduce
                (fn [a [f _ out]]
                  (assoc a f {:deps (set (map first
@@ -66,17 +146,9 @@
                {}
                deps)]
     (reverse (reduce (fn [a b]
-                       (let [[_ f ins out] (get index b)]
-                         (conj a [f ins out])))
+                       (conj a (dissoc (get index b) :id)))
                      []
                      (::order (reduce topo-visit (assoc graph ::order []) (keys graph)))))))
-
-(defn- sorted-derive-vector
-  "Convert derive function config to a vector and sort in dependency
-  order."
-  [derive-fns]
-  (sort-derive-fns
-   (mapv (fn [{:keys [in out fn]}] [fn in out]) derive-fns)))
 
 (defn find-message-transformer
   "Given a transform configuration vector, find the first transform
@@ -155,14 +227,27 @@
       (merge (select-keys change [:added :updated :removed]))
       (update-input-sets [:added :updated :removed] filter input-paths)))
 
+(defn- dataflow-fn-args [inputs args-key]
+  (case args-key
+    :vals (input-vals inputs)
+    :map [(input-map inputs)]
+    :map-seq (apply concat (seq (input-map inputs)))
+    :single-val [(single-val inputs)]
+    :default [inputs]
+    [inputs]))
+
 (defn- derive-phase
   "Execute each derive function in dependency order only if some input to the
   function has changed. Return an updated flow state."
   [{:keys [dataflow context] :as state}]
   (let [derives (:derive dataflow)]
-    (reduce (fn [{:keys [change] :as acc} [derive-fn input-paths out-path]]
+    (reduce (fn [{:keys [change] :as acc}
+                {input-paths :in derive-fn :fn out-path :out args :args}]
               (if (propagate? acc input-paths)
-                (apply-in acc out-path derive-fn (flow-input context acc input-paths change))
+                (apply apply-in acc out-path derive-fn
+                       (dataflow-fn-args
+                        (flow-input context acc input-paths change)
+                        args))
                 acc))
             state
             derives)))
@@ -171,10 +256,12 @@
   "Execute each function. Return an updated flow state."
   [{:keys [dataflow context] :as state} k]
   (let [fns (k dataflow)]
-    (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in}]
+    (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in args :args}]
               (if (propagate? acc input-paths)
                 (update-in acc [:new k] (fnil into [])
-                           (f (flow-input context acc input-paths change)))
+                           (apply f (dataflow-fn-args
+                                     (flow-input context acc input-paths change)
+                                     args)))
                 acc))
             state
             fns)))
@@ -278,14 +365,14 @@
 (defn- derive-maps [derives]
   (mapv (fn [x]
           (if (vector? x)
-            (let [[in out fn] x] {:in (with-propagator in) :out out :fn fn})
+            (let [[in out fn args] x] {:in (with-propagator in) :out out :fn fn :args args})
             (update-in x [:in] with-propagator)))
         derives))
 
 (defn- output-maps [outputs]
   (mapv (fn [x]
           (if (vector? x)
-            (let [[in fn] x] {:in (with-propagator in) :fn fn})
+            (let [[in fn args] x] {:in (with-propagator in) :fn fn :args args})
             (update-in x [:in] with-propagator)))
         outputs))
 
@@ -306,105 +393,15 @@
       (update-in [:continue] (comp set output-maps))
       (update-in [:effect] (comp set output-maps))
       (update-in [:emit] output-maps)
-      (update-in [:derive] sorted-derive-vector)
+      (update-in [:derive] sort-derive-fns)
       (update-in [:input-adapter] add-default identity)))
 
 (defn run [model dataflow message]
   (if (:debug dataflow)
-    (let [start (platform/date)
+    (let [start (.getTime (platform/date))
           new-model (run-all-phases model dataflow message)
-          end (platform/date)]
+          end (.getTime (platform/date))]
       (run-all-phases new-model
                       (assoc dataflow :input-adapter identity)
                       {:key :debug :out [:pedestal :debug :dataflow-time] :value (- end start)}))
     (run-all-phases model dataflow message)))
-
-(defn- get-path
-  "Returns a sequence of [path value] tuples"
-  ([data path]
-     (get-path data [] path))
-  ([data context [x & xs]]
-     (if (and x (not= data ::nokey))
-       (if (= x :*)
-         (mapcat #(get-path (get data %) (conj context %) xs) (keys data))
-         (get-path (get data x ::nokey) (conj context x) xs))
-       [[context data]])))
-
-(defn input-map [{:keys [new-model input-paths]}]
-  (into {} (for [path input-paths
-                 [k v] (get-path new-model path)
-                 :when (not= v ::nokey)]
-             [k v])))
-
-(defn input-vals [inputs]
-  (vals (input-map inputs)))
-
-(defn single-val [inputs]
-  (let [m (input-map inputs)]
-    (assert (>= 1 (count m)) "input is expected to have 0 or 1 values")
-    (first (vals m))))
-
-(defn- change-map [inputs model-key change-key]
-  (let [[model change-paths] ((juxt model-key change-key) inputs)]
-    (into {} (for [path change-paths
-                   [k v] (get-path model path)
-                   :when (not= v ::nokey)]
-               [k v]))))
-
-(defn updated-map [inputs]
-  (change-map inputs :new-model :updated))
-
-(defn added-map [inputs]
-  (change-map inputs :new-model :added))
-
-(defn removed-map [inputs]
-  (change-map inputs :old-model :removed))
-
-(defn- changed-inputs [inputs f]
-  (let [input-m (input-map inputs)
-        changed (keys (f inputs))]
-    (reduce (fn [a [k v]]
-              (if (some #(descendent? k %) changed)
-                (assoc a k v)
-                a))
-            {}
-            input-m)))
-
-(defn added-inputs [inputs]
-  (changed-inputs inputs added-map))
-
-(defn updated-inputs [inputs]
-  (changed-inputs inputs updated-map))
-
-(letfn [(actual-input-paths [{:keys [old-model input-paths]}]
-          (for [path input-paths
-                [k v] (get-path old-model path)]
-            k))
-        (removed [input-paths changed-paths f]
-          (reduce (fn [acc path]
-                    (reduce (fn [a cp] (f a path cp))
-                            acc
-                            (filter #(descendent? path %) changed-paths)))
-                  {}
-                  input-paths))]
-  (defn removed-inputs [inputs]
-    (let [paths (actual-input-paths inputs)]
-      (into
-       ;; process changes reported as a remove
-       (removed paths (keys (removed-map inputs))
-                (fn [m path changed-path]
-                  (if (<= (count changed-path) (count path))
-                    (assoc m path ::removed)
-                    (assoc m path (get-in inputs (concat [:new-model] path))))))
-       ;; process changes reported as an update
-       (removed paths (keys (updated-map inputs))
-                (fn [m path changed-path]
-                  (if (< (count changed-path) (count path))
-                    (let [new-m (:new-model inputs)
-                          parent (butlast path)
-                          k (last path)
-                          parent-m (if (seq parent) (get-in new-m parent) new-m)]
-                      (if (contains? parent-m k)
-                        (assoc m path (get-in inputs (concat [:new-model] path)))
-                        (assoc m path ::removed)))
-                    m)))))))

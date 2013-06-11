@@ -54,7 +54,7 @@
 
 (defn valid-sort? [seq]
   (every? #(not (some (partial descendent? (:output %)) (:inputs %)))
-          (:return (reduce (fn [a [f ins out]]
+          (:return (reduce (fn [a {f :fn ins :in out :out}]
                              {:inputs (concat (:inputs a) ins)
                               :return (conj (:return a) {:output out :inputs (:inputs a)})})
                            {:inputs []
@@ -62,53 +62,47 @@
                            seq))))
 
 (deftest test-sort-derive-fns
-  (is (= (sort-derive-fns [['b #{[:a]} [:b]]
-                           ['c #{[:b]} [:c]]])
-         [['b #{[:a]} [:b]]
-          ['c #{[:b]} [:c]]]))
-  (is (valid-sort? (sort-derive-fns [['b #{[:a]} [:b]]
-                                     ['c #{[:b]} [:c]]])))
-  (is (= (sort-derive-fns [['c #{[:b]} [:c]]
-                           ['b #{[:a]} [:b]]])
-         [['b #{[:a]} [:b]]
-          ['c #{[:b]} [:c]]]))
-  (is (valid-sort? (sort-derive-fns [['c #{[:b]} [:c]]
-                                     ['b #{[:a]} [:b]]])))
-  (is (valid-sort? (sort-derive-fns [['k #{[:d :*]}    [:k]]
-                                     ['c #{[:b]}       [:c]]
-                                     ['d #{[:b :c]}    [:d :e]]
-                                     ['g #{[:d :e :f]} [:g :h :i]]
-                                     ['b #{[:a]}       [:b]]])))
-  (is (valid-sort? (sort-derive-fns [['d #{[:c]} [:d]]
-                                     ['e #{[:d]} [:e]]
-                                     ['b #{[:a]} [:b]]
-                                     ['a #{[:x]} [:a]]
-                                     ['c #{[:b]} [:c]]])))
-  (is (= (sort-derive-fns [['e #{[:c] [:d]} [:e]]
-                           ['d #{[:b]}      [:d]]
-                           ['b #{[:a]}      [:b]]
-                           ['c #{[:b]}      [:c]]])
-         [['b #{[:a]}      [:b]]
-          ['d #{[:b]}      [:d]]
-          ['c #{[:b]}      [:c]]
-          ['e #{[:c] [:d]} [:e]]]))
-  (is (valid-sort? (sort-derive-fns [['d #{[:b]}      [:d]]
-                                     ['e #{[:c] [:d]} [:e]]
-                                     ['c #{[:b]}      [:c]]
-                                     ['b #{[:a]}      [:b]]]))))
-
-(deftest test-sorted-derive-vector
-  (is (= (sorted-derive-vector [{:in #{[:b]} :out [:c] :fn 'c}
-                                {:in #{[:a]} :out [:b] :fn 'b}])
-         [['b #{[:a]} [:b]]
-          ['c #{[:b]} [:c]]])))
+  (is (= (sort-derive-fns [{:fn 'b :in #{[:a]} :out [:b]}
+                           {:fn 'c :in #{[:b]} :out [:c]}])
+         [{:fn 'b :in #{[:a]} :out [:b]}
+          {:fn 'c :in #{[:b]} :out [:c]}]))
+  (is (valid-sort? (sort-derive-fns [{:fn 'b :in #{[:a]} :out [:b]}
+                                     {:fn 'c :in #{[:b]} :out [:c]}])))
+  (is (= (sort-derive-fns [{:fn 'c :in #{[:b]} :out [:c]}
+                           {:fn 'b :in #{[:a]} :out [:b]}])
+         [{:fn 'b :in #{[:a]} :out [:b]}
+          {:fn 'c :in #{[:b]} :out [:c]}]))
+  (is (valid-sort? (sort-derive-fns [{:fn 'c :in #{[:b]} :out [:c]}
+                                     {:fn 'b :in #{[:a]} :out [:b]}])))
+  (is (valid-sort? (sort-derive-fns [{:fn 'k :in #{[:d :*]}    :out [:k]}
+                                     {:fn 'c :in #{[:b]}       :out [:c]}
+                                     {:fn 'd :in #{[:b :c]}    :out [:d]}
+                                     {:fn 'g :in #{[:d :e :f]} :out [:g :h]}
+                                     {:fn 'b :in #{[:a]}       :out [:b]}])))
+  (is (valid-sort? (sort-derive-fns [{:fn 'd :in #{[:c]} :out [:d]}
+                                     {:fn 'e :in #{[:d]} :out [:e]}
+                                     {:fn 'b :in #{[:a]} :out [:b]}
+                                     {:fn 'a :in #{[:x]} :out [:a]}
+                                     {:fn 'c :in #{[:b]} :out [:c]}])))
+  (is (= (sort-derive-fns [{:fn 'e :in #{[:c] [:d]} :out [:e]}
+                           {:fn 'd :in #{[:b]}      :out [:d]}
+                           {:fn 'b :in #{[:a]}      :out [:b]}
+                           {:fn 'c :in #{[:b]}      :out [:c]}])
+         [{:fn 'b :in #{[:a]} :out      [:b]}
+          {:fn 'd :in #{[:b]} :out      [:d]}
+          {:fn 'c :in #{[:b]} :out      [:c]}
+          {:fn 'e :in #{[:c] [:d]} :out [:e]}]))
+  (is (valid-sort? (sort-derive-fns [{:fn 'd :in #{[:b]}      :out [:d]}
+                                     {:fn 'e :in #{[:c] [:d]} :out [:e]}
+                                     {:fn 'c :in #{[:b]}      :out [:c]}
+                                     {:fn 'b :in #{[:a]}      :out [:b]}]))))
 
 (deftest test-build
   (is (= (build {:derive [{:in #{[:a]} :out [:b] :fn 'b}
                           {:in #{[:b]} :out [:c] :fn 'c}]})
          {:input-adapter identity
-          :derive [['b #{[:a]} [:b]]
-                   ['c #{[:b]} [:c]]]
+          :derive [{:fn 'b :in #{[:a]} :out [:b]}
+                   {:fn 'c :in #{[:b]} :out [:c]}]
           :transform []
           :continue #{}
           :effect #{}
@@ -129,8 +123,8 @@
          {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'x}
                       {:key :dec :out [:b] :fn 'y}]
-          :derive [['b #{[:a]} [:b]]
-                   ['c #{[:b]} [:c]]]
+          :derive [{:fn 'b :in #{[:a]} :out [:b]}
+                   {:fn 'c :in #{[:b]} :out [:c] :args nil}]
           :continue #{}
           :effect #{}
           :emit []}))
@@ -147,14 +141,14 @@
          {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'a}
                       {:key :dec :out [:b] :fn 'b}]
-          :derive [['c #{[:a]} [:b]]
-                   ['d #{[:b]} [:c]]]
+          :derive [{:fn 'c :in #{[:a]} :out [:b]}
+                   {:fn 'd :in #{[:b]} :out [:c] :args nil}]
           :continue #{{:in #{[:x]} :fn 'e}
-                      {:in #{[:y]} :fn 'f}}
+                      {:in #{[:y]} :fn 'f :args nil}}
           :effect #{{:in #{[:w]} :fn 'g}
-                    {:in #{[:p]} :fn 'h}}
+                    {:in #{[:p]} :fn 'h :args nil}}
           :emit [{:in #{[:q]} :fn 'i}
-                 {:in #{[:s]} :fn 'j}]})))
+                 {:in #{[:s]} :fn 'j :args nil}]})))
 
 (deftest test-find-message-transformer
   (let [config [{:key :a :out [:b] :fn 'x}
@@ -215,7 +209,7 @@
     (let [state {:change {:updated #{[:a]}}
                  :old {:data-model {:a 0}}
                  :new {:data-model {:a 2}}
-                 :dataflow {:derive [[double-sum-fn (with-propagator #{[:a]}) [:b]]]}
+                 :dataflow {:derive [{:fn double-sum-fn :in (with-propagator #{[:a]}) :out [:b]}]}
                  :context {}}]
       (is (= (derive-phase state)
              (-> state
@@ -224,8 +218,8 @@
     (let [state {:change {:updated #{[:a]}}
                  :old {:data-model {:a 0}}
                  :new {:data-model {:a 2}}
-                 :dataflow {:derive [[double-sum-fn (with-propagator #{[:a]}) [:b]]
-                                     [double-sum-fn (with-propagator #{[:a]}) [:c]]]}
+                 :dataflow {:derive [{:fn double-sum-fn :in (with-propagator #{[:a]}) :out [:b]}
+                                     {:fn double-sum-fn :in (with-propagator #{[:a]}) :out [:c]}]}
                  :context {}}]
       (is (= (derive-phase state)
              (-> state
@@ -236,7 +230,7 @@
             state {:change {:updated #{[:a]}}
                    :old {:data-model {:a 0 :b {:c {:x {:y 10 :z 15}}}}}
                    :new {:data-model {:a 2 :b {:c {:x {:y 10 :z 15}}}}}
-                   :dataflow {:derive [[d (with-propagator #{[:a]}) [:b :c]]]}
+                   :dataflow {:derive [{:fn d :in (with-propagator #{[:a]}) :out [:b :c]}]}
                    :context {}}]
         (is (= (derive-phase state)
                (merge state
