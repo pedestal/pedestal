@@ -1,3 +1,4 @@
+{{#annotated?}}
 <!--
  The Pedestal application development tools provide a very simple
  system for composing documents. This partial will be included
@@ -7,10 +8,12 @@
  This feature is only part of the tool. It has nothing to do with the
  ClojureScript application that you are building.
 -->
+{{/annotated?}}
 <_within file="application.html">
   
   <div id="content">
 
+    {{#annotated?}}
     <!--
         In the markup below, a template named "hello" is
         defined. This template has two fields: id and message.
@@ -35,7 +38,8 @@
         content is a special case which means that the content
         (innerHTML) of the element will be set to this value.
     -->
-    
+
+    {{/annotated?}}
     <div template="hello" field="id:id">
 
       <div field="content:message" class="message">A Message</div>
