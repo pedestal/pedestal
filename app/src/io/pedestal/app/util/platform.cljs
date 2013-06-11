@@ -10,8 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.app.util.platform
-  (:require [cljs.reader :as reader]
-            [goog.net.Cookies :as cookies]))
+  (:require [cljs.reader :as reader]))
 
 (defn safe-read-string [s]
   (reader/read-string s))
@@ -25,19 +24,16 @@
   (js/Date.))
 
 (defn create-timeout [msecs f]
-  (.setTimeout js/window f msecs))
+  (js/setTimeout f msecs))
 
 (defn cancel-timeout [timeout]
-  (.clearTimeout js/window timeout))
+  (js/clearTimeout timeout))
 
 (defn read-form-if-string [x]
   (if (string? x)
     (try (safe-read-string x)
          (catch js/Error _ nil))
     x))
-
-(defn get-cookie [cookie]
-  (.get (goog.net.Cookies. js/document) cookie))
 
 (defn log-group [pre post coll]
   (.log js/console "\n")
@@ -46,3 +42,7 @@
     (.log js/console (pr-str d)))
   (.log js/console post)
   (.log js/console "\n"))
+
+(defn log-exceptions [f & args]
+  (try (apply f args)
+       (catch js/Error e (.log js/console (pr-str e)))))

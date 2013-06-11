@@ -17,6 +17,7 @@
 
 (test-tracking-map/test-changes)
 (test-tracking-map/test-as-map)
+(test-tracking-map/test-change-tracking-preservation)
 (test-dataflow/test-multiple-deep-changes)
 
 

@@ -30,10 +30,11 @@
   "Adapts a ring middleware fn taking a response and request to an interceptor context."
   [response-fn & [opts]]
   (fn [{:keys [request response] :as context}]
-    (assoc context :response
-           (if opts
-             (response-fn response request opts)
-             (response-fn response request)))))
+    (if response
+      (assoc context :response (if opts
+                                 (response-fn response request opts)
+                                 (response-fn response request)))
+      context)))
 
 (defn- leave-interceptor
   "Defines an leave only interceptor given a ring fn."

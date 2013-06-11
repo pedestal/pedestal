@@ -10,7 +10,6 @@ From within this project run:
 ```bash
 lein install
 ```
-
 Add a new dependency to your Leiningen user profile in `~/.lein/profiles.clj`:
 
 ```clj

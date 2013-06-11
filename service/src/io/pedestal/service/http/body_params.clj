@@ -62,7 +62,7 @@
                    (:body request)
                    (java.io.InputStreamReader. encoding)
                    java.io.PushbackReader.
-                   edn/read))))
+                   (->> (edn/read {:eof nil}))))))
 
 (defn json-parser [request]
   (let [encoding (or (:character-encoding request) "UTF-8")]

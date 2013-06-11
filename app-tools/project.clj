@@ -9,10 +9,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.app-tools "0.1.7-SNAPSHOT"
+(defproject io.pedestal/pedestal.app-tools "0.1.9-SNAPSHOT"
   :description "Pedestal tools for application development"
   :min-lein-version "2.0.0"
-  :dependencies [[org.clojure/clojure "1.5.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-1820"]
                  [org.clojure/tools.namespace "0.2.1"]
                  [org.clojure/java.classpath "0.2.0"]
@@ -20,9 +20,9 @@
                  [org.slf4j/jul-to-slf4j "1.7.2"]
                  [org.slf4j/jcl-over-slf4j "1.7.2"]
                  [org.slf4j/log4j-over-slf4j "1.7.2"]
-                 [io.pedestal/pedestal.app "0.1.7-SNAPSHOT"]
-                 [io.pedestal/pedestal.service "0.1.7-SNAPSHOT"]
-                 [io.pedestal/pedestal.jetty "0.1.7-SNAPSHOT"]
+                 [io.pedestal/pedestal.app "0.1.9-SNAPSHOT"]
+                 [io.pedestal/pedestal.service "0.1.9-SNAPSHOT"]
+                 [io.pedestal/pedestal.jetty "0.1.9-SNAPSHOT"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.1"]]
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})

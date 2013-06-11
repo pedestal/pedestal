@@ -42,10 +42,12 @@
    content-type))
 
 (defn edn-response
+  "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
   [obj]
   (data-response #(pr obj) "application/edn;charset=UTF-8"))
 
 (defn json-response
+  "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format."
   [obj]
   (data-response #(json/pprint obj) "application/json;charset=UTF-8"))
 
@@ -77,37 +79,20 @@
 (interceptor/defon-response html-body
   [response]
   (let [body (:body response)
-        content-type (get-in response [:header "Content-Type"])]
+        content-type (get-in response [:headers "Content-Type"])]
     (if (and (string? body) (not content-type))
-      (ring-response/content-type response "text/html")
+      (ring-response/content-type response "text/html;charset=UTF-8")
       response)))
 
 (interceptor/defon-response json-body
   [response]
   (let [body (:body response)
-        content-type (get-in response [:header "Content-Type"])]
+        content-type (get-in response [:headers "Content-Type"])]
     (if (and (coll? body) (not content-type))
       (-> response
           (ring-response/content-type "application/json;charset=UTF-8")
           (assoc :body (print-fn #(json/pprint body))))
       response)))
-
-(defn add-content-type
-  "Based on the given `interceptor`, returns a new interceptor that
-  includes a leave fn that sets the HTTP content-type header if there
-  is a response body that is a file and the content-type has not been
-  set."
-  [interceptor]
-  (letfn [(content-type [context]
-            (let [body (get-in context [:response :body])
-                  content-type (get-in context [:response :headers "Content-Type"])]
-              (if (and body
-                       (not content-type)
-                       (= (type body) java.io.File))
-                (update-in context [:response] ring-response/content-type
-                           (ring-mime/ext-mime-type (.getAbsolutePath ^java.io.File body)))
-                context)))]
-    (assoc interceptor :leave content-type)))
 
 (defn default-interceptors
   [{routes ::routes
@@ -115,20 +100,22 @@
     resource-path ::resource-path
     method-param-name ::method-param-name
     allowed-origins ::allowed-origins
+    ext-mime-types ::mime-types
     :or {file-path nil
          resource-path "public"
-         method-param-name :_method}
+         method-param-name :_method
+         ext-mime-types {}}
     :as service-map}]
   (assoc service-map ::interceptors
          (cond-> []
                  true (conj log-request)
                  (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
                  true (conj not-found)
-                 true (conj middlewares/content-type)
+                 true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                  true (conj route/query-params)
                  true (conj (route/method-param method-param-name))
-                 (not (nil? resource-path)) (conj (add-content-type (middlewares/resource resource-path)))
-                 (not (nil? file-path)) (conj (add-content-type (middlewares/file file-path)))
+                 (not (nil? resource-path)) (conj (middlewares/resource resource-path))
+                 (not (nil? file-path)) (conj (middlewares/file file-path))
                  true (conj (route/router routes)))))
 
 (defn dev-interceptors

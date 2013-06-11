@@ -1,11 +1,9 @@
-(ns {{name}}.server
+(ns {{namespace}}.server
   (:gen-class) ; for -main method in uberjar
-  (:require [{{name}}.service :as service]
+  (:require [{{namespace}}.service :as service]
             [io.pedestal.service.http :as bootstrap]))
 
-(def service-instance
-  "Global var to hold service instance."
-  nil)
+(defonce service-instance nil)
 
 (defn create-server
   "Standalone dev/prod mode."

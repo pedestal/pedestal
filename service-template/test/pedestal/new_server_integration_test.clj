@@ -12,6 +12,7 @@
 (ns pedestal.new-server-integration-test
   (:require [clojure.test :refer :all]
             [clojure.java.shell :as sh]
+            [clojure.string :as string]
             [clojure.java.io :as io]))
 
 (def lein (or (System/getenv "LEIN_CMD") "lein"))
@@ -22,20 +23,38 @@
    io/file .getParent io/file .getParent))
 
 (let [file (java.io.File/createTempFile "filler" ".txt")]
-  (def tempdir (.getParent file)))
+  (def tempdir (doto (io/file (.getParent file) (str (java.util.UUID/randomUUID)))
+                 .mkdirs)))
 
-(def app-name "test-app")
-(def full-app-name (.getPath (io/file tempdir app-name)))
+(defn- sh-exits-successfully
+  [full-app-name & args]
+  (let [sh-result (sh/with-sh-dir full-app-name (apply sh/sh args))]
+    (println (:out sh-result))
+    (is (zero? (:exit sh-result))
+       (format "Expected `%s` to exit successfully" (string/join " " args)))))
 
 (deftest generated-app-has-correct-files
-  (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
-  (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
-  (println "Created app at" full-app-name)
-  (is (.exists (io/file full-app-name "project.clj")))
-  (is (.exists (io/file full-app-name "README.md")))
-  (is (.exists (io/file full-app-name "src" "test_app" "service.clj")))
-  (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "test"))))
-  (println (:out (sh/with-sh-dir full-app-name (sh/sh lein "with-profile" "production" "compile" ":all"))))
-  (sh/sh "rm" "-rf" full-app-name))
+  (let [app-name "test-app"
+        full-app-name (.getPath (io/file tempdir app-name))]
+    (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
+    (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
+    (println "Created app at" full-app-name)
+    (is (.exists (io/file full-app-name "project.clj")))
+    (is (.exists (io/file full-app-name "README.md")))
+    (is (.exists (io/file full-app-name "src" "test_app" "service.clj")))
+    (sh-exits-successfully full-app-name lein "test")
+    (sh-exits-successfully full-app-name lein "with-profile" "production" "compile" ":all")
+    (sh/sh "rm" "-rf" full-app-name)))
 
-
+(deftest generated-app-with-namespace-has-correct-files
+  (let [app-name "pedestal.test/test-ns-app"
+        full-app-name (.getPath (io/file tempdir "test-ns-app"))]
+   (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
+   (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
+   (println "Created app at" full-app-name)
+   (is (.exists (io/file full-app-name "project.clj")))
+   (is (.exists (io/file full-app-name "README.md")))
+   (is (.exists (io/file full-app-name "src" "pedestal" "test" "test_ns_app" "service.clj")))
+   (sh-exits-successfully full-app-name lein "test")
+   (sh-exits-successfully full-app-name lein "with-profile" "production" "compile" ":all")
+   (sh/sh "rm" "-rf" full-app-name)))

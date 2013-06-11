@@ -10,14 +10,15 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^:shared io.pedestal.app.dataflow
-    (:require [io.pedestal.app.data.tracking-map :as tm]))
+    (:require [io.pedestal.app.data.tracking-map :as tm]
+              [io.pedestal.app.util.platform :as platform]))
 
 (defn- matching-path-element?
   "Return true if the two elements match."
   [a b]
   (or (= a b) (= a :*) (= b :*)))
 
-(defn- matching-path?
+(defn matching-path?
   "Return true if the two paths match."
   [path-a path-b]
   (and (= (count path-a) (count path-b))
@@ -188,21 +189,27 @@
   [state]
   (output-phase state :effect))
 
-(defn remove-matching-changes [change input-paths]
-  (update-input-sets change [:inspect :added :updated :removed] remove input-paths))
+(letfn [(remover [change-set input-paths]
+          (set (remove #(some (partial matching-path? %) input-paths) change-set)))]
+  (defn remove-matching-changes [change input-paths]
+    (reduce (fn [a k]
+              (update-in a [k] remover input-paths))
+            change
+            [:inspect :added :updated :removed])))
 
 (defn- emit-phase
   [{:keys [dataflow context change] :as state}]
   (let [emits (:emit dataflow)]
-    (-> (reduce (fn [{:keys [change remaining-change] :as acc} {input-paths :in
-                                                               emit-fn :fn
-                                                               mode :mode}]
+    (-> (reduce (fn [{:keys [change remaining-change processed-inputs] :as acc}
+                    {input-paths :in emit-fn :fn mode :mode}]
                   (let [report-change (if (= mode :always) change remaining-change)]
                     (if (propagate? (assoc acc :change report-change) input-paths)
                       (-> acc
                           (update-in [:remaining-change] remove-matching-changes input-paths)
+                          (update-in [:processed-inputs] (fnil into []) input-paths)
                           (update-in [:new :emit] (fnil into [])
-                                     (emit-fn (flow-input context acc input-paths report-change))))
+                                     (emit-fn (-> (flow-input context acc input-paths report-change)
+                                                  (assoc :mode mode :processed-inputs processed-inputs)))))
                       acc)))
                 (assoc state :remaining-change change)
                 emits)
@@ -303,23 +310,30 @@
       (update-in [:input-adapter] add-default identity)))
 
 (defn run [model dataflow message]
-  (run-all-phases model dataflow message))
+  (if (:debug dataflow)
+    (let [start (platform/date)
+          new-model (run-all-phases model dataflow message)
+          end (platform/date)]
+      (run-all-phases new-model
+                      (assoc dataflow :input-adapter identity)
+                      {:key :debug :out [:pedestal :debug :dataflow-time] :value (- end start)}))
+    (run-all-phases model dataflow message)))
 
 (defn- get-path
   "Returns a sequence of [path value] tuples"
   ([data path]
      (get-path data [] path))
   ([data context [x & xs]]
-     (if x
+     (if (and x (not= data ::nokey))
        (if (= x :*)
          (mapcat #(get-path (get data %) (conj context %) xs) (keys data))
-         (get-path (get data x) (conj context x) xs))
+         (get-path (get data x ::nokey) (conj context x) xs))
        [[context data]])))
 
 (defn input-map [{:keys [new-model input-paths]}]
   (into {} (for [path input-paths
                  [k v] (get-path new-model path)
-                 :when v]
+                 :when (not= v ::nokey)]
              [k v])))
 
 (defn input-vals [inputs]
@@ -334,7 +348,7 @@
   (let [[model change-paths] ((juxt model-key change-key) inputs)]
     (into {} (for [path change-paths
                    [k v] (get-path model path)
-                   :when v]
+                   :when (not= v ::nokey)]
                [k v]))))
 
 (defn updated-map [inputs]
@@ -362,12 +376,35 @@
 (defn updated-inputs [inputs]
   (changed-inputs inputs updated-map))
 
-(defn removed-inputs [inputs]
-  (let [removed (keys (removed-map inputs))
-        paths (keys (input-map inputs))]
-    (reduce (fn [a path]
-              (if (some #(descendent? path %) removed)
-                (assoc a path (get-in inputs (concat [:new-model] path)))
-                a))
-            {}
-            paths)))
+(letfn [(actual-input-paths [{:keys [old-model input-paths]}]
+          (for [path input-paths
+                [k v] (get-path old-model path)]
+            k))
+        (removed [input-paths changed-paths f]
+          (reduce (fn [acc path]
+                    (reduce (fn [a cp] (f a path cp))
+                            acc
+                            (filter #(descendent? path %) changed-paths)))
+                  {}
+                  input-paths))]
+  (defn removed-inputs [inputs]
+    (let [paths (actual-input-paths inputs)]
+      (into
+       ;; process changes reported as a remove
+       (removed paths (keys (removed-map inputs))
+                (fn [m path changed-path]
+                  (if (<= (count changed-path) (count path))
+                    (assoc m path ::removed)
+                    (assoc m path (get-in inputs (concat [:new-model] path))))))
+       ;; process changes reported as an update
+       (removed paths (keys (updated-map inputs))
+                (fn [m path changed-path]
+                  (if (< (count changed-path) (count path))
+                    (let [new-m (:new-model inputs)
+                          parent (butlast path)
+                          k (last path)
+                          parent-m (if (seq parent) (get-in new-m parent) new-m)]
+                      (if (contains? parent-m k)
+                        (assoc m path (get-in inputs (concat [:new-model] path)))
+                        (assoc m path ::removed)))
+                    m)))))))

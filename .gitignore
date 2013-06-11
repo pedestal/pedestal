@@ -10,3 +10,4 @@ tmp/
 logs/
 generated-js/
 docs
+pom.xml.asc

@@ -58,6 +58,9 @@
   ([]
      (proxy [ServletInputStream]
          []
+       (read ([] -1)
+         ([^bytes b] -1)
+         ([^bytes b ^Integer off ^Integer len] -1))
        (readLine [bytes off len] -1)))
   ([^String string]
      (let [wrapped-stream (ByteArrayInputStream. (.getBytes string))]

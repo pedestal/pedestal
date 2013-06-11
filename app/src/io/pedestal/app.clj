@@ -33,26 +33,37 @@
              [:value [changed-input] (:new (get inputs changed-input))])
            changed-inputs)))
 
+(defn- filter-changes [{:keys [mode processed-inputs]} changes]
+  (if (= mode :always)
+    changes
+    (remove (fn [[k v]] (some (partial dataflow/matching-path? k) processed-inputs)) changes)))
+
 (letfn [(prefixed [k p] (vec (concat (if (keyword? p) [p] p) k)))]
   (defn default-emitter
     "Return an emitter function which will emit deltas under the
     provided path prefix."
     [prefix]
     (fn [inputs]
-      (vec (concat (let [added (dataflow/added-inputs inputs)]
+      (vec (concat (let [added (->> inputs
+                                    dataflow/added-inputs
+                                    (filter-changes inputs))]
                      (mapcat (fn [[k v]]
                                (let [k (prefixed k prefix)]
                                  [[:node-create k :map]
                                   [:value k v]]))
                              added))
-                   (let [updates (dataflow/updated-inputs inputs)]
+                   (let [updates (->> inputs
+                                      dataflow/updated-inputs
+                                      (filter-changes inputs))]
                      (mapv (fn [[k v]] [:value (prefixed k prefix) v]) updates))
-                   (let [removed (dataflow/removed-inputs inputs)]
+                   (let [removed (->> inputs
+                                      dataflow/removed-inputs
+                                      (filter-changes inputs))]
                      (mapcat (fn [[k v]]
                                (let [k (prefixed k prefix)]
-                                 (if v
-                                   [[:value k v]]
-                                   [[:value k v] [:node-destroy k]])))
+                                 (if (= v :io.pedestal.app.dataflow/removed)
+                                   [[:value k nil] [:node-destroy k]]
+                                   [[:value k v]])))
                              removed)))))))
 
 (defmulti ^:private process-app-model-message (fn [state flow message] (msg/type message)))
@@ -246,13 +257,13 @@
      (let [{:keys [description dataflow default-emitter]} app
            start-messages (cond start-messages
                                 ;; use the user provided start messages
-                                start-messages 
-                                
+                                start-messages
+
                                 (:focus description)
                                 ;; create start messages from
                                 ;; :focus description
                                 (create-start-messages (:focus description))
-                                
+
                                 :else
                                 ;; subscribe to everything
                                 ;; this makes simple one-screen apps

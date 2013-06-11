@@ -2,6 +2,44 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.1.8 - May 29, 2013
+
+### General
+
+* App and service templates now allow creating projects with namespaces [#68](https://github.com/pedestal/pedestal/issues/68).
+            
+            $ lein new pedestal-app com.example/foo
+            ... creates foo/ with src/com/example/foo/*.clj
+
+### Service
+
+* Corrected a test error in the generated service template project.
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.7...0.1.8](https://github.com/pedestal/pedestal/compare/0.1.7...0.1.8).
+
+## 0.1.7 - May 24, 2013
+
+### App
+
+* The new simplified dataflow engine is here! We're working to update our documentation and samples now. Stay informed by following [@pedestal_team](http://twitter.com/pedestal_team) on twitter.
+    * Existing applications will continue to function normally.
+* `io.pedestal.app.templates/dtfn` now allows for more than one data field [#60](https://github.com/pedestal/pedestal/issues/60).
+
+### Service
+
+* Empty EDN responses are now handled gracefully [#69](https://github.com/pedestal/pedestal/pull/69).
+* Resources for services can now be drawn from `resources/` [#51](https://github.com/pedestal/pedestal/pull/51).
+* Typo fixes in HTML and JSON interceptors [#72](https://github.com/pedestal/pedestal/pull/72).
+* Corrected a few places the `Content-Type` header was not being set properly [#58](https://github.com/pedestal/pedestal/issues/58), [#65](https://github.com/pedestal/pedestal/pull/65).
+
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.6...0.1.7](https://github.com/pedestal/pedestal/compare/0.1.6...0.1.7).
+
+
 ## 0.1.6 - May 03, 2013
 
 ### Service
@@ -17,7 +55,7 @@
 
 ### Miscellaneous bug-fixes and improvements
 
-For a full list of changes, please see a [comparison](https://github.com/pedestal/pedestal/compare/0.1.5...0.1.6).
+For a full list of changes, please see a comparison of [0.1.5...0.1.6](https://github.com/pedestal/pedestal/compare/0.1.5...0.1.6).
 
 ## 0.1.4/0.1.5 - April 05, 2013
 
@@ -41,8 +79,8 @@ spelling corrections, as well as his help in removing
 We've updated the [documentation](http://pedestal.io/documentation/) with
 instructions on how to continue to generate marginalia documentation.
 
-For a full list of changes, please see a
-[comparison](https://github.com/pedestal/pedestal/compare/0.1.3...0.1.5).
+For a full list of changes, please see a comparison of
+[0.1.3...0.1.5](https://github.com/pedestal/pedestal/compare/0.1.3...0.1.5).
 
 ## 0.1.3 - April 05, 2013
 
@@ -56,7 +94,7 @@ For a full list of changes, please see a
 
 ### Miscellaneous bug-fixes and improvements
 
-For a full list of changes, please see a [comparison](https://github.com/pedestal/pedestal/compare/0.1.2...0.1.3).
+For a full list of changes, please see a comparison of [0.1.2...0.1.3](https://github.com/pedestal/pedestal/compare/0.1.2...0.1.3).
 
 
 ## 0.1.2 - March 29, 2013

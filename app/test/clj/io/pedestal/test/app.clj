@@ -13,10 +13,12 @@
   (:require [io.pedestal.app.protocols :as p]
             [io.pedestal.app.messages :as msg]
             [io.pedestal.app.tree :as tree]
-            [io.pedestal.app.dataflow :as dataflow])
+            [io.pedestal.app.dataflow :as dataflow]
+            [io.pedestal.app.render :as render])
   (:use io.pedestal.app
         io.pedestal.app.util.test
-        clojure.test))
+        clojure.test
+        [io.pedestal.app.query :only [q]]))
 
 (refer-privates io.pedestal.app filter-deltas)
 
@@ -1094,9 +1096,9 @@
                 [:value [:b :counter :c] nil 1]
                 [:node-create [:b :counter :d] :map]
                 [:value [:b :counter :d] nil 1]
-                [:value [:b :counter :c] 1 2]
                 [:value [:b :counter :d] 1 nil]
                 [:node-destroy [:b :counter :d] :map]
+                [:value [:b :counter :c] 1 2]
                 [:value [:b :counter :c] 2 nil]
                 [:node-destroy [:b :counter :c] :map]
                 [:node-destroy [:b :counter] :map]
@@ -1138,3 +1140,108 @@
               [:value [:a] "$1"]
               [:node-create [:b] :map]
               [:value [:b] 1]])))))
+
+(letfn [(transform-fn [map message]
+          (reduce (fn [m [k v]]
+                    (-> m
+                        (assoc-in [:baz k] v)
+                        (assoc-in [:quux k] v)))
+                  map
+                  (:value message)))]
+  (deftest test-multiple-emit-handlers
+    (let [app (build {:version 2
+                      :transform [[:test-transform [:bar] transform-fn]]
+                      :emit [[#{[:bar :baz :*]} (default-emitter :foo)]
+                             [#{[:bar :quux :*]} (default-emitter :foo)]
+                             [#{[:*]} (default-emitter :foo)]]})
+          app-model (render/consume-app-model app (constantly nil))]
+      (is (run-sync! app [{msg/type :test-transform msg/topic [:bar] :value {:a 10 :b 20}}]
+                     :begin :default
+                     :wait-for [:app-model]))
+      (is (= (-> app :state deref :data-model)
+             {:bar {:quux {:a 10 :b 20}
+                    :baz {:a 10 :b 20}}}))
+      (is (= (set (q '[:find ?seg ?v
+                       :where
+                       [?child :t/value ?v]
+                       [?child :t/segment ?seg]
+                       [?child :t/parent ?e]
+                       [?e :t/path [:foo :bar :quux]]]
+                     @app-model))
+             #{[:a 10] [:b 20]})))))
+
+(deftest test-truthy-data-model-values
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value true}
+                                {msg/type :set-value msg/topic [:x] :value false}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x false}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:value [:x] nil true]
+            [:value [:x] true false]])))
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value true}
+                                {msg/type :set-value msg/topic [:x] :value nil}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x nil}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:value [:x] nil true]
+            [:value [:x] true nil]])))
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]
+                    :emit [[#{[:* :*]} (default-emitter [])]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value {:a 1 :b 1}}
+                                {msg/type :set-value msg/topic [:x] :value {:a 0 :b 1}}
+                                {msg/type :set-value msg/topic [:x] :value {:a 0}}
+                                {msg/type :set-value msg/topic [:x] :value {:a nil}}
+                                {msg/type :set-value msg/topic [:x] :value nil}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x nil}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:node-create [:x :b] :map]
+            [:value [:x :b] nil 1]
+            [:node-create [:x :a] :map]
+            [:value [:x :a] nil 1]
+            [:value [:x :a] 1 0]
+            [:value [:x :b] 1 nil]
+            [:node-destroy [:x :b] :map]
+            [:value [:x :a] 0 nil]
+            [:node-destroy [:x :a] :map]])))
+  (let [app (build {:version 2
+                    :transform [[:set-value [:*] (fn [_ message] (:value message))]]
+                    :emit [[#{[:* :*]} (default-emitter [])]]})
+        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value {:a true :b true}}
+                                {msg/type :set-value msg/topic [:x] :value {:a false :b true}}
+                                {msg/type :set-value msg/topic [:x] :value {:a false}}
+                                {msg/type :set-value msg/topic [:x] :value {:a nil}}
+                                {msg/type :set-value msg/topic [:x] :value nil}]
+                           :begin :default)
+        results (standardize-results results)]
+    (is (= (-> app :state deref :data-model)
+           {:x nil}))
+    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
+           [[:node-create [] :map]
+            [:node-create [:x] :map]
+            [:node-create [:x :b] :map]
+            [:value [:x :b] nil true]
+            [:node-create [:x :a] :map]
+            [:value [:x :a] nil true]
+            [:value [:x :a] true false]
+            [:value [:x :b] true nil]
+            [:node-destroy [:x :b] :map]
+            [:value [:x :a] false nil]
+            [:node-destroy [:x :a] :map]]))))

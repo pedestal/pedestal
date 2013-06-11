@@ -10,7 +10,7 @@
 
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <!-- rollover daily -->
-      <fileNamePattern>tmp/simple-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>logs/{{name}}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <timeBasedFileNamingAndTriggeringPolicy
           class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
         <!-- or whenever the file size reaches 64 MB -->
@@ -27,7 +27,7 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+      <pattern>%-5level %logger{36} - %msg%n</pattern>
     </encoder>
     <!-- Only log level INFO and above -->
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -45,6 +45,6 @@
 
 
   <!-- For loggers in the ".*" namespace, log at all levels. -->
-  <logger name="io.pedestal" level="INFO" />
+  <logger name="{{namespace}}" level="INFO" />
   
 </configuration>
