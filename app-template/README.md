@@ -30,7 +30,7 @@ At the REPL type:
 
 ```clj
 (dev)
-(run)
+(start)
 ```
 
 and then open a browser to `http://localhost:3000`. 
