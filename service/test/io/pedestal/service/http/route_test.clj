@@ -653,6 +653,15 @@
        data-routes
        syntax-quote-data-routes)) ; order is undefined
 
+(deftest search-id-link-with-extra-params-and-hash
+  (are [routes] (let [s ((make-linker routes) ::search-id :params {:id 456 :limit 100} :hash "foo")]
+                  (is (#{"/search#foo?id=456&limit=100"
+                         "/search#foo?limit=100&id=456"} s)))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
 (deftest search-query-link
   (are [routes] (= "/search?q=Hello%2C+World%21"
                    ((make-linker routes) ::search-query :params {:q "Hello, World!"}))

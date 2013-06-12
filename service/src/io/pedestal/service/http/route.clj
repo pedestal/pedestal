@@ -289,7 +289,7 @@
   "Returns a string for a route. opts is a map as described in the
   docstring for 'url-for'."
   [route opts]
-  (let [{:keys [path-params query-params request]} opts
+  (let [{:keys [path-params query-params request hash]} opts
         {:keys [scheme host port path-parts]} route
         context-path-parts (context-path opts)
         path-parts (do (log/info :in :link-str
@@ -307,6 +307,7 @@
      (when-not (and scheme-match host-match port-match)
        (str "//" host (when port (str ":" port))))
      (str (when-not (.startsWith path "/") "/") path)
+     (when-not (str/blank? hash) (str "#" hash))
      (when (seq query-params)
        (str \?
             (str/join \& (map (fn [[k v]]
@@ -363,6 +364,8 @@
                     that resolves to a function that returns a string
                     that specifies a root context for the URL. Default
                     is nil.
+
+      :hash          A string for the hash part of the url.
 
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned
