@@ -10,7 +10,6 @@ From within this project run:
 ```bash
 lein install
 ```
-
 Add a new dependency to your Leiningen user profile in `~/.lein/profiles.clj`:
 
 ```clj
@@ -31,7 +30,7 @@ At the REPL type:
 
 ```clj
 (dev)
-(run)
+(start)
 ```
 
 and then open a browser to `http://localhost:3000`. 

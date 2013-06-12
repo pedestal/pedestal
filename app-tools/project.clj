@@ -12,7 +12,7 @@
 (defproject io.pedestal/pedestal.app-tools "0.1.9-SNAPSHOT"
   :description "Pedestal tools for application development"
   :min-lein-version "2.0.0"
-  :dependencies [[org.clojure/clojure "1.5.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-1450"]
                  [org.clojure/tools.namespace "0.2.1"]
                  [org.clojure/java.classpath "0.2.0"]

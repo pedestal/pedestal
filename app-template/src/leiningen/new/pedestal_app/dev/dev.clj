@@ -26,17 +26,6 @@
   []
   (repl (repl-env)))
 
-(defn start
-  "Start the current application development server."
-  []
-  ((:start-fn app-development-server))
-  :ok)
-
-(defn stop
-  "Stop the current application development server."
-  []
-  ((:stop-fn app-development-server)))
-
 (defn init
   "Create a new app development server and ensure that required
   directories exist."
@@ -49,15 +38,21 @@
                                             (server/app-development-server
                                              port (get config/configs config-name)))))
 
-(defn run
+(defn start
   "Initialize and start an application development web server. The
   server will serve one application at a time. The default port is
   3000. The default application is :{{name}}."
   ([]
-     (run 3000 :{{name}}))
+     (start 3000 :{{name}}))
   ([port config-name]
      (init port config-name)
-     (start)))
+     ((:start-fn server))
+     :ok))
+
+(defn stop
+  "Stop the current application development server."
+  []
+  ((:stop-fn app-development-server)))
 
 (def ^{:doc "Compile JavaScript for this project. Pass an applicaiton name to compile
   all aspects of an application."}
@@ -113,11 +108,10 @@
   "Show basic help for each function in this namespace."
   []
   (println)
-  (println "Start a new app development server with (run) or (run port config)")
+  (println "Start a new app development server with (start) or (start port config)")
   (println "Type (cljs-repl) to start a ClojureScript REPL")
   (println "----")
-  (println "Type (init port) or (init port config) to create a app development server")
-  (println "Type (start) to start the current server")
+  (println "Type (start) or (start port config) to initialize and start a server")
   (println "Type (stop) to stop the current server")
   (println "----")
   (println "Type (watch aspect) to build a specific aspect when it changes")
