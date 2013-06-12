@@ -101,8 +101,8 @@
   (is (= (build {:derive [{:in #{[:a]} :out [:b] :fn 'b}
                           {:in #{[:b]} :out [:c] :fn 'c}]})
          {:input-adapter identity
-          :derive [{:fn 'b :in #{[:a]} :out [:b]}
-                   {:fn 'c :in #{[:b]} :out [:c]}]
+          :derive [{:fn 'b :in #{[:a]} :out [:b] :arg-names nil}
+                   {:fn 'c :in #{[:b]} :out [:c] :arg-names nil}]
           :transform []
           :continue #{}
           :effect #{}
@@ -123,8 +123,8 @@
          {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'x}
                       {:key :dec :out [:b] :fn 'y}]
-          :derive [{:fn 'b :in #{[:a]} :out [:b]}
-                   {:fn 'c :in #{[:b]} :out [:c] :args nil}]
+          :derive [{:fn 'b :in #{[:a]} :out [:b] :arg-names nil}
+                   {:fn 'c :in #{[:b]} :out [:c] :args nil :arg-names nil}]
           :continue #{}
           :effect #{}
           :emit []}))
@@ -141,14 +141,14 @@
          {:input-adapter identity
           :transform [{:key :inc :out [:a] :fn 'a}
                       {:key :dec :out [:b] :fn 'b}]
-          :derive [{:fn 'c :in #{[:a]} :out [:b]}
-                   {:fn 'd :in #{[:b]} :out [:c] :args nil}]
-          :continue #{{:in #{[:x]} :fn 'e}
-                      {:in #{[:y]} :fn 'f :args nil}}
-          :effect #{{:in #{[:w]} :fn 'g}
-                    {:in #{[:p]} :fn 'h :args nil}}
-          :emit [{:in #{[:q]} :fn 'i}
-                 {:in #{[:s]} :fn 'j :args nil}]})))
+          :derive [{:fn 'c :in #{[:a]} :out [:b] :arg-names nil}
+                   {:fn 'd :in #{[:b]} :out [:c] :args nil :arg-names nil}]
+          :continue #{{:in #{[:x]} :fn 'e :arg-names nil}
+                      {:in #{[:y]} :fn 'f :args nil :arg-names nil}}
+          :effect #{{:in #{[:w]} :fn 'g :arg-names nil}
+                    {:in #{[:p]} :fn 'h :args nil :arg-names nil}}
+          :emit [{:in #{[:q]} :fn 'i :arg-names nil}
+                 {:in #{[:s]} :fn 'j :args nil :arg-names nil}]})))
 
 (deftest test-find-message-transformer
   (let [config [{:key :a :out [:b] :fn 'x}

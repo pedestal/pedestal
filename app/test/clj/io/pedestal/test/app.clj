@@ -482,14 +482,17 @@
                                  :init [{msg/type :number msg/topic [:x] :n 0}]}]
                     :derive #{{:in #{[:x]}
                                :out [:half]
-                               :fn (fn [x in] (/ (dataflow/single-val in) 2.0))}
+                               :fn (fn [x n] (/ n 2.0))
+                               :args :single-val}
                               {:in #{[:x]}
                                :out [:square]
-                               :fn (fn [x in] (* (dataflow/single-val in)
-                                                (dataflow/single-val in)))}
-                              {:in #{[:half] [:x] [:square]}
+                               :fn (fn [x n] (* n n))
+                               :args :single-val}
+                              ;; test using alternative keys
+                              {:in {[:half] :h [:x] :x [:square] :s}
                                :out [:sum]
-                               :fn (fn [x in] (apply + (dataflow/input-vals in)))}}
+                               :fn (fn [x nums] (+ (:h nums) (:x nums) (:s nums)))
+                               :args :map}}
                     :effect #{{:in #{[:x]} :fn dataflow/input-map}}
                     :emit [[#{[:x] [:sum]} (default-emitter [])]]}]
     (testing "with input from model and direct-to-output"
@@ -1245,3 +1248,39 @@
             [:node-destroy [:x :b] :map]
             [:value [:x :a] false nil]
             [:node-destroy [:x :a] :map]]))))
+
+(deftest test-configure-arguments
+  (let [swap (fn [_ message] (:value message))
+        double (fn [_ inputs] (* (dataflow/single-val inputs) 2))
+        better-double (fn [_ n] (* n 2))
+        sum (fn [_ inputs] (reduce + (dataflow/input-vals inputs)))
+        better-sum (fn [_ & nums] (reduce + nums))
+        rotate (fn [_ inputs]
+                 (let [{a [:x :a]
+                        b [:x :b]
+                        c [:x :c]} (dataflow/input-map inputs)]
+                   {:a b :b c :c a}))
+        better-rotate (fn [_ {:keys [a b c]}]
+                        {:a b :b c :c a})]
+    (let [app (build {:version 2
+                      :transform [[:swap [:*] swap]]
+                      :derive #{[#{[:x :a]} [:m :a] double]
+                                [#{[:y :b]} [:m :b] better-double :single-val]
+                                [#{[:x :*]} [:n :a] sum]
+                                [#{[:y :*]} [:n :b] better-sum :vals]
+                                [#{[:x :a] [:x :b] [:x :c]} [:o] rotate]
+                                [{[:x :a] :a [:x :b] :b [:x :c] :c} [:p] better-rotate :map]
+                                [{[:x :*] last} [:q] better-rotate :map]}})
+          results (run-sync! app [{msg/type :swap msg/topic [:x] :value {:a 1 :b 2 :c 3}}
+                                  {msg/type :swap msg/topic [:y] :value {:a 5 :b 6 :c 7}}]
+                             :begin :default)
+          results (standardize-results results)]
+      (is (= (-> app :state deref :data-model)
+             {:x {:a 1 :b 2 :c 3}
+              :y {:a 5 :b 6 :c 7}
+              :o {:a 2 :b 3 :c 1}
+              :p {:a 2 :b 3 :c 1}
+              :q {:a 2 :b 3 :c 1}
+              :m {:a 2 :b 12}
+              :n {:a 6 :b 18}})))))
+

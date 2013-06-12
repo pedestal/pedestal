@@ -43,11 +43,22 @@
          (get-path (get data x ::nokey) (conj context x) xs))
        [[context data]])))
 
-(defn input-map [{:keys [new-model input-paths]}]
-  (into {} (for [path input-paths
-                 [k v] (get-path new-model path)
-                 :when (not= v ::nokey)]
-             [k v])))
+(letfn [(rekey [k path arg-names]
+          (if arg-names
+            (let [new-key (get arg-names path)]
+              (if (keyword? new-key)
+                new-key
+                (new-key k)))
+            k))]
+  (defn input-map
+    ([inputs]
+       (input-map inputs nil))
+    ([{:keys [new-model input-paths]} arg-names]
+       (into {}
+             (for [path input-paths
+                   [k v] (get-path new-model path)
+                   :when (not= v ::nokey)]
+               [(rekey k path arg-names) v])))))
 
 (defn input-vals [inputs]
   (vals (input-map inputs)))
@@ -227,11 +238,11 @@
       (merge (select-keys change [:added :updated :removed]))
       (update-input-sets [:added :updated :removed] filter input-paths)))
 
-(defn- dataflow-fn-args [inputs args-key]
+(defn- dataflow-fn-args [inputs args-key arg-names]
   (case args-key
     :vals (input-vals inputs)
-    :map [(input-map inputs)]
-    :map-seq (apply concat (seq (input-map inputs)))
+    :map [(input-map inputs arg-names)]
+    :map-seq (apply concat (seq (input-map inputs arg-names)))
     :single-val [(single-val inputs)]
     :default [inputs]
     [inputs]))
@@ -242,12 +253,13 @@
   [{:keys [dataflow context] :as state}]
   (let [derives (:derive dataflow)]
     (reduce (fn [{:keys [change] :as acc}
-                {input-paths :in derive-fn :fn out-path :out args :args}]
+                {input-paths :in derive-fn :fn out-path :out args :args arg-names :arg-names}]
               (if (propagate? acc input-paths)
                 (apply apply-in acc out-path derive-fn
                        (dataflow-fn-args
                         (flow-input context acc input-paths change)
-                        args))
+                        args
+                        arg-names))
                 acc))
             state
             derives)))
@@ -256,12 +268,13 @@
   "Execute each function. Return an updated flow state."
   [{:keys [dataflow context] :as state} k]
   (let [fns (k dataflow)]
-    (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in args :args}]
+    (reduce (fn [{:keys [change] :as acc} {f :fn input-paths :in args :args arg-names :arg-names}]
               (if (propagate? acc input-paths)
                 (update-in acc [:new k] (fnil into [])
                            (apply f (dataflow-fn-args
                                      (flow-input context acc input-paths change)
-                                     args)))
+                                     args
+                                     arg-names)))
                 acc))
             state
             fns)))
@@ -362,19 +375,23 @@
             x))
         transforms))
 
-(defn- derive-maps [derives]
+(defn- add-arg-names [{:keys [in] :as m}]
+  (let [arg-names (when (map? in) in)
+        in (if (map? in) (set (keys in)) in)]
+    (assoc m :in in :arg-names arg-names)))
+
+(defn- dataflow-maps [coll f]
   (mapv (fn [x]
-          (if (vector? x)
-            (let [[in out fn args] x] {:in (with-propagator in) :out out :fn fn :args args})
-            (update-in x [:in] with-propagator)))
-        derives))
+          (-> (if (vector? x) (f x) x)
+              add-arg-names
+              (update-in [:in] with-propagator)))
+        coll))
+
+(defn- derive-maps [derives]
+  (dataflow-maps derives (fn [[in out fn args]] {:in in :out out :fn fn :args args})))
 
 (defn- output-maps [outputs]
-  (mapv (fn [x]
-          (if (vector? x)
-            (let [[in fn args] x] {:in (with-propagator in) :fn fn :args args})
-            (update-in x [:in] with-propagator)))
-        outputs))
+  (dataflow-maps outputs (fn [[in fn args]] {:in in :fn fn :args args})))
 
 (defn build
   "Given a dataflow description map, return a dataflow engine. An example dataflow
