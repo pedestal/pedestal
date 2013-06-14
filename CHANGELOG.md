@@ -2,6 +2,27 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.1.9 - June 14, 2013
+
+### General
+
+* All Pedestal libraries now properly depend on Clojure 1.5.1.
+
+### App
+
+* The dataflow engine now properly reports changes when nodes have nil or falsey values. [#78](https://github.com/pedestal/pedestal/pull/78)
+* Messages that throw exceptions during processing now log an error message.
+* Templates can now insert content at a specific index with `io.pedestal.app.render.push.templates/insert-t`. [#81](https://github.com/pedestal/pedestal/pull/81)
+* Generated `dev/dev.clj` now uses `(start)` instead of `(run)`, bringing it in line with pedestal-service. [#84](https://github.com/pedestal/pedestal/pull/84)
+
+### Service
+
+* You can now pass a `:fragment` option to `url-for` indicating the fragment identifier for that URL (i.e. "foo" of "http://example.com/things#foo".) [#85](https://github.com/pedestal/pedestal/pull/85)
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.8...0.1.9](https://github.com/pedestal/pedestal/compare/0.1.8...0.1.9).
+
 ## 0.1.8 - May 29, 2013
 
 ### General
