@@ -15,10 +15,6 @@
 * Templates can now insert content at a specific index with `io.pedestal.app.render.push.templates/insert-t`. [#81](https://github.com/pedestal/pedestal/pull/81)
 * Generated `dev/dev.clj` now uses `(start)` instead of `(run)`, bringing it in line with pedestal-service. [#84](https://github.com/pedestal/pedestal/pull/84)
 
-### Service
-
-* You can now pass a `:fragment` option to `url-for` indicating the fragment identifier for that URL (i.e. "foo" of "http://example.com/things#foo".) [#85](https://github.com/pedestal/pedestal/pull/85)
-
 ### Miscellaneous bug-fixes and improvements
 
 For a full list of changes, please see this comparison of [0.1.8...0.1.9](https://github.com/pedestal/pedestal/compare/0.1.8...0.1.9).
