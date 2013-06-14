@@ -27,7 +27,26 @@
                   (contains? m k)
                   (d/set-attrs! (d/by-id id) {attr-name (get m k)}))
       :content (when (contains? m k)
-                 (d/set-html! (d/by-id id) (get m k)))
+                 ;; Save any previous event handlers, the call to set-html! wipes out previous event handlers
+                 ;; Have to use doall to force evaluation of the lazy seq.  When the handlers are wiped, they
+                 ;; can lead to the functions getting garbage collected, this stops it by making sure a reference
+                 ;; remains
+                 (let [handlers (doall (flatten
+                                        (map (fn [evt-type]
+                                               ;; Save the listener function and its event type
+                                               (map (fn [x] {:fn (.-listener x) :type (.-type x)})
+                                                    ;; Get all the listeners given the event type
+                                                    (de/get-listeners (d/by-id id) evt-type)))
+                                             ;; This is all the possible event types
+                                             de/builtin-events)))]
+                   ;; Reset the template's html
+                   (d/set-html! (d/by-id id) (get m k))
+                   ;; Put the event handlers back
+                   (when (seq handlers)
+                     (doseq [handler handlers]
+                       (de/listen! (d/by-id id)  (:type handler)
+                                   (:fn handler)))))
+                 )
       nil)))
 
 (defn- add-in-template [f t m]
