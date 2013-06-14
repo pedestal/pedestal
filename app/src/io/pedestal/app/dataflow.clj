@@ -240,7 +240,7 @@
 
 (defn- dataflow-fn-args [inputs args-key arg-names]
   (case args-key
-    :vals (input-vals inputs)
+    :vals [(input-vals inputs)]
     :map [(input-map inputs arg-names)]
     :map-seq (apply concat (seq (input-map inputs arg-names)))
     :single-val [(single-val inputs)]
