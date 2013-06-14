@@ -49,16 +49,34 @@
               (if (keyword? new-key)
                 new-key
                 (new-key k)))
-            k))]
+            k))
+        (value-types [arg-names]
+          (if arg-names
+            (reduce (fn [a [k v]]
+                      (cond (contains? (set k) :*)
+                            (assoc a v :set)
+                            (contains? a v)
+                            (assoc a v :set)
+                            (nil? (get a v))
+                            (assoc a v :single)
+                            :else a))
+                    {}
+                    arg-names)
+            (constantly :single)))]
   (defn input-map
     ([inputs]
        (input-map inputs nil))
     ([{:keys [new-model input-paths]} arg-names]
-       (into {}
-             (for [path input-paths
-                   [k v] (get-path new-model path)
-                   :when (not= v ::nokey)]
-               [(rekey k path arg-names) v])))))
+       (let [v-type (value-types arg-names)]
+         (reduce (fn [a [k v]]
+                   (if (= (v-type k) :set)
+                     (update-in a [k] (fnil conj #{}) v)
+                     (assoc a k v)))
+                 {}
+                 (for [path input-paths
+                       [k v] (get-path new-model path)
+                       :when (not= v ::nokey)]
+                   [(rekey k path arg-names) v]))))))
 
 (defn input-vals [inputs]
   (vals (input-map inputs)))
