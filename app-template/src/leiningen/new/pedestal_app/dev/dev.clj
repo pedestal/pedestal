@@ -41,12 +41,12 @@
 (defn start
   "Initialize and start an application development web server. The
   server will serve one application at a time. The default port is
-  3000. The default application is :{{name}}."
+  3000. The default application is the first of config/configs."
   ([]
-     (start 3000 :{{name}}))
+     (start 3000 (ffirst config/configs)))
   ([port config-name]
      (init port config-name)
-     ((:start-fn server))
+     ((:start-fn app-development-server))
      :ok))
 
 (defn stop
