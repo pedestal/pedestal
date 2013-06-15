@@ -253,9 +253,12 @@
         (.endsWith (:uri request) ".html"))))
 
 (defn- build-aspects [config request]
-  (if (= (:uri request) "/_tools/render/recording")
-    (keep (fn [[k v]] (when (not= (:optimizations v) :advanced) k)) (:aspects config))
-    [(aspect-from-request config request)]))
+  (vector (if (= (:uri request) "/_tools/render/recording")
+            (if-let [js-file (get-in config [:built-in :render :js-file])]
+              (first (keep (fn [[k v]] (when (= (:out-file v) js-file) k))
+                           (:aspects config)))
+              :development)
+            (aspect-from-request config request))))
 
 (definterceptorfn builder
   "Interceptor that blocks further processing until all required build
