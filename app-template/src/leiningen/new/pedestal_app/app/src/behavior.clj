@@ -13,9 +13,9 @@
 (def example-app
 {{#annotated?}}
   ;; There are currently 2 versions (formats) for dataflow
-  ;; descritpion: the original version (version 1) and the current
+  ;; description: the original version (version 1) and the current
   ;; version (version 2). If the version is not specified, the
-  ;; descritpion will be assumed to be version 1 and an attempt
+  ;; description will be assumed to be version 1 and an attempt
   ;; will be made to convert it to version 2.
 {{/annotated?}}
   {:version 2
