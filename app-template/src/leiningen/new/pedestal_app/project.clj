@@ -5,7 +5,8 @@
                  [domina "1.0.1"]
                  [ch.qos.logback/logback-classic "1.0.7" :exclusions [org.slf4j/slf4j-api]]
                  [io.pedestal/pedestal.app "0.1.11-SNAPSHOT"]
-                 [io.pedestal/pedestal.app-tools "0.1.11-SNAPSHOT"]]
+                 [io.pedestal/pedestal.app-tools "0.1.11-SNAPSHOT"]
+                 [com.cemerick/piggieback "0.0.4"]]
   :profiles {:dev {:source-paths ["dev"]}}
   :min-lein-version "2.0.0"
   :source-paths ["app/src" "app/templates"]
@@ -13,5 +14,6 @@
   :target-path "out/"
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :repl-options  {:init-ns user
-                  :welcome (println "Welcome to pedestal-app! Run (use 'dev) and (tools-help) to see a list of useful functions.")}
-  :main ^{:skip-aot true} dev)
+                  :welcome (println "Welcome to pedestal-app! Run (tools-help) to see a list of useful functions.")}
+  :main ^{:skip-aot true} dev
+  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]})

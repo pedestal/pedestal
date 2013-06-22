@@ -1,4 +1,3 @@
 (defn dev
   []
-  (require 'dev)
-  (in-ns 'dev))
+  (use 'io.pedestal.app-tools.dev))

@@ -56,7 +56,6 @@
    ["config/config.clj" (render "config/config.clj" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
    ["dev/user.clj" (render "dev/user.clj" data)]
-   ["dev/dev.clj" (render "dev/dev.clj" data)]
 
    ["test/{{sanitized}}/test/behavior.clj" (render "test/behavior.clj" data)]])
 

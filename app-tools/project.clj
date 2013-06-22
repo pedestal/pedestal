@@ -24,5 +24,6 @@
                  [io.pedestal/pedestal.service "0.1.11-SNAPSHOT"]
                  [io.pedestal/pedestal.jetty "0.1.11-SNAPSHOT"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
-                 [domina "1.0.1"]]
-  :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
+                 [domina "1.0.1"]
+                 [com.cemerick/piggieback "0.0.4"]]
+  :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]})

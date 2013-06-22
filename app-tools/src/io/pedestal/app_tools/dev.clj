@@ -1,9 +1,10 @@
-(ns dev
-  (:use [cljs.repl :only [repl]]
-        [cljs.repl.browser :only [repl-env]])
+(ns io.pedestal.app-tools.dev
   (:require [io.pedestal.app-tools.server :as server]
             [io.pedestal.app-tools.build :as build]
             [io.pedestal.app-tools.compile.repl :as repl]
+            [cljs.repl]
+            [cljs.repl.browser :refer [repl-env]]
+            [cemerick.piggieback :as pb]
             [config :as config]
             [clojure.java.io :as io]))
 
@@ -24,7 +25,10 @@
 
   to start the client."
   []
-  (repl (repl-env)))
+
+  (pb/cljs-repl :repl-env (doto (repl-env)
+                            cljs.repl/-setup))
+  (println "CLJS REPL launched. Visit (or refresh) http://localhost:3000/fresh.html"))
 
 (defn init
   "Create a new app development server and ensure that required
