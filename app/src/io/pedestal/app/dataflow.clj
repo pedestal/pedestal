@@ -220,7 +220,7 @@
       (apply-in state out-path transform-fn (:message context))
       state)))
 
-(defn- input-change-propagator
+(defn input-change-propagator
   "The default propagator predicate. Return true if any of the changed
   paths are on the same path as the input path."
   [state changed-inputs input-path]
@@ -346,15 +346,20 @@
 
 (defn- run-flow-phases
   [state dataflow message]
-  (let [{{continue :continue} :new :as result} (flow-phases-step state dataflow message)]
-    (if (empty? continue)
-      (update-in result [:new] dissoc :continue)
-      (reduce (fn [a c-message]
-                (run-flow-phases (assoc a :old (:new a))
-                                 dataflow
-                                 c-message))
-              result
-              continue))))
+  (let [{{continue :continue} :new :as result} (flow-phases-step state dataflow message)
+        input (filter #(:input (meta %)) continue)
+        continue (remove #(:input (meta %)) continue)
+        new-state (if (empty? continue)
+                    (update-in result [:new] dissoc :continue)
+                    (reduce (fn [a c-message]
+                              (run-flow-phases (assoc a :old (:new a))
+                                               dataflow
+                                               c-message))
+                            result
+                            continue))]
+    (if (empty? input)
+      new-state
+      (update-in new-state [:new :continue-inputs] (fnil into []) input))))
 
 (defn- run-all-phases
   [model dataflow message]
