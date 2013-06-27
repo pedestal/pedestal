@@ -27,7 +27,7 @@
   (if (seq (:queue @queue))
     (when-let [item (:item (swap! queue pop-message-internal))]
       (platform/log-exceptions f item))
-    (platform/create-timeout 1 (fn [] (process-next-item queue f)))))
+    (platform/create-timeout 0 (fn [] (process-next-item queue f)))))
 
 (defrecord AppMessageQueue [state]
   p/PutMessage

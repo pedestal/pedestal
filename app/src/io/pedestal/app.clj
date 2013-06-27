@@ -175,7 +175,7 @@
                       (doseq [message (pre-process flow message)]
                         (swap! state transact-one flow message))
                       (swap! state transact-one flow message))
-                    (receive-input-message state flow input-queue))))
+                    (platform/create-timeout 0 #(receive-input-message state flow input-queue)))))
 
 (defn- post-process-effects [flow message]
   (let [post-fn (some (fn [[pred f]] (when (pred message) f))
