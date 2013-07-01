@@ -104,7 +104,7 @@
 
 (defn- ensure-node-exists
   "Given a tree and a path, create the node at path if it does not
-  aleary exist."
+  already exist."
   [tree path]
   (if (node-exists? tree path)
     tree

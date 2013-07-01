@@ -95,7 +95,7 @@
   (get-data [this ks]))
 
 (defn- run-on-destroy!
-  "Given a node in the environement which is going to be deleted, run all on-destroy
+  "Given a node in the environment which is going to be deleted, run all on-destroy
   functions in the tree."
   [env]
   (let [nodes (tree-seq (constantly true)
