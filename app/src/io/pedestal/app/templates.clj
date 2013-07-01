@@ -277,9 +277,10 @@
     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
                        [changes (list 'fn [map-sym]
                                       (list (tfn nodes)
-                                            (concat ['assoc map-sym]
-                                                    (interleave (map keyword ids)
-                                                                ids))))]))))
+                                            (let [id-map (interleave (map keyword ids) ids)]
+                                              (if (seq id-map)
+                                                (concat ['assoc map-sym] id-map)
+                                                map-sym))))]))))
 
 (defn tnodes
   "Turns template defined in a file into sequence of enlive nodes.
