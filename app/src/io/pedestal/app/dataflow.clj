@@ -118,6 +118,10 @@
 (defn updated-inputs [inputs]
   (changed-inputs inputs updated-map))
 
+(defn old-and-new [inputs path]
+  {:old (get-in inputs (into [:old-model] path))
+   :new (get-in inputs (into [:new-model] path))})
+
 (letfn [(actual-input-paths [{:keys [old-model input-paths]}]
           (for [path input-paths
                 [k v] (get-path old-model path)]
