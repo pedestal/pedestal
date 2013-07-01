@@ -45,4 +45,7 @@
 
 (defn log-exceptions [f & args]
   (try (apply f args)
-       (catch js/Error e (.log js/console (pr-str e)))))
+       (catch js/Error e
+         (.log js/console (pr-str e))
+         (.log js/console (pr-str f))
+         (.log js/console (pr-str args)))))
