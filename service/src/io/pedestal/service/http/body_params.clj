@@ -55,38 +55,39 @@
   [parser-map content-type middleware]
   (add-parser parser-map content-type (convert-middleware middleware)))
 
-(defn edn-parser [request]
-  (let [encoding (or (:character-encoding request) "UTF-8")]
-    (assoc request
-      :edn-params (->
-                   (:body request)
-                   (java.io.InputStreamReader. encoding)
-                   java.io.PushbackReader.
-                   (->> (edn/read {:eof nil}))))))
+(defn edn-parser [& [opts]]
+  (fn [request]
+    (let [encoding (or (:character-encoding request) "UTF-8")]
+      (assoc request
+        :edn-params (->
+                     (:body request)
+                     (java.io.InputStreamReader. encoding)
+                     java.io.PushbackReader.
+                     (->> (edn/read (merge {:eof nil} opts))))))))
 
-(defn json-parser [request]
-  (let [encoding (or (:character-encoding request) "UTF-8")]
-    (assoc request
-      :json-params (->
-                    (:body request)
-                    (java.io.InputStreamReader. encoding)
-                    json/read))))
+(defn json-parser [& [opts]]
+  (fn [request]
+    (let [encoding (or (:character-encoding request) "UTF-8")]
+      (assoc request
+        :json-params
+        (apply json/read
+               (-> (:body request)
+                   (java.io.InputStreamReader. encoding))
+               (apply concat (seq opts)))))))
 
-(defn form-parser [request]
-  (let [encoding (or (:character-encoding request) "UTF-8")]
-    (params/assoc-form-params request encoding)))
+(defn form-parser [& [opts]]
+  (fn [request]
+    (let [encoding (or (:character-encoding request) "UTF-8")]
+      (params/assoc-form-params request encoding))))
 
 (defn default-parser-map
-  []
-  {#"^application/edn" edn-parser
-   #"^application/json" json-parser
-   #"^application/x-www-form-urlencoded" form-parser})
+  [& {:keys [edn form json]}]
+  {#"^application/edn" (edn-parser edn)
+   #"^application/json" (json-parser json)
+   #"^application/x-www-form-urlencoded" (form-parser form)})
 
 (definterceptorfn body-params
   ([] (body-params (default-parser-map)))
   ([parser-map]
      (interceptor/on-request ::body-params
                              (fn [request] (parse-content-type parser-map request)))))
-
-
-
