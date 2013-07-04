@@ -25,10 +25,10 @@
 
 (def i (:enter (body-params)))
 
-(def i2
+(def i-using-opts
   (-> (default-parser-map
-        :edn {:readers {'inst inst/read-instant-timestamp}}
-        :json {:key-fn keyword})
+        :edn-options {:readers {'inst inst/read-instant-timestamp}}
+        :json-options {:key-fn keyword})
       body-params :enter))
 
 (deftest parses-json
@@ -39,13 +39,13 @@
 
 (deftest parses-json-using-opts
   (let [json-context (as-context "application/json" "{ \"foo\": \"BAR\"}")
-        new-context (i2 json-context)
+        new-context (i-using-opts json-context)
         new-request (:request new-context)]
     (is (= (:json-params new-request) {:foo "BAR"}))))
 
 (deftest parses-form-data
   (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")
-        new-context  (i2 form-context)
+        new-context  (i form-context)
         new-request  (:request new-context)]
     (is (= (:form-params new-request) {"foo" "BAR"}))))
 
@@ -57,7 +57,7 @@
 
 (deftest parses-edn-using-opts
   (let [edn-context (as-context "application/edn" "#inst \"1970-01-01T00:00:00.000-00:00\"")
-        new-context (i2 edn-context)
+        new-context (i-using-opts edn-context)
         new-request (:request new-context)]
     (is (= (:edn-params new-request) (java.sql.Timestamp. 0)))))
 
