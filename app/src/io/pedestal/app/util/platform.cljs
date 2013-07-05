@@ -35,17 +35,18 @@
          (catch js/Error _ nil))
     x))
 
-(defn log-group [pre post coll]
-  (.log js/console "\n")
-  (.log js/console pre)
+(defn log-group [group-name coll]
+  (.group js/console group-name)
   (doseq [d coll]
     (.log js/console (pr-str d)))
-  (.log js/console post)
-  (.log js/console "\n"))
+  (.groupEnd js/console))
 
 (defn log-exceptions [f & args]
   (try (apply f args)
        (catch js/Error e
-         (.log js/console (pr-str e))
-         (.log js/console (pr-str f))
-         (.log js/console (pr-str args)))))
+         (.groupCollapsed js/console "Caught exception" e)
+         (.log js/console "Was applying function\n" f)
+         (.log js/console "With arguments" (pr-str args))
+         (.log js/console "Re-throwing error...")
+         (.groupEnd js/console)
+         (throw e))))
