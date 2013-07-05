@@ -22,9 +22,27 @@
    (ClassLoader/getSystemResource *file*)
    io/file .getParent io/file .getParent))
 
-(let [file (java.io.File/createTempFile "filler" ".txt")]
-  (def tempdir (doto (io/file (.getParent file) (str (java.util.UUID/randomUUID)))
-                 .mkdirs)))
+;; This code was heavily inspired by Overtone's version, thanks!
+;; https://github.com/overtone/overtone/blob/e3de1f7ac59af7fa3cf75d696fbcfc2a15830594/src/overtone/helpers/file.clj#L360
+(defn mk-tmp-dir!
+  "Creates a unique temporary directory on the filesystem. Typically in /tmp on
+  *NIX systems. Returns a File object pointing to the new directory. Raises an
+  exception if the directory couldn't be created after 10000 tries."
+  []
+  (let [base-dir (io/file (System/getProperty "java.io.tmpdir"))
+        base-name (str (java.util.UUID/randomUUID))
+        tmp-base (str base-dir java.io.File/separator base-name)
+        max-attempts 100]
+    (loop [num-attempts 1]
+      (if (= num-attempts max-attempts)
+        (throw (Exception. (str "Failed to create temporary directory after " max-attempts " attempts.")))
+        (let [tmp-dir-name (str tmp-base num-attempts)
+              tmp-dir (io/file tmp-dir-name)]
+          (if (.mkdir tmp-dir)
+            tmp-dir
+            (recur (inc num-attempts))))))))
+
+(def tempdir (mk-tmp-dir!))
 
 (defn- sh-exits-successfully
   [full-app-name & args]
@@ -33,11 +51,11 @@
     (is (zero? (:exit sh-result))
        (format "Expected `%s` to exit successfully" (string/join " " args)))))
 
-(deftest generated-app-has-correct-files
+(deftest ^:not-travis generated-app-has-correct-files
   (let [app-name "test-app"
         full-app-name (.getPath (io/file tempdir app-name))]
-    (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
-    (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
+    (println (sh/with-sh-dir project-dir (sh/sh lein "install")))
+    (println (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name)))
     (println "Created app at" full-app-name)
     (is (.exists (io/file full-app-name "project.clj")))
     (is (.exists (io/file full-app-name "README.md")))
@@ -46,11 +64,11 @@
     (sh-exits-successfully full-app-name lein "with-profile" "production" "compile" ":all")
     (sh/sh "rm" "-rf" full-app-name)))
 
-(deftest generated-app-with-namespace-has-correct-files
+(deftest ^:not-travis generated-app-with-namespace-has-correct-files
   (let [app-name "pedestal.test/test-ns-app"
         full-app-name (.getPath (io/file tempdir "test-ns-app"))]
-   (println (:out (sh/with-sh-dir project-dir (sh/sh lein "install"))))
-   (println (:out (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name))))
+   (println (sh/with-sh-dir project-dir (sh/sh lein "install")))
+   (println (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name)))
    (println "Created app at" full-app-name)
    (is (.exists (io/file full-app-name "project.clj")))
    (is (.exists (io/file full-app-name "README.md")))
