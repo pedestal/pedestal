@@ -2,6 +2,23 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.1.10 - July 5, 2013
+
+### App
+
+* The messages queue is now a priority queue. Specify `msg/priority :high` in a message for that message to be processed before all other unadorned messages. [2495b9a5](https://github.com/pedestal/pedestal/commit/2495b9a5d760bf39cf8957b20d022dac951b15a4)
+* Various improvements that make it easier to run in a web work (more on that to follow, :wink:)
+
+### Service
+
+* `io.pedestal.service.http.route/url-for` now accepts a `:fragment` option for specifying URL fragments (i.e `http://example.com/#foobars). [#85](https://github.com/pedestal/pedestal/pull/85)
+* `io.pedestal.service.http.body-params`'s edn and json parsers can now be configured (both alone and as part of `default-parser-map`). [#96](https://github.com/pedestal/pedestal/pull/96), [#97](https://github.com/pedestal/pedestal/pull/97), [#98](https://github.com/pedestal/pedestal/pull/98)
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.9...0.1.10](https://github.com/pedestal/pedestal/compare/0.1.9...0.1.10).
+
+
 ## 0.1.9 - June 14, 2013
 
 ### General
