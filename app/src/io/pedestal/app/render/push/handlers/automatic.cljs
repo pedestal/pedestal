@@ -24,7 +24,6 @@
           (mapv #(js/prompt (str "Enter value for: " (name %))) syms)))
 
 (defn get-missing-input [messages]
-  (log/debug :messages messages)
   (let [syms (msg/message-params messages)]
     (if (seq syms)
       (fn [_]
@@ -182,12 +181,7 @@
                           input-queue
                           (get-missing-input (mapv #(assoc % :from :ui) messages))))
 
-      (log/debug :on-destroy! path)
-      (render/on-destroy! r path #(do (log/debug :in (str "data render unlisten! path: "
-                                                          path
-                                                          " button-id: "
-                                                          button-id))
-                                      (event/unlisten! (d/by-id button-id) :click))))))
+      (render/on-destroy! r path #(event/unlisten! (d/by-id button-id) :click)))))
 
 (defn render-node-enter [r [_ path] input-queue]
   (let [parent (render/get-parent-id r path)
@@ -275,7 +269,6 @@
         default-button-id (render/get-id r (conj path "control" transform-name))
         id (or default-button-id node-id)]
     (when id
-      (log/debug :in (str "unlistening! transform-name " transform-name  " path " path " with id " id))
       (event/unlisten! (d/by-id id) :click))
     (when default-button-id
       (d/destroy! (d/by-id default-button-id)))))
@@ -283,10 +276,9 @@
 ;; deprecated - use io.pedestal.app.render.push.handlers/destroy!
 (defn destroy! [r path]
   (if-let [id (render/get-id r path)]
-    (do (log/debug :in :default-exit :msg (str "deleteing id " id " for path " path))
-        (render/delete-id! r path)
+    (do (render/delete-id! r path)
         (d/destroy! (d/by-id id)))
-    (log/debug :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
+    (log/warn :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
 
 ;; deprecated - use io.pedestal.app.render.push.handlers/default-destroy
 (defn default-exit [r [_ path] d]
