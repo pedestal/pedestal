@@ -32,10 +32,9 @@
 
 (defn destroy! [r path]
   (if-let [id (render/get-id r path)]
-    (do (log/debug :in :default-exit :msg (str "deleteing id " id " for path " path))
-        (render/delete-id! r path)
+    (do (render/delete-id! r path)
         (d/destroy! (d/by-id id)))
-    (log/debug :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
+    (log/warn :in :default-exit :msg (str "warning! no id " id " found for path " (pr-str path)))))
 
 (defn default-destroy [r [_ path] _]
   (destroy! r path))

@@ -117,7 +117,6 @@
   (new-id! [this path]
     (new-id! this path (gensym)))
   (new-id! [this path v]
-    (log/info :in :new-id! :msg (str "creating new id " v " at path " path))
     (swap! env assoc-in (conj path :id) v)
     v)
   (delete-id! [this path]

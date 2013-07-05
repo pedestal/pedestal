@@ -42,12 +42,13 @@
          (catch Throwable _ nil))
     x))
 
-(defn log-group [pre post coll]
+(defn log-group [group-name coll]
   (println "\n")
-  (println pre)
+  (println "<---------------------------------------------------------------------")
+  (println group-name)
   (doseq [d coll]
     (println (pr-str d)))
-  (println post)
+  (println "---------------------------------------------------------------------->")
   (println "\n"))
 
 (defn log-exceptions [f & args]
