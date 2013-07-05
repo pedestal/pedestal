@@ -7,7 +7,7 @@
 ### App
 
 * The messages queue is now a priority queue. Specify `msg/priority :high` in a message for that message to be processed before all other unadorned messages. [2495b9a5](https://github.com/pedestal/pedestal/commit/2495b9a5d760bf39cf8957b20d022dac951b15a4)
-* Various improvements that make it easier to run in a web work (more on that to follow, :wink:)
+* Various improvements that make it easier to run in a web worker (more on that to follow, :wink:)
 
 ### Service
 
