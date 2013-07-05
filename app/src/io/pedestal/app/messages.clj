@@ -39,6 +39,7 @@
 (def app-model ::app-model)
 (def output ::output)
 (def effect ::output)
+(def priority ::priority)
 
 (def ^:private param-ns
   "A namespace used as the namespace of message params."
