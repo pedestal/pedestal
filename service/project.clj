@@ -25,7 +25,7 @@
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
   :javac-options ["-target" "1.5" "-source" "1.5"]
-  :warn-on-reflection true
+  :global-vars {*warn-on-reflection* true}
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.service.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :profiles {:default [:dev :provided :user :base]
