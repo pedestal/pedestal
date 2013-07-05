@@ -17,4 +17,6 @@
         "service-template"
         "app"
         "app-tools"
-        "app-template"])
+        "app-template"]
+  :test-selectors {:travis (complement :not-travis)})
+

@@ -49,7 +49,7 @@
     (is (zero? (:exit sh-result))
        (format "Expected `%s` to exit successfully" (string/join " " args)))))
 
-(deftest generated-app-has-correct-files
+(deftest ^:not-travis generated-app-has-correct-files
   (let [app-name "test-app"
         full-app-name (.getPath (io/file tempdir app-name))]
     (println (sh/with-sh-dir project-dir (sh/sh lein "install")))
@@ -62,7 +62,7 @@
     (sh-exits-successfully full-app-name lein "with-profile" "production" "compile" ":all")
     (sh/sh "rm" "-rf" full-app-name)))
 
-(deftest generated-app-with-namespace-has-correct-files
+(deftest ^:not-travis generated-app-with-namespace-has-correct-files
   (let [app-name "pedestal.test/test-ns-app"
         full-app-name (.getPath (io/file tempdir "test-ns-app"))]
    (println (sh/with-sh-dir project-dir (sh/sh lein "install")))
