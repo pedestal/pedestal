@@ -2,6 +2,40 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.1.10 - July 5, 2013
+
+### App
+
+* The messages queue is now a priority queue. Specify `msg/priority :high` in a message for that message to be processed before all other unadorned messages. [2495b9a5](https://github.com/pedestal/pedestal/commit/2495b9a5d760bf39cf8957b20d022dac951b15a4)
+* Various improvements that make it easier to run in a web worker (more on that to follow, :wink:)
+
+### Service
+
+* `io.pedestal.service.http.route/url-for` now accepts a `:fragment` option for specifying URL fragments (i.e `http://example.com/#foobars). [#85](https://github.com/pedestal/pedestal/pull/85)
+* `io.pedestal.service.http.body-params`'s edn and json parsers can now be configured (both alone and as part of `default-parser-map`). [#96](https://github.com/pedestal/pedestal/pull/96), [#97](https://github.com/pedestal/pedestal/pull/97), [#98](https://github.com/pedestal/pedestal/pull/98)
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.9...0.1.10](https://github.com/pedestal/pedestal/compare/0.1.9...0.1.10).
+
+
+## 0.1.9 - June 14, 2013
+
+### General
+
+* All Pedestal libraries now properly depend on Clojure 1.5.1.
+
+### App
+
+* The dataflow engine now properly reports changes when nodes have nil or falsey values. [#78](https://github.com/pedestal/pedestal/pull/78)
+* Messages that throw exceptions during processing now log an error message.
+* Templates can now insert content at a specific index with `io.pedestal.app.render.push.templates/insert-t`. [#81](https://github.com/pedestal/pedestal/pull/81)
+* Generated `dev/dev.clj` now uses `(start)` instead of `(run)`, bringing it in line with pedestal-service. [#84](https://github.com/pedestal/pedestal/pull/84)
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.8...0.1.9](https://github.com/pedestal/pedestal/compare/0.1.8...0.1.9).
+
 ## 0.1.8 - May 29, 2013
 
 ### General

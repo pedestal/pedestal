@@ -95,7 +95,7 @@
   (get-data [this ks]))
 
 (defn- run-on-destroy!
-  "Given a node in the environement which is going to be deleted, run all on-destroy
+  "Given a node in the environment which is going to be deleted, run all on-destroy
   functions in the tree."
   [env]
   (let [nodes (tree-seq (constantly true)
@@ -117,7 +117,6 @@
   (new-id! [this path]
     (new-id! this path (gensym)))
   (new-id! [this path v]
-    (log/info :in :new-id! :msg (str "creating new id " v " at path " path))
     (swap! env assoc-in (conj path :id) v)
     v)
   (delete-id! [this path]

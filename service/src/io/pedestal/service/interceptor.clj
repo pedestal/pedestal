@@ -279,7 +279,7 @@
                            :params
                            :name))))
 
-  This is requivalent to:
+  This is equivalent to:
 
   (defbefore hello-name
     [context]
@@ -292,7 +292,7 @@
 
 (definterceptorfn middleware
   "Returns an interceptor which calls `f1` on the :request value of
-  context durring the enter stage, and `f2` on the :response value of
+  context during the enter stage, and `f2` on the :response value of
   context during the leave stage."
   ([f1 f2]
      (interceptor :enter (when f1 #(update-in % [:request] f1))

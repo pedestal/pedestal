@@ -38,6 +38,8 @@
 
 (def app-model ::app-model)
 (def output ::output)
+(def effect ::output)
+(def priority ::priority)
 
 (def ^:private param-ns
   "A namespace used as the namespace of message params."
@@ -84,7 +86,7 @@
           (into [] (filter (fn [key] (not (param-keyword-present? key))) keys))))))
 
 (defn- fill-params-msg
-  "Replace parameter key-value pairs in a message with the appropriate values fromm param-map."
+  "Replace parameter key-value pairs in a message with the appropriate values from param-map."
   [param-map msg]
   (into {} (map (fn [[k v :as original-pair]]
                   (if-let [param-val (k param-map)]

@@ -29,7 +29,4 @@
     app-model))
 
 (defn log-fn [deltas]
-  (platform/log-group
-   "<----------------------------------------------------------------------"
-   "---------------------------------------------------------------------->"
-   deltas))
+  (platform/log-group "Rendering Deltas" deltas))

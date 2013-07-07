@@ -42,7 +42,9 @@
      (doseq [message messages]
        (p/put-message input-queue message)))
   ([input-queue transform-name messages]
-     (send-transforms input-queue (map (partial msg/add-message-type transform-name) messages))))
+     (send-transforms input-queue (map (partial msg/add-message-type transform-name) messages)))
+  ([input-queue transform-name messages input-map]
+     (send-transforms input-queue (msg/fill transform-name messages input-map))))
 
 (defn send-on
   ([event-type dc input-queue transform-name messages]

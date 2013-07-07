@@ -49,7 +49,7 @@
                         ;; to use. This namespace must have a
                         ;; `render-config` function which returns a
                         ;; render configuration.
-                        :renderer '{{namespace}}.rendering
+                        :renderer '{{sanitized}}.rendering
                         ;; Enable logging of rendering data when in
                         ;; this view.
                         :logging? true
@@ -71,7 +71,7 @@
                         :out-file "{{name}}-data-ui.js"
                         ;; The namespace which contains the `main`
                         ;; function to call to start the application.
-                        :main '{{namespace}}.simulated.start
+                        :main '{{sanitized}}.simulated.start
                         ;; Allow render data recording. Use
                         ;; Alt-Shift-R to start and stop recording.
                         :recording? true
@@ -84,7 +84,7 @@
               :development {:uri "/{{name}}-dev.html"
                             :name "Development"
                             :out-file "{{name}}-dev.js"
-                            :main '{{namespace}}.start
+                            :main '{{sanitized}}.start
                             :logging? true
                             :order 3}
               :fresh {:uri "/fresh.html"
@@ -98,5 +98,5 @@
                            :name "Production"
                            :optimizations :advanced
                            :out-file "{{name}}.js"
-                           :main '{{namespace}}.start
+                           :main '{{sanitized}}.start
                            :order 5}}}})

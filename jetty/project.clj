@@ -9,11 +9,11 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.jetty "0.1.9-SNAPSHOT"
+(defproject io.pedestal/pedestal.jetty "0.1.11-SNAPSHOT"
   :description "Embedded Jetty adapter for Pedestal HTTP Service"
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.eclipse.jetty/jetty-server "8.1.9.v20130131"]
                  [org.eclipse.jetty/jetty-servlet "8.1.9.v20130131"]
                  [javax.servlet/javax.servlet-api "3.0.1"]]
   :min-lein-version "2.0.0"
-  :warn-on-reflection true)
+  :global-vars {*warn-on-reflection* true})

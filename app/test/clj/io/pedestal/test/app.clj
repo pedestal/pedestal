@@ -482,14 +482,17 @@
                                  :init [{msg/type :number msg/topic [:x] :n 0}]}]
                     :derive #{{:in #{[:x]}
                                :out [:half]
-                               :fn (fn [x in] (/ (dataflow/single-val in) 2.0))}
+                               :fn (fn [x n] (/ n 2.0))
+                               :args :single-val}
                               {:in #{[:x]}
                                :out [:square]
-                               :fn (fn [x in] (* (dataflow/single-val in)
-                                                (dataflow/single-val in)))}
-                              {:in #{[:half] [:x] [:square]}
+                               :fn (fn [x n] (* n n))
+                               :args :single-val}
+                              ;; test using alternative keys
+                              {:in {[:half] :h [:x] :x [:square] :s}
                                :out [:sum]
-                               :fn (fn [x in] (apply + (dataflow/input-vals in)))}}
+                               :fn (fn [x nums] (+ (:h nums) (:x nums) (:s nums)))
+                               :args :map}}
                     :effect #{{:in #{[:x]} :fn dataflow/input-map}}
                     :emit [[#{[:x] [:sum]} (default-emitter [])]]}]
     (testing "with input from model and direct-to-output"
@@ -506,16 +509,16 @@
                 [[:x] 42]
                 [[:z] 9999]
                 [[:x] 12]]))
-        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
-               [[:node-create [] :map]
-                [:node-create [:sum] :map]
-                [:value [:sum] nil 0.0]
-                [:node-create [:x] :map]
-                [:value [:x] nil 0]
-                [:value [:sum] 0.0 1827.0]
-                [:value [:x] 0 42]
-                [:value [:sum] 1827.0 162.0]
-                [:value [:x] 42 12]]))))
+        (is (= (set (apply concat (map :io.pedestal.app/emitter-deltas results)))
+               #{[:node-create [] :map]
+                 [:node-create [:sum] :map]
+                 [:value [:sum] nil 0.0]
+                 [:node-create [:x] :map]
+                 [:value [:x] nil 0]
+                 [:value [:sum] 0.0 1827.0]
+                 [:value [:x] 0 42]
+                 [:value [:sum] 1827.0 162.0]
+                 [:value [:x] 42 12]}))))
     (testing "pre processing"
       (letfn [(copy-to-output [message]
                 [{msg/topic msg/output :payload message}
@@ -535,16 +538,16 @@
                   [[:x] 42]
                   {msg/topic [:x] msg/type :number :n 12}
                   [[:x] 12]]))
-          (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
-                 [[:node-create [] :map]
-                  [:node-create [:sum] :map]
-                  [:value [:sum] nil 0.0]
-                  [:node-create [:x] :map]
-                  [:value [:x] nil 0]
-                  [:value [:sum] 0.0 1827.0]
-                  [:value [:x] 0 42]
-                  [:value [:sum] 1827.0 162.0]
-                  [:value [:x] 42 12]])))))))
+          (is (= (set (apply concat (map :io.pedestal.app/emitter-deltas results)))
+                 #{[:node-create [] :map]
+                   [:node-create [:sum] :map]
+                   [:value [:sum] nil 0.0]
+                   [:node-create [:x] :map]
+                   [:value [:x] nil 0]
+                   [:value [:sum] 0.0 1827.0]
+                   [:value [:x] 0 42]
+                   [:value [:sum] 1827.0 162.0]
+                   [:value [:x] 42 12]})))))))
 
 
 ;; Test with Renderer
@@ -1076,39 +1079,40 @@
             _ (begin app)
             results (run-sync! app messages)
             results (standardize-results results)]
-        (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
-               [[:node-create [] :map]
-                [:node-create [:a] :map]
-                [:node-create [:a :counter] :map]
-                [:node-create [:a :counter :a] :map]
-                [:value [:a :counter :a] nil 1]
-                [:node-create [:a :counter :b] :map]
-                [:value [:a :counter :b] nil 1]
-                [:value [:a :counter :b] 1 nil]
-                [:node-destroy [:a :counter :b] :map]
-                [:value [:a :counter :a] 1 nil]
-                [:node-destroy [:a :counter :a] :map]
-                [:node-destroy [:a :counter] :map]
-                [:node-destroy [:a] :map]
-                [:node-create [:b] :map]
-                [:node-create [:b :counter] :map]
-                [:node-create [:b :counter :c] :map]
-                [:value [:b :counter :c] nil 1]
-                [:node-create [:b :counter :d] :map]
-                [:value [:b :counter :d] nil 1]
-                [:value [:b :counter :d] 1 nil]
-                [:node-destroy [:b :counter :d] :map]
-                [:value [:b :counter :c] 1 2]
-                [:value [:b :counter :c] 2 nil]
-                [:node-destroy [:b :counter :c] :map]
-                [:node-destroy [:b :counter] :map]
-                [:node-destroy [:b] :map]
-                [:node-create [:a] :map]
-                [:node-create [:a :counter] :map]
-                [:node-create [:a :counter :a] :map]
-                [:value [:a :counter :a] nil 1]
-                [:node-create [:a :counter :b] :map]
-                [:value [:a :counter :b] nil 1]]))))))
+        (is (= (partition-sets (apply concat (map :io.pedestal.app/emitter-deltas results))
+                               [8 12 12])
+               [#{[:node-create [] :map]
+                  [:node-create [:a] :map]
+                  [:node-create [:a :counter] :map]
+                  [:node-create [:a :counter :a] :map]
+                  [:value [:a :counter :a] nil 1]
+                  [:node-create [:a :counter :b] :map]
+                  [:value [:a :counter :b] nil 1]
+                  [:value [:a :counter :b] 1 nil]}
+                #{[:node-destroy [:a :counter :b] :map]
+                  [:value [:a :counter :a] 1 nil]
+                  [:node-destroy [:a :counter :a] :map]
+                  [:node-destroy [:a :counter] :map]
+                  [:node-destroy [:a] :map]
+                  [:node-create [:b] :map]
+                  [:node-create [:b :counter] :map]
+                  [:node-create [:b :counter :c] :map]
+                  [:value [:b :counter :c] nil 1]
+                  [:node-create [:b :counter :d] :map]
+                  [:value [:b :counter :d] nil 1]
+                  [:value [:b :counter :d] 1 nil]}
+                #{[:node-destroy [:b :counter :d] :map]
+                  [:value [:b :counter :c] 1 2]
+                  [:value [:b :counter :c] 2 nil]
+                  [:node-destroy [:b :counter :c] :map]
+                  [:node-destroy [:b :counter] :map]
+                  [:node-destroy [:b] :map]
+                  [:node-create [:a] :map]
+                  [:node-create [:a :counter] :map]
+                  [:node-create [:a :counter :a] :map]
+                  [:value [:a :counter :a] nil 1]
+                  [:node-create [:a :counter :b] :map]
+                  [:value [:a :counter :b] nil 1]}]))))))
 
 (deftest test-post-processing
   (let [inc-t (fn [old message] ((fnil inc 0) old))
@@ -1209,18 +1213,18 @@
         results (standardize-results results)]
     (is (= (-> app :state deref :data-model)
            {:x nil}))
-    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
-           [[:node-create [] :map]
-            [:node-create [:x] :map]
-            [:node-create [:x :b] :map]
-            [:value [:x :b] nil 1]
-            [:node-create [:x :a] :map]
-            [:value [:x :a] nil 1]
-            [:value [:x :a] 1 0]
-            [:value [:x :b] 1 nil]
-            [:node-destroy [:x :b] :map]
-            [:value [:x :a] 0 nil]
-            [:node-destroy [:x :a] :map]])))
+    (is (= (set (apply concat (map :io.pedestal.app/emitter-deltas results)))
+           #{[:node-create [] :map]
+             [:node-create [:x] :map]
+             [:node-create [:x :b] :map]
+             [:value [:x :b] nil 1]
+             [:node-create [:x :a] :map]
+             [:value [:x :a] nil 1]
+             [:value [:x :a] 1 0]
+             [:value [:x :b] 1 nil]
+             [:node-destroy [:x :b] :map]
+             [:value [:x :a] 0 nil]
+             [:node-destroy [:x :a] :map]})))
   (let [app (build {:version 2
                     :transform [[:set-value [:*] (fn [_ message] (:value message))]]
                     :emit [[#{[:* :*]} (default-emitter [])]]})
@@ -1233,15 +1237,65 @@
         results (standardize-results results)]
     (is (= (-> app :state deref :data-model)
            {:x nil}))
-    (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
-           [[:node-create [] :map]
-            [:node-create [:x] :map]
-            [:node-create [:x :b] :map]
-            [:value [:x :b] nil true]
-            [:node-create [:x :a] :map]
-            [:value [:x :a] nil true]
-            [:value [:x :a] true false]
-            [:value [:x :b] true nil]
-            [:node-destroy [:x :b] :map]
-            [:value [:x :a] false nil]
-            [:node-destroy [:x :a] :map]]))))
+    (is (= (set (apply concat (map :io.pedestal.app/emitter-deltas results)))
+           #{[:node-create [] :map]
+             [:node-create [:x] :map]
+             [:node-create [:x :b] :map]
+             [:value [:x :b] nil true]
+             [:node-create [:x :a] :map]
+             [:value [:x :a] nil true]
+             [:value [:x :a] true false]
+             [:value [:x :b] true nil]
+             [:node-destroy [:x :b] :map]
+             [:value [:x :a] false nil]
+             [:node-destroy [:x :a] :map]}))))
+
+(deftest test-configure-arguments
+  (let [swap (fn [_ message] (:value message))
+        double (fn [_ inputs] (* (dataflow/single-val inputs) 2))
+        better-double (fn [_ n] (* n 2))
+        sum (fn [_ inputs] (reduce + (dataflow/input-vals inputs)))
+        better-sum (fn [_ nums] (reduce + nums))
+        rotate (fn [_ inputs]
+                 (let [{a [:x :a]
+                        b [:x :b]
+                        c [:x :c]} (dataflow/input-map inputs)]
+                   {:a b :b c :c a}))
+        better-rotate (fn [_ {:keys [a b c]}]
+                        {:a b :b c :c a})
+        group (fn [_ {:keys [x c]}]
+                {:x x :c c})
+        id (fn [_ x] x)]
+    (let [app (build {:version 2
+                      :transform [[:swap [:*] swap]]
+                      :derive #{[#{[:x :a]} [:m :a] double]
+                                [#{[:y :b]} [:m :b] better-double :single-val]
+                                [#{[:x :*]} [:n :a] sum]
+                                [#{[:y :*]} [:n :b] better-sum :vals]
+                                [#{[:x :a] [:x :b] [:x :c]} [:o] rotate]
+                                [{[:x :a] :a [:x :b] :b [:x :c] :c} [:p] better-rotate :map]
+                                [{[:x :*] last} [:q] better-rotate :map]
+                                [{[:x :a] :x [:x :b] :x [:x :c] :c} [:r] group :map]
+                                [{[:x :*] :x [:y :c] :c} [:s] group :map]
+                                [{[:y :a] :x [:y :b] :x [:x :*] :x [:y :c] :c} [:t] group :map]
+                                [#{[:x :b]} [:u :a] id :single-val]
+                                [{[:u :*] :x} [:v :a] id :map]
+                                [{[:u :a] :x [:x :z] :x} [:v :b] id :map]}})
+          results (run-sync! app [{msg/type :swap msg/topic [:x] :value {:a 1 :b 2 :c 3}}
+                                  {msg/type :swap msg/topic [:y] :value {:a 5 :b 6 :c 7}}]
+                             :begin :default)
+          results (standardize-results results)]
+      (is (= (-> app :state deref :data-model)
+             {:x {:a 1 :b 2 :c 3}
+              :y {:a 5 :b 6 :c 7}
+              :o {:a 2 :b 3 :c 1}
+              :p {:a 2 :b 3 :c 1}
+              :q {:a 2 :b 3 :c 1}
+              :r {:x #{1 2} :c 3}
+              :s {:x #{1 2 3} :c 7}
+              :t {:x #{1 2 3 5 6} :c 7}
+              :m {:a 2 :b 12}
+              :n {:a 6 :b 18}
+              :u {:a 2}
+              :v {:a {:x #{2}} :b {:x #{2}}}})))))
+
