@@ -245,10 +245,14 @@
   :path-params keys are taken from the route, any other keys in
   :params are added to :query-params. Returns updated opts."
   [opts route]
-  (let [{:keys [params]} opts]
+  (let [{:keys [params request]} opts]
+    (log/info :msg "MERGE-PARAM-OPTIONS"
+              :opts opts
+              :params params
+              :request request)
     (-> opts
         (dissoc :params)
-        (update-in [:path-params] #(merge params %))
+        (update-in [:path-params] #(merge (:path-params request) params %))
         (update-in [:query-params]
                    #(merge (apply dissoc params (:path-params route)) %)))))
 
@@ -413,11 +417,11 @@
   [{:keys [request] :as context} matcher-routes routes]
   (or (some (fn [{:keys [matcher interceptors] :as route}]
               (when-let [path-params (matcher request)]
-                (let [linker (url-for-routes routes :request request)]
+                (let [request-with-path-params (assoc request :path-params path-params)
+                      linker (url-for-routes routes :request request-with-path-params)]
                   (-> context
                       (assoc :route route
-                             :request (assoc request :path-params path-params
-                                             :url-for linker)
+                             :request (assoc request-with-path-params :url-for linker)
                              :url-for linker)
                       (assoc-in [:bindings #'*url-for*] linker)
                       (enqueue-all interceptors)))))
