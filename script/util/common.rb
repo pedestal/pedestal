@@ -1,5 +1,6 @@
 module Common
-  SNAPSHOT_DEFPROJECT_RE = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "(\d+\.\d+\.\d+)-SNAPSHOT"/
+  WITHOUT_SNAPSHOT_DEFPROJECT_RE = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "(\d+\.\d+\.\d+)-SNAPSHOT"/
+  WITH_SNAPSHOT_DEFPROJECT_RE = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "(\d+\.\d+\.\d+-SNAPSHOT)"/
 
   def check_git_version!
     version_report = `git --version`
@@ -46,11 +47,11 @@ module Common
   end
 
 
-  def version_number!(project_cljs)
+  def version_number!(project_cljs, version_re)
     versions = project_cljs.reduce([]) do |versions, project_clj|
       File.open(project_clj) do |file|
         file.each_line do |line|
-          versions << $2 if line =~ SNAPSHOT_DEFPROJECT_RE
+          versions << $2 if line =~ version_re
         end
       end
 

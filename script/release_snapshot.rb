@@ -20,7 +20,7 @@ check_credentials!
 
 project_cljs = Dir['**/project.clj']
 
-release_version = version_number!(project_cljs)
+release_version = version_number!(project_cljs, Common::WITH_SNAPSHOT_DEFPROJECT_RE)
 
 # Confirm the release operation
 

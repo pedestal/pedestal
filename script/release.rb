@@ -37,7 +37,7 @@ check_credentials!
 
 project_cljs = Dir['**/project.clj']
 
-release_version = version_number!(project_cljs)
+release_version = version_number!(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE)
 release_version =~ /(\d+\.\d+\.)(\d+)/
 bumped_subminor = (($2.to_i)+1).to_s
 pre_release_version = "#{$1}#{bumped_subminor}-SNAPSHOT"
@@ -63,7 +63,7 @@ clean!
 
 # Bump SNAPSHOT versions up to released versions, commit and tag.
 
-bump_version(project_cljs, Common::SNAPSHOT_DEFPROJECT_RE, "#{release_version}-SNAPSHOT", release_version)
+bump_version(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE, "#{release_version}-SNAPSHOT", release_version)
 
 unless system('git add -u') && system("git commit -m \"Prepare #{release_version} release\"") && system("git tag #{release_version}")
   puts "Failed to create release commit. Aborting."
