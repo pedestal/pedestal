@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.1.9-SNAPSHOT"
+(defproject io.pedestal/pedestal.service "0.1.11-SNAPSHOT"
   :description "Pedestal Service"
   :dependencies [[org.clojure/clojure "1.5.1"]
                  ;; logging
@@ -25,7 +25,7 @@
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
   :javac-options ["-target" "1.5" "-source" "1.5"]
-  :warn-on-reflection true
+  :global-vars {*warn-on-reflection* true}
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.service.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :profiles {:default [:dev :provided :user :base]
@@ -37,7 +37,7 @@
                              [org.clojure/java.classpath "0.2.0"]
                              [org.clojure/tools.namespace "0.2.2"]
                              [clj-http "0.6.4"]
-                             [io.pedestal/pedestal.jetty "0.1.9-SNAPSHOT"]
+                             [io.pedestal/pedestal.jetty "0.1.11-SNAPSHOT"]
                              [javax.servlet/javax.servlet-api "3.0.1"]
                              ;; Logging:
                              [ch.qos.logback/logback-classic "1.0.7" :exclusions [org.slf4j/slf4j-api]]

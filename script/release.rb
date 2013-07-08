@@ -24,68 +24,25 @@
 
 ### Implementation follows!
 
+load 'script/util/common.rb'
+extend Common
+
 # Check git is installed:
+check_git_version!
 
-version_report = `git --version`
-unless version_report =~ /git version ([0-9\.]+)/
-  puts "Please install git before running the release script."
-  exit -1
-end
+# Check for encrypted credentials.
+check_credentials!
 
-git_version = $1
-puts "Found git #{git_version}"
-
-# Check for encrypted credentials. We won't support cleartext credentials.
-
-credentials_file ="#{ENV['HOME']}/.lein/credentials.clj.gpg"
-unless File.exist?(credentials_file)
-  puts "No stored credentials found. Please read https://github.com/technomancy/leiningen/blob/master/doc/DEPLOY.md and place your Clojars deployment credentials in #{credentials_file}"
-  exit -1
-end
-
-# Check for a credential entry to clojars.
-
-found_clojars = false
-IO.popen("gpg -d #{credentials_file}") do |credential_contents|
-  credential_contents.each do |line|
-    found_clojars = true if line =~ /#"https:\/\/clojars\\\.org\/repo"/
-  end
-end
-unless found_clojars
-  puts "Credentials plaintext does not appear to have an entry for clojars."
-  puts "Please add an entry like the following to your credentials.clj and encrypt it:"
-  puts <<CREDENTIALS_EXAMPLE
-  #"https://clojars\\.org/repo"
-  {:username "pedestal"
-   :password <pedestal clojars password here>}
-CREDENTIALS_EXAMPLE
-  exit -1
-end
 # Pre-requisites met. Precalculate the pending release and the new development stream.
 
 project_cljs = Dir['**/project.clj']
-versions = []
 
-snapshot_defproject_re = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "(\d+\.\d+\.\d+)-SNAPSHOT"/
-
-project_cljs.each do |project_clj|
-  File.open(project_clj) do |file|
-    file.each_line do |line|
-      versions << $2 if line =~ snapshot_defproject_re
-    end
-  end
-end
-
-unless versions.uniq.count == 1
-  puts "Found inconsistent version numbers: #{versions.uniq}, aborting."
-  exit -1
-end
-
-release_version = versions.uniq.first
+release_version = version_number!(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE)
 release_version =~ /(\d+\.\d+\.)(\d+)/
 bumped_subminor = (($2.to_i)+1).to_s
 pre_release_version = "#{$1}#{bumped_subminor}-SNAPSHOT"
 release_defproject_re = /\(defproject (io.pedestal\/.+|pedestal-.*\/lein-template) "#{release_version}"/
+
 # Confirm the release operation
 
 puts "Current released version will be #{release_version}"
@@ -102,22 +59,11 @@ end
 
 # Clean up output directories
 
-unless system('lein sub clean')
-  puts "Failed to clean project directories. Aborting."
-  exit -1
-end
+clean!
 
 # Bump SNAPSHOT versions up to released versions, commit and tag.
 
-project_cljs.each do |project_clj|
-  contents = File.read project_clj
-  File.open(project_clj,"w") do |file|
-    redefined = contents.gsub(snapshot_defproject_re, '(defproject \1 "'+ release_version + '"')
-    redepended = redefined.gsub(/\[io.pedestal\/(.+) "#{release_version}-SNAPSHOT"/,
-                               '[io.pedestal/\1 "'+release_version+'"')
-    file.puts redepended
-  end
-end
+bump_version(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE, "#{release_version}-SNAPSHOT", release_version)
 
 unless system('git add -u') && system("git commit -m \"Prepare #{release_version} release\"") && system("git tag #{release_version}")
   puts "Failed to create release commit. Aborting."
@@ -125,29 +71,9 @@ unless system('git add -u') && system("git commit -m \"Prepare #{release_version
 end
 
 # Deploy to Clojars in dependency order.
-
-["jetty", "tomcat", "app", "service", "app-tools", "service-template", "app-template"].each do |artifact|
-  unless system("cd #{artifact} && echo $PWD && lein deploy clojars")
-    puts "Failed deploying #{artifact}. Aborting."
-    exit -1
-  end
-end
+deploy!
 
 # Update to pre-release SNAPSHOT version, commit, and push.
-
-project_cljs.each do |project_clj|
-  contents = File.read project_clj
-  File.open(project_clj,"w") do |file|
-    redefined = contents.gsub(release_defproject_re, '(defproject \1 "'+ pre_release_version + '"')
-    redepended = redefined.gsub(/\[io.pedestal\/(.+) "#{release_version}"/,
-                               '[io.pedestal/\1 "'+pre_release_version+'"')
-    file.puts redepended
-  end
-end
-
-unless system('git add -u') && system("git commit -m \"Start #{pre_release_version} development stream\"")
-  puts "Failed to create development stream commit. Aborting."
-  exit -1
-end
+bump_version(project_cljs, release_defproject_re, release_version, pre_release_version)
 
 puts "Release #{release_version} pushed to Clojars, tagged and committed.\nRelease #{pre_release_version} set as the latest development stream.\n\nDO NOT FORGET TO 'git push' WHEN YOU ARE READY!"

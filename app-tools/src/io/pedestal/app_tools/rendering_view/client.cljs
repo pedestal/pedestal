@@ -148,10 +148,7 @@
                        n (:ui n)]
                    (when (not= o n)
                      (let [deltas (ui-tree/since-t n (ui-tree/t o))]
-                       (platform/log-group
-                        "<----------------------------------------------------------------------"
-                        "---------------------------------------------------------------------->"
-                        deltas)
+                       (platform/log-group "Rendering Deltas" deltas)
                        (render-fn deltas input-queue))))))
     (load-and-render)))
 

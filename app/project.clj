@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.app "0.1.9-SNAPSHOT"
+(defproject io.pedestal/pedestal.app "0.1.11-SNAPSHOT"
   :description "Pedestal applications"
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.5.1"]

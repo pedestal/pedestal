@@ -99,8 +99,8 @@
   (interceptor/handler
    ::serve-recording-page
    (fn [req]
-     (let [template (or (-> config :built-in :render :template)
-                        (-> config :application :default-template))
+     (let [template (or (get-in config [:built-in :render :template])
+                        (get-in config [:application :default-template]))
            js (get-in config [:application :generated-javascript])
            js-file (or (get-in config [:built-in :render :js-file])
                        (get-in config [:aspects :development :out-file]))

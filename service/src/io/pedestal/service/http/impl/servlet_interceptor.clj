@@ -324,7 +324,7 @@
    terminator-inject))
 
 (defn- error-debug
-  "When an error propogates to this interceptor error fn, trap it,
+  "When an error propagates to this interceptor error fn, trap it,
   print it to the output stream of the HTTP request, and do not
   rethrow it."
   [{:keys [servlet-response] :as context} exception]

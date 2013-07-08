@@ -133,7 +133,7 @@
     (conj route-paths route-path)))
 
 (defn- sort-by-constraints
-  "Sort the grouping of route entries whcih all correspond to
+  "Sort the grouping of route entries which all correspond to
   `route-path` from `groupings` such that the most constrained route
   table entries appear first and the least constrained appear last."
   [groupings route-path]

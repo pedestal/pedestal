@@ -15,7 +15,8 @@
         clojure.test
         clojure.repl
         clojure.tools.namespace.repl)
-  (:require [io.pedestal.service.impl.interceptor :as interceptor]))
+  (:require [clojure.instant :as inst]
+            [io.pedestal.service.impl.interceptor :as interceptor]))
 
 (defn as-context [content-type ^String body]
   (let [body-reader (java.io.ByteArrayInputStream. (.getBytes body))]
@@ -24,11 +25,23 @@
 
 (def i (:enter (body-params)))
 
+(def i-using-opts
+  (-> (default-parser-map
+        :edn-options {:readers {'inst inst/read-instant-timestamp}}
+        :json-options {:key-fn keyword})
+      body-params :enter))
+
 (deftest parses-json
   (let [json-context (as-context "application/json" "{ \"foo\": \"BAR\"}")
         new-context  (i json-context)
         new-request  (:request new-context)]
     (is (= (:json-params new-request) {"foo" "BAR"}))))
+
+(deftest parses-json-using-opts
+  (let [json-context (as-context "application/json" "{ \"foo\": \"BAR\"}")
+        new-context (i-using-opts json-context)
+        new-request (:request new-context)]
+    (is (= (:json-params new-request) {:foo "BAR"}))))
 
 (deftest parses-form-data
   (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")
@@ -41,6 +54,12 @@
         new-context (i edn-context)
         new-request (:request new-context)]
     (is (= (:edn-params new-request) '(i wish i [was in] eden)))))
+
+(deftest parses-edn-using-opts
+  (let [edn-context (as-context "application/edn" "#inst \"1970-01-01T00:00:00.000-00:00\"")
+        new-context (i-using-opts edn-context)
+        new-request (:request new-context)]
+    (is (= (:edn-params new-request) (java.sql.Timestamp. 0)))))
 
 (deftest throws-an-error-if-eval-in-edn
   (is (thrown? Exception (i (as-context "application/edn" "#=(eval (println 1234)")))))

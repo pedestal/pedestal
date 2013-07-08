@@ -137,7 +137,7 @@
                   (mapcat tree/expand-map deltas)))))
 
 (defn- run-dataflow [state flow message]
-  (dataflow/run (dissoc state :effect) flow message))
+  (dataflow/run state flow message))
 
 (defn- process-message
   "Using the given flow, process the given message producing a new
@@ -155,7 +155,11 @@
         (dissoc :emit))))
 
 (defn- transact-one [state flow message]
-  (process-message (assoc state ::input message) flow message))
+  (process-message (-> state
+                       (assoc ::input message)
+                       (dissoc :effect :continue-inputs))
+                   flow
+                   message))
 
 (defn- pre-process [flow message]
   (let [{out-path :out key :key} ((:input-adapter flow) message)
@@ -171,7 +175,7 @@
                       (doseq [message (pre-process flow message)]
                         (swap! state transact-one flow message))
                       (swap! state transact-one flow message))
-                    (receive-input-message state flow input-queue))))
+                    (platform/create-timeout 0 #(receive-input-message state flow input-queue)))))
 
 (defn- post-process-effects [flow message]
   (let [post-fn (some (fn [[pred f]] (when (pred message) f))
@@ -179,6 +183,12 @@
     (if post-fn
       (post-fn message)
       [message])))
+
+(defn- continue-inputs [app flow input-queue]
+  (add-watch app :continue-inputs-watcher
+             (fn [_ _ _ new-state]
+               (doseq [message (:continue-inputs new-state)]
+                 (p/put-message input-queue message)))))
 
 (defn- send-effects [app flow output-queue]
   (add-watch app :effects-watcher
@@ -329,6 +339,7 @@
         app-model-queue (queue/queue :app-model)]
     (receive-input-message app-atom dataflow input-queue)
     (send-effects app-atom dataflow output-queue)
+    (continue-inputs app-atom dataflow input-queue)
     (send-app-model-deltas app-atom dataflow app-model-queue)
     {:state app-atom
      :description description

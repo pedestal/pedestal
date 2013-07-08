@@ -39,7 +39,7 @@ of some of these functions, type:
 To begin working on an application, execute:
 
 ```clj
-(run)
+(start)
 ```
 
 and then visit `http://localhost:3000`.
