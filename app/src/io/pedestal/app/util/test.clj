@@ -17,7 +17,7 @@
   (assert (or (nil? begin)
               (= begin :default)
               (vector? begin))
-          "begin must be nil, the keyword :default or a vector of messges")
+          "begin must be nil, the keyword :default or a vector of messages")
   (assert (or (nil? wait-for)
               (every? #(contains? #{:output :app-model} %) wait-for))
           "wait-for must be nil or a seq with a subset of #{:output :app-model}")
