@@ -10,13 +10,8 @@ From within this project run:
 ```bash
 lein install
 ```
-Add a new dependency to your Leiningen user profile in `~/.lein/profiles.clj`:
 
-```clj
-{:user {:plugins {pedestal-app/lein-template "0.0.9-SNAPSHOT"}}}
-```
-
-When you are ready to create a new project, run:
+To create a new project run:
 
 ```bash
 lein new pedestal-app example
@@ -33,7 +28,7 @@ At the REPL type:
 (start)
 ```
 
-and then open a browser to `http://localhost:3000`. 
+and then open a browser to `http://localhost:3000`.
 
 You now have a working development environment!
 
