@@ -44,6 +44,8 @@
   3000. The default application is the first of config/configs."
   ([]
      (start 3000 (ffirst config/configs)))
+  ([port]
+      (start port (ffirst config/configs)))
   ([port config-name]
      (init port config-name)
      ((:start-fn app-development-server))
