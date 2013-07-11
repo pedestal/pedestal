@@ -1,6 +1,6 @@
-# Pedestal Server Template
+# Pedestal Service Template
 
-Generate a new Pedestal Server.
+Generate a new Pedestal Service.
 
 ## Install
 
