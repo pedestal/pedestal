@@ -119,3 +119,8 @@
   (println "Type (watch aspect) to build a specific aspect when it changes")
   (println "Type (unwatch) to stop the current watcher")
   (println))
+
+(defn -main
+  "Used by `lein run` to start the server from the commandline."
+  [& args]
+  (apply start args))

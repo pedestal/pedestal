@@ -11,4 +11,5 @@
   :source-paths ["app/src" "app/templates"]
   :resource-paths ["config"]
   :target-path "out/"
-  :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
+  :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
+  :main ^{:skip-aot true} dev)
