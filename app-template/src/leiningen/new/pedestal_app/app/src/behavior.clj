@@ -66,7 +66,7 @@
 
   ;; continue
 
-  (defn example-continue [iniputs]
+  (defn example-continue [inputs]
     ;; returns a vector of messages which will be processed as part of
     ;; the same dataflow transaction
     )
