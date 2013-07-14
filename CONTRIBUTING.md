@@ -1,16 +1,25 @@
 # Contributing to Pedestal
 
-Wow, thanks for your interest in helping out with Pedestal. Let this document serve as your guide.
+Wow, thanks for your interest in helping out with Pedestal. Let this document
+serve as your guide.
 
-## Collaborative Hammock Time
+### Looking for work?
+
+If you're looking for a task to work on, check out the
+[primed label](../../issues?labels=primed) in our issues.
+
+Less defined tasks will be marked with the
+[discuss label](../../issues?labels=discuss). Jump in here if you want to be
+a part of something big.
+
+### New Features
 
 Pedestal is the thinking persons framework, so every contribution starts with
 some *deeeep* thought. Finished?
 
 Alright, your next step is to start a discussion.
 
-Create an [issue](https://github.com/pedestal/pedestal/issues/new) or email
-[pedestal-dev@googlegroups.com](mailto:pedestal-dev@googlegroups.com) to start
+Create an [issue](https://github.com/pedestal/pedestal/issues/new) to start
 a conversation. Tell us what you're trying to accomplish and how you think you
 might do it. If all is well, we'll probably give you the :thumbsup: to
 start developing.
