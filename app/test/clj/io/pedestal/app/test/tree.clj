@@ -817,12 +817,12 @@
               :transforms {:navigate [{:page :page/attributes}]}}
              {:value "Entities"
               :transforms {:navigate [{:page :page/entity-navigator (msg/param :eid) {}}
-                                  {::msg/topic :model/entity-navigator msg/type :entity-selected (msg/param :eid) {}}]}}
+                                  {::msg/topic :model/entity-navigator ::msg/type :entity-selected (msg/param :eid) {}}]}}
              {:value "Actions"
               :attrs {:active true}
               :children [{:value "Disconnect"
                           :transforms {:disconnect [{::msg/topic :model/configuration}
-                                                {msg/type :navigate :page :page/configuration}]}}
+                                                {::msg/type :navigate :page :page/configuration}]}}
                          {:value "Subscribe"
                           :attrs {:color :blue :active true}
                           :transforms {:subscribe [{::msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
@@ -852,7 +852,7 @@
               with key :transform and value :entity-selected"
       (is (= (set (q `[:find ?v ?p
                        :where
-                       [?m ~msg/type :entity-selected]
+                       [?m ~::msg/type :entity-selected]
                        [?m :t/transform ?e]
                        [?e :t/node ?n]
                        [?n :t/value ?v]

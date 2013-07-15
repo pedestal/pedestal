@@ -17,14 +17,14 @@
   "A keyword used as a key in a message to indicate that message's topic.
 
    Example Message:
-   {::msg/topic :todo, msg/type :clear-completed}"
+   {::msg/topic :todo, ::msg/type :clear-completed}"
   ::topic)
 
 (def type
   "A keyword used as a key in a message to indicate that message's type.
 
    Example Message:
-   {::msg/topic :todo, msg/type :clear-completed}"
+   {::msg/topic :todo, ::msg/type :clear-completed}"
   ::type)
 
 (def init
@@ -33,7 +33,7 @@
    the :init value from that topic in your app's dataflow.
 
    Example Message:
-   {::msg/topic :todo, msg/type msg/init, :value {}} "
+   {::msg/topic :todo, ::msg/type msg/init, :value {}} "
   ::init)
 
 (def app-model ::app-model)
@@ -139,7 +139,7 @@
    (fill :set-age
          [{::msg/topic :person, :id person-id, (param :age) {}}]
          {:age 42})
-   ; -> [{topic :person msg/type :set-age :age 42 :id person-id}]"
+   ; -> [{topic :person ::msg/type :set-age :age 42 :id person-id}]"
   ([message-type messages]
      (fill message-type messages {}))
   ([message-type messages input-map]
