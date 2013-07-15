@@ -14,7 +14,11 @@ lein install
 To create a new project run:
 
 ```bash
+# Generate a project with introductory comments
 lein new pedestal-app example
+# Alternatively, generate a project without comments
+lein new pedestal-app example no-comment
+
 cd example
 lein repl
 ```
