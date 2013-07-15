@@ -42,7 +42,7 @@
 (defrecord AppMessageQueue [state]
   p/PutMessage
   (put-message [this message]
-    (let [priority (if (= (msg/priority message) :high) :high :low)
+    (let [priority (if (= (::msg/priority message) :high) :high :low)
           queues (:queues (swap! state update-in [:queues priority] conj message))]
       (count-queues queues)))
   p/TakeMessage

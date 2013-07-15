@@ -33,7 +33,7 @@
    the :init value from that topic in your app's dataflow.
 
    Example Message:
-   {::msg/topic :todo, ::msg/type msg/init, :value {}} "
+   {::msg/topic :todo, ::msg/type ::msg/init, :value {}} "
   ::init)
 
 (def app-model ::app-model)

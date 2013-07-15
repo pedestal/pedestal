@@ -144,9 +144,9 @@
   state."
   [state flow message]
   (let [old-state state
-        new-state (cond (= (::msg/topic message) msg/app-model)
+        new-state (cond (= (::msg/topic message) ::msg/app-model)
                         (process-app-model-message state flow message)
-                        (= (::msg/topic message) msg/output)
+                        (= (::msg/topic message) ::msg/output)
                         (assoc state :effect [(:payload message)])
                         :else (run-dataflow state flow message))
         new-deltas (filter-deltas new-state (:emit new-state))]
@@ -218,7 +218,7 @@
                                   (post-process-deltas flow deltas)
                                   deltas)]
                      (p/put-message app-model-queue
-                                    {::msg/topic msg/app-model
+                                    {::msg/topic ::msg/app-model
                                      ::msg/type :deltas
                                      :deltas deltas})))))))
 
@@ -250,13 +250,13 @@
 
 (defn- create-start-messages [focus]
   (into (mapv (fn [[name paths]]
-                {::msg/topic msg/app-model
+                {::msg/topic ::msg/app-model
                  ::msg/type :add-named-paths
                  :paths paths
                  :name name})
               (remove (fn [[k v]] (= k :default)) focus))
         (when-let [n (:default focus)]
-          [{::msg/topic msg/app-model
+          [{::msg/topic ::msg/app-model
             ::msg/type :navigate
             :name n}])))
 
@@ -278,7 +278,7 @@
                                 ;; subscribe to everything
                                 ;; this makes simple one-screen apps
                                 ;; easire to confgure
-                                [{::msg/topic msg/app-model ::msg/type :subscribe :paths [[]]}])]
+                                [{::msg/topic ::msg/app-model ::msg/type :subscribe :paths [[]]}])]
        (let [init-messages (vec (mapcat :init (:transform description)))]
          (doseq [message (concat start-messages init-messages)]
            (p/put-message (:input app) message))))))
