@@ -10,6 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.app.util.platform
+  "Platform-independent utilities."
   (:require [cljs.reader :as reader]))
 
 (defn safe-read-string [s]

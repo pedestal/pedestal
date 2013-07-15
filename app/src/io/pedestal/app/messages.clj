@@ -17,14 +17,14 @@
   "A keyword used as a key in a message to indicate that message's topic.
 
    Example Message:
-   {msg/topic :todo, msg/type :clear-completed}"
+   {::msg/topic :todo, msg/type :clear-completed}"
   ::topic)
 
 (def type
   "A keyword used as a key in a message to indicate that message's type.
 
    Example Message:
-   {msg/topic :todo, msg/type :clear-completed}"
+   {::msg/topic :todo, msg/type :clear-completed}"
   ::type)
 
 (def init
@@ -33,7 +33,7 @@
    the :init value from that topic in your app's dataflow.
 
    Example Message:
-   {msg/topic :todo, msg/type msg/init, :value {}} "
+   {::msg/topic :todo, msg/type msg/init, :value {}} "
   ::init)
 
 (def app-model ::app-model)
@@ -101,8 +101,8 @@
    io.pedestal.app.messages/param).
 
    Example:
-   (fill-params {(msg/param :foo) :bar} [{msg/topic :some-model (msg/param :foo) {}}])
-   ; -> [{msg/topic :some-model :foo :bar}]"
+   (fill-params {(msg/param :foo) :bar} [{::msg/topic :some-model (msg/param :foo) {}}])
+   ; -> [{::msg/topic :some-model :foo :bar}]"
   [param-map messages]
   (assert-only-param-keys param-map)
   (mapv (partial fill-params-msg param-map) messages))
@@ -137,7 +137,7 @@
 
    Example:
    (fill :set-age
-         [{msg/topic :person, :id person-id, (param :age) {}}]
+         [{::msg/topic :person, :id person-id, (param :age) {}}]
          {:age 42})
    ; -> [{topic :person msg/type :set-age :age 42 :id person-id}]"
   ([message-type messages]

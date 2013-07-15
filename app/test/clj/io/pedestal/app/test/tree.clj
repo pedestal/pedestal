@@ -687,29 +687,29 @@
     (reset! next-eid-atom 10)
     (is (= (transform->entities :navigate
                             [{:page :page/configuration}
-                             {msg/topic :y :style :awesome}]
+                             {::msg/topic :y :style :awesome}]
                             1)
            [{:t/transform-name :navigate :t/id 11 :t/node 1 :t/type :t/transform}
             {:page :page/configuration :t/transform 11 :t/id 12 :t/type :t/message}
-            {:style :awesome :t/transform 11 :t/id 13 :t/type :t/message msg/topic :y}]))))
+            {:style :awesome :t/transform 11 :t/id 13 :t/type :t/message ::msg/topic :y}]))))
 
 (deftest test-transforms->entities
   (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
         transforms->entities #'io.pedestal.app.tree/transforms->entities]
     (reset! next-eid-atom 10)
     (let [result (transforms->entities {:navigate [{:page :page/configuration}
-                                               {msg/topic :y :style :awesome}]
-                                    :subscribe [{msg/topic :model/timeline :interval 'interval}]}
+                                               {::msg/topic :y :style :awesome}]
+                                    :subscribe [{::msg/topic :model/timeline :interval 'interval}]}
                                    1)]
       (is (= (count result) 5))
       (is (= (set (map :t/id result)) #{11 12 13 14 15}))
       (is (= (set (keep :t/transform result)) #{11 12}))
       (is (= (set (map #(dissoc % :t/id :t/transform) result))
              #{{:t/transform-name :subscribe :t/node 1 :t/type :t/transform}
-               {:interval 'interval :t/type :t/message msg/topic :model/timeline}
+               {:interval 'interval :t/type :t/message ::msg/topic :model/timeline}
                {:t/transform-name :navigate :t/node 1 :t/type :t/transform}
                {:page :page/configuration :t/type :t/message}
-               {:style :awesome :t/type :t/message msg/topic :y}})))))
+               {:style :awesome :t/type :t/message ::msg/topic :y}})))))
 
 (deftest test-attrs-entities
   (let [next-eid-atom @#'io.pedestal.app.tree/next-eid-atom
@@ -817,15 +817,15 @@
               :transforms {:navigate [{:page :page/attributes}]}}
              {:value "Entities"
               :transforms {:navigate [{:page :page/entity-navigator (msg/param :eid) {}}
-                                  {msg/topic :model/entity-navigator msg/type :entity-selected (msg/param :eid) {}}]}}
+                                  {::msg/topic :model/entity-navigator msg/type :entity-selected (msg/param :eid) {}}]}}
              {:value "Actions"
               :attrs {:active true}
               :children [{:value "Disconnect"
-                          :transforms {:disconnect [{msg/topic :model/configuration}
+                          :transforms {:disconnect [{::msg/topic :model/configuration}
                                                 {msg/type :navigate :page :page/configuration}]}}
                          {:value "Subscribe"
                           :attrs {:color :blue :active true}
-                          :transforms {:subscribe [{msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
+                          :transforms {:subscribe [{::msg/topic :model/timeline (msg/param :interval) {}}]}}]}]}}])
 
 (def test-tree
   (apply-deltas new-app-model deltas))
@@ -894,7 +894,7 @@
     (testing "the attributes of nodes that send a message to :model/timeline"
       (is (= (set (remove #(= (first %) :t/node)
                           (q `[:find ?attr ?value :where
-                               [?m ~msg/topic :model/timeline]
+                               [?m ~::msg/topic :model/timeline]
                                [?m :t/transform ?e]
                                [?e :t/node ?n]
                                [?a :t/type :t/attrs]
@@ -904,10 +904,10 @@
              #{[:active true]
                [:color :blue]
                [:t/type :t/attrs]})))
-    (testing "the transform names with a msg/topic key in the message"
+    (testing "the transform names with a ::msg/topic key in the message"
       (is (= (set (remove #(= (first %) :t/node)
                           (q `[:find ?n :where
-                               [?m ~msg/topic]
+                               [?m ~::msg/topic]
                                [?m :t/transform ?e]
                                [?e :t/transform-name ?n]]
                              test-tree)))

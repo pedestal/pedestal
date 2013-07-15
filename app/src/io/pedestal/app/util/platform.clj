@@ -10,6 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.app.util.platform
+  "Platform-independent utilities"
   (:require [io.pedestal.app.util.scheduler :as scheduler]
             [io.pedestal.app.util.log :as log]
             clojure.edn))

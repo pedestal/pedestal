@@ -52,12 +52,12 @@
   (let [person-id 9001]
     (is (= [{topic :person msg/type :set-age :age 42 :id person-id}]
            (fill :set-age
-                 [{msg/topic :person, :id person-id, (param :age) {}}]
+                 [{::msg/topic :person, :id person-id, (param :age) {}}]
                  {:age 42}))
         "fills message-topic and params when input-map is supplied")
     (is (= [{topic :todo msg/type :clear-completed}]
            (fill :clear-completed
-                 [{msg/topic :todo}]))
+                 [{::msg/topic :todo}]))
         "fills message-topic when no input-map is supplied")
     (is (thrown-with-msg? AssertionError
           #"Missing keys"

@@ -52,12 +52,12 @@
 
 (deftest test-simplest-possible-app
   (let [app (build simplest-possible-app)
-        results (run-sync! app [{msg/topic :model-a :n 42}] :begin :default)
+        results (run-sync! app [{::msg/topic :model-a :n 42}] :begin :default)
         results (standardize-results results)]
     (is (not (nil? app)))
     (is (= (count results) 4))
     (is (= (first (drop 2 results))
-           {:io.pedestal.app/input {msg/topic :model-a
+           {:io.pedestal.app/input {::msg/topic :model-a
                                     msg/type msg/init
                                     :value 0}
             :io.pedestal.app/subscriptions [[]]
@@ -66,23 +66,23 @@
                                              [:node-create [:model-a] :map]
                                              [:value [:model-a] nil 0]]}))
     (is (= (last results)
-           {:io.pedestal.app/input {msg/topic :model-a :n 42}
+           {:io.pedestal.app/input {::msg/topic :model-a :n 42}
             :data-model {:model-a 42}
             :io.pedestal.app/subscriptions [[]]
             :io.pedestal.app/emitter-deltas [[:value [:model-a] 0 42]]}))
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{}}
-            {:input {msg/topic :model-a
+            {:input {::msg/topic :model-a
                      msg/type msg/init
                      :value 0}
              :emitter #{[:node-create [] :map]
                         [:node-create [:model-a] :map]
                         [:value [:model-a] nil 0]}}
-            {:input {msg/topic :model-a :n 42}
+            {:input {::msg/topic :model-a :n 42}
              :emitter #{[:value [:model-a] 0 42]}}]))))
 
 
@@ -95,33 +95,33 @@
 
 (deftest test-two-models-app
   (let [app (build two-models-app)
-        results (run-sync! app [{msg/topic :model-a :n 42}
-                                {msg/topic :model-b :n 11}
-                                {msg/topic :model-a :n 3}]
+        results (run-sync! app [{::msg/topic :model-a :n 42}
+                                {::msg/topic :model-b :n 11}
+                                {::msg/topic :model-a :n 3}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{}}
-            {:input {msg/topic :model-a
+            {:input {::msg/topic :model-a
                      msg/type msg/init
                      :value 0}
              :emitter #{[:node-create [] :map]
                         [:node-create [:model-a] :map]
                         [:value [:model-a] nil 0]}}
-            {:input {msg/topic :model-b
+            {:input {::msg/topic :model-b
                      msg/type msg/init
                      :value 0}
              :emitter #{[:node-create [:model-b] :map]
                         [:value [:model-b] nil 0]}}
-            {:input {msg/topic :model-a :n 42}
+            {:input {::msg/topic :model-a :n 42}
              :emitter #{[:value [:model-a] 0 42]}}
-            {:input {msg/topic :model-b :n 11}
+            {:input {::msg/topic :model-b :n 11}
              :emitter #{[:value [:model-b] 0 11]}}
-            {:input {msg/topic :model-a :n 3}
+            {:input {::msg/topic :model-a :n 3}
              :emitter #{[:value [:model-a] 42 3]}}]))))
 
 
@@ -158,34 +158,34 @@
 
 (deftest test-two-views-app
   (let [app (build two-views-app)
-        results (run-sync! app [{msg/topic :model-a :n 42}
-                                {msg/topic :model-b :n 10}
-                                {msg/topic :model-a :n 3}]
+        results (run-sync! app [{::msg/topic :model-a :n 42}
+                                {::msg/topic :model-b :n 10}
+                                {::msg/topic :model-a :n 3}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model msg/type :subscribe :paths [[]]}
+            {:input {::msg/topic msg/app-model msg/type :subscribe :paths [[]]}
              :emitter #{}}
-            {:input {msg/topic :model-a msg/type msg/init :value 0}
+            {:input {::msg/topic :model-a msg/type msg/init :value 0}
              :emitter #{[:node-create [] :map]
                         [:node-create [:model-a] :map]
                         [:value [:model-a] nil 0]
                         [:node-create [:view-sum] :map]
                         [:value [:view-sum] nil 0]}}
-            {:input {msg/topic :model-b msg/type msg/init :value 0}
+            {:input {::msg/topic :model-b msg/type msg/init :value 0}
              :emitter #{[:node-create [:view-half] :map]
                         [:value [:view-half] nil 0.0]
                         [:node-create [:model-b] :map]
                         [:value [:model-b] nil 0]}}
-            {:input {msg/topic :model-a :n 42}
+            {:input {::msg/topic :model-a :n 42}
              :emitter #{[:value [:model-a] 0 42]
                         [:value [:view-sum] 0 42]}}
-            {:input {msg/topic :model-b :n 10}
+            {:input {::msg/topic :model-b :n 10}
              :emitter #{[:value [:model-b] 0 10]
                         [:value [:view-half] 0.0 5.0]
                         [:value [:view-sum] 42 52]}}
-            {:input {msg/topic :model-a :n 3}
+            {:input {::msg/topic :model-a :n 3}
              :emitter #{[:value [:model-a] 42 3]
                         [:value [:view-sum] 52 13]}}]))))
 
@@ -216,7 +216,7 @@
 (defn continue-calc [view-name _ n]
   (when (not (or (:good-enough? n)
                  (= (:new-guess n) :NaN)))
-    [{msg/topic :guess :n (:new-guess n)}]))
+    [{::msg/topic :guess :n (:new-guess n)}]))
 
 
 ;; Calculate square root using Heron's method
@@ -236,69 +236,69 @@
 
 (deftest test-square-root
   (let [app (build square-root-app)
-        results (run-sync! app [{msg/topic :accuracy :n 0.000001}
-                                {msg/topic :x :n 42}
-                                {msg/topic :guess :n 7}]
+        results (run-sync! app [{::msg/topic :accuracy :n 0.000001}
+                                {::msg/topic :x :n 42}
+                                {::msg/topic :guess :n 7}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:x] :map]
                         [:node-create [:half] :map]}}
-            {:input {msg/topic :guess
+            {:input {::msg/topic :guess
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:half] nil :NaN]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:x] nil 0]}}
-            {:input {msg/topic :accuracy
+            {:input {::msg/topic :accuracy
                      msg/type msg/init
                      :value 0}
              :emitter #{}}
-            {:input {msg/topic :accuracy :n 0.000001} :emitter #{}}
-            {:input {msg/topic :x :n 42} :emitter #{[:value [:x] 0 42]}}
-            {:input {:n 7 msg/topic :guess}
+            {:input {::msg/topic :accuracy :n 0.000001} :emitter #{}}
+            {:input {::msg/topic :x :n 42} :emitter #{[:value [:x] 0 42]}}
+            {:input {:n 7 ::msg/topic :guess}
              :emitter #{[:value [:half] :NaN 6.48074069840786]}}]))))
 
 (deftest test-square-root-modify-inputs
   (let [app (build square-root-app)
-        results (run-sync! app [{msg/topic :accuracy :n 0.000001}
-                                {msg/topic :x :n 42}
-                                {msg/topic :guess :n 7}
-                                {msg/topic :x :n 50}]
+        results (run-sync! app [{::msg/topic :accuracy :n 0.000001}
+                                {::msg/topic :x :n 42}
+                                {::msg/topic :guess :n 7}
+                                {::msg/topic :x :n 50}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:x] :map]
                         [:node-create [:half] :map]}}
-            {:input {msg/topic :guess
+            {:input {::msg/topic :guess
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:half] nil :NaN]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:x] nil 0]}}
-            {:input {msg/topic :accuracy
+            {:input {::msg/topic :accuracy
                      msg/type msg/init
                      :value 0}
              :emitter #{}}
-            {:input {msg/topic :accuracy :n 0.000001} :emitter #{}}
-            {:input {msg/topic :x :n 42} :emitter #{[:value [:x] 0 42]}}
-            {:input {:n 7 msg/topic :guess}
+            {:input {::msg/topic :accuracy :n 0.000001} :emitter #{}}
+            {:input {::msg/topic :x :n 42} :emitter #{[:value [:x] 0 42]}}
+            {:input {:n 7 ::msg/topic :guess}
              :emitter #{[:value [:half] :NaN 6.48074069840786]}}
-            {:input {:n 50 msg/topic :x}
+            {:input {:n 50 ::msg/topic :x}
              :emitter #{[:value [:half] 6.48074069840786 7.0710678118654755]
                         [:value [:x] 42 50]}}]))))
 
@@ -320,27 +320,27 @@
 
 (deftest test-dependent-views-which-depend-on-one-model
   (let [app (build dependent-views-app)
-        results (run-sync! app [{msg/topic :x :n 42}
-                                {msg/topic :x :n 12}]
+        results (run-sync! app [{::msg/topic :x :n 42}
+                                {::msg/topic :x :n 12}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:x] :map]
                         [:node-create [:sum] :map]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:x] nil 0]
                         [:value [:sum] nil 0.0]}}
-            {:input {msg/topic :x :n 42}
+            {:input {::msg/topic :x :n 42}
              :emitter #{[:value [:x] 0 42]
                         [:value [:sum] 0.0 1827.0]}}
-            {:input {msg/topic :x :n 12}
+            {:input {::msg/topic :x :n 12}
              :emitter #{[:value [:x] 42 12]
                         [:value [:sum] 1827.0 162.0]}}]))))
 
@@ -352,26 +352,26 @@
 
 (deftest test-two-views-with-same-input-old-values
   (let [app (build two-views-with-same-input-old-values)
-        results (run-sync! app [{msg/topic :x :n 1}
-                                {msg/topic :x :n 2}]
+        results (run-sync! app [{::msg/topic :x :n 1}
+                                {::msg/topic :x :n 2}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:a] :map]
                         [:node-create [:b] :map]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{}}
-            {:input {msg/topic :x :n 1}
+            {:input {::msg/topic :x :n 1}
              :emitter #{[:value [:a] nil 0]
                         [:value [:b] nil 0]}}
-            {:input {msg/topic :x :n 2}
+            {:input {::msg/topic :x :n 2}
              :emitter #{[:value [:a] 0 1]
                         [:value [:b] 0 1]}}]))))
 
@@ -383,27 +383,27 @@
 
 (deftest test-two-views-with-same-input-new-values
   (let [app (build two-views-with-same-input-new-values)
-        results (run-sync! app [{msg/topic :x :n 1}
-                                {msg/topic :x :n 2}]
+        results (run-sync! app [{::msg/topic :x :n 1}
+                                {::msg/topic :x :n 2}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:a] :map]
                         [:node-create [:b] :map]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:a] nil 0]
                         [:value [:b] nil 0]}}
-            {:input {msg/topic :x :n 1}
+            {:input {::msg/topic :x :n 1}
              :emitter #{[:value [:a] 0 1]
                         [:value [:b] 0 1]}}
-            {:input {msg/topic :x :n 2}
+            {:input {::msg/topic :x :n 2}
              :emitter #{[:value [:a] 1 2]
                         [:value [:b] 1 2]}}]))))
 
@@ -413,7 +413,7 @@
 
 (defn echo-output [service-name]
   (fn [message old-model new-model]
-    [{msg/topic {:service service-name} :n new-model}]))
+    [{::msg/topic {:service service-name} :n new-model}]))
 
 (defn capture-queue [n queue-name app state]
   (when (pos? n)
@@ -424,21 +424,21 @@
 
 (deftest test-output-app
   (let [expected [{:input nil :emitter #{}}
-                  {:input {msg/topic msg/app-model
+                  {:input {::msg/topic msg/app-model
                            msg/type :subscribe
                            :paths [[]]}
                    :emitter #{[:node-create [] :map]
                               [:node-create [:x] :map]
                               [:node-create [:sum] :map]}}
-                  {:input {msg/topic :x
+                  {:input {::msg/topic :x
                            msg/type msg/init
                            :value 0}
                    :emitter #{[:value [:x] nil 0]
                               [:value [:sum] nil 0.0]}}
-                  {:input {msg/topic :x :n 42}
+                  {:input {::msg/topic :x :n 42}
                    :emitter #{[:value [:x] 0 42]
                               [:value [:sum] 0.0 1827.0]}}
-                  {:input {msg/topic :x :n 12}
+                  {:input {::msg/topic :x :n 12}
                    :emitter #{[:value [:x] 42 12]
                               [:value [:sum] 1827.0 162.0]}}]
         output-app {:models   {:x      {:init 0 :fn number-model}}
@@ -451,35 +451,35 @@
       (let [output-state (atom [])
             app (build output-app)
             _ (capture-queue 3 :output app output-state)
-            results (run-sync! app [{msg/topic :x :n 42}
-                                    {msg/topic :x :n 12}]
+            results (run-sync! app [{::msg/topic :x :n 42}
+                                    {::msg/topic :x :n 12}]
                                 :begin :default)
             results (standardize-results results)]
         (is (= @output-state
-               [{msg/topic {:service :s} :n 0}
-                {msg/topic {:service :s} :n 42}
-                {msg/topic {:service :s} :n 12}]))
+               [{::msg/topic {:service :s} :n 0}
+                {::msg/topic {:service :s} :n 42}
+                {::msg/topic {:service :s} :n 12}]))
         (is (= (input->emitter-output results) expected))))
     (testing "with input from view"
       (let [output-state (atom [])
             app (build (merge output-app
                               {:output {:half (echo-output :s)}}))
             _ (capture-queue 3 :output app output-state)
-            results (run-sync! app [{msg/topic :x :n 42}
-                                    {msg/topic :x :n 12}]
+            results (run-sync! app [{::msg/topic :x :n 42}
+                                    {::msg/topic :x :n 12}]
                                 :begin :default)
             results (standardize-results results)]
         (is (= @output-state
-               [{msg/topic {:service :s} :n 0.0}
-                {msg/topic {:service :s} :n 21.0}
-                {msg/topic {:service :s} :n 6.0}]))
+               [{::msg/topic {:service :s} :n 0.0}
+                {::msg/topic {:service :s} :n 21.0}
+                {::msg/topic {:service :s} :n 6.0}]))
         (is (= (input->emitter-output results) expected))))))
 
 (deftest test-new-output-app
   (let [output-app {:version 2
-                    :transform [{msg/type :number msg/topic [:x]
+                    :transform [{msg/type :number ::msg/topic [:x]
                                  :fn number-model
-                                 :init [{msg/type :number msg/topic [:x] :n 0}]}]
+                                 :init [{msg/type :number ::msg/topic [:x] :n 0}]}]
                     :derive #{{:in #{[:x]}
                                :out [:half]
                                :fn (fn [x n] (/ n 2.0))
@@ -499,9 +499,9 @@
       (let [output-state (atom [])
             app (build output-app)
             _ (capture-queue 4 :output app output-state)
-            results (run-sync! app [{msg/topic [:x] msg/type :number :n 42}
-                                    {msg/topic msg/output :payload [[:z] 9999]}
-                                    {msg/topic [:x] msg/type :number :n 12}]
+            results (run-sync! app [{::msg/topic [:x] msg/type :number :n 42}
+                                    {::msg/topic msg/output :payload [[:z] 9999]}
+                                    {::msg/topic [:x] msg/type :number :n 12}]
                                :begin :default)
             results (standardize-results results)]
         (is (= @output-state
@@ -521,22 +521,22 @@
                  [:value [:x] 42 12]}))))
     (testing "pre processing"
       (letfn [(copy-to-output [message]
-                [{msg/topic msg/output :payload message}
+                [{::msg/topic msg/output :payload message}
                  message])]
         (let [output-state (atom [])
               output-app (assoc output-app :pre [[:number [:x] copy-to-output]])
               app (build output-app)
               _ (capture-queue 6 :output app output-state)
-              results (run-sync! app [{msg/topic [:x] msg/type :number :n 42}
-                                      {msg/topic [:x] msg/type :number :n 12}]
+              results (run-sync! app [{::msg/topic [:x] msg/type :number :n 42}
+                                      {::msg/topic [:x] msg/type :number :n 12}]
                                  :begin :default)
               results (standardize-results results)]
           (is (= @output-state
-                 [{msg/topic [:x] msg/type :number :n 0}
+                 [{::msg/topic [:x] msg/type :number :n 0}
                   [[:x] 0]
-                  {msg/topic [:x] msg/type :number :n 42}
+                  {::msg/topic [:x] msg/type :number :n 42}
                   [[:x] 42]
-                  {msg/topic [:x] msg/type :number :n 12}
+                  {::msg/topic [:x] msg/type :number :n 12}
                   [[:x] 12]]))
           (is (= (set (apply concat (map :io.pedestal.app/emitter-deltas results)))
                  #{[:node-create [] :map]
@@ -557,46 +557,46 @@
   (let [app (build dependent-views-app)
         renderer-state (atom [])]
     (capture-queue 4 :app-model app renderer-state)
-    (let [results (run-sync! app [{msg/topic :x :n 42}
-                                  {msg/topic :x :n 12}]
+    (let [results (run-sync! app [{::msg/topic :x :n 42}
+                                  {::msg/topic :x :n 12}]
                               :begin :default)
           results (standardize-results results)]
       (is (= (set @renderer-state)
-             #{{msg/topic msg/app-model
+             #{{::msg/topic msg/app-model
                 msg/type :deltas
                 :deltas [[:node-create [:sum] :map]
                          [:value [:sum] nil nil]
                          [:node-create [:x] :map]
                          [:value [:x] nil nil]]}
-               {msg/topic msg/app-model
+               {::msg/topic msg/app-model
                 msg/type :deltas
                 :deltas [[:value [:x] 0]
                          [:value [:sum] 0.0]]}
-               {msg/topic msg/app-model
+               {::msg/topic msg/app-model
                 msg/type :deltas
                 :deltas [[:value [:x] 42]
                          [:value [:sum] 1827.0]]}
-               {msg/topic msg/app-model
+               {::msg/topic msg/app-model
                 msg/type :deltas
                 :deltas [[:value [:x] 12]
                          [:value [:sum] 162.0]]}}))
       (is (= (input->emitter-output results)
              [{:input nil :emitter #{}}
-              {:input {msg/topic msg/app-model
+              {:input {::msg/topic msg/app-model
                        msg/type :subscribe
                        :paths [[]]}
                :emitter #{[:node-create [] :map]
                           [:node-create [:x] :map]
                           [:node-create [:sum] :map]}}
-              {:input {msg/topic :x
+              {:input {::msg/topic :x
                        msg/type msg/init
                        :value 0}
                :emitter #{[:value [:x] nil 0]
                           [:value [:sum] nil 0.0]}}
-              {:input {msg/topic :x :n 42}
+              {:input {::msg/topic :x :n 42}
                :emitter #{[:value [:x] 0 42]
                           [:value [:sum] 0.0 1827.0]}}
-              {:input {msg/topic :x :n 12}
+              {:input {::msg/topic :x :n 12}
                :emitter #{[:value [:x] 42 12]
                           [:value [:sum] 1827.0 162.0]}}])))))
 
@@ -615,24 +615,24 @@
 
 (deftest test-dataflow-one
   (let [app (build dataflow-test-one)
-        results (run-sync! app [{msg/topic :x :n 1}
-                                {msg/topic :x :n 2}]
+        results (run-sync! app [{::msg/topic :x :n 1}
+                                {::msg/topic :x :n 2}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:e] :map]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:e] nil 0]}}
-            {:input {msg/topic :x :n 1}
+            {:input {::msg/topic :x :n 1}
              :emitter #{[:value [:e] 0 3]}}
-            {:input {msg/topic :x :n 2}
+            {:input {::msg/topic :x :n 2}
              :emitter #{[:value [:e] 3 6]}}]))))
 
 (def dataflow-test-two
@@ -652,24 +652,24 @@
 
 (deftest test-dataflow-two
   (let [app (build dataflow-test-two)
-        results (run-sync! app [{msg/topic :x :n 1}
-                                {msg/topic :x :n 2}]
+        results (run-sync! app [{::msg/topic :x :n 1}
+                                {::msg/topic :x :n 2}]
                             :begin :default)
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model
+            {:input {::msg/topic msg/app-model
                      msg/type :subscribe
                      :paths [[]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:k] :map]}}
-            {:input {msg/topic :x
+            {:input {::msg/topic :x
                      msg/type msg/init
                      :value 0}
              :emitter #{[:value [:k] nil 0]}}
-            {:input {msg/topic :x :n 1}
+            {:input {::msg/topic :x :n 1}
              :emitter #{[:value [:k] 0 16]}}
-            {:input {msg/topic :x :n 2}
+            {:input {::msg/topic :x :n 2}
              :emitter #{[:value [:k] 16 32]}}]))))
 
 
@@ -718,92 +718,92 @@
 (deftest test-navigation-app
   (testing "only view the default paths"
     (let [app (build navigation-app)
-          results (run-sync! app [{msg/topic :a :n 10}
-                                  {msg/topic :b :n 11}
-                                  {msg/topic :c :n 12}]
+          results (run-sync! app [{::msg/topic :a :n 10}
+                                  {::msg/topic :b :n 11}
+                                  {::msg/topic :c :n 12}]
                               :begin :default)
           results (standardize-results results)]
       (is (= (partition-sets (input->emitter-output results) [4 1 3 1 1 1])
              [#{{:input nil :emitter #{}}
-                {:input {msg/topic msg/app-model msg/type :add-named-paths :name :a :paths [[:a]]}
+                {:input {::msg/topic msg/app-model msg/type :add-named-paths :name :a :paths [[:a]]}
                  :emitter #{}}
-                {:input {msg/topic msg/app-model msg/type :add-named-paths :name :c :paths [[:c]]}
+                {:input {::msg/topic msg/app-model msg/type :add-named-paths :name :c :paths [[:c]]}
                  :emitter #{}}
-                {:input {msg/topic msg/app-model msg/type :add-named-paths :name :b :paths [[:b]]}
+                {:input {::msg/topic msg/app-model msg/type :add-named-paths :name :b :paths [[:b]]}
                  :emitter #{}}}
 
-              {:input {msg/topic msg/app-model msg/type :navigate :name :a}
+              {:input {::msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:node-create [] :map] [:node-create [:a] :map]}}
 
-              #{{:input {msg/topic :a msg/type msg/init :value 1}
+              #{{:input {::msg/topic :a msg/type msg/init :value 1}
                  :emitter #{[:value [:a] nil 1]}}
-                {:input {msg/topic :b msg/type msg/init :value 2}
+                {:input {::msg/topic :b msg/type msg/init :value 2}
                  :emitter #{}}
-                {:input {msg/topic :c msg/type msg/init :value 3}
+                {:input {::msg/topic :c msg/type msg/init :value 3}
                  :emitter #{}}}
 
-              {:input {msg/topic :a :n 10}
+              {:input {::msg/topic :a :n 10}
                :emitter #{[:value [:a] 1 10]}}
 
-              {:input {msg/topic :b :n 11}
+              {:input {::msg/topic :b :n 11}
                :emitter #{}}
 
-              {:input {msg/topic :c :n 12}
+              {:input {::msg/topic :c :n 12}
                :emitter #{}}]))))
   (testing "navigate between paths"
     (let [app (build navigation-app)
-          results (run-sync! app [{msg/topic :a :n 10}
-                                  {msg/topic :b :n 11}
-                                  {msg/topic msg/app-model msg/type :navigate :name :b}
-                                  {msg/topic :b :n 12}
-                                  {msg/topic :c :n 13}
-                                  {msg/topic msg/app-model msg/type :navigate :name :c}
-                                  {msg/topic :c :n 14}
-                                  {msg/topic :a :n 15}
-                                  {msg/topic msg/app-model msg/type :navigate :name :a}]
+          results (run-sync! app [{::msg/topic :a :n 10}
+                                  {::msg/topic :b :n 11}
+                                  {::msg/topic msg/app-model msg/type :navigate :name :b}
+                                  {::msg/topic :b :n 12}
+                                  {::msg/topic :c :n 13}
+                                  {::msg/topic msg/app-model msg/type :navigate :name :c}
+                                  {::msg/topic :c :n 14}
+                                  {::msg/topic :a :n 15}
+                                  {::msg/topic msg/app-model msg/type :navigate :name :a}]
                              :begin :default)
           results (standardize-results results)]
       (is (= (input->emitter-output results)
              [{:input nil :emitter #{}}
-              {:input {msg/topic msg/app-model msg/type :add-named-paths :name :a :paths [[:a]]}
+              {:input {::msg/topic msg/app-model msg/type :add-named-paths :name :a :paths [[:a]]}
                :emitter #{}}
-              {:input {msg/topic msg/app-model msg/type :add-named-paths :name :c :paths [[:c]]}
+              {:input {::msg/topic msg/app-model msg/type :add-named-paths :name :c :paths [[:c]]}
                :emitter #{}}
-              {:input {msg/topic msg/app-model msg/type :add-named-paths :name :b :paths [[:b]]}
+              {:input {::msg/topic msg/app-model msg/type :add-named-paths :name :b :paths [[:b]]}
                :emitter #{}}
 
-              {:input {msg/topic msg/app-model msg/type :navigate :name :a}
+              {:input {::msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:node-create [] :map] [:node-create [:a] :map]}}
 
-              {:input {msg/topic :a msg/type msg/init :value 1}
+              {:input {::msg/topic :a msg/type msg/init :value 1}
                :emitter #{[:value [:a] nil 1]}}
-              {:input {msg/topic :b msg/type msg/init :value 2}
+              {:input {::msg/topic :b msg/type msg/init :value 2}
                :emitter #{}}
-              {:input {msg/topic :c msg/type msg/init :value 3}
+              {:input {::msg/topic :c msg/type msg/init :value 3}
                :emitter #{}}
 
-              {:input {msg/topic :a :n 10} :emitter #{[:value [:a] 1 10]}}
-              {:input {msg/topic :b :n 11} :emitter #{}}
+              {:input {::msg/topic :a :n 10} :emitter #{[:value [:a] 1 10]}}
+              {:input {::msg/topic :b :n 11} :emitter #{}}
 
-              {:input {msg/topic msg/app-model msg/type :navigate :name :b}
+              {:input {::msg/topic msg/app-model msg/type :navigate :name :b}
                :emitter #{[:value [:a] 10 nil]
                           [:node-destroy [:a] :map]
                           [:node-create [:b] :map]
                           [:value [:b] nil 11]}}
 
-              {:input {msg/topic :b :n 12} :emitter #{[:value [:b] 11 12]}}
-              {:input {msg/topic :c :n 13} :emitter #{}}
+              {:input {::msg/topic :b :n 12} :emitter #{[:value [:b] 11 12]}}
+              {:input {::msg/topic :c :n 13} :emitter #{}}
 
-              {:input {msg/topic msg/app-model msg/type :navigate :name :c}
+              {:input {::msg/topic msg/app-model msg/type :navigate :name :c}
                :emitter #{[:value [:b] 12 nil]
                           [:node-destroy [:b] :map]
                           [:node-create [:c] :map]
                           [:value [:c] nil 13]}}
 
-              {:input {msg/topic :c :n 14} :emitter #{[:value [:c] 13 14]}}
-              {:input {msg/topic :a :n 15} :emitter #{}}
+              {:input {::msg/topic :c :n 14} :emitter #{[:value [:c] 13 14]}}
+              {:input {::msg/topic :a :n 15} :emitter #{}}
 
-              {:input {msg/topic msg/app-model msg/type :navigate :name :a}
+              {:input {::msg/topic msg/app-model msg/type :navigate :name :a}
                :emitter #{[:value [:c] 14 nil]
                           [:node-destroy [:c] :map]
                           [:node-create [:a] :map]
@@ -818,14 +818,14 @@
                       :z [[:d]]
                       :default :x}}
         app (build flow)
-        results (run-sync! app [{msg/topic [:a] msg/type :inc}
-                                {msg/topic [:b] msg/type :inc}
-                                {msg/topic [:c] msg/type :inc}
-                                {msg/topic msg/app-model msg/type :set-focus :name :y}
-                                {msg/topic [:a] msg/type :inc}
-                                {msg/topic [:c] msg/type :inc}
-                                {msg/topic [:d] msg/type :inc}
-                                {msg/topic msg/app-model msg/type :navigate :name :z}]
+        results (run-sync! app [{::msg/topic [:a] msg/type :inc}
+                                {::msg/topic [:b] msg/type :inc}
+                                {::msg/topic [:c] msg/type :inc}
+                                {::msg/topic msg/app-model msg/type :set-focus :name :y}
+                                {::msg/topic [:a] msg/type :inc}
+                                {::msg/topic [:c] msg/type :inc}
+                                {::msg/topic [:d] msg/type :inc}
+                                {::msg/topic msg/app-model msg/type :navigate :name :z}]
                            :begin :default)
         results (standardize-results results)]
     (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
@@ -862,69 +862,69 @@
 (deftest test-subscribe-and-unsubscribe-app
   (let [app (build subscribe-and-unsubscribe-app)
         results (run-sync! app
-                           [{msg/topic :a :n 10}
-                            {msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
-                            {msg/topic :b :n 11}
-                            {msg/topic :c :n 12}
-                            {msg/topic :a :n 13}
-                            {msg/topic msg/app-model msg/type :unsubscribe :paths [[:a]]}
-                            {msg/topic :c :n 14}
-                            {msg/topic msg/app-model msg/type :subscribe :paths [[:b] [:c]]}
-                            {msg/topic :a :n 15}
-                            {msg/topic :b :n 16}
-                            {msg/topic :c :n 17}
-                            {msg/topic msg/app-model msg/type :unsubscribe :paths [[:b]]}
-                            {msg/topic :a :n 18}
-                            {msg/topic :b :n 19}
-                            {msg/topic :c :n 20}]
-                           :begin [{msg/topic msg/app-model msg/type :noop}])
+                           [{::msg/topic :a :n 10}
+                            {::msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
+                            {::msg/topic :b :n 11}
+                            {::msg/topic :c :n 12}
+                            {::msg/topic :a :n 13}
+                            {::msg/topic msg/app-model msg/type :unsubscribe :paths [[:a]]}
+                            {::msg/topic :c :n 14}
+                            {::msg/topic msg/app-model msg/type :subscribe :paths [[:b] [:c]]}
+                            {::msg/topic :a :n 15}
+                            {::msg/topic :b :n 16}
+                            {::msg/topic :c :n 17}
+                            {::msg/topic msg/app-model msg/type :unsubscribe :paths [[:b]]}
+                            {::msg/topic :a :n 18}
+                            {::msg/topic :b :n 19}
+                            {::msg/topic :c :n 20}]
+                           :begin [{::msg/topic msg/app-model msg/type :noop}])
         results (standardize-results results)]
     (is (= (input->emitter-output results)
            [{:input nil :emitter #{}}
-            {:input {msg/topic msg/app-model msg/type :noop}
+            {:input {::msg/topic msg/app-model msg/type :noop}
              :emitter #{}}
 
-            {:input {msg/topic :a msg/type msg/init :value 1}
+            {:input {::msg/topic :a msg/type msg/init :value 1}
              :emitter #{}}
-            {:input {msg/topic :b msg/type msg/init :value 2}
+            {:input {::msg/topic :b msg/type msg/init :value 2}
              :emitter #{}}
-            {:input {msg/topic :c msg/type msg/init :value 3}
+            {:input {::msg/topic :c msg/type msg/init :value 3}
              :emitter #{}}
 
-            {:input {msg/topic :a :n 10} :emitter #{}}
+            {:input {::msg/topic :a :n 10} :emitter #{}}
 
-            {:input {msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
+            {:input {::msg/topic msg/app-model msg/type :subscribe :paths [[:a]]}
              :emitter #{[:node-create [] :map]
                         [:node-create [:a] :map]
                         [:value [:a] nil 10]}}
 
-            {:input {msg/topic :b :n 11} :emitter #{}}
-            {:input {msg/topic :c :n 12} :emitter #{}}
-            {:input {msg/topic :a :n 13} :emitter #{[:value [:a] 10 13]}}
+            {:input {::msg/topic :b :n 11} :emitter #{}}
+            {:input {::msg/topic :c :n 12} :emitter #{}}
+            {:input {::msg/topic :a :n 13} :emitter #{[:value [:a] 10 13]}}
 
-            {:input {msg/topic msg/app-model msg/type :unsubscribe :paths [[:a]]}
+            {:input {::msg/topic msg/app-model msg/type :unsubscribe :paths [[:a]]}
              :emitter #{[:value [:a] 13 nil]
                         [:node-destroy [:a] :map]}}
 
-            {:input {msg/topic :c :n 14} :emitter #{}}
+            {:input {::msg/topic :c :n 14} :emitter #{}}
 
-            {:input {msg/topic msg/app-model msg/type :subscribe :paths [[:b] [:c]]}
+            {:input {::msg/topic msg/app-model msg/type :subscribe :paths [[:b] [:c]]}
              :emitter #{[:node-create [:b] :map]
                         [:node-create [:c] :map]
                         [:value [:b] nil 11]
                         [:value [:c] nil 14]}}
 
-            {:input {msg/topic :a :n 15} :emitter #{}}
-            {:input {msg/topic :b :n 16} :emitter #{[:value [:b] 11 16]}}
-            {:input {msg/topic :c :n 17} :emitter #{[:value [:c] 14 17]}}
+            {:input {::msg/topic :a :n 15} :emitter #{}}
+            {:input {::msg/topic :b :n 16} :emitter #{[:value [:b] 11 16]}}
+            {:input {::msg/topic :c :n 17} :emitter #{[:value [:c] 14 17]}}
 
-            {:input {msg/topic msg/app-model msg/type :unsubscribe :paths [[:b]]}
+            {:input {::msg/topic msg/app-model msg/type :unsubscribe :paths [[:b]]}
              :emitter #{[:value [:b] 16 nil]
                         [:node-destroy [:b] :map]}}
 
-            {:input {msg/topic :a :n 18} :emitter #{}}
-            {:input {msg/topic :b :n 19} :emitter #{}}
-            {:input {msg/topic :c :n 20} :emitter #{[:value [:c] 17 20]}}]))))
+            {:input {::msg/topic :a :n 18} :emitter #{}}
+            {:input {::msg/topic :b :n 19} :emitter #{}}
+            {:input {::msg/topic :c :n 20} :emitter #{[:value [:c] 17 20]}}]))))
 
 
 ;; Compare old and new style apps
@@ -960,7 +960,7 @@
                       :emit {:counter-emit {:fn counter-emit :input #{:a-combine :b-combine}}}}
             app (build dataflow)
             _ (begin app)
-            results (run-sync! app [{msg/topic :count-transform msg/type :inc :key :a}])
+            results (run-sync! app [{::msg/topic :count-transform msg/type :inc :key :a}])
             results (standardize-results results)]
         (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
@@ -976,14 +976,14 @@
           count-transform (fn [t-state message] ((fnil inc 0) t-state))]
       (let [dataflow {:version 2
                       :transform [[:init [:counter :*] init-transform]
-                                  {msg/type :inc msg/topic [:counter :*] :fn count-transform
-                                   :init [{msg/topic [:counter :a] msg/type :init :value 0}
-                                          {msg/topic [:counter :b] msg/type :init :value 0}]}]
+                                  {msg/type :inc ::msg/topic [:counter :*] :fn count-transform
+                                   :init [{::msg/topic [:counter :a] msg/type :init :value 0}
+                                          {::msg/topic [:counter :b] msg/type :init :value 0}]}]
                       :emit [{:in #{[:counter :*]} :fn (default-emitter :root)
                               :init (fn [_] [{:root {:counter {:a {} :b {}}}}])}]}
             app (build dataflow)
             _ (begin app)
-            results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
+            results (run-sync! app [{::msg/topic [:counter :a] msg/type :inc}])
             results (standardize-results results)]
         (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
@@ -1002,7 +1002,7 @@
                       :emit [[#{[:counter :*]} (default-emitter [:root :path])]]}
             app (build dataflow)
             _ (begin app)
-            results (run-sync! app [{msg/topic [:counter :a] msg/type :inc}])
+            results (run-sync! app [{::msg/topic [:counter :a] msg/type :inc}])
             results (standardize-results results)]
         (is (= (apply concat (map :io.pedestal.app/emitter-deltas results))
                [[:node-create [] :map]
@@ -1022,15 +1022,15 @@
                     :focus {:a [[:a]]
                             :b [[:b]]
                             :default :a}}
-          messages [{msg/topic [:a :counter :a] msg/type :inc}
-                    {msg/topic [:a :counter :b] msg/type :inc}
-                    {msg/topic [:b :counter :c] msg/type :inc}
-                    {msg/topic [:b :counter :d] msg/type :inc}
-                    {msg/topic msg/app-model msg/type :navigate :name :b}
-                    {msg/topic [:b :counter] msg/type :dissoc :key :d}
-                    {msg/topic [:b :counter :c] msg/type :inc}
-                    {msg/topic [:b] msg/type :dissoc :key :counter}
-                    {msg/topic msg/app-model msg/type :navigate :name :a}]]
+          messages [{::msg/topic [:a :counter :a] msg/type :inc}
+                    {::msg/topic [:a :counter :b] msg/type :inc}
+                    {::msg/topic [:b :counter :c] msg/type :inc}
+                    {::msg/topic [:b :counter :d] msg/type :inc}
+                    {::msg/topic msg/app-model msg/type :navigate :name :b}
+                    {::msg/topic [:b :counter] msg/type :dissoc :key :d}
+                    {::msg/topic [:b :counter :c] msg/type :inc}
+                    {::msg/topic [:b] msg/type :dissoc :key :counter}
+                    {::msg/topic msg/app-model msg/type :navigate :name :a}]]
       (let [app (build dataflow)
             _ (begin app)
             results (run-sync! app messages)
@@ -1131,9 +1131,9 @@
           app (build flow)
           _ (capture-queue 6 :output app output-state)
           _ (capture-queue 6 :app-model app app-model-state)
-          _ (run-sync! app [{msg/topic [:a] msg/type :inc}
-                            {msg/topic msg/output :payload [[:z] 9999]}
-                            {msg/topic [:b] msg/type :inc}]
+          _ (run-sync! app [{::msg/topic [:a] msg/type :inc}
+                            {::msg/topic msg/output :payload [[:z] 9999]}
+                            {::msg/topic [:b] msg/type :inc}]
                        :begin :default)]
       (is (= @output-state
              [[:a-tag [:a] 1]
@@ -1159,7 +1159,7 @@
                              [#{[:bar :quux :*]} (default-emitter :foo)]
                              [#{[:*]} (default-emitter :foo)]]})
           app-model (render/consume-app-model app (constantly nil))]
-      (is (run-sync! app [{msg/type :test-transform msg/topic [:bar] :value {:a 10 :b 20}}]
+      (is (run-sync! app [{msg/type :test-transform ::msg/topic [:bar] :value {:a 10 :b 20}}]
                      :begin :default
                      :wait-for [:app-model]))
       (is (= (-> app :state deref :data-model)
@@ -1177,8 +1177,8 @@
 (deftest test-truthy-data-model-values
   (let [app (build {:version 2
                     :transform [[:set-value [:*] (fn [_ message] (:value message))]]})
-        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value true}
-                                {msg/type :set-value msg/topic [:x] :value false}]
+        results (run-sync! app [{msg/type :set-value ::msg/topic [:x] :value true}
+                                {msg/type :set-value ::msg/topic [:x] :value false}]
                            :begin :default)
         results (standardize-results results)]
     (is (= (-> app :state deref :data-model)
@@ -1190,8 +1190,8 @@
             [:value [:x] true false]])))
   (let [app (build {:version 2
                     :transform [[:set-value [:*] (fn [_ message] (:value message))]]})
-        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value true}
-                                {msg/type :set-value msg/topic [:x] :value nil}]
+        results (run-sync! app [{msg/type :set-value ::msg/topic [:x] :value true}
+                                {msg/type :set-value ::msg/topic [:x] :value nil}]
                            :begin :default)
         results (standardize-results results)]
     (is (= (-> app :state deref :data-model)
@@ -1204,11 +1204,11 @@
   (let [app (build {:version 2
                     :transform [[:set-value [:*] (fn [_ message] (:value message))]]
                     :emit [[#{[:* :*]} (default-emitter [])]]})
-        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value {:a 1 :b 1}}
-                                {msg/type :set-value msg/topic [:x] :value {:a 0 :b 1}}
-                                {msg/type :set-value msg/topic [:x] :value {:a 0}}
-                                {msg/type :set-value msg/topic [:x] :value {:a nil}}
-                                {msg/type :set-value msg/topic [:x] :value nil}]
+        results (run-sync! app [{msg/type :set-value ::msg/topic [:x] :value {:a 1 :b 1}}
+                                {msg/type :set-value ::msg/topic [:x] :value {:a 0 :b 1}}
+                                {msg/type :set-value ::msg/topic [:x] :value {:a 0}}
+                                {msg/type :set-value ::msg/topic [:x] :value {:a nil}}
+                                {msg/type :set-value ::msg/topic [:x] :value nil}]
                            :begin :default)
         results (standardize-results results)]
     (is (= (-> app :state deref :data-model)
@@ -1228,11 +1228,11 @@
   (let [app (build {:version 2
                     :transform [[:set-value [:*] (fn [_ message] (:value message))]]
                     :emit [[#{[:* :*]} (default-emitter [])]]})
-        results (run-sync! app [{msg/type :set-value msg/topic [:x] :value {:a true :b true}}
-                                {msg/type :set-value msg/topic [:x] :value {:a false :b true}}
-                                {msg/type :set-value msg/topic [:x] :value {:a false}}
-                                {msg/type :set-value msg/topic [:x] :value {:a nil}}
-                                {msg/type :set-value msg/topic [:x] :value nil}]
+        results (run-sync! app [{msg/type :set-value ::msg/topic [:x] :value {:a true :b true}}
+                                {msg/type :set-value ::msg/topic [:x] :value {:a false :b true}}
+                                {msg/type :set-value ::msg/topic [:x] :value {:a false}}
+                                {msg/type :set-value ::msg/topic [:x] :value {:a nil}}
+                                {msg/type :set-value ::msg/topic [:x] :value nil}]
                            :begin :default)
         results (standardize-results results)]
     (is (= (-> app :state deref :data-model)
@@ -1281,8 +1281,8 @@
                                 [#{[:x :b]} [:u :a] id :single-val]
                                 [{[:u :*] :x} [:v :a] id :map]
                                 [{[:u :a] :x [:x :z] :x} [:v :b] id :map]}})
-          results (run-sync! app [{msg/type :swap msg/topic [:x] :value {:a 1 :b 2 :c 3}}
-                                  {msg/type :swap msg/topic [:y] :value {:a 5 :b 6 :c 7}}]
+          results (run-sync! app [{msg/type :swap ::msg/topic [:x] :value {:a 1 :b 2 :c 3}}
+                                  {msg/type :swap ::msg/topic [:y] :value {:a 5 :b 6 :c 7}}]
                              :begin :default)
           results (standardize-results results)]
       (is (= (-> app :state deref :data-model)
