@@ -122,5 +122,5 @@
 
 (defn -main
   "Used by `lein run` to start the server from the commandline."
-  [& args]
-  (apply start args))
+  ([] (start))
+  ([port] (start (Integer/parseInt port))))
