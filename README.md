@@ -8,7 +8,7 @@ server-side development.
 
 ### Starting a new project
 
-Use [leiningen](https://github.com/technomancy/leiningen) to create a new
+Use [leiningen](https://github.com/technomancy/leiningen) (2.2.0+) to create a new
 Pedestal application or service. This will automatically pull templates from
 <http://clojars.org>
 
