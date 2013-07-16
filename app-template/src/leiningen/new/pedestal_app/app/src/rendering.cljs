@@ -68,8 +68,8 @@
   [{{#annotated?}};; All :node-create deltas for the node at :greeting will
    ;; be rendered by the `render-page` function. The node name
    ;; :greeting is a default name that is used when we don't
-   ;; provide our own combines and emits. To name your own nodes,
-   ;; create a custom combine or emit in the application's behavior.
+   ;; provide our own derives and emits. To name your own nodes,
+   ;; create a custom derive or emit in the application's behavior.
    {{/annotated?}}[:node-create  [:greeting] render-page]
    {{#annotated?}};; All :node-destroy deltas for this path will be handled by the
    ;; library function `d/default-exit`.
