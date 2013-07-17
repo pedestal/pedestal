@@ -147,7 +147,7 @@
            recording (format-output (slurp (io/reader (:body request))))
            dir (get-in config [:built-in :render :dir])]
        (assert recording-name "Recordings must have a name")
-       (assert recording-name "No dir found in config under [:built-in :render :dir]")
+       (assert dir "No dir found in config under [:built-in :render :dir]")
        (let [f (io/file (str "tools/recordings/" dir "/" recording-name ".clj"))]
          (.mkdirs (.getParentFile f))
          (spit f recording)))
