@@ -33,8 +33,11 @@
 
 (defn symbol->keyword
   [s]
-  (let [{ns :ns n :name} (meta (resolve s))]
-    (keyword (name (ns-name ns)) (name n))))
+  (let [resolved (resolve s)
+        {ns :ns n :name} (meta resolved)]
+    (if resolved
+      (keyword (name (ns-name ns)) (name n))
+      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
 
 (defn handler-map [m]
   (cond
