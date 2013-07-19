@@ -43,4 +43,10 @@
           watch-files (-> expanded-config :build :watch-files)]
       (is watch-files)
       (is (= 2 (count watch-files)))
-      (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files)))))
+      (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files))))
+
+  (testing "no watch-files at all"
+    (is (= {:build {:watch-files nil}}
+           (expand-config {})))
+    (is (= {:a {:build {:watch-files nil}}}
+           (expand-configs {:a {}})))))

@@ -63,8 +63,9 @@
 (defn- expand-watch-files
   "Expand a tag-patterns map into a complete list of source-tag maps."
   [watch-files]
-  (vec (mapcat (fn [[tag patterns]] (tag-and-patterns->sources tag patterns))
-               watch-files)))
+  (if (seq watch-files)
+    (vec (mapcat (fn [[tag patterns]] (tag-and-patterns->sources tag patterns))
+                 watch-files))))
 
 (defn expand-config
   "Expand all short-hands in `config`.
@@ -88,6 +89,12 @@
   [config]
   (-> config
       (update-in [:build :watch-files] expand-watch-files)))
+
+(defn expand-configs
+  "Expand each config in config-map"
+  [configs]
+  (apply hash-map (mapcat (fn [[name config]] [name (expand-config config)])
+                          configs)))
 
 (defn- split-path [s]
   (string/split s (re-pattern (java.util.regex.Pattern/quote File/separator))))

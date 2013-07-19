@@ -53,7 +53,7 @@
    ["tools/public/javascripts/pedestal/js/api.js"
     (render "tools/public/javascripts/pedestal/js/api.js" data)]
 
-   ["config/config.clj" (render "config/config.clj" data)]
+   ["config/config.edn" (render "config/config.edn" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
    ["dev/user.clj" (render "dev/user.clj" data)]
 

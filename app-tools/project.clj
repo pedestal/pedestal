@@ -25,5 +25,5 @@
                  [io.pedestal/pedestal.jetty "0.1.11-SNAPSHOT"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.1"]
-                 [com.cemerick/piggieback "0.0.4"]]
+                 [com.cemerick/piggieback "0.0.5"]]
   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]})
