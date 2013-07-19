@@ -191,9 +191,10 @@
                     (.append b c)))))))))
 
 (defn parse-query-params [request]
-  (if-let [string (:query-string request)]
-    (assoc request :query-params (parse-query-string string))
-    request))
+  (merge-with merge request
+              (when-let [string (:query-string request)]
+                (let [params (parse-query-string string)]
+                  {:query-params params :params params}))))
 
 ;;; Combined matcher & request handler
 
