@@ -1285,17 +1285,23 @@
                                   {msg/type :swap msg/topic [:y] :value {:a 5 :b 6 :c 7}}]
                              :begin :default)
           results (standardize-results results)]
-      (is (= (-> app :state deref :data-model)
+      (is (= (-> app
+                 :state
+                 deref
+                 :data-model
+                 (update-in [:r :x] sort)
+                 (update-in [:s :x] sort)
+                 (update-in [:t :x] sort))
              {:x {:a 1 :b 2 :c 3}
               :y {:a 5 :b 6 :c 7}
               :o {:a 2 :b 3 :c 1}
               :p {:a 2 :b 3 :c 1}
               :q {:a 2 :b 3 :c 1}
-              :r {:x #{1 2} :c 3}
-              :s {:x #{1 2 3} :c 7}
-              :t {:x #{1 2 3 5 6} :c 7}
+              :r {:x [1 2] :c 3}
+              :s {:x [1 2 3] :c 7}
+              :t {:x [1 2 3 5 6] :c 7}
               :m {:a 2 :b 12}
               :n {:a 6 :b 18}
               :u {:a 2}
-              :v {:a {:x #{2}} :b {:x #{2}}}})))))
+              :v {:a {:x [2]} :b {:x [2]}}})))))
 

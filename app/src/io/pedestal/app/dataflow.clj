@@ -54,9 +54,9 @@
           (if arg-names
             (reduce (fn [a [k v]]
                       (cond (contains? (set k) :*)
-                            (assoc a v :set)
+                            (assoc a v :seq)
                             (contains? a v)
-                            (assoc a v :set)
+                            (assoc a v :seq)
                             (nil? (get a v))
                             (assoc a v :single)
                             :else a))
@@ -69,8 +69,8 @@
     ([{:keys [new-model input-paths]} arg-names]
        (let [v-type (value-types arg-names)]
          (reduce (fn [a [k v]]
-                   (if (= (v-type k) :set)
-                     (update-in a [k] (fnil conj #{}) v)
+                   (if (= (v-type k) :seq)
+                     (update-in a [k] (fnil conj []) v)
                      (assoc a k v)))
                  {}
                  (for [path input-paths

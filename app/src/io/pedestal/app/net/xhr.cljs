@@ -88,7 +88,7 @@
            uri
            request-method
            body
-           (when headers (.-strobj headers))
+           (when headers (clj->js headers))
            priority
            (partial handle-response on-success on-error id)
            retries)

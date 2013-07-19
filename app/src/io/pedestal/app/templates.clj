@@ -249,38 +249,40 @@
 
 (defn dtfn
   "Takes sequence of enlive nodes representing a template snippet and
-   a set of static fields and returns a vector of two items - the
-   first items is a map describing dynamic attributes of a template
-   and the second item is a code for function which when called with
-   map of static fields, returns a html string representing a given
-   template filled with values from static fields map (if there are
-   any)."
-  [nodes static-fields]
-  (let [map-sym (gensym)
-        field-nodes (-> nodes (select [(attr? :field)]))
-        ts (map (fn [x] (-> x :attrs :field)) field-nodes)
-        ts-syms (reduce (fn [a x]
-                          (assoc a x (gensym)))
-                        {}
-                        ts)
-        changes (-> ts
-                    gen-change-index
-                    (insert-ids ts-syms)
-                    (remove-static-fields static-fields))
-        nodes (reduce (fn [a [_ info-map]]
-                        (append-field-ids a info-map))
-                      nodes
-                      changes)
-        changes (simplify-info-maps changes)
-        ids (set (mapcat (fn [[_ field-infos]] (map :id field-infos))
-                         changes))]
-    (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
-                       [changes (list 'fn [map-sym]
-                                      (list (tfn nodes)
-                                            (let [id-map (interleave (map keyword ids) ids)]
-                                              (if (seq id-map)
-                                                (concat ['assoc map-sym] id-map)
-                                                map-sym))))]))))
+  a set of static fields (optional) and returns a vector of two items
+  - the first items is a map describing dynamic attributes of a
+  template and the second item is a code for function which when
+  called with map of static fields, returns a html string representing
+  a given template filled with values from static fields
+  map (if there are any)."
+  ([nodes] (dtfn nodes #{}))
+  ([nodes static-fields]
+   (let [map-sym (gensym)
+         field-nodes (-> nodes (select [(attr? :field)]))
+         ts (map (fn [x] (-> x :attrs :field)) field-nodes)
+         ts-syms (reduce (fn [a x]
+                           (assoc a x (gensym)))
+                         {}
+                         ts)
+         changes (-> ts
+                     gen-change-index
+                     (insert-ids ts-syms)
+                     (remove-static-fields static-fields))
+         nodes (reduce (fn [a [_ info-map]]
+                         (append-field-ids a info-map))
+                       nodes
+                       changes)
+         changes (simplify-info-maps changes)
+         ids (set (mapcat (fn [[_ field-infos]] (map :id field-infos))
+                          changes))]
+     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
+                        [changes (list 'fn [map-sym]
+                                       (list (tfn nodes)
+                                             (let [id-map (interleave (map keyword ids) ids)]
+                                               (if (seq id-map)
+                                                 (concat ['assoc map-sym] id-map)
+                                                 map-sym))))]))))
+  )
 
 (defn tnodes
   "Turns template defined in a file into sequence of enlive nodes.
