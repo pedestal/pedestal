@@ -23,8 +23,15 @@
 (defn date []
   (js/Date.))
 
+(def immediate-timeout
+  (cond
+   (exists? js/setImmediate) js/setImmediate 
+   :else #(js/setTimeout % 0)))
+
 (defn create-timeout [msecs f]
-  (js/setTimeout f msecs))
+  (cond
+   (= 0 msecs) (immediate-timeout f)
+   :else (js/setTimeout f msecs)))
 
 (defn cancel-timeout [timeout]
   (js/clearTimeout timeout))
