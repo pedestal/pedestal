@@ -13,7 +13,8 @@
   (:require [clojure.edn :as edn]
             [clojure.data.json :as json]
             [clojure.string :as str]
-            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
+            [io.pedestal.service.interceptor :as interceptor
+             :refer [definterceptorfn interceptor]]
             [io.pedestal.service.log :as log]
             [ring.middleware.params :as params]))
 
@@ -41,11 +42,11 @@
    that will ensure that the handler sees that content type in the request"
   ([wrap-fn] (fn [request] (wrap-fn identity)))
   ([wrap-fn expected-content-type]
-      (let [parser (wrap-fn identity)]
-        (fn [request]
-          (let [retyped-request (set-content-type request expected-content-type)
-                parsed-request (parser retyped-request)]
-            (set-content-type parsed-request (:content-type request)))))))
+     (let [parser (wrap-fn identity)]
+       (fn [request]
+         (let [retyped-request (set-content-type request expected-content-type)
+               parsed-request (parser retyped-request)]
+           (set-content-type parsed-request (:content-type request)))))))
 
 (defn add-parser
   [parser-map content-type parser-fn]
@@ -65,11 +66,11 @@
     (fn [request]
       (let [encoding (or (:character-encoding request) "UTF-8")]
         (assoc request
-               :edn-params (->
-                             (:body request)
-                             (java.io.InputStreamReader. encoding)
-                             java.io.PushbackReader.
-                             (->> (edn/read edn-options))))))))
+          :edn-params (->
+                       (:body request)
+                       (java.io.InputStreamReader. encoding)
+                       java.io.PushbackReader.
+                       (->> (edn/read edn-options))))))))
 
 (def edn-parser
   "Take a request and parse its body as edn."
@@ -83,11 +84,11 @@
   (fn [request]
     (let [encoding (or (:character-encoding request) "UTF-8")]
       (assoc request
-             :json-params
-             (apply json/read
-                    (-> (:body request)
-                        (java.io.InputStreamReader. encoding))
-                    options)))))
+        :json-params
+        (apply json/read
+               (-> (:body request)
+                   (java.io.InputStreamReader. encoding))
+               options)))))
 
 (def json-parser
   "Take a request and parse its body as json."
@@ -126,5 +127,7 @@
 (definterceptorfn body-params
   ([] (body-params (default-parser-map)))
   ([parser-map]
-     (interceptor/on-request ::body-params
-                             (fn [request] (parse-content-type parser-map request)))))
+     (interceptor :name ::body-params :enter
+                  (fn [context]
+                    (try (update-in context [:request] (partial parse-content-type parser-map))
+                         (catch Exception e (assoc context :response {:status 400 :body nil :headers {}})))))))
