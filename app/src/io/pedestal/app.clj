@@ -168,6 +168,29 @@
       (pre-fn message)
       [message])))
 
+(comment
+
+  ;; A note about performance and using create-timeout below.
+
+  {:version 2
+   :transform [[:swap [:app :*] swap-t]
+               [:inc  [:app :*] inc-t]]
+   :derive #{[{[:app :start-time] :st [:app :message-count] :c} [:app :time] time-d :map]
+             [{[:app :time] :t [:app :message-count] :c} [:app :mps] mps-d :map]
+             [#{[:app :mps]} [:app :message-processing-time] message-time-d :single-val]}
+   :emit [[#{[:app :*]} (app/default-emitter :perf)]]}
+
+  ;; Adding the timeout in receive-input-message slows down the raw
+  ;; speed with which we can process messages but allows queue
+  ;; processing to interleave with other code. In a real application,
+  ;; dataflow time is the bottleneck and not queue processing.
+
+  ;; On Pedestal 0.1.11, the app described above could process ~260
+  ;; messages per second with a straight recursive call but can only
+  ;; do ~140 mps with the timeout.
+
+  )
+
 (defn- receive-input-message [state flow input-queue]
   (p/take-message input-queue
                   (fn [message]
@@ -175,6 +198,7 @@
                       (doseq [message (pre-process flow message)]
                         (swap! state transact-one flow message))
                       (swap! state transact-one flow message))
+                    ;; see note above
                     (platform/create-timeout 0 #(receive-input-message state flow input-queue)))))
 
 (defn- post-process-effects [flow message]
