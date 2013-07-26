@@ -12,4 +12,6 @@
   :resource-paths ["config"]
   :target-path "out/"
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
+  :repl-options  {:init-ns user
+                  :welcome (println "Welcome to pedestal-app! Run (use 'dev) and (tools-help) to see a list of useful functions.")}
   :main ^{:skip-aot true} dev)
