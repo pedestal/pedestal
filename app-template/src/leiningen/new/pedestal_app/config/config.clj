@@ -2,7 +2,7 @@
   (:require [net.cgrand.enlive-html :as html]
             [io.pedestal.app-tools.compile :as compile]))
 
-;; The configuration below determines how an applicaiton is built,
+;; The configuration below determines how an application is built,
 ;; what is built and what features are available in the application
 ;; development tool.
 

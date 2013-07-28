@@ -13,7 +13,7 @@
 (defn cljs-repl
   "Start a ClojureScript REPL. If the application development server
   is running, go to the 'fresh' view to connect to this REPL. To use
-  this REPL from any part of an applicaiton, start the repl client
+  this REPL from any part of an application, start the repl client
   manually.
 
   The namespace 'io.pedestal.app.net.repl-client' contains a 'repl'
@@ -56,7 +56,7 @@
   []
   ((:stop-fn app-development-server)))
 
-(def ^{:doc "Compile JavaScript for this project. Pass an applicaiton name to compile
+(def ^{:doc "Compile JavaScript for this project. Pass an application name to compile
   all aspects of an application."}
   compile-cljs (repl/project-compiler config/configs))
 
