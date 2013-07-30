@@ -11,7 +11,8 @@
 
 (ns io.pedestal.service.http.body-params
   (:require [clojure.edn :as edn]
-            [clojure.data.json :as json]
+            [cheshire.core :as json]
+            [cheshire.parse :as parse]
             [clojure.string :as str]
             [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
             [io.pedestal.service.log :as log]
@@ -75,6 +76,23 @@
   "Take a request and parse its body as edn."
   (custom-edn-parser))
 
+(defn- json-read
+  "Parse json stream, supports parser-options with key-val pairs:
+
+    :bigdec Boolean value which defines if numbers are parsed as BigDecimal
+            or as Number with simplest/smallest possible numeric value.
+            Defaults to false.
+    :key-fn Key coercion, where true coerces keys to keywords, false leaves
+            them as strings, or a function to provide custom coercion.
+    :array-coerce-fn Define a collection to be used for array values by name."
+  [reader & options]
+  (let [{:keys [bigdec key-fn array-coerce-fn]
+         :or {bigdec false
+              key-fn nil
+              array-coerce-fn nil}} options]
+    (binding [parse/*use-bigdecimals?* bigdec]
+      (json/parse-stream (java.io.PushbackReader. reader) key-fn array-coerce-fn))))
+
 (defn custom-json-parser
   "Return a json-parser fn that, given a request, will read the body of that
   request with `json/read`. options are key-val pairs that will be passed along
@@ -84,7 +102,7 @@
     (let [encoding (or (:character-encoding request) "UTF-8")]
       (assoc request
              :json-params
-             (apply json/read
+             (apply json-read
                     (-> (:body request)
                         (java.io.InputStreamReader. encoding))
                     options)))))

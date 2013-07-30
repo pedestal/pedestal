@@ -43,6 +43,29 @@
         new-request (:request new-context)]
     (is (= (:json-params new-request) {:foo "BAR"}))))
 
+(defn json-request
+  [json-context options]
+  (let [i (-> (default-parser-map :edn-options {} :json-options options)
+              body-params :enter)
+        new-context (i json-context)]
+    (:request new-context)))
+
+(deftest json-parser-supports-bigdec-option
+  (letfn [(json-context [] (as-context "application/json" "{ \"bd\": 1.0001 }"))
+           (json-params [options] (:json-params (json-request (json-context) options)))]
+    (is (= (json-params {})
+           {"bd" 1.0001}))
+    (is (= (json-params {:bigdec true})
+           {"bd" 1.0001M}))))
+
+(deftest json-parser-supports-array-coercen-fn-option
+  (letfn [(json-context [] (as-context "application/json" "{ \"a\": [1, 2, 3] }"))
+           (json-params [options] (:json-params (json-request (json-context) options)))]
+    (is (= (json-params {})
+           {"a" [1 2 3]}))
+    (is (= (json-params {:array-coerce-fn (fn [name] #{})})
+           {"a" #{1 2 3}}))))
+
 (deftest parses-form-data
   (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")
         new-context  (i form-context)
