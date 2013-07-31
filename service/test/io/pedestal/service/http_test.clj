@@ -174,7 +174,7 @@
 (deftest json-response-test
   (let [obj {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
-    (is (= (with-out-str (clojure.data.json/pprint obj))
+    (is (= (cheshire.core/generate-string obj)
            (do (io.pedestal.service.http.impl.servlet-interceptor/write-body-to-stream
                 (-> obj
                     service/json-response

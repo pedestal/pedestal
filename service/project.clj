@@ -21,7 +21,7 @@
                  ;; interceptors
                  [ring/ring-core "1.2.0-beta1"
                   :exclusions [javax.servlet/servlet-api]]
-                 [org.clojure/data.json "0.2.0"]]
+                 [cheshire "5.2.0"]]
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
   :javac-options ["-target" "1.5" "-source" "1.5"]

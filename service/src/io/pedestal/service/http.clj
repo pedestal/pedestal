@@ -21,7 +21,7 @@
             [ring.util.mime-type :as ring-mime]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
-            [clojure.data.json :as json]
+            [cheshire.core :as json]
             [io.pedestal.service.log :as log])
   (:import (java.io OutputStreamWriter)))
 
@@ -46,10 +46,15 @@
   [obj]
   (data-response #(pr obj) "application/edn;charset=UTF-8"))
 
+(defn json-print
+  "Print object as JSON to *out*"
+  [obj]
+  (json/generate-stream obj *out*))
+
 (defn json-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format."
   [obj]
-  (data-response #(json/pprint obj) "application/json;charset=UTF-8"))
+  (data-response #(json-print obj) "application/json;charset=UTF-8"))
 
 ;; interceptors
 
@@ -91,7 +96,7 @@
     (if (and (coll? body) (not content-type))
       (-> response
           (ring-response/content-type "application/json;charset=UTF-8")
-          (assoc :body (print-fn #(json/pprint body))))
+          (assoc :body (print-fn #(json-print body))))
       response)))
 
 (defn default-interceptors
