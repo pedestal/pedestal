@@ -2,6 +2,55 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.2.0 - July 31, 2013 (IN PROGRESS)
+
+### App
+
+* ...
+
+### Service
+
+* Service now uses [Cheshire](https://github.com/dakrone/cheshire)
+  instead of [clojure.data.json]() for constructing
+  [`json-response`s](../blob/1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http.clj#L49)
+  and [parsing json
+  bodies](../blob/1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http/body_params.clj#L79).
+
+  This change *does* eliminate some JSON parsing options that were previously
+  possible in 0.1.10. Specifically the following options are no longer supported:
+
+    * `:eof-error?` - "If true (default) will throw exception if the stream is empty."
+    * `:eof-value` - "Object to return if the stream is empty and eof-error? is false. Default is nil."
+
+  If your application makes use of these options you will need to construct a
+  `body-params` interceptor with a `parser-map` where you have swapped in your
+  own `#"^application/json"` key with a `custom-json-parser` similar to the [old
+  version](../blob/7d9d3a028b9529963ec1f46633ef10a73054d140/service/src/io/pedestal/service/http/body_params.clj#L78).
+
+  That might look something like this:
+
+    ```clojure
+    ;; In a utility namespace
+    (require '[io.pedestal.service.http.body-params :as bp])
+    (defn old-style-json-parser ...)
+
+    (def my-body-params (bp/body-params (-> (bp/default-parser-map)
+                                            (assoc #"^application/json" (old-style-json-parser)))))
+    ```
+
+* The default behavior of the `body-params` interceptor now keywordizes JSON
+  keys. To retain the old behavior, create a `body-params` interceptor like so:
+
+    ```clojure
+    (require '[io.pedestal.service.http.body-params :as bp])
+    (def string-keys-body-params (bp/body-params (bp/default-parser-map :json-options {:key-fn nil})))
+    ```
+
+### Miscellaneous bug-fixes and improvements
+
+For a full list of changes, please see this comparison of [0.1.10...0.2.0](https://github.com/pedestal/pedestal/compare/0.1.10...0.2.0).
+
+
 ## 0.1.10 - July 5, 2013
 
 ### App
