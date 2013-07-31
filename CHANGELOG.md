@@ -12,9 +12,9 @@
 
 * Service now uses [Cheshire](https://github.com/dakrone/cheshire)
   instead of [clojure.data.json]() for constructing
-  [`json-response`s](../blob/1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http.clj#L49)
+  [`json-response`s](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http.clj#L49)
   and [parsing json
-  bodies](../blob/1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http/body_params.clj#L79).
+  bodies](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http/body_params.clj#L79).
 
   This change *does* eliminate some JSON parsing options that were previously
   possible in 0.1.10. Specifically the following options are no longer supported:
@@ -25,7 +25,7 @@
   If your application makes use of these options you will need to construct a
   `body-params` interceptor with a `parser-map` where you have swapped in your
   own `#"^application/json"` key with a `custom-json-parser` similar to the [old
-  version](../blob/7d9d3a028b9529963ec1f46633ef10a73054d140/service/src/io/pedestal/service/http/body_params.clj#L78).
+  version](../7d9d3a028b9529963ec1f46633ef10a73054d140/service/src/io/pedestal/service/http/body_params.clj#L78).
 
   That might look something like this:
 
