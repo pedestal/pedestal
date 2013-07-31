@@ -88,7 +88,7 @@
   [reader & options]
   (let [{:keys [bigdec key-fn array-coerce-fn]
          :or {bigdec false
-              key-fn nil
+              key-fn keyword
               array-coerce-fn nil}} options]
     (binding [parse/*use-bigdecimals?* bigdec]
       (json/parse-stream (java.io.PushbackReader. reader) key-fn array-coerce-fn))))
@@ -122,7 +122,7 @@
   form-encoding. parser-options are key-val pairs, valid options are:
 
     :edn-options A hash-map of options to be used when invoking `edn/read`.
-    :json-options A hash-map of options to be used when invoking `json/read`.
+    :json-options A hash-map of options to be used when invoking `json/parse-stream`.
 
   Examples:
 
