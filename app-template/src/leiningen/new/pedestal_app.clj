@@ -54,9 +54,8 @@
     (render "tools/public/javascripts/pedestal/js/api.js" data)]
 
    ["config/config.clj" (render "config/config.clj" data)]
+   ["config/user.clj" (render "config/user.clj" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
-   ["dev/user.clj" (render "dev/user.clj" data)]
-
    ["test/{{sanitized}}/test/behavior.clj" (render "test/behavior.clj" data)]])
 
 (defn annotated-project [render data]
