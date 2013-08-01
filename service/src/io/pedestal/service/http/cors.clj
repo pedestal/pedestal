@@ -25,14 +25,19 @@
   (str/join ", " (map convert-header-name header-names)))
 
 (defn- preflight
-  [context origin {:keys [creds max-age] :as args}]
-  (let [cors-headers (merge  {"Access-Control-Allow-Origin" origin
+  [{request :request :as context} origin {:keys [creds max-age] :as args}]
+  (let [requested-headers (get-in request [:headers "access-control-request-headers"])
+        cors-headers (merge  {"Access-Control-Allow-Origin" origin
                               "Access-Control-Allow-Headers"
-                              (str "Content-Type, " (convert-header-names (keys (get-in context [:request :headers]))))
+                              (str "Content-Type, "
+                                   (when requested-headers (str requested-headers ", "))
+                                   (convert-header-names (keys (:headers request))))
                               "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD"}
                              (when creds {"Access-Control-Allow-Credentials" (str creds)})
                              (when max-age {"Access-Control-Max-Age" (str max-age)}))]
     (log/info :msg "cors preflight"
+              :requested-headers requested-headers
+              :headers (:headers request)
               :cors-headers cors-headers)
     (assoc context :response {:status 200
                               :headers cors-headers})))
