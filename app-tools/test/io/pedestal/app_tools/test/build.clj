@@ -31,7 +31,7 @@
     ;;    │   └── baz.cljs
     ;;    └── bar.clj
     (testing "front and back anchored single file selection"
-      (let [expanded-config (expand-app-config {:build {:watch-files {:macro [#"^test/glob-test/foo/bar\.clj$"]}}})
+      (let [expanded-config (expand-app-config {:build {:watch-files {:macro ["^test/glob-test/foo/bar\\.clj$"]}}})
             watch-files (-> expanded-config :build :watch-files)]
         (is watch-files)
         (is (= 1 (count watch-files)))
@@ -40,14 +40,23 @@
                      (-> watch-files first :source)))))
 
     (testing "multi-file selection"
-      (let [expanded-config (expand-app-config {:build {:watch-files {:macro [#"ba.\.clj$"]}}})
+      (let [expanded-config (expand-app-config {:build {:watch-files {:macro ["ba.\\.clj$"]}}})
             watch-files (-> expanded-config :build :watch-files)]
         (is watch-files)
         (is (= 2 (count watch-files)))
-        (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files))))
+        (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files)))))
 
-    (testing "no watch-files at all"
-      (is (= {:build {:watch-files nil}}
+  (testing "intern-trigger-patterns"
+    (let [expanded-config (expand-app-config {:build {:triggers {:html ["foo/bar\\.clj$"]}}})
+            html-triggers (-> expanded-config :build :triggers :html)]
+      (is (= 1 (count html-triggers)))
+      (is (= (str #"foo/bar\.clj$")
+             (str (first html-triggers))))))
+
+  (testing "no expansions"
+      (is (= {:build {:watch-files nil
+                      :triggers nil}}
              (expand-app-config {})))
-      (is (= {:a {:build {:watch-files nil}}}
-             (expand-config {:a {}}))))))
+      (is (= {:a {:build {:watch-files nil
+                          :triggers nil}}}
+             (expand-config {:a {}})))))

@@ -5,14 +5,14 @@
             [cljs.repl]
             [cljs.repl.browser :refer [repl-env]]
             [cemerick.piggieback :as pb]
+            [clojure.edn :as edn]
             [clojure.java.io :as io]))
 
 (defn load-config []
-  (let [config (or (some-> (clojure.java.io/resource "config.clj")
+  (let [config (or (some-> (clojure.java.io/resource "config.edn")
                             slurp
-                            read-string
-                            eval)
-                    (throw (ex-info "no config.clj file found in resources paths. try adding one to <your-app>/config." {})))]
+                            edn/read-string)
+                    (throw (ex-info "no config.edn file found in resources paths. try adding one to <your-app>/config." {})))]
     (build/expand-config config)))
 
 (defonce ^:private app-development-server nil)
@@ -20,7 +20,7 @@
 (def config nil)
 
 (defn reload-config
-   "Reload config.clj into local config var.
+   "Reload config.edn into local config var.
 
    You must (stop) and (start) your server for this to take effect."
   []
@@ -91,7 +91,7 @@
   "Incrementally build this project when files change. This will only
   build a single aspect at a time, where an aspect is something
   like :development or :production. Aspect names are configured in
-  config/config.clj.
+  config/config.edn.
 
   If this project contains more than one application, the default is
   to build all of them. Pass a vector of config names as the first

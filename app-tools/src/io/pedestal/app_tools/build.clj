@@ -15,6 +15,7 @@
         [io.pedestal.app.templates :only [load-html]])
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
+            [clojure.walk :as walk]
             [io.pedestal.app-tools.compile :as compile]
             [io.pedestal.app.util.scheduler :as scheduler]
             [io.pedestal.app.protocols :as p]
@@ -39,7 +40,8 @@
 (defn- files-matching
   "Return files (inside the project) that match any of `res`.
 
-  Patterns in `res` should match relative to the root of the project without a leading `./`
+  Patterns in `res` should match relative to the root of the project without a
+  leading `./`
 
   Expect to match `app/templates/something.html`
   NOT `./app/templates/something.html` or
@@ -53,9 +55,11 @@
             files)))
 
 (defn- tag-and-patterns->sources
-  "For a pattern `re` and `tag`, create a list of config maps (`{:source <abs-path> :tag tag>}`)"
-  [tag res]
-  (let [files (files-matching res)]
+  "For string regexp patterns `patterns` and `tag`, create a list of config
+  maps (`{:source <abs-path> :tag tag>}`)"
+  [tag patterns]
+  (let [res (map re-pattern patterns)
+        files (files-matching res)]
     (->> files
          (map #(.getAbsolutePath %))
          (map #(hash-map :source % :tag tag)))))
@@ -66,6 +70,14 @@
   (if (seq watch-files)
     (vec (mapcat (fn [[tag patterns]] (tag-and-patterns->sources tag patterns))
                  watch-files))))
+
+(defn- intern-trigger-patterns
+  "Intern string patterns in triggers-map into regexps."
+  [triggers-map]
+  (walk/postwalk #(if (string? %)
+                     (re-pattern %)
+                     %)
+                  triggers-map))
 
 (defn expand-app-config
   "Expand all short-hands in `config`.
@@ -85,10 +97,21 @@
 
     becomes:
 
-        [{:tag :html :source \"/path/to/app/templates/webpage.html\"}, ...]"
+        [{:tag :html :source \"/path/to/app/templates/webpage.html\"}, ...]
+  
+  - [:build :triggers] will intern string patterns as regexps.
+  
+    For example:
+  
+        {:build {:triggers {:html [\"project-name/rendering\\\\.js$\"]}}}
+
+    becomes:
+
+        {:build {:triggers {:html [#\"project-name/render\\.js$\"]}}}"
   [config]
   (-> config
-      (update-in [:build :watch-files] expand-watch-files)))
+      (update-in [:build :watch-files] expand-watch-files)
+      (update-in [:build :triggers] intern-trigger-patterns)))
 
 (defn expand-config
   "Expand each config in config-map"
