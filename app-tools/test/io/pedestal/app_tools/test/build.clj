@@ -21,32 +21,33 @@
         path (str (clojure.java.io/file "some" "path"))]
     (is (= (split-path (str path)) ["some" "path"]))))
 
-(deftest test-expand-config
-  ;; Given the following in test/:
-  ;; test/glob-test
-  ;; └── foo
-  ;;    ├── bar
-  ;;    │   ├── baz.clj
-  ;;    │   └── baz.cljs
-  ;;    └── bar.clj
-  (testing "front and back anchored single file selection"
-    (let [expanded-config (expand-config {:build {:watch-files {:macro [#"^test/glob-test/foo/bar\.clj$"]}}})
-          watch-files (-> expanded-config :build :watch-files)]
-      (is watch-files)
-      (is (= 1 (count watch-files)))
-      (is (= :macro (-> watch-files first :tag)))
-      (is (re-find #"bar\.clj$"
-                   (-> watch-files first :source)))))
+(deftest test-expand-app-config
+  (testing "expand-watch-files"
+    ;; Given the following in test/:
+    ;; test/glob-test
+    ;; └── foo
+    ;;    ├── bar
+    ;;    │   ├── baz.clj
+    ;;    │   └── baz.cljs
+    ;;    └── bar.clj
+    (testing "front and back anchored single file selection"
+      (let [expanded-config (expand-app-config {:build {:watch-files {:macro [#"^test/glob-test/foo/bar\.clj$"]}}})
+            watch-files (-> expanded-config :build :watch-files)]
+        (is watch-files)
+        (is (= 1 (count watch-files)))
+        (is (= :macro (-> watch-files first :tag)))
+        (is (re-find #"bar\.clj$"
+                     (-> watch-files first :source)))))
 
-  (testing "multi-file selection"
-    (let [expanded-config (expand-config {:build {:watch-files {:macro [#"ba.\.clj$"]}}})
-          watch-files (-> expanded-config :build :watch-files)]
-      (is watch-files)
-      (is (= 2 (count watch-files)))
-      (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files))))
+    (testing "multi-file selection"
+      (let [expanded-config (expand-app-config {:build {:watch-files {:macro [#"ba.\.clj$"]}}})
+            watch-files (-> expanded-config :build :watch-files)]
+        (is watch-files)
+        (is (= 2 (count watch-files)))
+        (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files))))
 
-  (testing "no watch-files at all"
-    (is (= {:build {:watch-files nil}}
-           (expand-config {})))
-    (is (= {:a {:build {:watch-files nil}}}
-           (expand-configs {:a {}})))))
+    (testing "no watch-files at all"
+      (is (= {:build {:watch-files nil}}
+             (expand-app-config {})))
+      (is (= {:a {:build {:watch-files nil}}}
+             (expand-config {:a {}}))))))

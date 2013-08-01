@@ -38,9 +38,9 @@
 
 (defn- files-matching
   "Return files (inside the project) that match any of `res`.
-  
+
   Patterns in `res` should match relative to the root of the project without a leading `./`
-  
+
   Expect to match `app/templates/something.html`
   NOT `./app/templates/something.html` or
   `/path/to/repo/app/templates/something.html`"
@@ -67,7 +67,7 @@
     (vec (mapcat (fn [[tag patterns]] (tag-and-patterns->sources tag patterns))
                  watch-files))))
 
-(defn expand-config
+(defn expand-app-config
   "Expand all short-hands in `config`.
 
   Expansions:
@@ -90,10 +90,10 @@
   (-> config
       (update-in [:build :watch-files] expand-watch-files)))
 
-(defn expand-configs
+(defn expand-config
   "Expand each config in config-map"
   [configs]
-  (apply hash-map (mapcat (fn [[name config]] [name (expand-config config)])
+  (apply hash-map (mapcat (fn [[name config]] [name (expand-app-config config)])
                           configs)))
 
 (defn- split-path [s]

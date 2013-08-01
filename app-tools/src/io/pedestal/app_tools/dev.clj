@@ -5,26 +5,26 @@
             [cljs.repl]
             [cljs.repl.browser :refer [repl-env]]
             [cemerick.piggieback :as pb]
-            [clojure.edn :as edn]
             [clojure.java.io :as io]))
 
 (defn load-config []
-  (let [configs (or (some-> (clojure.java.io/resource "config.edn")
+  (let [config (or (some-> (clojure.java.io/resource "config.clj")
                             slurp
-                            read-string)
-                    (throw (ex-info "no config.edn file found in resources paths. try adding one to <your-app>/config." {})))]
-    (build/expand-configs configs)))
+                            read-string
+                            eval)
+                    (throw (ex-info "no config.clj file found in resources paths. try adding one to <your-app>/config." {})))]
+    (build/expand-config config)))
 
 (defonce ^:private app-development-server nil)
 (defonce ^:private watcher nil)
-(def configs nil)
+(def config nil)
 
 (defn reload-config
-   "Reload config.edn into local config var.
+   "Reload config.clj into local config var.
 
    You must (stop) and (start) your server for this to take effect."
   []
-  (alter-var-root #'configs (constantly (load-config))))
+  (alter-var-root #'config (constantly (load-config))))
 
 (defn cljs-repl
   "Start a ClojureScript REPL. If the application development server
@@ -51,20 +51,22 @@
   [port config-name]
   (.mkdirs (io/file build/*tools-public*))
   (.mkdirs (io/file build/*public*))
-  (assert (contains? configs config-name)
-          (str "Valid config names are " (pr-str (keys configs)) "."))
+  (assert (contains? config config-name)
+          (str "Valid config names are " (pr-str (keys config)) "."))
   (alter-var-root #'app-development-server (constantly
                                             (server/app-development-server
-                                             port (get configs config-name)))))
+                                             port (get config config-name)))))
 
 (defn start
   "Initialize and start an application development web server. The
   server will serve one application at a time. The default port is
-  3000. The default application is the first of configs."
+  3000. The default application is the first in config."
   ([]
-   (start 3000 (ffirst configs)))
+   (if-not config (reload-config))
+   (start 3000 (ffirst config)))
   ([port]
-   (start port (ffirst configs)))
+   (if-not config (reload-config))
+   (start port (ffirst config)))
   ([port config-name]
    (reload-config)
    (init port config-name)
@@ -78,18 +80,18 @@
 
 (def ^{:doc "Compile JavaScript for this project. Pass an application name to compile
   all aspects of an application."}
-  compile-cljs (repl/project-compiler configs))
+  compile-cljs (repl/project-compiler config))
 
 (def ^{:doc "Delete generated JavaScript. Pass an application name to clean a
   specific application. Application names must be keywrods."}
   clean-cljs
-  (build/cleaner build/*public* configs))
+  (build/cleaner build/*public* config))
 
 (defn watch
   "Incrementally build this project when files change. This will only
   build a single aspect at a time, where an aspect is something
   like :development or :production. Aspect names are configured in
-  config/configs.edn.
+  config/config.clj.
 
   If this project contains more than one application, the default is
   to build all of them. Pass a vector of config names as the first
@@ -99,10 +101,10 @@
   serving out/public from another server (for example the service
   server) where on-demand build is not available."
   ([aspect]
-     (watch (vec (keys configs)) aspect))
+     (watch (vec (keys config)) aspect))
   ([config-names aspect]
      (assert (vector? config-names) "config-names must be a vector")
-     (let [watched-configs (select-keys configs config-names)
+     (let [watched-configs (select-keys config config-names)
            missing-aspect (reduce (fn [a [k v]]
                                     (if (contains? (:aspects v) aspect)
                                       a
@@ -110,7 +112,7 @@
                                   []
                                   watched-configs)]
        (if (seq missing-aspect)
-         (println (str "Error: the watched configs " missing-aspect " do not contain a " aspect " aspect."))
+         (println (str "Error: the watched config " missing-aspect " do not contain a " aspect " aspect."))
          (do (println "watching" config-names "/" aspect)
              (let [w (build/watcher (vals watched-configs) aspect)]
                ((:start-fn w))

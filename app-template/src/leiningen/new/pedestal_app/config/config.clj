@@ -9,12 +9,12 @@
   :build {;; :watch-files contains a list of folders to watch for
           ;; changes. Each file had a tag associated with it, in
           ;; this case :html.
-          :watch-files {:html ["app/templates"]}
+          :watch-files {:html [#"^app/templates"]}
           ;; When an HTML file changes, trigger the compilation of
           ;; any files which use macros to read in templates. This
           ;; will force recompilation of these files and update
           ;; the templates.
-          :triggers {:html [#"{{sanitized}}/rendering.js"]}}
+          :triggers {:html [#"{{sanitized}}/rendering\.js$"]}}
   ;; General application level configuration
   :application {;; The directory where all generated JavaScript for
                 ;; this application will be written.
