@@ -66,7 +66,7 @@
                                    [[:value k v]])))
                              removed)))))))
 
-(defmulti ^:private process-app-model-message (fn [state flow message] (msg/type message)))
+(defmulti ^:private process-app-model-message (fn [state flow message] (::msg/type message)))
 
 (defmethod process-app-model-message :default [state flow message]
   state)
@@ -99,7 +99,7 @@
 
 ;; map :set-focus to :navigate message
 (defmethod process-app-model-message :set-focus [state flow message]
-  (process-app-model-message state flow (assoc message msg/type :navigate)))
+  (process-app-model-message state flow (assoc message ::msg/type :navigate)))
 
 (defmethod process-app-model-message :subscribe [state flow message]
   (let [deltas (refresh-emitters state flow)]
@@ -144,9 +144,9 @@
   state."
   [state flow message]
   (let [old-state state
-        new-state (cond (= (msg/topic message) msg/app-model)
+        new-state (cond (= (::msg/topic message) ::msg/app-model)
                         (process-app-model-message state flow message)
-                        (= (msg/topic message) msg/output)
+                        (= (::msg/topic message) ::msg/output)
                         (assoc state :effect [(:payload message)])
                         :else (run-dataflow state flow message))
         new-deltas (filter-deltas new-state (:emit new-state))]
@@ -242,8 +242,8 @@
                                   (post-process-deltas flow deltas)
                                   deltas)]
                      (p/put-message app-model-queue
-                                    {msg/topic msg/app-model
-                                     msg/type :deltas
+                                    {::msg/topic ::msg/app-model
+                                     ::msg/type :deltas
                                      :deltas deltas})))))))
 
 (defn- ensure-default-emitter [emit]
@@ -253,12 +253,12 @@
 
 (defn- ensure-input-adapter [input-adapter]
   (if-not input-adapter
-    (fn [m] {:key (msg/type m) :out (msg/topic m)})
+    (fn [m] {:key (::msg/type m) :out (::msg/topic m)})
     input-adapter))
 
 (defn- rekey-transforms [transforms]
   (mapv #(if (map? %)
-           (set/rename-keys % {msg/type :key msg/topic :out})
+           (set/rename-keys % {::msg/type :key ::msg/topic :out})
            %)
         transforms))
 
@@ -274,14 +274,14 @@
 
 (defn- create-start-messages [focus]
   (into (mapv (fn [[name paths]]
-                {msg/topic msg/app-model
-                 msg/type :add-named-paths
+                {::msg/topic ::msg/app-model
+                 ::msg/type :add-named-paths
                  :paths paths
                  :name name})
               (remove (fn [[k v]] (= k :default)) focus))
         (when-let [n (:default focus)]
-          [{msg/topic msg/app-model
-            msg/type :navigate
+          [{::msg/topic ::msg/app-model
+            ::msg/type :navigate
             :name n}])))
 
 (defn begin
@@ -302,7 +302,7 @@
                                 ;; subscribe to everything
                                 ;; this makes simple one-screen apps
                                 ;; easire to confgure
-                                [{msg/topic msg/app-model msg/type :subscribe :paths [[]]}])]
+                                [{::msg/topic ::msg/app-model ::msg/type :subscribe :paths [[]]}])]
        (let [init-messages (vec (mapcat :init (:transform description)))]
          (doseq [message (concat start-messages init-messages)]
            (p/put-message (:input app) message))))))

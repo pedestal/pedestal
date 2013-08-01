@@ -354,7 +354,7 @@
 
       ;; render the chart
       (r [[:node-create [:t :chart] :map]
-          [:transform-enable [:t :chart] :group-selected [{msg/topic :timeline (msg/param :group-id) {}}]]
+          [:transform-enable [:t :chart] :group-selected [{::msg/topic :timeline (msg/param :group-id) {}}]]
           [:node-create [:t :chart :data] :vector]
           [:node-create [:t :chart :back-button] :map]
           [:value [:t :chart :back-button] nil "Back to Index"]
@@ -376,11 +376,11 @@
       ;; check that transforms are hooked up
       (d/click! :back-button)
       
-      (is (= @last-user-action [{msg/type :nav :page :attributes}]))
+      (is (= @last-user-action [{::msg/type :nav :page :attributes}]))
       
       (d/click! :chart)
       
-      (is (= @last-user-action [{msg/type :group-selected msg/topic :timeline (msg/param :group-id) {}}]))
+      (is (= @last-user-action [{::msg/type :group-selected ::msg/topic :timeline (msg/param :group-id) {}}]))
 
       ;; add a group to the chart
       (r [[:node-create [:t :chart :data 0] :map]
