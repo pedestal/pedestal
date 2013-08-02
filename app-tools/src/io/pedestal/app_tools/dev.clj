@@ -17,7 +17,7 @@
 
 (defonce ^:private app-development-server nil)
 (defonce ^:private watcher nil)
-(def config nil)
+(def config (load-config))
 
 (defn reload-config
    "Reload config.edn into local config var.
@@ -62,13 +62,10 @@
   server will serve one application at a time. The default port is
   3000. The default application is the first in config."
   ([]
-   (if-not config (reload-config))
    (start 3000 (ffirst config)))
   ([port]
-   (if-not config (reload-config))
    (start port (ffirst config)))
   ([port config-name]
-   (reload-config)
    (init port config-name)
    ((:start-fn app-development-server))
    :ok))
@@ -135,6 +132,7 @@
   (println "Start a new app development server with (start) or (start port config)")
   (println "Type (cljs-repl) to start a ClojureScript REPL")
   (println "----")
+  (println "Type (reload-config) to reload your configuration from disk")
   (println "Type (start) or (start port config) to initialize and start a server")
   (println "Type (stop) to stop the current server")
   (println "----")
