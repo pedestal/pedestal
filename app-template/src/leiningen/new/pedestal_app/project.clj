@@ -12,7 +12,12 @@
   :resource-paths ["config"]
   :target-path "out/"
   :repl-options  {:init-ns user
-                  :init (use 'io.pedestal.app-tools.dev)
+                  :init (try
+                          (use 'io.pedestal.app-tools.dev)
+                          (catch Throwable t
+                            (println "ERROR: There was a problem loading io.pedestal.app-tools.dev")
+                            (clojure.stacktrace/print-stack-trace t)
+                            (println)))
                   :welcome (println "Welcome to pedestal-app! Run (tools-help) to see a list of useful functions.")
                   :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
   :main ^{:skip-aot true} io.pedestal.app-tools.dev)
