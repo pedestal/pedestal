@@ -344,6 +344,9 @@
 (defmethod adapt-description 2 [description]
   description)
 
+(defmethod adapt-description 1 [description]
+  (adapters/adapt-v1-to-v2 description))
+
 (defmethod adapt-description :default [description]
   (log/warn :adapt-description
             (str "WARNING!! Converting dataflow description from version 1 to 2."))
