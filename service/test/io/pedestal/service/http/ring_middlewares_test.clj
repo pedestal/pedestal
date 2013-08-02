@@ -32,7 +32,12 @@
           (context {:uri "/index.json"})
           app
           ((:leave (content-type)))
-          (get-in [:response :headers "Content-Type"])))))
+          (get-in [:response :headers "Content-Type"]))))
+  (is (nil? (->
+              (context {:uri "/foo"})
+              app
+              ((:leave (content-type)))
+              (get-in [:response :headers "Content-Type"])))))
 
 (deftest cookies-is-valid
   (is (valid-interceptor? cookies))
