@@ -99,7 +99,7 @@
   (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
-(deftest plaintext-body-with-html-interceptor-test
+(deftest plaintext-body-with-no-interceptors-test
   "Requests without a content type are served as text/plain"
   (let [response (response-for app :get "/plaintext-body-no-interceptors")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
