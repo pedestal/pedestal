@@ -10,7 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.app.render.push.handlers.automatic
-  (:require [io.pedestal.app.util.log :as log]
+  (:require [cljs.reader :as reader]
+            [io.pedestal.app.util.log :as log]
             [io.pedestal.app.render.push :as render]
             [io.pedestal.app.messages :as msg]
             [io.pedestal.app.render.push.cljs-formatter :as formatter]
@@ -128,7 +129,13 @@
                  message)))
 
 (defn- submit-dialog-fn [id transform-name messages]
-  (let [syms (msg/message-params messages)]
+  (let [syms (msg/message-params messages)
+        messages-hash (into {} (for [m messages [k v] m] [k v]))
+        read-value (fn [k v]
+                     (let [{read-as :read-as} (k messages-hash)]
+                       (if (= read-as :data)
+                         (reader/read-string v)
+                         v)))]
     (fn [_]
       (if (seq syms)
         (let [values (get-modal-values id transform-name syms)]
@@ -137,7 +144,8 @@
                 [])
             (hide-and-return-messages id
                                       transform-name
-                                      (msg/fill-params (reduce (fn [a [k v]] (assoc a k (:value v)))
+                                      (msg/fill-params (reduce (fn [a [k v]]
+                                                                 (assoc a k (read-value k (:value v))))
                                                                {}
                                                                (:env values))
                                                        messages))))
