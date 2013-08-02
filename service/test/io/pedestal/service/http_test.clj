@@ -31,6 +31,9 @@
 (defn hello-plaintext-page [request]
   (-> request hello-page (ring-resp/content-type "text/plain")))
 
+(defn hello-plaintext-no-content-type-page [request]
+  (hello-page request))
+
 (defn just-status-page
   [request] {:status 200})
 
@@ -71,6 +74,7 @@
      ^:interceptors [service/html-body]]
     ["/plaintext-body-with-html-interceptor" {:get hello-plaintext-page}
      ^:interceptors [service/html-body]]
+    ["/plaintext-body-no-interceptors" {:get hello-plaintext-no-content-type-page}]
     ["/data-as-json" {:get [::data-as-json get-edn]}
      ^:interceptors [service/json-body]]
     ["/plaintext-body-with-json-interceptor" {:get get-plaintext-edn}
@@ -93,6 +97,11 @@
 (deftest plaintext-body-with-html-interceptor-test
   "Explicit request for plain-text content-type is honored by html-body interceptor."
   (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
+
+(deftest plaintext-body-with-no-interceptors-test
+  "Requests without a content type are served as text/plain"
+  (let [response (response-for app :get "/plaintext-body-no-interceptors")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest json-body-test

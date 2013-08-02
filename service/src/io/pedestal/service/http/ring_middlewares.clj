@@ -13,7 +13,6 @@
   "This namespace creates interceptors for ring-core middlewares."
   (:require [io.pedestal.service.interceptor :as interceptor :refer [interceptor definterceptorfn defon-request defon-response defmiddleware]]
             [ring.middleware.cookies :as cookies]
-            [ring.middleware.content-type :as content-type]
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
             [ring.middleware.flash :as flash]
@@ -24,7 +23,8 @@
             [ring.middleware.params :as params]
             [ring.middleware.not-modified :as not-modified]
             [ring.middleware.resource :as resource]
-            [ring.middleware.session :as session]))
+            [ring.middleware.session :as session]
+            [ring.util.mime-type :as mime]))
 
 (defn response-fn-adapter
   "Adapts a ring middleware fn taking a response and request to an interceptor context."
@@ -41,10 +41,19 @@
   [name response-fn & args]
   (interceptor/after name (apply response-fn-adapter response-fn args)))
 
+(defn- content-type-response
+  "Tries adding a content-type header to response by request URI (unless one
+  already exists)."
+  [resp req & [opts]]
+  (if-let [mime-type (or (get-in resp [:headers "Content-Type"])
+                         (mime/ext-mime-type (:uri req) (:mime-types opts)))]
+    (assoc-in resp [:headers "Content-Type"] mime-type)
+    resp))
+
 (definterceptorfn content-type
   "Interceptor for content-type ring middleware."
   [& [opts]]
-  (leave-interceptor ::content-type-interceptor content-type/content-type-response opts))
+  (leave-interceptor ::content-type-interceptor content-type-response opts))
 
 (defmiddleware cookies
   "Interceptor for cookies ring middleware. Be sure to persist :cookies

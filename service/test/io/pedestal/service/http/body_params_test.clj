@@ -28,20 +28,20 @@
 (def i-using-opts
   (-> (default-parser-map
         :edn-options {:readers {'inst inst/read-instant-timestamp}}
-        :json-options {:key-fn keyword})
+        :json-options {:key-fn nil})
       body-params :enter))
 
 (deftest parses-json
   (let [json-context (as-context "application/json" "{ \"foo\": \"BAR\"}")
         new-context  (i json-context)
         new-request  (:request new-context)]
-    (is (= (:json-params new-request) {"foo" "BAR"}))))
+    (is (= (:json-params new-request) {:foo "BAR"}))))
 
 (deftest parses-json-using-opts
   (let [json-context (as-context "application/json" "{ \"foo\": \"BAR\"}")
         new-context (i-using-opts json-context)
         new-request (:request new-context)]
-    (is (= (:json-params new-request) {:foo "BAR"}))))
+    (is (= (:json-params new-request) {"foo" "BAR"}))))
 
 (defn json-request
   [json-context options]
@@ -54,17 +54,17 @@
   (letfn [(json-context [] (as-context "application/json" "{ \"bd\": 1.0001 }"))
            (json-params [options] (:json-params (json-request (json-context) options)))]
     (is (= (json-params {})
-           {"bd" 1.0001}))
+           {:bd 1.0001}))
     (is (= (json-params {:bigdec true})
-           {"bd" 1.0001M}))))
+           {:bd 1.0001M}))))
 
 (deftest json-parser-supports-array-coercen-fn-option
   (letfn [(json-context [] (as-context "application/json" "{ \"a\": [1, 2, 3] }"))
            (json-params [options] (:json-params (json-request (json-context) options)))]
     (is (= (json-params {})
-           {"a" [1 2 3]}))
+           {:a [1 2 3]}))
     (is (= (json-params {:array-coerce-fn (fn [name] #{})})
-           {"a" #{1 2 3}}))))
+           {:a #{1 2 3}}))))
 
 (deftest parses-form-data
   (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")
