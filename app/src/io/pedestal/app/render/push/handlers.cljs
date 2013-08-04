@@ -24,7 +24,7 @@
   (add-send-on :click dom-content))
 
 (defn remove-send-on [event-type dom-content]
-  (fn [renderer [_ _ transform-name messages] input-queue]a
+  (fn [renderer [_ _ transform-name messages] input-queue]
     (events/remove-event event-type dom-content)))
 
 (defn remove-send-on-click [dom-content]
