@@ -4,7 +4,7 @@
 {{#annotated?}}
 ;; While creating new behavior, write tests to confirm that it is
 ;; correct. For examples of various kinds of tests, see
-;; test/{{sanitized}}/test/behavior.clj.
+;; test/{{sanitized}}/behavior-test.clj.
 {{/annotated?}}
 
 (defn set-value-transform [old-value message]
