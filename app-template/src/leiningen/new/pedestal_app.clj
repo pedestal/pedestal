@@ -58,7 +58,7 @@
    ["dev/user.clj" (render "dev/user.clj" data)]
    ["dev/dev.clj" (render "dev/dev.clj" data)]
 
-   ["test/{{sanitized}}/test/behavior.clj" (render "test/behavior.clj" data)]])
+   ["test/{{sanitized}}/behavior_test.clj" (render "test/behavior_test.clj" data)]])
 
 (defn annotated-project [render data]
   (let [render (renderer "pedestal-app")]

@@ -1,4 +1,4 @@
-(ns {{namespace}}.test.behavior
+(ns {{namespace}}.behavior-test
   (:require [io.pedestal.app :as app]
             [io.pedestal.app.protocols :as p]
             [io.pedestal.app.tree :as tree]
