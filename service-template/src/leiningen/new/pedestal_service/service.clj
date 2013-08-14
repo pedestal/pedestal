@@ -37,7 +37,7 @@
               ;;
               ;; "http://localhost:8080"
               ;;
-              ;;::boostrap/allowed-origins ["scheme://host:port"]
+              ;;::bootstrap/allowed-origins ["scheme://host:port"]
 
               ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"
