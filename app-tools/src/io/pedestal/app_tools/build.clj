@@ -12,7 +12,7 @@
 (ns io.pedestal.app-tools.build
   (:use [io.pedestal.app-tools.compile.config :only [cljs-compilation-options]]
         [io.pedestal.app-tools.host-page :only [application-host]]
-        [io.pedestal.app.templates :only [load-html]])
+        [io.pedestal.app.templates :only [load-html html-dependencies]])
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [io.pedestal.app-tools.compile :as compile]
@@ -63,6 +63,16 @@
 (defmulti analyze-file (fn [{p :path}] (vec (take 2 p))))
 
 (defmulti when-modified (fn [t] (:transform t)))
+
+(defmethod when-modified :template [t]
+  (let [f (io/file (:output-to t))
+        output-modified (.lastModified f)
+        f-deps (map #(io/file (string/join File/separator ["app" "templates" %]))
+                    (html-dependencies (io/file (string/join File/separator (:path t)))))]
+    (when (or (not (.exists f))
+              (> (:modified t) output-modified)
+              (some #(> (.lastModified %) output-modified) f-deps))
+      t)))
 
 (defmethod when-modified :compass-compile [t]
   (let [f (io/file *tools-public* ".compass-compile-modified")
