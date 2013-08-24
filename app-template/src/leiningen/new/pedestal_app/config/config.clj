@@ -64,6 +64,7 @@
                         ;; page will be generated from the template
                         ;; application.html
                         :uri "/{{name}}-data-ui.html"
+                        :params "renderer=auto"
                         ;; Provide the name that will appear in the
                         ;; control panel for this aspect.
                         :name "Data UI"
@@ -81,17 +82,26 @@
                         :output-root :tools-public
                         ;; The data-ui aspect uses the tooling.html template
                         :template "tooling.html"}
+              ;; Useful for viewing rendering output with a simulated start
+              :ui {:uri "/{{name}}-ui.html"
+                   :name "UI"
+                   :out-file "{{name}}-ui.js"
+                   :main '{{sanitized}}.simulated.start
+                   :logging? true
+                   :recording? true
+                   :output-root :tools-public
+                   :order 3}
               :development {:uri "/{{name}}-dev.html"
                             :name "Development"
                             :out-file "{{name}}-dev.js"
                             :main '{{sanitized}}.start
                             :logging? true
-                            :order 3}
+                            :order 4}
               :fresh {:uri "/fresh.html"
                       :name "Fresh"
                       :out-file "fresh.js"
                       :main 'io.pedestal.app.net.repl_client
-                      :order 4
+                      :order 5
                       :output-root :tools-public
                       :template "tooling.html"}
               :production {:uri "/{{name}}.html"
@@ -99,4 +109,4 @@
                            :optimizations :advanced
                            :out-file "{{name}}.js"
                            :main '{{sanitized}}.start
-                           :order 5}}}})
+                           :order 6}}}})
