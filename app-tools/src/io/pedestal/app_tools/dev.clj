@@ -2,7 +2,6 @@
   (:require [io.pedestal.app-tools.server :as server]
             [io.pedestal.app-tools.build :as build]
             [io.pedestal.app-tools.compile.repl :as repl]
-            [cljs.repl]
             [cljs.repl.browser :refer [repl-env]]
             [cemerick.piggieback :as pb]
             [clojure.edn :as edn]
@@ -40,9 +39,7 @@
 
   to start the client."
   []
-
-  (pb/cljs-repl :repl-env (doto (repl-env)
-                            cljs.repl/-setup))
+  (pb/cljs-repl :repl-env (repl-env))
   (println "CLJS REPL launched. Visit (or refresh) http://localhost:3000/fresh.html"))
 
 (defn init
