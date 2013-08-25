@@ -4,6 +4,12 @@
 
 ## 0.2.0 - August 26, 2013
 
+This is a big one folks. Developer tooling has moved from generated projects into
+the app- and service-tools libraries.
+
+**You will need to take further action beyond bumping your dependency version.**
+See below for more info.
+
 ### App
 
 * Developer tooling has moved in its entirety to app-tools.
@@ -17,8 +23,9 @@
   executable Clojure file.) New projects will make use of this feature, but
   **existing 0.1.x projects are not compatible**.
   
-  You can either generate a new application and transfer code into it *or*
-  migrate your existing application.
+  The easiest way to upgrade is to re-generate your application with the 0.2.0
+  app-template and transfer your existing code into it. It is possible, however,
+  to migrate your existing application.
 
   **How to migrate a 0.1.x project to 0.2.0:**
       1. Remove the `dev/` folder.
