@@ -32,17 +32,17 @@
            [this](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/config/config.edn)
            is our goal):
 
-              1. `$ mv config/config.clj config/config.edn`
-              2. Remove the `ns` declaration.
-              3. Unwrap the `configs` def into a raw map.
-              4. At path `[:build :watch-files]`,
-                 `(compile/html-files-in "app/templates")` should become a map
-                 of tags to regex pattern strings like
-                 `{:html ["^app/templates"]}`. Note these are **string** regex
-                 patterns, not regexps--regexps aren't supported by EDN.
-              5. At path `[:build :triggers]`, existing strings should be
-                 converted to string regex patterns. For example, the original
-                 `{:html ["project-name/rendering.js"]}` would become
+            1. `mv config/config.clj config/config.edn`
+            2. Remove the `ns` declaration.
+            3. Unwrap the `configs` def into a raw map.
+            4. At path `[:build :watch-files]`,
+               `(compile/html-files-in "app/templates")` should become a map
+               of tags to regex pattern strings like
+               `{:html ["^app/templates"]}`. Note these are **string** regex
+               patterns, not regexps--regexps aren't supported by EDN.
+            5. At path `[:build :triggers]`, existing strings should be
+               converted to string regex patterns. For example, the original
+             `{:html ["project-name/rendering.js"]}` would become
                  `{:html ["project-name//rendering\\.js$"]}`.
 
 * Tooling's `cljs-repl` is now provided by Chas Emerick's [Piggieback](https://github.com/cemerick/piggieback).
