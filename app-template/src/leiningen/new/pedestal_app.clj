@@ -56,7 +56,8 @@
    ["config/config.edn" (render "config/config.edn" data)]
    ["config/user.clj" (render "config/user.clj" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
-   ["test/{{sanitized}}/test/behavior.clj" (render "test/behavior.clj" data)]])
+
+   ["test/{{sanitized}}/behavior_test.clj" (render "test/behavior_test.clj" data)]])
 
 (defn annotated-project [render data]
   (let [render (renderer "pedestal-app")]
