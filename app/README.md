@@ -23,14 +23,8 @@ cd my-project
 lein repl
 ```
 
-Call the (dev) function to load the `dev` namespace.
-
-```clj
-(dev)
-```
-
-It contains several useful functions. To see a list
-of some of these functions, type:
+The `io.pedestal.app-tools.dev` namespace is loaded by default. It contains
+several useful functions. To see a list of some of these functions, type:
 
 ```clj
 (tools-help)

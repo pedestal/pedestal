@@ -93,16 +93,17 @@
 
     For example:
 
-        {:build {:watch-files {:html [#\"^app/templates/.*\\.html$\"}}
+        {:build {:watch-files {:html [\"^app/templates/.*\\.html$\"}}}
 
     becomes:
 
-        [{:tag :html :source \"/path/to/app/templates/webpage.html\"}, ...]
-  
+        {:build {:watch-files [{:tag :html :source \"/path/to/app/templates/webpage.html\"}, ...]}}
+
+
   - [:build :triggers] will intern string patterns as regexps.
-  
+
     For example:
-  
+ 
         {:build {:triggers {:html [\"project-name/rendering\\\\.js$\"]}}}
 
     becomes:

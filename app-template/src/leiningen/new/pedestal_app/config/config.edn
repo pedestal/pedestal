@@ -6,9 +6,12 @@
 ;; config map contains one entry for each appliction.
 {:{{name}}
  {;; :build contains parameters which are passed to the build
-  :build {;; :watch-files contains a list of folders to watch for
-          ;; changes. Each file had a tag associated with it, in
+  :build {;; :watch-files contains a list of string regexs to watch for
+          ;; changes. Each file-regex has a tag associated with it, in
           ;; this case :html.
+          ;;
+          ;; Run (doc io.pedestal.app-tools.build/expand-app-config) for more
+          ;; info
           :watch-files {:html ["^app/templates"]}
           ;; When an HTML file changes, trigger the compilation of
           ;; any files which use macros to read in templates. This
