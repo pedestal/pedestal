@@ -7,8 +7,8 @@
 This is a big one folks. Developer tooling has moved from generated projects into
 the app- and service-tools libraries.
 
-**You will need to take further action beyond bumping your dependency version.**
-See below for more info.
+**If you want to take advantage of all the super-awesome new features then further action is required.**
+See the respective changelogs in App and Service for more info.
 
 ### App
 
@@ -21,8 +21,10 @@ See below for more info.
   
   Additionally, app configuration is specified by an EDN file (instead of an
   executable Clojure file.) New projects will make use of this feature, but
-  **existing 0.1.x projects are not compatible**.
+  pre-0.2.0 generated projects will not.
   
+  **You do not *have* to make this upgrade, but we *suggest* you do.**
+
   The easiest way to upgrade is to re-generate your application with the 0.2.0
   app-template and transfer your existing code into it. It is possible, however,
   to migrate your existing application.
