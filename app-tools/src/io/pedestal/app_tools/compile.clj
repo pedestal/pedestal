@@ -153,7 +153,8 @@
 
 (defn tagged-files-in-dir [dir tag ext]
   (map (fn [f] {:source f :tag tag})
-       (filter #(.endsWith % ext) (map #(.getAbsolutePath %) (file-seq (io/file dir))))))
+       (filter #(.endsWith % ext)
+               (map #(.getAbsolutePath %) (file-seq (io/file dir))))))
 
 (defn html-files-in
   "Return a sequence of file maps for all HTML files in the given
