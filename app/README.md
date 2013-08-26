@@ -5,7 +5,7 @@ based on these libraries. This project requires [Leiningen 2.0](https://github.c
 
 ```bash
 git clone https://github.com/pedestal/pedestal.git
-cd platform/app
+cd pedestal/app
 lein install
 cd ../app-tools
 lein install
