@@ -20,3 +20,43 @@
   (let [split-path #'io.pedestal.app-tools.build/split-path
         path (str (clojure.java.io/file "some" "path"))]
     (is (= (split-path (str path)) ["some" "path"]))))
+
+(deftest test-expand-app-config
+  (testing "expand-watch-files"
+    ;; Given the following in test/:
+    ;; test/glob-test
+    ;; └── foo
+    ;;    ├── bar
+    ;;    │   ├── baz.clj
+    ;;    │   └── baz.cljs
+    ;;    └── bar.clj
+    (testing "front and back anchored single file selection"
+      (let [expanded-config (expand-app-config {:build {:watch-files {:macro ["^test/glob-test/foo/bar\\.clj$"]}}})
+            watch-files (-> expanded-config :build :watch-files)]
+        (is watch-files)
+        (is (= 1 (count watch-files)))
+        (is (= :macro (-> watch-files first :tag)))
+        (is (re-find #"bar\.clj$"
+                     (-> watch-files first :source)))))
+
+    (testing "multi-file selection"
+      (let [expanded-config (expand-app-config {:build {:watch-files {:macro ["ba.\\.clj$"]}}})
+            watch-files (-> expanded-config :build :watch-files)]
+        (is watch-files)
+        (is (= 2 (count watch-files)))
+        (is (every? #(re-find #"ba(r|z)\.clj$" (:source %)) watch-files)))))
+
+  (testing "intern-trigger-patterns"
+    (let [expanded-config (expand-app-config {:build {:triggers {:html ["foo/bar\\.clj$"]}}})
+            html-triggers (-> expanded-config :build :triggers :html)]
+      (is (= 1 (count html-triggers)))
+      (is (= (str #"foo/bar\.clj$")
+             (str (first html-triggers))))))
+
+  (testing "no expansions"
+      (is (= {:build {:watch-files nil
+                      :triggers nil}}
+             (expand-app-config {})))
+      (is (= {:a {:build {:watch-files nil
+                          :triggers nil}}}
+             (expand-config {:a {}})))))
