@@ -53,10 +53,9 @@
    ["tools/public/javascripts/pedestal/js/api.js"
     (render "tools/public/javascripts/pedestal/js/api.js" data)]
 
-   ["config/config.clj" (render "config/config.clj" data)]
+   ["config/config.edn" (render "config/config.edn" data)]
+   ["config/user.clj" (render "config/user.clj" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
-   ["dev/user.clj" (render "dev/user.clj" data)]
-   ["dev/dev.clj" (render "dev/dev.clj" data)]
 
    ["test/{{sanitized}}/behavior_test.clj" (render "test/behavior_test.clj" data)]])
 

@@ -28,7 +28,6 @@ where `example` is the project name.
 At the REPL type:
 
 ```clj
-(dev)
 (start)
 ```
 
