@@ -10,7 +10,7 @@
   ;; Create an application which uses the data renderer. The :data-ui
   ;; aspect is configured to run this main function. See
   ;;
-  ;; config/config.clj
+  ;; config/config.edn
   ;;
   {{/annotated?}}
   (start/create-app d/data-renderer-config))

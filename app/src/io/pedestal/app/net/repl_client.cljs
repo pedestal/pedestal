@@ -36,6 +36,6 @@
 
 (defn ^:export main
   "This function is provided to allow for more compact config for
-  the :fresh aspect in config/config.clj"
+  the :fresh aspect in config/config.edn"
   []
   (repl))
