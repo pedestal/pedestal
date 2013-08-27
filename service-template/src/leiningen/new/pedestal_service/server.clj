@@ -24,7 +24,7 @@
   (.init (::bootstrap/servlet service-instance) config))
 
 (defn servlet-destroy [this]
-  (alter-var-root #'service-instance nil))
+  (alter-var-root #'service-instance (constantly nil)))
 
 (defn servlet-service [this servlet-req servlet-resp]
   (.service ^javax.servlet.Servlet (::bootstrap/servlet service-instance)
