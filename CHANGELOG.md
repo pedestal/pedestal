@@ -2,7 +2,7 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
-## 0.2.0 - August 30, 2013
+## 0.2.0 - August 30, 2013 (available soon...)
 
 This is a big one folks. Developer tooling has moved from generated projects into
 the app- and service-tools libraries.
