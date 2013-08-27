@@ -56,7 +56,7 @@
 
 (defn ^:export main []
   {{#annotated?}}
-  ;; config/config.clj refers to this namespace as a main namespace
+  ;; config/config.edn refers to this namespace as a main namespace
   ;; for several aspects. A main namespace must have a no argument
   ;; main function. To tie into tooling, this function should return
   ;; the newly created app.

@@ -2,11 +2,61 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
-## 0.2.0 - July 31, 2013 (IN PROGRESS)
+## 0.2.0 - August 30, 2013 (available soon...)
+
+This is a big one folks. Developer tooling has moved from generated projects into
+the app- and service-tools libraries.
+
+**If you want to take advantage of all the super-awesome new features then further action is required.**
+See the respective changelogs in App and Service for more info.
 
 ### App
 
-* ...
+* Developer tooling has moved in its entirety to app-tools.
+  
+  Notable improvements:
+    * Tooling functions are automaticly included when running `lein repl`.
+    * App configuration can be reloaded with `(reload-config)`
+    * Future upgrades to tooling will be incorporated more easily.
+  
+  Additionally, app configuration is specified by an EDN file (instead of an
+  executable Clojure file.) New projects will make use of this feature, but
+  pre-0.2.0 generated projects will not.
+  
+  **You do not *have* to make this upgrade, but we *suggest* you do.**
+
+  The easiest way to upgrade is to re-generate your application with the 0.2.0
+  app-template and transfer your existing code into it. It is possible, however,
+  to migrate your existing application.
+
+  **How to migrate a 0.1.x project to 0.2.0:**
+      1. Remove the `dev/` folder.
+      2. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
+      3. Update your `project.clj`'s `:main` and `:repl-options` keys [like so](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L14-L23).
+      4. Add the [piggieback dependency](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L9) to your `project.clj` (`[com.cemerick/piggieback "0.1.0"]`).
+      5. Update your application's `config.clj` file. There are two ways to do this...
+          1. *If you have not modified your `config.clj`: Generate a new
+             application with the same name as your existing application, and
+             steal the `config.edn` file from it.
+          2. *If you have changed your `config.clj`, or you're a glutten for
+             punishment* perform these steps (looking like
+             [this](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/config/config.edn)
+             is our goal):
+              1. `mv config/config.clj config/config.edn`
+              2. Remove the `ns` declaration.
+              3. Unwrap the `configs` def into a raw map.
+              4. At path `[:build :watch-files]`,
+                 `(compile/html-files-in "app/templates")` should become a map
+                 of tags to regex pattern strings like
+                 `{:html ["^app/templates"]}`. Note these are **string** regex
+                 patterns, not regexps--regexps aren't supported by EDN.
+              5. At path `[:build :triggers]`, existing strings should be
+                 converted to string regex patterns. For example, the original
+                 `{:html ["project-name/rendering.js"]}` would become
+                 `{:html ["project-name//rendering\\.js$"]}`.
+  
+* Tooling's `cljs-repl` is now provided by Chas Emerick's [Piggieback](https://github.com/cemerick/piggieback).
+* Tooling's `cljs-repl` is now more clear about usage. This fixes [#93](https://github.com/pedestal/pedestal/issues/93), [#90](https://github.com/pedestal/pedestal/issues/90).
 
 ### Service
 

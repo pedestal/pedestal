@@ -12,9 +12,10 @@
 (ns io.pedestal.app-tools.build
   (:use [io.pedestal.app-tools.compile.config :only [cljs-compilation-options]]
         [io.pedestal.app-tools.host-page :only [application-host]]
-        [io.pedestal.app.templates :only [load-html]])
+        [io.pedestal.app.templates :only [load-html html-dependencies]])
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
+            [clojure.walk :as walk]
             [io.pedestal.app-tools.compile :as compile]
             [io.pedestal.app.util.scheduler :as scheduler]
             [io.pedestal.app.protocols :as p]
@@ -24,6 +25,100 @@
 
 (def ^:dynamic *tools-public* "out/tools/public")
 (def ^:dynamic *public* "out/public")
+
+(defn relative-without-leading-slash
+  "Get the relative path of a File without its leading slash."
+  [file]
+  (clojure.string/replace (.getPath file) #"^\./" ""))
+
+(defn re-some
+  "Return first match of regular expression in `res` with string `s`. Returns
+  nil if none found."
+  [res s]
+  (some #(re-find % s) res))
+
+(defn- files-matching
+  "Return files (inside the project) that match any of `res`.
+
+  Patterns in `res` should match relative to the root of the project without a
+  leading `./`
+
+  Expect to match `app/templates/something.html`
+  NOT `./app/templates/something.html` or
+  `/path/to/repo/app/templates/something.html`"
+  [res]
+  (let [files (file-seq (io/file "./"))
+        relative-filename (fn [f] )]
+    (filter (fn [f] (->> f
+                         relative-without-leading-slash
+                         (re-some res)))
+            files)))
+
+(defn- tag-and-patterns->sources
+  "For string regexp patterns `patterns` and `tag`, create a list of config
+  maps (`{:source <abs-path> :tag tag>}`)"
+  [tag patterns]
+  (let [res (map re-pattern patterns)
+        files (files-matching res)]
+    (->> files
+         (map #(.getAbsolutePath %))
+         (map #(hash-map :source % :tag tag)))))
+
+(defn- expand-watch-files
+  "Expand a tag-patterns map into a complete list of source-tag maps."
+  [watch-files]
+  (if (seq watch-files)
+    (vec (mapcat (fn [[tag patterns]] (tag-and-patterns->sources tag patterns))
+                 watch-files))))
+
+(defn- intern-trigger-patterns
+  "Intern string patterns in triggers-map into regexps."
+  [triggers-map]
+  (walk/postwalk #(if (string? %)
+                     (re-pattern %)
+                     %)
+                  triggers-map))
+
+(defn expand-app-config
+  "Expand all short-hands in `config`.
+
+  Expansions:
+
+  - [:build :watch-files] will expand a map of tags to file patterns into a
+    vector of \"source\" maps. Each \"source\" map has keys `:tag`, the original
+    key tag in `:watch-files` map, and `:source`, a file relative to the project
+    that matched a provided pattern.
+
+    Patterns match relative to the root of your project, without a leading `./`.
+
+    For example:
+
+        {:build {:watch-files {:html [\"^app/templates/.*\\.html$\"}}}
+
+    becomes:
+
+        {:build {:watch-files [{:tag :html :source \"/path/to/app/templates/webpage.html\"}, ...]}}
+
+
+  - [:build :triggers] will intern string patterns as regexps.
+
+    For example:
+ 
+        {:build {:triggers {:html [\"project-name/rendering\\\\.js$\"]}}}
+
+    becomes:
+
+        {:build {:triggers {:html [#\"project-name/render\\.js$\"]}}}"
+  [config]
+  (-> config
+      (update-in [:build :watch-files] expand-watch-files)
+      (update-in [:build :triggers] intern-trigger-patterns)))
+
+(defn expand-config
+  "Expand each config in config-map"
+  [configs]
+  (apply hash-map (mapcat (fn [[name config]] [name (expand-app-config config)])
+                          configs)))
 
 (defn- split-path [s]
   (string/split s (re-pattern (java.util.regex.Pattern/quote File/separator))))
@@ -63,6 +158,16 @@
 (defmulti analyze-file (fn [{p :path}] (vec (take 2 p))))
 
 (defmulti when-modified (fn [t] (:transform t)))
+
+(defmethod when-modified :template [t]
+  (let [f (io/file (:output-to t))
+        output-modified (.lastModified f)
+        f-deps (map #(io/file (string/join File/separator ["app" "templates" %]))
+                    (html-dependencies (io/file (string/join File/separator (:path t)))))]
+    (when (or (not (.exists f))
+              (> (:modified t) output-modified)
+              (some #(> (.lastModified %) output-modified) f-deps))
+      t)))
 
 (defmethod when-modified :compass-compile [t]
   (let [f (io/file *tools-public* ".compass-compile-modified")

@@ -5,7 +5,7 @@ based on these libraries. This project requires [Leiningen 2.0](https://github.c
 
 ```bash
 git clone https://github.com/pedestal/pedestal.git
-cd platform/app
+cd pedestal/app
 lein install
 cd ../app-tools
 lein install
@@ -23,14 +23,8 @@ cd my-project
 lein repl
 ```
 
-Call the (dev) function to load the `dev` namespace.
-
-```clj
-(dev)
-```
-
-It contains several useful functions. To see a list
-of some of these functions, type:
+The `io.pedestal.app-tools.dev` namespace is loaded by default. It contains
+several useful functions. To see a list of some of these functions, type:
 
 ```clj
 (tools-help)

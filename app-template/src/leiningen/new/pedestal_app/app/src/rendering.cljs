@@ -60,7 +60,7 @@
 {{#annotated?}}
 ;; The data structure below is used to map rendering data to functions
 ;; which handle rendering for that specific change. This function is
-;; referenced in config/config.clj and must be a function in order to
+;; referenced in config/config.edn and must be a function in order to
 ;; be used from the tool's "render" view.
 
 {{/annotated?}}

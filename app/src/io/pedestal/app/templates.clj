@@ -27,7 +27,8 @@
   ClojureScript.
   "
   (:use net.cgrand.enlive-html)
-  (:require [clojure.string :as string])
+  (:require [clojure.string :as string]
+            [clojure.java.io :as io])
   (:import java.io.File))
 
 (defn render
@@ -105,6 +106,18 @@
   HTML string processed per construct-html."
   [file]
   (render (construct-html (html-resource file))))
+
+(defn html-dependencies
+  "Returns a seq of filenames referenced in _within or _include tags
+starting with file, to an arbitrary level of nesting."
+  [file]
+  (letfn [(find-dep-files [nodes filenames]
+          (if-let [dep-nodes (seq (concat (select nodes [:_include])
+                                          (select nodes [:_within])))]
+            (let [fs (remove nil? (map (comp :file :attrs) dep-nodes))]
+              (recur (mapcat html-resource fs) (concat filenames fs)))
+            filenames))]
+    (find-dep-files (html-resource file) nil)))
 
 ;; Convert a snippent of HTML into a template function
 
