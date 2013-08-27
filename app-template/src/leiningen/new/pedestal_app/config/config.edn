@@ -3,7 +3,7 @@
 ;; development tool.
 
 ;; One project can host multiple applications. The top-level of the
-;; config map contains one entry for each appliction.
+;; config map contains one entry for each application.
 {:{{name}}
  {;; :build contains parameters which are passed to the build
   :build {;; :watch-files contains a list of string regexs to watch for
