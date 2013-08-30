@@ -14,7 +14,7 @@
                  ]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :aliases {"run-dev" ["trampoline" "run" "-m" "io.pedestal.service-tools.dev"]}
+  :aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
   :repl-options  {:init-ns user
                   :init (try
                           (use 'io.pedestal.service-tools.dev)
