@@ -15,5 +15,5 @@
 (defn -main
   "The entry-point for 'lein run'"
   [& args]
-  (dev/init {{namespace}}.service/service #'{{namespace}}.service/routes)
+  (server/init {{namespace}}.service/service)
   (apply server/-main args))

@@ -22,18 +22,16 @@
   * routes-var - a var referencing an applications routes map. This is a var
                  specifically so routes can be reloaded per-request."
   [user-service routes-var]
-  (alter-var-root #'server/service
-                  (constantly (-> user-service ;; start with production configuration
-                                  ;; TODO: Possibly change the merge order...
-                                  (merge {:env :dev
-                                          ;; do not block thread that starts web server
-                                          ::bootstrap/join? false
-                                          ;; reload routes on every request
-                                          ::bootstrap/routes #(deref routes-var)
-                                          ;; all origins are allowed in dev mode
-                                          ::bootstrap/allowed-origins (constantly true)})
-                                  (bootstrap/default-interceptors)
-                                  (bootstrap/dev-interceptors)))))
+  (server/init (-> user-service ;; start with production configuration
+                   (merge {:env :dev
+                           ;; do not block thread that starts web server
+                           ::bootstrap/join? false
+                           ;; reload routes on every request
+                           ::bootstrap/routes #(deref routes-var)
+                           ;; all origins are allowed in dev mode
+                           ::bootstrap/allowed-origins (constantly true)})
+                   (bootstrap/default-interceptors)
+                   (bootstrap/dev-interceptors))))
 
 (defn start
   "Start a development web server. Default port is 8080.

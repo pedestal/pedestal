@@ -16,6 +16,11 @@
 
 (defonce service-instance nil)
 
+(defn init
+  "Initialize a service for use with -main."
+  [user-service]
+  (alter-var-root #'service (constantly user-service)))
+
 (defn create-server
   "Standalone dev/prod mode."
   [& [opts]]
