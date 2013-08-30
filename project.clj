@@ -14,6 +14,7 @@
   :sub ["service"
         "jetty"
         "tomcat"
+        "service-tools"
         "service-template"
         "app"
         "app-tools"
