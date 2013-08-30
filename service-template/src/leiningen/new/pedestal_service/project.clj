@@ -19,11 +19,8 @@
                   :init (try
                           (use 'io.pedestal.service-tools.dev)
                           (require '{{namespace}}.service)
-                          ;; TODO: review with @timewald
-                          ;; Nasty trick to resolve non-clojure.core symbols in :init. Equivalent to:
-                          ;; (io.pedestal.service-tools.dev/init {{namespace}}.service/service #'{{namespace}}.service/routes)
-                          (@(resolve (symbol "io.pedestal.service-tools.dev" "init"))
-                                     @(resolve (symbol "{{namespace}}.service" "service")) (resolve (symbol "{{namespace}}.service" "routes")))
+                          ;; Nasty trick to get around being unable to reference non-clojure.core symbols in :init
+                          (eval '(init {{namespace}}.service/service #'{{namespace}}.service/routes))
                           (catch Throwable t
                             (println "ERROR: There was a problem loading io.pedestal.service-tools.dev")
                             (clojure.stacktrace/print-stack-trace t)
