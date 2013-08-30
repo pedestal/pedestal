@@ -1,5 +1,1 @@
-(defn dev
-  []
-  (require 'dev)
-  (in-ns 'dev)
-  #_(dev/start))
+;; Empty file to permit project.clj :repl-options {:init user} to work

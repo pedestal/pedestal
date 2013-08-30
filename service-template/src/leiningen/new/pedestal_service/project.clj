@@ -5,22 +5,28 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [io.pedestal/pedestal.service "0.2.0-SNAPSHOT"]
+                 [io.pedestal/pedestal.service-tools "0.2.0-SNAPSHOT"]
 
                  ;; Remove this line and uncomment the next line to
                  ;; use Tomcat instead of Jetty:
                  [io.pedestal/pedestal.jetty "0.2.0-SNAPSHOT"]
                  ;; [io.pedestal/pedestal.tomcat "0.2.0-SNAPSHOT"]
-
-                 ;; auto-reload changes
-                 [ns-tracker "0.2.1"]
-
-                 ;; Logging
-                 [ch.qos.logback/logback-classic "1.0.7" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.2"]
-                 [org.slf4j/jcl-over-slf4j "1.7.2"]
-                 [org.slf4j/log4j-over-slf4j "1.7.2"]]
-  :profiles {:dev {:source-paths ["dev"]}}
+                 ]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :aliases {"run-dev" ["trampoline" "run" "-m" "dev"]}
+  :aliases {"run-dev" ["trampoline" "run" "-m" "io.pedestal.service-tools.dev"]}
+  :repl-options  {:init-ns user
+                  :init (try
+                          (use 'io.pedestal.service-tools.dev)
+                          (require '{{namespace}}.service)
+                          ;; TODO: review with @timewald
+                          ;; Nasty trick to resolve non-clojure.core symbols in :init. Equivalent to:
+                          ;; (io.pedestal.service-tools.dev/setup {{namespace}}.service/service #'{{namespace}}.service/routes)
+                          (@(resolve (symbol "io.pedestal.service-tools.dev" "setup"))
+                                     @(resolve (symbol "{{namespace}}.service" "service")) (resolve (symbol "{{namespace}}.service" "routes")))
+                          (catch Throwable t
+                            (println "ERROR: There was a problem loading io.pedestal.service-tools.dev")
+                            (clojure.stacktrace/print-stack-trace t)
+                            (println)))
+                  :welcome (println "Welcome to pedestal-service!")}
   :main ^{:skip-aot true} {{namespace}}.server)

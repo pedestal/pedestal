@@ -1,31 +1,11 @@
 (ns {{namespace}}.server
   (:gen-class) ; for -main method in uberjar
-  (:require [{{namespace}}.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+  (:require [io.pedestal.service-tools.server :as server]
+            [{{namespace}}.service]
+            [io.pedestal.service-tools.dev :as dev]))
 
-(defonce service-instance nil)
-
-(defn create-server
-  "Standalone dev/prod mode."
-  [& [opts]]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-server (merge service/service opts)))))
-
+;; To implement your own server, copy io.pedestal.service-tools.server and
+;; modify it.
 (defn -main [& args]
-  (create-server)
-  (bootstrap/start service-instance))
-
-
-;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
-
-(defn servlet-init [this config]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-servlet service/service)))
-  (.init (::bootstrap/servlet service-instance) config))
-
-(defn servlet-destroy [this]
-  (alter-var-root #'service-instance (constantly nil)))
-
-(defn servlet-service [this servlet-req servlet-resp]
-  (.service ^javax.servlet.Servlet (::bootstrap/servlet service-instance)
-            servlet-req servlet-resp))
+  (dev/setup {{namespace}}.service/service #'{{namespace}}.service/routes)
+  (apply server/-main args))
