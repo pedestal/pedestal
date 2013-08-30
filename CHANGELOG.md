@@ -30,11 +30,12 @@ See the respective changelogs in App and Service for more info.
   to migrate your existing application.
 
   **How to migrate a 0.1.x project to 0.2.0:**
-      1. Remove the `dev/` folder.
-      2. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
-      3. Update your `project.clj`'s `:main` and `:repl-options` keys [like so](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L14-L23).
-      4. Add the [piggieback dependency](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L9) to your `project.clj` (`[com.cemerick/piggieback "0.1.0"]`).
-      5. Update your application's `config.clj` file. There are two ways to do this...
+      1. Upgrade your project's pedestal-app dependencies to version `"0.2.0"`
+      2. Remove the `dev/` folder.
+      3. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
+      4. Update your `project.clj`'s `:main` and `:repl-options` keys [like so](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L14-L23).
+      5. Add the [piggieback dependency](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L9) to your `project.clj` (`[com.cemerick/piggieback "0.1.0"]`).
+      6. Update your application's `config.clj` file. There are two ways to do this...
           1. *If you have not modified your `config.clj`: Generate a new
              application with the same name as your existing application, and
              steal the `config.edn` file from it.
@@ -64,6 +65,25 @@ See the respective changelogs in App and Service for more info.
 
 ### Service
 
+* Service tooling has moved out of generated projects into a service-tools library.
+  
+  Notable improvements:
+
+  * Tooling functions are automaticly included when running `lein repl`.
+  * Future upgrades to tooling will be incorporated more easily.
+    
+  There is a bit of migration necessary to move existing projects to 0.2.0 tooling.
+  **You don't *have* to make this change, but we *suggest* you do**.
+    
+  **How to migrate a 0.1.x project to 0.2.0:**
+      1. Upgrade your project's pedestal-app dependencies to version `"0.2.0"`
+      2. Remove the `dev/` folder
+      3. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
+      4. Update your `project.clj`'s `:main` and `:repl-options` keys to match
+         [the new template project.clj](https://github.com/pedestal/pedestal/blob/8c5d319816169a61a5e03a010f5c5b4138b347df/service-template/src/leiningen/new/pedestal_service/project.clj#L18-L32).
+      5. Pare down your src/**/server.clj file to match
+         [the new template server.clj](https://github.com/pedestal/pedestal/blob/8c5d319816169a61a5e03a010f5c5b4138b347df/service-template/src/leiningen/new/pedestal_service/server.clj).
+  
 * Service now uses [Cheshire](https://github.com/dakrone/cheshire)
   instead of [clojure.data.json](https://github.com/clojure/data.json) for constructing
   [`json-response`s](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http.clj#L49)
@@ -101,7 +121,6 @@ See the respective changelogs in App and Service for more info.
     ```
 * A bug with CORS headers has been fixed.
 * The default MIME type has been returned to text/plain (it was a bug that it changed to octet-stream.) * The template now includes a `:ui` aspect for rendering the `simulated` behavior. [#184](https://github.com/pedestal/pedestal/pull/184), [#187](https://github.com/pedestal/pedestal/pull/187)
-* Added the `:read-as` option for `msg/param`. Setting to `:data` causes collected values to be parsed by the Clojure reader. [#89](https://github.com/pedestal/pedestal/pull/89), [#165](https://github.com/pedestal/pedestal/pull/165)
 
 ### Miscellaneous bug-fixes and improvements
 
