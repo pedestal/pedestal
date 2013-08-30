@@ -14,30 +14,42 @@
             [io.pedestal.service-tools.server :as server]
             [ns-tracker.core :as tracker]))
 
-(defn setup
+(defn init
+  "Initialize a development service for use by (start).
+
+  Arguments are:
+  * user-service - an application level service map.
+  * routes-var - a var referencing an applications routes map. This is a var
+                 specifically so routes can be reloaded per-request."
   [user-service routes-var]
   (alter-var-root #'server/service
                   (constantly (-> user-service ;; start with production configuration
-                                  (merge  {:env :dev
-                                           ;; do not block thread that starts web server
-                                           ::bootstrap/join? false
-                                           ;; reload routes on every request
-                                           ::bootstrap/routes #(deref routes-var)
-                                           ;; all origins are allowed in dev mode
-                                           ::bootstrap/allowed-origins (constantly true)})
+                                  ;; TODO: Possibly change the merge order...
+                                  (merge {:env :dev
+                                          ;; do not block thread that starts web server
+                                          ::bootstrap/join? false
+                                          ;; reload routes on every request
+                                          ::bootstrap/routes #(deref routes-var)
+                                          ;; all origins are allowed in dev mode
+                                          ::bootstrap/allowed-origins (constantly true)})
                                   (bootstrap/default-interceptors)
                                   (bootstrap/dev-interceptors)))))
 
 (defn start
+  "Start a development web server. Default port is 8080.
+
+  You must call init prior to calling start."
   [& [opts]]
   (server/create-server (merge server/service opts))
   (bootstrap/start server/service-instance))
 
 (defn stop
+  "Stop the current web server."
   []
   (bootstrap/stop server/service-instance))
 
 (defn restart
+  "Stop, then start the current web server."
   []
   (stop)
   (start))
@@ -49,6 +61,7 @@
    (catch Throwable e (.printStackTrace e))))
 
 (defn watch
+  "Watches a list of directories for file changes, reloading them as necessary."
   ([] (watch ["src"]))
   ([src-paths]
      (let [track (tracker/ns-tracker src-paths)
@@ -62,6 +75,21 @@
          (.start))
        (fn [] (swap! done not)))))
 
-(defn -main [& args]
+(defn tools-help
+    "Show basic help for each function in this namespace."
+    []
+    (println)
+    (println "Start a new service development server with (start) or (start service-options)")
+    (println "----")
+    (println "Type (start) or (start service-options) to initialize and start a server")
+    (println "Type (stop) to stop the current server")
+    (println "Type (restart) to restart the current server")
+    (println "----")
+    (println "Type (watch) to watch for changes in the src/ directory")
+    (println))
+
+(defn -main
+  "The entry-point for 'lein run-dev'. Starts a web server and watches the projects files for any changes."
+  [& args]
   (start)
   (watch))

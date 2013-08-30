@@ -21,12 +21,12 @@
                           (require '{{namespace}}.service)
                           ;; TODO: review with @timewald
                           ;; Nasty trick to resolve non-clojure.core symbols in :init. Equivalent to:
-                          ;; (io.pedestal.service-tools.dev/setup {{namespace}}.service/service #'{{namespace}}.service/routes)
-                          (@(resolve (symbol "io.pedestal.service-tools.dev" "setup"))
+                          ;; (io.pedestal.service-tools.dev/init {{namespace}}.service/service #'{{namespace}}.service/routes)
+                          (@(resolve (symbol "io.pedestal.service-tools.dev" "init"))
                                      @(resolve (symbol "{{namespace}}.service" "service")) (resolve (symbol "{{namespace}}.service" "routes")))
                           (catch Throwable t
                             (println "ERROR: There was a problem loading io.pedestal.service-tools.dev")
                             (clojure.stacktrace/print-stack-trace t)
                             (println)))
-                  :welcome (println "Welcome to pedestal-service!")}
+                  :welcome (println "Welcome to pedestal-service! Run (tools-help) to see a list of useful functions.")}
   :main ^{:skip-aot true} {{namespace}}.server)

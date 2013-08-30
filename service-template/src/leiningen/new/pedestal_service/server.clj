@@ -7,5 +7,5 @@
 ;; To implement your own server, copy io.pedestal.service-tools.server and
 ;; modify it.
 (defn -main [& args]
-  (dev/setup {{namespace}}.service/service #'{{namespace}}.service/routes)
+  (dev/init {{namespace}}.service/service #'{{namespace}}.service/routes)
   (apply server/-main args))
