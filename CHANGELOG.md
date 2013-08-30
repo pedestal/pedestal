@@ -13,16 +13,16 @@ See the respective changelogs in App and Service for more info.
 ### App
 
 * Developer tooling has moved in its entirety to app-tools.
-  
+
   Notable improvements:
-    * Tooling functions are automaticly included when running `lein repl`.
+    * Tooling functions are automatically included when running `lein repl`.
     * App configuration can be reloaded with `(reload-config)`
     * Future upgrades to tooling will be incorporated more easily.
-  
+
   Additionally, app configuration is specified by an EDN file (instead of an
   executable Clojure file.) New projects will make use of this feature, but
   pre-0.2.0 generated projects will not.
-  
+
   **You do not *have* to make this upgrade, but we *suggest* you do.**
 
   The easiest way to upgrade is to re-generate your application with the 0.2.0
@@ -55,26 +55,26 @@ See the respective changelogs in App and Service for more info.
                  converted to string regex patterns. For example, the original
                  `{:html ["project-name/rendering.js"]}` would become
                  `{:html ["project-name//rendering\\.js$"]}`.
-  
+
 * Tooling's `cljs-repl` is now provided by Chas Emerick's [Piggieback](https://github.com/cemerick/piggieback).
 * Tooling's `cljs-repl` is now more clear about usage. This fixes [#93](https://github.com/pedestal/pedestal/issues/93), [#90](https://github.com/pedestal/pedestal/issues/90).
 * App's ClojureScript dependency has been bumped to r1835. Namespaced keywords are now allowed (`::msg/topic`)!
 * Logging in the browser is now grouped. [#95](https://github.com/pedestal/pedestal/pull/95)
 * The template now includes a `:ui` aspect for rendering the `simulated` behavior. [#184](https://github.com/pedestal/pedestal/pull/184), [#187](https://github.com/pedestal/pedestal/pull/187)
-* Added the `:read-as` option for `msg/param`. Setting to `:data` causes collected values to be parsed by the Clojure reader. [#166](https://github.com/pedestal/pedestal/pull/166)* 
+* Added the `:read-as` option for `msg/param`. Setting to `:data` causes collected values to be parsed by the Clojure reader. [#166](https://github.com/pedestal/pedestal/pull/166)*
 
 ### Service
 
 * Service tooling has moved out of generated projects into a service-tools library.
-  
+
   Notable improvements:
 
-  * Tooling functions are automaticly included when running `lein repl`.
+  * Tooling functions are automatically included when running `lein repl`.
   * Future upgrades to tooling will be incorporated more easily.
-    
+
   There is a bit of migration necessary to move existing projects to 0.2.0 tooling.
   **You don't *have* to make this change, but we *suggest* you do**.
-    
+
   **How to migrate a 0.1.x project to 0.2.0:**
       1. Upgrade your project's pedestal-app dependencies to version `"0.2.0"`
       2. Remove the `dev/` folder
@@ -83,7 +83,7 @@ See the respective changelogs in App and Service for more info.
          [the new template project.clj](https://github.com/pedestal/pedestal/blob/8c5d319816169a61a5e03a010f5c5b4138b347df/service-template/src/leiningen/new/pedestal_service/project.clj#L18-L32).
       5. Pare down your src/**/server.clj file to match
          [the new template server.clj](https://github.com/pedestal/pedestal/blob/8c5d319816169a61a5e03a010f5c5b4138b347df/service-template/src/leiningen/new/pedestal_service/server.clj).
-  
+
 * Service now uses [Cheshire](https://github.com/dakrone/cheshire)
   instead of [clojure.data.json](https://github.com/clojure/data.json) for constructing
   [`json-response`s](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http.clj#L49)
@@ -166,7 +166,7 @@ For a full list of changes, please see this comparison of [0.1.8...0.1.9](https:
 ### General
 
 * App and service templates now allow creating projects with namespaces [#68](https://github.com/pedestal/pedestal/issues/68).
-            
+
             $ lein new pedestal-app com.example/foo
             ... creates foo/ with src/com/example/foo/*.clj
 
