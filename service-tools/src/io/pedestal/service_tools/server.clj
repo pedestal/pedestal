@@ -31,7 +31,6 @@
   (create-server)
   (bootstrap/start service-instance))
 
-
 ;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
 
 (defn servlet-init [this config]
