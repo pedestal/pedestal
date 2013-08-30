@@ -90,8 +90,8 @@ See the respective changelogs in App and Service for more info.
   and [parsing json
   bodies](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http/body_params.clj#L79). [#162](https://github.com/pedestal/pedestal/issues/162)
 
-  This change *does* eliminate some JSON parsing options that were previously
-  possible in 0.1.10. Specifically the following options are no longer supported:
+  **This change *does* eliminate some JSON parsing options that were previously
+  possible in 0.1.10.** Specifically the following options are no longer supported:
 
     * `:eof-error?` - "If true (default) will throw exception if the stream is empty."
     * `:eof-value` - "Object to return if the stream is empty and eof-error? is false. Default is nil."
