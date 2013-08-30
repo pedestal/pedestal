@@ -57,14 +57,18 @@ See the respective changelogs in App and Service for more info.
   
 * Tooling's `cljs-repl` is now provided by Chas Emerick's [Piggieback](https://github.com/cemerick/piggieback).
 * Tooling's `cljs-repl` is now more clear about usage. This fixes [#93](https://github.com/pedestal/pedestal/issues/93), [#90](https://github.com/pedestal/pedestal/issues/90).
+* App's ClojureScript dependency has been bumped to r1835. Namespaced keywords are now allowed (`::msg/topic`)!
+* Logging in the browser is now grouped. [#95](https://github.com/pedestal/pedestal/pull/95)
+* The template now includes a `:ui` aspect for rendering the `simulated` behavior. [#184](https://github.com/pedestal/pedestal/pull/184), [#187](https://github.com/pedestal/pedestal/pull/187)
+* Added the `:read-as` option for `msg/param`. Setting to `:data` causes collected values to be parsed by the Clojure reader. [#166](https://github.com/pedestal/pedestal/pull/166)* 
 
 ### Service
 
 * Service now uses [Cheshire](https://github.com/dakrone/cheshire)
-  instead of [clojure.data.json]() for constructing
+  instead of [clojure.data.json](https://github.com/clojure/data.json) for constructing
   [`json-response`s](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http.clj#L49)
   and [parsing json
-  bodies](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http/body_params.clj#L79).
+  bodies](../1eeff6a56c20a4cb617148a7d2f22773d0e640ee/service/src/io/pedestal/service/http/body_params.clj#L79). [#162](https://github.com/pedestal/pedestal/issues/162)
 
   This change *does* eliminate some JSON parsing options that were previously
   possible in 0.1.10. Specifically the following options are no longer supported:
@@ -95,6 +99,9 @@ See the respective changelogs in App and Service for more info.
     (require '[io.pedestal.service.http.body-params :as bp])
     (def string-keys-body-params (bp/body-params (bp/default-parser-map :json-options {:key-fn nil})))
     ```
+* A bug with CORS headers has been fixed.
+* The default MIME type has been returned to text/plain (it was a bug that it changed to octet-stream.) * The template now includes a `:ui` aspect for rendering the `simulated` behavior. [#184](https://github.com/pedestal/pedestal/pull/184), [#187](https://github.com/pedestal/pedestal/pull/187)
+* Added the `:read-as` option for `msg/param`. Setting to `:data` causes collected values to be parsed by the Clojure reader. [#89](https://github.com/pedestal/pedestal/pull/89), [#165](https://github.com/pedestal/pedestal/pull/165)
 
 ### Miscellaneous bug-fixes and improvements
 
