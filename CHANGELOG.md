@@ -2,7 +2,7 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
-## 0.2.0 - August 30, 2013 (available soon...)
+## 0.2.0 - August 30, 2013
 
 This is a big one folks. Developer tooling has moved from generated projects into
 the app- and service-tools libraries.
@@ -33,15 +33,15 @@ See the respective changelogs in App and Service for more info.
       1. Upgrade your project's pedestal-app dependencies to version `"0.2.0"`
       2. Remove the `dev/` folder.
       3. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
-      4. Update your `project.clj`'s `:main` and `:repl-options` keys [like so](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L14-L23).
-      5. Add the [piggieback dependency](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/project.clj#L9) to your `project.clj` (`[com.cemerick/piggieback "0.1.0"]`).
+      4. Update your `project.clj`'s `:main` and `:repl-options` keys [like so](https://github.com/pedestal/pedestal/blob/4a148bf23c255baee420d7b725677b98de325120/app-template/src/leiningen/new/pedestal_app/project.clj#L14-L23).
+      5. Add the [piggieback dependency](https://github.com/pedestal/pedestal/blob/4a148bf23c255baee420d7b725677b98de325120/app-template/src/leiningen/new/pedestal_app/project.clj#L9) to your `project.clj` (`[com.cemerick/piggieback "0.1.0"]`).
       6. Update your application's `config.clj` file. There are two ways to do this...
           1. *If you have not modified your `config.clj`: Generate a new
              application with the same name as your existing application, and
              steal the `config.edn` file from it.
           2. *If you have changed your `config.clj`, or you're a glutten for
              punishment* perform these steps (looking like
-             [this](https://github.com/pedestal/pedestal/blob/3a09c783dde7bf2b3bd1fd6435ec66f9eafe30d7/app-template/src/leiningen/new/pedestal_app/config/config.edn)
+             [this](https://github.com/pedestal/pedestal/blob/4a148bf23c255baee420d7b725677b98de325120/app-template/src/leiningen/new/pedestal_app/config/config.edn)
              is our goal):
               1. `mv config/config.clj config/config.edn`
               2. Remove the `ns` declaration.
@@ -80,9 +80,9 @@ See the respective changelogs in App and Service for more info.
       2. Remove the `dev/` folder
       3. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
       4. Update your `project.clj`'s `:main` and `:repl-options` keys to match
-         [the new template project.clj](https://github.com/pedestal/pedestal/blob/8c5d319816169a61a5e03a010f5c5b4138b347df/service-template/src/leiningen/new/pedestal_service/project.clj#L18-L32).
+         [the new template project.clj](https://github.com/pedestal/pedestal/blob/4a148bf23c255baee420d7b725677b98de325120/service-template/src/leiningen/new/pedestal_service/project.clj#L18-L32).
       5. Pare down your src/**/server.clj file to match
-         [the new template server.clj](https://github.com/pedestal/pedestal/blob/8c5d319816169a61a5e03a010f5c5b4138b347df/service-template/src/leiningen/new/pedestal_service/server.clj).
+         [the new template server.clj](https://github.com/pedestal/pedestal/blob/4a148bf23c255baee420d7b725677b98de325120/service-template/src/leiningen/new/pedestal_service/server.clj).
 
 * Service now uses [Cheshire](https://github.com/dakrone/cheshire)
   instead of [clojure.data.json](https://github.com/clojure/data.json) for constructing
