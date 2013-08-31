@@ -76,7 +76,10 @@ See the respective changelogs in App and Service for more info.
   **You don't *have* to make this change, but we *suggest* you do**.
 
   **How to migrate a 0.1.x project to 0.2.0:**
-      1. Upgrade your project's pedestal-app dependencies to version `"0.2.0"`
+      1. Update your project's dependencies to match the [new ones](https://github.com/pedestal/pedestal/blob/0.2.0/service-template/src/leiningen/new/pedestal_service/project.clj):
+         1. Upgrade your project's pedestal-service dependencies to version `"0.2.0"`.
+         2. Add `[io.pedestal/pedestal.service-tools "0.2.0"]` as a dependency.
+         3. Remove logback and slf4j logging dependencies.
       2. Remove the `dev/` folder
       3. `$ touch config/user.clj` -- This is needed for `:repl-options` with `:init user` to work.
       4. Update your `project.clj`'s `:main` and `:repl-options` keys to match
@@ -120,7 +123,7 @@ See the respective changelogs in App and Service for more info.
     (def string-keys-body-params (bp/body-params (bp/default-parser-map :json-options {:key-fn nil})))
     ```
 * A bug with CORS headers has been fixed.
-* The default MIME type has been returned to text/plain (it was a bug that it changed to octet-stream.) * The template now includes a `:ui` aspect for rendering the `simulated` behavior. [#184](https://github.com/pedestal/pedestal/pull/184), [#187](https://github.com/pedestal/pedestal/pull/187)
+* The default MIME type has been returned to text/plain (it was a bug that it changed to octet-stream.)
 
 ### Miscellaneous bug-fixes and improvements
 
