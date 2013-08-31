@@ -31,5 +31,4 @@
              ["src/{{sanitized}}/service.clj" (render "service.clj" data)]
              ["test/{{sanitized}}/service_test.clj" (render "service_test.clj" data)]
              ["config/logback.xml" (render "logback.xml" data)]
-             ["dev/user.clj" (render "user.clj" data)]
-             ["dev/dev.clj" (render "dev.clj" data)])))
+             ["config/user.clj" (render "user.clj" data)])))
