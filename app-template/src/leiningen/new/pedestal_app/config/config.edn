@@ -47,7 +47,7 @@
                       ;; to use. This namespace must have a
                       ;; `render-config` function which returns a
                       ;; render configuration.
-                      :renderer '{{sanitized}}.rendering
+                      :renderer {{sanitized}}.rendering
                       ;; Enable logging of rendering data when in
                       ;; this view.
                       :logging? true
@@ -88,6 +88,7 @@
                   :logging? true
                   :recording? true
                   :output-root :tools-public
+                  :template "tooling.html"
                   :order 3}
             :development {:uri "/{{name}}-dev.html"
                           :name "Development"
