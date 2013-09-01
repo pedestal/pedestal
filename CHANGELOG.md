@@ -2,6 +2,12 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.2.1 - September 1, 2013
+
+Small bug fix for app-template.
+
+For a full list of changes, please see this comparison of [0.2.0...0.2.1](https://github.com/pedestal/pedestal/compare/0.2.0...0.2.1).
+
 ## 0.2.0 - August 30, 2013
 
 This is a big one folks. Developer tooling has moved from generated projects into
