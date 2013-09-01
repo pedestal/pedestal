@@ -88,6 +88,7 @@
                   :logging? true
                   :recording? true
                   :output-root :tools-public
+                  :template "tooling.html"
                   :order 3}
             :development {:uri "/{{name}}-dev.html"
                           :name "Development"
