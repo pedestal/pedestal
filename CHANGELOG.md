@@ -46,12 +46,13 @@ See the respective changelogs in App and Service for more info.
               1. `mv config/config.clj config/config.edn`
               2. Remove the `ns` declaration.
               3. Unwrap the `configs` def into a raw map.
-              4. At path `[:build :watch-files]`,
+              4. Remove quotes from quoted namespaces. Look in :main and :renderer keys.
+              5. At path `[:build :watch-files]`,
                  `(compile/html-files-in "app/templates")` should become a map
                  of tags to regex pattern strings like
                  `{:html ["^app/templates"]}`. Note these are **string** regex
                  patterns, not regexps--regexps aren't supported by EDN.
-              5. At path `[:build :triggers]`, existing strings should be
+              6. At path `[:build :triggers]`, existing strings should be
                  converted to string regex patterns. For example, the original
                  `{:html ["project-name/rendering.js"]}` would become
                  `{:html ["project-name//rendering\\.js$"]}`.
