@@ -37,6 +37,7 @@ check_credentials!
 
 project_cljs = Dir['**/project.clj']
 
+
 release_version = version_number!(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE)
 release_version =~ /(\d+\.\d+\.)(\d+)/
 bumped_subminor = (($2.to_i)+1).to_s
@@ -77,3 +78,10 @@ deploy!
 bump_version(project_cljs, release_defproject_re, release_version, pre_release_version)
 
 puts "Release #{release_version} pushed to Clojars, tagged and committed.\nRelease #{pre_release_version} set as the latest development stream.\n\nDO NOT FORGET TO 'git push' WHEN YOU ARE READY!"
+
+unless system('git add -u') && system("git commit -m \"Begin #{pre_release_version} development.\"")
+  puts "Failed to create post-release version-bump commit. Aborting."
+  exit -1
+end
+
+
