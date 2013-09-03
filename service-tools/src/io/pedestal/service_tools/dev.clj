@@ -29,7 +29,7 @@
                            ;; reload routes on every request
                            ::bootstrap/routes #(deref routes-var)
                            ;; all origins are allowed in dev mode
-                           ::bootstrap/allowed-origins (constantly true)})
+                           ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
                    (bootstrap/default-interceptors)
                    (bootstrap/dev-interceptors))))
 
