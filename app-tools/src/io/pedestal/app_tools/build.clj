@@ -290,7 +290,8 @@
           (application-host config aspect))))
 
 (defn compile-worker! [config aspect name whitelist]
-  (let [whitelist (conj whitelist #"io/pedestal/app.*")
+  (let [whitelist (map #(if (string? %) (re-pattern %) %) whitelist)
+        whitelist (conj whitelist #"io/pedestal/app.*")
         sources (compile/all-cljs-on-classpath)
         filtered-sources (filter #(some (fn [x] (re-matches x (:js-file-name %))) whitelist)
                                  sources)
