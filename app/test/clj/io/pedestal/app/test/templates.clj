@@ -87,3 +87,9 @@
         "there is a label with content 'This is text'")
     (is (= 1 (count (enlive/select result-nodes [(enlive/attr= :value "This is text")])))
         "there is one input with value 'This is text'")))
+
+(deftest test-replace-template
+  (let [replaced (load-html (clojure.java.io/file "test/clj/template.html"))
+        nodes (html-parse replaced)]
+    (is (= (count (enlive/select nodes [:div.container :div#content])) 1))))
+

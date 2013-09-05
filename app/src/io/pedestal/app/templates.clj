@@ -62,7 +62,7 @@
                  (next includes)))
         h))))
 
-(defn- maps [c] (filter map? c))
+(defn- valid-tags [c] (filter (every-pred map? #(contains? % :tag) ) c))
 
 (defn- replace-html [h c]
   (let [id (-> c :attrs :id)
@@ -75,7 +75,7 @@
     (if within
       (let [file (-> (first within) :attrs :file)
             outer (construct-html (html-resource file))
-            content (maps (:content (first within)))]
+            content (valid-tags (:content (first within)))]
         (loop [outer outer
                content (seq content)]
           (if content
