@@ -176,7 +176,9 @@
   [options sources]
   (if-let [ignore (:ignore options)]
     (remove (fn [src] (some #(and (:js-file-name src)
-                                 (re-matches % (:js-file-name src))) ignore)) sources)
+                                 (re-matches % (:js-file-name src)))
+                           (map #(if (string? %) (re-pattern %) %) ignore)))
+            sources)
     sources))
 
 (defn- replace-strings-with-files [watched-files]
