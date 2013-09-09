@@ -476,13 +476,20 @@
                                 (flow :one-derive)
                                 {:out [:a] :key :inc}))
          {:data-model {:a 1 :b 2}}))
-  (is (= (:new (run-flow-phases {:new {:data-model {:a 0}}
+
+  (let [result (run-flow-phases {:new {:data-model {:a 0}}
                                  :old {:data-model {:a 0}}
                                  :dataflow (flow :continue-to-10)
                                  :context {:message {msg/topic [:a] msg/type :inc}}}
                                 (flow :continue-to-10)
-                                {msg/topic [:a] msg/type :inc}))
-         {:data-model {:a 5 :b 10}}))
+                                {msg/topic [:a] msg/type :inc})]
+    (is (= (:new result)
+           {:data-model {:a 5 :b 10}}))
+
+    (is (= (get-in result [:old :data-model])
+           {:a 0})
+        "old data-model should not change during continue iterations"))
+
   (is (= (:new (run-flow-phases {:new {:data-model {:a 0}}
                                  :old {:data-model {:a 0}}
                                  :dataflow (flow :everything)
