@@ -3,7 +3,7 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-1835"]
                  [domina "1.0.1"]
-                 [ch.qos.logback/logback-classic "1.0.7" :exclusions [org.slf4j/slf4j-api]]
+                 [ch.qos.logback/logback-classic "1.0.13" :exclusions [org.slf4j/slf4j-api]]
                  [io.pedestal/pedestal.app "0.2.2-SNAPSHOT"]
                  [io.pedestal/pedestal.app-tools "0.2.2-SNAPSHOT"]
                  [com.cemerick/piggieback "0.1.0"]]
