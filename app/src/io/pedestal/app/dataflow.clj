@@ -353,17 +353,18 @@
   (let [{{continue :continue} :new :as result} (flow-phases-step state dataflow message)
         input (filter #(:input (meta %)) continue)
         continue (remove #(:input (meta %)) continue)
-        new-state (if (empty? continue)
-                    (update-in result [:new] dissoc :continue)
-                    (reduce (fn [a c-message]
-                              (run-flow-phases (assoc a :old (:new a))
-                                               dataflow
-                                               c-message))
-                            result
-                            continue))]
-    (if (empty? input)
-      new-state
-      (update-in new-state [:new :continue-inputs] (fnil into []) input))))
+        intermediate-state (if (empty? continue)
+                             (update-in result [:new] dissoc :continue)
+                             (reduce (fn [a c-message]
+                                       (run-flow-phases (assoc a :old (:new a))
+                                                        dataflow
+                                                        c-message))
+                                     result
+                                     continue))]
+    (let [new-state (assoc intermediate-state :old (:old result))]
+      (if (empty? input)
+        new-state
+        (update-in new-state [:new :continue-inputs] (fnil into []) input)))))
 
 (defn- run-all-phases
   [model dataflow message]
