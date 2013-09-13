@@ -19,9 +19,6 @@
      ^:interceptors [(body-params/body-params) bootstrap/html-body]
      ["/about" {:get about-page}]]]])
 
-;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
-(def url-for (route/url-for-routes routes))
-
 ;; Consumed by {{namespace}}.server/create-server
 (def service {:env :prod
               ;; You can bring your own non-default interceptors. Make
