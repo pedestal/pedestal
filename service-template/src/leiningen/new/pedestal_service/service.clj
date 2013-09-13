@@ -7,7 +7,9 @@
 
 (defn about-page
   [request]
-  (ring-resp/response (format "Clojure %s" (clojure-version))))
+  (ring-resp/response (format "Clojure %s - served from %s"
+                              (clojure-version)
+                              (route/url-for ::about-page))))
 
 (defn home-page
   [request]
