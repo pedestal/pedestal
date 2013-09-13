@@ -1,15 +1,8 @@
-# Pedestal Application template
+# Pedestal Application Template
 
 Generate a new Pedestal Application.
 
-
 ## Usage
-
-From within this project run:
-
-```bash
-lein install
-```
 
 To create a new project run:
 
@@ -18,21 +11,18 @@ To create a new project run:
 lein new pedestal-app example
 # Alternatively, generate a project without comments
 lein new pedestal-app example no-comment
-
-cd example
-lein repl
 ```
 
-where `example` is the project name.
+You will have a new app in example! To explore further, read
+the [readme in your generated
+app](https://github.com/pedestal/pedestal/blob/master/app-template/src/leiningen/new/pedestal_app/README.md).
 
-At the REPL type:
+## Developer Notes
 
-```clj
-(start)
-```
+There are two ways to try out local changes to this template:
 
-and then open a browser to `http://localhost:3000`.
-
-You now have a working development environment!
+1. Run `lein new pedestal-app NAME` in this directory.
+2. `lein install` in this directory; ensure the correct version of the template is in :plugins of your
+   `~/.lein/profiles.clj`; generate a new app.
 
 <!-- Copyright 2013 Relevance, Inc. -->

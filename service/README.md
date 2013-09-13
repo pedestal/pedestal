@@ -1,15 +1,19 @@
-Pedestal.Server
-========================================
+# Pedestal Service
 
-Developer Bootstrap
---------------------
+Core components for building Pedestal Services.
 
-You will need:
+## Install
 
-* Leiningen 2
+Add this to the `:dependencies` vector of your `project.clj`:
 
-Benchmarks
---------------------
+    [io.pedestal/pedestal.service "LATEST_VERSION"]
+
+See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST\_VERSION number.
+
+
+## Developer Notes
+
+### Benchmarks
 
     lein bench-log
 
