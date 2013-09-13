@@ -14,7 +14,7 @@
             [cheshire.core :as json]
             [cheshire.parse :as parse]
             [clojure.string :as str]
-            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
+            [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn interceptor]]
             [io.pedestal.service.log :as log]
             [ring.middleware.params :as params]))
 
@@ -144,5 +144,7 @@
 (definterceptorfn body-params
   ([] (body-params (default-parser-map)))
   ([parser-map]
-     (interceptor/on-request ::body-params
-                             (fn [request] (parse-content-type parser-map request)))))
+     (interceptor :name ::body-params :enter
+                  (fn [context]
+                    (try (update-in context [:request] (partial parse-content-type parser-map))
+                         (catch Exception e (assoc context :response {:status 400 :body nil :headers {}})))))))
