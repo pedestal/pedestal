@@ -1,5 +1,6 @@
-Pedestal.Server
-========================================
+# Pedestal Service
+
+Core components for building Pedestal Services.
 
 Developer Bootstrap
 --------------------

@@ -1,4 +1,4 @@
-# Pedestal Application template
+# Pedestal Application Template
 
 Generate a new Pedestal Application.
 

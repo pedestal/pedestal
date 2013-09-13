@@ -1,4 +1,8 @@
-# Pedestal Applications
+# Pedestal App
+
+Core components for building Pedestal Applications.
+
+## Install
 
 Follow these instructions to create a new Pedestal Application project
 based on these libraries. This project requires [Leiningen 2.0](https://github.com/technomancy/leiningen).
