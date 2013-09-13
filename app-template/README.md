@@ -5,12 +5,6 @@ Generate a new Pedestal Application.
 
 ## Usage
 
-From within this project run:
-
-```bash
-lein install
-```
-
 To create a new project run:
 
 ```bash

@@ -4,6 +4,14 @@ Core components for building Pedestal Applications.
 
 ## Install
 
+Add this to the `:dependencies` vector of your `project.clj`:
+
+    [io.pedestal/pedestal.app "LATEST_VERSION"]
+
+See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST\_VERSION number.
+
+## Developer Setup
+
 Follow these instructions to create a new Pedestal Application project
 based on these libraries. This project requires [Leiningen 2.0](https://github.com/technomancy/leiningen).
 

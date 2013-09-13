@@ -2,6 +2,14 @@
 
 Core components for building Pedestal Services.
 
+## Install
+
+Add this to the `:dependencies` vector of your `project.clj`:
+
+    [io.pedestal/pedestal.service "LATEST_VERSION"]
+
+See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST\_VERSION number.
+
 Developer Bootstrap
 --------------------
 
