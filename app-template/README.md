@@ -11,21 +11,10 @@ To create a new project run:
 lein new pedestal-app example
 # Alternatively, generate a project without comments
 lein new pedestal-app example no-comment
-
-cd example
-lein repl
 ```
 
-where `example` is the project name.
-
-At the REPL type:
-
-```clj
-(start)
-```
-
-and then open a browser to `http://localhost:3000`.
-
-You now have a working development environment!
+You will have a new app in example! To explore further, read
+the [readme in your generated
+app](https://github.com/pedestal/pedestal/blob/master/app-template/src/leiningen/new/pedestal_app/README.md).
 
 <!-- Copyright 2013 Relevance, Inc. -->
