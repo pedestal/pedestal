@@ -10,21 +10,6 @@ Add this to the `:dependencies` vector of your `project.clj`:
 
 See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST\_VERSION number.
 
-## Developer Setup
-
-Follow these instructions to create a new Pedestal Application project
-based on these libraries. This project requires [Leiningen 2.0](https://github.com/technomancy/leiningen).
-
-```bash
-git clone https://github.com/pedestal/pedestal.git
-cd pedestal/app
-lein install
-cd ../app-tools
-lein install
-cd ../app-template
-lein install
-```
-
 ## Usage
 
 `cd` into any directory and execute the following:

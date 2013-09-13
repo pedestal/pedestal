@@ -10,15 +10,10 @@ Add this to the `:dependencies` vector of your `project.clj`:
 
 See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST\_VERSION number.
 
-Developer Bootstrap
---------------------
 
-You will need:
+## Developer Notes
 
-* Leiningen 2
-
-Benchmarks
---------------------
+### Benchmarks
 
     lein bench-log
 

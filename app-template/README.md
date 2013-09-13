@@ -2,7 +2,6 @@
 
 Generate a new Pedestal Application.
 
-
 ## Usage
 
 To create a new project run:
