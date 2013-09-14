@@ -103,6 +103,11 @@
               :children [{:content 1
                           :attrs {:id :a}}]})))))
 
+(defn key-absent-from-renderer
+  [r key]
+  (not (contains? (-> r :env deref)
+                  key)))
+
 (deftest test-working-with-ids
   (let [r (->DomRenderer (atom {:id :root}))]
     (is (nil? (get-parent-id r [])))
@@ -111,7 +116,8 @@
       (is (= root-id (get-parent-id r [:a])))
       (let [a-id (new-id! r [:a])
             b-id (new-id! r [:b] :b)
-            c-id (new-id! r [:b :c])]
+            c-id (new-id! r [:b :c])
+            e-id (new-id! r [:d :e])]
         (is (= :b b-id))
         (is (= a-id (get-id r [:a])))
         (is (= :b (get-id r [:b])))
@@ -119,13 +125,15 @@
         (is (= :b (get-id r [:b]) (get-parent-id r [:b :c])))
 
         (delete-id! r [:a])
-        
-        (is (nil? (get-id r [:a])))
+        (is (key-absent-from-renderer r :a))
         (is (= c-id (get-id r [:b :c])))
-        
+
         (delete-id! r [:b])
-        (is (nil? (get-id r [:a])))
-        (is (nil? (get-id r [:b :c])))))))
+        (is (key-absent-from-renderer r :a))
+        (is (key-absent-from-renderer r :b))
+
+        (delete-id! r [:d :e])
+        (is (key-absent-from-renderer r :d))))))
 
 (deftest test-render-build-up-tear-down
 
