@@ -18,7 +18,7 @@
                  [ns-tracker "0.2.1"]
 
                  ;; Logging
-                 [ch.qos.logback/logback-classic "1.0.7" :exclusions [org.slf4j/slf4j-api]]
+                 [ch.qos.logback/logback-classic "1.0.13" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.2"]
                  [org.slf4j/jcl-over-slf4j "1.7.2"]
                  [org.slf4j/log4j-over-slf4j "1.7.2"]])
