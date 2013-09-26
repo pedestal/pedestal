@@ -304,13 +304,17 @@
                          (concat context-path-parts (rest path-parts))
                          path-parts))
         path (str/join \/ (map #(get path-params % %) path-parts))
-        scheme-match (or (nil? scheme) (= scheme (:scheme request)))
-        host-match (or (nil? host) (= host (:server-name request)))
+        request-scheme (:scheme request)
+        request-host (:server-name request)
+        scheme-match (or (nil? scheme) (= scheme request-scheme))
+        host-match (or (nil? host) (= host request-host))
         port-match (or (nil? port) (= port (:server-port request)))]
     (str
-     (when-not scheme-match (str (name scheme) \:))
      (when-not (and scheme-match host-match port-match)
-       (str "//" host (when port (str ":" port))))
+       (str (when-not scheme-match (str (name (or scheme request-scheme)) \:))
+            "//"
+            (or host request-host)
+            (when port (str \: port))))
      (str (when-not (.startsWith path "/") "/") path)
      (when-not (str/blank? fragment) (str "#" fragment))
      (when (seq query-params)
