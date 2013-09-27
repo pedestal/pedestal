@@ -320,7 +320,7 @@
         port-match (or (nil? port) (= port (:server-port request)))]
     (str
      (when (or (not scheme-match) (not host-match) (not port-match) absolute?)
-       (str (when-not scheme-match (str (name (or scheme request-scheme)) \:))
+       (str (when (or (not scheme-match) absolute?) (str (name (or scheme request-scheme)) \:))
             "//"
             (or host request-host)
             (when port (str \: port))))
