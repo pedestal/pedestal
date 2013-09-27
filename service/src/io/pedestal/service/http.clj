@@ -101,7 +101,7 @@
 
 (defn default-interceptors
   "Builds interceptors given an options map with keyword keys prefixed by namespace e.g.
-  :io.pedestal.service.http/routes or bootstrap/routes if the namespace is aliased to bootstrap.
+  :io.pedestal.service.http/routes or ::bootstrap/routes if the namespace is aliased to bootstrap.
 
   Options:
 
@@ -163,7 +163,7 @@
 
 (defn create-servlet
   "Creates a servlet given an options map with keyword keys prefixed by namespace e.g.
-  :io.pedestal.service.http/interceptors or bootstrap/interceptors if the namespace is aliased to bootstrap.
+  :io.pedestal.service.http/interceptors or ::bootstrap/interceptors if the namespace is aliased to bootstrap.
 
   Options:
 
