@@ -100,6 +100,23 @@
       response)))
 
 (defn default-interceptors
+  "Builds interceptors given an options map with keyword keys prefixed by namespace e.g.
+  :io.pedestal.service.http/routes or bootstrap/routes if the namespace is aliased to bootstrap.
+
+  Options:
+
+  * :routes: A seq of route maps that defines a service's routes. It's recommended to build this
+    using io.pedestal.service.http.route.definition/defroutes.
+  * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
+    is not added. Default is nil.
+  * :resource-path: File path used as root by the middlewares/resource interceptor. If nil, this interceptor
+    is not added. Default is 'public'.
+  * :method-param-name: Query string parameter used to set the current HTTP verb. Default is _method.
+  * :allowed-origins: Determines what origins are allowed for the cors/allow-origin interceptor. If
+     nil, this interceptor is not added. Default is nil.
+  * :not-found-interceptor: Interceptor to use when returning a not found response. Default is
+     the not-found interceptor.
+  * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}."
   [{routes ::routes
     file-path ::file-path
     resource-path ::resource-path
@@ -145,6 +162,14 @@
          (servlet/servlet :service service-fn)))
 
 (defn create-servlet
+  "Creates a servlet given an options map with keyword keys prefixed by namespace e.g.
+  :io.pedestal.service.http/interceptors or bootstrap/interceptors if the namespace is aliased to bootstrap.
+
+  Options:
+
+  * :interceptors: A vector of interceptors that defines a service.
+
+  Note: Additional options are passed to default-interceptors if :interceptors is not set."
   [{interceptors ::interceptors
     :as options}]
   (cond-> options
