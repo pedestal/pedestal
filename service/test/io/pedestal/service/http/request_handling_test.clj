@@ -12,6 +12,8 @@
 (ns ^{:doc "Integration tests of request handling."}
   io.pedestal.service.http.request-handling-test
   (:require [io.pedestal.service.http.route :as route]
+            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
+            [ring.util.response :as ring-response]
             [io.pedestal.service.http.route.definition :refer [defroutes]]
             [io.pedestal.service.interceptor :as interceptor :refer [defhandler]]
             [io.pedestal.service.http :as service])
@@ -51,12 +53,15 @@
     (.getParent file))
   (spit file "some test data"))
 
+(defn make-app [options]
+  (-> options
+      service/default-interceptors
+      service/service-fn
+      ::service/service-fn))
 
-(def app
-  (::service/service-fn (-> {::service/routes request-handling-routes
-                         ::service/file-path tempdir}
-                        service/default-interceptors
-                        service/service-fn)))
+(def app (make-app {::service/routes request-handling-routes
+                    ::service/file-path tempdir}))
+
 
 (deftest termination-test
   (are [url body] (= body (->> url
@@ -67,6 +72,18 @@
        "http://request-handling.pedestal/unrouted" "Not Found"
        "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
        tempfile-url "some test data"))
+
+(interceptor/defafter custom-not-found
+  [context]
+  (if-not (servlet-interceptor/response-sent? context)
+    (assoc context :response (ring-response/not-found "Custom Not Found"))
+    context))
+
+(deftest custom-not-found-test
+  (let [app (make-app {::service/routes request-handling-routes
+                       ::service/not-found-interceptor custom-not-found})]
+    (is (= "Custom Not Found"
+           (:body (response-for app :get "http://request-handling.pedestal/unrouted"))))))
 
 (let [file (java.io.File/createTempFile "request-handling-test" ".css")]
   (def tempfile-url
