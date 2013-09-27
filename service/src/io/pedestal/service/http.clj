@@ -105,9 +105,11 @@
     resource-path ::resource-path
     method-param-name ::method-param-name
     allowed-origins ::allowed-origins
+    not-found-interceptor ::not-found-interceptor
     ext-mime-types ::mime-types
     :or {file-path nil
          resource-path "public"
+         not-found-interceptor not-found
          method-param-name :_method
          ext-mime-types {}}
     :as service-map}]
@@ -115,7 +117,7 @@
          (cond-> []
                  true (conj log-request)
                  (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
-                 true (conj not-found)
+                 true (conj not-found-interceptor)
                  true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                  true (conj route/query-params)
                  true (conj (route/method-param method-param-name))
