@@ -22,6 +22,7 @@
      ["/about" {:get about-page}]]]])
 
 ;; Consumed by {{namespace}}.server/create-server
+;; See bootstrap/default-interceptors for additional options you can configure
 (def service {:env :prod
               ;; You can bring your own non-default interceptors. Make
               ;; sure you include routing and set it up right for
