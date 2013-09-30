@@ -21,8 +21,8 @@
   * user-service - an application level service map.
   * routes-var - a var referencing an applications routes map. This is a var
                  specifically so routes can be reloaded per-request."
-  [user-service routes-var]
-  (server/init (-> user-service ;; start with production configuration
+  [{service :service routes-var :routes-var}]
+  (server/init (-> service ;; start with production configuration
                    (merge {:env :dev
                            ;; do not block thread that starts web server
                            ::bootstrap/join? false
