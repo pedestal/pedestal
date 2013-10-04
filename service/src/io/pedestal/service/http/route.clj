@@ -295,12 +295,15 @@
   given the route and opts. opts is a map as described in the
   docstring for 'url-for'."
   [route opts]
-  (let [{:keys [path-params
-                query-params
-                request
-                fragment
-                override
-                absolute?]} opts
+  (let [{:keys           [path-params
+                          query-params
+                          request
+                          fragment
+                          override
+                          absolute?]
+         override-host   :host
+         override-port   :port
+         override-scheme :scheme} opts
         {:keys [scheme host port path-parts]} route
         context-path-parts (context-path opts)
         path-parts (do (log/info :in :link-str
@@ -310,9 +313,9 @@
                          (concat context-path-parts (rest path-parts))
                          path-parts))
         path (str/join \/ (map #(get path-params % %) path-parts))
-        scheme (or (:scheme override) scheme)
-        host (or (:host override) host)
-        port (or (:port override) port)
+        scheme (or override-scheme scheme)
+        host (or override-host host)
+        port (or override-port port)
         request-scheme (:scheme request)
         request-host (:server-name request)
         scheme-match (or (nil? scheme) (= scheme request-scheme))

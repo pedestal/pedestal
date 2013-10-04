@@ -629,8 +629,10 @@
                    ((make-linker routes) ::delete-user
                     :app-name :admin
                     :params {:user-id 456}
-                    :request {:scheme :https :server-name "admin.example.com" :server-port 9999}
-                    :override {:scheme :http :host "admin-staging.example.com" :port 8080}))
+                    :scheme :http
+                    :host "admin-staging.example.com"
+                    :port 8080
+                    :request {:scheme :https :server-name "admin.example.com" :server-port 9999}))
        verbose-routes
        terse-routes
        data-routes
