@@ -14,6 +14,7 @@
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pprint]
             [clojure.stacktrace :as stacktrace]
+            [clojure.core.async :as async]
             [io.pedestal.service.log :as log]
             [io.pedestal.service.interceptor :as interceptor :refer [definterceptor]]
             [io.pedestal.service.http.route :as route]
@@ -23,6 +24,10 @@
            (javax.servlet.http HttpServletRequest HttpServletResponse)
            (java.io OutputStreamWriter OutputStream)))
 
+(defn channel?
+  [obj]
+  (instance? clojure.core.async.impl.protocols.Channel obj))
+
 ;;; HTTP Response
 
 (defprotocol WriteableBody
@@ -30,6 +35,7 @@
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
 
 (extend-protocol WriteableBody
+
   (class (byte-array 0))
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [byte-array output-stream]
@@ -98,26 +104,40 @@
        (doseq [[k vs] headers]
          (set-header servlet-resp k vs)))))
 
-(defn- send-response [^HttpServletResponse servlet-resp resp-map]
-  (when-not (.isCommitted servlet-resp)
-    (set-response servlet-resp resp-map))
-  (write-body servlet-resp (:body resp-map))
-  (.flushBuffer servlet-resp))
+(defn- send-response
+  [{:keys [^HttpServletResponse servlet-response response] :as context}]
+  (when-not (.isCommitted servlet-response)
+    (set-response servlet-response response))
+  (let [body (:body response)]
+    (if (channel? body)
+      (async/go
+       (println "IN ASYNC GO")
+       (loop []
+         (when-let [body-part (async/<! body)]
+           (println "READING BODY PART")
+           (write-body servlet-response body-part)
+           (println "FLUSHING BUFFER")
+           (.flushBuffer servlet-response)
+           (recur)))
+       (interceptor-impl/resume context))
+      (do 
+        (write-body servlet-response body)
+        (.flushBuffer servlet-response)))))
 
-(defn lockable [context]
-  (:servlet-response context))
+;; (defn lockable [context]
+;;   (:servlet-response context))
 
-(defn write-response-body
-  [{^HttpServletResponse servlet-resp :servlet-response} body]
-  (write-body servlet-resp body))
+;; (defn write-response-body
+;;   [{^HttpServletResponse servlet-resp :servlet-response} body]
+;;   (write-body servlet-resp body))
 
-(defn write-response
-  [{^HttpServletResponse servlet-resp :servlet-response} resp-map]
-  (send-response servlet-resp resp-map))
+;; (defn write-response
+;;   [{^HttpServletResponse servlet-resp :servlet-response} resp-map]
+;;   (send-response servlet-resp resp-map))
 
-(defn flush-response
-  [{^HttpServletResponse servlet-resp :servlet-response}]
-  (.flushBuffer servlet-resp))
+;; (defn flush-response
+;;   [{^HttpServletResponse servlet-resp :servlet-response}]
+;;   (.flushBuffer servlet-resp))
 
 (defn response-sent? [context]
   (.isCommitted (:servlet-response context)))
@@ -218,18 +238,17 @@
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
-  [{:keys [^HttpServletRequest servlet-request]
-    :as context}]
+  [{:keys [^HttpServletRequest servlet-request] :as context}]
   (when (async? servlet-request)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
-(defn- send-error [servlet-response message]
-  (log/info :msg "sending error"
-            :message message)
-  (send-response servlet-response {:status 500 :body message}))
+(defn- send-error
+  [context message]
+  (log/info :msg "sending error" :message message)
+  (send-response (assoc context :response {:status 500 :body message})))
 
-(defn- leave-ring-response
+(defn- leave-ring-response*
   [{:keys [^HttpServletRequest servlet-request servlet-response response]
     :as context}]
   (let [response-sent (response-sent? context)]
@@ -240,12 +259,22 @@
       (throw (ex-info "Response already sent"
                       {:response-sent response-sent
                        :response response})))
+
     (cond
-     (and response (not response-sent)) (send-response servlet-response response)
+     (and response (not response-sent))
+     (send-response context)
      ;; may want to allow sending no response for security reasons, i.e., rejecting a cors request
-     (not (or response response-sent)) (send-error servlet-response
-                                                   "Internal server error: no response"))
+     (not (or response response-sent))
+     (send-error context "Internal server error: no response"))
     context))
+
+(defn- leave-ring-response
+  [context]
+  (let [body (get-in context [:response :body])]
+    (if (channel? body)  
+      (interceptor-impl/with-pause [post-pause-context context]
+        (leave-ring-response* post-pause-context))
+      (leave-ring-response* context))))
 
 (defn- terminator-inject
   [context]
@@ -267,11 +296,11 @@
   async case. This is just to make sure exceptions get returned
   somehow; application code should probably catch and log exceptions
   in its own interceptors."
-  [{:keys [servlet-response] :as context} exception]
+  [context exception]
   (log/error :msg "error-ring-response triggered"
              :exception exception
              :context context)
-  (send-error servlet-response "Internal server error: exception")
+  (send-error context "Internal server error: exception")
   context)
 
 (definterceptor stylobate

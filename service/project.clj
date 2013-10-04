@@ -18,6 +18,9 @@
                  ;; route
                  [org.clojure/core.incubator "0.1.2"]
 
+                 ;; channels
+                 [core.async "0.1.0-SNAPSHOT"]
+
                  ;; interceptors
                  [ring/ring-core "1.2.0-beta1"
                   :exclusions [javax.servlet/servlet-api]]
@@ -29,7 +32,7 @@
   :global-vars {*warn-on-reflection* true}
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.service.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
-  :profiles {:default [:dev :provided :user :base]
+  :profiles {:default [:provided :user :base]
              :provided
              {:dependencies [[javax.servlet/javax.servlet-api "3.0.1"]]}
              :dev
