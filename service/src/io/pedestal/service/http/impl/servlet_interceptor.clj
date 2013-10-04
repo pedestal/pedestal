@@ -210,9 +210,10 @@
 
 (defn- leave-stylobate
   [{:keys [^HttpServletRequest servlet-request]
-    async? ::async? :as context}]
-  (when async? (.complete (.getAsyncContext servlet-request)))
-  context)
+    :as context}]
+  (let [async? (.isAsyncStarted servlet-request)]
+    (when async? (.complete (.getAsyncContext servlet-request)))
+    context))
 
 (defn- send-error [servlet-response message]
   (log/info :msg "sending error"
