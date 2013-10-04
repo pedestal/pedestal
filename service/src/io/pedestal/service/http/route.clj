@@ -291,10 +291,19 @@
     (str/split context-str #"/")))
 
 (defn- link-str
-  "Returns a string for a route. opts is a map as described in the
+  "Returns a string for a route, providing the minimum URL necessary
+  given the route and opts. opts is a map as described in the
   docstring for 'url-for'."
   [route opts]
-  (let [{:keys [path-params query-params request fragment]} opts
+  (let [{:keys           [path-params
+                          query-params
+                          request
+                          fragment
+                          override
+                          absolute?]
+         override-host   :host
+         override-port   :port
+         override-scheme :scheme} opts
         {:keys [scheme host port path-parts]} route
         context-path-parts (context-path opts)
         path-parts (do (log/info :in :link-str
@@ -304,14 +313,17 @@
                          (concat context-path-parts (rest path-parts))
                          path-parts))
         path (str/join \/ (map #(get path-params % %) path-parts))
+        scheme (or override-scheme scheme)
+        host (or override-host host)
+        port (or override-port port)
         request-scheme (:scheme request)
         request-host (:server-name request)
         scheme-match (or (nil? scheme) (= scheme request-scheme))
         host-match (or (nil? host) (= host request-host))
         port-match (or (nil? port) (= port (:server-port request)))]
     (str
-     (when-not (and scheme-match host-match port-match)
-       (str (when-not scheme-match (str (name (or scheme request-scheme)) \:))
+     (when (or (not scheme-match) (not host-match) (not port-match) absolute?)
+       (str (when (or (not scheme-match) absolute?) (str (name (or scheme request-scheme)) \:))
             "//"
             (or host request-host)
             (when port (str \: port))))
@@ -375,6 +387,11 @@
                     is nil.
 
       :fragment     A string for the fragment part of the url.
+
+      :override     A map of aspects of the matching route to override
+                    including any of: :scheme, :host, :port.
+
+      :absolute?    Boolean, whether or not to force an absolute URL
 
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned
