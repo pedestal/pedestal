@@ -14,8 +14,13 @@
   common \"context\" map, maintaining a virtual \"stack\", with error
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
-  (:require [io.pedestal.service.log :as log])
+  (:require [io.pedestal.service.log :as log]
+            [clojure.core.async :as async :refer [<! go]])
   (:import java.util.concurrent.atomic.AtomicLong))
+
+(declare execute)
+
+(defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
 
 (defn- name [interceptor]
   (get interceptor :name (pr-str interceptor)))
@@ -77,11 +82,28 @@
       (dissoc context ::queue))
     context))
 
-(defn- go-async
-  "Call all :enter-async functions, passing context."
+(defn- prepare-for-async
+  "Call all of the :enter-async functions in a context. The purpose of these
+  functions is to ready backing servlets or any other machinery for preparing
+  an asynchronous response."
   [{:keys [enter-async] :as context}]
   (doseq [enter-async-fn enter-async]
     (enter-async-fn context)))
+
+(defn- go-async
+  "When presented with a channel as the return value of an enter function,
+  wait for the channel to return a new-context (via a go block). When a new
+  context is received, restart execution of the interceptor chain with that
+  context.
+
+  This function is non-blocking, returning nil immediately (a signal to halt
+  further execution on this thread)."
+  [old-context context-channel]
+  (prepare-for-async old-context)
+  (go
+    (let [new-context (<! context-channel)]
+      (execute new-context)))
+  nil)
 
 (defn- enter-all-with-binding
   "Invokes :enter functions of all Interceptors on the execution
@@ -105,10 +127,10 @@
                           (assoc ::stack (conj stack interceptor))
                           (try-f interceptor :enter))]
           (cond
-           (nil? context) (go-async old-context)
-           (::error context) (dissoc context ::queue)
-           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-           true (recur (check-terminators context))))))))
+            (channel? context) (go-async old-context context)
+            (::error context) (dissoc context ::queue)
+            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+            true (recur (check-terminators context))))))))
 
 (defn- enter-all
   "Establish the bindings present in `context` as thread local
