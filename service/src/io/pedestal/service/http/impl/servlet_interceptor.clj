@@ -191,7 +191,7 @@
       (add-ssl-client-cert servlet-req)
       persistent!))
 
-(defn- start-async
+(defn- start-servlet-async*
   "Begins an asynchronous response to a request."
   [^HttpServletRequest servlet-request]
   ;; TODO: fix?
@@ -203,17 +203,26 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
+(defn- async? [servlet-request]
+  (.isAsyncStarted servlet-request))
+
+(defn- start-servlet-async
+  [{:keys [servlet-request] :as context}]
+  (when-not (async? servlet-request)
+    (start-servlet-async* servlet-request)))
+
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
-  (assoc context :request
-         (request-map servlet servlet-request servlet-response)))
+  (-> context
+      (assoc :request (request-map servlet servlet-request servlet-response))
+      (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
   [{:keys [^HttpServletRequest servlet-request]
     :as context}]
-  (let [async? (.isAsyncStarted servlet-request)]
-    (when async? (.complete (.getAsyncContext servlet-request)))
-    context))
+  (when (async? servlet-request)
+    (.complete (.getAsyncContext servlet-request)))
+  context)
 
 (defn- send-error [servlet-response message]
   (log/info :msg "sending error"
@@ -265,11 +274,6 @@
   (send-error servlet-response "Internal server error: exception")
   context)
 
-(defn- pause-stylobate
-  [{:keys [servlet-request], async? ::async?, :as context}]
-  (when-not async? (start-async servlet-request))
-  (assoc context ::async? true))
-
 (definterceptor stylobate
   "An interceptor which creates favorable pre-conditions for further
   io.pedestal.service.interceptors, and handles all post-conditions for
@@ -282,11 +286,10 @@
 
   This interceptor supports asynchronous responses as defined in the
   Java Servlet Specification[2] version 3.0. On leaving this
-  interceptor, if the context was flagged as asynchronous, all
-  asynchronous resources will be cleaned. Pausing this interceptor
-  will inform the servlet container that the response will be
-  delivered asynchronously, and flag the context this interceptor is
-  processing as asynchronous.
+  interceptor, if the servlet request has been set asynchronous, all
+  asynchronous resources will be closed. Pausing this interceptor will
+  inform the servlet container that the response will be delivered
+  asynchronously.
 
   If a later interceptor in this context throws an exception which is
   not caught, this interceptor will log the error but not communicate
@@ -299,7 +302,6 @@
    :name ::stylobate
    :enter enter-stylobate
    :leave leave-stylobate
-   :pause pause-stylobate
    :error error-stylobate))
 
 (definterceptor ring-response

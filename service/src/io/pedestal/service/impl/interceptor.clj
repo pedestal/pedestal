@@ -77,6 +77,12 @@
       (dissoc context ::queue))
     context))
 
+(defn- go-async
+  "Call all :enter-async functions, passing context."
+  [{:keys [enter-async] :as context}]
+  (doseq [enter-async-fn enter-async]
+    (enter-async-fn context)))
+
 (defn- enter-all-with-binding
   "Invokes :enter functions of all Interceptors on the execution
   ::queue of context, saves them on the ::stack of context. Returns
@@ -92,12 +98,14 @@
         context
         (let [interceptor (peek queue)
               pre-bindings (:bindings context)
+              old-context context
               context (-> context
                           (assoc ::queue (pop queue))
                           ;; conj on nil returns a list, acts like a stack:
                           (assoc ::stack (conj stack interceptor))
                           (try-f interceptor :enter))]
           (cond
+           (nil? context) (go-async old-context)
            (::error context) (dissoc context ::queue)
            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
            true (recur (check-terminators context))))))))
