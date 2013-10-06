@@ -30,7 +30,7 @@
                 ;; output. Possible values are :public and
                 ;; :tools-public. Override this value in an aspect
                 ;; with :tools-output. :public maps to out/public
-                ;; and and :tools-public maps to tools/out/public.
+                ;; and :tools-public maps to tools/out/public.
                 :output-root :public}
   ;; Add arbitrary links to the control panel
   :control-panel {:design {:uri "/design.html"

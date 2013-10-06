@@ -29,7 +29,7 @@ To begin working on an application, execute:
 
 and then visit `http://localhost:3000`.
 
-Alternatively, start the app server from the commandline: `lein run`.
+Alternatively, start the app server from the command line: `lein run`.
 
 During development of an application, sources will be compiled
 on-demand. Sources include everything located in the `app`
