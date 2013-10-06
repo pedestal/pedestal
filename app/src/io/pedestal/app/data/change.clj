@@ -42,7 +42,7 @@
                         [path-b path-a])]
     (= small (take (count small) large))))
 
-(defn- remove-redundent-updates [updates]
+(defn- remove-redundant-updates [updates]
   (reduce (fn [a update]
             (if (some #(descendent? % update) a)
               a
@@ -50,7 +50,7 @@
           #{}
           (reverse (sort-by count updates))))
 
-(defn- remove-redundent-adds [adds]
+(defn- remove-redundant-adds [adds]
   (reduce (fn [a add]
             (if (some #(descendent? % add) a)
               a
@@ -78,10 +78,10 @@
                        change
                        inspect)
         change (if (:updated change)
-                 (update-in change [:updated] remove-redundent-updates)
+                 (update-in change [:updated] remove-redundant-updates)
                  change)
         change (if (:added change)
-                 (update-in change [:added] remove-redundent-adds)
+                 (update-in change [:added] remove-redundant-adds)
                  change)
         change (if (:updated change)
                  (update-in change [:updated] remove-updates-covered-by-adds (:added change))
