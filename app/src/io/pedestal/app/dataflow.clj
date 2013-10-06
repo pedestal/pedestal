@@ -24,7 +24,7 @@
   (and (= (count path-a) (count path-b))
        (every? true? (map (fn [a b] (matching-path-element? a b)) path-a path-b))))
 
-(defn- descendent?
+(defn- descendant?
   "Return true if one path could be the parent of the other."
   [path-a path-b]
   (let [[small large] (if (< (count path-a) (count path-b))
@@ -106,7 +106,7 @@
   (let [input-m (input-map inputs)
         changed (keys (f inputs))]
     (reduce (fn [a [k v]]
-              (if (some #(descendent? k %) changed)
+              (if (some #(descendant? k %) changed)
                 (assoc a k v)
                 a))
             {}
@@ -130,7 +130,7 @@
           (reduce (fn [acc path]
                     (reduce (fn [a cp] (f a path cp))
                             acc
-                            (filter #(descendent? path %) changed-paths)))
+                            (filter #(descendant? path %) changed-paths)))
                   {}
                   input-paths))]
   (defn removed-inputs [inputs]
@@ -174,7 +174,7 @@
         graph (reduce
                (fn [a [f _ out]]
                  (assoc a f {:deps (set (map first
-                                             (filter (fn [[_ in]] (descendent? in out))
+                                             (filter (fn [[_ in]] (descendant? in out))
                                                      deps)))}))
                {}
                deps)]
@@ -228,7 +228,7 @@
   "The default propagator predicate. Return true if any of the changed
   paths are on the same path as the input path."
   [state changed-inputs input-path]
-  (some (partial descendent? input-path) changed-inputs))
+  (some (partial descendant? input-path) changed-inputs))
 
 (defn- propagate?
   "Return true if a dependent function should be run based on the
@@ -244,7 +244,7 @@
           input-paths)))
 
 (defn- input-set [changes f input-paths]
-  (set (f (fn [x] (some (partial descendent? x) input-paths)) changes)))
+  (set (f (fn [x] (some (partial descendant? x) input-paths)) changes)))
 
 (defn- update-input-sets [m ks f input-paths]
   (reduce (fn [a k]

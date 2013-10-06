@@ -25,7 +25,7 @@
         ;;
         ;; The file, app/src/{{sanitized}}/rendering.cljs contains
         ;; the code which does all of the rendering as well as the
-        ;; render-config which is used to map renderering data to
+        ;; render-config which is used to map rendering data to
         ;; specific functions.
         {{/annotated?}}render-fn (push-render/renderer "content" render-config render/log-fn)
         {{#annotated?}};; This application does not yet have services, but if it did,
