@@ -16,5 +16,6 @@
   :aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
   :profiles {:dev {:resource-paths ["dev"]
                    :dependencies [[io.pedestal/pedestal.service-tools "0.2.2-SNAPSHOT"]]
-                   :repl-options  {:init-ns user}}}
+                   :repl-options {:init-ns user
+                                  :welcome (println "Welcome to pedestal-service! Run (tools-help) to see a list of useful functions.")}}}
   :main ^{:skip-aot true} {{namespace}}.server)
