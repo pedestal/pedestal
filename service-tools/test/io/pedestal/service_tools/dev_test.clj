@@ -11,7 +11,6 @@
 
 (ns io.pedestal.service-tools.dev-test
   (:require [clojure.test :refer :all ]
-            [clojure.pprint :as p]
             [io.pedestal.service.http :as bootstrap]
             [io.pedestal.service.http.route :as route]
             [io.pedestal.service-tools.dev :refer :all ]))
