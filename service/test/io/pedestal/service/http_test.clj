@@ -34,6 +34,11 @@
 (defn hello-plaintext-no-content-type-page [request]
   (hello-page request))
 
+(def ^:dynamic *req* {})
+
+(defn with-binding-page [request]
+  (ring-resp/response (str ":req was bound to " *req*)))
+
 (defn just-status-page
   [request] {:status 200})
 
@@ -58,6 +63,10 @@
     (servlet-interceptor/flush-response ctx)
     ctx))
 
+(defbefore add-binding
+  [context]
+  (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
+
 (defafter add-response-after
   [ctx]
   (assoc ctx :response (ring-resp/response "I'm responding")))
@@ -67,6 +76,7 @@
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
     ["/edn" {:get get-edn}]
     ["/just-status" {:get just-status-page}]
+    ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
     ["/direct-response-1" {:get [::direct-response-1 send-response-directly]}]
     ["/direct-response-2" {:get [::direct-response-2 send-response-directly]}
      ^:interceptors [add-response-after]]
@@ -130,6 +140,12 @@
          (->> "/just-status"
               (response-for app :get)
               :status))))
+
+(deftest adding-a-binding-to-context-appears-in-user-request
+  (is (= ":req was bound to {:a 1}"
+         (->> "/with-binding"
+              (response-for app :get)
+              :body))))
 
 (def with-bindings*-atom
   (atom 0))
