@@ -247,10 +247,10 @@
   :params are added to :query-params. Returns updated opts."
   [opts route]
   (let [{:keys [params request]} opts]
-    (log/info :msg "MERGE-PARAM-OPTIONS"
-              :opts opts
-              :params params
-              :request request)
+    (log/debug :msg "MERGE-PARAM-OPTIONS"
+               :opts opts
+               :params params
+               :request request)
     (-> opts
         (dissoc :params)
         (update-in [:path-params] #(merge (:path-params request) params %))
@@ -278,16 +278,16 @@
 
 (defn- context-path
   [{:keys [context request] :as opts}]
-  (log/info :in :context-path
-            :context context
-            :context-type (type context)
-            :resolved-context (when (symbol? context) (resolve context))
-            :request request)
+  (log/debug :in :context-path
+             :context context
+             :context-type (type context)
+             :resolved-context (when (symbol? context) (resolve context))
+             :request request)
   (when-let [context-str (cond
-                       (string? context) context
-                       (fn? context) (context)
-                       (symbol? context) ((resolve context))
-                       :else (:context-path request))]
+                          (string? context) context
+                          (fn? context) (context)
+                          (symbol? context) ((resolve context))
+                          :else (:context-path request))]
     (str/split context-str #"/")))
 
 (defn- link-str
@@ -306,9 +306,9 @@
          override-scheme :scheme} opts
         {:keys [scheme host port path-parts]} route
         context-path-parts (context-path opts)
-        path-parts (do (log/info :in :link-str
-                                 :path-parts path-parts
-                                 :context-path-parts context-path-parts)
+        path-parts (do (log/debug :in :link-str
+                                  :path-parts path-parts
+                                  :context-path-parts context-path-parts)
                        (if (and context-path-parts (empty? (first path-parts)))
                          (concat context-path-parts (rest path-parts))
                          path-parts))
