@@ -47,7 +47,7 @@
   (try
     (locking channel
       (doseq [token [EVENT_FIELD (get-bytes name) CRLF (mk-data data) CRLF]]
-        #(async/>!! channel token)))
+        (async/>!! channel token)))
     (catch Throwable t
       (log/error :msg "exception sending event"
                  :throwable t

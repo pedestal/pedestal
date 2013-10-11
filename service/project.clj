@@ -19,7 +19,7 @@
                  [org.clojure/core.incubator "0.1.2"]
 
                  ;; channels
-                 [core.async "0.1.0-SNAPSHOT"]
+                 [org.clojure/core.async "0.1.242.0-44b1e3-alpha"]
 
                  ;; interceptors
                  [ring/ring-core "1.2.0-beta1"
