@@ -14,8 +14,7 @@
             [io.pedestal.service.http.servlet :refer :all]
             [io.pedestal.service.log :as log]
             [io.pedestal.service.interceptor :as interceptor :refer [definterceptorfn]]
-            [io.pedestal.service.impl.interceptor :as interceptor-impl]
-            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
+            [clojure.core.async :as async]
             [clojure.stacktrace]
             [clojure.string :as string])
   (:import [java.nio.charset Charset]
@@ -41,39 +40,33 @@
   (apply str (map #(str "data:" % "\r\n")
                   (string/split data #"\r?\n"))))
 
-(defn send-event [stream-context name data]
+(defn send-event [{channel ::channel} name data]
   (log/trace :msg "writing event to stream"
              :name name
              :data data)
   (try
-    (locking (servlet-interceptor/lockable stream-context)
-      (let [data (mk-data data)]
-        (servlet-interceptor/write-response-body stream-context EVENT_FIELD)
-        (servlet-interceptor/write-response-body stream-context (get-bytes name))
-        (servlet-interceptor/write-response-body stream-context CRLF)
-        (servlet-interceptor/write-response-body stream-context data)
-        (servlet-interceptor/write-response-body stream-context CRLF))
-      (servlet-interceptor/flush-response stream-context))
+    (locking channel
+      (doseq [token [EVENT_FIELD (get-bytes name) CRLF (mk-data data) CRLF]]
+        #(async/>!! channel token)))
     (catch Throwable t
       (log/error :msg "exception sending event"
                  :throwable t
                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
       (throw t))))
 
-(defn do-heartbeat [stream-context]
+(defn do-heartbeat [channel]
   (try
-    (locking (servlet-interceptor/lockable stream-context)
-      (log/trace :msg "writing heartbeat to stream")
-      (servlet-interceptor/write-response-body stream-context CRLF)
-      (servlet-interceptor/flush-response stream-context))
+    (log/trace :msg "writing heartbeat to stream")
+    (locking channel 
+      (async/>!! channel CRLF))
     (catch Throwable t
       (log/error :msg "exception sending heartbeat"
                  :throwable t
                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
       (throw t))))
 
-(defn- ^ScheduledFuture schedule-heartbeart [stream-context heartbeat-delay]
-  (let [f #(do-heartbeat stream-context)]
+(defn- ^ScheduledFuture schedule-heartbeart [channel heartbeat-delay]
+  (let [f #(do-heartbeat channel)]
     (.scheduleWithFixedDelay scheduler f 0 heartbeat-delay TimeUnit/SECONDS)))
 
 (defn end-event-stream
@@ -87,42 +80,33 @@
   reference to an end-stream function into context. An application
   must use this function to clean up a stream when it is no longer
   needed."
-  [stream-context heartbeat-delay]
-  (let [response (-> (ring-response/response "")
+  [stream-ready-fn context heartbeat-delay]
+  (let [channel (async/chan 1)
+        response (-> (ring-response/response channel)
                      (ring-response/content-type "text/event-stream")
                      (ring-response/charset "UTF-8")
                      (ring-response/header "Connection" "close")
                      (ring-response/header "Cache-control" "no-cache")
-                     (update-in [:headers] merge (:cors-headers stream-context)))]
-    (log/debug :in :start-stream :response response)
-    (log/trace :msg "starting sse handler")
-    (servlet-interceptor/write-response stream-context response)
-    (servlet-interceptor/flush-response stream-context)
-    (log/trace :msg "response headers sent")
-
-    (let [hb-future (schedule-heartbeart stream-context heartbeat-delay)]
-      (assoc stream-context ::end-event-stream
-             (fn []
-               (log/trace :msg "resuming after streaming"
-                          :context stream-context)
-               (.cancel hb-future true)
-               (interceptor-impl/resume stream-context))))))
+                     (update-in [:headers] merge (:cors-headers context)))
+        heartbeat (schedule-heartbeart channel heartbeat-delay)
+        stream-context (merge context {:response response
+                                       ::channel channel
+                                       ::end-event-stream
+                                       (fn []
+                                         (log/trace :msg "ending sse stream")
+                                         (.cancel heartbeat true)
+                                         (async/close! channel))})]
+    (log/debug :in :start-stream :new-context stream-context)
+    (stream-ready-fn stream-context)
+    stream-context))
 
 (defn stream-events-fn
   "Stream events to the client by establishing an output stream as
   part of the context."
   [stream-ready-fn heartbeat-delay]
   (fn [{:keys [request] :as context}]
-    (interceptor-impl/with-pause [post-pause-context context]
-      (log/trace :msg "switching to sse")
-      (future
-        (try
-          (stream-ready-fn (start-stream post-pause-context heartbeat-delay))
-          (catch Throwable t
-            (log/error :msg "exception starting stream"
-                       :throwable t
-                       :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
-            (throw t)))))))
+    (log/trace :msg "switching to sse")
+    (start-stream stream-ready-fn context heartbeat-delay)))
 
 (definterceptorfn start-event-stream
   "Returns an interceptor which will start a Server Sent Event stream
