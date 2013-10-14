@@ -290,6 +290,13 @@
                           :else (:context-path request))]
     (str/split context-str #"/")))
 
+(def ^{:private true} standard-scheme->port {:http  80
+                                             :https 443})
+
+(defn- non-standard-port?
+  [scheme port]
+  (not= port (standard-scheme->port scheme)))
+
 (defn- link-str
   "Returns a string for a route, providing the minimum URL necessary
   given the route and opts. opts is a map as described in the
@@ -313,20 +320,21 @@
                          (concat context-path-parts (rest path-parts))
                          path-parts))
         path (str/join \/ (map #(get path-params % %) path-parts))
-        scheme (or override-scheme scheme)
-        host (or override-host host)
-        port (or override-port port)
         request-scheme (:scheme request)
         request-host (:server-name request)
-        scheme-match (or (nil? scheme) (= scheme request-scheme))
-        host-match (or (nil? host) (= host request-host))
-        port-match (or (nil? port) (= port (:server-port request)))]
+        request-port (:server-port request)
+        scheme (or override-scheme scheme request-scheme)
+        host (or override-host host request-host)
+        port (or override-port port request-port)
+        scheme-mismatch (not= scheme request-scheme)
+        host-mismatch   (not= host   request-host)
+        port-mismatch   (not= port   request-port)]
     (str
-     (when (or (not scheme-match) (not host-match) (not port-match) absolute?)
-       (str (when (or (not scheme-match) absolute?) (str (name (or scheme request-scheme)) \:))
+     (when (or absolute? scheme-mismatch host-mismatch port-mismatch)
+       (str (when (or absolute? scheme-mismatch) (str (name scheme) \:))
             "//"
-            (or host request-host)
-            (when port (str \: port))))
+            host
+            (when (non-standard-port? scheme port) (str \: port))))
      (str (when-not (.startsWith path "/") "/") path)
      (when-not (str/blank? fragment) (str "#" fragment))
      (when (seq query-params)
