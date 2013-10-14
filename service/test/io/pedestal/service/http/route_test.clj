@@ -561,6 +561,18 @@
        data-routes
        syntax-quote-data-routes))
 
+(deftest view-user-link-on-non-standard-port
+  (are [routes] (= "http://example.com:8080/user/456"
+                   ((make-linker routes) ::view-user
+                    :app-name :public
+                    :params {:user-id 456}
+                    :absolute? true
+                    :request {:scheme :http :server-name "example.com" :server-port 8080}))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
 (deftest delete-user-link
   (are [routes] (= "https://admin.example.com:9999/user/456/delete"
                    ((make-linker routes) ::delete-user :app-name :admin :params {:user-id 456}))
