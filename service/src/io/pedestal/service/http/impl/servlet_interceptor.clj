@@ -359,13 +359,13 @@
                           :servlet-response servlet-response
                           :servlet-config (.getServletConfig servlet)
                           :servlet servlet})]
-      (log/info :in :interceptor-service-fn
-                :context context)
+      (log/debug :in :interceptor-service-fn
+                 :context context)
       (try
         (let [final-context (interceptor-impl/execute
                              (apply interceptor-impl/enqueue context interceptors))]
           (log/debug :msg "Leaving servlet"
-                    :final-context final-context))
+                     :final-context final-context))
         (catch Throwable t
           (log/error :msg "Servlet code threw an exception"
                      :throwable t
