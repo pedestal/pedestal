@@ -20,14 +20,12 @@
   (vec (butlast path)))
 
 (defn update-template [t m]
-  (doseq [[k v] t {:keys [id type attr-name]} v]
-    (case type
-      :attr (cond (and (contains? m k) (nil? (get m k)))
-                  (d/remove-attr! (d/by-id id) attr-name)
-                  (contains? m k)
-                  (d/set-attrs! (d/by-id id) {attr-name (get m k)}))
-      :content (when (contains? m k)
-                 (d/set-html! (d/by-id id) (get m k)))
+  (doseq [[k v] m {:keys [id type attr-name]} (get t k)]
+    (case type 
+      :attr (if (nil? v)
+              (d/remove-attr! (d/by-id id) attr-name)
+              (d/set-attrs! (d/by-id id) {attr-name v}))
+      :content (d/set-html! (d/by-id id) v)
       nil)))
 
 (defn- add-in-template [f t m]
