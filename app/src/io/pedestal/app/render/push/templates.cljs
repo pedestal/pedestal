@@ -29,12 +29,10 @@
       nil)))
 
 (defn- add-in-template [f t m]
-  (doseq [[k v] m]
-    (assert (every? (fn [info] (= :content (:type info))) (get t k))
+  (doseq [[k v] m {:keys [id type]} (get t k)]
+    (assert (= :content type)
             "You may only add to content")
-    (when (contains? t k)
-      (doseq [info (get t k)]
-        (f (d/by-id (:id info)) v)))))
+    (f (d/by-id id) v)))
 
 (defn update-t [r path data]
   (let [template (render/get-data r (conj path ::template))]
