@@ -59,7 +59,7 @@
 ;; interceptors
 
 (interceptor/defon-request log-request
-  "Logs the request's method and uri."
+  "Log the request's method and uri."
   [request]
   (log/info :msg (format "%s %s"
                          (string/upper-case (name (:request-method request)))
@@ -83,7 +83,8 @@
     context))
 
 (interceptor/defon-response html-body
-  "Sets the content-type headers to text/html if the body is a string and no content type is set."
+  "Set the Content-Type header to \"text/html\" if the body is a string and a
+  type has not been set."
   [response]
   (let [body (:body response)
         content-type (get-in response [:headers "Content-Type"])]
@@ -92,8 +93,8 @@
       response)))
 
 (interceptor/defon-response json-body
-  "Sets the content-type headers and converts the body to JSON if there's no content type and the
-  body is true for coll? i.e. is a map, vector or list. It uses Cheshire to generate the JSON body."
+  "Set the Content-Type header to \"application/json\" and convert the body to
+  JSON if the body is a collection and a type has not been set."
   [response]
   (let [body (:body response)
         content-type (get-in response [:headers "Content-Type"])]
