@@ -90,6 +90,7 @@
      (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
      (getProtocol [this] "HTTP/1.1")
      (isAsyncSupported [this] false)
+     (isAsyncStarted [this] false)
      (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
      (getHeader [this header] (get-in options [:headers header]))
      ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
