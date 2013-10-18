@@ -110,37 +110,18 @@
     (set-response servlet-response response))
   (let [body (:body response)]
     (if (channel? body)
-      (async/go
-       (println "IN ASYNC GO")
-       (loop []
-         (when-let [body-part (async/<! body)]
-           (println "READING BODY PART")
-           (write-body servlet-response body-part)
-           (println "FLUSHING BUFFER")
-           (.flushBuffer servlet-response)
-           (recur)))
-       (interceptor-impl/resume context))
-      (do 
+      (do
+        (async/go
+         (loop []
+           (when-let [body-part (async/<! body)]
+             (write-body servlet-response body-part)
+             (.flushBuffer servlet-response)
+             (recur)))
+         (async/>! (::resume-channel context) context)
+         (async/close! (::resume-channel context))))
+      (do
         (write-body servlet-response body)
         (.flushBuffer servlet-response)))))
-
-;; (defn lockable [context]
-;;   (:servlet-response context))
-
-;; (defn write-response-body
-;;   [{^HttpServletResponse servlet-resp :servlet-response} body]
-;;   (write-body servlet-resp body))
-
-;; (defn write-response
-;;   [{^HttpServletResponse servlet-resp :servlet-response} resp-map]
-;;   (send-response servlet-resp resp-map))
-
-;; (defn flush-response
-;;   [{^HttpServletResponse servlet-resp :servlet-response}]
-;;   (.flushBuffer servlet-resp))
-
-(defn response-sent? [context]
-  (.isCommitted (:servlet-response context)))
 
 ;;; HTTP Request
 
@@ -248,33 +229,19 @@
   (log/info :msg "sending error" :message message)
   (send-response (assoc context :response {:status 500 :body message})))
 
-(defn- leave-ring-response*
-  [{:keys [^HttpServletRequest servlet-request servlet-response response]
-    :as context}]
-  (let [response-sent (response-sent? context)]
-    (log/debug :in :leave-ring-response
-               :response response
-               :response-sent response-sent)
-    (when (and response response-sent)
-      (throw (ex-info "Response already sent"
-                      {:response-sent response-sent
-                       :response response})))
-
-    (cond
-     (and response (not response-sent))
-     (send-response context)
-     ;; may want to allow sending no response for security reasons, i.e., rejecting a cors request
-     (not (or response response-sent))
-     (send-error context "Internal server error: no response"))
-    context))
-
 (defn- leave-ring-response
-  [context]
-  (let [body (get-in context [:response :body])]
-    (if (channel? body)  
-      (interceptor-impl/with-pause [post-pause-context context]
-        (leave-ring-response* post-pause-context))
-      (leave-ring-response* context))))
+  [{{body :body :as response} :response :as context}]
+  (log/debug :in :leave-ring-response :response response)
+
+  (cond
+   (nil? response) (do
+                     (send-error context "Internal server error: no response")
+                     context)
+   (channel? body) (let [chan (async/chan)]
+                     (send-response (assoc context ::resume-channel chan))
+                     chan)
+   true (do (send-response context)
+            context)))
 
 (defn- terminator-inject
   [context]

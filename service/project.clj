@@ -32,8 +32,7 @@
   :global-vars {*warn-on-reflection* true}
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.service.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
-  :profiles {:default [:provided :user :base]
-             :provided
+  :profiles {:provided
              {:dependencies [[javax.servlet/javax.servlet-api "3.0.1"]]}
              :dev
              {:source-paths ["dev" "src" "bench"]

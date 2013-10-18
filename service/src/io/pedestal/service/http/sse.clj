@@ -86,7 +86,7 @@
                      (ring-response/content-type "text/event-stream")
                      (ring-response/charset "UTF-8")
                      (ring-response/header "Connection" "close")
-                     (ring-response/header "Cache-control" "no-cache")
+                     (ring-response/header "Cache-Control" "no-cache")
                      (update-in [:headers] merge (:cors-headers context)))
         heartbeat (schedule-heartbeart channel heartbeat-delay)
         stream-context (merge context {:response response

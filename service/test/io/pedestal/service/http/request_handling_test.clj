@@ -62,7 +62,6 @@
 (def app (make-app {::service/routes request-handling-routes
                     ::service/file-path tempdir}))
 
-
 (deftest termination-test
   (are [url body] (= body (->> url
                                (response-for app :get)
@@ -75,9 +74,7 @@
 
 (interceptor/defafter custom-not-found
   [context]
-  (if-not (servlet-interceptor/response-sent? context)
-    (assoc context :response (ring-response/not-found "Custom Not Found"))
-    context))
+  (assoc context :response (ring-response/not-found "Custom Not Found")))
 
 (deftest custom-not-found-test
   (let [app (make-app {::service/routes request-handling-routes

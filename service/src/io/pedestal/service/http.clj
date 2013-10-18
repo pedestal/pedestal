@@ -76,10 +76,8 @@
 (interceptor/defafter not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
   [context]
-  (if-not (servlet-interceptor/response-sent? context)
-    (if-not (response? (:response context))
-      (assoc context :response (ring-response/not-found "Not Found"))
-      context)
+  (if-not (response? (:response context))
+    (assoc context :response (ring-response/not-found "Not Found"))
     context))
 
 (interceptor/defon-response html-body

@@ -158,13 +158,17 @@
         context
         (let [interceptor (peek stack)
               pre-bindings (:bindings context)
+              old-context context
               context (assoc context ::stack (pop stack))
               context (if (::error context)
                         (try-error context interceptor)
                         (try-f context interceptor :leave))]
-          (if (not= (:bindings context) pre-bindings)
-            (assoc context ::rebind true)
-            (recur context)))))))
+          (cond
+           (channel? context) (do
+                                (prepare-for-async old-context)
+                                (go-async context))
+           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+           true (recur context)))))))
 
 (defn- leave-all
   "Establish the bindings present in `context` as thread local

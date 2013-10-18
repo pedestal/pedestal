@@ -13,8 +13,7 @@
   (:use io.pedestal.service.http.body-params
         clojure.pprint
         clojure.test
-        clojure.repl
-        clojure.tools.namespace.repl)
+        clojure.repl)
   (:require [clojure.instant :as inst]
             [io.pedestal.service.impl.interceptor :as interceptor]))
 
