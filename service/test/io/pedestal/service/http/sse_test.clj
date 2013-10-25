@@ -29,7 +29,6 @@
            allow-origin "Access-Control-Allow-Origin"} :headers
           status :status} :response
           :as context} (interceptor/execute interceptor-context)]
-    (end-event-stream context)
     (is body "Response has a body")
     (is (instance? clojure.core.async.impl.protocols.Channel body) "Response body is a channel")
     (is (= 200 status)
