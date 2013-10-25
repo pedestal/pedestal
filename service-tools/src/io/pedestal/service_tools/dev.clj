@@ -38,6 +38,8 @@
 
   You must call init prior to calling start."
   [& [opts]]
+  (when (nil? server/service)
+    (throw (ex-info "Service map is nil, initialize by calling init or by reloading dev tools" {})))
   (server/create-server (merge server/service opts))
   (bootstrap/start server/service-instance))
 

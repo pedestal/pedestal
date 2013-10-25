@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [io.pedestal/pedestal.service "0.2.2-SNAPSHOT"]
+                 [io.pedestal/pedestal.service-tools "0.2.2-SNAPSHOT"]
 
                  ;; Remove this line and uncomment the next line to
                  ;; use Tomcat instead of Jetty:
@@ -15,6 +16,5 @@
   :resource-paths ["config", "resources"]
   :aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
   :profiles {:dev {:resource-paths ["dev"]
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.2.2-SNAPSHOT"]]
                    :repl-options  {:init-ns user}}}
   :main ^{:skip-aot true} {{namespace}}.server)
