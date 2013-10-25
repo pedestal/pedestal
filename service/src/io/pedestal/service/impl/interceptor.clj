@@ -166,7 +166,7 @@
           (cond
            (channel? context) (do
                                 (prepare-for-async old-context)
-                                (go-async context))
+                                (go-async old-context context))
            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
            true (recur context)))))))
 

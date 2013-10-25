@@ -40,7 +40,8 @@
   (apply str (map #(str "data:" % "\r\n")
                   (string/split data #"\r?\n"))))
 
-(defn send-event [{channel ::channel} name data]
+
+(defn send-event [channel name data]
   (log/trace :msg "writing event to stream"
              :name name
              :data data)
@@ -57,7 +58,7 @@
 (defn do-heartbeat [channel]
   (try
     (log/trace :msg "writing heartbeat to stream")
-    (locking channel 
+    (locking channel
       (async/>!! channel CRLF))
     (catch Throwable t
       (log/error :msg "exception sending heartbeat"
@@ -81,24 +82,27 @@
   must use this function to clean up a stream when it is no longer
   needed."
   [stream-ready-fn context heartbeat-delay]
-  (let [channel (async/chan 1)
-        response (-> (ring-response/response channel)
+  (let [response-channel (async/chan 1)
+        response (-> (ring-response/response response-channel)
                      (ring-response/content-type "text/event-stream")
                      (ring-response/charset "UTF-8")
                      (ring-response/header "Connection" "close")
                      (ring-response/header "Cache-Control" "no-cache")
                      (update-in [:headers] merge (:cors-headers context)))
-        heartbeat (schedule-heartbeart channel heartbeat-delay)
-        stream-context (merge context {:response response
-                                       ::channel channel
-                                       ::end-event-stream
-                                       (fn []
-                                         (log/trace :msg "ending sse stream")
-                                         (.cancel heartbeat true)
-                                         (async/close! channel))})]
-    (log/debug :in :start-stream :new-context stream-context)
-    (stream-ready-fn stream-context)
-    stream-context))
+        heartbeat (schedule-heartbeart response-channel heartbeat-delay)
+        event-channel (async/chan 1)]
+    (async/thread
+     (stream-ready-fn event-channel))
+
+    (async/go
+     (loop []
+       (when-let [event (async/<! event-channel)]
+         (send-event response-channel "event" (str event))
+         (recur)))
+     (.cancel heartbeat true)
+     (async/close! response-channel))
+
+    (assoc context :response response)))
 
 (defn stream-events-fn
   "Stream events to the client by establishing an output stream as
@@ -110,7 +114,7 @@
 
 (definterceptorfn start-event-stream
   "Returns an interceptor which will start a Server Sent Event stream
-  with the requesting client, and set the ServletRepsonse to go
+  with the requesting client, and set the ServletResponse to go
   async. After the request handling context has been paused in the
   Servlet thread, `stream-ready-fn` will be called in a future, with
   the resulting context from setting up the SSE event stream."
