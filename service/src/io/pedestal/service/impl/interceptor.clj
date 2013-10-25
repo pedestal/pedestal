@@ -101,7 +101,7 @@
   [old-context context-channel]
   (prepare-for-async old-context)
   (go
-    (let [new-context (<! context-channel)]
+   (let [new-context (<! context-channel)]
       (execute new-context)))
   nil)
 

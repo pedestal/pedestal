@@ -11,6 +11,7 @@
 
 (ns io.pedestal.service.interceptor-test
   (:require [clojure.test :refer (deftest is)]
+            [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.service.interceptor :as interceptor
              :refer (definterceptor definterceptorfn interceptor defaround defmiddleware)]
             [io.pedestal.service.impl.interceptor :as impl
@@ -47,6 +48,21 @@
 (definterceptorfn deliverer [p]
   (interceptor :name 'deliverer
                :leave #(deliver p (dissoc % ::impl/stack ::impl/execution-id))))
+
+(definterceptorfn channeler [name]
+  (assoc (tracer name)
+    :enter (fn [context]
+             (let [a-chan (chan)
+                   context* (-> (trace context :enter name)
+                                (update-in [::thread-ids] (fnil conj []) (.. Thread currentThread getId)))]
+               (go
+                (<! (timeout 100))
+                (>! a-chan context*))
+               a-chan))))
+
+(definterceptorfn channel-deliverer [ch]
+  (interceptor :name 'channel-deliverer
+               :leave #(>!! ch %)))
 
 (deftest t-simple-execution
   (is (= {::trace [[:enter :a]
@@ -109,6 +125,29 @@
                      [:leave :b]
                      [:leave :a]]}
            @p))))
+
+(deftest t-two-channels
+  (let [result-chan (chan)
+        res (execute (enqueue {}
+                              (channel-deliverer result-chan)
+                              (tracer :a)
+                              (channeler :b)
+                              (channeler :c)
+                              (tracer :d)))]
+    (go (let [result     (<!! result-chan)
+              trace      (result ::trace)
+              thread-ids (result ::thread-ids)]
+          (is (= [[:enter :a]
+                  [:enter :b]
+                  [:enter :c]
+                  [:enter :d]
+                  [:leave :d]
+                  [:leave :c]
+                  [:leave :b]
+                  [:leave :a]]
+                 trace))
+          (is (= 2
+                 (-> thread-ids distinct count)))))))
 
 (deftest t-pause-twice
   (let [p (promise)]
