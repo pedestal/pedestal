@@ -16,5 +16,6 @@
   :resource-paths ["config", "resources"]
   :aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
   :profiles {:dev {:resource-paths ["dev"]
-                   :repl-options  {:init-ns user}}}
+                   :repl-options  {:init-ns user
+                                   :welcome (println "Welcome to pedestal-service! Run (dev) to load tools, then (tools-help) to see a list of useful functions.")}}}
   :main ^{:skip-aot true} {{namespace}}.server)

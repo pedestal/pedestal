@@ -10,6 +10,8 @@
     :ok
     (catch Throwable t
       (println "ERROR: There was a problem loading io.pedestal.service-tools.dev\n")
-      (clojure.stacktrace/print-cause-trace t))))
+      (clojure.stacktrace/print-cause-trace t)
+      (println))))
 
 ;; (dev)
+
