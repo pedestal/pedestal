@@ -8,9 +8,9 @@
 (defn- router-transforms [_ inform-message]
   (mapv (fn [[ _ event c config]]
           (cond (= event :channel-added)
-                [[::router] :add [c config :*]]
+                [[[::router] :add [c config :*]]]
                 (= event :channel-removed)
-                [[::router] :remove [c config :*]]))
+                [[[::router] :remove [c config :*]]]))
         inform-message))
 
 (defn build [init-model config]
@@ -25,5 +25,5 @@
                             (flow/transform->inform init-model (:flow config) out-inform-c)
                             (model/transform->inform init-model out-inform-c))
         router (route/router [::router] router-c)]
-    (put! router-c [[::router] :add [model-transform-c [:info :* :**] :*]])
+    (put! router-c [[[::router] :add [model-transform-c [:info :* :**] :*]]])
     in-inform-c))
