@@ -33,14 +33,13 @@
                                 ::bootstrap/routes routes
                                 ;; all origins are allowed in dev mode
                                 ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
-                   ;; add default interceptors if none is defined
-                   (nil? interceptors) bootstrap/default-interceptors
+                   true bootstrap/default-interceptors
                    ;; update the router to support routes reloading when the interceptors are defined
-                   (not (nil? interceptors)) (update-in [::bootstrap/interceptors ]
-                                               (fn [interceptors]
-                                                 (vec (map #(if (= (:name %) ::route/router )
-                                                              (route/router routes)
-                                                              %) interceptors))))
+                   (not (nil? interceptors)) (update-in [::bootstrap/interceptors]
+                                                        (fn [interceptors]
+                                                          (vec (map #(if (= (:name %) ::route/router)
+                                                                      (route/router routes)
+                                                                      %) interceptors))))
                    true bootstrap/dev-interceptors))))
 
 (defn start
