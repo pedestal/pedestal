@@ -14,6 +14,7 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-1835"]
+                 [org.clojure/core.async "0.1.242.0-44b1e3-alpha"]
                  [ch.qos.logback/logback-classic "1.0.13"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
                  [domina "1.0.1"]]
