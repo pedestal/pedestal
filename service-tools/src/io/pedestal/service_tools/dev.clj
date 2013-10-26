@@ -37,9 +37,9 @@
                    ;; update the router to support routes reloading when the interceptors are defined
                    (not (nil? interceptors)) (update-in [::bootstrap/interceptors]
                                                         (fn [interceptors]
-                                                          (vec (map #(if (= (:name %) ::route/router)
-                                                                      (route/router routes)
-                                                                      %) interceptors))))
+                                                          (mapv #(if (= (:name %) ::route/router)
+                                                                     (route/router routes)
+                                                                     %) interceptors)))
                    true bootstrap/dev-interceptors))))
 
 (defn start
