@@ -75,7 +75,7 @@
   [patterns inform] [patterns inform])
 
 (defn inform-to-transforms
-  "Given an index and an inform messsage, return a collection of
+  "Given an index and an inform message, return a collection of
   transform messages. Optionally provide an args-fn to supply the
   desired arguments to the i->t functions."
   ([index inform]
