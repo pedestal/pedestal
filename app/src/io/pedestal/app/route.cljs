@@ -33,7 +33,19 @@
           idx
           transform-message))
 
-(defn router [id in]
+(defn router
+  "Given a router path and inbound transform channel, return a router channel.
+  The inbound channel can be used to add and remove outbound channels that are
+  triggered by specific paths. For example, to add a channel:
+
+  (let [cin (chan 10)
+        router (router [:router] cin)
+        cout (chan 10)]
+    (put! cin [[[:router] :add [cout [:a] :*]]]))
+
+  When cin receives a transform on [:a], the transform will be routed to cout.
+  In order to remove a channel, replace :add with :remove in the above example."
+  [id in]
   (let [to-router? (fn [transformation] (= (first transformation) id))
         idx (atom {})]
     (go (loop []
