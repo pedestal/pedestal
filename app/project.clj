@@ -17,7 +17,8 @@
                  [org.clojure/core.async "0.1.242.0-44b1e3-alpha"]
                  [ch.qos.logback/logback-classic "1.0.13"]
                  [enlive "1.0.0" :exclusions [org.clojure/clojure]]
-                 [domina "1.0.1"]]
+                 [domina "1.0.1"]
+                 [reiddraper/simple-check "0.5.2"]]
   :test-paths ["test/clj"]
   :profiles {:dev {:source-paths ["dev"]}}
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})

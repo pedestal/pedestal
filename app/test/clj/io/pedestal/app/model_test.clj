@@ -2,9 +2,16 @@
   (:require [clojure.test :refer :all]
             [io.pedestal.app.helpers :refer :all]
             [clojure.core.async :refer [go chan put! close! alts!! timeout]]
-            [io.pedestal.app.model :refer :all :as model]))
+            [io.pedestal.app.model :refer :all :as model]
+            [simple-check.core :as sc]
+            [simple-check.generators :as gen]
+            [simple-check.properties :as prop]
+            [simple-check.clojure-test :as ct :refer (defspec)]))
 
 (deftest transform-to-inform-tests
+  (testing "start with empty model"
+    (is (= (set (first (transform-to-inform {} [[[:a] assoc :x 1]])))
+           (ideal-change-report {} {:a {:x 1}}))))
   (testing "message with no args"
     (is (= (set (first (transform-to-inform {:a 1} [[[:a] inc]])))
            (ideal-change-report {:a 1} {:a 2}))))
@@ -79,3 +86,12 @@
              (ideal-change-report {:a {} :c 3} {:a {} :c 4})))
       (close! transform-c))))
 
+;; simple-check tests
+;; --------------------------------------------------------------------------------
+
+(defn assoc-ok [m path k v]
+  (= (set (first (transform-to-inform m [[path assoc k v]])))
+     (ideal-change-report m (update-in m path assoc k v))))
+
+(defspec qc-tests 100
+  (prop/for-all [m (gen/map gen/keyword gen/int)] (assoc-ok m [:a] :x 2)))
