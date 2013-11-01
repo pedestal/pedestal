@@ -48,6 +48,15 @@
               (squash-old-and-new flow-changes)))))))
 
 (defn transform->inform
+  "Given a data model, a configuration and an inform channel, return a transform
+  channel. When a transform message is put on the transform channel, the
+  resulting inform message will be put on the inform channel.
+
+  The configuration is a vector passed to mapper/inform->transforms. When a
+  transform message is put on the transform channel, model/transform->inform is
+  called to generate an inform. Based on the given config, an inform can produce
+  new transforms. If it does, the new transform produces a new inform and this
+  loop continues until the config does not trigger new transforms."
   ([data-model config inform-c]
      (transform->inform data-model config mapper/default-args-fn inform-c))
   ([data-model config args-fn inform-c]
