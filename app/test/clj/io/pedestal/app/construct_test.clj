@@ -41,6 +41,7 @@
       (let [x (set (helpers/take-n 1 cout))]
         (is (= x #{[[[:out :a] :updated {:info {:a 0 :b 0}} {:info {:a 1 :b 0}}]]}))))))
 
+
 ;; Calculate square root using Heron's method
 ;; ================================================================================
 
@@ -48,13 +49,7 @@
   (Math/abs (double x)))
 
 (defn sr-input [_ [[_ _ {:keys [x guess accuracy] :as init}]]]
-  ;; TODO: this doesn't work if we use
-  ;; [[:info] (constantly init)]
-  ;; I think this is because changes are only reported to :info
-  #_[[[[:info] (constantly init)]]]
-  [[[[:info] assoc :x x]
-    [[:info] assoc :guess guess]
-    [[:info] assoc :accuracy accuracy]]])
+  [[[[:info] merge init]]])
 
 (defn divide [_ [[_ _ _ model]]]
   [[[[:info :divide] (constantly (/ (get-in model [:info :x])
