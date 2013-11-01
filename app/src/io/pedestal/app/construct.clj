@@ -28,13 +28,12 @@
   ;; TODO: How would we configure custom arg-fns for each mapper?
   ;; maybe the answer is: if you need to do that then wire it up yourself
   (let [in-config (conj (:in config) [router-transforms [::router] :*])
-        in-transform-c (chan 10)
         router-c (chan 10)
         in-inform-c (mapper/inform->transforms in-config router-c)
         out-inform-c (mapper/inform->transforms (:out config) router-c)
         model-transform-c (if (:flow config)
                             (flow/transform->inform init-model (:flow config) out-inform-c)
-                            (model/transform->inform init-model out-inform-c))
-        router (route/router [::router] router-c)]
-    (put! router-c [[[::router] :add [model-transform-c [:info :* :**] :*]]])
+                            (model/transform->inform init-model out-inform-c))]
+    (route/router [::router] router-c)
+    (put! router-c [[[::router] :add [model-transform-c [:info :**] :*]]])
     in-inform-c))
