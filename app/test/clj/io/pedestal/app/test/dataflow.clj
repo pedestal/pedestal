@@ -155,7 +155,9 @@
                 {:key :c :out [:d] :fn 'y}
                 {:key :g :out [:d :e :*] :fn 'z}
                 {:key :g :out [:d :e :**] :fn 'j}
-                {:key :* :out [:d :* :f] :fn 'i}]]
+                {:key :* :out [:d :* :f] :fn 'i}
+                {:key :* :out [:**] :fn 'k}
+                ]]
     (is (= (find-message-transformer config [:d] :c)
            'y))
     (is (= (find-message-transformer config [:d :e :f] :g)
@@ -163,7 +165,9 @@
     (is (= (find-message-transformer config [:d :e :f :g] :g)
            'j))
     (is (= (find-message-transformer config [:d :e :f] :z)
-           'i))))
+           'i))
+    (is (= (find-message-transformer config msg/app-model :z)
+           'k))))
 
 (deftest test-transform-phase
   (let [inc-fn (fn [o _] (inc o))

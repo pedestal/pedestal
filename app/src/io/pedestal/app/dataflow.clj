@@ -183,20 +183,24 @@
                      []
                      (::order (reduce topo-visit (assoc graph ::order []) (keys graph)))))))
 
+(defn- vec-unless-seqable [x]
+  (try (seq x) x (catch IllegalArgumentException e [x])))
+
 (defn find-message-transformer
   "Given a transform configuration vector, find the first transform
   function which matches the given message."
   [transforms out-path key]
-  (:fn
-   (first (filter (fn [{op :key path :out}]
-                    (let [[path out-path] (if (= (last path) :**)
-                                            (let [c (count path)]
-                                              [(conj (vec (take (dec c) path)) :*)
-                                               (vec (take c out-path))])
-                                            [path out-path])]
-                      (and (matching-path-element? op key)
-                           (matching-path? path out-path))))
-                  transforms))))
+  (let [out-path (vec-unless-seqable out-path)]
+    (:fn
+     (first (filter (fn [{op :key path :out}]
+                      (let [[path out-path] (if (= (last path) :**)
+                                              (let [c (count path)]
+                                                [(conj (vec (take (dec c) path)) :*)
+                                                 (vec (take c out-path))])
+                                              [path out-path])]
+                        (and (matching-path-element? op key)
+                             (matching-path? path out-path))))
+                    transforms)))))
 
 (defn- merge-changes [old-changes new-changes]
   (merge-with into old-changes new-changes))
