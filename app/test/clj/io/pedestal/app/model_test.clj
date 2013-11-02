@@ -1,12 +1,13 @@
 (ns io.pedestal.app.model-test
   (:require [clojure.test :refer :all]
-            [io.pedestal.app.helpers :refer :all]
             [clojure.core.async :refer [go chan put! close! alts!! timeout]]
-            [io.pedestal.app.model :refer :all :as model]
             [simple-check.core :as sc]
             [simple-check.generators :as gen]
             [simple-check.properties :as prop]
-            [simple-check.clojure-test :as ct :refer (defspec)]))
+            [simple-check.clojure-test :as ct :refer (defspec)]
+            [io.pedestal.app.generators :as pgen]
+            [io.pedestal.app.helpers :refer :all]
+            [io.pedestal.app.model :refer :all :as model]))
 
 (deftest transform-to-inform-tests
   (testing "start with empty model"
@@ -86,12 +87,19 @@
              (ideal-change-report {:a {} :c 3} {:a {} :c 4})))
       (close! transform-c))))
 
+
 ;; simple-check tests
 ;; --------------------------------------------------------------------------------
 
 (defn assoc-ok [m path k v]
-  (= (set (first (transform-to-inform m [[path assoc k v]])))
-     (ideal-change-report m (update-in m path assoc k v))))
+  (or (not (map? (get-in m path))) ;; this would be a user error
+      (= (set (first (transform-to-inform m [[path assoc k v]])))
+         (ideal-change-report m (update-in m path assoc k v)))))
 
-(defspec qc-tests 100
-  (prop/for-all [m (gen/map gen/keyword gen/int)] (assoc-ok m [:a] :x 2)))
+(defspec assoc-model-tests
+  50
+  (prop/for-all [m (gen/sized pgen/model)
+                 path (gen/such-that not-empty (gen/vector gen/keyword))
+                 k gen/keyword
+                 i (gen/one-of [gen/int (gen/sized pgen/model)])]
+                (assoc-ok m path k i)))
