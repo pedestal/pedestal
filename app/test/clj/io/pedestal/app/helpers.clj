@@ -18,16 +18,16 @@
             (let [old-value (k o)]
               (cond (= old-value new-value)
                     a
-                    
+
                     (and (map? old-value) (map? new-value))
                     (into a (map-diff old-value new-value (conj prefix k)))
-                    
+
                     (and (nil? old-value) (map? new-value))
                     (into a (map-diff old-value new-value (conj prefix k)))
-                    
+
                     (nil? old-value)
                     (conj a [(conj prefix k) :added])
-                    
+
                     :else
                     (conj a [(conj prefix k) :updated]))))
           []
@@ -44,5 +44,3 @@
   [o n]
   (set (map (fn [[p e]] [p e o n]) (into (map-diff o n [])
                                         (reverse-diffs (map-diff n o []))))))
-
-[[[[:counter] :updated {:counter 11} {:counter 12}]] {:counter 12}]
