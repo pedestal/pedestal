@@ -62,10 +62,11 @@
 (deftest transform-from-value-to-map-returns-larger-diffs
   (testing "value to map change at [:a :b]"
     (is (= (set (first (transform-to-inform {:a {:b 1}} [[[:a :b] (constantly {:c {:d 2}})]])))
-           (ideal-change-report {:a {:b 1}} {:a {:b {:c {:d 2}}}}))))
+           #{[[:a :b :c :d] :added {:a {:b 1}} {:a {:b {:c {:d 2}}}}]})))
   (testing "map to value change at [:a :b]"
     (is (= (set (first (transform-to-inform {:a {:b {:c {:d 2}}}} [[[:a :b] (constantly 1)]])))
-           (ideal-change-report {:a {:b {:c {:d 2}}}} {:a {:b 1}})))))
+           #{[[:a :b :c :d] :removed {:a {:b {:c {:d 2}}}} {:a {:b 1}}]
+             [[:a :b] :updated {:a {:b {:c {:d 2}}}} {:a {:b 1}}]}))))
 
 (deftest transform->inform-tests
   (let [inform-c (chan 10)
