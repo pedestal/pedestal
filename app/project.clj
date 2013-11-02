@@ -20,5 +20,6 @@
                  [domina "1.0.1"]
                  [reiddraper/simple-check "0.5.2"]]
   :test-paths ["test/clj"]
-  :profiles {:dev {:source-paths ["dev"]}}
+  :profiles {:dev {:source-paths ["dev"]
+                   :jvm-opts ["-Xmx1g"]}}
   :aliases {"dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]})
