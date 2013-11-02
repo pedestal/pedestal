@@ -32,7 +32,3 @@
                  k gen/keyword
                  i (gen/one-of [gen/int (gen/sized pgen/model)])]
                 (assoc-ok m path k i)))
-
-(comment
-  (gen/sample (gen/sized model))
-  )
