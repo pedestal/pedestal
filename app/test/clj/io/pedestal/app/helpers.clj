@@ -26,7 +26,7 @@
 
 (defn- map-diff [o n prefix]
   (reduce (fn [a [k new-value]]
-            (let [old-value (k o)]
+            (let [old-value (get o k)]
               (cond (= old-value new-value)
                     a
 
