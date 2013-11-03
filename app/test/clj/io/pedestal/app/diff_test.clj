@@ -23,6 +23,7 @@
   (or (not (map? (get-in old-model path))) ;; this would be a user error
       (let [new-model (update-in old-model path assoc k i)]
         (= (set (model-diff-inform [path] old-model new-model))
+           (set (model-diff-inform old-model new-model))
            (ideal-change-report old-model new-model)))))
 
 (defspec assoc-model-tests
