@@ -183,14 +183,11 @@
                      []
                      (::order (reduce topo-visit (assoc graph ::order []) (keys graph)))))))
 
-(defn- vec-unless-seqable [x]
-  (try (seq x) x (catch IllegalArgumentException e [x])))
-
 (defn find-message-transformer
   "Given a transform configuration vector, find the first transform
   function which matches the given message."
   [transforms out-path key]
-  (let [out-path (vec-unless-seqable out-path)]
+  (let [out-path (platform/vec-unless-seqable out-path)]
     (:fn
      (first (filter (fn [{op :key path :out}]
                       (let [[path out-path] (if (= (last path) :**)
