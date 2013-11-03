@@ -46,7 +46,7 @@
   <!-- For loggers in the these namespaces, log at all levels. -->
   <logger name="user" level="ALL" />
   <!-- To log pedestal internals, enable this and change ThresholdFilter to DEBUG
-    <logger name="pedestal" level="ALL" />
+    <logger name="io.pedestal" level="ALL" />
   -->
 
 </configuration>
