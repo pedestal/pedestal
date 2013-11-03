@@ -22,6 +22,8 @@
         (nil? o)
         [[prefix :added]]
 
+        (and (map? o) (nil? n)) []
+
         (nil? n)
         [[prefix :removed]]
 
@@ -40,12 +42,14 @@
 (defn model-diff-inform
   "Given paths which are known to have changed and an old and new
   model return an inform message describing all changes to the model."
-  [paths o n]
-  (vec
-   (map (fn [[p e]] [p e o n])
-        (mapcat
-         (fn [p] (let [ov (get-in o p)
-                      nv (get-in n p)]
-                  (into (diff p ov nv)
-                        (reverse-diffs (diff p nv ov)))))
-         paths))))
+  ([o n]
+     (model-diff-inform (mapv vector (keys n)) o n))
+  ([paths o n]
+     (vec
+      (map (fn [[p e]] [p e o n])
+           (mapcat
+            (fn [p] (let [ov (get-in o p)
+                         nv (get-in n p)]
+                     (into (diff p ov nv)
+                           (reverse-diffs (diff p nv ov)))))
+            paths)))))
