@@ -16,6 +16,7 @@
             [io.pedestal.app.perf.model.naive :as naive]
             [io.pedestal.app.perf.model.complex :as complex]
             [io.pedestal.app.perf.model.hybrid :as hybrid]
+            [io.pedestal.app.perf.model.value :as value]
             [io.pedestal.app.helpers :as helpers]))
 
 (defn- generate-model [[size & sizes]]
@@ -54,28 +55,25 @@
   (let [m (mean xs)]
     (/ (reduce + (map #(sqr (- m %)) xs)) (count xs))))
 
-(def nf (java.text.DecimalFormat. "0.000"))
-
-(defn format [n]
-  (.format nf n))
-
-(defn print-results [{:keys [shape desc n]} results]
-  (println)
-  (println (str (reduce * shape)
-                " items "
-                (apply str (interpose "-" shape))
-                " "
-                desc
-                " / "
-                n " runs"))
-  (let [sr (sort-by :mean results)
-        quick (:mean (first sr))
-        sr (map #(assoc % :scale (/ (:mean %) quick)) sr)]
-    (pp/print-table (map #(-> %
-                              (update-in [:scale] format)
-                              (update-in [:mean] format)
-                              (update-in [:sd] format))
-                         sr))))
+(let [nf (java.text.DecimalFormat. "0.000")
+      fmt (fn [n] (.format nf n))]
+  (defn print-results [{:keys [shape desc n]} results]
+    (println)
+    (println (str (reduce * shape)
+                  " items "
+                  (apply str (interpose "-" shape))
+                  " "
+                  desc
+                  " / "
+                  n " runs"))
+    (let [sr (sort-by :mean results)
+          quick (:mean (first sr))
+          sr (map #(assoc % :scale (/ (:mean %) quick)) sr)]
+      (pp/print-table (map #(-> %
+                                (update-in [:scale] fmt)
+                                (update-in [:mean] fmt)
+                                (update-in [:sd] fmt))
+                           sr)))))
 
 (defn stats [t]
   (let [xs (map :time t)]
@@ -95,7 +93,8 @@
   [{:name :simple :f model/apply-transform :correct true}
    {:name :naive :f naive/apply-transform}
    {:name :complex :f complex/apply-transform}
-   {:name :hybrid :f hybrid/apply-transform}])
+   {:name :hybrid :f hybrid/apply-transform}
+   {:name :value :f value/apply-transform}])
 
 (defn run-test [n model transform]
   (let [{f :f} (first (filter :correct runners))
