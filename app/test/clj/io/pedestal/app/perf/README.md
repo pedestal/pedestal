@@ -152,13 +152,13 @@ as with different types of operations.
 Except for the first test, each test is a summary of multiple
 runs. The fields mean:
 
-`:scale`  : how much slower is this algorithm?
-`:event`  : is the path and event correct?
-`:inform` : is the whole inform messages correct?
-`:changes`: number of changes reported
-`:m`      : name of the algorithm used
-`:mean`   : the mean
-`:sd`     : the standard deviation
+* `:scale`  : how much slower is this algorithm?
+* `:event`  : is the path and event correct?
+* `:inform` : is the whole inform messages correct?
+* `:changes`: number of changes reported
+* `:m`      : name of the algorithm used
+* `:mean`   : the mean
+* `:sd`     : the standard deviation
 
 All times are in milliseconds.
 
