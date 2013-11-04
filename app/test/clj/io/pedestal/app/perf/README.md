@@ -7,7 +7,7 @@ example, a simple model could be:
 {:counter {:a 1 :b 2}}
 ```
 
-This model represents two counters `a` and `b`. What values does this
+This model represents two counters `a` and `b`. How many values does this
 model contain? At the path `[:counter]` is stored the value `{:b 1 :c 2}`.
 At the path `[:counter :a]` is stored the value `1` and at the
 path `[:counter :b]` is stored the value `2`.
@@ -23,7 +23,8 @@ This document is about delta detection. When the model changes, we
 would like to know what is different about it so that we know how to
 respond to the change. From the perspective of the delta detector, the
 map above contains only two values: the value at `[:counter :a]` which is
-currently `1` and the value at `[:counter :b]` which is currently `2`.
+currently `1` and the value at `[:counter :b]` which is currently
+`2`. Maps are never treated as values.
 
 The delta detector always reports the most specific change. If the
 model above is changed to
@@ -39,7 +40,7 @@ the path `[:counter]` has changed but this is only true because
 
 ## Model Inform
 
-Changes to the model are reported as an inform message.
+Changes to the model are reported with an inform message.
 
 ```clj
 [event-entry ...]
@@ -48,10 +49,10 @@ Changes to the model are reported as an inform message.
 Each `event-entry` describes a specific change.
 
 ```clj
-[source event state ...]
+[source event state(s)]
 ```
 
-The specific change above would generate the following inform message
+The specific change above would generate the inform message below.
 
 ```clj
 [[[:counter :b] :update {:counter {:a 1 :b 2}} {:counter {:a 1 :b 3}}]]
@@ -79,7 +80,7 @@ The `naive` algorithm takes the old model and the new model and
 traverses the model twice to find additions, updates and removals. This
 algorithm is simple to understand and it is easy to see that it
 generates the expected results. We use this algorithm to check that
-other algorithms are correct.
+other algorithms are correct when using generative testing.
 
 We would expect this to be slow when the model is large.
 
@@ -87,15 +88,15 @@ We would expect this to be slow when the model is large.
 ### :simple
 
 Transform messages contain the path where the transform is applied. If
-we keep track of these paths we can use them to limit the parts of the
+we keep track of these paths, we can use them to limit the parts of the
 tree that we search for changes.
 
 The `simple` algorithm is the same as the `naive` algorithm except that it
 keeps track of transform paths and then only traverses the parts of
 the tree that could have possibly changed.
 
-We would expect this to be fast when the transform path points to the
-exact value that was changed.
+We would expect this to be fast when the transform path points to a
+non-map value.
 
 
 ### :complex
@@ -111,7 +112,7 @@ apply the transform
 [[:a :b :c :d :e] inc]
 ```
 
-Then the `simple` algorithm knows exactly what changed. What if we apply
+then the `simple` algorithm knows exactly what changed. What if we apply
 this transform?
 
 ```clj
@@ -125,10 +126,10 @@ The complex algorithm uses the `tracking map` to record what is being
 changed by `custom-transform-fn`.
 
 It can't see all changes so there is still a bit of searching, but much
-less that any other algorithm. The problem with this algorithm is that
+less than any other algorithm. The problem with this algorithm is that
 it is very complicated and requires different implementations in both
 Clojure and ClojureScript. Also, wrapping has some cost that we always
-pay. Is this cost worth it?
+pay. Are the benefits worth the cost?
 
 
 ### :hybrid
@@ -161,6 +162,11 @@ runs. The fields mean:
 * `:sd`     : the standard deviation
 
 All times are in milliseconds.
+
+When you see a string like `10-5-10` it indicates the shape of the
+model. This would mean that the first level has ten keys, each of
+which contain a map with 5 keys, each of which contain a map with key
+keys. This model would have 500 items.
 
 ```
 3 items 1-3-1 dissoc node / 1 runs
@@ -356,6 +362,8 @@ There are at least three options:
 3. use both and create an adaptive algorithm that monitors execution
 times and then dynamically maps transform functions to the best performing
 algorithm
+4. If the value at the transform path is a map use `:hybrid` otherwise
+use `:simple`.
 
 
 <!-- Copyright 2013 Relevance, Inc. -->
