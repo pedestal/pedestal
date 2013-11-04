@@ -160,6 +160,8 @@ runs. The fields mean:
 `:mean`   : the mean
 `:sd`     : the standard deviation
 
+All times are in milliseconds.
+
 ```
 3 items 1-3-1 dissoc node / 1 runs
 
