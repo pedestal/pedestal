@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject pedestal-app/lein-template "0.2.3-SNAPSHOT"
+(defproject pedestal-app/lein-template "0.3.0-SNAPSHOT"
   :description "A Pedestal Application template."
   :min-lein-version "2.0.0"
   :eval-in-leiningen true)
