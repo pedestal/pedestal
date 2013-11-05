@@ -17,9 +17,7 @@
   "Initialize a development service for use by (start).
 
   Arguments are:
-  * user-service - an application level service map.
-  * routes-var - a var referencing an applications routes map. This is a var
-                 specifically so routes can be reloaded per-request."
+  * service - an application service map."
   [service]
   (-> service ;; start with production configuration
       (merge {:env :dev
