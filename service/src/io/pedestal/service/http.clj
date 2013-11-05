@@ -131,7 +131,6 @@
     resource-path ::resource-path
     method-param-name ::method-param-name
     allowed-origins ::allowed-origins
-    interceptors ::interceptors
     not-found-interceptor ::not-found-interceptor
     ext-mime-types ::mime-types
     :or {file-path nil
