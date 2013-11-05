@@ -125,7 +125,8 @@
   * :not-found-interceptor: Interceptor to use when returning a not found response. Default is
      the not-found interceptor.
   * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}."
-  [{routes ::routes
+  [{interceptors ::interceptors
+    routes ::routes
     file-path ::file-path
     resource-path ::resource-path
     method-param-name ::method-param-name
@@ -139,7 +140,7 @@
          method-param-name :_method
          ext-mime-types {}}
     :as service-map}]
-  (if (nil? interceptors)
+  (if-not interceptors
     (assoc service-map ::interceptors
            (cond-> []
                    true (conj log-request)
@@ -178,11 +179,11 @@
 
   Options:
 
-  * :interceptors: A vector of interceptors that defines a service.
+  * :io.pedestal.service.http/interceptors: A vector of interceptors that defines a service.
 
   Note: Additional options are passed to default-interceptors if :interceptors is not set."
-  [options]
-  (-> options
+  [service-map]
+  (-> service-map
       default-interceptors
       service-fn
       servlet))
@@ -208,13 +209,31 @@
     (merge service-map (server-map->service-map server-map))))
 
 (defn create-server
-  [options]
+  [service-map]
   (log/init-java-util-log)
-  (-> options
+  (-> service-map
       create-servlet
       server))
 
-(defn start [service-map] ((::start-fn service-map)))
+(defn start [service-map]
+  ((::start-fn service-map))
+  service-map)
 
-(defn stop [service-map] ((::stop-fn service-map)))
+(defn stop [service-map]
+  ((::stop-fn service-map))
+  service-map)
+
+;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
+
+(defn servlet-init
+  [service config]
+  (let [service (create-servlet service)]
+    (.init (::servlet service) config)
+    service))
+
+(defn servlet-destroy [service]
+  (dissoc service ::servlet))
+
+(defn servlet-service [service servlet-req servlet-resp]
+  (.service ^javax.servlet.Servlet (::servlet service) servlet-req servlet-resp))
 

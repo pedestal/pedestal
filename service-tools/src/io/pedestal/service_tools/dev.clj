@@ -11,8 +11,6 @@
 
 (ns io.pedestal.service-tools.dev
   (:require [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.route :as route]
-            [io.pedestal.service-tools.server :as server]
             [ns-tracker.core :as tracker]))
 
 (defn init
@@ -22,44 +20,15 @@
   * user-service - an application level service map.
   * routes-var - a var referencing an applications routes map. This is a var
                  specifically so routes can be reloaded per-request."
-  [user-service routes-var]
-  (let [interceptors (::bootstrap/interceptors user-service)
-        routes #(deref routes-var)]
-    (server/init (cond-> user-service ;; start with production configuration
-                   true (merge {:env :dev
-                                ;; do not block thread that starts web server
-                                ::bootstrap/join? false
-                                ;; reload routes on every request
-                                ::bootstrap/routes routes
-                                ;; all origins are allowed in dev mode
-                                ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
-                   true bootstrap/default-interceptors
-                   ;; update the router to support routes reloading when the interceptors are defined
-                   (not (nil? interceptors)) (update-in [::bootstrap/interceptors]
-                                                        (fn [interceptors]
-                                                          (mapv #(if (= (:name %) ::route/router)
-                                                                     (route/router routes)
-                                                                     %) interceptors)))
-                   true bootstrap/dev-interceptors))))
-
-(defn start
-  "Start a development web server. Default port is 8080.
-
-  You must call init prior to calling start."
-  [& [opts]]
-  (server/create-server (merge server/service opts))
-  (bootstrap/start server/service-instance))
-
-(defn stop
-  "Stop the current web server."
-  []
-  (bootstrap/stop server/service-instance))
-
-(defn restart
-  "Stop, then start the current web server."
-  []
-  (stop)
-  (start))
+  [service]
+  (-> service ;; start with production configuration
+      (merge {:env :dev
+              ;; do not block thread that starts web server
+              ::bootstrap/join? false
+              ;; all origins are allowed in dev mode
+              ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
+      (bootstrap/default-interceptors)
+      (bootstrap/dev-interceptors)))
 
 (defn- ns-reload [track]
  (try
@@ -95,8 +64,3 @@
     (println "Type (watch) to watch for changes in the src/ directory")
     (println))
 
-(defn -main
-  "The entry-point for 'lein run-dev'. Starts a web server and watches the projects files for any changes."
-  [& args]
-  (start)
-  (watch))

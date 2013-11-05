@@ -24,7 +24,7 @@
     (render "tools/public/stylesheets/bootstrap.css" data)]
    [(str "app/assets/stylesheets/pedestal.css")
     (render "tools/public/stylesheets/pedestal.css" data)]
-   
+
    ["app/assets/javascripts/xpath.js"
     (render "app/assets/javascripts/xpath.js" data)]
 
@@ -54,7 +54,7 @@
     (render "tools/public/javascripts/pedestal/js/api.js" data)]
 
    ["config/config.edn" (render "config/config.edn" data)]
-   ["config/user.clj" (render "config/user.clj" data)]
+   ["dev/user.clj" (render "dev/user.clj" data)]
    ["config/logback.xml" (render "config/logback.xml" data)]
 
    ["test/{{sanitized}}/behavior_test.clj" (render "test/behavior_test.clj" data)]])
