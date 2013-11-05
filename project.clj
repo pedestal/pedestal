@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal "0.2.2-SNAPSHOT"
+(defproject io.pedestal/pedestal "0.2.2"
   :plugins [[lein-sub "0.2.3"]]
   :sub ["service"
         "jetty"

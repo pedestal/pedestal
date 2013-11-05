@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.tomcat "0.2.2-SNAPSHOT"
+(defproject io.pedestal/pedestal.tomcat "0.2.2"
   :description "Embedded Tomcat adapter for Pedestal HTTP Service"
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.apache.tomcat.embed/tomcat-embed-logging-juli "7.0.30"]
