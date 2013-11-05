@@ -50,3 +50,6 @@
          (.log js/console "Re-throwing error...")
          (.groupEnd js/console)
          (throw e))))
+
+(defn vec-unless-seqable [x]
+  (try (seq x) x (catch js/Error e [x])))

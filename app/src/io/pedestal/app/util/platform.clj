@@ -54,3 +54,6 @@
 (defn log-exceptions [f & args]
   (try (apply f args)
        (catch Throwable e (log/error :exception e))))
+
+(defn vec-unless-seqable [x]
+  (try (seq x) x (catch Throwable e [x])))
