@@ -2,11 +2,20 @@
   (:require [{{namespace}}.service :as service]
             [{{namespace}}.server :as server]
             [io.pedestal.service.http :as bootstrap]
+            [io.pedestal.service.http.route :as route]
             [io.pedestal.service-tools.dev :as dev-tools :refer [watch tools-help]]))
 
-(def service (dev-tools/init (merge service/service
-                                    ;; reload routes on every request
-                                    {::bootstrap/routes #(deref #'service/routes)})))
+(def service (dev-tools/init (let [interceptors (::bootstrap/interceptors service/service)
+                                   routes       #(deref #'service/routes)]
+                               (cond-> service/service
+                                       ;; reload routes on every request
+                                       true (merge {::bootstrap/routes routes})
+                                       ;; update the router when the interceptors are defined
+                                       (not (nil? interceptors)) (update-in [::bootstrap/interceptors]
+                                                                            (fn [interceptors]
+                                                                              (mapv #(if (= (:name %) ::route/router)
+                                                                                       (route/router routes)
+                                                                                       %) interceptors)))))))
 
 
 (defn start
