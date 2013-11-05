@@ -15,13 +15,16 @@
             [io.pedestal.service.http.route :as route]
             [io.pedestal.service-tools.dev :refer :all ]))
 
-(def fake-routes {} )
+(def fake-routes [])
+
+(defn with-fake-routes [service]
+  (assoc service ::bootstrap/routes fake-routes))
 
 (def user-service {::bootstrap/interceptors [{:name ::route/router :fake true}]})
 
 (deftest init-without-root-interceptors-test
   "Default interceptors are added when none are defined."
-  (let [service (init {} #'fake-routes)
+  (let [service (init (with-fake-routes {}))
         interceptors (::bootstrap/interceptors service)]
     ;; interceptors are added
     (is (not (nil? interceptors)))
@@ -31,7 +34,7 @@
 (deftest init-with-root-interceptors-test
   "Default interceptors are not added and the router is replaced,
    when a user has defined root interceptors."
-  (let [service (init user-service #'fake-routes)
+  (let [service (init (with-fake-routes user-service))
         interceptors (::bootstrap/interceptors service)]
     ;; interceptors are still there
     (is (not (nil? interceptors)))
@@ -40,4 +43,5 @@
     ;; the router is still there
     (is (some #(= ::route/router (:name %)) interceptors))
     ;; the router is replaced
-    (is (not-any? #(and (= ::route/router (:name %)) (true? (:fake %))) interceptors))))
+    (is (not-any? #(and (= ::route/router (:name %))
+                        (true? (:fake %))) interceptors))))
