@@ -108,6 +108,9 @@
   "Builds interceptors given an options map with keyword keys prefixed by namespace e.g.
   :io.pedestal.service.http/routes or ::bootstrap/routes if the namespace is aliased to bootstrap.
 
+  Note:
+    No additional interceptors are added if :interceptors key is set.
+
   Options:
 
   * :routes: A seq of route maps that defines a service's routes. It's recommended to build this
@@ -127,6 +130,7 @@
     resource-path ::resource-path
     method-param-name ::method-param-name
     allowed-origins ::allowed-origins
+    interceptors ::interceptors
     not-found-interceptor ::not-found-interceptor
     ext-mime-types ::mime-types
     :or {file-path nil
@@ -135,17 +139,19 @@
          method-param-name :_method
          ext-mime-types {}}
     :as service-map}]
-  (assoc service-map ::interceptors
-         (cond-> []
-                 true (conj log-request)
-                 (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
-                 true (conj not-found-interceptor)
-                 true (conj (middlewares/content-type {:mime-types ext-mime-types}))
-                 true (conj route/query-params)
-                 true (conj (route/method-param method-param-name))
-                 (not (nil? resource-path)) (conj (middlewares/resource resource-path))
-                 (not (nil? file-path)) (conj (middlewares/file file-path))
-                 true (conj (route/router routes)))))
+  (if (nil? interceptors)
+    (assoc service-map ::interceptors
+           (cond-> []
+                   true (conj log-request)
+                   (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
+                   true (conj not-found-interceptor)
+                   true (conj (middlewares/content-type {:mime-types ext-mime-types}))
+                   true (conj route/query-params)
+                   true (conj (route/method-param method-param-name))
+                   (not (nil? resource-path)) (conj (middlewares/resource resource-path))
+                   (not (nil? file-path)) (conj (middlewares/file file-path))
+                   true (conj (route/router routes))))
+    service-map))
 
 (defn dev-interceptors
   [service-map]
@@ -175,12 +181,11 @@
   * :interceptors: A vector of interceptors that defines a service.
 
   Note: Additional options are passed to default-interceptors if :interceptors is not set."
-  [{interceptors ::interceptors
-    :as options}]
-  (cond-> options
-          (nil? interceptors) default-interceptors
-          true service-fn
-          true servlet))
+  [options]
+  (-> options
+      default-interceptors
+      service-fn
+      servlet))
 
 (defn- service-map->server-options
   [service-map]

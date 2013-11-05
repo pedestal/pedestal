@@ -11,6 +11,7 @@
 
 (ns io.pedestal.service-tools.dev
   (:require [io.pedestal.service.http :as bootstrap]
+            [io.pedestal.service.http.route :as route]
             [io.pedestal.service-tools.server :as server]
             [ns-tracker.core :as tracker]))
 
@@ -22,16 +23,24 @@
   * routes-var - a var referencing an applications routes map. This is a var
                  specifically so routes can be reloaded per-request."
   [user-service routes-var]
-  (server/init (-> user-service ;; start with production configuration
-                   (merge {:env :dev
-                           ;; do not block thread that starts web server
-                           ::bootstrap/join? false
-                           ;; reload routes on every request
-                           ::bootstrap/routes #(deref routes-var)
-                           ;; all origins are allowed in dev mode
-                           ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
-                   (bootstrap/default-interceptors)
-                   (bootstrap/dev-interceptors))))
+  (let [interceptors (::bootstrap/interceptors user-service)
+        routes #(deref routes-var)]
+    (server/init (cond-> user-service ;; start with production configuration
+                   true (merge {:env :dev
+                                ;; do not block thread that starts web server
+                                ::bootstrap/join? false
+                                ;; reload routes on every request
+                                ::bootstrap/routes routes
+                                ;; all origins are allowed in dev mode
+                                ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
+                   true bootstrap/default-interceptors
+                   ;; update the router to support routes reloading when the interceptors are defined
+                   (not (nil? interceptors)) (update-in [::bootstrap/interceptors]
+                                                        (fn [interceptors]
+                                                          (mapv #(if (= (:name %) ::route/router)
+                                                                     (route/router routes)
+                                                                     %) interceptors)))
+                   true bootstrap/dev-interceptors))))
 
 (defn start
   "Start a development web server. Default port is 8080.
