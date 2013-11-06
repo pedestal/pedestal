@@ -16,6 +16,9 @@
             [io.pedestal.app.perf.model.naive :as naive]
             [io.pedestal.app.perf.model.complex :as complex]
             [io.pedestal.app.perf.model.hybrid :as hybrid]
+            [io.pedestal.app.perf.model.value :as value]
+            [io.pedestal.app.perf.model.optimized :as optimized]
+            [io.pedestal.app.perf.model.optimized2 :as optimized2]
             [io.pedestal.app.helpers :as helpers]))
 
 (defn- generate-model [[size & sizes]]
@@ -54,35 +57,16 @@
   (let [m (mean xs)]
     (/ (reduce + (map #(sqr (- m %)) xs)) (count xs))))
 
-(def nf (java.text.DecimalFormat. "0.000"))
-
-(defn format [n]
-  (.format nf n))
-
-(defn print-results [{:keys [shape desc n]} results]
-  (println)
-  (println (str (reduce * shape)
-                " items "
-                (apply str (interpose "-" shape))
-                " "
-                desc
-                " / "
-                n " runs"))
-  (let [sr (sort-by :mean results)
-        quick (:mean (first sr))
-        sr (map #(assoc % :scale (/ (:mean %) quick)) sr)]
-    (pp/print-table (map #(-> %
-                              (update-in [:scale] format)
-                              (update-in [:mean] format)
-                              (update-in [:sd] format))
-                         sr))))
-
 (defn stats [t]
   (let [xs (map :time t)]
     {:mean (mean xs)
      :sd (sd xs)}))
 
 (defn inform= [a e]
+  #_(println "actual")
+  #_(pp/pprint a)
+  #_(println "expected")
+  #_(pp/pprint e)
   (= a e))
 
 (defn peset [i]
@@ -95,7 +79,10 @@
   [{:name :simple :f model/apply-transform :correct true}
    {:name :naive :f naive/apply-transform}
    {:name :complex :f complex/apply-transform}
-   {:name :hybrid :f hybrid/apply-transform}])
+   {:name :hybrid :f hybrid/apply-transform}
+   {:name :value :f value/apply-transform}
+   {:name :optimized :f optimized/apply-transform}
+   {:name :optimized-2 :f optimized2/apply-transform}])
 
 (defn run-test [n model transform]
   (let [{f :f} (first (filter :correct runners))
@@ -124,7 +111,7 @@
    (let [update-f (fn [m] (-> m
                              (dissoc 20)
                              (update-in [60 9] inc)))]
-     {:desc "dissoc node/update-in node" :shape [10 100 10] :n 100 :inform [[[9] update-f]]})
+     {:desc "dissoc node / update-in node" :shape [10 100 10] :n 100 :inform [[[9] update-f]]})
 
    {:desc "inc" :shape [10 10 10 10 10 10] :n 100 :inform [[[7 4 5 3 8 1] inc]]}
 
@@ -148,7 +135,7 @@
    (let [update-f (fn [m] (-> m
                              (dissoc 2000)
                              (update-in [6000 9] inc)))]
-     {:desc "dissoc node/update-in node" :shape [10 10000 10] :n 100 :inform [[[9] update-f]]})
+     {:desc "dissoc node / update-in node" :shape [10 10000 10] :n 100 :inform [[[9] update-f]]})
 
    (let [m (generate-model [10])]
      {:desc "merge" :shape [10 10000 10] :n 100 :inform [[[9 5000] merge m]]})
@@ -159,9 +146,20 @@
    (let [m (generate-model [10])]
      {:desc "replace" :shape [10 10000 10] :n 100 :inform [[[9 1000] (constantly m)]]})
 
+   (let [update-f (fn [m] (-> m
+                             (update-in [2000 5] inc)
+                             (update-in [6000 9] inc)))]
+     {:desc "update-in node / inc" :shape [10 10000 10] :n 100 :inform [[[9] update-f]
+                                                                        [[2 7638 8] inc]
+                                                                        [[4] update-f]]})
+
    (let [m (generate-model [10 100])]
      {:desc "replace" :shape [10 10000 10] :n 10 :inform [[[9] (constantly m)]]})])
 
 (defn -main []
-  (doseq [{:keys [desc shape n inform] :as t} tests]
-    (print-results t (run-test n (generate-model shape) inform))))
+  (let [results (atom [])]
+    (doseq [{:keys [desc shape n inform] :as t} tests]
+      (let [r (run-test n (generate-model shape) inform)]
+        (swap! results conj r)
+        (print-results t r)))
+    (print-summary @results)))
