@@ -258,3 +258,85 @@
 
 (println (first (alts!! [output-transform-chan (timeout 100)])))
 (println (first (alts!! [output-transform-chan (timeout 100)])))
+
+
+;; We sometimes need to route messages from one transform channel to
+;; an one or more other transform channels. For this we use the
+;; `io.pedestal.app.route` namespace.
+
+(require '[io.pedestal.app.route :as route])
+
+;; Suppose we have three different channels on which we would like to
+;; send transform messages.
+
+;; one for ui transforms
+
+(def ui-transform-chan (chan 10))
+
+;; one for transforms to the info model
+
+(def info-transform-chan (chan 10))
+
+;; and one for service transforms
+
+(def service-transform-chan (chan 10))
+
+;; we can create a router which will route messages from an incoming
+;; transform channel to one of these channels. First we create the
+;; transform channel which will convey messages to the router
+
+(def router-transform-chan (chan 10))
+
+;; then we start the router providing a name and the input channel.
+
+(route/router [:router :x] router-transform-chan)
+
+;; The name of this router is [:router :x] and could be any path. To
+;; add transform messages to the router we send messages to it on the
+;; input transform channel. In the example below, we send on transform
+;; message with three transformations, each one adding a channel to
+;; the router.
+
+(put! router-transform-chan [[[:router :x] :add [ui-transform-chan [:ui :**] :*]]
+                             [[:router :x] :add [info-transform-chan [:info :**] :*]]
+                             [[:router :x] :add [service-transform-chan [:service :**] :*]]])
+
+;; The state part of the transformation is the same kind of vector
+;; that we would use to configure a map except that we have a channel
+;; in the place of a function.
+
+[ui-transform-chan [:ui :**] :*]
+
+;; This means that any incoming transform message for any event where
+;; the first element in the target is `:ui` will get put on the
+;; `ui-transform-chan` channel.
+
+;; We can now send a single transform message to this router and it
+;; will split it into three transforms and place each one on the
+;; correct outbound channel.
+
+(put! router-transform-chan [[[:ui :number :a] :set-value 42]
+                             [[:info :counter :a] inc]
+                             [[:info :counter :b] inc]
+                             [[:service :datomic] :save-value :counter-a 42]])
+
+(println (first (alts!! [ui-transform-chan (timeout 100)])))
+(println (first (alts!! [info-transform-chan (timeout 100)])))
+(println (first (alts!! [service-transform-chan (timeout 100)])))
+
+;; to remove a channel, we send the router a `:remove` transform
+
+(put! router-transform-chan [[[:router :x] :remove [info-transform-chan [:info :**] :*]]])
+
+;; Now when we send the same message as above, nothing will be put on
+;; the `info-transform-chan`.
+
+(put! router-transform-chan [[[:ui :number :a] :set-value 42]
+                             [[:info :counter :a] inc]
+                             [[:info :counter :b] inc]
+                             [[:service :datomic] :save-value :counter-a 42]])
+
+(println (first (alts!! [ui-transform-chan (timeout 100)])))
+(println (first (alts!! [info-transform-chan (timeout 100)])))
+(println (first (alts!! [service-transform-chan (timeout 100)])))
+
