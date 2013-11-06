@@ -57,6 +57,42 @@
   (let [m (mean xs)]
     (/ (reduce + (map #(sqr (- m %)) xs)) (count xs))))
 
+(defn- sort-and-scale [results]
+  (let [sr (sort-by :mean results)
+        quick (:mean (first sr))]
+    (map #(assoc % :scale (/ (:mean %) quick)) sr)))
+
+(let [nf (java.text.DecimalFormat. "0.000")
+      fmt (fn [n] (.format nf n))]
+  (defn print-results [{:keys [shape desc n]} results]
+    (println)
+    (println (str (reduce * shape)
+                  " items "
+                  (apply str (interpose "-" shape))
+                  " "
+                  desc
+                  " / "
+                  n " runs"))
+    (pp/print-table (map #(-> %
+                              (update-in [:scale] fmt)
+                              (update-in [:mean] fmt)
+                              (update-in [:sd] fmt))
+                         (sort-and-scale results))))
+
+  (defn print-summary [results]
+    (println)
+    (println "SUMMARY")
+    (let [sr (reduce (fn [a b]
+                       (update-in a [(:m b)] (fnil + 0) (:scale b)))
+                     {}
+                     (mapcat sort-and-scale results))
+          sr (sort-by :scale (reduce-kv (fn [a k v]
+                                          (conj a {:m k :scale v}))
+                                        []
+                                        sr))
+          sr (map #(update-in % [:scale] fmt) sr)]
+      (pp/print-table sr))))
+
 (defn stats [t]
   (let [xs (map :time t)]
     {:mean (mean xs)
