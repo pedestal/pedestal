@@ -4,8 +4,8 @@
 
 [source event state(s)]
 
-;; Inform messages can be received from back-end services or from the
-;; user interface. For example, a button click may generate an infrom
+;; Inform messages may be received from back-end services or from the
+;; user interface. For example, a button click may generate an inform
 ;; message like the one shown below.
 
 [[[:ui :button :a] :click]]
@@ -54,8 +54,7 @@
 ;; change. To accomplish this we will need a function which receives
 ;; an inform message and produces a collection of transform messages.
 
-;; TODO: this will be updated to receive one argument
-(defn inc-counter-transform [_ inform-message]
+(defn inc-counter-transform [inform-message]
   (let [[[source event]] inform-message
         [_ _ counter-id] source]
     [[[[:info :counter counter-id] inc]]]))
@@ -113,7 +112,7 @@
 
 ;; A transform channel sends messages to the model and an inform
 ;; channel sends messages which describe changes to the model. We have
-;; already seen an example of the transform message which you send to
+;; already seen an example of the transform message which is sent to
 ;; a model. What does a model inform message look like? An example is
 ;; shown below.
 
@@ -123,20 +122,20 @@
 ;; either :added, :updated or :removed. The states are the entire
 ;; old and new model values.
 
-;; To create a new model we first create the inform channel.
+;; To create a new model, we first create the inform channel.
 
 (def model-inform-chan (chan 10))
 
-;; We then call `transform->inform` passing the initial model state
+;; We then call `transform->inform` passing the initial model value
 ;; and the inform channel. This returns the transform
 ;; channel. Remember, for the model, transform messages go in and
 ;; inform messages come out.
 
-(def model-transform-chan (model/transform->inform {:info {:counter 0}} model-inform-chan))
+(def model-transform-chan (model/transform->inform {:info {:counter {:a 0}}} model-inform-chan))
 
 ;; We can now send a transform message to the model
 
-(put! model-transform-chan [[[:info :counter] inc]])
+(put! model-transform-chan [[[:info :counter :a] inc]])
 
 ;; and get the inform message which describes the change to the model.
 
@@ -166,7 +165,7 @@
 ;; based on inform messages. This time the transform message will go
 ;; out to the UI so that the counter value can be displayed.
 
-(defn counter-text-transform [_ inform-message]
+(defn counter-text-transform [inform-message]
   (let [[[source event old-model new-model]] inform-message
         counter-id (last source)]
     [[[[:ui :number counter-id] :set-value (get-in new-model source)]]]))
@@ -189,20 +188,28 @@
 
 (println (first (alts!! [output-transform-chan (timeout 100)])))
 
-;; Now let's put it all together
+;; Now let's put it all together. Create the transform channel that
+;; will send transform messages to the UI.
 
 (def output-transform-chan (chan 10))
+
+;; Build the pipeline that includes the model and the input and output
+;; maps. This returns the inform channel that you will give to UI
+;; componenets are anything which will send input to the application.
 
 (def input-inform-chan (->> output-transform-chan
                             (map/inform->transforms output-config)
                             (model/transform->inform {:info {:counter {:a 0}}})
                             (map/inform->transforms input-config)))
 
+;; Send the button click event on the input channel.
+
 (put! input-inform-chan [[[:ui :button :a] :click]])
+
+;; Consume ui transforms from the output channel.
 
 (println (first (alts!! [output-transform-chan (timeout 100)])))
 
 ;; Try sending the :click event several times.
 
-;; This is the basic setup for an application. There are other ways to
-;; combine these parts but this is enough to get started.
+;; This is the basic application loop.

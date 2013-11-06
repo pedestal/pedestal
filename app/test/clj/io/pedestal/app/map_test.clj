@@ -21,7 +21,7 @@
   The produced function will return one tranform message which
   contains one transformation entry for each event entry."
   [k]
-  (fn [patterns inform]
+  (fn [inform]
     [(mapv (fn [[source event old new]]
              [(conj source k) :swap [event old new]]) inform)]))
 

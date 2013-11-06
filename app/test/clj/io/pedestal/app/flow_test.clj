@@ -17,7 +17,7 @@
 (deftest flow-tests
   (let [inform-c (chan 10)
         data-model {:a 1}
-        test-flow (fn [_ inform-message] [[[[:b] (constantly 42)]]])
+        test-flow (fn [inform-message] [[[[:b] (constantly 42)]]])
         config [[test-flow [:a] :*]]
         transform-c (transform->inform data-model config inform-c)]
     (put! transform-c [[[:a] inc]])

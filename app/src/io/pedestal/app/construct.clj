@@ -19,7 +19,7 @@
 (defn- router-transforms
   "Given an inform with :channel-added and :channel-removed events, generates
   ::router transforms the router can process."
-  [_ inform-message]
+  [inform-message]
   (mapv (fn [[ _ event c config]]
           (cond (= event :channel-added)
                 [[[::router] :add [c config :*]]]

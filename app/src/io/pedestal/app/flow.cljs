@@ -64,7 +64,7 @@
            model-inform (chan 10)
            model-transform (model/transform->inform data-model model-inform)
            map-transform (chan 10)
-           marker-fn (fn [_ inform-message] [inform-message])
+           marker-fn (fn [inform-message] [inform-message])
            config (conj config [marker-fn [::marker] ::marker])
            map-inform (mapper/inform->transforms config map-transform args-fn)]
        (go (loop []

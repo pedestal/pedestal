@@ -15,17 +15,17 @@
             [clojure.core.async :refer [go chan put! close! alts!! timeout]]
             [io.pedestal.app.construct :refer :all :as app]))
 
-(defn button-click [_ inform-message]
+(defn button-click [inform-message]
   [[[[:info :a] inc]]])
 
-(defn flow-b [_ inform-message]
+(defn flow-b [inform-message]
   (let [[_ _ _ model] (first inform-message)]
     [[[[:info :b] (constantly (+ 10 (get-in model [:info :a])))]]]))
 
-(defn output-a [_ inform-message]
+(defn output-a [inform-message]
   [(mapv (fn [[path event o n]] [[:out :a] event o n]) inform-message)])
 
-(defn output-b [_ inform-message]
+(defn output-b [inform-message]
   [(mapv (fn [[path event o n]] [[:out :b] event o n]) inform-message)])
 
 (deftest app-tests
@@ -59,25 +59,25 @@
 (defn abs [x]
   (Math/abs (double x)))
 
-(defn sr-input [_ [[_ _ {:keys [x guess accuracy] :as init}]]]
+(defn sr-input [[[_ _ {:keys [x guess accuracy] :as init}]]]
   [[[[:info] merge init]]])
 
-(defn divide [_ [[_ _ _ model]]]
+(defn divide [[[_ _ _ model]]]
   [[[[:info :divide] (constantly (/ (get-in model [:info :x])
                                     (get-in model [:info :guess])))]]])
 
-(defn sum [_ [[_ _ _ model]]]
+(defn sum [[[_ _ _ model]]]
   [[[[:info :sum] (constantly (+ (get-in model [:info :divide])
                                  (get-in model [:info :guess])))]]])
 
-(defn half [_ [[_ _ _ model]]]
+(defn half [[[_ _ _ model]]]
   [[[[:info :half] (constantly (/ (get-in model [:info :sum]) 2))]]])
 
-(defn good-enough? [_ [[_ _ {{ohalf :half} :info} {{acc :accuracy nhalf :half} :info}]]]
+(defn good-enough? [[[_ _ {{ohalf :half} :info} {{acc :accuracy nhalf :half} :info}]]]
   (when (and ohalf nhalf acc (< acc (abs (- nhalf ohalf))))
     [[[[:info :guess] (constantly (- nhalf acc))]]]))
 
-(defn sr-output [_ [[_ _ _ model]]]
+(defn sr-output [[[_ _ _ model]]]
   [[[[:out] :set-result (get-in model [:info :half])]]])
 
 (deftest square-root-test

@@ -70,9 +70,9 @@
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (defn default-args-fn
-  "Default args-fn implementation which returns the patterns and
-  inform message as two arguments to be applied to an i->t function."
-  [patterns inform] [patterns inform])
+  "Default args-fn implementation which returns the inform message to
+  be applied to an i->t function."
+  [patterns inform] [inform])
 
 (defn inform-to-transforms
   "Given an index and an inform message, return a collection of
