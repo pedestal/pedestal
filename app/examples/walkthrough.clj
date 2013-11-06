@@ -166,9 +166,17 @@
 ;; out to the UI so that the counter value can be displayed.
 
 (defn counter-text-transform [inform-message]
-  (let [[[source event old-model new-model]] inform-message
-        counter-id (last source)]
-    [[[[:ui :number counter-id] :set-value (get-in new-model source)]]]))
+  (vector
+   (mapv (fn [[source _ _ new-model]]
+           (let [counter-id (last source)]
+             [[:ui :number counter-id] :set-value (get-in new-model source)]))
+         inform-message)))
+
+;; In the function above, one transformation is created for each
+;; event-entry. If more than one counter is updated during a
+;; transaction on the info model then a single transform will be sent
+;; out will all the updates to the UI. This could also be written so
+;; that one transform is generated for each change.
 
 ;; Again we create a configuration which will map inform messages to
 ;; this function
@@ -213,3 +221,40 @@
 ;; Try sending the :click event several times.
 
 ;; This is the basic application loop.
+
+;; What if we had two counters and we wanted to have a third counter
+;; which was always the sum of the other two? The
+;; `io.pedestal.app.flow` namespace provides dataflow capabilities.
+
+(require '[io.pedestal.app.flow :as flow])
+
+;; Create a function that turns info model informs into info model transforms.
+
+(defn sum-transform [inform-message]
+  (let [[[_ _ _ n]] inform-message]
+    [[[[:info :counter :c] (constantly (+ (get-in n [:info :counter :a])
+                                          (get-in n [:info :counter :b])))]]]))
+
+;; Create the flow config.
+
+(def flow-config [[sum-transform [:info :counter :a] :updated [:info :counter :b] :updated]])
+
+;; Call the `flow/transform->inform` function instead of
+;; `model/transform->inform`. This function takes an additional config argument.
+
+(def output-transform-chan (chan 10))
+(def input-inform-chan
+  (->> output-transform-chan
+       (map/inform->transforms output-config)
+       (flow/transform->inform {:info {:counter {:a 0 :b 0 :c 0}}} flow-config)
+       (map/inform->transforms input-config)))
+
+;; Send inform messages as if two buttons where clicked.
+
+(put! input-inform-chan [[[:ui :button :a] :click]])
+(put! input-inform-chan [[[:ui :button :b] :click]])
+
+;; Read two inform messages from the output channel.
+
+(println (first (alts!! [output-transform-chan (timeout 100)])))
+(println (first (alts!! [output-transform-chan (timeout 100)])))
