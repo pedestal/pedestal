@@ -2,6 +2,12 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.2.2 - November 5, 2013
+
+Bug fix release preceding some exciting (and breaking) 0.3.0 changes. Unless any major bugs are discovered, no further work will continue on the 0.2.x stream.
+
+For a full list of changes, please see this comparison of [0.2.1...0.2.2](https://github.com/pedestal/pedestal/compare/0.2.1...0.2.2).
+
 ## 0.2.1 - September 1, 2013
 
 Small bug fix for app-template.

@@ -9,10 +9,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service-tools "0.2.2-SNAPSHOT"
+(defproject io.pedestal/pedestal.service-tools "0.3.0-SNAPSHOT"
   :description "Pedestal tools for service development"
   :min-lein-version "2.0.0"
-  :dependencies [[io.pedestal/pedestal.service "0.2.2-SNAPSHOT"]
+  :dependencies [[io.pedestal/pedestal.service "0.3.0-SNAPSHOT"]
 
                  ;; Auto-reload changes
                  [ns-tracker "0.2.1"]
@@ -21,4 +21,6 @@
                  [ch.qos.logback/logback-classic "1.0.13" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.2"]
                  [org.slf4j/jcl-over-slf4j "1.7.2"]
-                 [org.slf4j/log4j-over-slf4j "1.7.2"]])
+                 [org.slf4j/log4j-over-slf4j "1.7.2"]
+
+                 [javax.servlet/javax.servlet-api "3.0.1" :scope "test"]])

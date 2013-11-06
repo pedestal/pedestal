@@ -108,6 +108,9 @@
   "Builds interceptors given an options map with keyword keys prefixed by namespace e.g.
   :io.pedestal.service.http/routes or ::bootstrap/routes if the namespace is aliased to bootstrap.
 
+  Note:
+    No additional interceptors are added if :interceptors key is set.
+
   Options:
 
   * :routes: A seq of route maps that defines a service's routes. It's recommended to build this
@@ -122,7 +125,8 @@
   * :not-found-interceptor: Interceptor to use when returning a not found response. Default is
      the not-found interceptor.
   * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}."
-  [{routes ::routes
+  [{interceptors ::interceptors
+    routes ::routes
     file-path ::file-path
     resource-path ::resource-path
     method-param-name ::method-param-name
@@ -135,17 +139,19 @@
          method-param-name :_method
          ext-mime-types {}}
     :as service-map}]
-  (assoc service-map ::interceptors
-         (cond-> []
-                 true (conj log-request)
-                 (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
-                 true (conj not-found-interceptor)
-                 true (conj (middlewares/content-type {:mime-types ext-mime-types}))
-                 true (conj route/query-params)
-                 true (conj (route/method-param method-param-name))
-                 (not (nil? resource-path)) (conj (middlewares/resource resource-path))
-                 (not (nil? file-path)) (conj (middlewares/file file-path))
-                 true (conj (route/router routes)))))
+  (if-not interceptors
+    (assoc service-map ::interceptors
+           (cond-> []
+                   true (conj log-request)
+                   (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
+                   true (conj not-found-interceptor)
+                   true (conj (middlewares/content-type {:mime-types ext-mime-types}))
+                   true (conj route/query-params)
+                   true (conj (route/method-param method-param-name))
+                   (not (nil? resource-path)) (conj (middlewares/resource resource-path))
+                   (not (nil? file-path)) (conj (middlewares/file file-path))
+                   true (conj (route/router routes))))
+    service-map))
 
 (defn dev-interceptors
   [service-map]
@@ -172,15 +178,14 @@
 
   Options:
 
-  * :interceptors: A vector of interceptors that defines a service.
+  * :io.pedestal.service.http/interceptors: A vector of interceptors that defines a service.
 
   Note: Additional options are passed to default-interceptors if :interceptors is not set."
-  [{interceptors ::interceptors
-    :as options}]
-  (cond-> options
-          (nil? interceptors) default-interceptors
-          true service-fn
-          true servlet))
+  [service-map]
+  (-> service-map
+      default-interceptors
+      service-fn
+      servlet))
 
 (defn- service-map->server-options
   [service-map]
@@ -203,13 +208,31 @@
     (merge service-map (server-map->service-map server-map))))
 
 (defn create-server
-  [options]
+  [service-map]
   (log/init-java-util-log)
-  (-> options
+  (-> service-map
       create-servlet
       server))
 
-(defn start [service-map] ((::start-fn service-map)))
+(defn start [service-map]
+  ((::start-fn service-map))
+  service-map)
 
-(defn stop [service-map] ((::stop-fn service-map)))
+(defn stop [service-map]
+  ((::stop-fn service-map))
+  service-map)
+
+;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
+
+(defn servlet-init
+  [service config]
+  (let [service (create-servlet service)]
+    (.init (::servlet service) config)
+    service))
+
+(defn servlet-destroy [service]
+  (dissoc service ::servlet))
+
+(defn servlet-service [service servlet-req servlet-resp]
+  (.service ^javax.servlet.Servlet (::servlet service) servlet-req servlet-resp))
 
