@@ -53,3 +53,33 @@
                      (into (diff p ov nv)
                            (reverse-diffs (diff p nv ov)))))
             paths)))))
+
+(defn- matching-path-element?
+  "Return true if the two elements match."
+  [a b]
+  (or (= a b) (= a :*) (= b :*)))
+
+(defn matching-path?
+  "Return true if the two paths match."
+  [path-a path-b]
+  (and (= (count path-a) (count path-b))
+       (every? true? (map (fn [a b] (matching-path-element? a b)) path-a path-b))))
+
+(defn- truncate-path [path pattern]
+  (vec (take (count pattern) path)))
+
+(defn- generalize-event-entry [[p e o n :as event-entry] pattern]
+  (if (> (count p) (count pattern))
+    (let [path (truncate-path p pattern)
+          event (if (get-in o path) :updated :added)]
+      [(truncate-path p pattern) event o n])
+    event-entry))
+
+(defn combine [inform-message patterns]
+  (reduce (fn [acc [path event o n :as event-entry]]
+            (if-let [p (first (filter #(matching-path? % (truncate-path path %))
+                                      patterns))]
+              (conj acc (generalize-event-entry event-entry p))
+              (conj acc event-entry)))
+          #{}
+          inform-message))
