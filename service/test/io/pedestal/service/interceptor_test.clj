@@ -15,7 +15,7 @@
             [io.pedestal.service.interceptor :as interceptor
              :refer (definterceptor definterceptorfn interceptor defaround defmiddleware)]
             [io.pedestal.service.impl.interceptor :as impl
-             :refer (execute enqueue with-pause resume)]))
+             :refer (execute enqueue)]))
 
 (defn trace [context direction name]
   (update-in context [::trace] (fnil conj []) [direction name]))
@@ -24,9 +24,7 @@
   (interceptor
    :name name
    :enter #(trace % :enter name)
-   :leave #(trace % :leave name)
-   :pause #(trace % :pause name)
-   :resume #(trace % :resume name)))
+   :leave #(trace % :leave name)))
 
 (definterceptorfn thrower [name]
   (assoc (tracer name)
@@ -37,17 +35,6 @@
     :error (fn [context error]
              (update-in context [::trace] (fnil conj [])
                         [:error name :from (:from (ex-data error))]))))
-
-(definterceptorfn delayer [name]
-  (assoc (tracer name)
-    :enter (fn [context]
-             (with-pause [context* (trace context :enter name)]
-               (future (Thread/sleep 100)
-                       (resume context*))))))
-
-(definterceptorfn deliverer [p]
-  (interceptor :name 'deliverer
-               :leave #(deliver p (dissoc % ::impl/stack ::impl/execution-id))))
 
 (definterceptorfn channeler [name]
   (assoc (tracer name)
@@ -60,8 +47,8 @@
                 (>! a-chan context*))
                a-chan))))
 
-(definterceptorfn channel-deliverer [ch]
-  (interceptor :name 'channel-deliverer
+(definterceptorfn deliverer [ch]
+  (interceptor :name 'deliverer
                :leave #(>!! ch %)))
 
 (deftest t-simple-execution
@@ -102,34 +89,10 @@
                            (thrower :f)
                            (tracer :g))))))
 
-(deftest t-simple-async
-  (let [p (promise)]
-    (execute (enqueue {}
-                      (deliverer p)
-                      (tracer :a)
-                      (tracer :b)
-                      (delayer :c)
-                      (tracer :d)))
-    (is (= {::trace [[:enter :a]
-                     [:enter :b]
-                     [:enter :c]
-                     [:pause :c]
-                     [:pause :b]
-                     [:pause :a]
-                     [:resume :a]
-                     [:resume :b]
-                     [:resume :c]
-                     [:enter :d]
-                     [:leave :d]
-                     [:leave :c]
-                     [:leave :b]
-                     [:leave :a]]}
-           @p))))
-
 (deftest t-two-channels
   (let [result-chan (chan)
         res (execute (enqueue {}
-                              (channel-deliverer result-chan)
+                              (deliverer result-chan)
                               (tracer :a)
                               (channeler :b)
                               (channeler :c)
@@ -149,81 +112,31 @@
           (is (= 2
                  (-> thread-ids distinct count)))))))
 
-(deftest t-pause-twice
-  (let [p (promise)]
-    (execute (enqueue {}
-                      (deliverer p)
-                      (tracer :a)
-                      (tracer :b)
-                      (delayer :c)
-                      (tracer :d)
-                      (delayer :e)
-                      (tracer :f)))
-    (is (= {::trace [[:enter :a]
-                     [:enter :b]
-                     [:enter :c]
-                     ;; :c pauses
-                     [:pause :c]
-                     [:pause :b]
-                     [:pause :a]
-                     ;; :c resumes
-                     [:resume :a]
-                     [:resume :b]
-                     [:resume :c]
-                     ;; Continue with :d
-                     [:enter :d]
-                     [:enter :e]
-                     ;; :e pauses
-                     [:pause :e]
-                     [:pause :d]
-                     [:pause :c]
-                     [:pause :b]
-                     [:pause :a]
-                     ;; :e resumes
-                     [:resume :a]
-                     [:resume :b]
-                     [:resume :c]
-                     [:resume :d]
-                     [:resume :e]
-                     ;; Continue with :f
-                     [:enter :f]
-                     ;; Finish and unwind the stack
-                     [:leave :f]
-                     [:leave :e]
-                     [:leave :d]
-                     [:leave :c]
-                     [:leave :b]
-                     [:leave :a]]}
-           @p))))
 
-(deftest t-async-with-error
-  (let [p (promise)]
-    (execute (enqueue {}
-                      (deliverer p)
-                      (tracer :a)
-                      (catcher :b)
-                      (delayer :c)
-                      (tracer :d)
-                      (thrower :e)
-                      (tracer :f)))
-    (is (= {::trace [[:enter :a]
-                     [:enter :b]
-                     [:enter :c]
-                     ;; :c pauses
-                     [:pause :c]
-                     [:pause :b]
-                     [:pause :a]
-                     ;; :c resumes
-                     [:resume :a]
-                     [:resume :b]
-                     [:resume :c]
-                     ;; Continue with :d
-                     [:enter :d]
-                     ;; :e throws, gets caught by :b
-                     [:error :b :from :e]
-                     ;; Finish and unwind the stack
-                     [:leave :a]]}
-           @p))))
+(deftest t-two-channels-with-error
+  (let [result-chan (chan)
+        res (execute (enqueue {}
+                              (deliverer result-chan)
+                              (tracer :a)
+                              (catcher :b)
+                              (channeler :c)
+                              (tracer :d)
+                              (thrower :e)
+                              (tracer :f)))]
+    (go (let [result     (<!! result-chan)
+              trace      (result ::trace)
+              thread-ids (result ::thread-ids)]
+          (is (= [[:enter :a]
+                  [:enter :b]
+                  [:enter :c]
+                  [:enter :d]
+                  ;; :e throws, gets caught by :b
+                  [:error :b :from :e]
+                  ;; Finish and unwind the stack
+                  [:leave :a]]
+                 trace))
+          (is (= 1
+                 (-> thread-ids distinct count)))))))
 
 (defaround around-interceptor
   "An interceptor that does the around pattern."

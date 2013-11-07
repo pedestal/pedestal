@@ -15,7 +15,7 @@
         ring.middleware.session.store))
 
 (defn valid-interceptor? [interceptor]
-  (and (every? fn? (remove nil? (vals (select-keys interceptor [:enter :leave :resume :pause :error]))))
+  (and (every? fn? (remove nil? (vals (select-keys interceptor [:enter :leave :error]))))
        (or (nil? (:name interceptor)) (keyword? (:name interceptor)))
        (some #{:enter :leave} (keys interceptor))))
 
