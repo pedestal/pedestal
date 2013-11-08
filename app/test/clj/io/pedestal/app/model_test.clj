@@ -116,8 +116,10 @@
                 (assoc-ok m [(ffirst m)] k i)))
 
 (defn valid-inform-for [transform-fn m path & args]
-  (= (set (:inform (apply-transform m [(into [path transform-fn] args)])))
-     (ideal-change-report m (apply update-in m path transform-fn args))))
+  (let [expected (ideal-change-report m (apply update-in m path transform-fn args))]
+    (assert (seq expected) "The generated change report should not be empty.")
+    (= (set (:inform (apply-transform m [(into [path transform-fn] args)])))
+       expected)))
 
 (defspec inc-tests
   50
