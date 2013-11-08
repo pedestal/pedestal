@@ -129,3 +129,26 @@
                       ;; otherwise we're testing no change report
                       model (assoc-in m (conj path k) v)]
                   (valid-inform-for dissoc model path k))))
+
+(defspec update-in-model-tests
+  50
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
+                 k gen/keyword
+                 v gen/nat]
+                (let [path [(rand-nth (keys m))]
+                      ;; ensure we can update something at a path
+                      ;; otherwise we're testing no change report
+                      model (assoc-in m (conj path k) v)]
+                  (valid-inform-for update-in model path [k] inc))))
+
+(defspec merge-model-tests
+  50
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
+                 k gen/keyword
+                 old-map (gen/map gen/keyword gen/nat)
+                 new-map (gen/such-that not-empty (gen/map gen/keyword gen/nat))]
+                (let [path [(rand-nth (keys m))]
+                      ;; ensure we can merge something at a path
+                      ;; otherwise we're testing no change report
+                      model (assoc-in m (conj path k) old-map)]
+                  (valid-inform-for merge model path new-map))))
