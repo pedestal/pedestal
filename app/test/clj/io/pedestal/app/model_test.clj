@@ -129,34 +129,33 @@
 
 (defspec dissoc-model-tests
   50
-  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
-                 k gen/keyword
-                 v gen/nat]
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model))
+                 i (gen/such-that not-empty (gen/map gen/keyword gen/nat))]
                 (let [path [(rand-nth (keys m))]
+                      new-key (rand-nth (keys i))
                       ;; ensure we're always dissocing something at a path
                       ;; otherwise we're testing no change report
-                      model (assoc-in m (conj path k) v)]
-                  (valid-inform-for dissoc model path k))))
+                      model (assoc-in m path i)]
+                  (valid-inform-for dissoc model path new-key))))
 
 (defspec update-in-model-tests
   50
-  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
-                 k gen/keyword
-                 v gen/nat]
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model))
+                 i (gen/such-that not-empty (gen/map gen/keyword gen/nat))]
                 (let [path [(rand-nth (keys m))]
+                      new-key (rand-nth (keys i))
                       ;; ensure we can update something at a path
                       ;; otherwise we're testing no change report
-                      model (assoc-in m (conj path k) v)]
-                  (valid-inform-for update-in model path [k] inc))))
+                      model (assoc-in m path i)]
+                  (valid-inform-for update-in model path [new-key] inc))))
 
 (defspec merge-model-tests
   50
-  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
-                 k gen/keyword
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model))
                  old-map (gen/map gen/keyword gen/nat)
                  new-map (gen/such-that not-empty (gen/map gen/keyword gen/nat))]
                 (let [path [(rand-nth (keys m))]
                       ;; ensure we can merge something at a path
                       ;; otherwise we're testing no change report
-                      model (assoc-in m (conj path k) old-map)]
+                      model (assoc-in m path old-map)]
                   (valid-inform-for merge model path new-map))))
