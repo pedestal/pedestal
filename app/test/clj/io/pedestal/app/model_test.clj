@@ -110,8 +110,7 @@
 
 (defspec assoc-model-tests
   50
-  (prop/for-all [m (gen/sized pgen/model)
-                 path (gen/such-that not-empty (gen/vector gen/keyword))
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model))
                  k gen/keyword
                  i (gen/one-of [gen/int (gen/sized pgen/model)])]
-                (assoc-ok m path k i)))
+                (assoc-ok m [(ffirst m)] k i)))
