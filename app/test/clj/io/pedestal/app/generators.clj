@@ -18,3 +18,12 @@
     (let [new-size (quot size 2)
           smaller-model (gen/resize new-size (gen/sized model))]
       (gen/map gen/keyword (gen/one-of [gen/nat smaller-model])))))
+
+(defn model-with-map-values
+  "Generates a model whose top-level keys always have maps as values"
+  [size]
+  (if (= size 0)
+    (gen/map gen/keyword (gen/map gen/keyword gen/nat))
+    (let [new-size (quot size 2)
+          smaller-model (gen/resize new-size (gen/sized model))]
+      (gen/map gen/keyword smaller-model))))

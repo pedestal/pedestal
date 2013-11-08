@@ -114,3 +114,18 @@
                  k gen/keyword
                  i (gen/one-of [gen/int (gen/sized pgen/model)])]
                 (assoc-ok m [(ffirst m)] k i)))
+
+(defn valid-inform-for [transform-fn m path & args]
+  (= (set (:inform (apply-transform m [(into [path transform-fn] args)])))
+     (ideal-change-report m (apply update-in m path transform-fn args))))
+
+(defspec dissoc-model-tests
+  50
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
+                 k gen/keyword
+                 v gen/nat]
+                (let [path [(rand-nth (keys m))]
+                      ;; ensure we're always dissocing something at a path
+                      ;; otherwise we're testing no change report
+                      model (assoc-in m (conj path k) v)]
+                  (valid-inform-for dissoc model path k))))
