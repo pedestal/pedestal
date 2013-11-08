@@ -119,6 +119,14 @@
   (= (set (:inform (apply-transform m [(into [path transform-fn] args)])))
      (ideal-change-report m (apply update-in m path transform-fn args))))
 
+(defspec inc-tests
+  50
+  (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model))
+                 i gen/int]
+                (let [path [(rand-nth (keys m))]
+                      model (assoc-in m path i)]
+                  (valid-inform-for inc model path))))
+
 (defspec dissoc-model-tests
   50
   (prop/for-all [m (gen/such-that not-empty (gen/sized pgen/model-with-map-values))
