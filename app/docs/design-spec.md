@@ -5,15 +5,88 @@ covering both design and API. As much as possible, we attempt to
 enumerate design decisions and point out open issues. Most design
 decisions are still up for discussion.
 
-Pedestal is a set of components which is intended to provide a
-sound structure and efficient execution to a `core.async` based
+Pedestal is a set of components which is intended to provide a sound
+structure and efficient execution to large `core.async` based
 applications. The main focus of these components is to provide a
-standard way to model change. Most of the difficulty in building
+standard way to model change. Most of the difficulty in building large
 interactive applications comes from correctly and efficiently
 responding to change. How do we report changes? How do we tell
 something to change? How do we know what has changed? How do we do all
-this efficiently without writing overly complex code? Providing a good
-answer to these questions is the goal of Pedestal.
+of this efficiently without writing overly complex code? Providing a
+good answer to these questions is the goal of Pedestal.
+
+We often use simple examples such as clicking a button an showing a
+counter increment on a screen to illustrate what the various parts
+will do and how they fit together. These are not motivating
+examples. For applications this simple, you don't need Pedestal. A
+true motivating example is a complex application with lots of:
+
+- screens
+- widgets
+- interactions with services
+- state
+
+Small programs are easy. Large programs need to have more thought put
+into how they are structured. The goal of Pedestal is to help build
+these larger applications by providing a well thought out structure
+and a way to consistently model change. A good common solution to
+these problems will allow many developers to build higher level
+components on top of it.
+
+The problems we are trying to solve a listed below:
+
+- events
+
+  How do we deal with incoming events? Events should cause things to
+  happen. What should happen and where should the code live which
+  knows about what should happen? We should avoid callbacks into
+  application code by using `core.async`. What do we send on a channel
+  when an event occurs?
+
+- state
+
+  Where does state live? Do we need to have state? How is state
+  changed? Where do put the code that changes state? Which components
+  are allowed to change state? After state has changed, much of the
+  work of an application is to figure how what has changed and what
+  effect that should have. How do we do this? Do we use atoms to store
+  state? If so, how many? Do we put state in the DOM? Do we put state
+  in Widgets? Where do we put state and specific to rendering only?
+
+- views
+
+  We don't want to assume that we are only ever using the DOM for
+  views. What part of the application should be updating views? How do
+  keep application logic separate from view logic? How do we manage
+  changing views? For example one screen has five widgets on it and
+  another screen has ten different widgets. What happens when we
+  switch from on screen to another? How do we handle listening for
+  events in views and converting events to data on a `core.async`
+  channel?
+
+- control
+
+  How do we know what state the application is in? For example, we
+  need to log in before we can begin using the app. We may see one set
+  of widgets when we are in one state and another when we are in a
+  different state. How do we transition from one screen to another?
+  Where do we put the code that knows how to control the application?
+
+- communicate
+
+  How do we communicate with back-end services? We need to allow for
+  the server to push data to the app as well as make requests. Which
+  components are allowed to initiate service requests and receive
+  responses from services? How do make service requests and receive
+  responses? Do we make function calls or send messages?
+
+- logic
+
+  The logic of an application is what knows how to interpret events
+  and turn them into a useful change. It may need to change data in
+  the model, request some data or determine which UI components need
+  to be updated based on a change to the data. Where does this live?
+
 
 
 # Tenets
@@ -22,7 +95,7 @@ There are few things to keep in mind while reading this document.
 
 - We prefer data over functions over macros
 - Each component must work in both Clojure AND ClojureScript
-- For each component, we need to be aware of where it us running
+- For each component, we need to be aware of where it is running
   relative to other components. Sometimes components will run
   in the same address space as other components and sometimes they
   will not
@@ -160,7 +233,7 @@ occur at the same time as the transaction that caused them.
 
 ### Flow
 
-If the info model has calculated dependencies then a the following
+If the info model has calculated dependencies then the following
 sequence of events may occur.
 
 1. The info model takes a transform message from the incoming
@@ -255,6 +328,7 @@ to find matching functions to transform. The router pattern matches on
 identifiers to find out which channel to route the message to. The
 info model uses the identifier to apply a change to a specific part of
 the model.
+
 
 ### Inform messages
 
@@ -389,3 +463,11 @@ What's the error handling model?
 Are we using channels well? Policy choices - e.g. buffer size, channel
 type - and assembly, meaning should channel structure be assembled
 around core functions as opposed to integrated with them?
+
+When can a function in a dispatch map make a call to an external
+service?
+
+We need to provide a way for functions in dispatch maps to do
+asynchronous work. This may remove the need to interact with services
+through messages. Maybe they can return channels or they could always
+do work on their own go block.
