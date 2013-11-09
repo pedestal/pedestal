@@ -199,7 +199,7 @@ TBD: describe the widgets canvas here, including:
 
 # How it works
 
-This section of the doc will being to layout how things work and why
+This section of the doc will begin to layout how things work and why
 they work that way.
 
 Break out the individual parts and explain how they work
@@ -240,7 +240,7 @@ other. For example all widgets have an identifier which starts with
 `:ui`. All identifiers which start with `:info` identify a value in
 the info model.
 
-The identifier
+The identifiers
 
 ```clj
 [:ui :list "bca345-b3ba-bc38a" :name]
@@ -265,8 +265,8 @@ message is a vector of multiple event entries.
 [event-entry1 event-entry2 event-entry3]
 ```
 
-Each event entry describes on event as vector with `source-id`,
-`event`, and zero or more states.
+Each event entry describes an event as a vector with `source-id`,
+`event`, and zero or more `states`.
 
 ```clj
 [source-id event states]
@@ -295,7 +295,7 @@ message is a vector of multiple transformations.
 ```
 
 Each transformation is a vector with `target-id`, `op` and zero or
-more arguments.
+more `arguments`.
 
 ```clj
 [target-id op args]
@@ -338,17 +338,17 @@ Reiterate that inform msgs go inform channels and transform msgs go on transform
 
 ### Introduce match patterns here
 
-## Map
+## Dispatch Map
 
 - what it does / why it's here
-- any pertitent points about it's design
-- could go all the way to api for each part
+- any pertinent points about it's design
+- could go all the way to API for each part
 
 ## Info Model
 
 ### Flow
 
-## Cogs
+## Widgets
 
 ## Router
 
