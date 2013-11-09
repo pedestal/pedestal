@@ -253,7 +253,7 @@ transforms.
 and sent to on the outbound inform channel.
 
 
-### Comments
+#### Comments
 
 TBD: The sequence of events above does not describe how flow works.
 
@@ -393,7 +393,7 @@ requirements for what can be sent to it or how it will report
 changes. Each component will have its own API.
 
 
-### Comments
+#### Comments
 
 Q: how do transform message set a value other than using (constantly 42)?
 Q: why is transform message a vector?
@@ -412,9 +412,42 @@ vector.
 
 Reiterate that inform msgs go inform channels and transform msgs go on transform channels
 
-### Introduce match patterns here
+
+### Message pattern matching
+
+Inform and transform messages have a similar structure. They each
+start with a component id and then have either an event or an
+operation followed by a variable number of things.
+
+Some components below will need to find messages based on a provided
+pattern. Because the variable arguments at the end of messages can be
+anything, we have chosen to only pattern match against the first two
+parts of a message.
+
+A pattern is a vector with two elements. The first element matches the
+component id and the second element is used to match the event or
+operation. Patterns may use `:*` to mean any element and `:**` to
+mean zero or more elements. Some example patterns include:
+
+```clj
+[[:**] :*] ;; any message
+[[:ui :**] :*] ;; message with id starting with :ui
+[[:ui :* :*] :*] ;; id starts with :ui and has exactly to other elements
+[[:**] :click] ;; any click event
+[[:ui :button :a] :click] ;; this exact event
+[[:info :counter :*] :updated]
+```
+
+The dispatch map and the router use patterns like this to match
+messages to functions or to channels.
+
+## Channels
+
+![Channels](channels.png)
 
 ## Dispatch Map
+
+![Dispatch Map](dispatch-map.png)
 
 - what it does / why it's here
 - any pertinent points about it's design
@@ -422,11 +455,19 @@ Reiterate that inform msgs go inform channels and transform msgs go on transform
 
 ## Info Model
 
+![Info Model](info-model.png)
+
 ### Flow
+
+![Flow](flow.png)
 
 ## Widgets
 
+![Widgets](widgets.png)
+
 ## Router
+
+![Router](router2.png)
 
 
 # Putting the pieces together
