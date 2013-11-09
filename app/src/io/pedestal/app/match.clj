@@ -106,12 +106,12 @@
   (match-items* idx (conj source event) entry #{}))
 
 (defn match
-  "Given an index and an inform or transform message (a collection),
-  return all of the items which match this message along with all
-  matching messages. Returns a set of vectors. Each vector has the
-  format
+  "Given an index and an inform or transform message, return all of
+  the items which match this message along with the part of the
+  message which matches the item. Returns a set of vectors. Each
+  vector has the format
 
-  [item patterns messages]
+  [item patterns message]
 
   where patterns is the set of patterns that matched this message."
   [idx inform]
