@@ -138,6 +138,8 @@ channel.
 the transform message and changes the DOM to reflect the new value.
 
 
+### Using a router
+
 This sequence of events does not explain how transform messages find
 there way to a particular widget. That is the function of the
 `router`.
@@ -150,6 +152,32 @@ the outbound channel on which the transform message should be placed.
 
 When a widget is created it will need to register itself with the
 router. When a widget is destroyed, it will need to unregister.
+
+The router can also be used to allow messages to be send back to the
+info model. This allows for recursive updates which do not have to
+occur at the same time as the transaction that caused them.
+
+
+### Flow
+
+If the info model has calculated dependencies then a the following
+sequence of events may occur.
+
+1. The info model takes a transform message from the incoming
+transform channel
+2. It applies the transform and creates the inform message which
+describes the changes.
+3. This inform message is put on the inform channel which goes out to
+the Info->Info dispatch map.
+4. The Info->Info dispatch map takes the inform message off of the
+inform channel and finds a function to generate transforms. Any
+generated transforms are put on the outgoing transform channel.
+5. The transform is received from the transform channel and applied to
+the model.
+6. Steps 3 through 5 are repeated until step 4 produces no new
+transforms.
+7. All changes to the info model are put into one transform message
+and sent to on the outbound inform channel.
 
 
 ### Comments
@@ -171,18 +199,136 @@ TBD: describe the widgets canvas here, including:
 
 # How it works
 
-Break out the individual parts and explain how they work - input,
-output formats - maybe include a subsection on parts it gets wired up
-to w/ links to related sections - make it so you can walk through the
-processing of an event by moving between these doc sections
+This section of the doc will being to layout how things work and why
+they work that way.
+
+Break out the individual parts and explain how they work
+
+- input, output formats
+- maybe include a subsection on the parts it gets wired up to w/ links to related sections
+- make it so you can walk through the processing of an event by moving between these doc sections
+
 
 ## Messages
 
-Elements of the user interface, specific services and pieces of data are all
-named using hierarchical paths. 
+Messages are central to all parts of Pedestal in this section we
+discuss message format.
 
 
-This section describes transform and inform messages, including the definition of the format and the use of hierarchy in ids, why they are the way they are; use of fns as op in transform, the fact that inform messages can have 0..n states -- inform message is a vector of event entries, a transform message is any number of transformations in a vector.
+### Component identifiers
+
+Every message is either sent from something or to something. This
+means that we need some way to identify the thing that is sending or
+receiving the message.
+
+Everything that be changed or can report having been changed has a
+unique identifier. This includes user interface widgets, specific
+services and individual values in the information model. All
+identifiers have the same format. They are all paths represented as
+vectors. Some valid identifiers are:
+
+```clj
+[:ui :button :a]
+[:ui :list "bca345-b3ba-bc38a"]
+[:info :counter :a]
+[:services :auth]
+```
+
+By convention, identifiers are hierarchical meaning that two
+identifiers with the same prefix are in some way related to each
+other. For example all widgets have an identifier which starts with
+`:ui`. All identifiers which start with `:info` identify a value in
+the info model.
+
+The identifier
+
+```clj
+[:ui :list "bca345-b3ba-bc38a" :name]
+[:ui :list "bca345-b3ba-bc38a" :age]
+```
+
+may refer to two different things in the same list.
+
+Except for widgets, every component in the system makes some use of
+this identifier format. Dispatch maps pattern match on the identifiers
+to find matching functions to transform. The router pattern matches on
+identifiers to find out which channel to route the message to. The
+info model uses the identifier to apply a change to a specific part of
+the model.
+
+### Inform messages
+
+An inform message describes how something has changed. Each inform
+message is a vector of multiple event entries.
+
+```clj
+[event-entry1 event-entry2 event-entry3]
+```
+
+Each event entry describes on event as vector with `source-id`,
+`event`, and zero or more states.
+
+```clj
+[source-id event states]
+```
+
+Examples of inform messages include:
+
+```clj
+[[:ui :button :a] :click]
+[[:ui :form :register] :submit {:name "James" :age 25 :location "France"}]
+[[:info :counter :a] :updated {:info {:counter {:a 1}} {:info {:counter {:a 1}}]
+```
+
+The specifics of these examples are described below.
+
+Q: why is an inform message a vector?
+
+
+### Transform messages
+
+A transform message tells something how to change. Each transform
+message is a vector of multiple transformations.
+
+```clj
+[transformation1 transformation2]
+```
+
+Each transformation is a vector with `target-id`, `op` and zero or
+more arguments.
+
+```clj
+[target-id op args]
+```
+
+Examples of transform messages include:
+
+```clj
+[[:ui :form :register] :display-errors {:age "Error! Age must be a positive integer."}]
+[[:info :counter :a] inc]
+[[:info :counter :a] + 100]
+```
+
+The specifics of these examples are described below.
+
+Even though we have a common format for inform and transform messages,
+each component which either sends or receives them may have different
+requirements for what can be sent to it or how it will report
+changes. Each component will have its own API.
+
+
+### Comments
+
+Q: how do transform message set a value other than using (constantly 42)?
+Q: why is transform message a vector?
+Q: why do we need to have transactions?
+
+This section describes transform and inform messages, including the
+definition of the format and the use of hierarchy in ids, why they are
+the way they are; use of fns as op in transform, the fact that inform
+messages can have 0..n states -- inform message is a vector of event
+entries, a transform message is any number of transformations in a
+vector.
 
 - there are identified parts of the app - named with paths - everything that changes has a unique id: widgets, data, services - the way we report change is the same for widgets, data, service
 - change propagated using messages, messages always have a path, which are hierarchical
