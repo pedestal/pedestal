@@ -507,7 +507,7 @@ of pairs. For example:
 is a valid config vector.
 
 This raises a question. How do we match the message above with these
-patterns and what do we pass to the function? Is seems reasonable to
+patterns and what do we pass to the function? It seems reasonable to
 match functions to this message in the following way:
 
 ```clj
@@ -524,9 +524,11 @@ were channels, routing would work in the exact same way. We are always
 dealing in inform or transform messages but those messages may be
 split based on patterns.
 
+
 ### API
 
 The API for the matcher is shown below.
+
 
 #### index
 
@@ -549,12 +551,18 @@ return an index data structure that allows for fast pattern matching.
 The single argument version builds a new index and the two argument
 version adds the provided configuration to an existing index.
 
+
+#### remove-from-index
+
 The `remove-from-index` function will remove all items in the given
 config from the provided index and return the new index.
 
 ```clj
 (defn remove-from-index [idx config])
 ```
+
+
+#### match
 
 The `match` function will match items in the index to the inform
 message as described above.
@@ -578,6 +586,7 @@ to functions or channels.
 ## Dispatch Map
 
 ![Dispatch Map](dispatch-map.png)
+
 
 ### what it does / why it's here
 
@@ -617,6 +626,7 @@ So the job of the dispatch map...
 
 
 ### any pertinent points about it's design
+
 
 ### API
 
