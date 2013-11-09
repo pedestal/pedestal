@@ -393,6 +393,9 @@ requirements for what can be sent to it or how it will report
 changes. Each component will have its own API.
 
 
+### Transactions (units of work)
+
+
 #### Comments
 
 Q: how do transform message set a value other than using (constantly 42)?
@@ -441,17 +444,193 @@ mean zero or more elements. Some example patterns include:
 The dispatch map and the router use patterns like this to match
 messages to functions or to channels.
 
+
 ## Channels
 
 ![Channels](channels.png)
+
+Channels are `core.async` channels. Inform channels always carry
+inform messages as described above. Transform channels always carry
+transform messages as described above.
+
+Use core.async solves the callback problem when dealing with events
+and service calls. Each component in a Pedestal application is
+connected by channels rather than by making direct function
+calls. This allows true disconnection of components. Each component is
+in control of when it does work instead of being remote controlled
+from outside forces.
+
+There may be some places where we are using channels for no other
+reason than that in a JavaScript environment we do not have threads
+and we would like to ensure that the code we are writing will
+interleave with other code. This is true of the implementation of
+flow. In these cases, we may want to provide different implementations
+for Clojure and ClojureScript.
+
+Q: Why do we send messages instead of making direct function calls?
+
+
+## Match
+
+For some of the components below, we need to be able to match an
+inform message to either a function or a channel. For the purpose of
+explanation, support that we have the following generic message:
+
+```clj
+[[[:ui :b :c] :click]
+ [[:ui :e :f] :submit]
+ [[:ui :f :g] :over]]
+```
+
+This message is an inform message with three event entries.
+
+We need some way to match this message to one or more functions. We
+have chosen to use a structure like the one shown below to describe
+the mapping.
+
+```clj
+[[some-function [:ui :b :c] :click]
+ [another-function [:ui :e :f] :*]
+ [log [:ui :**] :*]]
+```
+
+Each vector above has a pattern which could match a message. Remember
+that patterns are pairs that represent a component-id and an event or
+op. In the data above we do not wrap the pattern in brackets so that
+the config will be more readable. Each vector could include any number
+of pairs. For example:
+
+```clj
+[some-function [:ui :b :c] :click [:ui :e :f] :click]
+```
+
+is a valid config vector.
+
+This raises a question. How do we match the message above with these
+patterns and what do we pass to the function? Is seems reasonable to
+match functions to this message in the following way:
+
+```clj
+[some-function [[[:ui :b :c] :click]]
+[another-function [[[:ui :e :f] :submit]]
+[log [[[:ui :b :c] :click]
+      [[:ui :e :f] :submit]
+      [[:ui :f :g] :over]]]
+```
+
+Notice that each function only sees the part of the inform message
+that matched its associated pattern. If instead of functions, these
+were channels, routing would work in the exact same way. We are always
+dealing in inform or transform messages but those messages may be
+split based on patterns.
+
+### API
+
+The API for the matcher is shown below.
+
+#### index
+
+Given a config which is a vector of vectors like:
+
+```clj
+[[some-function [:ui :b :c] :click]
+ [another-function [:ui :e :f] :*]
+ [log [:ui :**] :*]]
+```
+
+return an index data structure that allows for fast pattern matching.
+
+```clj
+(defn index
+  ([config])
+  ([idx config]))
+```
+
+The single argument version builds a new index and the two argument
+version adds the provided configuration to an existing index.
+
+The `remove-from-index` function will remove all items in the given
+config from the provided index and return the new index.
+
+```clj
+(defn remove-from-index [idx config])
+```
+
+The `match` function will match items in the index to the inform
+message as described above.
+
+```clj
+(defn match [idx inform])
+```
+
+The `match` function returns a set of vectors. Each vector has the
+matched item, the patterns which matched the item and the part of the
+message that matched this item.
+
+```clj
+[fn-or-chan patterns message]
+```
+
+This is used by both the router and the dispatch map to match messages
+to functions or channels.
+
 
 ## Dispatch Map
 
 ![Dispatch Map](dispatch-map.png)
 
-- what it does / why it's here
-- any pertinent points about it's design
-- could go all the way to API for each part
+### what it does / why it's here
+
+The purpose of the dispatch map is to take an inform message as input
+and produce transform messages which go out and change some other part
+of the application. An application must have some logic that does
+this. Sometimes that logic is in an event handler or a controller or
+anywhere else in an application.
+
+Since all change is caused by sending a transform message instead of
+making direct function calls, the logic which knows what must change,
+based on an event, produces transform messages.
+
+There are at least three places where a dispatch map is used in
+Pedestal:
+
+- producing transforms based on input from the UI or services
+- producing UI or service transforms based on reported changes to the info model
+- producing info model changes based on changes to the info model
+
+See Channels for an explanation of why we send messages rather than
+making direct function calls.
+
+Most of the logic of an application lives in dispatch map functions. A
+dispatch map function is a function that takes an inform message and
+returns a vector of transforms. It returns many transform messages
+because it must be in control of how transactions are run. It can
+decide if the sequence of transformations that it is producing should
+be applied as one update or as many individual updates. See the
+section on transactions above.
+
+So the job of the dispatch map...
+
+- find all functions
+- produce transforms
+- wrap this process in channels
+
+
+### any pertinent points about it's design
+
+### API
+
+```clj
+(defn inform-to-transforms
+  ([index inform])
+  ([index inform args-fn]))
+
+(defn inform->transforms
+  ([config tchan])
+  ([config tchan args-fn]))
+```
+
+Q: Why do functions return multiple transform messages?
 
 ## Info Model
 
@@ -461,13 +640,20 @@ messages to functions or to channels.
 
 ![Flow](flow.png)
 
+Q: Why use channels for flow instead of just recursion?
+
 ## Widgets
 
-![Widgets](widgets.png)
+![Widgets](widget.png)
+
+Q: Why do we use channels to send messages to widgets instead of just
+calling functions?
 
 ## Router
 
 ![Router](router2.png)
+
+Q: How do routes evolve over time?.
 
 
 # Putting the pieces together
@@ -514,3 +700,10 @@ We need to provide a way for functions in dispatch maps to do
 asynchronous work. This may remove the need to interact with services
 through messages. Maybe they can return channels or they could always
 do work on their own go block.
+
+What should Pedestal app include? Should it just be the things covered
+by this design document or should it still include some of the tools?
+I (Brenton) would favor moving everything other than this out to an
+external library and then only moving things back in once they have
+gone through a similar design process. We could end up shipping
+moderately sized source file.
