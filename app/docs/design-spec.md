@@ -349,9 +349,10 @@ Each event entry describes an event as a vector with `source-id`,
 Examples of inform messages include:
 
 ```clj
-[[:ui :button :a] :click]
-[[:ui :form :register] :submit {:name "James" :age 25 :location "France"}]
-[[:info :counter :a] :updated {:info {:counter {:a 1}} {:info {:counter {:a 1}}]
+[[[:ui :button :a] :click]]
+[[[:ui :button :a] :click] [[:ui :button :b] :click]]
+[[[:ui :form :register] :submit {:name "James" :age 25 :location "France"}]]
+[[[:info :counter :a] :updated {:info {:counter {:a 1}} {:info {:counter {:a 1}}]]
 ```
 
 The specifics of these examples are described below.
@@ -378,9 +379,10 @@ more `arguments`.
 Examples of transform messages include:
 
 ```clj
-[[:ui :form :register] :display-errors {:age "Error! Age must be a positive integer."}]
-[[:info :counter :a] inc]
-[[:info :counter :a] + 100]
+[[[:ui :form :register] :display-errors {:age "Error! Age must be a positive integer."}]]
+[[[:info :counter :a] inc]]
+[[[:info :counter :a] + 100]]
+[[[:info :counter :a] inc] [[:info :counter :b] inc]]
 ```
 
 The specifics of these examples are described below.
