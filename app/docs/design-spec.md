@@ -54,7 +54,8 @@ messages:
    what about async input from service via SSE or websocket? Can't
    these just be inform messages?)
 
-![Current Pedestal Dataflow](overview.png)
+
+![Pedestal Overview](overview.png)
 
 
 ## Kinds of things
@@ -137,21 +138,28 @@ channel.
 the transform message and changes the DOM to reflect the new value.
 
 
+This sequence of events does not explain how transform messages find
+there way to a particular widget. That is the function of the
+`router`.
+
+![Router](router.png)
+
+When the Info->UI dispatch map sends transforms, a router will receive
+each transform and, matching patters in the transform message, find
+the outbound channel on which the transform message should be placed.
+
+When a widget is created it will need to register itself with the
+router. When a widget is destroyed, it will need to unregister.
+
+
 ### Comments
 
 TBD: The sequence of events above does not describe how flow works.
 
-TBD: The sequence of events above does not explain how transform
-messages are routed from the Info->UI dispatch map to a specific
-widget. That is the job of a router.
-
-TBD: Do we really need to have to have both a UI->Info dispatch map
-and a Info->UI dispatch map? Do these two pictures represent the same
+TBD: Do we really need to have both a UI->Info dispatch map and a
+Info->UI dispatch map? Do these two pictures represent the same
 instance of a dispatch map. If we have a router then it seems like one
 could do the job.
-
-TBD: I don't know how to add the router to this diagram without making
-it ugly
 
 TBD: describe the widgets canvas here, including:
 
