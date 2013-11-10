@@ -395,6 +395,17 @@ changes. Each component will have its own API.
 
 ### Transactions (units of work)
 
+Inform messages are collections which contain multiple events which
+happened at the same time. Transform messages are collections which
+contain multiple transformations which should be applied at the same
+time.
+
+The best example of how these are used is in updates to the info
+model. All of the transformations in a transform message are applied
+at the same time. All of the changes made to the info model are
+reported as one inform message indicating that they happened at the
+same time.
+
 
 #### Comments
 
@@ -572,8 +583,8 @@ message as described above.
 ```
 
 The `match` function returns a set of vectors. Each vector has the
-matched item, the patterns which matched the item and the part of the
-message that matched this item.
+matched item, the patterns which matched the message and the matching
+part of the message.
 
 ```clj
 [fn-or-chan patterns message]
@@ -618,29 +629,83 @@ decide if the sequence of transformations that it is producing should
 be applied as one update or as many individual updates. See the
 section on transactions above.
 
-So the job of the dispatch map...
-
-- find all functions
-- produce transforms
-- wrap this process in channels
+So the job of the dispatch map is to find all of the functions which
+match an inform message. How this is done is described in the Match
+section above. It must then produce transform messages calling the
+matched functions.
 
 
 ### any pertinent points about it's design
 
+Why to dispatch map functions return multiple transform messages? As
+described above, a single transform messages is applied as one change
+and the changes are reported as having happened at one point in
+time. There are times when we would like to spread some changes out
+over multiple transactions. This may be for performance reasons or
+because we want to see each change in the UI.
+
+We may have an application which receives updates very quickly and
+shows each update in the UI. If to many updates arrive we may decide
+to start batching updates so that more than one is applied at a
+time. The logic which controls this lives in dispatch map functions
+and so they must be able to control transaction granularity.
+
 
 ### API
+
+#### inform-to-transforms
+
+The `inform-to-transforms` function is passed an index and an inform
+message and returns a vector of transform messages.
 
 ```clj
 (defn inform-to-transforms
   ([index inform])
   ([index inform args-fn]))
+```
 
+It can optionally be passed an args-fn. By default a dispatch map
+function has the signature
+
+```clj
+(defn produce-transforms [inform-message])
+```
+
+where `inform-message` is a plain old inform message. There are times
+when this may not be the desired signature. For example, when watching
+for changes from the info model, we may like having to deal with the
+entire old and new state. The `args-fn` is a function that receives
+the patterns and the inform message and then returns a vector of
+arguments that will be applied to the dispatch map function.
+
+The default implementation for this function is shown below.
+
+```clj
+(defn custom-args [patterns inform-message] [inform-message])
+```
+
+
+#### inform->transforms
+
+The `inform->transforms` function takes a config that will be used to
+create an index and a transform channel and returns an inform channel.
+
+```clj
 (defn inform->transforms
   ([config tchan])
   ([config tchan args-fn]))
 ```
 
-Q: Why do functions return multiple transform messages?
+It can optionally be passed an `args-fn`.
+
+This function sets up asynchronous processing of the input inform
+channel. When a message is received on the inform channel it is used
+to produce transform messages which are put on the transform channel.
+
+Q: How can we stop this asynchronous processing?
+Q: How do we handle errors?
+Q: How do we configure channel buffering policy? I like what the [high
+level functions in `core.async` do it](https://github.com/clojure/core.async/blob/master/src/main/clojure/clojure/core/async.clj#L893), using a `buf-or-n` optional argument.
 
 ## Info Model
 
