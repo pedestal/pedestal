@@ -151,7 +151,7 @@ transform channel to multiple outgoing transform channels.
 
 ## Specific parts
 
-The diagram above uses three dispatch maps. One which receives inform
+The diagram above uses three [dispatch maps](#dispatch-map). One which receives inform
 messages from widgets, one which send transform messages to widgets
 and services and one which is tied closely to the information model.
 
