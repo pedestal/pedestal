@@ -216,7 +216,7 @@ This sequence of events does not explain how [transform message](#transform-mess
 there way to a particular widget. That is the function of the
 `router`.
 
-![Router](router.png)
+![Router](router-overview.png)
 
 When the Info->UI [dispatch map](#dispatch-map) sends transforms, a router will receive
 each transform and, matching patters in the transform message, find
@@ -706,13 +706,52 @@ Q: How do we handle errors?
 Q: How do we configure channel buffering policy? I like what the [high
 level functions in `core.async` do it](https://github.com/clojure/core.async/blob/master/src/main/clojure/clojure/core/async.clj#L893), using a `buf-or-n` optional argument.
 
+
 ## Info Model
 
+Q: How do we report changes?
+Q: Is there a shorter way to do that?
+
 ![Info Model](info-model.png)
+
+### what it does / why it's here
+### any pertinent points about it's design
+### API
+
+```clj
+(defn apply-transform [old-model transform])
+(defn transform->inform [data-model inform-c])
+```
+
+### Diff
+
+### what it does / why it's here
+### any pertinent points about it's design
+#### API
+
+```clj
+(defn model-diff-inform
+  ([o n])
+  ([paths o n]))
+
+(defn combine [inform-message patterns])
+```
+
 
 ### Flow
 
 ![Flow](flow.png)
+
+### what it does / why it's here
+### any pertinent points about it's design
+### API
+
+```clj
+(defn transform->inform
+  ([data-model config inform-c])
+  ([data-model config args-fn inform-c]))
+```
+
 
 Q: Why use channels for flow instead of just recursion?
 
@@ -720,12 +759,25 @@ Q: Why use channels for flow instead of just recursion?
 
 ![Widgets](widget.png)
 
+### what it does / why it's here
+### any pertinent points about it's design
+### API
+
+
 Q: Why do we use channels to send messages to widgets instead of just
 calling functions?
 
 ## Router
 
-![Router](router2.png)
+![Router](router.png)
+
+### what it does / why it's here
+### any pertinent points about it's design
+### API
+
+```clj
+(defn router [id in])
+```
 
 Q: How do routes evolve over time?.
 
