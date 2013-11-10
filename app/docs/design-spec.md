@@ -537,9 +537,6 @@ split based on patterns.
 
 ### API
 
-The API for the matcher is shown below.
-
-
 #### index
 
 Given a config which is a vector of vectors like:
