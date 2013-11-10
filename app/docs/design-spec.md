@@ -88,7 +88,6 @@ The problems we are trying to solve a listed below:
   to be updated based on a change to the data. Where does this live?
 
 
-
 # Tenets
 
 There are few things to keep in mind while reading this document.
@@ -116,16 +115,16 @@ model stores the application's state. These areas of concern
 communicate with each other using messages. There are two types of
 messages:
 
-- *transform* messages tell the message target how to change. They
+- [*transform* messages](#transform-messages) tell the message target how to change. They
   cause a UI element or data in the data model to change. They can
   also be used to tell a service to make a request. (TBD: see open
   issue)
 
-- *inform* messages describe how the message source has changed. They
+- [*inform* messages](#inform-messages) describe how the message source has changed. They
    notify application logic that a UI element or data in the data
    model has changed, or that a service has returned a result (TBD:
    what about async input from service via SSE or websocket? Can't
-   these just be [inform message](#inform-messages)s?)
+   these just be inform messages?)
 
 
 ![Pedestal Overview](overview.png)
@@ -136,16 +135,16 @@ messages:
 In the diagram above, red arrows represent `transform channels`
 (channels which convey [transform message](#transform-messages)s) and blue arrows represent
 `inform channels` (channels which convey [inform message](#inform-messages)s). The green
-shapes are `[dispatch map](#dispatch-map)s` which use patterns in [inform message](#inform-messages) to find
-functions which take the [inform message](#inform-messages) and return transform
+shapes are `[dispatch map](#dispatch-map)s` which use patterns in inform message to find
+functions which take the inform message and return transform
 messages. These functions contain the logic which knows what an inform
 message implies for other components of the application. The `info
 model` stores application state and detects state deltas. `widgets`
 connect to the world outside this flow of information. They can change
-that world based on received [transform message](#transform-messages)s and then can report
-changes and generate [inform message](#inform-messages)s. A widget could be a button, a
+that world based on received transform messages and then can report
+changes and generate inform messages. A widget could be a button, a
 chart or something which communicates with external services. A
-`router` can be used to route [transform message](#transform-messages)s from one incoming
+`router` can be used to route transform messages from one incoming
 transform channel to multiple outgoing transform channels.
 
 
@@ -155,17 +154,17 @@ The diagram above uses three [dispatch maps](#dispatch-map). One which receives 
 messages from widgets, one which send [transform message](#transform-messages)s to widgets
 and services and one which is tied closely to the information model.
 
-The UI->Info [dispatch map](#dispatch-map) is used to find functions which know what
+The UI->Info dispatch map is used to find functions which know what
 changes to the UI imply for the information model. For example, it
 might know that a button click means that a counter in the info model
 should be incremented.
 
-The Info->UI [dispatch map](#dispatch-map) is used to find functions which know what
+The Info->UI dispatch map is used to find functions which know what
 changes to the info model imply for the UI. For example, when the
 counter in the info models then some UI widget will need to display
 the new counter value.
 
-The Info->Info [dispatch map](#dispatch-map) is used to find functions which know what
+The Info->Info dispatch map is used to find functions which know what
 changes to the info model imply for other parts of the info
 model. This is how dataflow is implemented. Some of the information in
 the system depends on other information. The logic for these data
@@ -188,27 +187,27 @@ the screen.
 2. The button widget has set up an event listener for that
 button. When the button is clicked, the event is converted to an
 [inform message](#inform-messages) and placed on the widgets inform channel.
-3. The UI->Info [dispatch map](#dispatch-map) receives the [inform message](#inform-messages) and finds a
+3. The UI->Info [dispatch map](#dispatch-map) receives the transform message and finds a
 function which has been configured to handle that message based on
 matching patterns in the message.
-4. The function is called, passing the [inform message](#inform-messages) and the function
+4. The function is called, passing the transform message and the function
 returns one or more [transform message](#transform-messages)s.
-5. The [dispatch map](#dispatch-map) places these [transform message](#transform-messages)s on the transform
+5. The dispatch map places these transform messages on the transform
 channel.
-6. The info model receives a [transform message](#transform-messages) and applies the
+6. The info model receives a transform message and applies the
 it to the model, keeping track of what has changed.
 7. All changes to the model that were the result of applying one
-transform to the model and reported as a single [inform message](#inform-messages) on the
+transform to the model and reported as a single transform message on the
 outgoing inform channel.
-8. The Info->UI [dispatch map](#dispatch-map) receives an [inform message](#inform-messages) from the info
+8. The Info->UI dispatch map receives an transform message from the info
 model and finds the function which has been configured to handle that
 message based on matching patterns in the message.
-9. The function is called, passing the matched [inform message](#inform-messages) and
-returns one or more [transform message](#transform-messages)s.
-10. The [dispatch map](#dispatch-map) places these [transform message](#transform-messages)s on the transform
+9. The function is called, passing the matched transform message and
+returns one or more transform messages.
+10. The dispatch map places these transform messages on the transform
 channel.
 11. A widget which displays the counter value on the screen receives
-the [transform message](#transform-messages) and changes the DOM to reflect the new value.
+the transform message and changes the DOM to reflect the new value.
 
 
 ### Using a router
@@ -220,15 +219,15 @@ there way to a particular widget. That is the function of the
 ![Router](router.png)
 
 When the Info->UI [dispatch map](#dispatch-map) sends transforms, a router will receive
-each transform and, matching patters in the [transform message](#transform-messages), find
-the outbound channel on which the [transform message](#transform-messages) should be placed.
+each transform and, matching patters in the transform message, find
+the outbound channel on which the transform message should be placed.
 
 When a widget is created it will need to register itself with the
 router. When a widget is destroyed, it will need to unregister.
 
 The router can also be used to allow messages to be send back to the
 info model. This allows for recursive updates which do not have to
-occur at the same time as the transaction that caused them.
+occur at the same time as the [transaction](#transactions) that caused them.
 
 
 ### Flow
@@ -240,16 +239,16 @@ sequence of events may occur.
 transform channel
 2. It applies the transform and creates the [inform message](#inform-messages) which
 describes the changes.
-3. This [inform message](#inform-messages) is put on the inform channel which goes out to
+3. This inform message is put on the inform channel which goes out to
 the Info->Info [dispatch map](#dispatch-map).
-4. The Info->Info [dispatch map](#dispatch-map) takes the [inform message](#inform-messages) off of the
+4. The Info->Info dispatch map takes the inform message off of the
 inform channel and finds a function to generate transforms. Any
 generated transforms are put on the outgoing transform channel.
 5. The transform is received from the transform channel and applied to
 the model.
 6. Steps 3 through 5 are repeated until step 4 produces no new
 transforms.
-7. All changes to the info model are put into one [transform message](#transform-messages)
+7. All changes to the info model are put into one transform message
 and sent to on the outbound inform channel.
 
 
@@ -257,9 +256,9 @@ and sent to on the outbound inform channel.
 
 TBD: The sequence of events above does not describe how flow works.
 
-TBD: Do we really need to have both a UI->Info [dispatch map](#dispatch-map) and a
-Info->UI [dispatch map](#dispatch-map)? Do these two pictures represent the same
-instance of a [dispatch map](#dispatch-map). If we have a router then it seems like one
+TBD: Do we really need to have both a UI->Info dispatch map and a
+Info->UI dispatch map? Do these two pictures represent the same
+instance of a dispatch map. If we have a router then it seems like one
 could do the job.
 
 TBD: describe the widgets canvas here, including:
@@ -323,7 +322,7 @@ The identifiers
 may refer to two different things in the same list.
 
 Except for widgets, every component in the system makes some use of
-this identifier format. [dispatch map](#dispatch-map)s pattern match on the identifiers
+this identifier format. [dispatch map](#dispatch-map)s [pattern match](#pattern-matching) on the identifiers
 to find matching functions to transform. The router pattern matches on
 identifiers to find out which channel to route the message to. The
 info model uses the identifier to apply a change to a specific part of
@@ -393,7 +392,7 @@ requirements for what can be sent to it or how it will report
 changes. Each component will have its own API.
 
 
-### Transactions (units of work)
+### Transactions
 
 [inform message](#inform-messages)s are collections which contain multiple events which
 happened at the same time. Transform messages are collections which
@@ -403,7 +402,7 @@ time.
 The best example of how these are used is in updates to the info
 model. All of the transformations in a transform message are applied
 at the same time. All of the changes made to the info model are
-reported as one [inform message](#inform-messages) indicating that they happened at the
+reported as one inform message indicating that they happened at the
 same time.
 
 
@@ -413,10 +412,10 @@ Q: how do transform message set a value other than using (constantly 42)?
 Q: why is transform message a vector?
 Q: why do we need to have transactions?
 
-This section describes transform and [inform message](#inform-messages)s, including the
+This section describes transform and inform messages, including the
 definition of the format and the use of hierarchy in ids, why they are
 the way they are; use of fns as op in transform, the fact that inform
-messages can have 0..n states -- [inform message](#inform-messages) is a vector of event
+messages can have 0..n states -- inform message is a vector of event
 entries, a transform message is any number of transformations in a
 vector.
 
@@ -427,10 +426,10 @@ vector.
 Reiterate that inform msgs go inform channels and transform msgs go on transform channels
 
 
-### Message pattern matching
+### Pattern matching
 
 Inform and [transform message](#transform-messages)s have a similar structure. They each
-start with a component id and then have either an event or an
+start with a [component id](#component-identifiers) and then have either an event or an
 operation followed by a variable number of things.
 
 Some components below will need to find messages based on a provided
@@ -493,7 +492,7 @@ explanation, support that we have the following generic message:
  [[:ui :f :g] :over]]
 ```
 
-This message is an [inform message](#inform-messages) with three event entries.
+This message is an inform message with three event entries.
 
 We need some way to match this message to one or more functions. We
 have chosen to use a structure like the one shown below to describe
@@ -506,7 +505,7 @@ the mapping.
 ```
 
 Each vector above has a pattern which could match a message. Remember
-that patterns are pairs that represent a component-id and an event or
+that patterns are pairs that represent a [component id](#component-identifiers) and an event or
 op. In the data above we do not wrap the pattern in brackets so that
 the config will be more readable. Each vector could include any number
 of pairs. For example:
@@ -529,7 +528,7 @@ match functions to this message in the following way:
       [[:ui :f :g] :over]]]
 ```
 
-Notice that each function only sees the part of the [inform message](#inform-messages)
+Notice that each function only sees the part of the inform message
 that matched its associated pattern. If instead of functions, these
 were channels, routing would work in the exact same way. We are always
 dealing in inform or [transform message](#transform-messages)s but those messages may be
@@ -622,15 +621,15 @@ See Channels for an explanation of why we send messages rather than
 making direct function calls.
 
 Most of the logic of an application lives in dispatch map functions. A
-dispatch map function is a function that takes an [inform message](#inform-messages) and
+dispatch map function is a function that takes an inform message and
 returns a vector of transforms. It returns many [transform message](#transform-messages)s
-because it must be in control of how transactions are run. It can
+because it must be in control of how [transaction](#transactions)s are run. It can
 decide if the sequence of transformations that it is producing should
 be applied as one update or as many individual updates. See the
 section on transactions above.
 
 So the job of the dispatch map is to find all of the functions which
-match an [inform message](#inform-messages). How this is done is described in the Match
+match an inform message. How this is done is described in the Match
 section above. It must then produce [transform message](#transform-messages)s calling the
 matched functions.
 
@@ -641,7 +640,7 @@ Why to dispatch map functions return multiple [transform message](#transform-mes
 described above, a single [transform message](#transform-messages)s is applied as one change
 and the changes are reported as having happened at one point in
 time. There are times when we would like to spread some changes out
-over multiple transactions. This may be for performance reasons or
+over multiple [transaction](#transactions)s. This may be for performance reasons or
 because we want to see each change in the UI.
 
 We may have an application which receives updates very quickly and
@@ -675,7 +674,7 @@ where `inform-message` is a plain old [inform message](#inform-messages). There 
 when this may not be the desired signature. For example, when watching
 for changes from the info model, we may like having to deal with the
 entire old and new state. The `args-fn` is a function that receives
-the patterns and the [inform message](#inform-messages) and then returns a vector of
+the patterns and the inform message and then returns a vector of
 arguments that will be applied to the dispatch map function.
 
 The default implementation for this function is shown below.
