@@ -798,7 +798,7 @@ event. The two remaining items are the entire old and new state of the
 model. See below for a discussion on this decision.
 
 
-### any pertinent points about it's design
+### any pertinent points about its design
 
 Using inform messages to describe changes to the information model
 has had a significant effect on the design of inform messages. This
@@ -979,7 +979,7 @@ all of the transformations need to be applied at the same
 time. Combining transform messages does not break this contract.
 
 
-### any pertinent points about it's design
+### any pertinent points about its design
 
 The current implementation uses channels to connect the dispatch map
 and information model to one go loop which has an additional input
@@ -1089,7 +1089,7 @@ own input channel. Another router could be used to take messages from
 the UI channel and place them on the correct widget channel.
 
 
-### any pertinent points about it's design
+### any pertinent points about its design
 
 - what happens when a message does not match an outbound channel
 - how do we add and remove routes
@@ -1115,7 +1115,7 @@ Q: How do routes evolve over time?.
 ![Widgets](widget.png)
 
 ### what it does / why it's here
-### any pertinent points about it's design
+### any pertinent points about its design
 ### API
 
 There is currently no API for widgets.
