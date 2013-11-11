@@ -1089,12 +1089,15 @@ own input channel. Another router could be used to take messages from
 the UI channel and place them on the correct widget channel.
 
 
+- how do we add and remove routes?
+
+
 ### any pertinent points about its design
 
 - what happens when a message does not match an outbound channel
 - how do we add and remove routes
 - implemented with `match`, same as the dispatch map
-- the existence of the router would allow us to have once instance of
+- the existence of the router would allow us to have one instance of
   a dispatch map which handles all input and output
 - must be able to split transform messages
 
