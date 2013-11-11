@@ -98,6 +98,10 @@ There are few things to keep in mind while reading this document.
   relative to other components. Sometimes components will run
   in the same address space as other components and sometimes they
   will not
+- As much as possible, we should be able to choose to user or not use
+  channels. All core functionality should be implemented outside of
+  channel code. Helper functions can be provided which add channels on
+  top to the core interface.
 
 An example of the third point is that we may run some components in a
 web worker and others in the main JavaScript thread. We may also run
@@ -704,53 +708,407 @@ Q: How do we configure channel buffering policy? I like what the [high
 level functions in `core.async` do it](https://github.com/clojure/core.async/blob/master/src/main/clojure/clojure/core/async.clj#L893), using a `buf-or-n` optional argument.
 
 
-## Info Model
-
-Q: How do we report changes?
-Q: Is there a shorter way to do that?
+## Information Model
 
 ![Info Model](info-model.png)
 
 ### what it does / why it's here
+
+A Pedestal application centers around its information model. This
+model contains the data that the application has accumulated since it
+began executing. Data for the model is received from back-end
+services, user input or is calculated from other data.
+
+There are two goals that we have when it comes to managing state:
+
+1. control over units of work (transactions)
+2. accurate and consistent change reporting
+3. we would like to avoid direct connections to the model
+
+We would like to have a clear way to indicate that one or more changes
+should be part of one atomic update.
+
+We would also like to know exactly what changed during that atomic update.
+
+In ClojureScript, atoms give us this ability to make atomic changes
+and to see the old and new value. It is not clear how we can define
+clear units of work. This is difficult when the only way to update the
+model is with function calls. We would need to define specific
+functions for each kind of transaction that we would like to perform.
+
+Once we have changed the data, how do we know what has changed? Most
+the things that happen in an application are responding to changes in
+the data model. Without having accurate change reports, we end up
+doing a lot of unnecessary work. If we decide to use multiple atoms in
+order to see more focused change, it makes it harder to have clear
+units of work.
+
+Changing the info model by calling functions is not ideal. A better
+approach would be to decouple describing changes from applying them to
+the model. This would allow us to make independent decisions about
+these two activities and it gives us a way to describe units of work.
+
+In Pedestal, the information model addresses the above issues. Changes
+to the model are made by applying a [transform message](#transform-messages)
+to the model. A transform message is a collection of transformations
+and defines a single unit of work. All transforms are applied to the
+model at the same time. An example transform message is shown below.
+
+```clj
+[[[:info :counter :a] inc]
+ [[:info :user] assoc :name "Alice"]]
+```
+
+Functions appear in `op` position of transform messages that are
+applied to the information model. This is okay because the dispatch
+map which produces these transforms should always live in the same
+address space as the information model. Applying a transformation is
+basically as simple as
+
+```clj
+(apply update-in data-model [[:info :user] assoc :name "Alice"])
+```
+
+If we start with the following information model
+
+```clj
+{:info {:counter {:a 7} :user {}}}
+```
+
+The above transform would change it to
+
+```clj
+{:info {:counter {:a 8} :user {:name "Alice"}}}
+```
+
+The Pedestal information model tracks changes and reports what has
+changed with an inform message.
+
+```clj
+[[[:info :counter :a] :updated {:info {:counter {:a 7} :user {}}}
+                               {:info {:counter {:a 8} :user {:name "Alice"}}}]
+ [[:info :user :name] :added {:info {:counter {:a 7} :user {}}}
+                             {:info {:counter {:a 8} :user {:name "Alice"}}}]]
+```
+
+This inform message has two event entries, one for each change. Each
+information model event entry uses the path for value that changed as
+the [source id](#component-identifiers) and uses `:added`, `:updated`, or `:removed` for the
+event. The two remaining items are the entire old and new state of the
+model. See below for a discussion on this decision.
+
+
 ### any pertinent points about it's design
+
+Using inform messages to describe changes to the information model
+has had a significant effect on the design of inform messages. This
+is the main motivation behind having inform messages be a vector of
+event entries. We need this so that we can describe all of the changes
+which happened at the same time.
+
+It is interesting that effecting change and reporting change happens
+in the same way when dealing with the UI or with information
+model. This consistency leads to fewer concepts and more reusable
+code.
+
+
+#### states included in inform messages
+
+Inform messages which describe changes to the information model
+contain the entire old and new state.
+
+```clj
+[[[:info :counter :a] :updated {:info {:counter {:a 7} :user {}}}
+                               {:info {:counter {:a 8} :user {:name "Alice"}}}]]
+```
+
+Another option would be to just include the old and new value at the
+path which changed
+
+```clj
+[[[:info :counter :a] :updated 7 8]]
+```
+
+Why did we make this decision? Providing the old and new model is
+strictly more information. We can use the path to get the exact values
+which changed. The main reason for this decision is that this message
+will be passed to a function which needs to generate transforms based
+on this change. In most cases it will need to know more about the
+model than exactly what changed. There are three options:
+
+1. send on the data that changed
+2. send the data that the function needs
+3. send all the data
+
+We are doing 3 and we have ruled out 1. What is wrong with option
+2? In a dispatch map, we define what each dispatch map function cares
+about. We could use this information to determine what data to
+send. Where would we do this? How could we do this without coupling
+the dispatch map with the information model? Attempting to do this in
+the past has lead to complexity.
+
+With option 3 we can generate inform messages without knowing anything
+about what will consume them.
+
+One final point is that we can always chose to show less information
+in downstream processing.
+
+
+#### Open Issue: large adds and removes
+
+One problem with the above approach is that we generate a lot of
+messages when we add or remove a large portion of the model. Suppose
+that we have the following model:
+
+```clj
+{:info {:records {1 ["Alice" 23]
+                  2 ["Bob" 42]
+                  3 ["Claire" 18]}}}
+```
+
+Suppose that under `:records` we have 10,000 records and we remove
+`:records` from the map. This would generate an inform message with
+10,000 event entries.
+
+Once possible solution would be to use wildcards to indicate many
+changes of the same type.
+
+```clj
+[[[:info :records :*] :removed {:info {:records {1 ["Alice" 23] ...}} {:info {}}]]
+```
+
+This would indicate that each key under `:records` was removed. If
+there was a lot of structure removed, many levels of nested maps, we
+could use `:**`.
+
+This would require making pattern matching a bit smarter.
+
+
+#### Open Issue: vectors
+
+We currently do not support reporting changes to vectors. This is
+because we don't yet know how we would do it. The problem with vectors
+is that they don't have stable keys. If we remove the first item in a
+vector with 10000 items we would produce 10000 changes instead of just
+one.
+
+Maybe using a technique like the one above involving wildcards would help.
+
+
 ### API
+
+The model has a simple API.
+
+#### apply-transform
 
 ```clj
 (defn apply-transform [old-model transform])
-(defn transform->inform [data-model inform-c])
 ```
 
-### Diff
+The `apply-transform` function takes a model and a transform message
+and returns a map with keys `:model` and `:inform`.
 
-### what it does / why it's here
-### any pertinent points about it's design
-#### API
+`:model` is the updated model and `:inform` is the inform message
+which describes the changes which were made to the model.
+
+You might think that this function should just return the new model
+and later we could figure out how the model changed. That assumes that
+we are doing change tracking is a specific way. What if we wanted to
+track changes as they happen? This is the only place that can be
+done. Any other approach would force us to track changes after the
+fact. This interface leaves the decision of how we track changes to
+the implementation.
+
+
+#### transform->inform
 
 ```clj
-(defn model-diff-inform
-  ([o n])
-  ([paths o n]))
-
-(defn combine [inform-message patterns])
+(defn transform->inform [data-model ichan])
 ```
 
+The `transform->inform` function takes the initial data model and an
+inform channel and returns a transform channel.
 
-### Flow
+This function sets up asynchronous processing of transform messages,
+applying those messages to the data model and putting inform messages
+on the inform channel. One transform message produces one inform message.
+
+
+#### Comments
+
+Q: Is there any reason why we might just want to see the data without
+changing it.
+
+
+## Flow
 
 ![Flow](flow.png)
 
 ### what it does / why it's here
+
+Some applications don't need flow so this is an optional feature.
+
+Flow can be used any time you have one value in the information model
+that is calculated from other values. This is especially useful when
+the source values may be updated in many different ways. Using flow
+allows you to put the logic for updating the dependent value in one
+place instead of every place that updates the source values.
+
+Flow combines a [dispatch map](#dispatch-map) and an
+[information model](#information-model) and adds fixed point logic.
+
+Flow does the following:
+
+1. Apply a transform message to the information model
+2. Use the produced inform message to determine if any new transform messages
+are created based on what has changed.
+3. If new transform messages are created, apply them
+4. Repeat step 2 and 3 until no new transform messages are created
+5. The result is a single inform message which describes all of
+changes that have been made in the information model since step 1.
+
+Step 2 uses a dispatch map to find functions which produce new
+transform messages and calls them.
+
+In Step 3 we can get multiple transform messages. This raises the
+question: how do we apply them since each one could initiate a new
+flow step that generates more transform messages. The current thinking
+is that it is okay to combine all of these transform messages into a
+single transform message. The contract for a transform message is that
+all of the transformations need to be applied at the same
+time. Combining transform messages does not break this contract.
+
+
 ### any pertinent points about it's design
+
+The current implementation uses channels to connect the dispatch map
+and information model to one go loop which has an additional input
+transform channel and output inform channel.
+
+Using channels here is beneficial for the ClojureScript version but may
+not be the best way to implement the Clojure version. This is one
+place where the sources may need to diverge. For ClojureScript,
+channels allow this code to interleave with other code so we don't
+have to be too concerned with how long it takes a flow to complete. In
+Clojure, flow could be run on a separate thread and be implemented
+more simply without channels.
+
+The channels version uses a marker message in order to know when all
+transforms for a given inform message have been produced. The dispatch
+map is configured to pass the marker inform message through as a
+marker transform message. When a marker transform message is received
+before any new transform messages, the flow is complete.
+
+
 ### API
+
+The API for flow is the same and the channel API for the information
+model. You interact with flow by placing a transform message on the
+transform channel and then reading an inform message from the inform
+channel.
+
+
+#### transform->inform
 
 ```clj
 (defn transform->inform
-  ([data-model config inform-c])
-  ([data-model config args-fn inform-c]))
+  ([data-model config ichan])
+  ([data-model config ichan args-fn]))
 ```
 
+The `transform->inform` function takes a data-model, a config and an
+inform channel and returns a transform channel. The data-model
+argument is the initial value for the information model. The config
+argument is the configuration vector for the flow dispatch map. An
+optional `args-fn` for the dispatch map may also be provided.
 
-Q: Why use channels for flow instead of just recursion?
+Q: In the current implementation, this is one place where we have
+complected the channels version and the actual functionality.
+
+
+## Router
+
+![Router](router.png)
+
+### what it does / why it's here
+
+When a transform message is generated from a dispatch map there are
+several places that the message could go.
+
+1. the UI to update a widget
+2. the info model to change a value
+3. to some service to make a request
+
+A single dispatch map function may want to generate transform messages
+to change multiple things. The example below shows a transform message
+that changes three different things: a widget, services and the
+information model.
+
+```clj
+[[[:ui :login] :set-state "Authenticating"]
+ [[:services :auth] :authenticate {:uid "Kevin" :password "password"}]
+ [[:info :login :auth] assoc :uid "Kevin" :password "password"]]
+```
+
+If the transform channel going out of the dispatch map that produced
+this transform fed directly into the information model then we would
+have a problem.
+
+Instead we can have the output channel feed into a router which then
+feeds multiple other transform channels. In the theoretical
+application above there could be three output transform channels:
+
+1. one for UI transforms
+2. one for services transforms
+3. one for information model transforms
+
+The router would receive the message above and break it into three
+distinct messages
+
+```clj
+[[[:ui :login] :set-state "Authenticating"]]
+[[[:services :auth] :authenticate {:uid "Kevin" :password "password"}]]
+[[[:info :login :auth] assoc :uid "Kevin" :password "password"]]
+```
+
+and each message would be sent on the appropriate channel.
+
+A router can be configured to do this in the same what that the
+dispatch map decides how to pass inform messages to functions.
+
+A configuration for the router above would look like this:
+
+```clj
+[[ui-chan [:ui :**] :*]
+ [services-chan [:services :**] :*]
+ [info-chan [:info :**] :*]]
+```
+
+The UI channel would go out to widgets but each widget will have its
+own input channel. Another router could be used to take messages from
+the UI channel and place them on the correct widget channel.
+
+
+### any pertinent points about it's design
+
+- what happens when a message does not match an outbound channel
+- how do we add and remove routes
+- implemented with `match`, same as the dispatch map
+- the existence of the router would allow us to have once instance of
+  a dispatch map which handles all input and output
+- must be able to split transform messages
+
+
+### API
+
+```clj
+(defn router [id in])
+```
+
+#### Comments
+
+Q: How do routes evolve over time?.
+
 
 ## Widgets
 
@@ -760,30 +1118,16 @@ Q: Why use channels for flow instead of just recursion?
 ### any pertinent points about it's design
 ### API
 
+There is currently no API for widgets.
+
 
 Q: Why do we use channels to send messages to widgets instead of just
 calling functions?
-
-## Router
-
-![Router](router.png)
-
-### what it does / why it's here
-### any pertinent points about it's design
-### API
-
-```clj
-(defn router [id in])
-```
-
-Q: How do routes evolve over time?.
 
 
 # Putting the pieces together
 
 This section talks about assembling the pieces to achieve something - basically prose around the walkthrough
-
-
 
 
 # Open issues

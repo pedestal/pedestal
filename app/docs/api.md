@@ -84,24 +84,62 @@ information model.
 (defn apply-transform [old-model transform])
 ```
 
+The `apply-transform` function takes a model and a transform message
+and returns a map with keys `:model` and `:inform`.
+
+`:model` is the updated model and `:inform` is the inform message
+which describes the changes which were made to the model.
+
+You might think that this function should just return the new model
+and later we could figure out how the model changed. That assumes that
+we are doing change tracking is a specific way. What if we wanted to
+track changes as they happen? This is the only place that can be
+done. Any other approach would force us to track changes after the
+fact. This interface leaves the decision of how we track changes to
+the implementation.
+
+
 ### transform->inform
 
 ```clj
 (defn transform->inform [data-model inform-c])
 ```
 
+The `transform->inform` function takes the initial data model and an
+inform channel and returns a transform channel.
+
+This function sets up asynchronous processing of transform messages,
+applying those messages to the data model and putting inform messages
+on the inform channel. One transform message produces one inform message.
+
+
 ## [io.pedestal.app.flow](https://github.com/pedestal/pedestal/blob/app-docs/app/src/io/pedestal/app/flow.clj)
 
 The `io.pedestal.app.flow` namespace provides an implementation of the
 information model which uses flow.
 
+The API for flow is the same as the channel API for the information
+model. You interact with flow by placing a transform message on the
+transform channel and then reading an inform message from the inform
+channel.
+
 ### transform->inform
 
 ```clj
 (defn transform->inform
-  ([data-model config inform-c])
-  ([data-model config args-fn inform-c]))
+  ([data-model config ichan])
+  ([data-model config ichan args-fn]))
 ```
+
+The `transform->inform` function takes a data-model, a config and an
+inform channel and returns a transform channel. The data-model
+argument is the initial value for the information model. The config
+argument is the configuration vector for the flow dispatch map. An
+optional `args-fn` for the dispatch map may also be provided.
+
+Q: In the current implementation, this is one place where we have
+complected the channels version and the actual functionality.
+
 
 ## [io.pedestal.app.route](https://github.com/pedestal/pedestal/blob/app-docs/app/src/io/pedestal/app/route.clj)
 
