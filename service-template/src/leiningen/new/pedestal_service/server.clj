@@ -25,6 +25,3 @@
 
 (defn servlet-service [this servlet-req servlet-resp]
   (bootstrap/servlet-service server-instance servlet-req servlet-resp))
-
-
-
