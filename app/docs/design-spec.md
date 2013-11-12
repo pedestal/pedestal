@@ -217,49 +217,49 @@ the transform message and changes the DOM to reflect the new value.
 
 ### Using a router
 
-This sequence of events does not explain how [transform message](#transform-messages)s find
-there way to a particular widget. That is the function of the
-`router`.
+This sequence of events does not explain how [transform
+message](#transform-messages)s find there way to a particular
+widget. That is the function of the `router`.
 
 ![Router](router-overview.png)
 
-When the Info->UI [dispatch map](#dispatch-map) sends transforms, a router will receive
-each transform and, matching patters in the transform message, find
-the outbound channel on which the transform message should be placed.
+When the Info->UI [dispatch map](#dispatch-map) sends transforms, a
+router will receive each transform and, matching patters in the
+transform message, find the outbound channel on which the transform
+message should be placed.
 
 When a widget is created it will need to register itself with the
 router. When a widget is destroyed, it will need to unregister.
 
 The router can also be used to allow messages to be send back to the
-info model. This allows for recursive updates which do not have to
-occur at the same time as the [transaction](#transactions) that caused them.
+info model. This allows for recursive updates which do not have to be
+applied at the same time as the [transaction](#transactions) that
+caused them.
 
 
 ### Flow
 
-If the info model has calculated dependencies then the following
-sequence of events may occur.
+If the inform model using the Info->Info dispatch map or "flow" then
+the following sequence may occur.
 
 1. The info model takes a [transform message](#transform-messages) from the incoming
 transform channel
-2. It applies the transform and creates the [inform message](#inform-messages) which
-describes the changes.
+2. It applies the transform to the model and creates the
+[inform message](#inform-messages) which describes the changes
 3. This inform message is put on the inform channel which goes out to
 the Info->Info [dispatch map](#dispatch-map).
 4. The Info->Info dispatch map takes the inform message off of the
-inform channel and finds a function to generate transforms. Any
-generated transforms are put on the outgoing transform channel.
-5. The transform is received from the transform channel and applied to
+inform channel and finds a function to generate transform messages. Any
+generated transform messages are put on the outgoing transform channel.
+5. The transform message is received from the transform channel and applied to
 the model.
 6. Steps 3 through 5 are repeated until step 4 produces no new
-transforms.
-7. All changes to the info model are put into one transform message
+transform messages
+7. All changes to the info model are put into one inform message
 and sent to on the outbound inform channel.
 
 
 #### Comments
-
-TBD: The sequence of events above does not describe how flow works.
 
 TBD: Do we really need to have both a UI->Info dispatch map and a
 Info->UI dispatch map? Do these two pictures represent the same
@@ -271,7 +271,6 @@ TBD: describe the widgets canvas here, including:
 - the kinds of parts, e.g., red arrows are [transform message](#transform-messages)s delivered via channels, what's the green thing
 - the specific parts, e.g., the map for UI->info model, info model->info model (flow), and info model->UI
 - the processing an event - from a single event, e.g., button press, through all the steps to UI update
-
 
 
 # How it works
