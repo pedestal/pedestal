@@ -364,6 +364,8 @@ The specifics of these examples are described below.
 
 Q: Why is an inform message a vector of event entries instead of just
 being an event entry.
+Q: Why does an inform message allow for any number states instead of
+having just one state map?
 
 
 ### Transform messages
@@ -406,18 +408,29 @@ multiple events which happened at the same time. Transform messages
 are collections which contain multiple transformations which should be
 applied at the same time.
 
-The best example of how these are used is in updates to the info
-model. All of the transformations in a transform message are applied
-at the same time. All of the changes made to the info model are
-reported as one inform message indicating that they happened at the
-same time.
+The best example of how these are used is in updates to the
+information model. All of the transformations in a transform message
+are applied at the same time. All of the changes made to the
+information model are reported as one inform message indicating that
+they happened at the same time.
+
+The fundamental property of a transaction is that all of the
+transformations within a transaction must be applied at the same
+time. There are some cases where we may need to either split or
+combine transactions. Transactions can only be split when they are
+being sent to different components. In this case, the meaning is that
+each transaction must be applied atomically but not all of them
+together. We do not enforce transactions across multiple
+components. Any two transactions can be combined without changing the
+meaning of a transaction. This is done during [flow](#flow).
 
 
 #### Comments
 
-Q: how do transform message set a value other than using (constantly 42)?
-Q: why is transform message a vector?
-Q: why do we need to have transactions?
+Q: How do transform messages set a value other than using (constantly 42)?
+Q: Why is a transform message a vector of transformations instead of
+just a transformation?
+Q: Why do we need to have transactions?
 
 This section describes transform and inform messages, including the
 definition of the format and the use of hierarchy in ids, why they are
@@ -435,9 +448,11 @@ Reiterate that inform msgs go inform channels and transform msgs go on transform
 
 ### Pattern matching
 
-Inform and [transform message](#transform-messages)s have a similar structure. They each
-start with a [component id](#component-identifiers) and then have either an event or an
-operation followed by a variable number of things.
+[Inform](#inform-messages) and [transform
+message](#transform-messages)s have a similar structure. They each
+start with a [component id](#component-identifiers) and then have
+either an event or an operation followed by a variable number of
+things.
 
 Some components below will need to find messages based on a provided
 pattern. Because the variable arguments at the end of messages can be
@@ -458,8 +473,8 @@ mean zero or more elements. Some example patterns include:
 [[:info :counter :*] :updated]
 ```
 
-The [dispatch map](#dispatch-map) and the router use patterns like this to match
-messages to functions or to channels.
+The [dispatch map](#dispatch-map) and the [router](#router) use
+patterns like this to match messages to functions or to channels.
 
 
 ## Channels
@@ -467,10 +482,11 @@ messages to functions or to channels.
 ![Channels](channels.png)
 
 Channels are `core.async` channels. Inform channels always carry
-[inform message](#inform-messages)s as described above. Transform channels always carry
-[transform message](#transform-messages)s as described above.
+[inform message](#inform-messages)s as described above. Transform
+channels always carry [transform message](#transform-messages)s as
+described above.
 
-Use core.async solves the callback problem when dealing with events
+Using `core.async` solves the callback problem when dealing with events
 and service calls. Each component in a Pedestal application is
 connected by channels rather than by making direct function
 calls. This allows true disconnection of components. Each component is
@@ -481,8 +497,8 @@ There may be some places where we are using channels for no other
 reason than that in a JavaScript environment we do not have threads
 and we would like to ensure that the code we are writing will
 interleave with other code. This is true of the implementation of
-flow. In these cases, we may want to provide different implementations
-for Clojure and ClojureScript.
+[flow](#flow). In these cases, we may want to provide different
+implementations for Clojure and ClojureScript.
 
 Q: Why do we send messages instead of making direct function calls?
 
@@ -490,8 +506,9 @@ Q: Why do we send messages instead of making direct function calls?
 ## Match
 
 For some of the components below, we need to be able to match an
-[inform message](#inform-messages) to either a function or a channel. For the purpose of
-explanation, support that we have the following generic message:
+[inform message](#inform-messages) to either a function or a
+channel. For the purpose of explanation, suppose that we have the
+following generic message:
 
 ```clj
 [[[:ui :b :c] :click]
@@ -512,16 +529,17 @@ the mapping.
 ```
 
 Each vector above has a pattern which could match a message. Remember
-that patterns are pairs that represent a [component id](#component-identifiers) and an event or
-op. In the data above we do not wrap the pattern in brackets so that
-the config will be more readable. Each vector could include any number
-of pairs. For example:
+that patterns are pairs that represent a [component
+id](#component-identifiers) and an event or op. In the data above we
+do not wrap the pattern in brackets so that the configuration will be
+more readable. Each vector could include any number of pairs. For
+example:
 
 ```clj
 [some-function [:ui :b :c] :click [:ui :e :f] :click]
 ```
 
-is a valid config vector.
+is a valid configuration vector.
 
 This raises a question. How do we match the message above with these
 patterns and what do we pass to the function? It seems reasonable to
@@ -538,15 +556,25 @@ match functions to this message in the following way:
 Notice that each function only sees the part of the inform message
 that matched its associated pattern. If instead of functions, these
 were channels, routing would work in the exact same way. We are always
-dealing in inform or [transform message](#transform-messages)s but those messages may be
-split based on patterns.
+dealing in [inform](#inform-messages) or [transform
+message](#transform-messages)s but those messages may be split based
+on patterns.
 
 
 ### API
 
+The match API is an implementation detail, but it is important so we
+cover it here.
+
 #### index
 
-Given a config which is a vector of vectors like:
+```clj
+(defn index
+  ([config])
+  ([idx config]))
+```
+
+Given a configuration which is a vector of vectors like:
 
 ```clj
 [[some-function [:ui :b :c] :click]
@@ -556,34 +584,28 @@ Given a config which is a vector of vectors like:
 
 return an index data structure that allows for fast pattern matching.
 
-```clj
-(defn index
-  ([config])
-  ([idx config]))
-```
-
 The single argument version builds a new index and the two argument
 version adds the provided configuration to an existing index.
 
 
 #### remove-from-index
 
-The `remove-from-index` function will remove all items in the given
-config from the provided index and return the new index.
-
 ```clj
 (defn remove-from-index [idx config])
 ```
 
+The `remove-from-index` function will remove all items in the given
+configuration from the provided index and return the new index.
+
 
 #### match
-
-The `match` function will match items in the index to the inform
-message as described above.
 
 ```clj
 (defn match [idx inform])
 ```
+
+The `match` function will match items in the index to the inform
+message as described above.
 
 The `match` function returns a set of vectors. Each vector has the
 matched item, the patterns which matched the message and the matching
@@ -593,8 +615,8 @@ part of the message.
 [fn-or-chan patterns message]
 ```
 
-This is used by both the router and the [dispatch map](#dispatch-map) to match messages
-to functions or channels.
+This is used by both the [router](#router) and the [dispatch
+map](#dispatch-map) to match messages to functions or channels.
 
 
 ## Dispatch Map
@@ -604,15 +626,17 @@ to functions or channels.
 
 ### what it does / why it's here
 
-The purpose of the dispatch map is to take an [inform message](#inform-messages) as input
-and produce [transform message](#transform-messages)s which go out and change some other part
+The purpose of the dispatch map is to take an [inform
+message](#inform-messages) as input and produce [transform
+message](#transform-messages)s which go out and change some other part
 of the application. An application must have some logic that does
 this. Sometimes that logic is in an event handler or a controller or
 anywhere else in an application.
 
-Since all change is caused by sending a [transform message](#transform-messages) instead of
-making direct function calls, the logic which knows what must change,
-based on an event, produces [transform message](#transform-messages)s.
+Since all change is caused by sending a [transform
+message](#transform-messages) instead of making direct function calls,
+the logic which knows what must change, based on an event, produces
+[transform message](#transform-messages)s.
 
 There are at least three places where a dispatch map is used in
 Pedestal:
@@ -621,34 +645,38 @@ Pedestal:
 - producing UI or service transforms based on reported changes to the info model
 - producing info model changes based on changes to the info model
 
-See Channels for an explanation of why we send messages rather than
-making direct function calls.
+See [Channels](#channels) for an explanation of why we send messages
+rather than making direct function calls.
 
 Most of the logic of an application lives in dispatch map functions. A
 dispatch map function is a function that takes an inform message and
-returns a vector of transforms. It returns many [transform message](#transform-messages)s
-because it must be in control of how [transaction](#transactions)s are run. It can
-decide if the sequence of transformations that it is producing should
-be applied as one update or as many individual updates. See the
-section on transactions above.
+returns a vector of transform messages. It returns many [transform
+message](#transform-messages)s because it must be in control of how
+[transactions](#transactions) are run. It can decide if the sequence
+of transformations that it is producing should be applied as one
+update or as many individual updates. See the section on
+[transactions](#transactions) above.
 
 So the job of the dispatch map is to find all of the functions which
-match an inform message. How this is done is described in the Match
-section above. It must then produce [transform message](#transform-messages)s calling the
-matched functions.
+match an inform message. How this is done is described in the
+[Match](#pattern-matching) section above. It must then produce
+[transform messages](#transform-messages) by calling the matched
+functions.
 
 
 ### any pertinent points about it's design
 
-Why to dispatch map functions return multiple [transform message](#transform-messages)s? As
-described above, a single [transform message](#transform-messages)s is applied as one change
-and the changes are reported as having happened at one point in
+Why do dispatch map functions return multiple [transform
+messages](#transform-messages)? As described above, a single
+[transform message](#transform-messages) is applied as one change and
+the changes are reported as having happened at one point in
 time. There are times when we would like to spread some changes out
-over multiple [transaction](#transactions)s. This may be for performance reasons or
-because we want to see each change in the UI.
+over multiple [transaction](#transactions) or combine many changes
+into one transaction. This may be for performance reasons or because
+we want to see each change in the UI.
 
 We may have an application which receives updates very quickly and
-shows each update in the UI. If to many updates arrive we may decide
+shows each update in the UI. If too many updates arrive we may decide
 to start batching updates so that more than one is applied at a
 time. The logic which controls this lives in dispatch map functions
 and so they must be able to control transaction granularity.
@@ -658,28 +686,28 @@ and so they must be able to control transaction granularity.
 
 #### inform-to-transforms
 
-The `inform-to-transforms` function is passed an index and an inform
-message and returns a vector of [transform message](#transform-messages)s.
-
 ```clj
 (defn inform-to-transforms
   ([index inform])
   ([index inform args-fn]))
 ```
 
-It can optionally be passed an args-fn. By default a dispatch map
-function has the signature
+The `inform-to-transforms` function is passed an index and an inform
+message and returns a vector of [transform
+messages](#transform-messages). It can optionally be passed an
+`args-fn`. By default a dispatch map function has the signature
 
 ```clj
 (defn produce-transforms [inform-message])
 ```
 
-where `inform-message` is a plain old [inform message](#inform-messages). There are times
-when this may not be the desired signature. For example, when watching
-for changes from the info model, we may like having to deal with the
-entire old and new state. The `args-fn` is a function that receives
-the patterns and the inform message and then returns a vector of
-arguments that will be applied to the dispatch map function.
+where `inform-message` is a plain old [inform
+message](#inform-messages). There are times when this may not be the
+desired signature. For example, when watching for changes from the
+info model, we may not like having to deal with the entire old and new
+state. The `args-fn` is a function that receives the patterns and the
+inform message and then returns a vector of arguments that will be
+applied to the dispatch map function.
 
 The default implementation for this function is shown below.
 
@@ -690,20 +718,25 @@ The default implementation for this function is shown below.
 
 #### inform->transforms
 
-The `inform->transforms` function takes a config that will be used to
-create an index and a transform channel and returns an inform channel.
-
 ```clj
 (defn inform->transforms
   ([config tchan])
   ([config tchan args-fn]))
 ```
 
+The `inform->transforms` function takes a configuration that will be
+used to create an index and a transform channel and returns an inform
+channel.
+
 It can optionally be passed an `args-fn`.
 
-This function sets up asynchronous processing of the input inform
+This function sets up asynchronous processing of the inform
 channel. When a message is received on the inform channel it is used
-to produce [transform message](#transform-messages)s which are put on the transform channel.
+to produce [transform messages](#transform-messages) which are put on
+the transform channel.
+
+
+#### Comments
 
 Q: How can we stop this asynchronous processing?
 Q: How do we handle errors?
