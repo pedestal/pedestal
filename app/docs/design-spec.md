@@ -15,7 +15,7 @@ something to change? How do we know what has changed? How do we do all
 of this efficiently without writing overly complex code? Providing a
 good answer to these questions is the goal of Pedestal.
 
-We often use simple examples such as clicking a button an showing a
+We often use simple examples such as clicking a button and showing a
 counter increment on a screen to illustrate what the various parts
 will do and how they fit together. These are not motivating
 examples. For applications this simple, you don't need Pedestal. A
@@ -39,9 +39,9 @@ The problems we are trying to solve a listed below:
 
   How do we deal with incoming events? Events should cause things to
   happen. What should happen and where should the code live which
-  knows about what should happen? We should avoid callbacks into
-  application code by using `core.async`. What do we send on a channel
-  when an event occurs?
+  knows about what should happen? We avoid callbacks into application
+  code by using `core.async`. What do we send on a channel when an
+  event occurs?
 
 - state
 
@@ -51,23 +51,23 @@ The problems we are trying to solve a listed below:
   work of an application is to figure how what has changed and what
   effect that should have. How do we do this? Do we use atoms to store
   state? If so, how many? Do we put state in the DOM? Do we put state
-  in Widgets? Where do we put state and specific to rendering only?
+  in widgets? Where do we put state which is specific to rendering?
 
 - views
 
   We don't want to assume that we are only ever using the DOM for
   views. What part of the application should be updating views? How do
   keep application logic separate from view logic? How do we manage
-  changing views? For example one screen has five widgets on it and
+  changing views? For example, one screen has five widgets on it and
   another screen has ten different widgets. What happens when we
-  switch from on screen to another? How do we handle listening for
+  switch from one screen to another? How do we handle listening for
   events in views and converting events to data on a `core.async`
   channel?
 
 - control
 
   How do we know what state the application is in? For example, we
-  need to log in before we can begin using the app. We may see one set
+  need to login before we can begin using the app. We may see one set
   of widgets when we are in one state and another when we are in a
   different state. How do we transition from one screen to another?
   Where do we put the code that knows how to control the application?
@@ -77,15 +77,16 @@ The problems we are trying to solve a listed below:
   How do we communicate with back-end services? We need to allow for
   the server to push data to the app as well as make requests. Which
   components are allowed to initiate service requests and receive
-  responses from services? How do make service requests and receive
+  responses from services? How do we make service requests and receive
   responses? Do we make function calls or send messages?
 
 - logic
 
   The logic of an application is what knows how to interpret events
   and turn them into a useful change. It may need to change data in
-  the model, request some data or determine which UI components need
-  to be updated based on a change to the data. Where does this live?
+  the model, request data from a service or determine which UI
+  components need to be updated based on a change to the data. Where
+  does this live?
 
 
 # Tenets
@@ -98,8 +99,8 @@ There are few things to keep in mind while reading this document.
   relative to other components. Sometimes components will run
   in the same address space as other components and sometimes they
   will not
-- As much as possible, we should be able to choose to user or not use
-  channels. All core functionality should be implemented outside of
+- As much as possible, we should be able to choose when to use channels.
+  All core functionality should be implemented outside of
   channel code. Helper functions can be provided which add channels on
   top to the core interface.
 
@@ -112,23 +113,23 @@ keep in mind where serialization and marshaling could happen.
 # Conceptual Model
 
 Pedestal Applications can be divided into three areas of concern: user
-interfaces, services and the information model. User interfaces allow
-the application to communicate with a user. Services allow the
-application to communicate with external systems. The information
-model stores the application's state. These areas of concern
-communicate with each other using messages. There are two types of
-messages:
+interfaces, services and the [information model](#information-model).
+User interfaces allow the application to communicate with a
+user. Services allow the application to communicate with external
+systems. The information model stores the application's state. These
+areas of concern communicate with each other using messages. There are
+two types of messages:
 
-- [*transform* messages](#transform-messages) tell the message target how to change. They
-  cause a UI element or data in the data model to change. They can
-  also be used to tell a service to make a request. (TBD: see open
-  issue)
+- [*transform* messages](#transform-messages) tell the message target
+  how to change. They cause a UI element or data in the information
+  model to change. They can also be used to tell a service to make a
+  request. (TBD: see open issue)
 
-- [*inform* messages](#inform-messages) describe how the message source has changed. They
-   notify application logic that a UI element or data in the data
-   model has changed, or that a service has returned a result (TBD:
-   what about async input from service via SSE or websocket? Can't
-   these just be inform messages?)
+- [*inform* messages](#inform-messages) describe how the message
+   source has changed. They notify application logic that a UI element
+   or data in the information model has changed, or that a service has
+   returned a result (TBD: what about async input from service via SSE
+   or websocket? Can't these just be inform messages?)
 
 
 ![Pedestal Overview](overview.png)
@@ -137,26 +138,26 @@ messages:
 ## Kinds of things
 
 In the diagram above, red arrows represent `transform channels`
-(channels which convey [transform message](#transform-messages)s) and blue arrows represent
-`inform channels` (channels which convey [inform message](#inform-messages)s). The green
-shapes are `[dispatch map](#dispatch-map)s` which use patterns in inform message to find
-functions which take the inform message and return transform
-messages. These functions contain the logic which knows what an inform
+(channels which convey [transform message](#transform-messages)s) and
+blue arrows represent `inform channels` (channels which convey [inform
+message](#inform-messages)s). The green shapes are `[dispatch
+map](#dispatch-map)s` which turn inform messages into transform
+messages. These maps contain the logic which knows what an inform
 message implies for other components of the application. The `info
 model` stores application state and detects state deltas. `widgets`
-connect to the world outside this flow of information. They can change
-that world based on received transform messages and then can report
-changes and generate inform messages. A widget could be a button, a
-chart or something which communicates with external services. A
-`router` can be used to route transform messages from one incoming
-transform channel to multiple outgoing transform channels.
+display data and collect input from the outside world. A widget could
+be a button, a chart or something which communicates with external
+services.
 
 
 ## Specific parts
 
-The diagram above uses three [dispatch maps](#dispatch-map). One which receives inform
-messages from widgets, one which send [transform message](#transform-messages)s to widgets
-and services and one which is tied closely to the information model.
+The diagram above uses three [dispatch maps](#dispatch-map). One which
+receives inform messages from the UI and sends transform messages to
+the information model (UI->Info), one which receives inform messages
+from the information model and sends [transform
+message](#transform-messages)s to the UI (Info->UI) and one which is
+tied closely to the information model.
 
 The UI->Info dispatch map is used to find functions which know what
 changes to the UI imply for the information model. For example, it
@@ -165,20 +166,20 @@ should be incremented.
 
 The Info->UI dispatch map is used to find functions which know what
 changes to the info model imply for the UI. For example, when the
-counter in the info models then some UI widget will need to display
-the new counter value.
+counter in the info model changes then some UI widget will need to
+display the new counter value.
 
 The Info->Info dispatch map is used to find functions which know what
 changes to the info model imply for other parts of the info
-model. This is how dataflow is implemented. Some of the information in
-the system depends on other information. The logic for these data
-connections can be put in one place instead of spreading it across all
-of the places which update the base data.
+model. This is how [dataflow](#flow) is implemented. When some of the
+information in the system depends on other information, the logic for
+these data connections can be put in one place instead of spreading it
+across all of the places which update the basis data.
 
-The info model contains all application state in a single map. When
-transforms are applied to the data it keeps track of all of the
-changes that were made and reports those changes on the outgoing
-inform channel.
+The [info model](#information model) contains all application state in
+a single map. When transforms are applied to this data, it keeps track
+of all changes that were made and reports those changes on the
+outgoing inform channel.
 
 
 ## Processing an event
