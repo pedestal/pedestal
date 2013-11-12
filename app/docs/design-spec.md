@@ -842,11 +842,11 @@ on this decision.
 Using inform messages to describe changes to the information model
 has had a significant effect on the design of inform messages. This
 is the main motivation behind having inform messages be a vector of
-event entries. We need this so that we can describe all of the changes
-which happened at the same time.
+event entries. We need this so that we can indicate that a group of
+changes happened at the same time.
 
 It is interesting that effecting change and reporting change happens
-in the same way when dealing with the UI or with information
+in the same way when dealing with the UI or with the information
 model. This consistency leads to fewer concepts and more reusable
 code.
 
@@ -873,11 +873,12 @@ strictly more information. We can use the path to get the exact values
 which changed. The main reason for this decision is that this message
 will be passed to a function which needs to generate transforms based
 on this change. In most cases it will need to know more about the
-model than exactly what changed. There are three options:
+model than exactly what changed. There are four options:
 
-1. send on the data that changed
+1. send only the data that changed
 2. send the data that the function needs
 3. send all the data
+4. allow some other kind of access to the information model
 
 We are doing 3 and we have ruled out 1. What is wrong with option
 2? In a dispatch map, we define what each dispatch map function cares
@@ -889,8 +890,26 @@ the past has lead to complexity.
 With option 3 we can generate inform messages without knowing anything
 about what will consume them.
 
+Option 4 has not been considered carefully.
+
 One final point is that we can always chose to show less information
 in downstream processing.
+
+Within a single inform message, each event entry has an old and new
+state. This is the same old and new state for each event entry. The
+old and new state that comes out of a transaction is represented as
+just one single change, not a series of changes. We do not want
+intermediate changes to leak out of the transaction.
+
+
+#### Open Issue: access to the information model
+
+It might be useful to have some way to query the information model
+(with Datalog). If this were available then the dispatch map functions
+could query the model and we could just pass them diffs.
+
+If we decided to allow widgets to send non-update requests to the
+information model, then they could send queries (again Datalog).
 
 
 #### Open Issue: large adds and removes
@@ -909,7 +928,7 @@ Suppose that under `:records` we have 10,000 records and we remove
 `:records` from the map. This would generate an inform message with
 10,000 event entries.
 
-Once possible solution would be to use wildcards to indicate many
+One possible solution would be to use wildcards to indicate many
 changes of the same type.
 
 ```clj
@@ -928,15 +947,13 @@ This would require making pattern matching a bit smarter.
 We currently do not support reporting changes to vectors. This is
 because we don't yet know how we would do it. The problem with vectors
 is that they don't have stable keys. If we remove the first item in a
-vector with 10000 items we would produce 10000 changes instead of just
+vector with 10,000 items, we would produce 10,000 changes instead of just
 one.
 
 Maybe using a technique like the one above involving wildcards would help.
 
 
 ### API
-
-The model has a simple API.
 
 #### apply-transform
 
@@ -952,7 +969,7 @@ which describes the changes which were made to the model.
 
 You might think that this function should just return the new model
 and later we could figure out how the model changed. That assumes that
-we are doing change tracking is a specific way. What if we wanted to
+we are doing change tracking in a specific way. What if we wanted to
 track changes as they happen? This is the only place that can be
 done. Any other approach would force us to track changes after the
 fact. This interface leaves the decision of how we track changes to
@@ -976,7 +993,8 @@ on the inform channel. One transform message produces one inform message.
 #### Comments
 
 Q: Is there any reason why we might just want to see the data without
-changing it.
+changing it. See the [Open Issue](#open-issue-access-to-the-information-model)
+above.
 
 
 ## Flow
@@ -1013,16 +1031,17 @@ In Step 3 we can get multiple transform messages. This raises the
 question: how do we apply them since each one could initiate a new
 flow step that generates more transform messages. The current thinking
 is that it is okay to combine all of these transform messages into a
-single transform message. The contract for a transform message is that
-all of the transformations need to be applied at the same
-time. Combining transform messages does not break this contract.
+single transform message. The contract for a [transform
+message](#transform-messages) is that all of the transformations need
+to be applied at the same time. Combining transform messages does not
+break this contract.
 
 
 ### any pertinent points about its design
 
 The current implementation uses channels to connect the dispatch map
-and information model to one go loop which has an additional input
-transform channel and output inform channel.
+and information model to one `core.async` go loop which has an
+additional input transform channel and output inform channel.
 
 Using channels here is beneficial for the ClojureScript version but may
 not be the best way to implement the Clojure version. This is one
@@ -1112,7 +1131,7 @@ distinct messages
 
 and each message would be sent on the appropriate channel.
 
-A router can be configured to do this in the same what that the
+A router can be configured to do this in the same way that the
 dispatch map decides how to pass inform messages to functions.
 
 A configuration for the router above would look like this:
