@@ -287,7 +287,7 @@ Break out the individual parts and explain how they work
 
 ## Messages
 
-Messages are central to all parts of Pedestal in this section we
+Messages are central to all parts of Pedestal. In this section we
 discuss message format.
 
 
@@ -297,11 +297,12 @@ Every message is either sent from something or to something. This
 means that we need some way to identify the thing that is sending or
 receiving the message.
 
-Everything that be changed or can report having been changed has a
-unique identifier. This includes user interface widgets, specific
-services and individual values in the information model. All
-identifiers have the same format. They are all paths represented as
-vectors. Some valid identifiers are:
+Everything that can be changed or can report having been changed has a
+[unique identifier](#component-identifier). This includes user
+interface widgets, specific services and individual values in the
+[information model](#information-model). All identifiers have the same
+format. They are all paths represented as vectors. Some valid
+identifiers are:
 
 ```clj
 [:ui :button :a]
@@ -310,11 +311,11 @@ vectors. Some valid identifiers are:
 [:services :auth]
 ```
 
-By convention, identifiers are hierarchical meaning that two
-identifiers with the same prefix are in some way related to each
-other. For example all widgets have an identifier which starts with
+By convention, identifiers are hierarchical, meaning that two
+identifiers with the same prefix are in some way related to one
+another. For example, all widgets have an identifier which starts with
 `:ui`. All identifiers which start with `:info` identify a value in
-the info model.
+the information model.
 
 The identifiers
 
@@ -323,12 +324,13 @@ The identifiers
 [:ui :list "bca345-b3ba-bc38a" :age]
 ```
 
-may refer to two different things in the same list.
+may refer to two different values in the same list.
 
 Except for widgets, every component in the system makes some use of
-this identifier format. [dispatch map](#dispatch-map)s [pattern match](#pattern-matching) on the identifiers
+this identifier format. [dispatch map](#dispatch-map)s
+[pattern match](#pattern-matching) on the identifiers
 to find matching functions to transform. The router pattern matches on
-identifiers to find out which channel to route the message to. The
+identifiers to find out which channel to route a message to. The
 info model uses the identifier to apply a change to a specific part of
 the model.
 
@@ -339,7 +341,7 @@ An inform message describes how something has changed. Each inform
 message is a vector of multiple event entries.
 
 ```clj
-[event-entry1 event-entry2 event-entry3]
+[event-entry-1 event-entry-2 event-entry-3]
 ```
 
 Each event entry describes an event as a vector with `source-id`,
@@ -360,7 +362,8 @@ Examples of inform messages include:
 
 The specifics of these examples are described below.
 
-Q: why is an inform message a vector?
+Q: Why is an inform message a vector of event entries instead of just
+being an event entry.
 
 
 ### Transform messages
@@ -369,7 +372,7 @@ A transform message tells something how to change. Each transform
 message is a vector of multiple transformations.
 
 ```clj
-[transformation1 transformation2]
+[transformation-1 transformation-2]
 ```
 
 Each transformation is a vector with `target-id`, `op` and zero or
@@ -398,10 +401,10 @@ changes. Each component will have its own API.
 
 ### Transactions
 
-[inform message](#inform-messages)s are collections which contain multiple events which
-happened at the same time. Transform messages are collections which
-contain multiple transformations which should be applied at the same
-time.
+[inform message](#inform-messages)s are collections which contain
+multiple events which happened at the same time. Transform messages
+are collections which contain multiple transformations which should be
+applied at the same time.
 
 The best example of how these are used is in updates to the info
 model. All of the transformations in a transform message are applied
