@@ -755,7 +755,7 @@ model contains the data that the application has accumulated since it
 began executing. Data for the model is received from back-end
 services, user input or is calculated from other data.
 
-There are two goals that we have when it comes to managing state:
+There are three goals that we have when it comes to managing state:
 
 1. control over units of work (transactions)
 2. accurate and consistent change reporting
@@ -773,16 +773,17 @@ model is with function calls. We would need to define specific
 functions for each kind of transaction that we would like to perform.
 
 Once we have changed the data, how do we know what has changed? Most
-the things that happen in an application are responding to changes in
-the data model. Without having accurate change reports, we end up
+of the things that happen in an application are responding to changes
+in the data model. Without having accurate change reports, we end up
 doing a lot of unnecessary work. If we decide to use multiple atoms in
 order to see more focused change, it makes it harder to have clear
 units of work.
 
-Changing the info model by calling functions is not ideal. A better
-approach would be to decouple describing changes from applying them to
-the model. This would allow us to make independent decisions about
-these two activities and it gives us a way to describe units of work.
+Changing the information model by calling functions is not ideal. A
+better approach would be to decouple the description of a change from
+applying them to the model. This would allow us to make independent
+decisions about these two activities and it gives us a way to describe
+units of work.
 
 In Pedestal, the information model addresses the above issues. Changes
 to the model are made by applying a [transform message](#transform-messages)
@@ -818,7 +819,8 @@ The above transform would change it to
 ```
 
 The Pedestal information model tracks changes and reports what has
-changed with an inform message.
+changed with an inform message. The following inform message is a
+report for the change above.
 
 ```clj
 [[[:info :counter :a] :updated {:info {:counter {:a 7} :user {}}}
@@ -828,10 +830,11 @@ changed with an inform message.
 ```
 
 This inform message has two event entries, one for each change. Each
-information model event entry uses the path for value that changed as
-the [source id](#component-identifiers) and uses `:added`, `:updated`, or `:removed` for the
-event. The two remaining items are the entire old and new state of the
-model. See below for a discussion on this decision.
+information model event entry uses the path for a value that changed
+as the [source id](#component-identifiers) and uses `:added`,
+`:updated`, or `:removed` for the event. The two remaining items are
+the entire old and new state of the model. See below for a discussion
+on this decision.
 
 
 ### any pertinent points about its design
