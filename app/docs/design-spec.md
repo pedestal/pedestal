@@ -185,29 +185,29 @@ outgoing inform channel.
 ## Processing an event
 
 Now that we know what all the things in the diagram are, let's walk
-though a complete cycle from user input to result being displayed on
+though a complete cycle from user input to a result being displayed on
 the screen.
 
 1. The user clicks a button on the screen which is backed by a widget
 2. The button widget has set up an event listener for that
 button. When the button is clicked, the event is converted to an
-[inform message](#inform-messages) and placed on the widgets inform channel.
-3. The UI->Info [dispatch map](#dispatch-map) receives the transform message and finds a
+[inform message](#inform-messages) and placed on the widget's inform channel.
+3. The UI->Info [dispatch map](#dispatch-map) receives the inform message and finds a
 function which has been configured to handle that message based on
 matching patterns in the message.
-4. The function is called, passing the transform message and the function
+4. The function is called, passing the inform message and the function
 returns one or more [transform message](#transform-messages)s.
 5. The dispatch map places these transform messages on the transform
 channel.
-6. The info model receives a transform message and applies the
+6. The information model receives a transform message and applies the
 it to the model, keeping track of what has changed.
 7. All changes to the model that were the result of applying one
-transform to the model and reported as a single transform message on the
+transform to the model and reported as a single inform message on the
 outgoing inform channel.
-8. The Info->UI dispatch map receives an transform message from the info
+8. The Info->UI dispatch map receives an inform message from the information
 model and finds the function which has been configured to handle that
 message based on matching patterns in the message.
-9. The function is called, passing the matched transform message and
+9. The function is called, passing the matched inform message and
 returns one or more transform messages.
 10. The dispatch map places these transform messages on the transform
 channel.
