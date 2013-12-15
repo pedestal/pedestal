@@ -237,10 +237,13 @@ starting with file, to an arbitrary level of nesting."
 
    Returns nodes where :id values from infos have been appended onto
    nodes field attributes (where :field values match the field attribute.)"
-  [nodes infos]
+  [nodes infos static-fields]
   (reduce (fn [a info]
-            (transform a [[(attr= :field (:field info))]]
-                       (set-attr :field (str (:field info) "," "id:" (:id info)))))
+            (if-not (re-find (re-pattern (str "id:(" (string/join "|" (map name static-fields)) ")"))
+                               (:field info))
+              (transform a [[(attr= :field (:field info))]]
+                         (set-attr :field (str (:field info) "," "id:" (:id info))))
+              a))
           nodes
           infos))
 
@@ -282,7 +285,7 @@ starting with file, to an arbitrary level of nesting."
                      (insert-ids ts-syms)
                      (remove-static-fields static-fields))
          nodes (reduce (fn [a [_ info-map]]
-                         (append-field-ids a info-map))
+                         (append-field-ids a info-map static-fields))
                        nodes
                        changes)
          changes (simplify-info-maps changes)
@@ -294,8 +297,7 @@ starting with file, to an arbitrary level of nesting."
                                              (let [id-map (interleave (map keyword ids) ids)]
                                                (if (seq id-map)
                                                  (concat ['assoc map-sym] id-map)
-                                                 map-sym))))]))))
-  )
+                                                 map-sym))))])))))
 
 (defn tnodes
   "Turns template defined in a file into sequence of enlive nodes.

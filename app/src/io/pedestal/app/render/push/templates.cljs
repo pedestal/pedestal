@@ -61,4 +61,11 @@
 (defn add-template [r path make-template]
   (let [[template html] (make-template)]
     (render/set-data! r (conj path ::template) template)
-    html))
+    (fn [data]
+      (doseq [[k v] data]
+        (let [info (get template k)]
+          (when (some (comp (partial = "id") :attr-name) info)
+            (render/set-data! r
+                              (conj path ::template)
+                              (assoc template k (mapv #(assoc % :id v) info))))))
+      (html data))))
