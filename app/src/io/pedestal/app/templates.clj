@@ -273,10 +273,12 @@ starting with file, to an arbitrary level of nesting."
    (let [map-sym (gensym)
          field-nodes (-> nodes (select [(attr? :field)]))
          ts (map (fn [x] (-> x :attrs :field)) field-nodes)
-         ts-syms (reduce (fn [a x]
-                           (assoc a x (gensym)))
-                         {}
-                         ts)
+         ts-syms (reduce (fn [m x] 
+                           (assoc m 
+                                  (-> x :attrs :field) 
+                                  (symbol (or (-> x :attrs :id) (gensym))) )) 
+                         {} 
+                         field-nodes)
          changes (-> ts
                      gen-change-index
                      (insert-ids ts-syms)
@@ -288,7 +290,7 @@ starting with file, to an arbitrary level of nesting."
          changes (simplify-info-maps changes)
          ids (set (mapcat (fn [[_ field-infos]] (map :id field-infos))
                           changes))]
-     (list 'fn [] (list 'let (vec (interleave ids (repeat (list 'gensym))))
+     (list 'fn [] (list 'let (vec (interleave ids (map str ids)))
                         [changes (list 'fn [map-sym]
                                        (list (tfn nodes)
                                              (let [id-map (interleave (map keyword ids) ids)]
