@@ -33,7 +33,7 @@
 
 (def dtfn-test-nodes
   (enlive/html-snippet "<li template='todo' field='id:line-item-id,accesskey:access-key'>
-                          <div field='class:completed'>
+                          <div id='completed_123' field='class:completed'>
                             <div class='view'>
                               <input class='toggle' type='checkbox' checked>
                               <label field='content:text'>Create a TodoMVC template</label>
@@ -64,6 +64,14 @@
         result-nodes  (enlive/html-snippet result-html)]
     (is (= #{:id :completed :text :access-key} (set (keys dynamic-attributes))))
     (is (= 1 (count (:id dynamic-attributes))))
+	  (is (= "completed_123" (-> (:completed dynamic-attributes) first :id))
+	      "when id exists, it is preserved in id map")
+	  (is (= "completed_123" (-> (enlive/select result-nodes [:li :div.incomplete]) first :attrs :id))
+	      "when id exists, it is preserved in result-html")
+	  (is (.startsWith (-> (:id dynamic-attributes) first :id str) "G__")
+	      "when id does not exist, it is auto generated in id map")
+	  (is (.startsWith (-> (enlive/select result-nodes [:li :div.incomplete :input.todo-1]) first :attrs :id str) "G__")
+	      "when id does not exist, id is auto generated in result-html")
     (is (= 1 (count (:completed dynamic-attributes))))
     (is (= 2 (count (:text dynamic-attributes))))
     (is (= 1 (count (:access-key dynamic-attributes))))
