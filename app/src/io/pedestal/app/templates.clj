@@ -276,11 +276,11 @@ starting with file, to an arbitrary level of nesting."
    (let [map-sym (gensym)
          field-nodes (-> nodes (select [(attr? :field)]))
          ts (map (fn [x] (-> x :attrs :field)) field-nodes)
-         ts-syms (reduce (fn [m x] 
-                           (assoc m 
-                                  (-> x :attrs :field) 
-                                  (symbol (or (-> x :attrs :id) (gensym))) )) 
-                         {} 
+         ts-syms (reduce (fn [m x]
+                           (assoc m
+                                  (-> x :attrs :field)
+                                  (symbol (or (-> x :attrs :id) (gensym)))))
+                         {}
                          field-nodes)
          changes (-> ts
                      gen-change-index
