@@ -75,6 +75,8 @@
     (is (= 1 (count (:completed dynamic-attributes))))
     (is (= 2 (count (:text dynamic-attributes))))
     (is (= 1 (count (:access-key dynamic-attributes))))
+    (is (= "line-item-id" (-> dynamic-attributes :access-key first :id))
+        "The :id for a dynamic attribute info map on a node whose template also contained an id field pair should be the id attribute key")
     (is (let [info-map (-> dynamic-attributes :id first)]
           (and (= (:attr-name info-map) "class")
                (= (:type info-map) :attr))))
