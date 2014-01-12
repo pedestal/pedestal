@@ -59,7 +59,7 @@
 
 (deftest test-dtfn
   (let [[dynamic-attributes html-fn] ((template-macro))
-        values {:text "This is text", :completed "incomplete", :id "todo-1"}
+        values {:text "This is text", :completed "incomplete", :id "todo-1" :line-item-id "mycustomid"}
         result-html (html-fn values)
         result-nodes  (enlive/html-snippet result-html)]
     (is (= #{:id :completed :text :access-key} (set (keys dynamic-attributes))))
@@ -99,6 +99,11 @@
     (is (->> (enlive/select result-nodes [:label])
              (some #(= (:content %) ["This is text"])))
         "there is a label with content 'This is text'")
+    (is (= "mycustomid" (->> (enlive/select result-nodes [:li])
+                             first
+                             :attrs
+                             :id))
+        "a static id can be set on a node containing dynamic fields")
     (is (= 1 (count (enlive/select result-nodes [(enlive/attr= :value "This is text")])))
         "there is one input with value 'This is text'")))
 
