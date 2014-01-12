@@ -280,9 +280,10 @@ starting with file, to an arbitrary level of nesting."
                            (assoc m
                                   (-> x :attrs :field)
                                   (symbol (or (-> x :attrs :id)
-                                              (second (first (filter (every-pred #(= "id" (first %))
-                                                                                 #(contains? (set static-fields) (keyword (second %))))
-                                                                     (field-pairs (-> x :attrs :field)))))
+                                              (if-let [static-id (second (first (filter (every-pred #(= "id" (first %))
+                                                                                                    #(contains? (set static-fields) (keyword (second %))))
+                                                                                        (field-pairs (-> x :attrs :field)))))]
+                                                (with-meta (symbol static-id) {:static-id true}))
                                               (gensym)))))
                          {}
                          field-nodes)
@@ -300,7 +301,8 @@ starting with file, to an arbitrary level of nesting."
      (list 'fn [] (list 'let (vec (interleave ids (map str ids)))
                         [changes (list 'fn [map-sym]
                                        (list (tfn nodes)
-                                             (let [id-map (interleave (map keyword ids) ids)]
+                                             (let [generated-ids (remove #(:static-id (meta %)) ids)
+                                                   id-map (interleave (map keyword generated-ids) generated-ids)]
                                                (if (seq id-map)
                                                  (concat ['assoc map-sym] id-map)
                                                  map-sym))))])))))
