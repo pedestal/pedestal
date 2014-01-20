@@ -62,9 +62,10 @@
   (let [[template html] (make-template)]
     (render/set-data! r (conj path ::template) template)
     (fn [data]
-      (doseq [[k v] data [idx field-map] (map vector (iterate inc 0) (get template k))]
-        (when (and (= k (:id field-map)))
-          (render/set-data! r
-                            (conj path ::template)
-                            (assoc-in template [k idx :id] v))))
+      (doseq [[k v] data [template-key field-maps] template]
+        (doseq [[idx field-map] (partition 2 (interleave (iterate inc 0) field-maps))]
+         (when (and (= (name k) (name (:id field-map))))
+           (render/set-data! r
+                             (conj path ::template)
+                             (assoc-in template [template-key idx :id] v)))))
       (html data))))
