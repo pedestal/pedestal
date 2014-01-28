@@ -74,6 +74,20 @@
 (defn find-handler [handlers op path]
   (find-handler* {:children handlers} (vec (cons op path))))
 
+(defn dissoc-in
+  "Dissociates an entry from a nested associative structure returning a new
+  nested structure. keys is a sequence of keys. Any empty maps that result
+  will not be present in the new structure."
+  [m [k & ks :as keys]]
+  (if ks
+    (if-let [nextmap (get m k)]
+      (let [newmap (dissoc-in nextmap ks)]
+        (if (seq newmap)
+          (assoc m k newmap)
+          (dissoc m k)))
+      m)
+    (dissoc m k)))
+
 ;; Rendering
 ;; ================================================================================
 
@@ -121,7 +135,7 @@
     v)
   (delete-id! [this path]
     (run-on-destroy! (get-in @env path))
-    (swap! env assoc-in path nil))
+    (swap! env dissoc-in path))
   (on-destroy! [this path f]
     (swap! env update-in (conj path :on-destroy) (fnil conj []) f))
   (set-data! [this ks d]
