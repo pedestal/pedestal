@@ -15,8 +15,5 @@
         "jetty"
         "tomcat"
         "service-tools"
-        "service-template"
-        "app"
-        "app-tools"
-        "app-template"])
+        "service-template"])
 
