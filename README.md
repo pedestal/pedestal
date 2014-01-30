@@ -1,7 +1,7 @@
 # Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
 
-Pedestal is a web application framework written in Clojure that aims to bring
-both the language and its principles (Simplicity, Power and Focus) to client and
+Pedestal is a set of libraries written in Clojure that aims to bring
+both the language and its principles (Simplicity, Power and Focus) to
 server-side development.
 
 ## Getting started
@@ -9,13 +9,10 @@ server-side development.
 ### Starting a new project
 
 Use [leiningen](https://github.com/technomancy/leiningen) (2.2.0+) to create a new
-Pedestal application or service. This will automatically pull templates from
+Pedestal service. This will automatically pull templates from
 <http://clojars.org>
 
 ```bash
-# To create a new client-side application:
-lein new pedestal-app the-next-big-thing
-
 # To create a new service:
 lein new pedestal-service the-next-big-server-side-thing
 ```
@@ -65,7 +62,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
 To install Pedestal library components in your local Maven repository run
 `lein sub install` from a local checkout of this repository.
 
-**WARNING: Until 0.3.0 is released, this repository contains code/changes 
+**WARNING: Until 0.3.0 is released, this repository contains code/changes
 that *does not match* resources like the [docs](http://pedestal.io/documentation/),
 [tutorial](https://github.com/pedestal/app-tutorial/) or otherwise.**
 
@@ -73,6 +70,7 @@ that *does not match* resources like the [docs](http://pedestal.io/documentation
 
 ## License
 Copyright 2013 Relevance, Inc.
+Copyright 2014 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
