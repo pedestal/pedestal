@@ -1,4 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
+; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -29,7 +30,7 @@
               (.info logger (pr-str {:n n :msg "INFO message"
                                      :rand (rand-int 1000)})))
       8 (when (.isWarnEnabled logger)
-          (.warn logger 
+          (.warn logger
                  (pr-str {:n n :msg "WARN message"})
                  (ex-info "error message"
                           {:rand (rand-int 1000)})))

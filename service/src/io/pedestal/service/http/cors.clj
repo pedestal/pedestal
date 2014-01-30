@@ -1,4 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
+; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -64,7 +65,7 @@
     :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
   "
   [allowed-origins]
-  (let [{:keys [creds max-age allowed-origins] :as args} (normalize-args allowed-origins)] 
+  (let [{:keys [creds max-age allowed-origins] :as args} (normalize-args allowed-origins)]
     (around ::allow-origin
             (fn [context]
               (let [origin (get-in context [:request :headers "origin"])

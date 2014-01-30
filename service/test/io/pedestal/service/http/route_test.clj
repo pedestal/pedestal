@@ -1,4 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
+; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -454,7 +455,7 @@
                        :route
                        (select-keys [:route-name :path])))
        verbose-routes
-       terse-routes       
+       terse-routes
        data-routes
        syntax-quote-data-routes))
 
