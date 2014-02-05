@@ -12,7 +12,8 @@
 (ns io.pedestal.app-tools.build
   (:use [io.pedestal.app-tools.compile.config :only [cljs-compilation-options]]
         [io.pedestal.app-tools.host-page :only [application-host]]
-        [io.pedestal.app.templates :only [load-html html-dependencies]])
+        [io.pedestal.app.templates :only [load-html html-dependencies html-parse render]]
+        [net.cgrand.enlive-html])
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [clojure.walk :as walk]
@@ -146,11 +147,12 @@
          (remove #(.isDirectory %))
          (remove #(.startsWith (.getName %) "."))))
 
-(defn- files-to-process [& dirs]
+(defn- files-to-process [cont & dirs]
   (for [d dirs
         file (filter-files (file-seq (io/file d)))]
     {:path (split-path (.getPath file))
-     :modified (.lastModified file)}))
+     :modified (.lastModified file)
+     :container cont}))
 
 (defn- make-path [public & parts]
   (str (get-public public) (string/join File/separator (vec parts))))
@@ -211,12 +213,13 @@
 (defmethod analyze-file ["app" "assets"] [{p :path m :modified}]
   (get-asset-transform m p))
 
-(defmethod analyze-file ["app" "templates"] [{p :path m :modified}]
+(defmethod analyze-file ["app" "templates"] [{p :path m :modified c :container}]
   (when-modified
    {:path p
     :modified m
+    :container c
     :output-to (apply make-path :tools-public "design" (drop 2 p))
-    :transform :template}))
+    :transform :app-template}))
 
 (defmethod analyze-file :default [{p :path}]
   nil)
@@ -244,6 +247,24 @@
     (let [file (:output-to f)]
       (.mkdirs (.getParentFile (io/file file)))
       (spit file (:content f)))))
+
+(defn- root-container [path file ]
+  (let [f (str (string/join File/separator path) File/separator file)
+        h (html-resource (io/file f))
+        within (seq (select h [:_within]))
+        wfile (-> (first within) :attrs :file)]
+            (if wfile (root-container ["app" "templates"] wfile ) file)))
+
+(defmethod transform-files :app-template [_ fs]
+  (mapv (fn [f]
+          (let [container (:container f)
+                check (not= container (root-container (take 2 (:path f)) (last (:path f))))
+                content (load-html (io/file (string/join File/separator (:path f))))
+                warning (html-parse (str "<p>WARNING: This is only a template view and might differ from the default template (" container ")</p>"))
+                new-content (render (transform (html-parse content) [:body] (append warning)))]
+            (log/info :transform :app-template :path (string/join File/separator (:path f)))
+            (assoc f :transform :write :content (if check new-content content))))
+        fs))
 
 (defmethod transform-files :template [_ fs]
   (mapv (fn [f]
@@ -273,8 +294,8 @@
     (when (not (empty? remaining))
       (recur (group-by :transform remaining)))))
 
-(defn- process-files [& dirs]
-  (let [fs (remove nil? (map analyze-file (apply files-to-process dirs)))]
+(defn- process-files [cont & dirs]
+  (let [fs (remove nil? (map analyze-file (apply files-to-process cont dirs)))]
     (process-files-internal (group-by :transform fs))))
 
 (defn- drop-leading-sep [s]
@@ -305,6 +326,7 @@
       (doseq [s filtered-sources]
         (log/info :worker-name name :include-file (:js-file-name s)))
       (compile/build-sources! filtered-sources options))))
+  
 
 (defn build!
   "Builds the current project into the out directory."
@@ -317,7 +339,7 @@
         (doseq [[name whitelist] workers]
           (compile-worker! config aspect name whitelist)))
       (make-template config output-root aspect))
-    (process-files "tools" "app")))
+    (process-files (get-in config [:application :default-template]) "tools" "app")))
 
 (def build-agent (agent nil))
 
