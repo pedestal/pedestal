@@ -64,7 +64,6 @@ cat ~/.lein/profiles.clj
 git clone https://github.com/pedestal/pedestal.git
 cd pedestal
 lein sub install
-( cd app && lein marg )
 ( cd service && lein marg )
 ```
 

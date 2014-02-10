@@ -29,11 +29,10 @@ applications and improving general ease of use.
 
 ### Documentation
 
-* [Pedestal documentation](http://pedestal.io/documentation/): overview of
-  Pedestal concepts and advice on getting started.
-* API Docs: generate literate-programming-style API docs by following the
-  "What about API Documentation?" instructions in the
-  [Pedestal Overview](http://pedestal.io/documentation/).
+ * [Pedestal documentation](./guides) is coupled within this repository.
+   In the future, we may opt to publish formal, formatted docs at the [original web location](http://pedestal.io/documentation/)
+ * API Docs: generate literate-programming-style API docs by following the
+  instructions within the [guides](./guides/documentation/index.md#what-about-api-documentation).
 
 ### Supported Platforms
 
