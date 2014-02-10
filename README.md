@@ -66,6 +66,7 @@ To install Pedestal library components in your local Maven repository run
 
 ## License
 Copyright 2013 Relevance, Inc.
+
 Copyright 2014 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
