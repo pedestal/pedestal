@@ -74,7 +74,7 @@ module Common
   end
 
   def deploy!
-    ["jetty", "tomcat", "app", "service", "app-tools", "service-tools", "service-template", "app-template"].each do |artifact|
+    ["jetty", "tomcat", "service", "service-tools", "service-template"].each do |artifact|
       unless system("cd #{artifact} && echo $PWD && lein deploy clojars")
         puts "Failed deploying #{artifact}. Aborting."
         exit -1

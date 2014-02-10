@@ -1,0 +1,13 @@
+
+<script type="text/javascript" src="https://raw.github.com/Yaffle/EventSource/master/eventsource.js" ></script>
+
+<script type="text/javascript">
+console.log("Starting event listener for http://localhost:8081/");
+
+var source = new EventSource('http://localhost:8081/');
+
+source.addEventListener('thread-id', function(e) {
+  console.log(e.data);
+}, false);
+
+</script>
