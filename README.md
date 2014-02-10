@@ -62,10 +62,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
 To install Pedestal library components in your local Maven repository run
 `lein sub install` from a local checkout of this repository.
 
-**WARNING: Until 0.3.0 is released, this repository contains code/changes
-that *does not match* resources like the [docs](http://pedestal.io/documentation/),
-[tutorial](https://github.com/pedestal/app-tutorial/) or otherwise.**
-
 ---
 
 ## License
