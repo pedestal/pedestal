@@ -52,6 +52,11 @@ diagnosing or correcting Windows issues.
 * Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users)
   and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
 
+### Looking for Pedestal App?
+
+ * Pedestal App now lives in [its own github repo](https://github.com/pedestal/pedestal-app).
+ * Please see the [community announcement](https://groups.google.com/forum/#!topic/pedestal-users/jODwmJUIUcg) for more details.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
