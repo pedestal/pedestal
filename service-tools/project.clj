@@ -1,4 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
+; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -24,3 +25,4 @@
                  [org.slf4j/log4j-over-slf4j "1.7.2"]
 
                  [javax.servlet/javax.servlet-api "3.0.1" :scope "test"]])
+

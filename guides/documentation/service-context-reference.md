@@ -32,7 +32,7 @@ being added to the context map to allow for extension.
 
 Some of the keys described in this document are in namespaces
 containing implementation details,
-e.g. io.pedestal.service.impl.interceptor. These namespaces always
+e.g. io.pedestal.impl.interceptor. These namespaces always
 contain an 'impl' token in the namespace hierarchy. The keys in these
 namespaces do not represent a public interface and are subject to
 change. Their inclusion in this document is not a commitment to keep
@@ -81,40 +81,40 @@ The context map supports the following values:
 * *:servlet* - The javax.servlet.Servlet instance which bootstrapped
    this interceptor path's execution.
 
-* *:io.pedestal.service.impl.interceptor/execution-id* -
+* *:io.pedestal.impl.interceptor/execution-id* -
   Autoincrementing long which can associate a single interceptor
   execution context across multiple threads.
 
-* *:io.pedestal.service.impl.interceptor/queue* - A PersistentQueue of
+* *:io.pedestal.impl.interceptor/queue* - A PersistentQueue of
    interceptors which still need to be executed during the 'enter'
    stage. So long as this value is not empty, the head of the queue
    will be removed and executed, then added to the end of
-   *:io.pedestal.service.impl.interceptor/stack*
+   *:io.pedestal.impl.interceptor/stack*
 
-* *:io.pedestal.service.impl.interceptor/stack* - A PersistentList of
+* *:io.pedestal.impl.interceptor/stack* - A PersistentList of
    interceptors which still need to be executed during the 'leave'
    stage. So long as this value is not empty, the tail of the list
    will be removed and executed.
 
-* *:io.pedestal.service.impl.interceptor/pause-stack* - A
+* *:io.pedestal.impl.interceptor/pause-stack* - A
    PersistentList of interceptors which will have their pause fns
    called during the pause stage. This stack will be consumed as
    pause fns are called, leaving
-   *:io.pedestal.service.impl.interceptor/stack* unchanged.
+   *:io.pedestal.impl.interceptor/stack* unchanged.
 
-* *:io.pedestal.service.impl.interceptor/resume-stack* - A
+* *:io.pedestal.impl.interceptor/resume-stack* - A
    PersistentList of interceptors which will have their resume fns
    called during the resume stage. Initially starts as the reversed
-   value of *:io.pedestal.service.impl.interceptor/stack*, and is
+   value of *:io.pedestal.impl.interceptor/stack*, and is
    consumed as an interceptor's execution is resumed.
 
-* *:io.pedestal.service.impl.interceptor/terminators* - A seq of
+* *:io.pedestal.impl.interceptor/terminators* - A seq of
    predicate fns. Each predicate fn is handed the present context in
    turn after each interceptor executes during the 'enter' stage. If
    any predicate fn returns true, the interceptor immediately enters
    the 'leave' stage.
 
-* *:io.pedestal.service.impl.interceptor/error* - The most recently
+* *:io.pedestal.impl.interceptor/error* - The most recently
    uncaught throwable thrown during the execution of an
    interceptor. If an uncaught exception is thrown during the enter
    stage, the enter stage will immediately cease. The error stage will
@@ -130,11 +130,11 @@ The context map supports the following values:
    error fn returns the context with the error dissociated, the next
    interceptor on the stack will have its leave fn called.
 
-* *:io.pedestal.service.impl.interceptor/rebind* - A boolean,
+* *:io.pedestal.impl.interceptor/rebind* - A boolean,
    indicating that the thread bindings as specified in :bindings
    should be re-established using clojure.core/with-bindings
 
-* *:io.pedestal.service.http.impl.servlet-interceptor/async* - A
+* *:io.pedestal.http.impl.servlet-interceptor/async* - A
    boolean, which will be set to true if this context has been paused
    and the servlet request being serviced with this context has an
    asynchronous context created for it.

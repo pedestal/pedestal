@@ -12,14 +12,14 @@
 
 (ns cors.service
   (:require [clojure.java.io :as io]
-            [io.pedestal.service.interceptor :refer [defhandler defbefore defafter definterceptor]]
-            [io.pedestal.service.log :as log]
-            [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.route :as route]
-            [io.pedestal.service.http.body-params :as body-params]
-            [io.pedestal.service.http.route.definition :refer [defroutes]]
-            [io.pedestal.service.http.sse :refer [sse-setup send-event end-event-stream]]
-            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.interceptor :refer [defhandler defbefore defafter definterceptor]]
+            [io.pedestal.log :as log]
+            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.http.route.definition :refer [defroutes]]
+            [io.pedestal.http.sse :refer [sse-setup send-event end-event-stream]]
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [ring.util.response :as ring-response]
             [ring.middleware.cors :as cors]))
 
@@ -52,7 +52,7 @@
     ["/" {:get thread-id-sender}]]])
 
 
-;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
+;; You can use this fn or a per-request fn via io.pedestal.http.route/url-for
 (def url-for (route/url-for-routes routes))
 
 ;; Consumed by cors.server/create-server

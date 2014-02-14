@@ -12,7 +12,7 @@
 
 (ns cors.server
   (:require [cors.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+            [io.pedestal.http :as bootstrap]))
 
 (def service-instance
   "Global var to hold service instance."

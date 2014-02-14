@@ -1,5 +1,5 @@
 (ns dev
-  (:require [io.pedestal.service.http :as bootstrap]
+  (:require [io.pedestal.http :as bootstrap]
             [jboss.service :as service]
             [jboss.server :as server]))
 

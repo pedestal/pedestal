@@ -1,7 +1,7 @@
 (ns auto-reload-server.service-test
   (:require [clojure.test :refer :all]
-            [io.pedestal.service.test :refer :all]
-            [io.pedestal.service.http :as bootstrap]
+            [io.pedestal.test :refer :all]
+            [io.pedestal.http :as bootstrap]
             [auto-reload-server.service :as service]))
 
 (def service

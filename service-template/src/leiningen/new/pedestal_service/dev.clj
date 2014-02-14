@@ -1,7 +1,7 @@
 (ns dev
   (:require [{{namespace}}.service :as service]
             [{{namespace}}.server :as server]
-            [io.pedestal.service.http :as bootstrap]
+            [io.pedestal.http :as bootstrap]
             [io.pedestal.service-tools.dev :as dev-tools :refer [watch tools-help]]))
 
 (def service (dev-tools/init (merge service/service

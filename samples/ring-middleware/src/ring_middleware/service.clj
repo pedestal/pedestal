@@ -12,12 +12,12 @@
 
 (ns ring-middleware.service
     (:require [clojure.java.io :as io]
-              [io.pedestal.service.http :as bootstrap]
-              [io.pedestal.service.http.route :as route]
-              [io.pedestal.service.http.body-params :as body-params]
-              [io.pedestal.service.http.route.definition :refer [defroutes]]
-              [io.pedestal.service.http.ring-middlewares :as middlewares]
-              [io.pedestal.service.interceptor :refer [defhandler definterceptor]]
+              [io.pedestal.http :as bootstrap]
+              [io.pedestal.http.route :as route]
+              [io.pedestal.http.body-params :as body-params]
+              [io.pedestal.http.route.definition :refer [defroutes]]
+              [io.pedestal.http.ring-middlewares :as middlewares]
+              [io.pedestal.interceptor :refer [defhandler definterceptor]]
               [ring.middleware.session.cookie :as cookie]
               [ring.util.response :as ring-resp]))
 
@@ -88,7 +88,7 @@
     ["/hello" ^:interceptors [session-interceptor]
      {:get hello}]]])
 
-;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
+;; You can use this fn or a per-request fn via io.pedestal.http.route/url-for
 (def url-for (route/url-for-routes routes))
 
 ;; Consumed by ring-middleware.server/create-server

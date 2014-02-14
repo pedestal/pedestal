@@ -1,4 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
+; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -11,8 +12,8 @@
 
 (ns io.pedestal.service-tools.dev-test
   (:require [clojure.test :refer :all ]
-            [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.route :as route]
+            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.route :as route]
             [io.pedestal.service-tools.dev :refer :all ]))
 
 (defn with-fake-routes [service]

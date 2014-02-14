@@ -12,7 +12,7 @@
 
 ;; dev mode in repl (can get prod mode by passing prod options to dev-init
 (ns dev
-  (:require [io.pedestal.service.http :as bootstrap]
+  (:require [io.pedestal.http :as bootstrap]
             [cors.service :as service]
             [cors.server :as server]))
 

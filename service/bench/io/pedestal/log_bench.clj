@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.log-bench
-  (:require io.pedestal.service.log
+  (:require io.pedestal.log
             clojure.tools.logging
             [criterium.core :as criterium])
   (:import (org.slf4j LoggerFactory)))
@@ -43,16 +43,16 @@
 (defn- platform-random []
   (let [n (rand-int 10)]
     (case n
-      (0 1 2) (io.pedestal.service.log/trace :n n :msg "TRACE is disabled"
+      (0 1 2) (io.pedestal.log/trace :n n :msg "TRACE is disabled"
                                      :rand (rand-int 1000))
-      (3 4 5) (io.pedestal.service.log/debug :n n :msg "DEBUG message"
+      (3 4 5) (io.pedestal.log/debug :n n :msg "DEBUG message"
                                      :rand (rand-int 1000))
-      (6 7) (io.pedestal.service.log/info :n n :msg "INFO message"
+      (6 7) (io.pedestal.log/info :n n :msg "INFO message"
                                   :rand (rand-int 1000))
-      8 (io.pedestal.service.log/warn :n n :msg "WARN message"
+      8 (io.pedestal.log/warn :n n :msg "WARN message"
                               :exception (ex-info "error message"
                                                   {:rand (rand-int 1000)}))
-      9 (io.pedestal.service.log/error :n n :msg "ERROR message"
+      9 (io.pedestal.log/error :n n :msg "ERROR message"
                                :exception (ex-info "error message"
                                                    {:rand (rand-int 1000)})))))
 
@@ -98,7 +98,7 @@
     (criterium/bench (slf4j-pr-random) :verbose)))
 
 (defn bench-platform
-  "Runs a long (1-2 minutes) benchmark of io.pedestal.service.log, prints
+  "Runs a long (1-2 minutes) benchmark of io.pedestal.log, prints
   results."
   []
   (criterium/with-progress-reporting
@@ -112,7 +112,7 @@
     (criterium/bench (tools-logging-random) :verbose)))
 
 (defn profile-platform
-  "Runs a long loop (10 x 20000 iterations) of io.pedestal.service.log, for use
+  "Runs a long loop (10 x 20000 iterations) of io.pedestal.log, for use
   with a profiler."
   []
   (dotimes [j 10]
@@ -120,12 +120,12 @@
       (platform-random))))
 
 (defn -main
-  "Runs a benchmark of io.pedestal.service.log, clojure.tools.logging, and
+  "Runs a benchmark of io.pedestal.log, clojure.tools.logging, and
   SLF4J. Prints results. Takes 4-6 minutes."
   []
   (println "
 ============================================================
-io.pedestal.service.log
+io.pedestal.log
 ")
   (bench-platform)
   (println "

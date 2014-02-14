@@ -1,6 +1,6 @@
 (ns {{namespace}}.server
   (:gen-class) ; for -main method in uberjar
-  (:require [io.pedestal.service.http :as bootstrap]
+  (:require [io.pedestal.http :as bootstrap]
             [{{namespace}}.service :as service]))
 
 (defonce server-instance nil)
