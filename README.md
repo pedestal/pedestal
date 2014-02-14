@@ -47,7 +47,6 @@ diagnosing or correcting Windows issues.
 
 ### Find out more
 
-* Visit [our website](http://pedestal.io/)
 * Follow [@pedestal_team on Twitter](http://twitter.com/pedestal_team)
 * Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users)
   and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
