@@ -130,8 +130,8 @@ reference helloworld.peer:
 
 ```clj
 (ns helloworld.service
-    (:require [io.pedestal.service.http :as bootstrap]
-              [io.pedestal.service.http.route.definition :refer [defroutes]]
+    (:require [io.pedestal.http :as bootstrap]
+              [io.pedestal.http.route.definition :refer [defroutes]]
               [ring.util.response :refer [response]]
               [helloworld.peer :as peer :refer [results]]))
 ```

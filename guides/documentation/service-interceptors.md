@@ -198,7 +198,7 @@ _xyz-response_ functions. These functions process requests and
 responses separately. The _wrap-xys_ functions have been refactored to
 use the separate request and response processing functions.
 
-The _io.pedestal.service.http.ring-middlewares_ namespace defines
+The _io.pedestal.http.ring-middlewares_ namespace defines
 interceptors that use the new Ring _xyz-request_ and _xyz-response_
 functions, making all the standard Ring middlewares usable in Pedestal
 services.
@@ -312,5 +312,5 @@ You can port Ring code to Pedestal by:
   routes should be replaced by interceptors referenced directly in
   your route definitions. There are interceptors provided for all the
   existing Ring middlewares. They are defined in the
-  _io.pedestal.service.http.ring-middlewares_ namespace.
+  _io.pedestal.http.ring-middlewares_ namespace.
 

@@ -43,23 +43,23 @@ thread, as shown below:
 ```clj
     (interceptors/defbefore takes-time [{req :request :as context}]
       ;; give back the web server thread after doing work in body
-      (io.pedestal.service.impl.interceptor/with-pause
+      (io.pedestal.impl.interceptor/with-pause
         [paused-context context]
         ;; kick off another thread to wait
         (future
           ;; wait
           (let [result (wait-for-something-that-takes-a-long-time req)]
             ;; resume with context that includes response
-            (io.pedestal.service.impl.interceptor/resume
+            (io.pedestal.impl.interceptor/resume
               (assoc paused-context :response (response result)))))))
 
     (defroutes routes
       [[["/takes-time" {:get takes-time}]]])
 ```
 
-The _io.pedestal.service.impl.interceptor/with-pause_ macro pauses interceptor
+The _io.pedestal.impl.interceptor/with-pause_ macro pauses interceptor
 processing and returns the calling thread. The
-_io.pedestal.service.impl.interceptor/resume_ function resumes processing
+_io.pedestal.impl.interceptor/resume_ function resumes processing
 on another thread.
 
 It is important to note that pausing and resuming an interceptor path
@@ -78,12 +78,12 @@ releases the Web server thread without using another thread.
 
 ```clj
     (defn resume-fn [context result]
-      (io.pedestal.service.impl.interceptor/resume
+      (io.pedestal.impl.interceptor/resume
         (assoc context :response (response result))))
 
     (interceptors/defbefore takes-time [{:request req :as context}]
       ;; give back the web server thread after doing work in body
-      (io.pedestal.service.impl.interceptor/with-pause
+      (io.pedestal.impl.interceptor/with-pause
         [paused-context context]
         ;; give context to some other code that will resume it
         ;; by extracting resume-fn and calling it, passing result
@@ -101,7 +101,7 @@ approach can be used to implement long-polling. In fact, this is how
 Pedestal's built in support for server-sent events works.
 
 (Note that both these examples use functions in the
-_io.pedestal.service.impl.inteceptor_ namespace. The code in this
+_io.pedestal.impl.inteceptor_ namespace. The code in this
 namespace is subject to change.)
 
 For more about streaming, see [Streaming Responses](/documentation/service-streaming). For more

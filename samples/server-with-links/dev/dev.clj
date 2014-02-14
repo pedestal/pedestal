@@ -14,7 +14,7 @@
 (ns dev
   (:require [server-with-links.service :as service]
             [server-with-links.server :as server]
-            [io.pedestal.service.http :as bootstrap]))
+            [io.pedestal.http :as bootstrap]))
 
 (def service (-> service/service
                  (merge  {:env :dev

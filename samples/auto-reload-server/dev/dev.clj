@@ -1,5 +1,5 @@
 (ns dev
-  (:require [io.pedestal.service.http :as bootstrap]
+  (:require [io.pedestal.http :as bootstrap]
             [auto-reload-server.service :as service]
             [auto-reload-server.server :as server]
             [ns-tracker.core :as tracker]))

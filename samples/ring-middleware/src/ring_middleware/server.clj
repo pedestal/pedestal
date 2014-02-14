@@ -12,7 +12,7 @@
 
 (ns ring-middleware.server
   (:require [ring-middleware.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+            [io.pedestal.http :as bootstrap]))
 
 (def service-instance
   "Global var to hold service instance."

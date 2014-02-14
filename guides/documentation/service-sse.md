@@ -33,7 +33,7 @@ API.
 
 You can setup an event source endpoint by defining a route that maps
 requests to an interceptor returned from the
-_io.pedestal.service.http.sse/start-event-stream_ function. The
+_io.pedestal.http.sse/start-event-stream_ function. The
 resulting SSE interceptor processes a request by:
 
 - pausing interceptor execution (see [Service Async](/documentation/service-async))
@@ -53,7 +53,7 @@ The _stream-ready-fn_ is responsible for using the context or storing it for
 later use by some other piece of code.
 
 Events can be sent to the client using the
-_io.pedestal.service.http.sse/send-event_ function. It takes the context
+_io.pedestal.http.sse/send-event_ function. It takes the context
 passed to the _stream-ready-fn_, an event name and event data as
 arguments.
 
@@ -67,7 +67,7 @@ clean up the streaming context.
 When a streaming context is no longer needed, either because there are
 no more events to send or the connection was broken by the client, it
 must be cleaned up by calling the
-_io.pedestal.service.http.sse/end-event-stream_ function.
+_io.pedestal.http.sse/end-event-stream_ function.
 
 Here is an example that shows how an SSE streaming context is created
 and used.

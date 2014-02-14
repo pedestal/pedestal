@@ -14,7 +14,7 @@
 (ns dev
   (:require [ring-middleware.service :as service]
             [ring-middleware.server :as server]
-            [io.pedestal.service.http :as bootstrap]))
+            [io.pedestal.http :as bootstrap]))
 
 (def service (-> service/service
                  (merge  {:env :dev

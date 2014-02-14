@@ -1,7 +1,7 @@
 (ns immutant.init
     (:require [immutant.web :as web]
-              [io.pedestal.service.http :as bootstrap]
-              [io.pedestal.service.log :as log]
+              [io.pedestal.http :as bootstrap]
+              [io.pedestal.log :as log]
               [jboss.service :as service]
               [jboss.server :as server]))
 

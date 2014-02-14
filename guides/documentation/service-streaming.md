@@ -41,14 +41,14 @@ streaming:
 - _clojure.lang.Fn_ - the function is invoked when the response body
   is written. The function is passed the HTTP output stream and can
   write directly to it. You can use the
-  _io.pedestal.service.http.impl.servlet-interceptor/write-body-to-stream_
+  _io.pedestal.http.impl.servlet-interceptor/write-body-to-stream_
   function to do this, but you don't have to.
 
 - _java.io.File_ or _java.io.InputStream_ - the contents are copied in
   chunks to the HTTP output stream in chunks using _clojure.java.io/copy_
   when the response body is written.
 
-- _io.pedestal.service.http.impl.servlet-interceptor/WriteableBody_ - the
+- _io.pedestal.http.impl.servlet-interceptor/WriteableBody_ - the
   instance writes itself to the HTTP output stream.
 
 The thread completing the interceptor path will write the body out to
@@ -83,8 +83,8 @@ that streaming process completes, no more data can be sent.
 There may be cases, however, where you want to stream data back but
 then continue processing. You can do that from within an interceptor
 by invoking the
-_io.pedestal.service.http.impl.servlet-interceptor/write-response_ and
-_io.pedestal.service.http.impl.servlet-interceptor/write-response-body_
+_io.pedestal.http.impl.servlet-interceptor/write-response_ and
+_io.pedestal.http.impl.servlet-interceptor/write-response-body_
 functions.
 
 The _write-response_ function takes a context map a Ring response

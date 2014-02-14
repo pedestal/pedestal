@@ -1,7 +1,7 @@
 (ns jboss.server
   #_(:gen-class) ; for -main method in uberjar
   (:require [jboss.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+            [io.pedestal.http :as bootstrap]))
 
 (def service-instance
   "Global var to hold service instance."
