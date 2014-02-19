@@ -30,7 +30,6 @@ applications and improving general ease of use.
 ### Documentation
 
  * [Pedestal documentation](./guides) is coupled within this repository.
-   In the future, we may opt to publish formal, formatted docs at the [original web location](http://pedestal.io/documentation/)
  * API Docs: generate literate-programming-style API docs by following the
   instructions within the [guides](./guides/documentation/index.md#what-about-api-documentation).
 
