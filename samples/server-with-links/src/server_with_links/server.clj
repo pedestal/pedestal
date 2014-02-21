@@ -12,7 +12,7 @@
 
 (ns server-with-links.server
   (:require [server-with-links.service :as service]
-            [io.pedestal.http :as bootstrap]))
+            [io.pedestal.service.http :as bootstrap]))
 
 (def service-instance
   "Global var to hold service instance."

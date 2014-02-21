@@ -13,7 +13,7 @@
 (ns server-sent-events.server
   (:gen-class) ; for -main method in uberjar
   (:require [server-sent-events.service :as service]
-            [io.pedestal.http :as bootstrap]))
+            [io.pedestal.service.http :as bootstrap]))
 
 (def service-instance
   "Global var to hold service instance."

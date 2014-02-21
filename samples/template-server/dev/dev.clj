@@ -14,7 +14,7 @@
 (ns dev
   (:require [template-server.service :as service]
             [template-server.server :as server]
-            [io.pedestal.http :as bootstrap]))
+            [io.pedestal.service.http :as bootstrap]))
 
 (def service (-> service/service
                  (merge  {:env :dev

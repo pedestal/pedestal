@@ -12,7 +12,7 @@
 
 (ns template-server.server
   (:require [template-server.service :as service]
-            [io.pedestal.http :as bootstrap]))
+            [io.pedestal.service.http :as bootstrap]))
 
 (def service-instance
   "Global var to hold service instance."

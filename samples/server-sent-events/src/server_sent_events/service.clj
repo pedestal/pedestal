@@ -1,8 +1,8 @@
 (ns server-sent-events.service
-  (:require [io.pedestal.http :as bootstrap]
-            [io.pedestal.http.sse :as sse]
-            [io.pedestal.http.route :as route]
-            [io.pedestal.http.route.definition :refer [defroutes]]
+  (:require [io.pedestal.service.http :as bootstrap]
+            [io.pedestal.service.http.sse :as sse]
+            [io.pedestal.service.http.route :as route]
+            [io.pedestal.service.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]))
 
 (defn send-counter
@@ -25,7 +25,7 @@
 (defroutes routes
   [[["/" {:get [::send-counter (sse/sse-setup sse-stream-ready)]}]]])
 
-;; You can use this fn or a per-request fn via io.pedestal.http.route/url-for
+;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))
 
 ;; Consumed by server-sent-events.server/create-server
