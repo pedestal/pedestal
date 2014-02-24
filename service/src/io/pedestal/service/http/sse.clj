@@ -1,13 +1,13 @@
-; Copyright 2013 Relevance, Inc.
+                                        ; Copyright 2013 Relevance, Inc.
 
-; The use and distribution terms for this software are covered by the
-; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
-; which can be found in the file epl-v10.html at the root of this distribution.
-;
-; By using this software in any fashion, you are agreeing to be bound by
-; the terms of this license.
-;
-; You must not remove this notice, or any other, from this software.
+                                        ; The use and distribution terms for this software are covered by the
+                                        ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+                                        ; which can be found in the file epl-v10.html at the root of this distribution.
+                                        ;
+                                        ; By using this software in any fashion, you are agreeing to be bound by
+                                        ; the terms of this license.
+                                        ;
+                                        ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.service.http.sse
   (:require [ring.util.response :as ring-response]
@@ -20,7 +20,7 @@
             [clojure.string :as string])
   (:import [java.nio.charset Charset]
            [java.io BufferedReader StringReader OutputStream]
-           [java.util.concurrent Executors TimeUnit ScheduledExecutorService ScheduledFuture]
+           [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
            [javax.servlet ServletResponse]))
 
 (set! *warn-on-reflection* true)
@@ -35,7 +35,13 @@
 (def DATA_FIELD (get-bytes "data: "))
 (def COMMENT_FIELD (get-bytes ": "))
 
-(def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1))
+(def ^ThreadFactory daemon-thread-factory (reify
+                                            ThreadFactory
+                                            (newThread [this runnable]
+                                              (doto (Thread. runnable)
+                                                (.setDaemon true)))))
+
+(def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
 (defn mk-data [data]
   (apply str (map #(str "data:" % "\r\n")
