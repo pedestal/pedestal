@@ -30,25 +30,36 @@
       (seq (get-in queue [:queues :low]))))
 
 (defn- process-next-item [queue f]
-  (if (not-empty? @queue)
+  (when (not-empty? @queue)
     (when-let [item (:item (swap! queue pop-message-internal))]
-      (platform/log-exceptions f item))
-    (platform/create-timeout 0 (fn [] (process-next-item queue f)))))
+      (platform/log-exceptions f item))))
 
 (defn- count-queues [queues]
   (+ (count (:high queues))
      (count (:low queues))))
 
+(comment
+  ;; We record the functions interested in messages, so that we can
+  ;; restart the message processing again once a message arrives in
+  ;; the queue.
+  )
+
 (defrecord AppMessageQueue [state]
   p/PutMessage
   (put-message [this message]
     (let [priority (if (= (msg/priority message) :high) :high :low)
-          queues (:queues (swap! state update-in [:queues priority] conj message))]
-      (count-queues queues)))
+          queues (:queues (swap! state update-in [:queues priority] conj message))
+          new-count (count-queues queues)]
+      (when (= new-count 1)
+        (when-let [fns (:take-fns @state)]
+          (platform/create-timeout 0 #(doseq [f fns]
+                                        (process-next-item state f)))))
+      new-count))
   p/TakeMessage
   (pop-message [this]
     (:item (swap! state pop-message-internal)))
   (take-message [this f]
+    (swap! state update-in [:take-fns] conj f)
     (process-next-item state f)))
 
 (defn queue-length [app-message-queue]
@@ -68,4 +79,3 @@
                   (fn [message]
                     (f message)
                     (consume-queue queue f))))
-
