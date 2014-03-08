@@ -55,7 +55,7 @@ The thread completing the interceptor path will write the body out to
 the HTTP response stream. If the request is processed synchronously,
 the work will be done on the Web server thread. If the request is
 processed asynchronously, the work will be done on whatever thread
-resumed processing (see [Service Async](/guides/documentation/service-async.md)).
+resumed processing (see [Service Async](service-async.md)).
 
 Here is an example of an interceptor that returns an arbitrarily large
 volume of data.
@@ -111,5 +111,5 @@ determine whether a response has already been sent by an SSE (or
 equivalent) interceptor.
 
 This functionality is used to implement Server-Sent Events,
-documented [here](/guides/documentation/service-sse.md).
+documented [here](service-sse.md).
 

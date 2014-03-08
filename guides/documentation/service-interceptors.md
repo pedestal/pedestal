@@ -88,7 +88,7 @@ Interceptors aim to explicitly solve the issue of request processing
 being coupled tightly to one thread. It does this with two mechanisms:
 
 1. Interceptors operate on a
-    [context](/guides/documentation/service-context-reference.md) which
+    [context](service-context-reference.md) which
     explicitly retains all data associated with processing one
     request.
 
@@ -306,7 +306,7 @@ You can port Ring code to Pedestal by:
 
 - If you are using Compojure for routing requests, rewrite your route
   definitions using the terse routing format (see
-  [Service Routing](/guides/documentation/service-routing.md)). Any Ring middlewares that run
+  [Service Routing](service-routing.md)). Any Ring middlewares that run
   before your Compojure routes should be replaced by interceptors that
   run before routing. Any middlewares specified in your Compojure
   routes should be replaced by interceptors referenced directly in

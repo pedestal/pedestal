@@ -19,7 +19,7 @@ title: Connecting 'Hello World' to Datomic
 # Connecting "Hello World" to Datomic
 
 This tutorial extends the
-[Hello World Service](/guides/documentation/hello-world-service.md) to use
+[Hello World Service](hello-world-service.md) to use
 strings retrieved from [Datomic]. We will start from the "helloworld"
 service that we created in our first tutorial.
 
@@ -146,7 +146,7 @@ see the output from Datomic.
 ```
 
 If you still have the service running from
-[Hello World Service](/guides/documentation/hello-world-service.md), then you
+[Hello World Service](hello-world-service.md), then you
 will need to exit the REPL. Restart the service the same way as
 before: `lein repl`, `(use 'dev)`, and `(start)`.
 
