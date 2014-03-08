@@ -36,7 +36,7 @@ requests to an interceptor returned from the
 _io.pedestal.http.sse/start-event-stream_ function. The
 resulting SSE interceptor processes a request by:
 
-- pausing interceptor execution (see [Service Async](/documentation/service-async.md))
+- pausing interceptor execution (see [Service Async](/guides/documentation/service-async.md))
 
 - sending the appropriate HTTP response headers to tell the client that
   an event stream is starting.
@@ -108,7 +108,7 @@ send.
 
 It is important to understand that the server-sent events
 infrastructure uses the low-level streaming mechanism described
-[here](/documentation/service-streaming.md). As such, it is subject to the major
+[here](/guides/documentation/service-streaming.md). As such, it is subject to the major
 limitation of that approach: once events have been streamed, any
 interceptors that post-process the response from the SSE interceptor
 will not be able change what was sent on the wire. Interceptor paths

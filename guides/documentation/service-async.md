@@ -104,6 +104,6 @@ Pedestal's built in support for server-sent events works.
 _io.pedestal.impl.inteceptor_ namespace. The code in this
 namespace is subject to change.)
 
-For more about streaming, see [Streaming Responses](/documentation/service-streaming.md). For more
-about SSE, see [Server-Sent Events](/documentation/service-sse.md).
+For more about streaming, see [Streaming Responses](//guidesdocumentation/service-streaming.md). For more
+about SSE, see [Server-Sent Events](/guides/documentation/service-sse.md).
 

@@ -206,6 +206,6 @@ nil
 ## Where To Go Next
 
 For more about building out the server side, you can look at
-[Routing and Linking](/documentation/service-routing.md) or
-[Connecting to Datomic](/documentation/connecting-to-datomic.md).
+[Routing and Linking](/guides/documentation/service-routing.md) or
+[Connecting to Datomic](/guides/documentation/connecting-to-datomic.md).
 
