@@ -19,7 +19,7 @@
             [clojure.string :as string])
   (:import [java.nio.charset Charset]
            [java.io BufferedReader StringReader OutputStream]
-           [java.util.concurrent Executors TimeUnit ScheduledExecutorService ScheduledFuture]
+           [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
            [javax.servlet ServletResponse]))
 
 (set! *warn-on-reflection* true)
@@ -34,7 +34,22 @@
 (def DATA_FIELD (get-bytes "data: "))
 (def COMMENT_FIELD (get-bytes ": "))
 
-(def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1))
+;; Cloned from core.async.impl.concurrent
+(defn counted-thread-factory
+  "Create a ThreadFactory that maintains a counter for naming Threads.
+  name-format specifies thread names - use %d to include counter
+  daemon is a flag for whether threads are daemons or not"
+  [name-format daemon]
+  (let [counter (atom 0)]
+    (reify
+      ThreadFactory
+      (newThread [this runnable]
+        (doto (Thread. runnable)
+          (.setName (format name-format (swap! counter inc)))
+          (.setDaemon daemon))))))
+
+(def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
+(def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
 (defn mk-data [data]
   (apply str (map #(str "data:" % "\r\n")
