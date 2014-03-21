@@ -93,16 +93,14 @@
                  context)))
 
             (fn [{:keys [response cors-headers] :as context}]
-              (if-not (servlet-interceptor/response-sent? context)
-                ;; merge cors headers and expose all response headers
-                (if (and cors-headers response)
-                  (let [cors-headers (merge cors-headers
-                                            {"Access-Control-Expose-Headers"
-                                             (convert-header-names (keys (:headers response)))})]
-                    (log/info :msg "cors response processing"
-                              :cors-headers cors-headers)
-                    (update-in context [:response :headers] merge cors-headers))
-                  context))))))
+              (if (and cors-headers response)
+                (let [cors-headers (merge cors-headers
+                                          {"Access-Control-Expose-Headers"
+                                           (convert-header-names (keys (:headers response)))})]
+                  (log/info :msg "cors response processing"
+                            :cors-headers cors-headers)
+                  (update-in context [:response :headers] merge cors-headers))
+                context)))))
 
 (defbefore dev-allow-origin
   [context]

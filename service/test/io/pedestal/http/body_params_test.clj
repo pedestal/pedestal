@@ -14,8 +14,7 @@
   (:use io.pedestal.http.body-params
         clojure.pprint
         clojure.test
-        clojure.repl
-        clojure.tools.namespace.repl)
+        clojure.repl)
   (:require [clojure.instant :as inst]
             [io.pedestal.impl.interceptor :as interceptor]))
 

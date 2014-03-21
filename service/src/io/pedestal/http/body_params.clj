@@ -65,11 +65,13 @@
   (let [edn-options (merge {:eof nil}
                            (apply hash-map options))]
     (fn [request]
-      (let [encoding (or (:character-encoding request) "UTF-8")]
+      (let [encoding (or (:character-encoding request) "UTF-8")
+            input-stream (java.io.InputStreamReader.
+                           ^java.io.InputStream (:body request)
+                           ^String encoding)]
         (assoc request
                :edn-params (->
-                             (:body request)
-                             (java.io.InputStreamReader. encoding)
+                             input-stream
                              java.io.PushbackReader.
                              (->> (edn/read edn-options))))))))
 
@@ -104,8 +106,9 @@
       (assoc request
              :json-params
              (apply json-read
-                    (-> (:body request)
-                        (java.io.InputStreamReader. encoding))
+                    (java.io.InputStreamReader.
+                      ^java.io.InputStream (:body request)
+                      ^String encoding)
                     options)))))
 
 (def json-parser
