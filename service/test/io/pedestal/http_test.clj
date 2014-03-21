@@ -56,21 +56,9 @@
          (format "You must go to %s!"
                  (io.pedestal.http.route/url-for :about))))
 
-(defbefore send-response-directly
-  [ctx]
-  (let [response (ring-resp/response "Responding directly")]
-    (servlet-interceptor/write-response ctx (dissoc response :body))
-    (servlet-interceptor/write-response-body ctx (:body response))
-    (servlet-interceptor/flush-response ctx)
-    ctx))
-
 (defbefore add-binding
   [context]
   (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
-
-(defafter add-response-after
-  [ctx]
-  (assoc ctx :response (ring-resp/response "I'm responding")))
 
 (defroutes app-routes
   [[["/about" {:get [:about about-page]}]
@@ -78,9 +66,6 @@
     ["/edn" {:get get-edn}]
     ["/just-status" {:get just-status-page}]
     ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
-    ["/direct-response-1" {:get [::direct-response-1 send-response-directly]}]
-    ["/direct-response-2" {:get [::direct-response-2 send-response-directly]}
-     ^:interceptors [add-response-after]]
     ["/text-as-html" {:get [::text-as-html hello-page]}
      ^:interceptors [service/html-body]]
     ["/plaintext-body-with-html-interceptor" {:get hello-plaintext-page}
@@ -209,26 +194,3 @@
                (.flush output-stream)
                (.close output-stream)
                (.toString output-stream "UTF-8"))))))
-
-(deftest direct-response-test
-  (is (= "Responding directly"
-         (->> "/direct-response-1"
-              (response-for app :get)
-              :body))))
-
-(deftest direct-response-with-later-response-test
-  (let [error-signal (promise)
-        patched-interceptors (concat [@#'servlet-interceptor/terminator-injector
-                                      (assoc @#'servlet-interceptor/stylobate :error
-                                             (fn [ctx exception]
-                                               (deliver error-signal exception)
-                                               ctx))
-                                      @#'servlet-interceptor/ring-response]
-                                     (::service/interceptors app-interceptors))
-        patched-app (#'servlet-interceptor/interceptor-service-fn patched-interceptors {})]
-    (is (= "Responding directly"
-           (->> "/direct-response-2"
-                (response-for patched-app :get)
-                :body)))
-    (is (= "Response already sent"
-           (.getMessage @error-signal)))))

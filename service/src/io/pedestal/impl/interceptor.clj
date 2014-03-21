@@ -15,8 +15,13 @@
   common \"context\" map, maintaining a virtual \"stack\", with error
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
-  (:require [io.pedestal.log :as log])
+  (:require [clojure.core.async :as async :refer [<! go]]
+            [io.pedestal.log :as log])
   (:import java.util.concurrent.atomic.AtomicLong))
+
+(declare execute)
+
+(defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
 
 (defn- name [interceptor]
   (get interceptor :name (pr-str interceptor)))
@@ -78,6 +83,29 @@
       (dissoc context ::queue))
     context))
 
+(defn- prepare-for-async
+  "Call all of the :enter-async functions in a context. The purpose of these
+  functions is to ready backing servlets or any other machinery for preparing
+  an asynchronous response."
+  [{:keys [enter-async] :as context}]
+  (doseq [enter-async-fn enter-async]
+    (enter-async-fn context)))
+
+(defn- go-async
+  "When presented with a channel as the return value of an enter function,
+  wait for the channel to return a new-context (via a go block). When a new
+  context is received, restart execution of the interceptor chain with that
+  context.
+
+  This function is non-blocking, returning nil immediately (a signal to halt
+  further execution on this thread)."
+  [old-context context-channel]
+  (prepare-for-async old-context)
+  (go
+   (let [new-context (<! context-channel)]
+      (execute new-context)))
+  nil)
+
 (defn- enter-all-with-binding
   "Invokes :enter functions of all Interceptors on the execution
   ::queue of context, saves them on the ::stack of context. Returns
@@ -93,15 +121,17 @@
         context
         (let [interceptor (peek queue)
               pre-bindings (:bindings context)
+              old-context context
               context (-> context
                           (assoc ::queue (pop queue))
                           ;; conj on nil returns a list, acts like a stack:
                           (assoc ::stack (conj stack interceptor))
                           (try-f interceptor :enter))]
           (cond
-           (::error context) (dissoc context ::queue)
-           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-           true (recur (check-terminators context))))))))
+            (channel? context) (go-async old-context context)
+            (::error context) (dissoc context ::queue)
+            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+            true (recur (check-terminators context))))))))
 
 (defn- enter-all
   "Establish the bindings present in `context` as thread local
@@ -129,13 +159,17 @@
         context
         (let [interceptor (peek stack)
               pre-bindings (:bindings context)
+              old-context context
               context (assoc context ::stack (pop stack))
               context (if (::error context)
                         (try-error context interceptor)
                         (try-f context interceptor :leave))]
-          (if (not= (:bindings context) pre-bindings)
-            (assoc context ::rebind true)
-            (recur context)))))))
+          (cond
+           (channel? context) (do
+                                (prepare-for-async old-context)
+                                (go-async old-context context))
+           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+           true (recur context)))))))
 
 (defn- leave-all
   "Establish the bindings present in `context` as thread local
@@ -149,48 +183,6 @@
     (if (::rebind context)
         (recur (dissoc context ::rebind))
         context)))
-
-(defn- invoke-all-with-binding
-  "Used by 'pause' and 'resume'. Gets the stack at stack-key from the
-  context, invokes function found at stage of each interceptor on the
-  stack. Returns updated context. Unlike 'enter-all' and 'leave-all',
-  does not catch exceptions. During a 'pause', exceptions should be
-  handled by the normal mechanisms in enter-all/leave-all. During a
-  'resume', exceptions will propagate out to the calling code."
-  [context stack-key stage]
-  (loop [context context]
-    (let [stack (get context stack-key)]
-      (if (empty? stack)
-        context
-        (let [interceptor (peek stack)
-              pre-binding (:bindings context)
-              execution-id (::execution-id context)
-              f (get interceptor stage)
-              skipped (nil? f)
-              context (-> context
-                          (assoc stack-key (pop stack))
-                          ((or f identity) ))]
-          (log/debug :interceptor (name interceptor)
-                     :stage stage
-                     :skipped? skipped
-                     :execution-id execution-id
-                     :fn f)
-          (if (not= (:bindings context) pre-binding)
-            (assoc context ::rebind true)
-            (recur context)))))))
-
-(defn- invoke-all
-  "Establish the bindings present in `context` as thread local
-  bindings, and then invoke invoke-all-with-binding. Conditionally
-  re-establish bindings if a change in bindings is made by an
-  interceptor."
-  [context stack-key stage]
-  (let [context (with-bindings (or (:bindings context)
-                                   {})
-                  (invoke-all-with-binding context stack-key stage))]
-    (if (::rebind context)
-      (recur (dissoc context ::rebind) stack-key stage)
-      context)))
 
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates
@@ -223,13 +215,13 @@
   [context pred]
   (update-in context [::terminators] conj pred))
 
-(defrecord Interceptor [name enter leave error pause resume])
+(defrecord Interceptor [name enter leave error])
 
 (defn interceptor
   "Treats arguments as a map from keys to functions and
   constructs an Interceptor from that map.
 
-  Keys should be one of: :name :enter :leave :error :pause :resume"
+  Keys should be one of: :name :enter :leave :error"
   ([& more]
      (map->Interceptor (apply array-map more))))
 
@@ -253,10 +245,10 @@
   must be a map, Interceptors are added with 'enqueue'.
 
   An Interceptor is a map or map-like object with the keys :enter,
-  :leave, :error, :pause, and :resume. The value of each key is a
-  function; missing keys or nil values are ignored. When executing a
-  context, first all the :enter functions are invoked in order. As
-  this happens, the Interceptors are pushed on to a stack.
+  :leave, and :error. The value of each key is a function; missing
+  keys or nil values are ignored. When executing a context, first all
+  the :enter functions are invoked in order. As this happens, the
+  Interceptors are pushed on to a stack.
 
   When execution reaches the end of the queue, it begins popping
   Interceptors off the stack and calling their :leave functions.
@@ -273,20 +265,7 @@
   execution continues with the next :leave function on the stack; or
   re-throw the exception, passing control to the :error function on
   the stack. If the exception reaches the end of the stack without
-  being handled, execute will throw it.
-
-  The :pause and :resume functions are used in asynchronous contexts.
-  Any :enter or :leave function may call 'pause' to suspend the
-  current execution, after which it MUST return nil. See also
-  'with-pause'. Before returning, the function can dispatch operation
-  to another thread or schedule it for later execution. When it is
-  time to continue execution, another thread should call 'resume'.
-
-  When 'pause' is called, the :pause functions of any Interceptors
-  currently on the stack will be invoked. These functions may be used,
-  for example, to release resources that will not be needed while
-  waiting for some external event. When 'resume' is called, the
-  :resume functions are invoked in the opposite order."
+  being handled, execute will throw it."
   [context]
   (let [context (some-> context
                         begin
@@ -298,42 +277,4 @@
     (if-let [ex (::error context)]
       (throw ex)
       context)))
-
-(defn pause
-  "Prepares this context to leave its current thread (and complete
-  asynchronously on another thread) by invoking the :pause functions
-  of any Interceptors on the stack. Returns an updated context."
-  [context]
-  (log/debug :in 'pause :execution-id (::execution-id context))
-  (log/trace :context context)
-  (-> context
-      (assoc ::pause-stack (::stack context))
-      (invoke-all ::pause-stack :pause)
-      (dissoc ::pause-stack)))
-
-(defn resume
-  "Prepares this context to resume operation on the current thread by
-  invoking the :resume functions of any Interceptors on the stack, in
-  reverse order. Returns an updated context."
-  [context]
-  (log/debug :in 'resume :execution-id (::execution-id context))
-  (log/trace :context context)
-  (-> context
-      (assoc ::resume-stack (reverse (::stack context)))
-      (invoke-all ::resume-stack :resume)
-      (dissoc ::resume-stack)
-      execute))
-
-(defmacro with-pause
-  "Bindings is a vector of [binding-form expr] where expr returns a
-  context map. Invokes 'pause' on the context returned by expr, binds
-  it to 'binding-form', and evaluates body. Returns nil. It is assumed
-  that body will dispatch to another thread which eventually calls
-  'resume'."
-  [bindings & body]
-  {:pre [(vector? bindings)
-         (= 2 (count bindings))]}
-  `(let [~(first bindings) (pause ~(second bindings))]
-     ~@body
-     nil))
 

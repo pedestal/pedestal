@@ -15,14 +15,19 @@
   (:require [clojure.java.io :as io]
             [clojure.pprint :as pprint]
             [clojure.stacktrace :as stacktrace]
+            [clojure.core.async :as async]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor :refer [definterceptor]]
             [io.pedestal.http.route :as route]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [ring.util.response :as ring-response])
-  (:import (javax.servlet Servlet ServletConfig)
+  (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
            (java.io OutputStreamWriter OutputStream)))
+
+(defn channel?
+  [obj]
+  (instance? clojure.core.async.impl.protocols.Channel obj))
 
 ;;; HTTP Response
 
@@ -31,6 +36,7 @@
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
 
 (extend-protocol WriteableBody
+
   (class (byte-array 0))
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [byte-array output-stream]
@@ -99,29 +105,24 @@
        (doseq [[k vs] headers]
          (set-header servlet-resp k vs)))))
 
-(defn- send-response [^HttpServletResponse servlet-resp resp-map]
-  (when-not (.isCommitted servlet-resp)
-    (set-response servlet-resp resp-map))
-  (write-body servlet-resp (:body resp-map))
-  (.flushBuffer servlet-resp))
-
-(defn lockable [context]
-  (:servlet-response context))
-
-(defn write-response-body
-  [{^HttpServletResponse servlet-resp :servlet-response} body]
-  (write-body servlet-resp body))
-
-(defn write-response
-  [{^HttpServletResponse servlet-resp :servlet-response} resp-map]
-  (send-response servlet-resp resp-map))
-
-(defn flush-response
-  [{^HttpServletResponse servlet-resp :servlet-response}]
-  (.flushBuffer servlet-resp))
-
-(defn response-sent? [context]
-  (.isCommitted (:servlet-response context)))
+(defn- send-response
+  [{:keys [^HttpServletResponse servlet-response response] :as context}]
+  (when-not (.isCommitted servlet-response)
+    (set-response servlet-response response))
+  (let [body (:body response)]
+    (if (channel? body)
+      (do
+        (async/go
+         (loop []
+           (when-let [body-part (async/<! body)]
+             (write-body servlet-response body-part)
+             (.flushBuffer servlet-response)
+             (recur)))
+         (async/>! (::resume-channel context) context)
+         (async/close! (::resume-channel context))))
+      (do
+        (write-body servlet-response body)
+        (.flushBuffer servlet-response)))))
 
 ;;; HTTP Request
 
@@ -192,9 +193,9 @@
       (add-ssl-client-cert servlet-req)
       persistent!))
 
-(defn- start-async
+(defn- start-servlet-async*
   "Begins an asynchronous response to a request."
-  [^HttpServletRequest servlet-request]
+  [^ServletRequest servlet-request]
   ;; TODO: fix?
   ;; Embedded Tomcat doesn't allow .startAsync by default, even if the
   ;; Servlet was annotated with asyncSupported=true. We have to
@@ -204,39 +205,44 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
+(defn- async? [^ServletRequest servlet-request]
+  (.isAsyncStarted servlet-request))
+
+(defn- start-servlet-async
+  [{:keys [servlet-request] :as context}]
+  (when-not (async? servlet-request)
+    (start-servlet-async* servlet-request)))
+
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
-  (assoc context :request
-         (request-map servlet servlet-request servlet-response)))
+  (-> context
+      (assoc :request (request-map servlet servlet-request servlet-response))
+      (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
-  [{:keys [^HttpServletRequest servlet-request]
-    async? ::async? :as context}]
-  (when async? (.complete (.getAsyncContext servlet-request)))
+  [{:keys [^HttpServletRequest servlet-request] :as context}]
+  (when (async? servlet-request)
+    (.complete (.getAsyncContext servlet-request)))
   context)
 
-(defn- send-error [servlet-response message]
-  (log/info :msg "sending error"
-            :message message)
-  (send-response servlet-response {:status 500 :body message}))
+(defn- send-error
+  [context message]
+  (log/info :msg "sending error" :message message)
+  (send-response (assoc context :response {:status 500 :body message})))
 
 (defn- leave-ring-response
-  [{:keys [^HttpServletRequest servlet-request servlet-response response]
-    :as context}]
-  (let [response-sent (response-sent? context)]
-    (log/debug :in :leave-ring-response
-               :response response
-               :response-sent response-sent)
-    (when (and response response-sent)
-      (throw (ex-info "Response already sent"
-                      {:response-sent response-sent
-                       :response response})))
-    (cond
-     (and response (not response-sent)) (send-response servlet-response response)
-     ;; may want to allow sending no response for security reasons, i.e., rejecting a cors request
-     (not (or response response-sent)) (send-error servlet-response
-                                                   "Internal server error: no response"))
-    context))
+  [{{body :body :as response} :response :as context}]
+  (log/debug :in :leave-ring-response :response response)
+
+  (cond
+   (nil? response) (do
+                     (send-error context "Internal server error: no response")
+                     context)
+   (channel? body) (let [chan (async/chan)]
+                     (send-response (assoc context ::resume-channel chan))
+                     chan)
+   true (do (send-response context)
+            context)))
 
 (defn- terminator-inject
   [context]
@@ -258,17 +264,12 @@
   async case. This is just to make sure exceptions get returned
   somehow; application code should probably catch and log exceptions
   in its own interceptors."
-  [{:keys [servlet-response] :as context} exception]
+  [context exception]
   (log/error :msg "error-ring-response triggered"
              :exception exception
              :context context)
-  (send-error servlet-response "Internal server error: exception")
+  (send-error context "Internal server error: exception")
   context)
-
-(defn- pause-stylobate
-  [{:keys [servlet-request], async? ::async?, :as context}]
-  (when-not async? (start-async servlet-request))
-  (assoc context ::async? true))
 
 (definterceptor stylobate
   "An interceptor which creates favorable pre-conditions for further
@@ -282,11 +283,10 @@
 
   This interceptor supports asynchronous responses as defined in the
   Java Servlet Specification[2] version 3.0. On leaving this
-  interceptor, if the context was flagged as asynchronous, all
-  asynchronous resources will be cleaned. Pausing this interceptor
-  will inform the servlet container that the response will be
-  delivered asynchronously, and flag the context this interceptor is
-  processing as asynchronous.
+  interceptor, if the servlet request has been set asynchronous, all
+  asynchronous resources will be closed. Pausing this interceptor will
+  inform the servlet container that the response will be delivered
+  asynchronously.
 
   If a later interceptor in this context throws an exception which is
   not caught, this interceptor will log the error but not communicate
@@ -299,7 +299,6 @@
    :name ::stylobate
    :enter enter-stylobate
    :leave leave-stylobate
-   :pause pause-stylobate
    :error error-stylobate))
 
 (definterceptor ring-response

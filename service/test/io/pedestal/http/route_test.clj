@@ -14,8 +14,7 @@
   (:use io.pedestal.http.route
         clojure.pprint
         clojure.test
-        clojure.repl
-        clojure.tools.namespace.repl)
+        clojure.repl)
   (:require [clojure.set :as set]
             [clojure.string :as str]
             ring.middleware.resource
