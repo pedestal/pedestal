@@ -20,7 +20,7 @@
             [io.pedestal.service.http.route :as route]
             [io.pedestal.service.impl.interceptor :as interceptor-impl]
             [ring.util.response :as ring-response])
-  (:import (javax.servlet Servlet ServletConfig)
+  (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
            (java.io OutputStreamWriter OutputStream)))
 
@@ -194,7 +194,7 @@
 
 (defn- start-servlet-async*
   "Begins an asynchronous response to a request."
-  [^HttpServletRequest servlet-request]
+  [^ServletRequest servlet-request]
   ;; TODO: fix?
   ;; Embedded Tomcat doesn't allow .startAsync by default, even if the
   ;; Servlet was annotated with asyncSupported=true. We have to
@@ -204,7 +204,7 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
-(defn- async? [servlet-request]
+(defn- async? [^ServletRequest servlet-request]
   (.isAsyncStarted servlet-request))
 
 (defn- start-servlet-async
