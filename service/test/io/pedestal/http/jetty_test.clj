@@ -70,18 +70,29 @@
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
 
+  (testing "HTTPS server with different options"
+    (with-server hello-world {:port 4347
+                              :jetty-options {:ssl? true
+                                              :ssl-port 4348
+                                              :keystore "test/io/pedestal/http/keystore.jks"
+                                              :key-password "password"}}
+      (let [response (http/get "https://localhost:4348" {:insecure? true})]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World")))))
+
   (testing "configurator set to run last"
     (let [max-threads 20
           new-handler  (proxy [AbstractHandler] []
                          (handle [_ ^Request base-request request response]))
-          threadPool (QueuedThreadPool. max-threads)
           configurator (fn [^Server server]
-                         (.setThreadPool server threadPool)
+                         (.setAttribute server "ANewAttribute" 42)
                          (.setHandler server new-handler)
                          server)
           ^Server server (:server (jetty-server hello-world
-                                                {:join? false :port 4347 :jetty-options {:configurator configurator}}))]
+                                                {:join? false :port 4347 :jetty-options {:max-threads max-threads
+                                                                                         :configurator configurator}}))]
       (is (= (.getMaxThreads ^QueuedThreadPool (.getThreadPool server)) max-threads))
+      (is (= (.getAttribute server "ANewAttribute") 42))
       (is (identical? new-handler (.getHandler server)))
       (is (= 1 (count (.getHandlers server))))))
 

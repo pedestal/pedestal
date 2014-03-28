@@ -12,7 +12,7 @@
 
 (defproject io.pedestal/pedestal.tomcat "0.3.0-SNAPSHOT"
   :description "Embedded Tomcat adapter for Pedestal HTTP Service"
-  :dependencies [[org.clojure/clojure "1.5.1"]
+  :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.apache.tomcat.embed/tomcat-embed-logging-juli "7.0.30"]
                  [org.apache.tomcat.embed/tomcat-embed-jasper "7.0.30"]
                  [org.apache.tomcat.embed/tomcat-embed-core "7.0.30"]

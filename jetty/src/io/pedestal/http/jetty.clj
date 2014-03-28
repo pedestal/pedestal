@@ -11,10 +11,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
-  (:import (org.eclipse.jetty.server Server Request)
+  (:import (org.eclipse.jetty.server Server ServerConnector
+                                     Request
+                                     HttpConfiguration
+                                     HttpConnectionFactory)
            (org.eclipse.jetty.server.handler AbstractHandler)
-           (org.eclipse.jetty.server.nio SelectChannelConnector)
-           (org.eclipse.jetty.server.ssl SslSelectChannelConnector)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory)
@@ -22,14 +23,19 @@
            (java.security KeyStore)
            (javax.servlet.http HttpServletRequest HttpServletResponse)))
 
-;; This is based on code from ring.adapter.jetty
-;; repo
-;; contributors
+;; The approach here is based on code from ring.adapter.jetty
 
-(defn- ssl-context-factory
+;; The Jetty9 updates are based on http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
+;; and http://download.eclipse.org/jetty/stable-9/xref/org/eclipse/jetty/embedded/ManyConnectors.html
+
+(defn- ^SslContextFactory ssl-context-factory
   "Creates a new SslContextFactory instance from a map of options."
-  [{:keys [^KeyStore keystore key-password ^KeyStore truststore ^String trust-password client-auth]}]
-  (let [context (SslContextFactory.)]
+  [options]
+  (let [{:keys [^KeyStore keystore key-password
+                ^KeyStore truststore
+                ^String trust-password
+                client-auth]} options
+        context (SslContextFactory.)]
     (if (string? keystore)
       (.setKeyStorePath context keystore)
       (.setKeyStore context keystore))
@@ -46,46 +52,65 @@
 
 (defn- ssl-connector
   "Creates a SslSelectChannelConnector instance."
-  [{host :host
-    {ssl-port :ssl-port :or {ssl-port 443}
-     :as jetty-options} :jetty-options}]
-  (doto (SslSelectChannelConnector. (ssl-context-factory jetty-options))
-    (.setPort ssl-port)
-    (.setHost host)))
+  [^Server server options]
+  (let [{host :host
+         {:keys [ssl-port reuse-addr?]
+          :or {ssl-port 443
+               reuse-addr? true}
+          :as jetty-options} :jetty-options} options]
+    (doto (ServerConnector. server (ssl-context-factory jetty-options))
+      (.setReuseAddress reuse-addr?)
+      (.setPort ssl-port)
+      (.setHost host))))
 
+(defn- http-configuration
+  "Provides an HttpConfiguration that can be consumed by connection factories"
+  [options]
+  (let [{:keys [ssl? ssl-port]} options
+        http-conf ^HttpConfiguration (HttpConfiguration.)]
+    (when ssl?
+      (.setSecurePort http-conf ssl-port))
+    (doto http-conf
+      (.setSendDateHeader true))))
+
+;; Consider allowing users to set the number of acceptors and selectors
 (defn- create-server
   "Construct a Jetty Server instance."
-  [servlet
-   {host :host
-    port :port
-    {:keys [ssl? ssl-port configurator max-threads daemon?]
-     :or {configurator identity
-          max-threads 50}} :jetty-options
-    :as options}]
-  (let [connector (doto (SelectChannelConnector.)
+  [servlet options]
+  (let [{host :host
+         port :port
+         {:keys [ssl? ssl-port configurator max-threads daemon? reuse-addr?]
+          :or {configurator identity
+               max-threads 50
+               reuse-addr? true}} :jetty-options} options
+        thread-pool (QueuedThreadPool. ^Integer max-threads)
+        server (Server. thread-pool)
+        http-conf (http-configuration (:jetty-options options))
+        connector (doto (ServerConnector. server)
+                    (.addConnectionFactory (HttpConnectionFactory. http-conf))
+                    (.setReuseAddress reuse-addr?)
                     (.setPort port)
                     (.setHost host))
-        thread-pool (QueuedThreadPool. ^Integer max-threads)
-        server (doto (Server.)
-                 (.addConnector connector)
-                 (.setSendDateHeader true)
-                 (.setThreadPool thread-pool))
+        server (doto server
+                 (.addConnector connector))
         context (doto (ServletContextHandler. server "/")
                   (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
     (when daemon?
       (.setDaemon thread-pool true))
     (when (or ssl? ssl-port)
-      (.addConnector server (ssl-connector options)))
+      (.addConnector server (ssl-connector server options)))
     (configurator server)))
 
 (defn start
   [^Server server
    {:keys [join?] :or {join? true} :as options}]
   (.start server)
-  (when join? (.join server)))
+  (when join? (.join server))
+  server)
 
 (defn stop [^Server server]
-  (.stop server))
+  (.stop server)
+  server)
 
 (defn server
   ([servlet] (server servlet {}))
@@ -102,6 +127,7 @@
 
   ;; :daemon?      - use daemon threads (defaults to false)
   ;; :max-threads  - the maximum number of threads to use (default 50)
+  ;; :resue-addr?  - reuse the socket address (defaults to true)
   ;; :configurator - a function called with the Jetty Server instance
   ;; :ssl?         - allow connections over HTTPS
   ;; :ssl-port     - the SSL port to listen on (defaults to 443, implies :ssl?)
@@ -111,3 +137,4 @@
   ;; :trust-password - the password to the truststore
   ;; :client-auth  - SSL client certificate authenticate, may be set to :need,
   ;;                 :want or :none (defaults to :none)"
+
