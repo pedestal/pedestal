@@ -12,9 +12,10 @@
 
 (defproject io.pedestal/pedestal.jetty "0.3.0-SNAPSHOT"
   :description "Embedded Jetty adapter for Pedestal HTTP Service"
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.eclipse.jetty/jetty-server "8.1.9.v20130131"]
-                 [org.eclipse.jetty/jetty-servlet "8.1.9.v20130131"]
-                 [javax.servlet/javax.servlet-api "3.0.1"]]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.eclipse.jetty/jetty-server "9.1.3.v20140225"]
+                 [org.eclipse.jetty/jetty-servlet "9.1.3.v20140225"]
+                 [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true})
+
