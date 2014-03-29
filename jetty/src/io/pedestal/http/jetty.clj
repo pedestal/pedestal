@@ -73,7 +73,21 @@
     (doto http-conf
       (.setSendDateHeader true))))
 
-;; Consider allowing users to set the number of acceptors and selectors
+(defn- needed-pool-size
+  "Jetty 9 calculates a needed number of threads per acceptors and selectors,
+  based on the available cores on a given machine.
+  This performs that calculation.  This is used to ensure an appropriate
+  number of threads are created for the server."
+  ([]
+   (let [cores (.availableProcessors (Runtime/getRuntime))
+        acceptors (inc (/ cores 16)) ;  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
+        selectors (/ (inc cores) 2)] ; (cores + 1) / 2 - https://github.com/eclipse/jetty.project/blob/master/jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java#L73
+   ;; 2 connectors - HTTP & HTTPS
+   (needed-pool-size 2 acceptors selectors)))
+  ([connectors acceptors selectors]
+   (* (+ acceptors selectors) connectors)))
+
+;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
 (defn- create-server
   "Construct a Jetty Server instance."
   [servlet options]
@@ -81,7 +95,7 @@
          port :port
          {:keys [ssl? ssl-port configurator max-threads daemon? reuse-addr?]
           :or {configurator identity
-               max-threads 50
+               max-threads (max 50 (needed-pool-size))
                reuse-addr? true}} :jetty-options} options
         thread-pool (QueuedThreadPool. ^Integer max-threads)
         server (Server. thread-pool)
