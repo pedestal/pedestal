@@ -80,12 +80,14 @@
   number of threads are created for the server."
   ([]
    (let [cores (.availableProcessors (Runtime/getRuntime))
-        acceptors (inc (/ cores 16)) ;  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
-        selectors (/ (inc cores) 2)] ; (cores + 1) / 2 - https://github.com/eclipse/jetty.project/blob/master/jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java#L73
+         ;; The Jetty docs claim acceptors is 1.5 the number of cores available,
+         ;; but the code says:  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
+        acceptors (* 1.5 cores) ;(inc (/ cores 16))
+        selectors (/ (inc cores) 2.0)] ; (cores + 1) / 2 - https://github.com/eclipse/jetty.project/blob/master/jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java#L73
    ;; 2 connectors - HTTP & HTTPS
    (needed-pool-size 2 acceptors selectors)))
   ([connectors acceptors selectors]
-   (* (+ acceptors selectors) connectors)))
+   (* (Math/round ^Double (+ acceptors selectors)) connectors)))
 
 ;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
 (defn- create-server
