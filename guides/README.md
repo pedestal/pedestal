@@ -6,8 +6,6 @@ Documentation for the Pedestal service libraries
 
 ## About this repository
 
-At present, files under the [documentation](documentation) directory are deployed as [pedestal.io/documentation](http://pedestal.io/documentation).
-
 In the future, we will provide tools to generate properly styled HTML yourself. Due to abundant interest, however, we've opted to release these files while they're still a little raw.
 
 ## Contributing
