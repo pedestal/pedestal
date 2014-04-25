@@ -95,7 +95,7 @@
   [servlet options]
   (let [{host :host
          port :port
-         {:keys [ssl? ssl-port configurator max-threads daemon? reuse-addr?]
+         {:keys [ssl? ssl-port context-configurator configurator max-threads daemon? reuse-addr?]
           :or {configurator identity
                max-threads (max 50 (needed-pool-size))
                reuse-addr? true}} :jetty-options} options
@@ -115,6 +115,8 @@
       (.setDaemon thread-pool true))
     (when (or ssl? ssl-port)
       (.addConnector server (ssl-connector server options)))
+    (when context-configurator
+      (context-configurator context))
     (configurator server)))
 
 (defn start
@@ -145,6 +147,7 @@
   ;; :max-threads  - the maximum number of threads to use (default 50)
   ;; :resue-addr?  - reuse the socket address (defaults to true)
   ;; :configurator - a function called with the Jetty Server instance
+  ;; :context-configurator - a function called with the Jetty ServletContextHandler
   ;; :ssl?         - allow connections over HTTPS
   ;; :ssl-port     - the SSL port to listen on (defaults to 443, implies :ssl?)
   ;; :keystore     - the keystore to use for SSL connections
