@@ -138,3 +138,4 @@
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 4347))
           (is (= (:ssl-client-cert request-map) nil)))))))
+

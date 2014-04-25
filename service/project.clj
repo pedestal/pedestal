@@ -42,7 +42,8 @@
                              [org.clojure/tools.namespace "0.2.2"]
                              [clj-http "0.6.4"]
                              [io.pedestal/pedestal.jetty "0.3.0-SNAPSHOT"]
-                             [javax.servlet/javax.servlet-api "3.0.1"]
+                             [io.pedestal/pedestal.tomcat "0.3.0-SNAPSHOT"]
+                             [javax.servlet/javax.servlet-api "3.1.0"]
                              ;; Logging:
                              [ch.qos.logback/logback-classic "1.0.13" :exclusions [org.slf4j/slf4j-api]]
                              [org.clojure/tools.logging "0.2.4"]
