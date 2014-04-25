@@ -1,33 +1,32 @@
 # Pedestal Samples
 
 This is a collection of examples of services using the
-[pedestal](http://pedestal.io) toolkit. They range from [very
-simple](./helloworld_app) to [quite complex](./chat).
+[pedestal](http://pedestal.io) toolkit.
 
-If you're new to pedestal, we recommend that you have a look at [our
-documentation](http://pedestal.io/documentation) and then start with the
-examples.
+If you're new to Pedestal, we recommend that you have a look at
+[our documentation](../guides) and then start
+with the examples.
 
 ## Samples
 
-* [auto-reload-server](./auto-reload-server), a **pedestal-service** that
-    uses [ns-tracker](https://github.com/weavejester/ns-tracker) to reload
-    changed code
-* [cors](./cors)
-* [jboss](./jboss), a **pedestal-service** that can be deployed in
-    [JBoss](http://jboss.org)
+* [hello-world](./hello-world) A minimal service that exhibits the
+  bare-minimum necessary to integrate Pedestal into an applicaiton.
 * [ring-middleware](./ring-middleware), shows how to use
-    [ring](https://github.com/ring-clojure/ring) middlewares with
-    **pedestal-services**
+  [ring](https://github.com/ring-clojure/ring) middlewares with
+  services
+* [server-with-links](./server-with-links), a service that
+  demonstrates generating links to routes using `url-for`
+* [template-server](./template-server), a service that shows how to
+  use different template engines
+* [cors](./cors)
+* [jboss](./jboss), a service that can be deployed in
+  [JBoss](http://jboss.org)
 * [server-sent-events](./server-sent-events)
-* [server-with-links](./server-with-links), a **pedestal-service** that
-    demonstrates links generated from routes
-* [template-server](./template-server), a **pedestal-service** that shows
-    how to use different template engines
 
 ## Contributing
 
-The Pedestal samples follow a similar procedure to Pedestal's [CONTRIBUTING.md](https://github.com/pedestal/pedestal/blob/master/CONTRIBUTING.md).
+The Pedestal samples follow a similar procedure to Pedestal's
+[CONTRIBUTING.md](https://github.com/pedestal/pedestal/blob/master/CONTRIBUTING.md).
 
 ## License
 Copyright 2013 Relevance, Inc.
