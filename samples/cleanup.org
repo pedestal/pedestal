@@ -1,0 +1,98 @@
+#+Title: Samples Cleanup
+#+Author: Ryan Neufeld
+#+Created: <2014-04-25 Fri>
+
+* General Thoughts
+
+- I think the service template has caused us more harm than good.
+  - For one, it gives the community the wrong impression about what
+    Pedestal is (a framework, rather than a library).
+  - As a two pronged approach, I think we should 
+    1. Discontinue the template
+    2. Provide a "getting started" guide describing how to add
+       Pedestal to a Clojure project.
+
+* New Templates
+
+** hello-world
+
+This service exhibits how to add Pedestal to an empty Clojure project
+and rig up a hello-world function
+
+Pull request submitted: https://github.com/pedestal/pedestal/pull/256
+
+* Existing Templates
+
+** ring-middleware
+
+This service is a moderate skill-level example that exhibits usage of
+ring-middleware via the session middleware
+
+Suggested Action:
+- Separate example into two topics, basic ring middleware, and sessions
+- Re-write middleware sample as a topic guide describing the
+  middleware in io.pedestal.http.ring-middlewares, which ones are
+  included by default, and how to refactor existing middleware to work
+  as interceptors.
+- Write topical guide on session management (PedSec)
+
+** server-with-links
+
+This service is a simple example that shows how to use url-for.
+
+Suggested Action:
+- Delete sample, re-write as topical guide on linking.
+
+** template-server
+
+This service exhibits how to integrate templating libraries into a
+Pedestal service, as well as the html-body interceptor.
+
+Libraries covered:
+
+- Hiccup
+- Enlive
+- Mustache
+- StringTemplate
+- Comb
+
+Suggested Action:
+
+- Delete sample, re-write as topical guide. Exhibit the html-body
+  interceptor, and show one or two templating libraries. I (Ryan)
+  think the goal here is to show how to integrate *any* library, not
+  *all* libraries.
+  
+** cors
+
+This service exhibits how to setup up cross-origin resource sharing in
+Pedestal.
+
+Suggested Action:
+- Tidy up, specifically reduce template cruft and focus *exclusively*
+  on the task at hand.
+- Provide supplimental guide that walks through the process of adding
+  CORS-support. Guide should be written from the perspective of adding
+  CORS-support to an existing app.
+
+** server-sent-events
+
+This service exhibits how to setup server-sent events in Pedestal.
+
+Suggested Action:
+- Tidy up, reducing template cruft.
+- Refresh to focus on 0.3.0 core.async changes.
+- Accompanying topical guide aimed at adding SSE to an
+  application. (Since asynchrony is a particular strength of Pedestal,
+  this guide should be high-quality and accesible.)
+
+** jboss
+
+This service exhibits how to deploy a Pedestal application inside a
+JBoss/WildFly container.
+
+Suggested Action:
+- Tidy up sample and showcase in a larger "deployment" topical guide.
+- Linking approach is a) partially out of date, and b) opaque and
+  repetitive. Clean-up
+
