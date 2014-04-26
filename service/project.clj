@@ -28,7 +28,7 @@
                  [cheshire "5.3.1"]]
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
-  :javac-options ["-target" "1.5" "-source" "1.5"]
+  :javac-options ["-target" "1.7" "-source" "1.7"]
   :global-vars {*warn-on-reflection* true}
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
@@ -42,6 +42,7 @@
                              [org.clojure/tools.namespace "0.2.2"]
                              [clj-http "0.6.4"]
                              [io.pedestal/pedestal.jetty "0.3.0-SNAPSHOT"]
+                             [org.eclipse.jetty/jetty-servlets "9.1.4.v20140401"]
                              [io.pedestal/pedestal.tomcat "0.3.0-SNAPSHOT"]
                              [javax.servlet/javax.servlet-api "3.1.0"]
                              ;; Logging:
