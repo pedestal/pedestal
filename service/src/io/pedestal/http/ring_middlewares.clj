@@ -121,12 +121,16 @@
   [root-path]
   (interceptor/handler ::resource #(resource/resource-request % root-path)))
 
+(def default-session-options
+  {:cookie-attrs {:http-only true}})
+
 (definterceptorfn session
   "Interceptor for session ring middleware. Be sure to persist :session and
   :session/key from request to the response."
-  ([] (session {}))
+  ([] (session default-session-options))
   ([options]
-     (let [options (session/session-options options)]
+     (let [with-defaults #(merge-with into default-session-options %)
+           options       (-> options with-defaults session/session-options)]
        (interceptor :name ::session
                     :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
                     :leave (response-fn-adapter session/session-response options)))))
