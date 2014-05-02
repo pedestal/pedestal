@@ -202,19 +202,6 @@
 (defn- enqueue-all [context interceptors]
   (apply interceptor-impl/enqueue context interceptors))
 
-(defn- replace-method
-  "If the request has a query-parameter (already parsed into the
-  :query-params map) named method-param, set it to the :request-method
-  of the request and remove from :query-params. Returns an updated
-  request."
-  [method-param request]
-  (let [{:keys [request-method]} request]
-    (if-let [method (get-in request [:query-params method-param])]
-      (-> request
-          (assoc :request-method (keyword method))
-          (dissoc-in [:query-params method-param]))
-      request)))
-
 (definterceptor query-params
   "Returns an interceptor which parses query-string parameters from an
   HTTP request into a map. Keys in the map are query-string parameter
@@ -224,15 +211,37 @@
   ;; consistency with 'method-param'
   (interceptor/on-request ::query-params parse-query-params))
 
+(defn- replace-method
+  "Replace the HTTP method of a request with the value provided at
+  param-path (if provided). Removes the value found at param-path."
+  [param-path request]
+  (let [{:keys [request-method]} request]
+    (if-let [method (get-in request param-path)]
+      (-> request
+          (assoc :request-method (keyword method))
+          (dissoc-in param-path))
+      request)))
+
 (definterceptorfn method-param
-  "Returns an interceptor that smuggles HTTP verbs through a
-  query-string parameter. Must come after query-params.
-  method-param is the name of the query-string parameter as a keyword,
-  defaults to :_method"
+  "Returns an interceptor that smuggles HTTP verbs through a value in
+  the request. Must come *after* the interceptor that populates that
+  value (e.g. query-params or body-params).
+
+  query-param-or-param-path may be one of two things:
+
+  - The parameter inside :query-params where the verb will
+    reside.
+  - A complete path to a value elsewhere in the request, such as
+    [:query-params :_method] or [:body-params \"_method\"]
+
+  The path [:query-params :_method] is used by default."
   ([]
-     (method-param :_method))
-  ([method-param]
-     (interceptor/on-request ::method-param #(replace-method method-param %))))
+     (method-param [:query-params :_method]))
+  ([query-param-or-param-path]
+     (let [param-path (if (vector? query-param-or-param-path)
+                        query-param-or-param-path
+                        [:query-params query-param-or-param-path])]
+       (interceptor/on-request ::method-param #(replace-method param-path %)))))
 
 (defn print-routes
   "Prints route table `routes` in easier to read format."
@@ -448,6 +457,7 @@
   [{:keys [request] :as context} matcher-routes routes]
   (or (some (fn [{:keys [matcher interceptors] :as route}]
               (when-let [path-params (matcher request)]
+                 ;;  This is where path-params are added to the request. vvvv
                 (let [request-with-path-params (assoc request :path-params path-params)
                       linker (url-for-routes routes :request request-with-path-params)]
                   (-> context

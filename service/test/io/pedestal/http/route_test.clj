@@ -837,3 +837,18 @@
 (deftest url-for-without-*url-for*-should-error-properly
   (is (thrown-with-msg? clojure.lang.ExceptionInfo #"\*url-for\* not bound"
                         (url-for :my-route))))
+
+(deftest method-param-test
+  (let [context {:request {:request-method :get}}]
+    (is (= {:request {:request-method :delete}}
+           ((:enter (method-param))
+            (assoc-in context [:request :query-params :_method] "delete")))
+        "extracts method from :query-params :_method by default")
+    (is (= {:request {:request-method :delete}}
+           ((:enter (method-param :_method))
+            (assoc-in context [:request :query-params :_method] "delete")))
+        "is configurable to extract method from param in :query-params (old interface)")
+    (is (= {:request {:request-method :put}}
+           ((:enter (method-param [:body-params "_method"]))
+            (assoc-in context [:request :body-params "_method"] "put")))
+        "is configurable to extract method from any path in request")))
