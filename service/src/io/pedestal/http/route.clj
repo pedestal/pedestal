@@ -222,27 +222,6 @@
           (dissoc-in param-path))
       request)))
 
-(definterceptorfn method-param
-  "Returns an interceptor that smuggles HTTP verbs through a value in
-  the request. Must come *after* the interceptor that populates that
-  value (e.g. query-params or body-params).
-
-  query-param-or-param-path may be one of two things:
-
-  - The parameter inside :query-params where the verb will
-    reside.
-  - A complete path to a value elsewhere in the request, such as
-    [:query-params :_method] or [:body-params \"_method\"]
-
-  The path [:query-params :_method] is used by default."
-  ([]
-     (method-param [:query-params :_method]))
-  ([query-param-or-param-path]
-     (let [param-path (if (vector? query-param-or-param-path)
-                        query-param-or-param-path
-                        [:query-params query-param-or-param-path])]
-       (interceptor/on-request ::method-param #(replace-method param-path %)))))
-
 (defn print-routes
   "Prints route table `routes` in easier to read format."
   [routes]
@@ -500,14 +479,25 @@
   (interceptor/on-request ::query-params parse-query-params))
 
 (definterceptorfn method-param
-  "Returns an interceptor that smuggles HTTP verbs through a
-  query-string parameter. Must come after query-params.
-  method-param is the name of the query-string parameter as a keyword,
-  defaults to :_method"
+  "Returns an interceptor that smuggles HTTP verbs through a value in
+  the request. Must come *after* the interceptor that populates that
+  value (e.g. query-params or body-params).
+
+  query-param-or-param-path may be one of two things:
+
+  - The parameter inside :query-params where the verb will
+    reside.
+  - A complete path to a value elsewhere in the request, such as
+    [:query-params :_method] or [:body-params \"_method\"]
+
+  The path [:query-params :_method] is used by default."
   ([]
-     (method-param :_method))
-  ([method-param]
-     (interceptor/on-request ::method-param #(replace-method method-param %))))
+     (method-param [:query-params :_method]))
+  ([query-param-or-param-path]
+     (let [param-path (if (vector? query-param-or-param-path)
+                        query-param-or-param-path
+                        [:query-params query-param-or-param-path])]
+       (interceptor/on-request ::method-param #(replace-method param-path %)))))
 
 (defn form-action-for-routes
   "Like 'url-for-routes' but the returned function returns a map with the keys
