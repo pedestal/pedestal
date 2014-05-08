@@ -21,6 +21,14 @@ and rig up a hello-world function
 
 Pull request submitted: https://github.com/pedestal/pedestal/pull/256
 
+** Custom error handling 
+
+Paul: it always comes up, which is done with interceptors (for now)
+
+** Various content types
+
+e.g. edn, json, html, that shows Pedestal as platform for (data-only) services, or HTML applications
+
 * Existing Templates
 
 ** ring-middleware
