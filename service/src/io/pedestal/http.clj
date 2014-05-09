@@ -124,33 +124,33 @@
   * :not-found-interceptor: Interceptor to use when returning a not found response. Default is
      the not-found interceptor.
   * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}."
-  [{interceptors ::interceptors
-    routes ::routes
-    file-path ::file-path
-    resource-path ::resource-path
-    method-param-name ::method-param-name
-    allowed-origins ::allowed-origins
-    not-found-interceptor ::not-found-interceptor
-    ext-mime-types ::mime-types
-    :or {file-path nil
-         resource-path "public"
-         not-found-interceptor not-found
-         method-param-name :_method
-         ext-mime-types {}}
-    :as service-map}]
-  (if-not interceptors
-    (assoc service-map ::interceptors
-           (cond-> []
-                   true (conj log-request)
-                   (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
-                   true (conj not-found-interceptor)
-                   true (conj (middlewares/content-type {:mime-types ext-mime-types}))
-                   true (conj route/query-params)
-                   true (conj (route/method-param method-param-name))
-                   (not (nil? resource-path)) (conj (middlewares/resource resource-path))
-                   (not (nil? file-path)) (conj (middlewares/file file-path))
-                   true (conj (route/router routes))))
-    service-map))
+  [service-map]
+  (let [{interceptors ::interceptors
+         routes ::routes
+         file-path ::file-path
+         resource-path ::resource-path
+         method-param-name ::method-param-name
+         allowed-origins ::allowed-origins
+         not-found-interceptor ::not-found-interceptor
+         ext-mime-types ::mime-types
+         :or {file-path nil
+              resource-path "public"
+              not-found-interceptor not-found
+              method-param-name :_method
+              ext-mime-types {}}} service-map]
+    (if-not interceptors
+      (assoc service-map ::interceptors
+             (cond-> []
+                     true (conj log-request)
+                     (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
+                     true (conj not-found-interceptor)
+                     true (conj (middlewares/content-type {:mime-types ext-mime-types}))
+                     true (conj route/query-params)
+                     true (conj (route/method-param method-param-name))
+                     (not (nil? resource-path)) (conj (middlewares/resource resource-path))
+                     (not (nil? file-path)) (conj (middlewares/file file-path))
+                     true (conj (route/router routes))))
+      service-map)))
 
 (defn dev-interceptors
   [service-map]
