@@ -1,39 +1,49 @@
 # Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
 
-Pedestal is a set of libraries written in Clojure that aims to bring
-both the language and its principles (Simplicity, Power and Focus) to
-server-side development.
+## What is Pedestal
 
-## Getting started
+Pedestal is a set of Clojure libraries for building web applications.
 
-### Starting a new project
+It aims to bring Clojure's principles of Simplicity,
+Power and Focus to server-side development.
 
-Use [leiningen](https://github.com/technomancy/leiningen) (2.2.0+) to create a new
-Pedestal service. This will automatically pull templates from
-<http://clojars.org>
+Pedestal seeks to be a general-purpose web development platform, with
+a focus on empowering developers to build rich, collaborative internet
+applications requiring asyncrony, low-latency, or streaming (soft
+real-time).
 
-```bash
-# To create a new service:
-lein new pedestal-service the-next-big-server-side-thing
-```
 
-See [documentation](#documentation) for information on Pedestal concepts and
-advice on getting started.
+## Getting Started
 
-## Digging deeper
+In the [Getting Started](guides/00-getting-started.md) guide, you
+will find a walk-through that introduces you to all of Pedestal's
+moving parts via the creation of a new server-side application.
 
-### Roadmap
+Visit any one of the following guides for more information on Pedestal concepts:
+
+<!-- TODO - Flesh out this list. -->
+
+- [Getting Started](guides/00-getting-started.md)
+- Handlers
+- Intereceptors (Middleware)
+- Routing
+  - Linking
+- Templating
+- Deployment
+  - CORS
+- Async
+  - Delayed Responses (core.async)
+  - SSE
+  - WebSockets (Later)
+- [Context Map Reference](guides/context-map.md)
+
+
+## Roadmap
 
 Our primary focus for the near future is Pedestal documentation, sample
 applications and improving general ease of use.
 
-### Documentation
-
- * [Pedestal documentation](./guides) is coupled within this repository.
- * API Docs: generate literate-programming-style API docs by following the
-  instructions within the [guides](./guides/documentation/index.md#what-about-api-documentation).
-
-### Supported Platforms
+## Supported Platforms
 
 At present Pedestal supports OSX and Linux environments. At this time we do not
 support using Pedestal on a Windows environment.
@@ -44,13 +54,13 @@ Windows support
 **The bad news**: We will not invest significant amounts of time into
 diagnosing or correcting Windows issues.
 
-### Find out more
+## Join the Conversation
 
 * Follow [@pedestal_team on Twitter](http://twitter.com/pedestal_team)
 * Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users)
   and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
 
-### Looking for Pedestal App?
+## Looking for Pedestal App?
 
  * Pedestal App now lives in [its own github repo](https://github.com/pedestal/pedestal-app).
  * Please see the [community announcement](https://groups.google.com/forum/#!topic/pedestal-users/jODwmJUIUcg) for more details.
@@ -67,6 +77,7 @@ To install Pedestal library components in your local Maven repository run
 ---
 
 ## License
+
 Copyright 2013 Relevance, Inc.
 
 Copyright 2014 Cognitect, Inc.

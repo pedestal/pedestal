@@ -12,16 +12,26 @@
     2. Provide a "getting started" guide describing how to add
        Pedestal to a Clojure project.
 
+* Guides Approach
+
+- Provide a top-level "Getting Started" guide that results in
+  samples/hello-world
+- Re-write previous samples as topical guides. Guides buil on
+  hello-world, result in runnable sample.
+  - Prose
+  - Recipes
+  - Snapshots
+
 * New Templates
 
-** hello-world
+** DONE hello-world
 
 This service exhibits how to add Pedestal to an empty Clojure project
 and rig up a hello-world function
 
-Pull request submitted: https://github.com/pedestal/pedestal/pull/256
+Pull request: https://github.com/pedestal/pedestal/pull/256
 
-** Custom error handling 
+** Custom error handling
 
 Paul: it always comes up, which is done with interceptors (for now)
 
@@ -49,7 +59,9 @@ Suggested Action:
 This service is a simple example that shows how to use url-for.
 
 Suggested Action:
-- Delete sample, re-write as topical guide on linking.
+
+- DONE Delete sample
+- TODO re-write as topical guide on linking.
 
 ** template-server
 
@@ -70,7 +82,7 @@ Suggested Action:
   interceptor, and show one or two templating libraries. I (Ryan)
   think the goal here is to show how to integrate *any* library, not
   *all* libraries.
-  
+
 ** cors
 
 This service exhibits how to setup up cross-origin resource sharing in
