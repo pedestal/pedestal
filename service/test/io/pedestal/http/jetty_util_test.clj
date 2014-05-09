@@ -25,7 +25,7 @@
                               :jetty-options {:context-configurator #(jetty-util/add-servlet-filter % {:filter custom-gzip})}}
       (let [response (http/get "http://localhost:4347")]
         (is (= (:status response) 200))
-        (is (.startsWith ^String (get-in response [:headers "Content-Type"])
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (.startsWith ^String (:orig-content-encoding response) "gzip"))
         (is (= (:body response) "Hello World"))))))
