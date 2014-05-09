@@ -24,9 +24,12 @@
 
                  ;; interceptors
                  [ring/ring-core "1.2.2"
-                  :exclusions [[org.clojure/clojure]]]
+                  :exclusions [[org.clojure/clojure]
+                               [org.clojure/tools.reader]]]
+                 [org.clojure/tools.reader "0.8.3"]
                  [cheshire "5.3.1"]
-                 [crypto-random "1.2.0"]
+                 [commons-codec "1.9"]
+                 [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
