@@ -104,13 +104,13 @@
          cookie-token? (:cookie-token options)
          default-error-response (access-denied-response "<h1>Invalid anti-forgery token</h1>")
          error-response (:error-response options default-error-response)
-         error-handler (:error-handler options (fn [context] error-response))]
-     (around
+         error-handler (:error-handler options (fn [context]
+                                                 (assoc-in context [:response] error-response)))]
+     (around ::anti-forgery
        (fn [{request :request :as context}]
          (let [token (session-token request)]
            (if (and (not (get-request? request))
                     (not (valid-request? request token-reader)))
-             ;; THIS NEEDS TO RETURN A RESPONSE! (not a context)
              (error-handler context)
              (assoc-in context [:request anti-forgery-token] token))))
        (fn [{response :response req :request :as context}]
