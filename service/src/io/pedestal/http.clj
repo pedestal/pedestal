@@ -207,11 +207,13 @@
     (merge service-map (server-map->service-map server-map))))
 
 (defn create-server
-  [service-map]
-  (log/init-java-util-log)
-  (-> service-map
+  ([service-map]
+   (create-server service-map log/init-java-util-log))
+  ([service-map init-fn]
+   (init-fn)
+   (-> service-map
       create-servlet
-      server))
+      server)))
 
 (defn start [service-map]
   ((::start-fn service-map))
