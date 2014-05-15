@@ -72,6 +72,10 @@
    :headers {"Content-Type" "text/html"}
    :body body})
 
+(def denied-msg "<h1>Invalid anti-forgery token</h1>")
+
+(def default-error-response (access-denied-response denied-msg))
+
 (definterceptorfn anti-forgery
   "Interceptor that prevents CSRF attacks. Any POST/PUT/PATCH/DELETE request to
   the handler returned by this function must contain a valid anti-forgery
@@ -102,7 +106,6 @@
                     (:error-handler options)))]}
    (let [token-reader (:read-token options default-request-token)
          cookie-token? (:cookie-token options)
-         default-error-response (access-denied-response "<h1>Invalid anti-forgery token</h1>")
          error-response (:error-response options default-error-response)
          error-handler (:error-handler options (fn [context]
                                                  (assoc-in context [:response] error-response)))]
