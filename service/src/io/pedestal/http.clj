@@ -15,6 +15,7 @@
   sensible default way to make a full blown application."
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.ring-middlewares :as middlewares]
+            [io.pedestal.http.csrf :as csrf]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
@@ -123,7 +124,11 @@
      nil, this interceptor is not added. Default is nil.
   * :not-found-interceptor: Interceptor to use when returning a not found response. Default is
      the not-found interceptor.
-  * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}."
+  * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}.
+  * :enable-session: A settings map to include the session middleware interceptor. If nil, this interceptor
+     is not added.  Default is nil.
+  * :enable-csrf: A settings map to include the csrf-protection interceptor. This implies
+     sessions are enabled. If nil, this interceptor is not added. Default is nil."
   [service-map]
   (let [{interceptors ::interceptors
          routes ::routes
@@ -133,17 +138,23 @@
          allowed-origins ::allowed-origins
          not-found-interceptor ::not-found-interceptor
          ext-mime-types ::mime-types
+         enable-session ::enable-session
+         enable-csrf ::enable-csrf
          :or {file-path nil
               resource-path "public"
               not-found-interceptor not-found
               method-param-name :_method
-              ext-mime-types {}}} service-map]
+              ext-mime-types {}
+              enable-session nil
+              enable-csrf nil}} service-map]
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
                      true (conj log-request)
                      (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
                      true (conj not-found-interceptor)
+                     (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
+                     enable-csrf (conj (csrf/anti-forgery enable-csrf))
                      true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                      true (conj route/query-params)
                      true (conj (route/method-param method-param-name))

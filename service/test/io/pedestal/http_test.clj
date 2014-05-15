@@ -29,6 +29,9 @@
 (defn hello-page
   [request] (ring-resp/response "HELLO"))
 
+(defn hello-token-page
+  [request] (ring-resp/response (str "HELLO" (:io.pedestal.http.csrf/anti-forgery-token request))))
+
 (defn hello-plaintext-page [request]
   (-> request hello-page (ring-resp/content-type "text/plain")))
 
@@ -63,6 +66,7 @@
 (defroutes app-routes
   [[["/about" {:get [:about about-page]}]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
+    ["/token" {:get hello-token-page}]
     ["/edn" {:get get-edn}]
     ["/just-status" {:get just-status-page}]
     ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
@@ -194,3 +198,18 @@
                (.flush output-stream)
                (.close output-stream)
                (.toString output-stream "UTF-8"))))))
+
+(def anti-forgery-app-interceptors
+  (service/default-interceptors {::service/routes app-routes
+                                 ::service/enable-csrf {}}))
+
+(def af-app (make-app anti-forgery-app-interceptors))
+
+(deftest html-body-test-csrf-token
+  (let [response (response-for af-app :get "/token")
+        body (:body response)]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))
+    (is (> (count body) 5))
+    (is (= "HELLO" (subs body 0 5)))
+    (is (not-empty (subs body 4)))))
+
