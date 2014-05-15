@@ -87,13 +87,13 @@
     :read-token
       a function that takes a request and returns an anti-forgery token, or nil
       if the token does not exist.
+    :cookie-token
+      a truthy value, if you want a CSRF double-submit cookie set
     :error-response
       the response to return if the anti-forgery token is incorrect or missing.
     :error-handler
       a handler function (passed the context) to call if the anti-forgery
       token is incorrect or missing (intended to return a valid response).
-    :cookie-token
-      a truthy value, if you want a CSRF double-submit cookie set
 
   Only one of :error-response, :error-handler may be specified."
   ([] (anti-forgery {}))
