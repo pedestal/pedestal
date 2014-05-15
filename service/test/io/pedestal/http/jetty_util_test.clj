@@ -8,7 +8,7 @@
                                        IncludableGzipFilter)))
 
 (def custom-gzip (jetty-util/filter-holder (GzipFilter.) {"mimeTypes" "text/javascript,text/plain"
-                                                      "minGzipSize" "0"}))
+                                                          "minGzipSize" "0"}))
 
 (deftest simple-filter
   (testing "A Simple GZip filter"
@@ -18,8 +18,7 @@
         (is (= (:status response) 200))
         (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))
-        (is (.startsWith ^String (get-in response [:headers "content-encoding"])
-                         "gzip"))
+        (is (.startsWith ^String (:orig-content-encoding response) "gzip"))
         (is (= (:body response) "Hello World")))))
   (testing "A FilterHolder (also GZip)"
     (test-util/with-server test-util/hello-world {:port 4347
@@ -28,7 +27,6 @@
         (is (= (:status response) 200))
         (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))
-        (is (.startsWith ^String (get-in response [:headers "content-encoding"])
-                         "gzip"))
+        (is (.startsWith ^String (:orig-content-encoding response) "gzip"))
         (is (= (:body response) "Hello World"))))))
 

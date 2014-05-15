@@ -45,7 +45,7 @@
               :dependencies [[criterium "0.3.1"]
                              [org.clojure/java.classpath "0.2.2"]
                              [org.clojure/tools.namespace "0.2.4"]
-                             [clj-http "0.6.4"]
+                             [clj-http "0.9.1"]
                              [io.pedestal/pedestal.jetty "0.3.0-SNAPSHOT"]
                              [org.eclipse.jetty/jetty-servlets "9.1.4.v20140401"]
                              [io.pedestal/pedestal.tomcat "0.3.0-SNAPSHOT"]
