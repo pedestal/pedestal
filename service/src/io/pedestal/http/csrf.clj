@@ -29,12 +29,15 @@
 ;; this is both the marker and the function (to use with the context)
 (def anti-forgery-token ::anti-forgery-token)
 
+(defn existing-token [request]
+  (get-in request [:session "__anti-forgery-token"]))
+
 (defn- session-token [request]
-  (or (get-in request [:session "__anti-forgery-token"])
+  (or (existing-token request)
       (random/base64 60)))
 
 (defn- assoc-session-token [response request token]
-  (let [old-token (get-in request [:session "__anti-forgery-token"])]
+  (let [old-token (existing-token request)]
     (if (= old-token token)
       response
       (-> response
