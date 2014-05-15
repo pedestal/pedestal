@@ -116,7 +116,7 @@
          (loop []
            (when-let [body-part (async/<! body)]
              (write-body servlet-response body-part)
-             (.flushBuffer servlet-response)
+             (.flushBuffer ^HttpServletResponse servlet-response)
              (recur)))
          (async/>! (::resume-channel context) context)
          (async/close! (::resume-channel context))))
