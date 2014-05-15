@@ -85,10 +85,10 @@
   token, or else an access-denied response is returned.
 
   The anti-forgery token can be placed into a HTML page via the
-  *anti-forgery-token* var, which is bound to a random key unique to the
-  current session. By default, the token is expected to be in a form field
-  named '__anti-forgery-token', or in the 'X-CSRF-Token' or 'X-XSRF-Token'
-  headers.
+  ::anti-forgery-token within the request, which is bound to a random key
+  unique to the current session. By default, the token is expected to be in a
+  form field named '__anti-forgery-token', or in the 'X-CSRF-Token' or
+  'X-XSRF-Token' headers.
 
   This behavior can be customized by supplying a map of options:
     :read-token
