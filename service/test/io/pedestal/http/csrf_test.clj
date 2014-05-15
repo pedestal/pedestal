@@ -78,17 +78,17 @@
 (defn req-w-hdrs [hdrs]
   (response-for app :post url :headers hdrs))
 
-(deftest x-csrf-header-is-respected
+(deftest x-csrf-token-header-is-respected
   (let [[cookie token] (header-data-from-initial-request)
         headers {"cookie" cookie "x-csrf-token" token}]
     (is (= 200 (-> headers req-w-hdrs :status)))))
 
-(deftest x-xsrf-header-is-respected
+(deftest x-xsrf-token-header-is-respected
   (let [[cookie token] (header-data-from-initial-request)
         headers {"cookie" cookie "x-xsrf-token" token}]
     (is (= 200 (-> headers req-w-hdrs :status)))))
 
-(deftest x-nota-header-is-denied
+(deftest x-nota-token-header-is-denied
   (let [[cookie token] (header-data-from-initial-request)
         headers {"cookie" cookie "x-nota-token" token}]
     (is (= 403 (-> headers req-w-hdrs :status)))))
