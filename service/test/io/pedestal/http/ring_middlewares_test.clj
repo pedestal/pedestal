@@ -172,29 +172,65 @@
     (write-session [_ k s] (writer k s))
     (delete-session [_ k] (deleter k))))
 
+(defn present? [^String expected-str ^String actual-str]
+  (.contains actual-str expected-str))
+
 (deftest session-is-valid
   (is (valid-interceptor? (session)))
-  (is (= {:bar "foo"}
-         (let [interceptor (session
-                            {:store
-                             (make-store (constantly {:bar "foo"})
-                                         (constantly nil)
-                                         (constantly nil))})]
-           (->
-            (context {})
-            ((:enter interceptor))
-            app
-            (get-in [:request :session])))))
-  (is (= '("ring-session=deleted;Path=/")
-         (let [interceptor (session
-                            {:store
-                             (make-store (constantly {:foo "bar"})
-                                         (constantly nil)
-                                         (constantly "deleted"))})]
-           (->
-            (context {:headers {"cookie" "ring-session=foo%3Abar"}})
-            ((:enter interceptor))
-            ; delete session
-            (#(assoc % :response (assoc (:request %) :session nil)))
-            ((:leave interceptor))
-            (get-in [:response :headers "Set-Cookie"]))))))
+  (testing "data is present in session"
+    (is (= {:bar "foo"}
+           (let [interceptor (session
+                              {:store
+                               (make-store (constantly {:bar "foo"})
+                                           (constantly nil)
+                                           (constantly nil))})]
+             (->
+              (context {})
+              ((:enter interceptor))
+              app
+              (get-in [:request :session])))))
+    (testing "session is deleted correctly"
+      (is (present? "ring-session=deleted;"
+                    (let [interceptor (session
+                                       {:store
+                                        (make-store (constantly "_")
+                                                    (constantly nil)
+                                                    (constantly "deleted"))})]
+                      (->
+                       (context {:headers {"cookie" "ring-session=_"}})
+                       ((:enter interceptor))
+                       ;; delete session
+                       (#(assoc % :response (assoc (:request %) :session nil)))
+                       ((:leave interceptor))
+                       (get-in [:response :headers "Set-Cookie"])
+                       first)))))
+    (testing "http-only default is in place"
+      (is (present? "HttpOnly;"
+                    (let [interceptor (session
+                                       {:store
+                                        (make-store (constantly nil)
+                                                    (constantly "_")
+                                                    (constantly  nil))})]
+                      (->
+                       (context {})
+                       ((:enter interceptor))
+                       app
+                       ((:leave interceptor))
+                       (get-in [:response :headers "Set-Cookie"])
+                       first)))))
+    (testing "overriding http-only default is respected"
+      (is (not (present? "HttpOnly"
+                         (let [interceptor (session
+                                            {:store
+                                             (make-store (constantly nil)
+                                                         (constantly "_")
+                                                         (constantly  nil))
+                                             :cookie-attrs {:http-only false}})]
+                           (->
+                            (context {})
+                            ((:enter interceptor))
+                            app
+                            ((:leave interceptor))
+                            (get-in [:response :headers "Set-Cookie"])
+                            first))))))))
+
