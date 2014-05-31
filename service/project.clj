@@ -47,7 +47,7 @@
                              [org.clojure/tools.namespace "0.2.4"]
                              [clj-http "0.9.1"]
                              [io.pedestal/pedestal.jetty "0.3.0-SNAPSHOT"]
-                             [org.eclipse.jetty/jetty-servlets "9.1.4.v20140401"]
+                             [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
                              [io.pedestal/pedestal.tomcat "0.3.0-SNAPSHOT"]
                              [javax.servlet/javax.servlet-api "3.1.0"]
                              ;; Logging:

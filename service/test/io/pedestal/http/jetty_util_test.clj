@@ -2,7 +2,7 @@
   (:use clojure.test
         io.pedestal.http.jetty)
   (:require [clj-http.client :as http]
-    [io.pedestal.http.jetty.util :as jetty-util]
+            [io.pedestal.http.jetty.util :as jetty-util]
             [io.pedestal.http.jetty-test :as test-util])
   (:import (org.eclipse.jetty.servlets GzipFilter
                                        IncludableGzipFilter)))
