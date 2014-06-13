@@ -92,10 +92,16 @@
 
 (deftest html-body-test
   (let [response (response-for app :get "/text-as-html")]
-    (is (= "text/html;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
+    (is (= "text/html;charset=UTF-8" (get-in response [:headers "Content-Type"])))
+    ;; Ensure secure headers by default
+    (is (= {"Content-Type" "text/html;charset=UTF-8"
+            "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
+            "X-Frame-Options" "DENY"
+            "X-Content-Type-Options" "nosniff"
+            "X-XSS-Protection" "1; mode=block"} (:headers response)))))
 
 (deftest plaintext-body-with-html-interceptor-test
-  "Explicit request for plain-text content-type is honored by html-body interceptor."
+  "1; mode=blockExplicit request for plain-text content-type is honored by html-body interceptor."
   (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 

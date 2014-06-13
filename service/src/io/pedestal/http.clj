@@ -16,6 +16,7 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.ring-middlewares :as middlewares]
             [io.pedestal.http.csrf :as csrf]
+            [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
@@ -128,7 +129,10 @@
   * :enable-session: A settings map to include the session middleware interceptor. If nil, this interceptor
      is not added.  Default is nil.
   * :enable-csrf: A settings map to include the csrf-protection interceptor. This implies
-     sessions are enabled. If nil, this interceptor is not added. Default is nil."
+     sessions are enabled. If nil, this interceptor is not added. Default is nil.
+  * :secure-headers: A settings map for various secure headers.
+     Keys are: [:hsts-settings :frame-options-settings :content-type-settings :xss-protection-settings]
+     If nil, this interceptor is not added.  Default is the default secure-headers settings"
   [service-map]
   (let [{interceptors ::interceptors
          routes ::routes
@@ -140,13 +144,15 @@
          ext-mime-types ::mime-types
          enable-session ::enable-session
          enable-csrf ::enable-csrf
+         secure-headers ::secure-headers
          :or {file-path nil
               resource-path "public"
               not-found-interceptor not-found
               method-param-name :_method
               ext-mime-types {}
               enable-session nil
-              enable-csrf nil}} service-map]
+              enable-csrf nil
+              secure-headers {}}} service-map]
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
@@ -160,6 +166,7 @@
                      true (conj (route/method-param method-param-name))
                      (not (nil? resource-path)) (conj (middlewares/resource resource-path))
                      (not (nil? file-path)) (conj (middlewares/file file-path))
+                     (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
                      true (conj (route/router routes))))
       service-map)))
 
