@@ -51,9 +51,9 @@
         dispatch-set (dispatcher-set dispatches)]
     ;; Try out best to avoid the Reflection hit
     (cond
-      (class? servlet-filter) (.addFilter context ^Class servlet-filter path dispatch-set)
-      (instance? FilterHolder servlet-filter) (.addFilter context ^FilterHolder servlet-filter path dispatch-set)
-      (string? servlet-filter) (.addFilter context ^String servlet-filter path dispatch-set)
+      (class? servlet-filter) (.addFilter context ^Class servlet-filter ^String path ^EnumSet dispatch-set)
+      (instance? FilterHolder servlet-filter) (.addFilter context ^FilterHolder servlet-filter ^String path ^EnumSet dispatch-set)
+      (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set)
       :else (.addFilter context servlet-filter path dispatch-set))
     context))
 

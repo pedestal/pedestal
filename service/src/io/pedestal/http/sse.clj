@@ -115,7 +115,7 @@
        (when-let [event (async/<! event-channel)]
          (send-event response-channel "event" (str event))
          (recur)))
-     (.cancel heartbeat true)
+     (.cancel ^ScheduledFuture heartbeat true)
      (async/close! response-channel))
 
     (assoc context :response response)))
