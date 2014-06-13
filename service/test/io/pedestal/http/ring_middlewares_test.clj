@@ -109,24 +109,23 @@
 
 (deftest multipart-params-is-valid
   (is (valid-interceptor? (multipart-params)))
+  (let [ctx (context (let [form-body (str "--XXXX\r\n"
+                                          "Content-Disposition: form-data;"
+                                          "name=\"foo\"\r\n\r\n"
+                                          "bar\r\n"
+                                          "--XXXX\r\n"
+                                          "Content-Disposition: form-data;"
+                                          "name=\"foo\"\r\n\r\n"
+                                          "baz\r\n"
+                                          "--XXXX--")]
+                       {:headers {"content-type" "multipart/form-data; boundary=XXXX"
+                                  "content-length" (str (count form-body))}
+                        :content-type "multipart/form-data; boundary=XXXX"
+                        :body (ring.util.io/string-input-stream form-body)}))
+        int-stack ((:enter (multipart-params {:store string-store})) ctx)
+        req-ctx (app int-stack)]
   (is (= ["bar" "baz"]
-         (->
-          (context (let [form-body
-                         (str "--XXXX\r\n"
-                              "Content-Disposition: form-data;"
-                              "name=\"foo\"\r\n\r\n"
-                              "bar\r\n"
-                              "--XXXX\r\n"
-                              "Content-Disposition: form-data;"
-                              "name=\"foo\"\r\n\r\n"
-                              "baz\r\n"
-                              "--XXXX--")]
-                     {:content-type "multipart/form-data; boundary=XXXX"
-                      :content-length (count form-body)
-                      :body (ring.util.io/string-input-stream form-body)}))
-          ((:enter (multipart-params {:store string-store})))
-          app
-          (get-in [:request :multipart-params "foo"])))))
+         (get-in req-ctx [:request :multipart-params "foo"])))))
 
 (deftest nested-params-is-valid
   (is (valid-interceptor? (nested-params)))
@@ -185,7 +184,7 @@
             ((:enter interceptor))
             app
             (get-in [:request :session])))))
-  (is (= '("ring-session=deleted;Path=/")
+  (is (= '("ring-session=deleted;Path=/;HttpOnly")
          (let [interceptor (session
                             {:store
                              (make-store (constantly {:foo "bar"})

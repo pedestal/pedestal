@@ -82,7 +82,7 @@
    (let [cores (.availableProcessors (Runtime/getRuntime))
          ;; The Jetty docs claim acceptors is 1.5 the number of cores available,
          ;; but the code says:  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
-        acceptors (* 1.5 cores) ;(inc (/ cores 16))
+        acceptors (int (* 1.5 cores)) ;(inc (/ cores 16))
         selectors (/ (inc cores) 2.0)] ; (cores + 1) / 2 - https://github.com/eclipse/jetty.project/blob/master/jetty-io/src/main/java/org/eclipse/jetty/io/SelectorManager.java#L73
    ;; 2 connectors - HTTP & HTTPS
    (needed-pool-size 2 acceptors selectors)))
