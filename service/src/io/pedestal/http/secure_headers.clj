@@ -15,8 +15,7 @@
   "Create a max-age (and optionally include subdomains) Strict-Transport header
   No arg version sets age at 1 year (31536000 seconds) and includes subdomains.
   You may want to use 1 hour (3600 secs), 1 day (86400 secs), 1 week (604800 secs),
-  or 1 month (2628000 secs)
-  More info at: "
+  or 1 month (2628000 secs)"
   ([]
    "max-age=31536000; includeSubdomains")
   ([max-age-secs]
@@ -37,7 +36,7 @@
    (str allow-from-policy " " origin)))
 
 (defn content-type-header
-  "TODO
+  "Create a custom value for content-type options.
   No arg version returns most secure setting: nosniff"
   ([]
    "nosniff")
@@ -47,13 +46,12 @@
 
 (defn xss-protection-header
   "Create a custom value (and optionally mode) XSS-Protection header.
-  No arg version returns the most secure setting: 1; block.
-  More info at: "
+  No arg version returns the most secure setting: 1; block."
   ([]
    "1; mode=block")
   ([value]
    {:pre [(#{0 "0" 1 "1"} value)]}
-   ((str value)))
+   (str value))
   ([value mode]
    {:pre [(#{0 "0" 1 "1"} value)
           (#{"block"} mode)]}
