@@ -50,16 +50,3 @@
          (.start))
        (fn [] (swap! done not)))))
 
-(defn tools-help
-    "Show basic help for each function in this namespace."
-    []
-    (println)
-    (println "Start a new service development server with (start) or (start service-options)")
-    (println "----")
-    (println "Type (start) or (start service-options) to initialize and start a server")
-    (println "Type (stop) to stop the current server")
-    (println "Type (restart) to restart the current server")
-    (println "----")
-    (println "Type (watch) to watch for changes in the src/ directory")
-    (println))
-
