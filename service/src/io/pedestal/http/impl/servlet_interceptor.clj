@@ -164,15 +164,19 @@
    ::async-supported? (.isAsyncSupported servlet-req)})
 
 (defn- add-content-type [req-map ^HttpServletRequest servlet-req]
-  (if-let [type (.getContentType servlet-req)]
-    (assoc! req-map :content-type type)
+  (if-let [ctype (.getContentType servlet-req)]
+    (let [headers (:headers req-map)]
+      (-> (assoc! req-map :content-type ctype)
+          (assoc! :headers (assoc headers "content-type" ctype))))
     req-map))
 
 (defn- add-content-length [req-map ^HttpServletRequest servlet-req]
-  (let [c (.getContentLength servlet-req)]
+  (let [c (.getContentLength servlet-req)
+        headers (:headers req-map)]
     (if (neg? c)
       req-map
-      (assoc! req-map :content-length c))))
+      (-> (assoc! req-map :content-length c)
+          (assoc! :headers (assoc headers "content-length" c))))))
 
 (defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
   (if-let [e (.getCharacterEncoding servlet-req)]

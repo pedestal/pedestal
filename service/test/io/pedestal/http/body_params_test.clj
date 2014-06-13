@@ -21,6 +21,7 @@
 (defn as-context [content-type ^String body]
   (let [body-reader (java.io.ByteArrayInputStream. (.getBytes body))]
     {:request {:content-type content-type
+               :headers {"content-type" content-type}
                :body body-reader}}))
 
 (def i (:enter (body-params)))

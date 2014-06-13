@@ -23,10 +23,12 @@
                  [org.clojure/core.async "0.1.303.0-886421-alpha"]
 
                  ;; interceptors
-                 [ring/ring-core "1.2.2"
+                 [ring/ring-core "1.3.0"
                   :exclusions [[org.clojure/clojure]
-                               [org.clojure/tools.reader]]]
-                 [org.clojure/tools.reader "0.8.3"]
+                               [org.clojure/tools.reader]
+                               [srypto-random]
+                               [crypto-equality]]]
+                 [org.clojure/tools.reader "0.8.5"]
                  [cheshire "5.3.1"]
                  [commons-codec "1.9"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
