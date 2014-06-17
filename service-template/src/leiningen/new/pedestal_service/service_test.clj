@@ -22,3 +22,4 @@
   (is (=
        (:headers (response-for service :get "/about"))
        {"Content-Type" "text/html;charset=UTF-8"})))
+

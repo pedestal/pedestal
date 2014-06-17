@@ -3,7 +3,7 @@
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
             [io.pedestal.http.secure-headers :as sec-headers]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.interceptor :as interceptor :refer [defafter]]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]))
 
@@ -31,6 +31,29 @@
             "Strict-Transport-Security" "max-age=500"
             "X-Frame-Options" "SAMEORIGIN"
             "X-Content-Type-Options" "nosniff"
+            "X-XSS-Protection" "1"}
+           (:headers response)))))
+
+(deftest secure-headers-can-be-turned-off
+  (let [app (make-app {::service/secure-headers nil})
+        response (response-for app :get "/hello")]
+    (is (= {"Content-Type" "text/plain"}
+           (:headers response)))))
+
+(defafter custom-sec-headers
+  [context]
+  (update-in context [:response :headers]
+             merge
+             {(sec-headers/header-names :xss-protection) (sec-headers/xss-protection-header "1")}))
+
+(defroutes new-app-routes
+  [[["/hello" {:get [^:interceptors [custom-sec-headers] hello-page]}]]])
+
+(deftest custom-secure-headers
+  (let [app (make-app {::service/routes new-app-routes
+                       ::service/secure-headers nil})
+        response (response-for app :get "/hello")]
+    (is (= {"Content-Type" "text/plain"
             "X-XSS-Protection" "1"}
            (:headers response)))))
 

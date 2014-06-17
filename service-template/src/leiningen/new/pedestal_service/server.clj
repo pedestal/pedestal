@@ -1,27 +1,33 @@
 (ns {{namespace}}.server
   (:gen-class) ; for -main method in uberjar
-  (:require [io.pedestal.http :as bootstrap]
+  (:require [io.pedestal.http :as server]
             [{{namespace}}.service :as service]))
 
-(defonce server-instance nil)
+;; This is an adapted service map, that can be started and stopped
+;; From the REPL you can call server/start and server/stop on this service
+(defonce runnable-service (server/create-server service/service))
 
-(defn create-server
-  [service]
-  (alter-var-root #'server-instance (constantly (bootstrap/create-server service))))
+(defn run-dev
+  "The entry-point for 'lein run-dev'"
+  [& args]
+  (println "\nCreating your [DEV] server...")
+  (-> runnable-service ;; start with production configuration
+      (merge {:env :dev
+              ;; do not block thread that starts web server
+              ::server/join? false
+              ;; Routes can be a function that resolve routes,
+              ;;  we can use this to set the routes to be reloadable
+              ::server/routes #(deref #'service/routes)
+              ;; all origins are allowed in dev mode
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
+      ;; Wire up interceptor chains
+      (server/default-interceptors)
+      (server/dev-interceptors))
+  (server/start runnable-service))
 
 (defn -main
   "The entry-point for 'lein run'"
   [& args]
-  (create-server (merge service/service (apply hash-map args)))
-  (bootstrap/start server-instance))
+  (println "\nCreating your server...")
+  (server/start runnable-service))
 
-;; Fns for use with io.pedestal.servlet.ClojureVarServlet
-
-(defn servlet-init [this config]
-  (alter-var-root #'server-instance (constantly (bootstrap/servlet-init service/service config))))
-
-(defn servlet-destroy [this]
-  (alter-var-root #'server-instance bootstrap/servlet-destroy))
-
-(defn servlet-service [this servlet-req servlet-resp]
-  (bootstrap/servlet-service server-instance servlet-req servlet-resp))
