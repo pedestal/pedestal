@@ -13,7 +13,12 @@
        "Hello World!"))
   (is (=
        (:headers (response-for service :get "/"))
-       {"Content-Type" "text/html;charset=UTF-8"})))
+       {"Content-Type" "text/html;charset=UTF-8"
+        "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
+        "X-Frame-Options" "DENY"
+        "X-Content-Type-Options" "nosniff"
+        "X-XSS-Protection" "1; mode=block"})))
+
 
 (deftest about-page-test
   (is (.contains
@@ -21,5 +26,9 @@
        "Clojure 1.6"))
   (is (=
        (:headers (response-for service :get "/about"))
-       {"Content-Type" "text/html;charset=UTF-8"})))
+       {"Content-Type" "text/html;charset=UTF-8"
+        "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
+        "X-Frame-Options" "DENY"
+        "X-Content-Type-Options" "nosniff"
+        "X-XSS-Protection" "1; mode=block"})))
 
