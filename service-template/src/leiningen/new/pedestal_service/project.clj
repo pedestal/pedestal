@@ -9,7 +9,7 @@
                  ;; Remove this line and uncomment the next line to
                  ;; use Tomcat instead of Jetty:
                  [io.pedestal/pedestal.jetty "0.3.0"]
-                 ;; [io.pedestal/pedestal.tomcat "0.3.0-SNAPSHOT"]
+                 ;; [io.pedestal/pedestal.tomcat "0.3.0"]
 
                  [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.7"]
@@ -18,6 +18,6 @@
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.3.0-SNAPSHOT"]]}}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.3.0"]]}}
   :main ^{:skip-aot true} {{namespace}}.server)
 
