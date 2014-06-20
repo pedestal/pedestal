@@ -2,6 +2,27 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.3.0 - June 20, 1013
+
+ * Performance optimizations and new connection code
+ * core.async channel-based SSE
+ * Better/cleaner SSE heartbeat threadpool
+ * Jetty9, Tomcat8, Clojure 1.6, Servlet 3.1
+ * Open HTTP verb smuggling
+ * CSRF-protection interceptor in the default interceptors (you need to set options for it to turn on)
+ * Sessions are http-only by default (pushed up to Ring)
+ * Secure-headers interceptor in the default interceptors
+ * Servlet filters can be dropped directly into a service-map definition
+ * Namespace refactor
+ * Simpler template and less dev-tool trickery
+ * New public API exposed for building, composing, starting, and stopping services
+ * Dependencies upgraded
+ * Bug fixes
+
+Details will emerge in an upcoming blog post and within the guides and docs here.
+
+For a full list of changes, please see this comparison of [0.2.2...0.3.0](https://github.com/pedestal/pedestal/compare/0.2.2...0.3.0).
+
 ## 0.2.2 - November 5, 2013
 
 Bug fix release preceding some exciting (and breaking) 0.3.0 changes. Unless any major bugs are discovered, no further work will continue on the 0.2.x stream.
