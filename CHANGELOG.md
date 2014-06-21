@@ -2,7 +2,7 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
-## 0.3.0 - June 20, 1013
+## 0.3.0 - June 20, 2014
 
  * Performance optimizations and new connection code
  * core.async channel-based SSE
