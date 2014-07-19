@@ -23,7 +23,7 @@
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)))
+           (java.io OutputStreamWriter OutputStream FileInputStream InputStream File)))
 
 (defn channel?
   [obj]
@@ -65,12 +65,15 @@
   java.io.File
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [file output-stream]
-    (io/copy file output-stream))
+    (let [^File f file]
+      (with-open [^InputStream stream (FileInputStream. f)]
+        (io/copy stream output-stream))))
 
   java.io.InputStream
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [input-stream output-stream]
-    (io/copy input-stream output-stream))
+    (with-open [^InputStream is input-stream]
+      (io/copy is output-stream)))
 
   nil
   (default-content-type [_] nil)
