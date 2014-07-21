@@ -33,7 +33,7 @@
                               (str "Content-Type, "
                                    (when requested-headers (str requested-headers ", "))
                                    (convert-header-names (keys (:headers request))))
-                              "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD"}
+                              "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS"}
                              (when creds {"Access-Control-Allow-Credentials" (str creds)})
                              (when max-age {"Access-Control-Max-Age" (str max-age)}))]
     (log/info :msg "cors preflight"
@@ -111,5 +111,3 @@
     (if-not origin
       (assoc-in context [:request :headers "origin"] "")
       context)))
-
-
