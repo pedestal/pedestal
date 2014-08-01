@@ -44,6 +44,7 @@
              {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev
              {:source-paths ["dev" "src" "bench"]
+              :plugins      [[codox "0.8.10"]]
               :dependencies [[criterium "0.3.1"]
                              [org.clojure/java.classpath "0.2.2"]
                              [org.clojure/tools.namespace "0.2.4"]
@@ -61,4 +62,3 @@
               :repositories
               [["sonatype-oss"
                 "https://oss.sonatype.org/content/groups/public/"]]}})
-

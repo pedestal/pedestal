@@ -48,24 +48,3 @@ creation of a new server-side application.
 
 _Service Docs_ gets down and dirty with the inner workings of
 the `pedestal.service` layer.
-
-## What about API Documentation?
-
-To generate literate-programming-style documentation for the `app` and
-`service` libraries, add the [lein plugin for
-marginalia](https://github.com/fogus/lein-marginalia) to your lein user
-profile. After installing the pedestal libraries you can then `cd` into the
-`app` or `service` directories and run `lein marg`.
-
-```bash
-cat ~/.lein/profiles.clj
-# {:user {:plugins [[lein-marginalia "0.7.1"]]}}
-
-git clone https://github.com/pedestal/pedestal.git
-cd pedestal
-lein sub install
-( cd service && lein marg )
-```
-
-This will create the documentation for `pedestal.service` in its `docs`
-directory.
