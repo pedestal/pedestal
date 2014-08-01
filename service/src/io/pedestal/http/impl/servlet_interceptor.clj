@@ -70,7 +70,9 @@
   java.io.InputStream
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [input-stream output-stream]
-    (io/copy input-stream output-stream))
+    (try
+      (io/copy input-stream output-stream)
+      (finally (.close input-stream))))
 
   nil
   (default-content-type [_] nil)
