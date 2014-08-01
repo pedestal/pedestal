@@ -1,22 +1,4 @@
----
-title: Asynchronous Services
----
-
-<!--
- Copyright 2013 Relevance, Inc.
- Copyright 2014 Cognitect, Inc.
-
- The use and distribution terms for this software are covered by the
- Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
- which can be found in the file epl-v10.html at the root of this distribution.
-
- By using this software in any fashion, you are agreeing to be bound by
- the terms of this license.
-
- You must not remove this notice, or any other, from this software.
--->
-
-# Asynchronous processing
+# Asynchronous Services
 
 The interceptor infrastructure supports asynchronous processing. When
 processing a request, you can pause and release the current thread.
@@ -34,7 +16,7 @@ Here is some code that needs to wait for something to happen:
       [[["/takes-time" {:get takes-time}]]])
 ```
 
-Requests for _/takes-time_ will block until the wait call completes,
+Requests for `/takes-time` will block until the wait call completes,
 stopping the Web server thread from handling other work.
 
 This code can be made rewritten so that it releases the Web server
@@ -57,19 +39,19 @@ thread, as shown below:
       [[["/takes-time" {:get takes-time}]]])
 ```
 
-The _io.pedestal.impl.interceptor/with-pause_ macro pauses interceptor
+The `io.pedestal.impl.interceptor/with-pause` macro pauses interceptor
 processing and returns the calling thread. The
-_io.pedestal.impl.interceptor/resume_ function resumes processing
+`io.pedestal.impl.interceptor/resume` function resumes processing
 on another thread.
 
 It is important to note that pausing and resuming an interceptor path
 only affects how threads are used. While paused, the context for the
 ongoing request still holds the pipe back to the client.
 
-The simple _handler_ function that took a Ring request map and
+The simple `handler` function that took a Ring request map and
 returned a Ring response map is replaced with a _before_ function,
 that takes and returns a Pedestal interceptor context. This is
-required because the _with-pause_ macro and _resume_ functions work
+required because the `with-pause` macro and `resume` functions work
 with contexts, not Ring requests and response.
 
 In this example, the Web server's thread is freed, but another worker
@@ -101,9 +83,8 @@ approach can be used to implement long-polling. In fact, this is how
 Pedestal's built in support for server-sent events works.
 
 (Note that both these examples use functions in the
-_io.pedestal.impl.inteceptor_ namespace. The code in this
+`io.pedestal.impl.inteceptor` namespace. The code in this
 namespace is subject to change.)
 
 For more about streaming, see [Streaming Responses](service-streaming.md). For more
 about SSE, see [Server-Sent Events](service-sse.md).
-

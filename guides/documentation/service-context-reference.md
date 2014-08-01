@@ -1,21 +1,3 @@
----
-title: Service Context Reference
----
-
-<!--
- Copyright 2013 Relevance, Inc.
- Copyright 2014 Cognitect, Inc.
-
- The use and distribution terms for this software are covered by the
- Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
- which can be found in the file epl-v10.html at the root of this distribution.
-
- By using this software in any fashion, you are agreeing to be bound by
- the terms of this license.
-
- You must not remove this notice, or any other, from this software.
--->
-
 # Service Contexts
 
 ## Motivation
@@ -58,52 +40,52 @@ The context map supports the following values:
    client.
 
 * *:bindings* - A map of Var/value pairs, as accepted by
-   clojure.core/with-bindings. Prior to delegating execution to any
+   `clojure.core/with-bindings`. Prior to delegating execution to any
    interceptor, the interceptor framework will ensure that the
    bindings specified in this map are installed using
-   clojure.core/with-bindings. If this map is altered and included in
+   `clojure.core/with-bindings`. If this map is altered and included in
    the returned context from an interceptor, the new bindings in the
    map will be installed as thread local bindings prior to another
    interceptor's execution.
 
-* *:servlet-request* - A javax.servlet.http.HttpServletRequest
+* *:servlet-request* - A `javax.servlet.http.HttpServletRequest`
    instance, provided to the Servlet instance which bootstrapped this
    interceptor path's execution.
 
-* *:servlet-response* - A javax.servlet.http.HttpServletResponse
+* *:servlet-response* - A `javax.servlet.http.HttpServletResponse`
    instance, provided to the Servlet instance which bootstrapped this
    interceptor path's execution.
 
-* *:servlet-config* - A javax.servlet.ServletConfig instance,
+* *:servlet-config* - A `javax.servlet.ServletConfig` instance,
    retrieved from the Servlet instance which bootstrapped this
    interceptor path's execution.
 
-* *:servlet* - The javax.servlet.Servlet instance which bootstrapped
+* *:servlet* - The `javax.servlet.Servlet` instance which bootstrapped
    this interceptor path's execution.
 
 * *:io.pedestal.impl.interceptor/execution-id* -
-  Autoincrementing long which can associate a single interceptor
+  Auto-incrementing long which can associate a single interceptor
   execution context across multiple threads.
 
-* *:io.pedestal.impl.interceptor/queue* - A PersistentQueue of
+* *:io.pedestal.impl.interceptor/queue* - A `PersistentQueue` of
    interceptors which still need to be executed during the 'enter'
    stage. So long as this value is not empty, the head of the queue
    will be removed and executed, then added to the end of
    *:io.pedestal.impl.interceptor/stack*
 
-* *:io.pedestal.impl.interceptor/stack* - A PersistentList of
+* *:io.pedestal.impl.interceptor/stack* - A `PersistentList` of
    interceptors which still need to be executed during the 'leave'
    stage. So long as this value is not empty, the tail of the list
    will be removed and executed.
 
 * *:io.pedestal.impl.interceptor/pause-stack* - A
-   PersistentList of interceptors which will have their pause fns
+   `PersistentList` of interceptors which will have their pause fns
    called during the pause stage. This stack will be consumed as
    pause fns are called, leaving
    *:io.pedestal.impl.interceptor/stack* unchanged.
 
 * *:io.pedestal.impl.interceptor/resume-stack* - A
-   PersistentList of interceptors which will have their resume fns
+   `PersistentList` of interceptors which will have their resume fns
    called during the resume stage. Initially starts as the reversed
    value of *:io.pedestal.impl.interceptor/stack*, and is
    consumed as an interceptor's execution is resumed.

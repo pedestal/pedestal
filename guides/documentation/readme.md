@@ -1,22 +1,4 @@
----
-title: Pedestal Documentation
----
-
-<!--
- Copyright 2013 Relevance, Inc.
- Copyright 2014 Cognitect, Inc.
-
- The use and distribution terms for this software are covered by the
- Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
- which can be found in the file epl-v10.html at the root of this distribution.
-
- By using this software in any fashion, you are agreeing to be bound by
- the terms of this license.
-
- You must not remove this notice, or any other, from this software.
--->
-
-## What is Pedestal?
+# What is Pedestal?
 
 Pedestal is a collection of
 interacting libraries that together create a pathway for developing
@@ -27,7 +9,7 @@ Clojure to build internet applications requiring low-latency, streaming
 In short: Pedestal provides a better, cohesive way to build
 rich client web applications in Clojure.
 
-## Who is it for?
+# Who is it for?
 
 Clojurists looking for a standard way to build internet
 applications will love Pedestal. Rather than composing art
@@ -40,16 +22,13 @@ courage to ask it out on a date. It provides a sterling example
 of how to use the Clojure ecosystem to its best advantage, reducing
 the friction usually associated with a language switch.
 
-## Where do I start?
+# Where do I start?
 
-In the _Getting Started_ section, you will find a walk-through
-that introduces you to all of Pedestal's moving parts via the
-creation of a new server-side application.
+In [Hello World Service](hello-world-service.md), you will find a
+walk-through that introduces you to all of Pedestal's moving parts via
+the creation of a new server-side application.
 
-_Service Docs_ gets down and dirty with the inner workings of
-the `pedestal.service` layer.
-
-## What about API Documentation?
+# What about API Documentation?
 
 To generate literate-programming-style documentation for the `app` and
 `service` libraries, add the [lein plugin for

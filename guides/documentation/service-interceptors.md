@@ -1,21 +1,3 @@
----
-title: Service Interceptors
----
-
-<!--
- Copyright 2013 Relevance, Inc.
- Copyright 2014 Cognitect, Inc.
-
- The use and distribution terms for this software are covered by the
- Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
- which can be found in the file epl-v10.html at the root of this distribution.
-
- By using this software in any fashion, you are agreeing to be bound by
- the terms of this license.
-
- You must not remove this notice, or any other, from this software.
--->
-
 # Interceptors
 
 ## Ring Request Processing
@@ -33,7 +15,7 @@ data, it is fed to a function which returns a response. The response
 is interpreted as a map of data, specific keys in the response are
 extracted and used to build an HTTP response which is sent back to the
 client. In this model, composition is achieved by using higher order
-functions of other functions. Conventionally, a _wrap-functionality_
+functions of other functions. Conventionally, a `wrap-functionality`
 function is written which accepts a function of a request, and returns
 a new function of a request which exhibits the new composite
 functionality. Sessions are a good example; the
@@ -64,7 +46,7 @@ life of the request's processing makes use of closure scopes and the
 call stack to retain values calculated before request processing to be
 used after a response has been generated.
 
-![Ring Middleware Composition](/images/service/middlewares.png)
+![Ring Middleware Composition](middlewares.png)
 
 To summarize the qualities of ring request processing:
 
@@ -136,10 +118,10 @@ functions of preceding interceptors, as if the last interceptor in
 the path had been reached.
 
 During execution, an interceptor may revert to the pause state (most
-often using the with-pause macro). In this case, each interceptor in
+often using the `with-pause` macro). In this case, each interceptor in
 the path which has previously had its enter function called, has their
 pause function called in reverse order. When all of the pause
-functions have been called, the body of with-pause executes with the
+functions have been called, the body of `with-pause` executes with the
 context resulting from all of the pause invocations. Finally,
 interceptor processing terminates in that thread, but the context upon
 which the interceptors had been processing may be retained in memory.
@@ -157,7 +139,7 @@ number of times.
 
 This architecture allows for processing a single request across
 multiple threads. The thread which initially begins processing the
-request invokes the (with-pause) macro, which implicitly invokes the
+request invokes the `with-pause` macro, which implicitly invokes the
 pause stage of all previous interceptors in the path, captures the
 resultant context, and binds it to the name provided in the binding
 form before executing the body. In the body, the context is made
@@ -192,20 +174,20 @@ responses are represented as Ring-style maps, but held in a wrapping
 Pedestal service context map.
 
 All of the middlewares in Ring have been refactored so that in
-addition to the conventional _wrap-xyz_ function for building a
-Ring-style middleware chain, there are _xyz-request_ and
-_xyz-response_ functions. These functions process requests and
-responses separately. The _wrap-xys_ functions have been refactored to
+addition to the conventional `wrap-xyz` function for building a
+Ring-style middleware chain, there are `xyz-request` and
+`xyz-response` functions. These functions process requests and
+responses separately. The `wrap-xys` functions have been refactored to
 use the separate request and response processing functions.
 
-The _io.pedestal.http.ring-middlewares_ namespace defines
-interceptors that use the new Ring _xyz-request_ and _xyz-response_
+The `io.pedestal.http.ring-middlewares` namespace defines
+interceptors that use the new Ring `xyz-request` and `xyz-response`
 functions, making all the standard Ring middlewares usable in Pedestal
 services.
 
 ## Compared with Ring Middleware
 
-![Interceptor Composition](/images/service/interceptors.png)
+![Interceptor Composition](interceptors.png)
 
 Consider the nature of Pedestal Service's Interceptors as compared
 with Ring's Middlewares.
@@ -215,7 +197,7 @@ with Ring's Middlewares.
 
 2. Ordering and presence are clearly visible, it is data that can be
     worked with using all of Clojure's tools for working with seqs and
-    PersistentQueues.
+    `PersistentQueues`.
 
 3. Responsibility of chaining behavior is delegated to the interceptor
     framework.
@@ -262,26 +244,26 @@ symbolic name and docstring to an interceptor.
 There are functions and macros for constructing interceptors that deal
 with Ring requests and responses:
 
-- The _on-request_ function and _defon-request_ macro define
+- The `on-request` function and `defon-request` macro define
    an interceptor with an enter function that takes a Ring request and
    returns a modified Ring request.
 
-- The _on-response_ function and _defon-response_ macro define an
+- The `on-response` function and `defon-response` macro define an
    interceptor with a leave function that takes a Ring response and
    returns a modified Ring response.
 
-- The _middleware_ function and _defmiddleware_ macro define an
+- The `middleware` function and `defmiddleware` macro define an
    interceptor with both an enter and a leave function.
 
 There are equivalent functions and macros for building interceptors
-that deal directly with context maps, named _before_ and _defbefore_,
-_after_ and _defafter_, and _around_ and _defaround_.
+that deal directly with context maps, named `before` and `defbefore`,
+`after` and `defafter`, and `around` and `defaround`.
 
 Existing Ring handler functions used at the end of middleware chains
 that take a request and return a response can be referred to directly
 from a service's route table. The routing infrastructure will wrap
-them in an interceptor using the _handler_ function.  Alternatively,
-you can wrap them yourself using the _defhandler_ macro.
+them in an interceptor using the `handler` function.  Alternatively,
+you can wrap them yourself using the `defhandler` macro.
 
 These macros also flag the vars they create with metadata identifying
 them as either interceptors or interceptor-fns. Other pieces in the
@@ -293,13 +275,13 @@ decisions about how to work with these vars.
 You can port Ring code to Pedestal by:
 
 - Reusing handler functions directly in a route-table (or by wrapping
-  them in a call to _handler_ or _defhandler_)
+  them in a call to `handler` or `defhandler`)
 
 - Refactoring middleware functions into two separate functions, one
   that modifies a request and one that modifies a response and using
-  them to define an interceptor using the _on-request_, _middleware_
-  or _on-response_ functions or the _defon-request_, _defmiddleware_
-  or _defon-response_ macros.
+  them to define an interceptor using the `on-request`, `middleware`
+  or `on-response` functions or the `defon-request`, `defmiddleware`
+  or `defon-response` macros.
 
   You can build an interceptor that works directly with a context map,
   providing access to both Ring maps.
@@ -312,5 +294,4 @@ You can port Ring code to Pedestal by:
   routes should be replaced by interceptors referenced directly in
   your route definitions. There are interceptors provided for all the
   existing Ring middlewares. They are defined in the
-  _io.pedestal.http.ring-middlewares_ namespace.
-
+  `io.pedestal.http.ring-middlewares` namespace.

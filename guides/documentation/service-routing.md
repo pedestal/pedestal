@@ -1,22 +1,4 @@
----
-title: Service Routing
----
-
-<!--
- Copyright 2013 Relevance, Inc.
- Copyright 2014 Cognitect, Inc.
-
- The use and distribution terms for this software are covered by the
- Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
- which can be found in the file epl-v10.html at the root of this distribution.
-
- By using this software in any fashion, you are agreeing to be bound by
- the terms of this license.
-
- You must not remove this notice, or any other, from this software.
--->
-
-# Introduction
+# Service Routing
 
 Pedestal's HTTP service plumbing provides a mechanism for routing
 requests through an ordered list of interceptors that handle them. The
@@ -86,7 +68,7 @@ GET /hello-world HTTP/1.1
 Host: example.com
 ```
 
-would be routed to the _hello-world_ interceptor.
+would be routed to the `hello-world` interceptor.
 
 A request to a different host (either DNS name or IP
 address) or using HTTPS would not be routed, unless the application's
@@ -97,7 +79,7 @@ specification were loosened, like so:
   ["/hello-world" {:get hello-world}]]]
 ```
 
-The application's name, _:hello-world_, is optionally used during URL
+The application's name, `:hello-world`, is optionally used during URL
 generation, and can also be omitted, leaving this:
 
 ```clj
@@ -111,7 +93,7 @@ This is the smallest possible example of a useful route table.
 In most cases, a nested vector specifying routes contains a path and a verb
 map (there are exceptions, explained below). The verb map contains
 keys corresponding to HTTP verbs. All verbs are supported, along with
-the special value _:any_, indicating a match to any HTTP verb. Each
+the special value `:any`, indicating a match to any HTTP verb. Each
 verb represents a different route. The values in the verb map
 represent the "destination interceptor". Additional intermediate
 interceptors may also be invoked, as described below.
@@ -152,11 +134,11 @@ The following sections explains how these values are used.
 A terse route definition must be expanded to a full route table
 before it can be used. There are two ways to do this:
 
-- the _io.pedestal.http.route.definition/expand-routes_ function
+- the `io.pedestal.http.route.definition/expand-routes` function
 
-- the _io.pedestal.http.route.definition/defroutes_ macro
+- the `io.pedestal.http.route.definition/defroutes` macro
 
-The _expand-routes_ function takes a terse route definition data
+The `expand-routes` function takes a terse route definition data
 structure as input and returns a route table. For example:
 
 ```clj
@@ -166,11 +148,11 @@ structure as input and returns a route table. For example:
   (expand-routes '[[["/hello-world" {:get hello-world}]]]))
 ```
 
-Note that the terse data structure is quoted, making _hello-world_ a
-symbol. It resolves the _hello-world_ function, which takes a Ring
+Note that the terse data structure is quoted, making `hello-world` a
+symbol. It resolves the `hello-world` function, which takes a Ring
 request and returns a Ring response.
 
-The _defroutes_ macro is equivalent to calling _expand-routes_ with a
+The `defroutes` macro is equivalent to calling `expand-routes` with a
 quoted data structure:
 
 ```clj
@@ -193,10 +175,10 @@ routes. Here is an example:
 (def route-table (make-routes-for-who "World"))
 ```
 
-In this case, the _make-routes-for-who_ function takes an argument,
-_who_, that it uses to configure the resulting routes. It generates
+In this case, the `make-routes-for-who` function takes an argument,
+`who`, that it uses to configure the resulting routes. It generates
 the terse route data structure using Clojure's syntax quote mechanism,
-splicing in the value of _who_ where it is needed.
+splicing in the value of `who` where it is needed.
 
 In some cases, you may want to assemble the terse data structure
 without quoting it at all. Here is an example:
@@ -210,14 +192,14 @@ without quoting it at all. Here is an example:
  {:get [(handler ::hello-world hello-world)]}]]]))
 ```
 
-In this case, the _hello-world_ symbol is resolved to the
-_hello-world_ function as the data structure is built. The _handler_
-function (defined in _io.pedestal.interceptor_) takes the
+In this case, the `hello-world` symbol is resolved to the
+`hello-world` function as the data structure is built. The `handler`
+function (defined in `io.pedestal.interceptor`) takes the
 function and builds an interceptor from it, to meet the requirement
 that a value in a verb map must be a symbol, an interceptor, or a list.
 
-Alternatively, _hello-world_ can be defined as an interceptor
-directly, using the _io.pedestal.interceptor/defhandler_ macro:
+Alternatively, `hello-world` can be defined as an interceptor
+directly, using the `io.pedestal.interceptor/defhandler` macro:
 
 ```clj
 (defhandler hello-world [req] {:status 200 :body "Hello World!"})
@@ -227,7 +209,7 @@ directly, using the _io.pedestal.interceptor/defhandler_ macro:
     [[["/hello-world" {:get hello-world}]]]))
 ```
 
-Or, _hello-world_ can be quoted, making it a symbol again:
+Or, `hello-world` can be quoted, making it a symbol again:
 
 ```clj
 (defn hello-world [req] {:status 200 :body "Hello World!"})
@@ -237,8 +219,8 @@ Or, _hello-world_ can be quoted, making it a symbol again:
     [[["/hello-world" {:get 'hello-world]}]]]))
 ```
 
-The _expand-routes_ function is more flexible, but also harder to use
-than the _defroutes_ macro. The latter is preferred in most cases.
+The `expand-routes` function is more flexible, but also harder to use
+than the `defroutes` macro. The latter is preferred in most cases.
 
 ## Advanced route definitions
 
@@ -320,7 +302,7 @@ following interceptor paths:
 Route definitions can specify additional interceptors to include in
 the interceptor path for a given route. These interceptors function as
 before, after or around filters for specific routes. They are
-specified using a vector marked with _^:interceptors_ metadata. The
+specified using a vector marked with `^:interceptors` metadata. The
 values specified in the interceptors vector may be:
 
 - a symbol that resolves to one of:
@@ -366,9 +348,9 @@ Any number of interceptors may be specified as an order sequence:
 ```
 
 In this case, for requests that match the "/order/:id" route, the
-_load-order-from-db_ interceptor will run before the
-_verify-order-ownership_ interceptor, then the appropriate handler,
-_view-order_ or _update-order_, will run.
+`load-order-from-db` interceptor will run before the
+`verify-order-ownership` interceptor, then the appropriate handler,
+`view-order` or `update-order`, will run.
 
 Interceptors may be specified at multiple levels of the hierarchy.
 Like paths, interceptors are inherited. Inherited interceptors always
@@ -403,7 +385,7 @@ parameters. Constraints are tested when a request is being matched
 against a route. If the request does not satisfy a route's constraints, it
 is not considered a match.
 
-Constraints are specified as a map marked with _^:constraints_
+Constraints are specified as a map marked with `^:constraints`
 metadata. The keys in the map are path parameters or query string
 parameters. The values are regular expressions used for testing
 parameter values.
@@ -440,7 +422,7 @@ Like intermediate interceptors, constraints are inherited by child routes.
 # Routing
 
 Once a route table is defined, it can be used to create a router. The
-_io.pedestal.http.route/router_ function takes a route table as
+`io.pedestal.http.route/router` function takes a route table as
 input and returns an interceptor that handles routing.
 
 ```clj
@@ -464,7 +446,7 @@ If no route matches, the router simply returns the current interceptor
 context without modification.
 
 During development it is useful to be able to reprocess route
-definitions without restarting your server. If you call the _router_
+definitions without restarting your server. If you call the `router`
 function and pass a function that returns a route table, it will be
 called every time the routing interceptor is used. This allows your
 Web server to use the latest compiled routes without restarting.
@@ -495,14 +477,14 @@ name expressed as a keyword.
 For routes that specify destination interceptors directly as
 interceptor values, the route-name is the name of the interceptor.
 
-For interceptors defined using the _defbefore_, _defafter_,
-_defaround_, _defon-request_, _defhandler_ and _defon-response_ macros
-in the _io.pedestal.interceptor_ namespace, the name is the
+For interceptors defined using the `defbefore`, `defafter`,
+`defaround`, `defon-request`, `defhandler` and `defon-response` macros
+in the `io.pedestal.interceptor` namespace, the name is the
 interceptor's fully-qualified symbol name expressed as a keyword.
 
-For interceptors defined using the _before_, _after_, _around_,
-_on-request_, _handler_ and _on-response_ functions in the
-_io.pedestal.interceptor_ namespace, the name is the keyword
+For interceptors defined using the `before`, `after`, `around`,
+`on-request`, `handler` and `on-response` functions in the
+`io.pedestal.interceptor` namespace, the name is the keyword
 passed to the function, if any.
 
 For routes that specify interceptors indirectly as lists to be
@@ -532,7 +514,7 @@ Here is an example.
 ```
 
 In this case, the destination interceptors are all specified as
-symbols in the _orders_ namespace. The route names are listed below:
+symbols in the `orders` namespace. The route names are listed below:
 
 - GET /order => :orders/list-orders
 
@@ -542,17 +524,17 @@ symbols in the _orders_ namespace. The route names are listed below:
 
 - POST /order/:id => :orders/update-order
 
-The second route specified an explicit route name, _:make-an-order_,
+The second route specified an explicit route name, `:make-an-order`,
 which takes precedence over the implicit name for that route,
-_:orders/create-order_.
+`:orders/create-order`.
 
-The _io.pedestal.http.route/print-routes_ helper function prints
+The `io.pedestal.http.route/print-routes` helper function prints
 route verbs, paths and names at the repl. When in doubt, you can use
 it to find route names.
 
 ## URL generation
 
-The _io.pedestal.http.route/url-for-routes_ function takes a
+The `io.pedestal.http.route/url-for-routes` function takes a
 route table and returns a function that accepts a route-name (and optional
 arguments) and returns a URL that can be used in a hyperlink.
 
@@ -566,7 +548,7 @@ arguments) and returns a URL that can be used in a hyperlink.
 ;; => "/order"
 ```
 
-An _url-for_ function can populate parameters in a route. Parameter values
+An `url-for` function can populate parameters in a route. Parameter values
 are passed as additional arguments:
 
 ```clj
@@ -574,9 +556,9 @@ are passed as additional arguments:
 ;; => "/order/10"
 ```
 
-Entries in the _:params_ map that do not correspond to parameter values
+Entries in the `:params` map that do not correspond to parameter values
 in a route's path are added to the returned URL as query string
-parameters. Alternatively, _:path-params_ and _:query-params_ can be
+parameters. Alternatively, `:path-params` and `:query-params` can be
 used to specify parameter values independently.
 
 ## Request-specific URL generation
@@ -590,22 +572,22 @@ supported schemes.
 When the routing interceptor matches a request to a route, it creates
 a new URL generator function that closes over the request. It adds the
 function to the interceptor context and the Ring request map, using
-the key _:url-for_.
+the key `:url-for`.
 
 The request-specific URL generator function is also dynamically bound
-to a private var in the _io.pedestal.http.route_ namespace. The
-_io.pedestal.http.route/url-for_ function calls the dynamically
+to a private var in the `io.pedestal.http.route` namespace. The
+`io.pedestal.http.route/url-for` function calls the dynamically
 bound function.
 
-The _io.pedestal.http.route/url-for_ function can be called from
+The `io.pedestal.http.route/url-for` function can be called from
 any thread that is currently executing an interceptor. If you need to
 use a request-specific URL generator function elsewhere, extract
-_:url-for_ from the context or request map and propagate it as needed.
+`:url-for` from the context or request map and propagate it as needed.
 
 ## Verb smuggling
 
-The _url-for_ functions only return URLs. The
-_io.pedestal.http.route/form-action-for-routes_ function takes a
+The `url-for` functions only return URLs. The
+`io.pedestal.http.route/form-action-for-routes` function takes a
 route table returns a function that accepts a route-name (and optional
 arguments) and returns a map containing a URL and an HTTP verb.
 
@@ -618,15 +600,14 @@ arguments) and returns a map containing a URL and an HTTP verb.
 
 A form action function will (by default) convert verbs other than GET
 or POST to POST, with the actual verb added as a query string
-parameter named __method_:
+parameter named `method`:
 
 ```clj
 (form-action ::o/update-order :params {:id 20})
-;; => {:action "/order/20?_method=put" :method :post}
+;; => {:action "/order/20?`method=put" :method :post}
 ```
 
-This behavior can be disabled (or enabled for _url-for_ functions) and
+This behavior can be disabled (or enabled for `url-for` functions) and
 the query string parameter name can be changed. All of these settings
-can be modified when an _url-for_ or _form-action_ function is created
+can be modified when an `url-for` or `form-action` function is created
 or when it is invoked.
-
