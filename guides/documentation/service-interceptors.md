@@ -46,7 +46,7 @@ life of the request's processing makes use of closure scopes and the
 call stack to retain values calculated before request processing to be
 used after a response has been generated.
 
-![Ring Middleware Composition](middlewares.png)
+![Ring Middleware Composition](https://raw.githubusercontent.com/pedestal/pedestal/master/guides/documentation/middlewares.png)
 
 To summarize the qualities of ring request processing:
 
@@ -187,7 +187,7 @@ services.
 
 ## Compared with Ring Middleware
 
-![Interceptor Composition](interceptors.png)
+![Interceptor Composition](https://raw.githubusercontent.com/pedestal/pedestal/master/guides/documentation/interceptors.png)
 
 Consider the nature of Pedestal Service's Interceptors as compared
 with Ring's Middlewares.
