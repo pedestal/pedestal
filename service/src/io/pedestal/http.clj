@@ -119,7 +119,7 @@
   * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
     is not added. Default is nil.
   * :resource-path: File path used as root by the middlewares/resource interceptor. If nil, this interceptor
-    is not added. Default is 'public'.
+    is not added. Default is nil.
   * :method-param-name: Query string parameter used to set the current HTTP verb. Default is _method.
   * :allowed-origins: Determines what origins are allowed for the cors/allow-origin interceptor. If
      nil, this interceptor is not added. Default is nil.
@@ -146,7 +146,7 @@
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
          :or {file-path nil
-              resource-path "public"
+              resource-path nil
               not-found-interceptor not-found
               method-param-name :_method
               ext-mime-types {}
