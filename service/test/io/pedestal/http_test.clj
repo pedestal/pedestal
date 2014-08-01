@@ -220,6 +220,8 @@
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-stream output-stream)
                (slurp-output-stream output-stream))))
     (is (thrown? java.io.IOException
+                 ;; This is JVM implementation specific;
+                 ;;   If it breaks down, we'll needed a decorated body-stream
                  (.available body-stream)))))
 
 (deftest file-body-test
