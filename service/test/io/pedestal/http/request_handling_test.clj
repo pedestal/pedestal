@@ -61,6 +61,7 @@
       ::service/service-fn))
 
 (def app (make-app {::service/routes request-handling-routes
+                    ::service/resource-path "public"
                     ::service/file-path tempdir}))
 
 (deftest termination-test
