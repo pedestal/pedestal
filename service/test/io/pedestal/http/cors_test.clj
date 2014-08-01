@@ -26,7 +26,8 @@
   [request] (ring-resp/response "Hello World!"))
 
 (defroutes routes
-  [[["/hello-world" {:get hello-world}]]])
+  [[["/hello-world" {:get hello-world
+                     :patch [:another-hello hello-world]}]]])
 
 (def app
   (::service/service-fn (-> {::service/routes routes
@@ -41,6 +42,11 @@
 
 (deftest good-origin-test
   (let [response (response-for app :get "/hello-world" :headers {"origin" "http://foo.com:8080"})]
+    (is (= 200 (:status response)))
+    (is (= "http://foo.com:8080" (get-in response [:headers "Access-Control-Allow-Origin"])))))
+
+(deftest good-origin-patch-test
+  (let [response (response-for app :patch "/hello-world" :headers {"origin" "http://foo.com:8080"})]
     (is (= 200 (:status response)))
     (is (= "http://foo.com:8080" (get-in response [:headers "Access-Control-Allow-Origin"])))))
 
