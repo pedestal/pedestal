@@ -26,14 +26,16 @@
   (str/join ", " (map convert-header-name header-names)))
 
 (defn- preflight
-  [{request :request :as context} origin {:keys [creds max-age] :as args}]
+  [{request :request :as context} origin {:keys [creds max-age methods] :as args}]
   (let [requested-headers (get-in request [:headers "access-control-request-headers"])
         cors-headers (merge  {"Access-Control-Allow-Origin" origin
                               "Access-Control-Allow-Headers"
                               (str "Content-Type, "
                                    (when requested-headers (str requested-headers ", "))
                                    (convert-header-names (keys (:headers request))))
-                              "Access-Control-Allow-Methods" "GET, POST, PUT, DELETE, HEAD"}
+                              "Access-Control-Allow-Methods" (if methods
+                                                               methods
+                                                               "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS")}
                              (when creds {"Access-Control-Allow-Credentials" (str creds)})
                              (when max-age {"Access-Control-Max-Age" (str max-age)}))]
     (log/info :msg "cors preflight"
@@ -63,9 +65,11 @@
     :creds - true or false, indicates whether client is allowed to send credentials
 
     :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
+
+    :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
   "
   [allowed-origins]
-  (let [{:keys [creds max-age allowed-origins] :as args} (normalize-args allowed-origins)]
+  (let [{:keys [creds max-age methods allowed-origins] :as args} (normalize-args allowed-origins)]
     (around ::allow-origin
             (fn [context]
               (let [origin (get-in context [:request :headers "origin"])
