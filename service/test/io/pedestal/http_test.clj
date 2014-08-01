@@ -19,7 +19,7 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp])
-  (:import (java.io ByteArrayOutputStream)))
+  (:import (java.io ByteArrayOutputStream FileInputStream File)))
 
 (defn about-page
   [request]
@@ -160,6 +160,11 @@
 
 ;; data response fn tests
 
+(defn- slurp-output-stream [output-stream]
+  (.flush output-stream)
+  (.close output-stream)
+  (.toString output-stream "UTF-8"))
+
 (deftest edn-response-test
   (let [obj {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
@@ -169,9 +174,7 @@
                     service/edn-response
                     :body)
                 output-stream)
-               (.flush output-stream)
-               (.close output-stream)
-               (.toString output-stream "UTF-8"))))))
+               (slurp-output-stream output-stream))))))
 
 (deftest default-edn-output-test
   (let [obj {:a 1 :b 2 :c [1 2 3]}
@@ -182,9 +185,7 @@
                     ring-resp/response
                     :body)
                 output-stream)
-               (.flush output-stream)
-               (.close output-stream)
-               (.toString output-stream "UTF-8"))))))
+               (slurp-output-stream output-stream))))))
 
 (deftest default-edn-response-test
   (let [edn-resp (response-for app :get "/edn")]
@@ -201,9 +202,33 @@
                     service/json-response
                     :body)
                 output-stream)
-               (.flush output-stream)
-               (.close output-stream)
-               (.toString output-stream "UTF-8"))))))
+               (slurp-output-stream output-stream))))))
+
+(defn- create-temp-file [content]
+  (let [f (File/createTempFile "pedestal-" nil)]
+    (.deleteOnExit f)
+    (spit f content)
+    f))
+
+(deftest input-stream-body-test
+  (let [body-content "Hello Input Stream"
+        body-stream (-> body-content
+                        create-temp-file
+                        FileInputStream.)
+        output-stream (ByteArrayOutputStream.)]
+    (is (= body-content
+           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-stream output-stream)
+               (slurp-output-stream output-stream))))
+    (is (thrown? java.io.IOException
+                 (.available body-stream)))))
+
+(deftest file-body-test
+  (let [body-content "Hello File"
+        body-file (create-temp-file body-content)
+        output-stream (ByteArrayOutputStream.)]
+    (is (= body-content
+           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-file output-stream)
+               (slurp-output-stream output-stream))))))
 
 (def anti-forgery-app-interceptors
   (service/default-interceptors {::service/routes app-routes
@@ -218,4 +243,3 @@
     (is (> (count body) 5))
     (is (= "HELLO" (subs body 0 5)))
     (is (not-empty (subs body 4)))))
-
