@@ -66,12 +66,12 @@ to be able to use Pedestal, including developers working on projects for very
 large companies. Many of these big organizations care *a lot* about the provenance of
 the code they use -- that is they need to know where the code came from and who owns it.
 The contributor's agreement simply puts down in writing what we think is the
-standard open source arrangement: Mostly it says that you are donating code that 
+standard open source arrangement: Mostly it says that you are donating code that
 you wrote to the project. By submitting a signed contributor's agreement,
 you are helping to ensure that your work will be available to the largest possible audience.
 
 It is an extra step, but there really is not much to executing the Pedestal contributor's agreement: You just need to send a copy of the CA with your signature
-(and a few other details)  to [contribute@pedestal.io](mailto:contribute@pedestal.io).
+(and a few other details) to [contribute@pedestal.io](mailto:contribute@pedestal.io).
 
-[See here](http://pedestal.io/#contribute) to get your hands on the CA form and
-find out more about getting it done.
+You can find the [CA form](cognitect-ca.pdf) in the repo.
+
