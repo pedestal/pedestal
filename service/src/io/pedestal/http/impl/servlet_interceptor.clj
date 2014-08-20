@@ -112,17 +112,7 @@
   (write-body-async [body context resume-chan]
     (write-body-byte-channel (:servlet-response context) body context resume-chan)))
 
-(extend-protocol WriteBodyByteChannel
-  org.eclipse.jetty.server.Response
-  (write-body-byte-channel [servlet-response ^ReadableByteChannel body-chan context resume-chan]
-    (let [os ^org.eclipse.jetty.server.HttpOutput (.getOutputStream servlet-response)]
-      (.sendContent os body-chan (reify org.eclipse.jetty.util.Callback
-                                   (succeeded [this]
-                                     (.close body-chan)
-                                     (async/put! resume-chan context))
-                                   (failed [this throwable]
-                                     (.close body-chan)
-                                     (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))))))))
+
 
 ;; Should we also set character encoding explicitly - if so, where
 ;; should it be stored in the response map, headers? If not,
