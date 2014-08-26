@@ -60,7 +60,9 @@
     (.append sb CRLF)
 
     (doseq [part (string/split data #"\r?\n")]
-      (.append sb (str "data:" part "\r\n")))
+      (.append sb "data:")
+      (.append sb part)
+      (.append sb "\r\n"))
 
     (.append sb CRLF)
     (.toString sb)))
