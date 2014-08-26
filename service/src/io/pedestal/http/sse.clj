@@ -20,6 +20,7 @@
             [clojure.string :as string])
   (:import [java.nio.charset Charset]
            [java.io BufferedReader StringReader OutputStream]
+           [java.lang StringBuilder]
            [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
            [javax.servlet ServletResponse]))
 
@@ -52,9 +53,17 @@
 (def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
-(defn mk-data [data]
-  (apply str (map #(str "data:" % "\r\n")
-                  (string/split data #"\r?\n"))))
+(defn mk-data [name data]
+  (let [sb (StringBuilder.)]
+    (.append sb EVENT_FIELD)
+    (.append sb (get-bytes name))
+    (.append sb CRLF)
+
+    (doseq [part (string/split data #"\r?\n")]
+      (.append sb (str "data:" part "\r\n")))
+
+    (.append sb CRLF)
+    (.toString sb)))
 
 
 (defn send-event [channel name data]
@@ -62,9 +71,7 @@
              :name name
              :data data)
   (try
-    (locking channel
-      (doseq [token [EVENT_FIELD (get-bytes name) CRLF (mk-data data) CRLF]]
-        (async/>!! channel token)))
+    (async/>!! channel (mk-data name data))
     (catch Throwable t
       (log/error :msg "exception sending event"
                  :throwable t
@@ -74,8 +81,7 @@
 (defn do-heartbeat [channel]
   (try
     (log/trace :msg "writing heartbeat to stream")
-    (locking channel
-      (async/>!! channel CRLF))
+    (async/>!! channel CRLF)
     (catch Throwable t
       (log/error :msg "exception sending heartbeat"
                  :throwable t
