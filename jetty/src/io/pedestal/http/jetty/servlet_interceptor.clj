@@ -1,8 +1,9 @@
 (ns io.pedestal.http.jetty.servlet-interceptor
-  (:require [io.pedestal.http.impl.servlet-interceptor])
+  (:require [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [clojure.core.async :as async])
   (:import java.nio.channels.ReadableByteChannel))
 
-(extend-protocol WriteBodyByteChannel
+(extend-protocol servlet-interceptor/WriteBodyByteChannel
   org.eclipse.jetty.server.Response
   (write-body-byte-channel [servlet-response ^ReadableByteChannel body-chan context resume-chan]
     (let [os ^org.eclipse.jetty.server.HttpOutput (.getOutputStream servlet-response)]
