@@ -11,6 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
+  (:require io.pedestal.http.jetty.servlet-interceptor)
   (:import (org.eclipse.jetty.server Server ServerConnector
                                      Request
                                      HttpConfiguration

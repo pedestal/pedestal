@@ -23,7 +23,8 @@
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)))
+           (java.io OutputStreamWriter OutputStream)
+           (java.nio.channels ReadableByteChannel)))
 
 (defn channel?
   [obj]
@@ -34,6 +35,18 @@
 (defprotocol WriteableBody
   (default-content-type [body] "Get default HTTP content-type for `body`.")
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
+
+(defprotocol WriteBodyAsync
+  (write-body-async [body context resume-chan]
+    "asynchronously write body to the servlet response. Implementations
+    should put the updated context on resume-chan when done, then close it."))
+
+(defprotocol WriteBodyByteChannel
+  ;; Ideally, we could add ReadableByteChannel as a type to
+  ;; WriteableBody, but the servlet API doesn't provide a
+  ;; standards-compliant way to write output using NIO yet, so this is
+  ;; servlet-specific. Dispatches on the servlet-response class
+  (write-body-byte-channel [servlet-response body-chan context resume-chan]))
 
 (extend-protocol WriteableBody
 
@@ -82,6 +95,25 @@
   (let [output-stream (.getOutputStream servlet-resp)]
     (write-body-to-stream body output-stream)))
 
+(extend-protocol WriteBodyAsync
+  clojure.core.async.impl.protocols.Channel
+  (write-body-async [body context resume-chan]
+    (let [servlet-response (:servlet-response context)]
+      (async/go
+       (loop []
+         (when-let [body-part (async/<! body)]
+           (write-body servlet-response body-part)
+           (.flushBuffer ^HttpServletResponse servlet-response)
+           (recur)))
+       (async/>! resume-chan context)
+       (async/close! resume-chan))))
+
+  java.nio.channels.ReadableByteChannel
+  (write-body-async [body context resume-chan]
+    (write-body-byte-channel (:servlet-response context) body context resume-chan)))
+
+
+
 ;; Should we also set character encoding explicitly - if so, where
 ;; should it be stored in the response map, headers? If not,
 ;; should we provide help for adding it to content-type string?
@@ -112,16 +144,8 @@
   (when-not (.isCommitted servlet-response)
     (set-response servlet-response response))
   (let [body (:body response)]
-    (if (channel? body)
-      (do
-        (async/go
-         (loop []
-           (when-let [body-part (async/<! body)]
-             (write-body servlet-response body-part)
-             (.flushBuffer ^HttpServletResponse servlet-response)
-             (recur)))
-         (async/>! (::resume-channel context) context)
-         (async/close! (::resume-channel context))))
+    (if (satisfies? WriteBodyAsync body)
+      (write-body-async body context (::resume-channel context))
       (do
         (write-body servlet-response body)
         (.flushBuffer servlet-response)))))
@@ -244,9 +268,9 @@
    (nil? response) (do
                      (send-error context "Internal server error: no response")
                      context)
-   (channel? body) (let [chan (async/chan)]
-                     (send-response (assoc context ::resume-channel chan))
-                     chan)
+   (satisfies? WriteBodyAsync body) (let [chan (async/chan)]
+                                      (send-response (assoc context ::resume-channel chan))
+                                      chan)
    true (do (send-response context)
             context)))
 
