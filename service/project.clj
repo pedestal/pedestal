@@ -61,4 +61,3 @@
               :repositories
               [["sonatype-oss"
                 "https://oss.sonatype.org/content/groups/public/"]]}})
-

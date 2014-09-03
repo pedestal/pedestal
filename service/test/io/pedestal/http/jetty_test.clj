@@ -14,7 +14,9 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
-           (org.eclipse.jetty.server.handler AbstractHandler)))
+           (org.eclipse.jetty.server.handler AbstractHandler)
+           (java.nio channels.Pipe
+                     ByteBuffer)))
 
 (defhandler hello-world [request]
   {:status  200
@@ -27,6 +29,18 @@
      {:status  200
       :headers {"Content-Type" content-type}
       :body    ""})))
+
+(defhandler nio-hello [request]
+  (let [bb (ByteBuffer/wrap (.getBytes "Hello World"))
+        pipe (Pipe/open)
+        source (.source pipe)
+        sink (.sink pipe)]
+    (future
+     (.write sink bb)
+     (.close sink))
+    {:status 200
+     :body source
+     :headers {"Content-Type" "text/plain"}}))
 
 (defhandler echo-handler [request]
   {:status 200
@@ -137,5 +151,10 @@
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 4347))
-          (is (= (:ssl-client-cert request-map) nil)))))))
+          (is (= (:ssl-client-cert request-map) nil))))))
 
+  (testing "NIO works"
+    (with-server nio-hello {:port 4347}
+      (let [resp (http/get "http://127.0.0.1:4347/")]
+        (is (= 200 (:status resp)))
+        (is (= "Hello World" (:body resp)))))))
