@@ -72,6 +72,9 @@
       (io/copy input-stream output-stream)
       (finally (.close input-stream))))
 
+  java.nio.channels.ReadableByteChannel
+  (default-content-type [_] "application/octet-stream")
+
   nil
   (default-content-type [_] nil)
   (write-body-to-stream [_ _] ()))
