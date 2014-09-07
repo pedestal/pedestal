@@ -10,21 +10,22 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty.container
-  (:require [io.pedestal.http.container]
-            [clojure.core.async])
-  (:import java.nio.channels.ReadableByteChannel))
+  (:require [io.pedestal.http.container :as container]
+            [clojure.core.async :as async])
+  (:import (java.nio.channels ReadableByteChannel)
+           (org.eclipse.jetty.server Response)))
 
-(extend-protocol servlet-interceptor/WriteBodyByteChannel
+(extend-protocol container/WriteByteChannelBody
   org.eclipse.jetty.server.Response
-  (write-body-byte-channel [servlet-response ^ReadableByteChannel body resume-chan context]
+  (write-byte-channel-body [servlet-response ^ReadableByteChannel body resume-chan context]
     (let [os ^org.eclipse.jetty.server.HttpOutput (.getOutputStream servlet-response)]
-      (.sendContent os body-chan (reify org.eclipse.jetty.util.Callback
+      (.sendContent os body (reify org.eclipse.jetty.util.Callback
                                    (succeeded [this]
-                                     (.close body-chan)
+                                     (.close body)
                                      (async/put! resume-chan context)
                                      (async/close! resume-chan))
                                    (failed [this throwable]
-                                     (.close body-chan)
+                                     (.close body)
                                      (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))
                                      (async/close! resume-chan)))))))
 
