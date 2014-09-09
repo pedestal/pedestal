@@ -25,7 +25,8 @@
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
            (java.io OutputStreamWriter OutputStream)
-           (java.nio.channels ReadableByteChannel)))
+           (java.nio.channels ReadableByteChannel)
+           (java.nio ByteBuffer)))
 
 ;;; HTTP Response
 
@@ -75,6 +76,9 @@
   java.nio.channels.ReadableByteChannel
   (default-content-type [_] "application/octet-stream")
 
+  java.nio.ByteBuffer
+  (default-content-type [_] "application/octet-stream")
+
   nil
   (default-content-type [_] nil)
   (write-body-to-stream [_ _] ()))
@@ -102,7 +106,12 @@
   java.nio.channels.ReadableByteChannel
   (write-body-async [body servlet-response resume-chan context]
     ;; Writing NIO is container specific, based on the implementation details of Response
-    (container/write-byte-channel-body servlet-response body resume-chan context)))
+    (container/write-byte-channel-body servlet-response body resume-chan context))
+
+  java.nio.ByteBuffer
+  (write-body-async [body servlet-response resume-chan context]
+    ;; Writing NIO is container specific, based on the implementation details of Response
+    (container/write-byte-buffer-body servlet-response body resume-chan context)))
 
 ;; Should we also set character encoding explicitly - if so, where
 ;; should it be stored in the response map, headers? If not,
