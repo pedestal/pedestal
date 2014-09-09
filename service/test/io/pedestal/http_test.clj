@@ -19,7 +19,9 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp])
-  (:import (java.io ByteArrayOutputStream FileInputStream File)))
+  (:import (java.io ByteArrayOutputStream FileInputStream File)
+           (java.nio ByteBuffer)
+           (java.nio.channels Pipe)))
 
 (defn about-page
   [request]
@@ -34,6 +36,21 @@
 
 (defn hello-plaintext-page [request]
   (-> request hello-page (ring-resp/content-type "text/plain")))
+
+(defn hello-byte-buffer-page [request]
+  (assoc-in (ring-resp/response (ByteBuffer/wrap (.getBytes "HELLO" "UTF-8")))
+            [:headers "Content-Type"]
+            "text/plain"))
+
+(defn hello-byte-channel-page [request]
+  (let [p (Pipe/open)
+        b (ByteBuffer/wrap (.getBytes "HELLO" "UTF-8"))
+        sink (.sink p)]
+    (.write sink b)
+    (.close sink)
+    {:status  200
+     :headers {"Content-Type" "text/plain"}
+     :body    (.source p)}))
 
 (defn hello-plaintext-no-content-type-page [request]
   (hello-page request))
@@ -67,6 +84,8 @@
   [[["/about" {:get [:about about-page]}]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
     ["/token" {:get hello-token-page}]
+    ["/bytebuffer" {:get hello-byte-buffer-page}]
+    ["/bytechannel" {:get hello-byte-channel-page}]
     ["/edn" {:get get-edn}]
     ["/just-status" {:get just-status-page}]
     ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
@@ -101,7 +120,7 @@
             "X-XSS-Protection" "1; mode=block"} (:headers response)))))
 
 (deftest plaintext-body-with-html-interceptor-test
-  "1; mode=blockExplicit request for plain-text content-type is honored by html-body interceptor."
+  "Explicit request for plain-text content-type is honored by html-body interceptor."
   (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
@@ -109,6 +128,18 @@
   "Requests without a content type are served as text/plain"
   (let [response (response-for app :get "/plaintext-body-no-interceptors")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
+
+(deftest plaintext-from-byte-buffer
+  "Response bodies that are ByteBuffers toggle async behavior in supported containers"
+  (let [response (response-for app :get "/bytebuffer")]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))
+    (is (= "HELLO" (:body response)))))
+
+(deftest plaintext-from-byte-channel
+  "Response bodies that are ReadableByteChannels toggle async behavior in supported containers"
+  (let [response (response-for app :get "/bytechannel")]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))
+    (is (= "HELLO" (:body response)))))
 
 (deftest json-body-test
   (let [response (response-for app :get "/data-as-json")]

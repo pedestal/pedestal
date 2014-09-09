@@ -14,12 +14,29 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
-           (org.eclipse.jetty.server.handler AbstractHandler)))
+           (org.eclipse.jetty.server.handler AbstractHandler)
+           (java.nio ByteBuffer)
+           (java.nio.channels Pipe)))
 
 (defhandler hello-world [request]
   {:status  200
    :headers {"Content-Type" "text/plain"}
    :body    "Hello World"})
+
+(defhandler hello-bytebuffer [request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))})
+
+(defhandler hello-bytechannel [request]
+  (let [p (Pipe/open)
+        b (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))
+        sink (.sink p)]
+    (.write sink b)
+    (.close sink)
+    {:status  200
+     :headers {"Content-Type" "text/plain"}
+     :body    (.source p)}))
 
 (definterceptorfn content-type-handler [content-type]
   (handler
@@ -137,5 +154,16 @@
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 4347))
-          (is (= (:ssl-client-cert request-map) nil)))))))
+          (is (= (:ssl-client-cert request-map) nil))))))
+
+  (testing "supports NIO Async via ByteBuffers"
+    (with-server hello-bytebuffer {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World")))))
+  (testing "supports NIO Async via ReadableByteChannel"
+    (with-server hello-bytechannel {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World"))))))
 
