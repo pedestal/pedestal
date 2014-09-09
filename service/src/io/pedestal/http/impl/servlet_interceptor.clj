@@ -20,14 +20,13 @@
             [io.pedestal.interceptor :as interceptor :refer [definterceptor]]
             [io.pedestal.http.route :as route]
             [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.http.container :as container]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)))
-
-(defn channel?
-  [obj]
-  (instance? clojure.core.async.impl.protocols.Channel obj))
+           (java.io OutputStreamWriter OutputStream)
+           (java.nio.channels ReadableByteChannel)
+           (java.nio ByteBuffer)))
 
 ;;; HTTP Response
 
@@ -74,6 +73,12 @@
       (io/copy input-stream output-stream)
       (finally (.close input-stream))))
 
+  java.nio.channels.ReadableByteChannel
+  (default-content-type [_] "application/octet-stream")
+
+  java.nio.ByteBuffer
+  (default-content-type [_] "application/octet-stream")
+
   nil
   (default-content-type [_] nil)
   (write-body-to-stream [_ _] ()))
@@ -81,6 +86,32 @@
 (defn- write-body [^HttpServletResponse servlet-resp body]
   (let [output-stream (.getOutputStream servlet-resp)]
     (write-body-to-stream body output-stream)))
+
+(defprotocol WriteableBodyAsync
+  (write-body-async [body servlet-response resume-chan context]))
+
+(extend-protocol WriteableBodyAsync
+
+  clojure.core.async.impl.protocols.Channel
+  (write-body-async [body servlet-response resume-chan context]
+    (async/go
+      (loop []
+        (when-let [body-part (async/<! body)]
+          (write-body servlet-response body-part)
+          (.flushBuffer ^HttpServletResponse servlet-response)
+          (recur)))
+      (async/>! resume-chan context)
+      (async/close! resume-chan)))
+
+  java.nio.channels.ReadableByteChannel
+  (write-body-async [body servlet-response resume-chan context]
+    ;; Writing NIO is container specific, based on the implementation details of Response
+    (container/write-byte-channel-body servlet-response body resume-chan context))
+
+  java.nio.ByteBuffer
+  (write-body-async [body servlet-response resume-chan context]
+    ;; Writing NIO is container specific, based on the implementation details of Response
+    (container/write-byte-buffer-body servlet-response body resume-chan context)))
 
 ;; Should we also set character encoding explicitly - if so, where
 ;; should it be stored in the response map, headers? If not,
@@ -112,16 +143,8 @@
   (when-not (.isCommitted servlet-response)
     (set-response servlet-response response))
   (let [body (:body response)]
-    (if (channel? body)
-      (do
-        (async/go
-         (loop []
-           (when-let [body-part (async/<! body)]
-             (write-body servlet-response body-part)
-             (.flushBuffer ^HttpServletResponse servlet-response)
-             (recur)))
-         (async/>! (::resume-channel context) context)
-         (async/close! (::resume-channel context))))
+    (if (satisfies? WriteableBodyAsync body)
+      (write-body-async body servlet-response (::resume-channel context) context)
       (do
         (write-body servlet-response body)
         (.flushBuffer servlet-response)))))
@@ -244,9 +267,9 @@
    (nil? response) (do
                      (send-error context "Internal server error: no response")
                      context)
-   (channel? body) (let [chan (async/chan)]
-                     (send-response (assoc context ::resume-channel chan))
-                     chan)
+   (satisfies? WriteableBodyAsync body) (let [chan (::resume-channel context (async/chan))]
+                                          (send-response (assoc context ::resume-channel chan))
+                                          chan)
    true (do (send-response context)
             context)))
 
@@ -392,3 +415,4 @@
                 ring-response]
                interceptors)
        default-context)))
+

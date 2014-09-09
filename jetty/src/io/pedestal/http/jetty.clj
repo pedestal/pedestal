@@ -11,6 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
+  (:require [io.pedestal.http.jetty.container])
   (:import (org.eclipse.jetty.server Server ServerConnector
                                      Request
                                      HttpConfiguration
@@ -22,6 +23,9 @@
            (javax.servlet Servlet)
            (java.security KeyStore)
            (javax.servlet.http HttpServletRequest HttpServletResponse)))
+
+;; Implement any container specific optimizations from Pedestal's container protocols
+
 
 ;; The approach here is based on code from ring.adapter.jetty
 

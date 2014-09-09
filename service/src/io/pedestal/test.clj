@@ -14,13 +14,16 @@
   io.pedestal.test
   (:require [io.pedestal.http.servlet :as servlets]
             [io.pedestal.log :as log]
-            [clojure.string :as str]
-            clojure.java.io)
+            [clojure.string :as cstr]
+            [clojure.java.io :as io]
+            [clojure.core.async :as async]
+            [io.pedestal.http.container :as container])
   (:import (javax.servlet.http HttpServlet HttpServletRequest HttpServletResponse)
-           (javax.servlet Servlet ServletOutputStream ServletInputStream)
+           (javax.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
            (java.io ByteArrayInputStream ByteArrayOutputStream)
            (clojure.lang IMeta)
-           (java.util Enumeration NoSuchElementException)))
+           (java.util Enumeration NoSuchElementException)
+           (java.nio.channels Channels)))
 
 (defn- ^Servlet test-servlet
   [interceptor-service-fn]
@@ -78,7 +81,7 @@
     (reify HttpServletRequest
      (getMethod [this] (-> verb
                            name
-                           str/upper-case))
+                           cstr/upper-case))
      (getRequestURL [this] url)
      (getServerPort [this] -1)
      (getServerName [this] host)
@@ -92,12 +95,17 @@
      (getProtocol [this] "HTTP/1.1")
      (isAsyncSupported [this] false)
      (isAsyncStarted [this] false)
+     (startAsync [this] (reify AsyncContext
+                          (complete [this] nil)
+                          (setTimeout [this n] nil)
+                          (start [this r] nil))) ;; Needed for NIO testing (see Servlet Interceptor)
      (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
      (getHeader [this header] (get-in options [:headers header]))
      ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
      (getContentLength [this] (get-in options [:headers "Content-Length"] (int 0)))
      (getContentType [this] (get-in options [:headers "Content-Type"] ""))
      (getCharacterEncoding [this] "UTF-8")
+     (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
      (getAttribute [this attribute] nil))))
 
 (defn- test-servlet-output-stream
@@ -134,7 +142,25 @@
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
                  (flushBuffer [this] (reset! committed true))
-                 (isCommitted [this] @committed))
+                 (isCommitted [this] @committed)
+
+                 ;; Force all async NIO behaviors to be sync
+                 container/WriteNIOByteBody
+                 (write-byte-channel-body [this body resume-chan context]
+                   (let [instream-body (Channels/newInputStream body)]
+                     (try (io/copy instream-body output-stream)
+                          (async/put! resume-chan context)
+                          (catch Throwable t
+                            (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error t)))
+                          (finally (async/close! resume-chan)))))
+                 (write-byte-buffer-body [this body resume-chan context]
+                   (let [out-chan (Channels/newChannel output-stream)]
+                     (try (.write out-chan body)
+                          (async/put! resume-chan context)
+                          (catch Throwable t
+                            (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error t)))
+                          (finally (async/close! resume-chan))))))
+
       meta-data)))
 
 (defn test-servlet-response-status
