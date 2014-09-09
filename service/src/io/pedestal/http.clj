@@ -222,6 +222,9 @@
         server-fn (do (require server-ns)
                       (resolve (symbol (name server-ns) "server")))
         server-map (server-fn servlet (service-map->server-options service-map))]
+    (when (= type :jetty)
+      ;; Load in container optimizations (NIO)
+      (require 'io.pedestal.http.jetty.container))
     (merge service-map (server-map->service-map server-map))))
 
 (defn create-server
