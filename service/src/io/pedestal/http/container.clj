@@ -18,6 +18,7 @@
 ;; with Container/Servlet Engine specific hooks.
 ;; The most common case is to extend integration beyond the Servlet Spec -
 ;; for example, integrating and utilizing NIO throughout the entire stack.
-(defprotocol WriteByteChannelBody
-  (write-byte-channel-body [servlet-response body resume-chan context]))
+(defprotocol WriteNIOByteBody
+  (write-byte-channel-body [servlet-response body resume-chan context])
+  (write-byte-buffer-body [servlet-response body resume-chan context]))
 
