@@ -42,29 +42,22 @@ The generated project definition looks like this:
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [io.pedestal/pedestal.service "0.2.2"]
-                 [io.pedestal/pedestal.service-tools "0.2.2"]
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [io.pedestal/pedestal.service "0.3.0"]
 
                  ;; Remove this line and uncomment the next line to
                  ;; use Tomcat instead of Jetty:
-                 [io.pedestal/pedestal.jetty "0.2.2"]
-                 ;; [io.pedestal/pedestal.tomcat "0.2.2"]
-                 ]
+                 [io.pedestal/pedestal.jetty "0.3.0"]
+                 ;; [io.pedestal/pedestal.tomcat "0.3.0"]
+
+                 [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.7"]
+                 [org.slf4j/jcl-over-slf4j "1.7.7"]
+                 [org.slf4j/log4j-over-slf4j "1.7.7"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :aliases {"run-dev" ["trampoline" "run" "-m" "helloworld.server/run-dev"]}
-  :repl-options  {:init-ns user
-                  :init (try
-                          (use 'io.pedestal.service-tools.dev)
-                          (require 'helloworld.service)
-                          ;; Nasty trick to get around being unable to reference non-clojure.core symbols in :init
-                          (eval '(init helloworld.service/service #'helloworld.service/routes))
-                          (catch Throwable t
-                            (println "ERROR: There was a problem loading io.pedestal.service-tools.dev")
-                            (clojure.stacktrace/print-stack-trace t)
-                            (println)))
-                  :welcome (println "Welcome to pedestal-service! Run (tools-help) to see a list of useful functions.")}
+  :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "helloworld.server/run-dev"]}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.3.0"]]}}
   :main ^{:skip-aot true} helloworld.server)
 ```
 
@@ -101,9 +94,7 @@ work. Edit src/helloworld/service.clj until it looks like this:
   (ring-resp/response "Hello World!"))
 
 (defroutes routes
-  [[["/" {:get home-page}
-        ;; Set default interceptors for any other paths under /
-        ^:interceptors [(body-params/body-params) bootstrap/html-body]]]])
+  [[["/" {:get home-page}]]])
 
 ;; Consumed by helloworld.server/create-server
 (def service {:env :prod
@@ -133,26 +124,26 @@ but it's interesting to look at the main function:
 ``` clojure
 (ns helloworld.server
   (:gen-class) ; for -main method in uberjar
-  (:require [io.pedestal.service-tools.server :as server]
-            [helloworld.service :as service]
-            [io.pedestal.service-tools.dev :as dev]))
+  (:require [io.pedestal.http :as server]
+            [helloworld.service :as service]))
+
+;; ...
+
+(defonce runnable-service (server/create-server service/service))
 
 ;; ...
 
 (defn -main
   "The entry-point for 'lein run'"
   [& args]
-  (server/init service/service)
-  (apply server/-main args))
-
-;; ...
+  (println "\nCreating your server...")
+  (server/start runnable-service))
 
 ```
 
-You can see that `io.pedestal.service-tools.server/init` is invoked with
-`helloworld.service/service`--the map we just looked at--which is used to
-create the actual server.
-
+Here we call `io.pedestal.http/create-server` to create a web server
+configured by `helloworld.service/service`, then start it with
+`io.pedestal.http/start`.
 
 ## Run it in Dev Mode
 
@@ -160,47 +151,47 @@ We'll start the server from a repl, which is how we will normally run in develop
 
 ```bash
 $ lein repl
+INFO  org.eclipse.jetty.util.log - Logging initialized @11433ms
+nREPL server started on port 63370 on host 127.0.0.1 - nrepl://127.0.0.1:63370
+REPL-y 0.3.2, nREPL 0.2.3
+Clojure 1.6.0
+Java HotSpot(TM) 64-Bit Server VM 1.7.0_21-b12
+    Docs: (doc function-name-here)
+          (find-doc "part-of-name-here")
+  Source: (source function-name-here)
+ Javadoc: (javadoc java-object-or-class-here)
+    Exit: Control+D or (exit) or (quit)
+ Results: Stored in vars *1, *2, *3, an exception in *e
 
-nREPL server started on port 60617 on host 127.0.0.1
-REPL-y 0.3.0
-Clojure 1.5.1
-Welcome to pedestal-service! Run (tools-help) to see a list of useful functions.
+helloworld.server=>
 ```
 
-To make life easier in the repl, pedestal has some convenience functions:
+To start a server, we call io.pedestal.httl/start with our configuration map:
 
 ```clojure
-user=> (tools-help)
-
-Start a new service development server with (start) or (start service-options)
-----
-Type (start) or (start service-options) to initialize and start a server
-Type (stop) to stop the current server
-Type (restart) to restart the current server
-----
-Type (watch) to watch for changes in the src/ directory
-
-nil
+helloworld.server=> (server/start runnable-service)
+INFO  org.eclipse.jetty.server.Server - jetty-9.2.0.v20140526
+INFO  o.e.j.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@40ca2376{/,null,AVAILABLE}
+INFO  o.e.jetty.server.ServerConnector - Started ServerConnector@161f5c2e{HTTP/1.1}{0.0.0.0:8080}
+INFO  org.eclipse.jetty.server.Server - Started @18149ms
 ```
 
-We'll use one to start the server:
-
-```clojure
-user=> (start)
-INFO  org.eclipse.jetty.server.Server - jetty-8.1.9.v20130131
-INFO  o.e.jetty.server.AbstractConnector - Started SelectChannelConnector@0.0.0.0:8080
-nil
-```
+Then hit Ctrl-C to get back to the REPL prompt.
 
 Now let's see "Hello World!"
 
 Go to [http://localhost:8080/](http://localhost:8080/)  and you'll see a shiny "Hello World!" in your browser.
 
-Done! Let's stop the server.
+Done! Let's stop the server and exit the REPL.
 
 ```clojure
-user=> (stop)
-nil
+helloworld.server=> (server/stop runnable-service)
+
+(Lengthy string representation of the server is printed here.)
+
+helloworld.server=> (quit)
+Bye for now!
+$
 ```
 
 ## Where To Go Next
