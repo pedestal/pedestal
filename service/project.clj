@@ -20,7 +20,7 @@
                  [org.clojure/core.incubator "0.1.3"]
 
                  ;; channels
-                 [org.clojure/core.async "0.1.303.0-886421-alpha"]
+                 [org.clojure/core.async "0.1.338.0-5c5012-alpha"]
 
                  ;; interceptors
                  [ring/ring-core "1.3.0"
@@ -28,8 +28,10 @@
                                [org.clojure/tools.reader]
                                [srypto-random]
                                [crypto-equality]]]
-                 [org.clojure/tools.reader "0.8.5"]
-                 [cheshire "5.3.1"]
+                 [org.clojure/tools.reader "0.8.8"]
+                 [com.fasterxml.jackson.core/jackson-core "2.3.2"]
+                 [cheshire "5.3.1" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
+                 [com.cognitect/transit-clj "0.8.255"]
                  [commons-codec "1.9"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
@@ -37,6 +39,7 @@
   :java-source-paths ["java"]
   :javac-options ["-target" "1.7" "-source" "1.7"]
   :global-vars {*warn-on-reflection* true}
+  :pedantic? :abort
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :profiles {:default [:dev :provided :user :base]
