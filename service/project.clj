@@ -50,6 +50,7 @@
                              [clj-http "0.9.1"]
                              [io.pedestal/pedestal.jetty "0.3.1-SNAPSHOT"]
                              [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
+                             [io.pedestal/pedestal.immutant "0.3.1-SNAPSHOT"]
                              [io.pedestal/pedestal.tomcat "0.3.1-SNAPSHOT"]
                              [javax.servlet/javax.servlet-api "3.1.0"]
                              ;; Logging:
