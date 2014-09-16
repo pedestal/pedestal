@@ -10,7 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.immutant
-  (:require [immutant.web :as web]
+  (:require io.pedestal.http.immutant.container
+            [immutant.web :as web]
             [immutant.web.internal.wunderboss :as internal])
   (:import org.projectodd.wunderboss.web.Web))
 
