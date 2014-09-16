@@ -17,6 +17,7 @@
             [clojure.string :as str]
             [io.pedestal.interceptor :as interceptor :refer [definterceptorfn]]
             [io.pedestal.log :as log]
+            [cognitect.transit :as transit]
             [ring.middleware.params :as params]))
 
 (defn- parser-for
@@ -115,11 +116,29 @@
   "Take a request and parse its body as json."
   (custom-json-parser))
 
+(defn custom-transit-parser
+  "Return a transit-parser fn that, given a request, will read the
+  body of that request with `transit/read`. options is a sequence to
+  pass to transit/reader along with the body of the request."
+  [& options]
+  (fn [request]
+    (assoc request
+      :transit-params
+      (transit/read (apply transit/reader (:body request) options)))))
+
+(def transit-parser
+  "Take a request and parse its body as transit."
+  (custom-transit-parser :json))
+
 (defn form-parser
   "Take a request and parse its body as a form."
   [request]
   (let [encoding (or (:character-encoding request) "UTF-8")]
     (params/assoc-form-params request encoding)))
+
+(def ^:private transit-mime-types
+  {:json #"^application/transit\+json"
+   :msgpack #"^application/transit\+msgpack"})
 
 (defn default-parser-map
   "Return a map of MIME-type to parsers. Included types are edn, json and
@@ -138,12 +157,15 @@
   ;; This parser-map will parse edn bodies using any custom edn readers you
   ;; define (in a data_readers.clj file, for example.)"
   [& parser-options]
-  (let [{:keys [edn-options json-options]} (apply hash-map parser-options)
+  (let [{:keys [edn-options json-options transit-options]
+         :or {transit-options [:json]}} (apply hash-map parser-options)
         edn-options-vec (apply concat edn-options)
-        json-options-vec (apply concat json-options)]
+        json-options-vec (apply concat json-options)
+        transit-mime-type (transit-mime-types (first transit-options))]
     {#"^application/edn" (apply custom-edn-parser edn-options-vec)
      #"^application/json" (apply custom-json-parser json-options-vec)
-     #"^application/x-www-form-urlencoded" form-parser}))
+     #"^application/x-www-form-urlencoded" form-parser
+     transit-mime-type (apply custom-transit-parser transit-options)}))
 
 (definterceptorfn body-params
   ([] (body-params (default-parser-map)))
