@@ -97,7 +97,11 @@
     ["/data-as-json" {:get [::data-as-json get-edn]}
      ^:interceptors [service/json-body]]
     ["/plaintext-body-with-json-interceptor" {:get get-plaintext-edn}
-     ^:interceptors [service/json-body]]]])
+     ^:interceptors [service/json-body]]
+    ["/data-as-transit" {:get [::data-as-transit get-edn]}
+     ^:interceptors [service/transit-body]]
+    ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit get-plaintext-edn]}
+     ^:interceptors [service/transit-body]]]])
 
 (def app-interceptors
   (service/default-interceptors {::service/routes app-routes}))
@@ -150,6 +154,16 @@
   (let [response (response-for app :get "/plaintext-body-with-json-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
+(deftest transit-body-test
+  (let [response (response-for app :get "/data-as-transit")]
+    (is (= "application/transit+json;charset=UTF-8" (get-in response [:headers "Content-Type"])))
+    (is (= "[\"^ \",\"~:a\",1]" (:body response)))))
+
+(deftest plaintext-body-with-transit-interceptor-test
+  "Explicit request for plain-text content-type is honored by transit-body interceptor."
+  (let [response (response-for app :get "/plaintext-body-with-transit-interceptor")]
+    (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
+
 (deftest enter-linker-generates-correct-link
   (is (= "Yeah, this is a self-link to /about"
          (->> "/about"
@@ -197,6 +211,17 @@
   (.toString output-stream "UTF-8"))
 
 (deftest edn-response-test
+  (let [obj {:a 1 :b 2 :c [1 2 3]}
+        output-stream (ByteArrayOutputStream.)]
+    (is (= (with-out-str (pr obj))
+           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+                (-> obj
+                    service/edn-response
+                    :body)
+                output-stream)
+               (slurp-output-stream output-stream))))))
+
+(deftest transit-response-test
   (let [obj {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))

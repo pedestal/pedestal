@@ -25,6 +25,7 @@
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
+            [cognitect.transit :as transit]
             [io.pedestal.log :as log])
   (:import (java.io OutputStreamWriter)))
 
@@ -103,6 +104,21 @@
       (-> response
           (ring-response/content-type "application/json;charset=UTF-8")
           (assoc :body (print-fn #(json-print body))))
+      response)))
+
+(interceptor/defon-response transit-body
+  "Set the Content-Type header to \"application/transit+json\" and convert the body to
+  transit+json if the body is a collection and a type has not been set."
+  [response]
+  (let [body (:body response)
+        content-type (get-in response [:headers "Content-Type"])]
+    (if (and (coll? body) (not content-type))
+      (-> response
+          (ring-response/content-type "application/transit+json;charset=UTF-8")
+          (assoc :body (fn [output-stream]
+                         (transit/write (transit/writer output-stream :json)
+                                        body)
+                         (.flush output-stream))))
       response)))
 
 (defn default-interceptors
