@@ -18,18 +18,22 @@
   (:require [clojure.instant :as inst]
             [io.pedestal.impl.interceptor :as interceptor]))
 
-(defn as-context [content-type ^String body]
-  (let [body-reader (java.io.ByteArrayInputStream. (.getBytes body))]
+(defn byte-context [content-type ^bytes body-bytes]
+  (let [body-reader (java.io.ByteArrayInputStream. body-bytes)]
     {:request {:content-type content-type
                :headers {"content-type" content-type}
                :body body-reader}}))
+
+(defn as-context [content-type ^String body]
+  (byte-context content-type (.getBytes body)))
 
 (def i (:enter (body-params)))
 
 (def i-using-opts
   (-> (default-parser-map
         :edn-options {:readers {'inst inst/read-instant-timestamp}}
-        :json-options {:key-fn nil})
+        :json-options {:key-fn nil}
+        :transit-options [:msgpack])
       body-params :enter))
 
 (deftest parses-json
@@ -84,6 +88,19 @@
         new-context (i-using-opts edn-context)
         new-request (:request new-context)]
     (is (= (:edn-params new-request) (java.sql.Timestamp. 0)))))
+
+(deftest parses-transit
+  (let [transit-context (as-context "application/transit+json" "[\"^ \",\"~:b\",2,\"~:a\",1]")
+        new-context (i transit-context)
+        new-request (:request new-context)]
+    (is (= (:transit-params new-request) {:a 1 :b 2}))))
+
+(deftest parses-transit-using-opts
+  (let [msgpack-bytes (byte-array [-126 -93 126 58 98 2 -93 126 58 97 1])
+        transit-context (byte-context "application/transit+msgpack" msgpack-bytes)
+        new-context (i-using-opts transit-context)
+        new-request (:request new-context)]
+    (is (= (:transit-params new-request) {:a 1 :b 2}))))
 
 (deftest throws-an-error-if-eval-in-edn
   (is (thrown? Exception (i (as-context "application/edn" "#=(eval (println 1234)")))))
