@@ -70,15 +70,15 @@
         (is (= (:body response) "Hello World")))))
 
   (testing "default character encoding"
-    (with-server (content-type-handler "text/plain") {:port 4348}
-      (let [response (http/get "http://localhost:4348")]
+    (with-server (content-type-handler "text/plain") {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
         (is (.contains
              ^String (get-in response [:headers "content-type"])
              "text/plain")))))
 
   (testing "request translation"
-    (with-server echo-handler {:port 4349}
-      (let [response (http/get "http://localhost:4349/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
+    (with-server echo-handler {:port 4347}
+      (let [response (http/get "http://localhost:4347/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
         (is (= (:status response) 200))
         (is (= (:body response) "hello"))
         (let [request-map (clojure.edn/read-string
@@ -92,17 +92,17 @@
           (is (= (:remote-addr request-map) "127.0.0.1"))
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
-          (is (= (:server-port request-map) 4349))
+          (is (= (:server-port request-map) 4347))
           (is (= (:ssl-client-cert request-map) nil))))))
 
   (testing "supports NIO Async via ByteBuffers"
-    (with-server hello-bytebuffer {:port 4350}
-      (let [response (http/get "http://localhost:4350")]
+    (with-server hello-bytebuffer {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
   (testing "supports NIO Async via ReadableByteChannel"
-    (with-server hello-bytechannel {:port 4351}
-      (let [response (http/get "http://localhost:4351")]
+    (with-server hello-bytechannel {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World"))))))
 
