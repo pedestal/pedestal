@@ -100,10 +100,9 @@
       (let [response (http/get "http://localhost:4350")]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
-  ;; (testing "supports NIO Async via ReadableByteChannel"
-  ;;   (with-server hello-bytechannel {:port 4347}
-  ;;     (let [response (http/get "http://localhost:4347")]
-  ;;       (is (= (:status response) 200))
-  ;;       (is (= (:body response) "Hello World")))))
-  )
+  (testing "supports NIO Async via ReadableByteChannel"
+    (with-server hello-bytechannel {:port 4351}
+      (let [response (http/get "http://localhost:4351")]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World"))))))
 

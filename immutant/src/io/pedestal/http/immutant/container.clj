@@ -14,26 +14,55 @@
             [clojure.core.async :as async])
   (:import (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)
+           (javax.servlet AsyncContext)
+           (org.xnio Pool Pooled)
            (io.undertow.servlet.spec HttpServletResponseImpl ServletOutputStreamImpl)))
+
+(defn write-channel
+  "TODO: mitigate blocking read"
+  [^ServletOutputStreamImpl os ^ReadableByteChannel body ^Pool buffer-pool]
+  (let [pooled ^Pooled (.allocate buffer-pool)
+        buffer ^ByteBuffer (.getResource pooled)]
+    (try
+      (loop []
+        (when (.isReady os)
+          (while (and (.hasRemaining buffer) (< 0 (.read body buffer))))
+          (.flip buffer)
+          (.write os buffer)
+          (.clear buffer)
+          (if (= -1 (.read body buffer))
+            (do (.close body) true)
+            (recur))))
+      (finally
+        (.free pooled)))))
 
 (extend-protocol container/WriteNIOByteBody
   HttpServletResponseImpl
   (write-byte-channel-body [servlet-response ^ReadableByteChannel body resume-chan context]
-    (let [os ^ServletOutputStreamImpl (.getOutputStream servlet-response)]
-      ;; TODO: implement this
-      ))
+    (let [;; TODO: Not sure we should be calling startAsync here
+          ac ^AsyncContext (-> context :servlet-request .startAsync)
+          os ^ServletOutputStreamImpl (.getOutputStream servlet-response)
+          pool (-> servlet-response .getExchange .getConnection .getBufferPool)]
+      (.setWriteListener os (reify javax.servlet.WriteListener
+                              (onWritePossible [this]
+                                (when (write-channel os body pool)
+                                  (async/put! resume-chan context)
+                                  (async/close! resume-chan)
+                                  (.complete ac)))
+                              (onError [this throwable]
+                                (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))
+                                (async/close! resume-chan))))))
   (write-byte-buffer-body [servlet-response ^ByteBuffer body resume-chan context]
-
-    ;; TODO: Not sure we should be calling startAsync here
-    (-> context :servlet-request .startAsync)
-    
-    (let [os ^ServletOutputStreamImpl (.getOutputStream servlet-response)]
+    (let [;; TODO: Not sure we should be calling startAsync here
+          ac ^AsyncContext (-> context :servlet-request .startAsync)
+          os ^ServletOutputStreamImpl (.getOutputStream servlet-response)]
       (.setWriteListener os (reify javax.servlet.WriteListener
                               (onWritePossible [this]
                                 (when (.isReady os)
                                   (.write os body)
                                   (async/put! resume-chan context)
-                                  (async/close! resume-chan)))
+                                  (async/close! resume-chan)
+                                  (.complete ac)))
                               (onError [this throwable]
                                 (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))
                                 (async/close! resume-chan)))))))
