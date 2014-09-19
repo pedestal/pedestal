@@ -18,7 +18,7 @@
            (org.xnio Pool Pooled)
            (io.undertow.servlet.spec HttpServletResponseImpl ServletOutputStreamImpl)))
 
-(defn write-channel
+(defn- write-channel
   "TODO: mitigate blocking read"
   [^ServletOutputStreamImpl os ^ReadableByteChannel body ^Pool buffer-pool]
   (let [pooled ^Pooled (.allocate buffer-pool)
@@ -26,13 +26,14 @@
     (try
       (loop []
         (when (.isReady os)
-          (while (and (.hasRemaining buffer) (< 0 (.read body buffer))))
-          (.flip buffer)
-          (.write os buffer)
           (.clear buffer)
-          (if (= -1 (.read body buffer))
-            (do (.close body) true)
-            (recur))))
+          (let [eof (> 0 (loop [c (.read body buffer)]
+                           (if (and (.hasRemaining buffer) (< 0 c))
+                             (recur (.read body buffer))
+                             c)))]
+            (.flip buffer)
+            (.write os buffer)
+            (or eof (recur)))))
       (finally
         (.free pooled)))))
 
@@ -46,6 +47,7 @@
       (.setWriteListener os (reify javax.servlet.WriteListener
                               (onWritePossible [this]
                                 (when (write-channel os body pool)
+                                  (.close body)
                                   (async/put! resume-chan context)
                                   (async/close! resume-chan)
                                   (.complete ac)))
