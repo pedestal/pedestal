@@ -18,8 +18,16 @@
            (org.xnio Pool Pooled)
            (io.undertow.servlet.spec HttpServletResponseImpl ServletOutputStreamImpl)))
 
+(defn- fill-buffer
+  "A blocking read that returns boolean indicating EOF"
+  [^ReadableByteChannel body ^ByteBuffer buffer]
+  (> 0 (loop []
+         (let [c (.read body buffer)]
+           (if (and (< 0 c) (.hasRemaining buffer))
+             (recur)
+             c)))))
+
 (defn- write-channel
-  "TODO: mitigate blocking read"
   [^ServletOutputStreamImpl os ^ReadableByteChannel body ^Pool buffer-pool]
   (let [pooled ^Pooled (.allocate buffer-pool)
         buffer ^ByteBuffer (.getResource pooled)]
@@ -27,10 +35,7 @@
       (loop []
         (when (.isReady os)
           (.clear buffer)
-          (let [eof (> 0 (loop [c (.read body buffer)]
-                           (if (and (.hasRemaining buffer) (< 0 c))
-                             (recur (.read body buffer))
-                             c)))]
+          (let [eof (fill-buffer body buffer)]
             (.flip buffer)
             (.write os buffer)
             (or eof (recur)))))
