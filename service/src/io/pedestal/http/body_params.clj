@@ -136,16 +136,13 @@
   (let [encoding (or (:character-encoding request) "UTF-8")]
     (params/assoc-form-params request encoding)))
 
-(def ^:private transit-mime-types
-  {:json #"^application/transit\+json"
-   :msgpack #"^application/transit\+msgpack"})
-
 (defn default-parser-map
   "Return a map of MIME-type to parsers. Included types are edn, json and
   form-encoding. parser-options are key-val pairs, valid options are:
 
     :edn-options A hash-map of options to be used when invoking `edn/read`.
     :json-options A hash-map of options to be used when invoking `json/parse-stream`.
+    :transit-options A vector of options to be used when invoking `transit/reader` - must apply to both json and msgpack
 
   Examples:
 
@@ -157,15 +154,14 @@
   ;; This parser-map will parse edn bodies using any custom edn readers you
   ;; define (in a data_readers.clj file, for example.)"
   [& parser-options]
-  (let [{:keys [edn-options json-options transit-options]
-         :or {transit-options [:json]}} (apply hash-map parser-options)
+  (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)
         edn-options-vec (apply concat edn-options)
-        json-options-vec (apply concat json-options)
-        transit-mime-type (transit-mime-types (first transit-options))]
+        json-options-vec (apply concat json-options)]
     {#"^application/edn" (apply custom-edn-parser edn-options-vec)
      #"^application/json" (apply custom-json-parser json-options-vec)
      #"^application/x-www-form-urlencoded" form-parser
-     transit-mime-type (apply custom-transit-parser transit-options)}))
+     #"^application/transit\+json" (apply custom-transit-parser :json transit-options)
+     #"^application/transit\+msgpack" (apply custom-transit-parser :msgpack transit-options)}))
 
 (definterceptorfn body-params
   ([] (body-params (default-parser-map)))
