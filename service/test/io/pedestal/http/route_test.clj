@@ -24,7 +24,7 @@
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.http.route.definition :refer [defroutes expand-routes]]))
+            [io.pedestal.http.route.definition :refer [defroutes expand-routes map-routes->vec-routes]]))
 
 (defhandler home-page
   [request]
@@ -179,6 +179,29 @@
       {:get [:hierarchical-intercepted request-inspection]}]]
     ["/terminal/intercepted"
      {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+
+(defroutes map-routes
+  ;; One limitation is you can't control hostname or protocol
+  {"/" {:get home-page
+        "/child-path" {:get trailing-slash}
+        "/user" {:get list-users
+                 :post add-user
+                 "/:user-id" {:constraints {:user-id #"[0-9]+"}
+                              :put update-user
+                              ;; Note another limitation of map-routes is the inability to do per-verb constraints
+                              :get view-user}}}})
+
+(def data-map-routes
+  (expand-routes
+    [[(map-routes->vec-routes
+        {"/" {:get home-page
+              "/child-path" {:get trailing-slash}
+              "/user" {:get list-users
+                       :post add-user
+                       "/:user-id" {:constraints {:user-id #"[0-9]+"}
+                                    :put update-user
+                                    ;; Note another limitation of map-routes is the inability to do per-verb constraints
+                                    :get view-user}}}})]]))
 
 (def data-routes
   (expand-routes
@@ -852,3 +875,69 @@
            ((:enter (method-param [:body-params "_method"]))
             (assoc-in context [:request :body-params "_method"] "put")))
         "is configurable to extract method from any path in request")))
+
+;; Map-route support
+
+(deftest map-routes->vec-routes-string-key
+  (let [routes-under-test {"/" {:get :no}}]
+    (is (= [ "/" {:get :no} ]
+           (map-routes->vec-routes routes-under-test)))))
+
+(deftest map-routes->vec-nested-routes
+  (let [routes-under-test {"/" {"/foo" {:get :nest}} }]
+    (is (= ["/" ["/foo" {:get :nest}]]
+           (map-routes->vec-routes routes-under-test)))))
+
+(deftest map-routes->vec-routes-with-interceptor
+  (let [routes-under-test {"/" {:interceptors [interceptor-1]
+                                "/foo" {:get :int}} }]
+    (is (= ["/" ^:interceptors [interceptor-1] ["/foo" {:get :int}]]
+           (map-routes->vec-routes routes-under-test)))))
+
+(deftest map-routes->vec-routes-with-constraints
+  (let [regex-constraint #"[0-9]+"
+        routes-under-test {"/:user-id" {:constraints {:user-id regex-constraint}
+                                        "/foo" {:get :int}}}]
+    (is (= ["/:user-id" ^:constraints {:user-id regex-constraint}
+            ["/foo" {:get :int}]]
+           (map-routes->vec-routes routes-under-test)))
+    (is (= (map meta ["/:user-id" ^:constraints {:user-id regex-constraint}
+            ["/foo" {:get :int}]])
+           (map meta (map-routes->vec-routes routes-under-test))))))
+
+(deftest map-routes->vec-routes-advanced2
+  (let [routes-under-test {"/" {:get :advanced
+                                :interceptors [interceptor-1]}}]
+    (is (= ["/" {:get :advanced} ^:interceptors [interceptor-1]]
+           (map-routes->vec-routes routes-under-test)))))
+
+(deftest map-routes->vec-routes-advanced
+    (let [routes-under-test {"/" {:get :advanced
+                                  :interceptors [interceptor-1]
+                                  "/redirect" {"/google" {:get :advanced}
+                                               "/somewhere" {:get :advanced}}}}]
+      (is (= ["/" {:get :advanced}
+              ^:interceptors [interceptor-1]
+              ["/redirect"
+               ["/google" {:get :advanced}]
+               ["/somewhere" {:get :advanced}]]]
+             (map-routes->vec-routes routes-under-test)))))
+
+(deftest match-root-trailing-slash-map
+  (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
+                   (-> routes
+                       (test-query-execute
+                        {:request {:request-method :get
+                                   :path-info "/child-path"}})
+                       :route
+                       (select-keys [:route-name :path])))
+       map-routes
+       data-map-routes))
+
+(deftest match-update-map
+  (are [routes] (= {:route-name ::update-user
+                    :path-params {:user-id "123"}}
+                   (test-match routes :put "/user/123"))
+       map-routes
+       data-map-routes))
+
