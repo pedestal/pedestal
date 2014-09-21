@@ -106,7 +106,7 @@
           (assoc :body (print-fn #(json-print body))))
       response)))
 
-(interceptor/defon-response transit-body
+(interceptor/defon-response transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
   transit+json if the body is a collection and a type has not been set."
   [response]
@@ -120,6 +120,27 @@
                                         body)
                          (.flush output-stream))))
       response)))
+
+(interceptor/defon-response transit-msgpack-body
+  "Set the Content-Type header to \"application/transit+msgpack\" and convert the body to
+  transit+msgpack if the body is a collection and a type has not been set."
+  [response]
+  (let [body (:body response)
+        content-type (get-in response [:headers "Content-Type"])]
+    (if (and (coll? body) (not content-type))
+      (-> response
+          (ring-response/content-type "application/transit+msgpack;charset=UTF-8")
+          (assoc :body (fn [output-stream]
+                         (transit/write (transit/writer output-stream :msgpack)
+                                        body)
+                         (.flush output-stream))))
+      response)))
+
+(def transit-body
+  "Same as `transit-json-body` --
+  Set the Content-Type header to \"application/transit+json\" and convert the body to
+  transit+json if the body is a collection and a type has not been set."
+  transit-json-body)
 
 (defn default-interceptors
   "Builds interceptors given an options map with keyword keys prefixed by namespace e.g.
