@@ -13,8 +13,7 @@
 package io.pedestal.servlet;
 
 import clojure.lang.IFn;
-import clojure.lang.Var;
-import clojure.lang.RT;
+import clojure.java.api.Clojure;
 import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -23,7 +22,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
 /**
- * Java Servlets implementation that dispatches via Clojure Vars.
+ * Java Servlets implementation that dispatches via Clojure Vars (that map to IFn's).
  *
  * <p>ClojureVarServlet is a completely generic implementation of the
  * javax.servlet.Servlet and ServletConfig interfaces. Its behavior is
@@ -53,8 +52,8 @@ import javax.servlet.ServletResponse;
 public class ClojureVarServlet extends GenericServlet {
     private IFn serviceFn;
     private IFn destroyFn;
-    private static Var REQUIRE = RT.var("clojure.core", "require");
-    private static Var SYMBOL = RT.var("clojure.core", "symbol");
+    private static IFn REQUIRE = Clojure.var("clojure.core", "require");
+    private static IFn SYMBOL = Clojure.var("clojure.core", "symbol");
 
     /** Does nothing. Initialization happens in the init method. */
     public ClojureVarServlet() {;}
@@ -65,17 +64,15 @@ public class ClojureVarServlet extends GenericServlet {
     @Override
     public void init() throws ServletException {
         ServletConfig config = this.getServletConfig();
-        Var initVar = getVar(config, "init");
-        Var serviceVar = getVar(config, "service");
-        Var destroyVar = getVar(config, "destroy");
+        IFn initFn = getVar(config, "init");
+        IFn serviceFn = getVar(config, "service");
+        IFn destroyFn = getVar(config, "destroy");
 
-        if (serviceVar == null) {
+        if (serviceFn == null) {
             throw new ServletException("Missing required parameter 'service'");
         }
 
-        serviceFn = (IFn) serviceVar.deref();
-        if (destroyVar != null) { destroyFn = (IFn) destroyVar.deref(); }
-        if (initVar != null) { initVar.invoke(this, config); }
+        if (initFn != null) { initFn.invoke(this, config); }
     }
 
     /** Invokes the service function with which this Servlet was
@@ -94,7 +91,7 @@ public class ClojureVarServlet extends GenericServlet {
         }
     }
 
-    private static Var getVar(ServletConfig config, String param)
+    private static IFn getVar(ServletConfig config, String param)
         throws ServletException {
 
         String varName = config.getInitParameter(param);
@@ -115,10 +112,11 @@ public class ClojureVarServlet extends GenericServlet {
                                        + namespace + "'", t);
         }
 
-        Var var = RT.var(namespace, name);
-        if (var == null) {
+        IFn fn = Clojure.var(namespace, name);
+        if (fn == null) {
             throw new ServletException("Var '" + varName + "' not found");
         }
-        return var;
+        return fn;
     }
 }
+
