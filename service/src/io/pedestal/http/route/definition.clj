@@ -171,14 +171,47 @@
       (add-port route-domain)
       (add-children route-domain)))
 
-(defn expand-routes
-  "Generate the routing table from the terse routing syntax, returning the table."
-  [route-spec]
-  (->> route-spec
+(defn map-routes->vec-routes
+  "Given a map-based route description,
+  return Pedestal's terse, vector-based routes, with interceptors correctly setup.
+  These generated routes can be consumed by `expand-routes`"
+  [route-map]
+  (reduce (fn [acc [k v :as route]]
+            (let [verbs (select-keys v [:get :post :put :delete :any])
+                  interceptors (:interceptors v)
+                  constraints (:constraints v)
+                  subroutes (map #(apply hash-map %) (select-keys v (filter string? (keys v))))
+                  subroute-vecs (mapv map-routes->vec-routes subroutes)]
+              (into acc (filter seq (into
+                                      [k verbs
+                                      (when (seq interceptors)
+                                          (with-meta interceptors
+                                                     {:interceptors true}))
+                                      (when (seq constraints)
+                                        (with-meta constraints
+                                                   {:constraints true}))]
+                                      subroute-vecs)))))
+          [] route-map))
+
+(defprotocol ExpandableRoutes
+  (expand-routes [expandable-route-spec]
+                 "Generate and return the routing table from a given expandable
+                 form of the routing syntax."))
+
+(extend-protocol ExpandableRoutes
+
+  clojure.lang.APersistentVector
+  (expand-routes [route-spec]
+    (->> route-spec
        (map expand-terse-route-domain)
        verbose/expand-verbose-routes))
+
+  clojure.lang.APersistentMap
+  (expand-routes [route-spec]
+    (expand-routes [[(map-routes->vec-routes route-spec)]])))
 
 (defmacro defroutes
   "Define a routing table from the terse routing syntax."
   [name route-spec]
   `(def ~name (expand-routes (quote ~route-spec))))
+
