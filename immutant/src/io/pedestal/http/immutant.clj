@@ -11,7 +11,8 @@
 
 (ns io.pedestal.http.immutant
   (:require io.pedestal.http.immutant.container
-            [immutant.web :as web])
+            [immutant.web :as web]
+            [immutant.web.undertow :as undertow])
   (:import org.projectodd.wunderboss.web.Web))
 
 (defn start
@@ -25,13 +26,15 @@
   server)
 
 (defn server
-  ([servlet] (server servlet {}))
+  ([servlet]
+     (server servlet {}))
   ([servlet options]
-     (let [server (-> options
-                    (select-keys [:host :port :path :virtual-host :configuration])
+     (let [server (-> (merge options (:container-options options))
+                    undertow/options
+                    (select-keys [:path :virtual-host :configuration])
                     (assoc :auto-start false)
                     (->> (web/run servlet))
-                    web/server)]
+                    (web/server))]
        {:server   server
         :start-fn #(start server)
         :stop-fn  #(stop server)})))

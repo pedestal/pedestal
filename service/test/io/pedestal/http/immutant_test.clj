@@ -69,6 +69,15 @@
                          "text/plain"))
         (is (= (:body response) "Hello World")))))
 
+  (testing "HTTPS server"
+    (with-server hello-world {:port 4347
+                              :container-options {:ssl-port 4348
+                                                  :keystore "test/io/pedestal/http/keystore.jks"
+                                                  :key-password "password"}}
+      (let [response (http/get "https://localhost:4348" {:insecure? true})]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World")))))
+
   (testing "default character encoding"
     (with-server (content-type-handler "text/plain") {:port 4347}
       (let [response (http/get "http://localhost:4347")]
