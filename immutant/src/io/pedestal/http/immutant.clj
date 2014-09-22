@@ -26,6 +26,28 @@
   server)
 
 (defn server
+  "Standard options
+    :port [8080]
+    :host [localhost]
+
+   Undertow tuning options (defaults depend on available resources)
+    :io-threads
+    :worker-threads
+    :buffer-size
+    :buffers-per-region
+    :direct-buffers?
+
+   SSL-related options
+    :ssl-port
+    :ssl-context
+    :key-managers
+    :trust-managers
+    :keystore
+    :key-password
+    :truststore
+    :trust-password
+
+   TODO: :client-auth"
   ([servlet]
      (server servlet {}))
   ([servlet options]
