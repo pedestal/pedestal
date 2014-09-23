@@ -40,10 +40,10 @@
 
 (definterceptorfn content-type-handler [content-type]
   (handler
-   (fn [_]
-     {:status  200
-      :headers {"Content-Type" content-type}
-      :body    ""})))
+    (fn [_]
+      {:status  200
+       :headers {"Content-Type" content-type}
+       :body    ""})))
 
 (defhandler echo-handler [request]
   {:status 200
@@ -80,19 +80,19 @@
 
   (testing "HTTPS server"
     (with-server hello-world {:port 4347
-                              :jetty-options {:ssl-port 4348
-                                              :keystore "test/io/pedestal/http/keystore.jks"
-                                              :key-password "password"}}
+                              :container-options {:ssl-port 4348
+                                                  :keystore "test/io/pedestal/http/keystore.jks"
+                                                  :key-password "password"}}
       (let [response (http/get "https://localhost:4348" {:insecure? true})]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
 
   (testing "HTTPS server with different options"
     (with-server hello-world {:port 4347
-                              :jetty-options {:ssl? true
-                                              :ssl-port 4348
-                                              :keystore "test/io/pedestal/http/keystore.jks"
-                                              :key-password "password"}}
+                              :container-options {:ssl? true
+                                                  :ssl-port 4348
+                                                  :keystore "test/io/pedestal/http/keystore.jks"
+                                                  :key-password "password"}}
       (let [response (http/get "https://localhost:4348" {:insecure? true})]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
@@ -106,8 +106,8 @@
                          (.setHandler server new-handler)
                          server)
           ^Server server (:server (jetty-server hello-world
-                                                {:join? false :port 4347 :jetty-options {:max-threads max-threads
-                                                                                         :configurator configurator}}))]
+                                                {:join? false :port 4347 :container-options {:max-threads max-threads
+                                                                                             :configurator configurator}}))]
       (is (= (.getMaxThreads ^QueuedThreadPool (.getThreadPool server)) max-threads))
       (is (= (.getAttribute server "ANewAttribute") 42))
       (is (identical? new-handler (.getHandler server)))
@@ -118,18 +118,18 @@
       (let [server (:server (jetty-server hello-world {:port 4347 :join? false}))]
         (is (not (.. server getThreadPool isDaemon)))))
     (testing "daemon on"
-      (let [server (:server (jetty-server hello-world {:port 4347 :join? false :jetty-options {:daemon? true}}))]
+      (let [server (:server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? true}}))]
         (is (.. server getThreadPool isDaemon))))
     (testing "daemon off"
-      (let [server (:server (jetty-server hello-world {:port 4347 :join? false :jetty-options {:daemon? false}}))]
+      (let [server (:server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? false}}))]
         (is (not (.. server getThreadPool isDaemon))))))
 
   (testing "default character encoding"
     (with-server (content-type-handler "text/plain") {:port 4347}
       (let [response (http/get "http://localhost:4347")]
         (is (.contains
-             ^String (get-in response [:headers "content-type"])
-             "text/plain")))))
+              ^String (get-in response [:headers "content-type"])
+              "text/plain")))))
 
   (testing "custom content-type"
     (with-server (content-type-handler "text/plain;charset=UTF-16;version=1") {:port 4347}
@@ -143,7 +143,7 @@
         (is (= (:status response) 200))
         (is (= (:body response) "hello"))
         (let [request-map (clojure.edn/read-string
-                           (get-in response [:headers "request-map"]))]
+                            (get-in response [:headers "request-map"]))]
           (is (= (:query-string request-map) "surname=jones&age=123"))
           (is (= (:uri request-map) "/foo/bar/baz"))
           (is (= (:content-length request-map) 5))

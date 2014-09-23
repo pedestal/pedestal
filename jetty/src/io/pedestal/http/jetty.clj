@@ -61,8 +61,8 @@
          {:keys [ssl-port reuse-addr?]
           :or {ssl-port 443
                reuse-addr? true}
-          :as jetty-options} :jetty-options} options]
-    (doto (ServerConnector. server (ssl-context-factory jetty-options))
+          :as container-options} :container-options} options]
+    (doto (ServerConnector. server (ssl-context-factory container-options))
       (.setReuseAddress reuse-addr?)
       (.setPort ssl-port)
       (.setHost host))))
@@ -102,10 +102,10 @@
          {:keys [ssl? ssl-port context-configurator configurator max-threads daemon? reuse-addr?]
           :or {configurator identity
                max-threads (max 50 (needed-pool-size))
-               reuse-addr? true}} :jetty-options} options
+               reuse-addr? true}} :container-options} options
         thread-pool (QueuedThreadPool. ^Integer max-threads)
         server (Server. thread-pool)
-        http-conf (http-configuration (:jetty-options options))
+        http-conf (http-configuration (:container-options options))
         connector (doto (ServerConnector. server)
                     (.addConnectionFactory (HttpConnectionFactory. http-conf))
                     (.setReuseAddress reuse-addr?)
