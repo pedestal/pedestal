@@ -6,10 +6,11 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [io.pedestal/pedestal.service "0.3.1-SNAPSHOT"]
 
-                 ;; Remove this line and uncomment the next line to
-                 ;; use Tomcat instead of Jetty:
+                 ;; Remove this line and uncomment one of the next lines to
+                 ;; use Tomcat or Immutant instead of Jetty:
                  [io.pedestal/pedestal.jetty "0.3.1-SNAPSHOT"]
                  ;; [io.pedestal/pedestal.tomcat "0.3.1-SNAPSHOT"]
+                 ;; [io.pedestal/pedestal.immutant "0.3.1-SNAPSHOT"]
 
                  [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.7"]

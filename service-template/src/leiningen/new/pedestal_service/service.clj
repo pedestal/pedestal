@@ -42,9 +42,8 @@
               ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"
 
-              ;; Either :jetty or :tomcat (see comments in project.clj
-              ;; to enable Tomcat)
-              ;;::bootstrap/host "localhost"
+              ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
               ::bootstrap/type :jetty
+              ;;::bootstrap/host "localhost"
               ::bootstrap/port 8080})
 

@@ -85,6 +85,12 @@
              ^String (get-in response [:headers "content-type"])
              "text/plain")))))
 
+  (testing "custom content-type"
+    (with-server (content-type-handler "text/plain;charset=UTF-16;version=1") {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= (into #{} (.split (get-in response [:headers "content-type"]) ";"))
+              #{"charset=UTF-16" "version=1" "text/plain"})))))
+
   (testing "request translation"
     (with-server echo-handler {:port 4347}
       (let [response (http/get "http://localhost:4347/foo/bar/baz?surname=jones&age=123" {:body "hello"})]

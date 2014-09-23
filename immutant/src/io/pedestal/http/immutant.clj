@@ -42,12 +42,11 @@
     :ssl-context
     :key-managers
     :trust-managers
-    :keystore
+    :keystore (either file path or KeyStore)
     :key-password
-    :truststore
+    :truststore (either file path or KeyStore)
     :trust-password
-
-   TODO: :client-auth"
+    :client-auth (either :want or :need)"
   ([servlet]
      (server servlet {}))
   ([servlet options]
@@ -56,7 +55,7 @@
                     (select-keys [:path :virtual-host :configuration])
                     (assoc :auto-start false)
                     (->> (web/run servlet))
-                    (web/server))]
+                    web/server)]
        {:server   server
         :start-fn #(start server)
         :stop-fn  #(stop server)})))
