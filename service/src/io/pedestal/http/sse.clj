@@ -115,7 +115,7 @@
     (async/go
      (loop []
        (when-let [event (async/<! event-channel)]
-         (send-event response-channel "event" (str event))
+         (async/>! response-channel event)
          (recur)))
      (.cancel ^ScheduledFuture heartbeat true)
      (async/close! response-channel))
