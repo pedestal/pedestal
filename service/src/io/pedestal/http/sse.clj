@@ -26,15 +26,9 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^String UTF-8 "UTF-8")
-
-(defn get-bytes [^String s]
-  (.getBytes s UTF-8))
-
-(def CRLF (get-bytes "\r\n"))
-(def EVENT_FIELD (get-bytes "event: "))
-(def DATA_FIELD (get-bytes "data: "))
-(def COMMENT_FIELD (get-bytes ": "))
+(def CRLF "\r\n")
+(def EVENT_FIELD "event: ")
+(def DATA_FIELD "data: ")
 
 ;; Cloned from core.async.impl.concurrent
 (defn counted-thread-factory
@@ -56,11 +50,11 @@
 (defn mk-data [name data]
   (let [sb (StringBuilder.)]
     (.append sb EVENT_FIELD)
-    (.append sb (get-bytes name))
+    (.append sb name)
     (.append sb CRLF)
 
     (doseq [part (string/split data #"\r?\n")]
-      (.append sb "data:")
+      (.append sb DATA_FIELD)
       (.append sb part)
       (.append sb "\r\n"))
 
