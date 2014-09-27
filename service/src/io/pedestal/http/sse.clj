@@ -115,7 +115,7 @@
                      (ring-response/header "Cache-Control" "no-cache")
                      (update-in [:headers] merge (:cors-headers context)))
         heartbeat (schedule-heartbeart response-channel heartbeat-delay)
-        event-channel (async/chan 10)]
+        event-channel (async/chan buffer-or-n)]
     (async/thread
      (stream-ready-fn event-channel context))
 
