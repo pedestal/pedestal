@@ -20,15 +20,15 @@
             [clojure.string :as string])
   (:import [java.nio.charset Charset]
            [java.io BufferedReader StringReader OutputStream]
-           [java.lang StringBuilder]
            [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
-           [javax.servlet ServletResponse]))
+           [javax.servlet ServletResponse]
+           [com.fasterxml.jackson.core.util ByteArrayBuilder]))
 
 (set! *warn-on-reflection* true)
 
 (def ^String UTF-8 "UTF-8")
 
-(defn get-bytes [^String s]
+(defn get-bytes ^bytes [^String s]
   (.getBytes s UTF-8))
 
 (def CRLF (get-bytes "\r\n"))
@@ -54,18 +54,18 @@
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
 (defn mk-data [name data]
-  (let [sb (StringBuilder.)]
-    (.append sb EVENT_FIELD)
-    (.append sb (get-bytes name))
-    (.append sb CRLF)
+  (let [bab (ByteArrayBuilder.)]
+    (.write bab ^bytes EVENT_FIELD)
+    (.write bab ^bytes (get-bytes name))
+    (.write bab ^bytes CRLF)
 
     (doseq [part (string/split data #"\r?\n")]
-      (.append sb "data:")
-      (.append sb part)
-      (.append sb "\r\n"))
+      (.write bab ^bytes DATA_FIELD)
+      (.write bab ^bytes (get-bytes part))
+      (.write bab ^bytes CRLF))
 
-    (.append sb CRLF)
-    (.toString sb)))
+    (.write bab ^bytes CRLF)
+    (.toByteArray bab)))
 
 (defn send-event [channel name data]
   (log/trace :msg "writing event to stream"
@@ -122,7 +122,10 @@
     (async/go
       (loop []
         (when-let [event (async/<! event-channel)]
-          (send-event response-channel "event" (str event))
+          ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
+          (let [event-name (if (map? event) (str (:name event)) "event")
+                event-data (if (map? event) (str (:data event)) (str event))]
+            (send-event response-channel event-name event-data))
           (recur)))
       (.cancel ^ScheduledFuture heartbeat true)
       (async/close! response-channel))
