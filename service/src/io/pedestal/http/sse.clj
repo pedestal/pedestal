@@ -27,8 +27,6 @@
 
 (set! *warn-on-reflection* true)
 
-(def closed-chan? asyncimpl/closed?)
-
 (def ^String UTF-8 "UTF-8")
 
 (defn get-bytes ^bytes [^String s]
@@ -124,13 +122,12 @@
 
     (async/go
       (loop []
-        (when-let [event (and (not (closed-chan? response-channel))
-                              (async/<! event-channel))]
+        (when-let [event (async/<! event-channel)]
           ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
           (let [event-name (if (map? event) (str (:name event)) "event")
                 event-data (if (map? event) (str (:data event)) (str event))]
-            (send-event response-channel event-name event-data))
-          (recur)))
+            (when (send-event response-channel event-name event-data)
+              (recur)))))
       (.cancel ^ScheduledFuture heartbeat true)
       (async/close! event-channel)
       (async/close! response-channel))
