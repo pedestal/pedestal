@@ -13,6 +13,7 @@
 (ns io.pedestal.http.sse
   (:require [ring.util.response :as ring-response]
             [clojure.core.async :as async]
+            [clojure.core.async.impl.protocols :as asyncimpl]
             [io.pedestal.http.servlet :refer :all]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor :refer [definterceptorfn]]
@@ -117,7 +118,7 @@
         heartbeat (schedule-heartbeart response-channel heartbeat-delay)
         event-channel (async/chan buffer-or-n)]
     (async/thread
-     (stream-ready-fn event-channel context))
+     (stream-ready-fn event-channel (assoc context :response-channel response-channel)))
 
     (async/go
       (loop []
@@ -125,9 +126,10 @@
           ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
           (let [event-name (if (map? event) (str (:name event)) "event")
                 event-data (if (map? event) (str (:data event)) (str event))]
-            (send-event response-channel event-name event-data))
-          (recur)))
+            (when (send-event response-channel event-name event-data)
+              (recur)))))
       (.cancel ^ScheduledFuture heartbeat true)
+      (async/close! event-channel)
       (async/close! response-channel))
 
     (assoc context :response response))))

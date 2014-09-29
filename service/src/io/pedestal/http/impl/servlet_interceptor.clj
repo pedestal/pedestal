@@ -97,8 +97,14 @@
     (async/go
       (loop []
         (when-let [body-part (async/<! body)]
-          (write-body servlet-response body-part)
-          (.flushBuffer ^HttpServletResponse servlet-response)
+          (try
+            (write-body servlet-response body-part)
+            (.flushBuffer ^HttpServletResponse servlet-response)
+            (catch Throwable t
+              (log/error :msg "An error occured when async writing to the client"
+                         :throwable t
+                         :src-chan body)
+              (async/close! body)))
           (recur)))
       (async/>! resume-chan context)
       (async/close! resume-chan)))
