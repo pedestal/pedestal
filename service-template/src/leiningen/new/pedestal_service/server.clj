@@ -11,7 +11,7 @@
   "The entry-point for 'lein run-dev'"
   [& args]
   (println "\nCreating your [DEV] server...")
-  (-> runnable-service ;; start with production configuration
+  (-> service/service ;; start with production configuration
       (merge {:env :dev
               ;; do not block thread that starts web server
               ::server/join? false
@@ -21,9 +21,10 @@
               ;; all origins are allowed in dev mode
               ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
       ;; Wire up interceptor chains
-      (server/default-interceptors)
-      (server/dev-interceptors))
-  (server/start runnable-service))
+      server/default-interceptors
+      server/dev-interceptors
+      server/create-server
+      server/start))
 
 (defn -main
   "The entry-point for 'lein run'"
