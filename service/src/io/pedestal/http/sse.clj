@@ -56,9 +56,10 @@
 
 (defn mk-data [name data]
   (let [bab (ByteArrayBuilder.)]
-    (.write bab ^bytes EVENT_FIELD)
-    (.write bab ^bytes (get-bytes name))
-    (.write bab ^bytes CRLF)
+    (when name
+      (.write bab ^bytes EVENT_FIELD)
+      (.write bab ^bytes (get-bytes name))
+      (.write bab ^bytes CRLF))
 
     (doseq [part (string/split data #"\r?\n")]
       (.write bab ^bytes DATA_FIELD)
@@ -124,7 +125,7 @@
       (loop []
         (when-let [event (async/<! event-channel)]
           ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
-          (let [event-name (if (map? event) (str (:name event)) "event")
+          (let [event-name (if (map? event) (str (:name event)) nil)
                 event-data (if (map? event) (str (:data event)) (str event))]
             (when (send-event response-channel event-name event-data)
               (recur)))))
