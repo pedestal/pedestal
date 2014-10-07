@@ -11,12 +11,17 @@
   recursing on a different thread; ends event stream when counter
   is 0."
   [event-ch count-num]
+  ;; This is how you set a specific event name for the client to listen for
   (async/put! event-ch {:name "count"
                         :data (str count-num ", thread: " (.getId (Thread/currentThread)))})
+  ;; If you just want the client to receive messages on the "message" event, just pass the data string
+  ;(async/put! event-ch (str count-num ", thread: " (.getId (Thread/currentThread))))
   (Thread/sleep 1500)
   (if (> count-num 0)
     (recur event-ch (dec count-num))
-    (async/close! event-ch)))
+    (do
+      (async/put! event-ch {:name "close" :data ""})
+      (async/close! event-ch))))
 
 (defn sse-stream-ready
   "Starts sending counter events to client."
