@@ -27,7 +27,8 @@
             [cheshire.core :as json]
             [cognitect.transit :as transit]
             [io.pedestal.log :as log])
-  (:import (java.io OutputStreamWriter)))
+  (:import (java.io OutputStreamWriter
+                    OutputStream)))
 
 ;; edn and json response formats
 
@@ -115,7 +116,7 @@
     (if (and (coll? body) (not content-type))
       (-> response
           (ring-response/content-type "application/transit+json;charset=UTF-8")
-          (assoc :body (fn [output-stream]
+          (assoc :body (fn [^OutputStream output-stream]
                          (transit/write (transit/writer output-stream :json)
                                         body)
                          (.flush output-stream))))
@@ -130,7 +131,7 @@
     (if (and (coll? body) (not content-type))
       (-> response
           (ring-response/content-type "application/transit+msgpack;charset=UTF-8")
-          (assoc :body (fn [output-stream]
+          (assoc :body (fn [^OutputStream output-stream]
                          (transit/write (transit/writer output-stream :msgpack)
                                         body)
                          (.flush output-stream))))

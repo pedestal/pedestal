@@ -15,6 +15,7 @@
   (:import (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)
            (javax.servlet AsyncContext)
+           (javax.servlet.http HttpServletRequest HttpServletResponse)
            (org.xnio Pool Pooled)
            (io.undertow.servlet.spec HttpServletResponseImpl ServletOutputStreamImpl)))
 
@@ -45,8 +46,9 @@
 (extend-protocol container/WriteNIOByteBody
   HttpServletResponseImpl
   (write-byte-channel-body [servlet-response ^ReadableByteChannel body resume-chan context]
-    (let [;; TODO: Not sure we should be calling startAsync here
-          ac ^AsyncContext (-> context :servlet-request .startAsync)
+    (let [;; Unlike Jetty, Undertow needs to toggle into Async mode to send the NIO payloads
+          servlet-req ^HttpServletRequest (:servlet-request context)
+          ac ^AsyncContext (.startAsync servlet-req)
           os ^ServletOutputStreamImpl (.getOutputStream servlet-response)
           pool (-> servlet-response .getExchange .getConnection .getBufferPool)]
       (.setWriteListener os (reify javax.servlet.WriteListener
@@ -60,8 +62,9 @@
                                 (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))
                                 (async/close! resume-chan))))))
   (write-byte-buffer-body [servlet-response ^ByteBuffer body resume-chan context]
-    (let [;; TODO: Not sure we should be calling startAsync here
-          ac ^AsyncContext (-> context :servlet-request .startAsync)
+    (let [;; Unlike Jetty, Undertow needs to toggle into Async mode to send the NIO payloads
+          servlet-req ^HttpServletRequest (:servlet-request context)
+          ac ^AsyncContext (.startAsync servlet-req)
           os ^ServletOutputStreamImpl (.getOutputStream servlet-response)]
       (.setWriteListener os (reify javax.servlet.WriteListener
                               (onWritePossible [this]
