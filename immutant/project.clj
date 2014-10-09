@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.immutant "0.3.1"
+(defproject io.pedestal/pedestal.immutant "0.3.2-SNAPSHOT"
   :description "Embedded Immutant adapter for Pedestal HTTP Service"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.immutant/web "2.x.incremental.305"]]
