@@ -11,6 +11,10 @@
 
 (defproject io.pedestal/pedestal.immutant "0.3.2-SNAPSHOT"
   :description "Embedded Immutant adapter for Pedestal HTTP Service"
+  :url "https://github.com/pedestal/pedestal"
+  :scm "https://github.com/pedestal/pedestal"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.immutant/web "2.x.incremental.305"]]
   :min-lein-version "2.0.0"

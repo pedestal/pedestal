@@ -12,6 +12,10 @@
 
 (defproject io.pedestal/pedestal.service "0.3.2-SNAPSHOT"
   :description "Pedestal Service"
+  :url "https://github.com/pedestal/pedestal"
+  :scm "https://github.com/pedestal/pedestal"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  ;; logging
                  [org.slf4j/slf4j-api "1.7.7"]

@@ -12,6 +12,10 @@
 
 (defproject io.pedestal/pedestal.jetty "0.3.2-SNAPSHOT"
   :description "Embedded Jetty adapter for Pedestal HTTP Service"
+  :url "https://github.com/pedestal/pedestal"
+  :scm "https://github.com/pedestal/pedestal"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.eclipse.jetty/jetty-server "9.2.0.v20140526"]
                  [org.eclipse.jetty/jetty-servlet "9.2.0.v20140526"]

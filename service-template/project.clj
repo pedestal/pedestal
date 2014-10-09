@@ -12,6 +12,10 @@
 
 (defproject pedestal-service/lein-template "0.3.2-SNAPSHOT"
   :description "A Pedestal Service template."
+  :url "https://github.com/pedestal/pedestal"
+  :scm "https://github.com/pedestal/pedestal"
+  :license {:name "Eclipse Public License"
+            :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
   :eval-in-leiningen true
   :test-selectors {:travis (complement :not-travis)})
