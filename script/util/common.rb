@@ -25,7 +25,7 @@ module Common
     found_clojars = false
     IO.popen("gpg -d #{credentials_file}") do |credential_contents|
       credential_contents.each do |line|
-        found_clojars = true if line =~ /#"https:\/\/clojars\\\.org\/repo"/
+        found_clojars = true if line =~ /#"https:\/\/clojars\.org\/repo"/
       end
     end
     unless found_clojars

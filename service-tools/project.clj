@@ -10,10 +10,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service-tools "0.3.1-SNAPSHOT"
+(defproject io.pedestal/pedestal.service-tools "0.3.1"
   :description "Pedestal tools for service development"
   :min-lein-version "2.0.0"
-  :dependencies [[io.pedestal/pedestal.service "0.3.1-SNAPSHOT"]
+  :dependencies [[io.pedestal/pedestal.service "0.3.1"]
 
                  ;; Auto-reload changes
                  [ns-tracker "0.2.1"]
