@@ -2,6 +2,18 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.3.1 - October 9, 2014
+
+ * Container specific functionality is tucked behind a protocol
+ * Immutant added as a supported platform type
+ * NIO support added for Jetty and Immutant
+ * SSE now passes along the original context to the `start-fn`
+ * Map-based terse route format added
+ * Servlet integration uses Clojure Java API instead of RT
+ * Transit support added for requests and responses
+
+For a full list of changes, please see this comparison of [0.3.0...0.3.1](https://github.com/pedestal/pedestal/compare/0.3.0...0.3.1).
+
 ## 0.3.0 - June 20, 2014
 
  * Performance optimizations and new connection code
