@@ -12,36 +12,42 @@
 
 (ns server-sent-events.server
   (:gen-class) ; for -main method in uberjar
-  (:require [server-sent-events.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+  (:require [io.pedestal.http :as server]
+            [server-sent-events.service :as service]))
 
-(def service-instance
-  "Global var to hold service instance."
-  nil)
+;; This is an adapted service map, that can be started and stopped
+;; From the REPL you can call server/start and server/stop on this service
+(defonce runnable-service (server/create-server service/service))
 
-(defn create-server
-  "Standalone dev/prod mode."
-  [& [opts]]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-server (merge service/service opts)))))
+;; Or if you want a dev-mode server on the REPL you can do something like:
+;; `(def dev-serv (run-dev))`
+(defn run-dev
+  "The entry-point for 'lein run-dev'"
+  [& args]
+  (println "\nCreating your [DEV] server...")
+  (-> service/service ;; start with production configuration
+      (merge {:env :dev
+              ;; do not block thread that starts web server
+              ::server/join? false
+              ;; Routes can be a function that resolve routes,
+              ;;  we can use this to set the routes to be reloadable
+              ;; We do this via a config option
+              ;::server/routes #(deref #'service/routes)
+              ;; all origins are allowed in dev mode
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
+      ;; Wire up interceptor chains
+      server/default-interceptors
+      server/dev-interceptors
+      server/create-server
+      server/start))
 
-(defn -main [& args]
-  (println "Creating server...")
-  (create-server)
-  (println "Server created. Awaiting connections.")
-  (bootstrap/start service-instance))
+(defn run-prod
+  [& args]
+  (println "\nCreating your server...")
+  (server/start runnable-service))
 
+(defn -main
+  "The entry-point for 'lein run'"
+  [& args]
+  (run-prod))
 
-;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
-
-(defn servlet-init [this config]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-servlet service/service)))
-  (.init (::bootstrap/servlet service-instance) config))
-
-(defn servlet-destroy [this]
-  (alter-var-root #'service-instance nil))
-
-(defn servlet-service [this servlet-req servlet-resp]
-  (.service ^javax.servlet.Servlet (::bootstrap/servlet service-instance)
-            servlet-req servlet-resp))

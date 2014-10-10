@@ -1,29 +1,42 @@
 (ns server-sent-events.service
-  (:require [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.sse :as sse]
-            [io.pedestal.service.http.route :as route]
-            [io.pedestal.service.http.route.definition :refer [defroutes]]
-            [ring.util.response :as ring-resp]))
+  (:require [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.sse :as sse]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.route.definition :refer [defroutes]]
+            [ring.util.response :as ring-resp]
+            [clojure.core.async :as async]))
 
 (defn send-counter
   "Counts down to 0, sending value of counter to sse context and
   recursing on a different thread; ends event stream when counter
   is 0."
-  [ctx count]
-  (sse/send-event ctx "count" (str count ", thread: " (.getId (Thread/currentThread))))
-  (Thread/sleep 2000)
-  (if (> count 0)
-    (future (send-counter ctx (dec count)))
-    (sse/end-event-stream ctx)))
+  [event-ch count-num]
+  ;; This is how you set a specific event name for the client to listen for
+  (async/put! event-ch {:name "count"
+                        :data (str count-num ", thread: " (.getId (Thread/currentThread)))})
+  ;; If you just want the client to receive messages on the "message" event, just pass the data string
+  ;(async/put! event-ch (str count-num ", thread: " (.getId (Thread/currentThread))))
+  (Thread/sleep 1500)
+  (if (> count-num 0)
+    (recur event-ch (dec count-num))
+    (do
+      (async/put! event-ch {:name "close" :data ""})
+      (async/close! event-ch))))
 
 (defn sse-stream-ready
   "Starts sending counter events to client."
-  [ctx]
-  (send-counter ctx 10))
+  [event-ch ctx]
+  ;; The context is passed into this function - it contains everything you'd
+  ;; expect.  Additionally, there's a `response-channel` in the context.  This
+  ;; is the channel the connects directly to the response OutputStream, should
+  ;; you ever need low-level control over the SSE events.  It's advised that
+  ;; that you never use this channel unless you know what you're doing.
+  (let [{:keys [request response-channel]} ctx]
+    (send-counter event-ch 10)))
 
 ;; Wire root URL to sse event stream
 (defroutes routes
-  [[["/" {:get [::send-counter (sse/sse-setup sse-stream-ready)]}]]])
+  [[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))
