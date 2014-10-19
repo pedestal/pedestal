@@ -163,7 +163,7 @@ processing form like a future or a delay). The body terminates, and
 the first thread terminates it's processing entirely. A new thread
 calls resume on the post pause context, which resumes interceptor
 execution with the context from the paused thread. The
-[sse interceptor](https://github.com/pedestal/pedestal/blob/master/service/src/io/pedestal/service/http/sse.clj),
+[sse interceptor](https://github.com/pedestal/pedestal/blob/master/service/src/io/pedestal/http/sse.clj),
 which creates a channel for servers to communicate with clients,
 demonstrates this pattern.
 
@@ -175,7 +175,7 @@ next. The return value of one interceptor may itself be a context with
 a path where more interceptors have been added, where the total
 interceptor path can be examined or chained, or where additional
 terminators can be introduced. The
-[routing interceptor](https://github.com/pedestal/pedestal/blob/master/service/src/io/pedestal/service/http/route.clj)
+[routing interceptor](https://github.com/pedestal/pedestal/blob/master/service/src/io/pedestal/http/route.clj)
 uses this feature to add additional interceptors to the interceptor
 path after examining the incoming request to find a matching path to
 dispatch requests to.
