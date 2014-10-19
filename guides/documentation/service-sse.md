@@ -1,7 +1,3 @@
----
-title: Server-Sent Events (SSE)
----
-
 <!--
  Copyright 2013 Relevance, Inc.
  Copyright 2014 Cognitect, Inc.
@@ -28,12 +24,12 @@ events as part of a single response stream. The stream is kept alive
 over time by sending events and/or periodic heart-beat data. In the
 event that the stream is closed for some reason, the client can send a
 request to re-open it and events notifications can continue. All
-modern browsers have built in support for SSE via the _EventSource_
+modern browsers have built in support for SSE via the `EventSource`
 API.
 
 You can setup an event source endpoint by defining a route that maps
 requests to an interceptor returned from the
-_io.pedestal.http.sse/start-event-stream_ function. The
+`io.pedestal.http.sse/start-event-stream` function. The
 resulting SSE interceptor processes a request by:
 
 - pausing interceptor execution (see [Service Async](service-async.md))
@@ -45,29 +41,29 @@ resulting SSE interceptor processes a request by:
 
 and
 
-- passing the current interceptor context to the _stream-ready-fn_ function that was
-  passed as an argument to _start-event-stream_ (previously
-called _sse-setup_, which is still supported for backward compatibility).
+- passing the current interceptor context to the `stream-ready-fn` function that was
+  passed as an argument to `start-event-stream` (previously
+called `sse-setup`, which is still supported for backward compatibility).
 
-The _stream-ready-fn_ is responsible for using the context or storing it for
+The `stream-ready-fn` is responsible for using the context or storing it for
 later use by some other piece of code.
 
 Events can be sent to the client using the
-_io.pedestal.http.sse/send-event_ function. It takes the context
-passed to the _stream-ready-fn_, an event name and event data as
+`io.pedestal.http.sse/send-event` function. It takes the context
+passed to the `stream-ready-fn`, an event name and event data as
 arguments.
 
-_Note that in the current implementation the data must be a string.
-This restriction will be removed in the future._
+`Note that in the current implementation the data must be a string.
+This restriction will be removed in the future.`
 
-If a client closes its connection, the call to _send-event_ will
-throw a _java.io.IOException_. The calling code should catch it and
+If a client closes its connection, the call to `send-event` will
+throw a `java.io.IOException`. The calling code should catch it and
 clean up the streaming context.
 
 When a streaming context is no longer needed, either because there are
 no more events to send or the connection was broken by the client, it
 must be cleaned up by calling the
-_io.pedestal.http.sse/end-event-stream_ function.
+`io.pedestal.http.sse/end-event-stream` function.
 
 Here is an example that shows how an SSE streaming context is created
 and used.
@@ -94,15 +90,15 @@ and used.
   [[["/events" {:get [::events (start-event-stream store-streaming-context)]}]]])
 ```
 
-The _store-streaming-context_ function is passed to _start-event-stream_. It is
+The `store-streaming-context` function is passed to `start-event-stream`. It is
 called when the streaming context is ready. It stores the streaming
-context in the _a-stored-streaming-context_ atom. (A more sophisticated
+context in the `a-stored-streaming-context` atom. (A more sophisticated
 implementation would store it in a map keyed by some other information
 in the context, e.g., a cookie.)
 
-The _notify_ function is used to send an event to the client attached
-to the stream. If an _IOException_ is thrown, it catches it and cleans
-up the streaming context by calling _clean-up_. The _clean-up_
+The `notify` function is used to send an event to the client attached
+to the stream. If an `IOException` is thrown, it catches it and cleans
+up the streaming context by calling `clean-up`. The `clean-up`
 function can also be used directly when there are no more events to
 send.
 
@@ -117,7 +113,6 @@ expect to alter the response, e.g., by setting cookies. If they do,
 the interceptor that handles writing response data to the HTTP output
 stream will log an exception indicating that the data could not be
 sent. An interceptor can use the
-_io.pedestal.http.impl.servlet-interceptor/response-sent?_ function to
+`io.pedestal.http.impl.servlet-interceptor/response-sent?` function to
 determine whether a response has already been sent by an SSE (or
 equivalent) interceptor.
-

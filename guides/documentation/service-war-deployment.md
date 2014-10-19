@@ -1,7 +1,3 @@
----
-title: Deploying a WAR File
----
-
 <!--
  Copyright 2013 Relevance, Inc.
  Copyright 2014 Cognitect, Inc.

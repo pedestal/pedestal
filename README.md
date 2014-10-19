@@ -4,6 +4,18 @@ Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
 server-side development.
 
+## Getting the Latest Release
+
+Leiningen dependencies:
+```
+[io.pedestal/pedestal.app           "0.3.0"]
+[io.pedestal/pedestal.app-tools     "0.3.0"]
+[io.pedestal/pedestal.jetty         "0.3.0"]
+[io.pedestal/pedestal.service       "0.3.0"]
+[io.pedestal/pedestal.service-tools "0.3.0"]
+[io.pedestal/pedestal.tomcat        "0.3.0"]
+```
+
 ## Getting started
 
 ### Starting a new project
@@ -17,7 +29,7 @@ Pedestal service. This will automatically pull templates from
 lein new pedestal-service the-next-big-server-side-thing
 ```
 
-See [documentation](#documentation) for information on Pedestal concepts and
+See [documentation](./guides/documentation) for information on Pedestal concepts and
 advice on getting started.
 
 ## Digging deeper
@@ -29,8 +41,7 @@ applications and improving general ease of use.
 
 ### Documentation
 
- * [Pedestal documentation](./guides) is coupled within this
-   repository.
+ * [Pedestal documentation](./guides/documentation) is coupled within this repository.
  * The latest [API Docs](http://pedestal.github.io/pedestal).
  * Build your own API docs with `lein doc`
 

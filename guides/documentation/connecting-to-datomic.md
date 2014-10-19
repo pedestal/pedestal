@@ -1,7 +1,3 @@
----
-title: Connecting 'Hello World' to Datomic
----
-
 <!--
  Copyright 2013 Relevance, Inc.
  Copyright 2014 Cognitect, Inc.
@@ -178,4 +174,3 @@ Hello Colors! [["True Mint"], ["Orange Red"], ["Olive Green"], ["Yellowish White
 For more about Datomic, check out [datomic.com][datomic].
 
 [datomic]: http://www.datomic.com
-

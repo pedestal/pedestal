@@ -1,7 +1,3 @@
----
-Title: Hello World Service
----
-
 <!--
  Copyright 2013 Relevance, Inc.
  Copyright 2014 Cognitect, Inc.
@@ -199,4 +195,3 @@ $
 For more about building out the server side, you can look at
 [Routing and Linking](service-routing.md) or
 [Connecting to Datomic](connecting-to-datomic.md).
-
