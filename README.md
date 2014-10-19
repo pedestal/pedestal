@@ -29,9 +29,10 @@ applications and improving general ease of use.
 
 ### Documentation
 
- * [Pedestal documentation](./guides) is coupled within this repository.
- * API Docs: generate literate-programming-style API docs by following the
-  instructions within the [guides](./guides/documentation/index.md#what-about-api-documentation).
+ * [Pedestal documentation](./guides) is coupled within this
+   repository.
+ * The latest [API Docs](http://pedestal.github.io/pedestal).
+ * Build your own API docs with `lein doc`
 
 ### Supported Platforms
 
