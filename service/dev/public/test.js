@@ -1,1 +1,1 @@
-Text data on the classpath
+{"test": "JSON data on the classpath"}
