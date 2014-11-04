@@ -17,8 +17,8 @@ we'll need in the processing list to store a value in a cookie. From
 
 For further enlightenment, take a look at:
 
-*  The pedestal ring-middlewares package: `pedestal.service.http.ring-middlewares`
-*  The pedestal interceptors functionality: `pedestal.service.interceptor`
+*  The pedestal ring-middlewares package: `io.pedestal.http.ring-middlewares`
+*  The pedestal interceptors functionality: `io.pedestal.interceptor`
 
 ## See it in Action
 
