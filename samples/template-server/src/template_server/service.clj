@@ -11,10 +11,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns template-server.service
-  (:require [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.route :as route]
-            [io.pedestal.service.http.body-params :as content-type]
-            [io.pedestal.service.http.route.definition :refer [defroutes]]
+  (:require [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.body-params :as content-type]
+            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [clojure.java.io :as io]
             [hiccup.page :as page]
