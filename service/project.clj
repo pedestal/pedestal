@@ -32,7 +32,7 @@
                                [org.clojure/tools.reader]
                                [srypto-random]
                                [crypto-equality]]]
-                 [org.clojure/tools.reader "0.8.8"]
+                 [org.clojure/tools.reader "0.8.9"]
                  [com.fasterxml.jackson.core/jackson-core "2.3.2"]
                  [cheshire "5.3.1" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
                  [com.cognitect/transit-clj "0.8.255"]
