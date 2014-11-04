@@ -11,18 +11,18 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns server-with-links.service
-    (:require [io.pedestal.service.http :as bootstrap]
-              [io.pedestal.service.http.route :as route]
-              [io.pedestal.service.http.body-params :as body-params]
-              [io.pedestal.service.interceptor :refer [defhandler]]
-              [io.pedestal.service.http.route.definition :refer [defroutes]]
+    (:require [io.pedestal.http :as bootstrap]
+              [io.pedestal.http.route :as route]
+              [io.pedestal.http.body-params :as body-params]
+              [io.pedestal.interceptor :refer [defhandler]]
+              [io.pedestal.http.route.definition :refer [defroutes]]
               [ring.util.response :as ring-resp]))
 
 (defn link-to
   "Uses pedestal.service.http.route/url-for fn to generate a link to a named route"
   [text route]
   (format "<a href='%s'>%s</a>"
-          (io.pedestal.service.http.route/url-for route)
+          (route/url-for route)
           text))
 
 (defhandler this-page
