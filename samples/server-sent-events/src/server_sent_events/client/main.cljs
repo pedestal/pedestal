@@ -38,4 +38,3 @@
     (do (.log js/console "New SSE event:" event)
         (recur (async/<! sse-chan)))
     (.log js/console "There are no more events; Event channel is closed")))
-
