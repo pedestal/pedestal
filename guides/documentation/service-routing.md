@@ -602,7 +602,7 @@ use a request-specific URL generator function elsewhere, extract
 
 The `url-for` functions only return URLs. The
 `io.pedestal.http.route/form-action-for-routes` function takes a
-route table returns a function that accepts a route-name (and optional
+route table and returns a function that accepts a route-name (and optional
 arguments) and returns a map containing a URL and an HTTP verb.
 
 ```clj
