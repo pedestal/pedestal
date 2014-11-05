@@ -11,38 +11,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns server-with-links.server
-  (:require [server-with-links.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+  (:require [io.pedestal.http :as server]
+            [server-with-links.service :as service]))
 
-(def service-instance
-  "Global var to hold service instance."
-  nil)
+(defn -main
+  "The entry-point for 'lein run'"
+  [& args]
+  (println "\nCreating your server...")
+  (-> service/service 
+      server/create-server
+      server/start))
 
-(defn create-server
-  "Standalone dev/prod mode."
-  [& [opts]]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-server (merge service/service opts)))))
-
-(defn -main [& args]
-  (println "Creating server...")
-  (create-server)
-  (println "Server created. Awaiting connections.")
-  (bootstrap/start service-instance))
-
-
-;; Container prod mode for use with the pedestal.servlet.ClojureVarServlet class.
-
-(defn servlet-init [this config]
-  (require 'server-with-links.service)
-  (alter-var-root #'service-instance (bootstrap/create-servlet service/service))
-  (bootstrap/start service-instance)
-  (.init (::bootstrap/servlet service-instance) config))
-
-(defn servlet-destroy [this]
-  (bootstrap/stop service-instance)
-  (alter-var-root #'service-instance nil))
-
-(defn servlet-service [this servlet-req servlet-resp]
-  (.service ^javax.servlet.Servlet (::bootstrap/servlet service-instance)
-            servlet-req servlet-resp))
