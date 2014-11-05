@@ -142,9 +142,9 @@ see the output from Datomic.
 ```
 
 If you still have the service running from
-[Hello World Service](hello-world-service.md), then you
-will need to exit the REPL. Restart the service the same way as
-before: `lein repl`, `(use 'dev)`, and `(start)`.
+[Hello World Service](hello-world-service.md), you will first 
+need to exit the REPL. Then, start the service the same way as
+before: `(server/start runnable-service)`.
 
 Now point your browser at
 [http://localhost:8080/](http://localhost:8080) and you will see the
