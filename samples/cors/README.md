@@ -13,9 +13,9 @@ show three things:
    that information <http://localhost:8082/listener.html>
 
 To demonstrate this, begin three running instances of this application on ports 8080, 8081, and
-8082 (using `lein run 808X`). Visit the /listener.html addresses of the servers on 8080 and
-8081. Open your javascript console and click the link on the page to start the
-event listener.
+8082 (using `lein run 808X`). Visit the listener.html addresses above.
+Open your javascript console and click the link on the page to start the
+event listener for each page.
 
 ## Thanks
 
