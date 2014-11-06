@@ -11,39 +11,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns cors.server
-  (:require [cors.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
-
-(def service-instance
-  "Global var to hold service instance."
-  nil)
-
-(defn create-server
-  "Standalone dev/prod mode."
-  [& [opts]]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-server (merge service/service opts)))))
+  (:require [io.pedestal.http :as server]
+            [cors.service :as service]))
 
 (defn -main [& args]
   (let [port (Long/valueOf (first args))]
-    (println "Creating server...")
-    (create-server [::bootstrap/port port])
-    (println (str "Server created. Awaiting connections on port " port))
-    (bootstrap/start service-instance)))
+    (println (str "Creating server on port " port "..."))
+    (-> (merge service/service {::server/port port})
+         server/create-server
+         server/start)))
 
 
-;; Container prod mode for use with the pedestal.servlet.ClojureVarServlet class.
-
-(defn servlet-init [this config]
-  (require 'cors.service)
-  (alter-var-root #'service-instance (bootstrap/create-servlet service/service))
-  (bootstrap/start service-instance)
-  (.init (::bootstrap/servlet service-instance) config))
-
-(defn servlet-destroy [this]
-  (bootstrap/stop service-instance)
-  (alter-var-root #'service-instance nil))
-
-(defn servlet-service [this servlet-req servlet-resp]
-  (.service ^javax.servlet.Servlet (::bootstrap/servlet service-instance)
-            servlet-req servlet-resp))

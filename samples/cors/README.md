@@ -1,23 +1,21 @@
 # cors demo
 
-Here we demonstrate an implementation of [cross-origin resource sharing](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing).
+Here we demonstrate an implementation 
+of [cross-origin resource sharing](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing).
 
-In order to fully demonstrate this feature, we must start two running instances of this application on ports 8080 and 8081. A static
-page with embedded javascript is served from http://localhost:8080/js, and it consumes an SSE EventSource found at http://localhost:8081/.
+In order to fully demonstrate this feature, we must 
+show three things:
 
-1. Start two instances on different ports: `lein run 8080` and `lein run 8081`
-1. Open the Javascript console, as all output from the sample will be
-   displayed there.
-1. Visit [localhost:8080/js](http://localhost:8080/js) to load the
-   event consumer, and watch the JavaScript console. The inline JavaScript returned
-   will attempt to access a service on port 8081, a different origin. If allowed,
-   the event source passes back an event containing the thread id, which is consumed
-   and displayed in the console.
+1. A server that provides SSE EventSource information <http://localhost:8081/>
+2. A client with a white-listed origin that can reach that 
+   information <http://localhost:8080/listener.html>
+3. A client with a non-white-listed origin that cannot reach 
+   that information <http://localhost:8082/listener.html>
 
-In `src/cors/service.clj`, you will find a definition of `cors-interceptor` that adds CORS headers
-when the origin matches the authorized origin.
-
-For more detailed information, please consult the `NOTES.md` document alongside this README.
+To demonstrate this, begin three running instances of this application on ports 8080, 8081, and
+8082 (using `lein run 808X`). Visit the /listener.html addresses of the servers on 8080 and
+8081. Open your javascript console and click the link on the page to start the
+event listener.
 
 ## Thanks
 
@@ -31,7 +29,6 @@ To learn more about configuring Logback, read its [documentation](http://logback
 ## Links
 
 * [Other examples](https://github.com/pedestal/samples)
-
 
 License
 -------
