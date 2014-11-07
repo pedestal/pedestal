@@ -56,7 +56,7 @@ name is "helloworld", so place the Datomic schema file below in
 `resources/helloworld/schema.edn`. The schema is also pretty simple:
 it has just one attribute.
 
-```clj
+```clojure
 [
   {:db/id #db/id[:db.part/db]
   :db/ident :hello/color
@@ -74,7 +74,7 @@ some seed data into Datomic. This file can also reside under the
 resources/helloworld directory. Create the file
 `resources/helloworld/seed-data.edn` with the following contents.
 
-```clj
+```clojure
 [
 {:db/id #db/id[:db.part/user -1], :hello/color "True Mint"}
 {:db/id #db/id[:db.part/user -2], :hello/color "Yellowish White"}
@@ -93,7 +93,7 @@ define the schema, and retrieve data.  This code is nothing new, just
 a simple Datomic sample. Put the following code into
 `src/helloworld/peer.clj`.
 
-```clj
+```clojure
 (ns helloworld.peer
   (:require [datomic.api :as d :refer (q)]))
 
@@ -124,7 +124,7 @@ access data.
 Open up `src/helloworld/service.clj` again and modify the `ns` macro to
 reference helloworld.peer:
 
-```clj
+```clojure
 (ns helloworld.service
     (:require [io.pedestal.http :as bootstrap]
               [io.pedestal.http.route.definition :refer [defroutes]]
@@ -135,7 +135,7 @@ reference helloworld.peer:
 Let's now rewrite the `home-page` function in `service.clj` so that we
 see the output from Datomic.
 
-```clj
+```clojure
 (defn home-page
   [request]
   (response (str "Hello Colors! " (results))))
@@ -150,7 +150,7 @@ Now point your browser at
 [http://localhost:8080/](http://localhost:8080) and you will see the
 thrilling string:
 
-```clj
+```clojure
 Hello Colors! [["True Mint"], ["Olive Green"], ["Orange Red"], ["Yellowish White"]]
 ```
 

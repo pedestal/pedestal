@@ -68,7 +68,7 @@ must be cleaned up by calling the
 Here is an example that shows how an SSE streaming context is created
 and used.
 
-```clj
+```clojure
 (def a-stored-streaming-context (atom nil))
 
 (defn clean-up []

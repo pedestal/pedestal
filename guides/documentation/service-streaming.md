@@ -56,7 +56,7 @@ resumed processing (see [Service Async](service-async.md)).
 Here is an example of an interceptor that returns an arbitrarily large
 volume of data.
 
-```clj
+```clojure
     (defn range [req]
       (let [limit (get-in req [:query-params :limit] 10)]
         (response (range limit))))

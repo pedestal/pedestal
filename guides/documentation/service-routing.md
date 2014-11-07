@@ -70,7 +70,7 @@ following optional elements:
 
 Here is a simple "Hello World" example:
 
-```clj
+```clojure
 [[:hello-world :http "example.com"
   ["/hello-world" {:get hello-world}]]]
 ```
@@ -88,7 +88,7 @@ A request to a different host (either DNS name or IP
 address) or using HTTPS would not be routed, unless the application's
 specification were loosened, like so:
 
-```clj
+```clojure
 [[:hello-world
   ["/hello-world" {:get hello-world}]]]
 ```
@@ -96,7 +96,7 @@ specification were loosened, like so:
 The application's name, `:hello-world`, is optionally used during URL
 generation, and can also be omitted, leaving this:
 
-```clj
+```clojure
 [[["/hello-world" {:get hello-world}]]]
 ```
 
@@ -155,7 +155,7 @@ before it can be used. There are two ways to do this:
 The `expand-routes` function takes a terse route definition data
 structure as input and returns a route table. For example:
 
-```clj
+```clojure
 (defn hello-world [req] {:status 200 :body "Hello World!"})
 
 (def route-table
@@ -169,7 +169,7 @@ request and returns a Ring response.
 The `defroutes` macro is equivalent to calling `expand-routes` with a
 quoted data structure:
 
-```clj
+```clojure
 (defroutes route-table
   [[["/hello-world" {:get hello-world}]]])
 ```
@@ -178,7 +178,7 @@ A quoted terse route definition is read at load time and is static
 after that. In some cases, you may need to dynamically generate
 routes. Here is an example:
 
-```clj
+```clojure
 (defn hello-fn [who]
   (fn [req] (ring.util.response/response (str "Hello " who)))
 
@@ -197,7 +197,7 @@ splicing in the value of `who` where it is needed.
 In some cases, you may want to assemble the terse data structure
 without quoting it at all. Here is an example:
 
-```clj
+```clojure
 (defn hello-world [req] {:status 200 :body "Hello World!"})
 
 (def route-table
@@ -215,7 +215,7 @@ that a value in a verb map must be a symbol, an interceptor, or a list.
 Alternatively, `hello-world` can be defined as an interceptor
 directly, using the `io.pedestal.interceptor/defhandler` macro:
 
-```clj
+```clojure
 (defhandler hello-world [req] {:status 200 :body "Hello World!"})
 
 (def route-table
@@ -225,7 +225,7 @@ directly, using the `io.pedestal.interceptor/defhandler` macro:
 
 Or, `hello-world` can be quoted, making it a symbol again:
 
-```clj
+```clojure
 (defn hello-world [req] {:status 200 :body "Hello World!"})
 
 (def route-table
@@ -246,7 +246,7 @@ definitions, intermediate interceptors and constraints.
 Segments of a route's path may be parameterized simply by
 prepending ':' to the segment's name:
 
-```clj
+```clojure
 (defn hello-who [req]
   (let [who (get-in req [:path-params :who])]
     (ring.util.response/response (str "Hello " who))))
@@ -259,7 +259,7 @@ the request's param map.
 Splat parameters are also supported. They are defined using a final
 path segment prepended with '*', like this:
 
-```clj
+```clojure
 [[["/hello/:who" {:get hello-who}]
   ["/*other" {:get get-other-stuff]]
 ```
@@ -272,7 +272,7 @@ inherits information from it's ancestors.
 
 Here is an example showing how a path is inherited:
 
-```clj
+```clojure
 [[["/order" {:get list-orders :post create-order}
    ["/:id" {:get view-order :put update-order}]]]]
 ```
@@ -291,7 +291,7 @@ The "/order" path segment is inherited by the child routes.
 It is worth noting that this same structure could be defined without
 hierarchy:
 
-```clj
+```clojure
 [[["/order" {:get list-orders :post create-order}]
   ["/order/:id" {:get view-order :put update-order}]]]
 ```
@@ -335,7 +335,7 @@ values specified in the interceptors vector may be:
 
 Here is an example:
 
-```clj
+```clojure
 [[["/order" {:get list-orders :post create-order}
    ["/:id"
     ^:interceptors [load-order-from-db]
@@ -354,7 +354,7 @@ the interceptor paths become:
 
 Any number of interceptors may be specified as an order sequence:
 
-```clj
+```clojure
 [[["/order" {:get list-orders :post create-order}
    ["/:id"
     ^:interceptors [load-order-from-db verify-order-ownership]
@@ -370,7 +370,7 @@ Interceptors may be specified at multiple levels of the hierarchy.
 Like paths, interceptors are inherited. Inherited interceptors always
 come first in the interceptor path for a given route.
 
-```clj
+```clojure
 [[["/order"
    ^:interceptors [verify-request]
    {:get list-orders :post create-order}
@@ -406,7 +406,7 @@ parameter values.
 
 Here is an example of how constraints can be used:
 
-```clj
+```clojure
 ["/user" {:get list-users :post add-user}
  ["/:user-id"
   ^:constraints {:user-id #"[0-9]+"}
@@ -439,7 +439,7 @@ Once a route table is defined, it can be used to create a router. The
 `io.pedestal.http.route/router` function takes a route table as
 input and returns an interceptor that handles routing.
 
-```clj
+```clojure
 (defn hello-world [req] {:status 200 :body "Hello World!"})
 
 (defroutes route-table
@@ -465,7 +465,7 @@ function and pass a function that returns a route table, it will be
 called every time the routing interceptor is used. This allows your
 Web server to use the latest compiled routes without restarting.
 
-```clj
+```clojure
 (def router (router #(deref #'route-table)))
 ```
 
@@ -513,7 +513,7 @@ be thrown during route expansion.*
 
 Here is an example.
 
-```clj
+```clojure
 (require '[orders :as o])
 
 (defroutes routes
@@ -552,7 +552,7 @@ The `io.pedestal.http.route/url-for-routes` function takes a
 route table and returns a function that accepts a route-name (and optional
 arguments) and returns a URL that can be used in a hyperlink.
 
-```clj
+```clojure
 (def url-for (route/url-for-routes route-table))
 
 (url-for ::o/list-orders) ;; use keyword derived from symbol to name route
@@ -565,7 +565,7 @@ arguments) and returns a URL that can be used in a hyperlink.
 An `url-for` function can populate parameters in a route. Parameter values
 are passed as additional arguments:
 
-```clj
+```clojure
 (url-for :view-order :params {:id 10})
 ;; => "/order/10"
 ```
@@ -605,7 +605,7 @@ The `url-for` functions only return URLs. The
 route table and returns a function that accepts a route-name (and optional
 arguments) and returns a map containing a URL and an HTTP verb.
 
-```clj
+```clojure
 (def form-action (route/form-action-for-routes routes-table))
 
 (form-action :make-an-order)
@@ -616,7 +616,7 @@ A form action function will (by default) convert verbs other than GET
 or POST to POST, with the actual verb added as a query string
 parameter named `method`:
 
-```clj
+```clojure
 (form-action ::o/update-order :params {:id 20})
 ;; => {:action "/order/20?`method=put" :method :post}
 ```
