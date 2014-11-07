@@ -22,7 +22,7 @@ thread.
 
 Here is some code that needs to wait for something to happen:
 
-```clj
+```clojure
     (interceptors/defhandler takes-time [req]
       (response (wait-for-something-that-takes-a-long-time req)))
 
@@ -36,7 +36,7 @@ stopping the Web server thread from handling other work.
 This code can be made rewritten so that it releases the Web server
 thread, as shown below:
 
-```clj
+```clojure
     (interceptors/defbefore takes-time [{req :request :as context}]
       ;; give back the web server thread after doing work in body
       (io.pedestal.impl.interceptor/with-pause
@@ -72,7 +72,7 @@ In this example, the Web server's thread is freed, but another worker
 thread is blocked. This is not a requirement. Here is an example that
 releases the Web server thread without using another thread.
 
-```clj
+```clojure
     (defn resume-fn [context result]
       (io.pedestal.impl.interceptor/resume
         (assoc context :response (response result))))
