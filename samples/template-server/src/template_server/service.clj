@@ -102,8 +102,7 @@
 
 ;; Define the routes that pull everything together.
 (defroutes routes
-  [[["/"                  {:get home-page}
-      ^:interceptors [bootstrap/html-body]
+  [[["/"                  {:get home-page} ^:interceptors [bootstrap/html-body]
       ["/hiccup"          {:get hiccup-page}]
       ["/enlive"          {:get enlive-page}]
       ["/clostache"       {:get clostache-page}]
