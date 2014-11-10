@@ -509,7 +509,7 @@ Here is an example.
 (require '[orders :as o])
 
 (defroutes routes
-  [[["/order" {:get o/list-orders :post [:make-an-order o/create-order]} ^:interceptor [verify-request]
+  [[["/order" {:get o/list-orders :post [:make-an-order o/create-order]} ^:interceptors [verify-request]
      ["/:id" {:get o/view-order :put o/update-order} ^:interceptors [o/verify-order-ownership o/load-order-from-db]]]]])
 ```
 
