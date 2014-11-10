@@ -69,7 +69,7 @@
 ;; ends. While the browser retains the cookie, the interceptor will  
 ;; treat the unrecoverable ciphertext as non-existant.
 (definterceptor session-interceptor
-    (middlewares/session {:store (cookie/cookie-store)}))
+  (middlewares/session {:store (cookie/cookie-store)}))
 
 ;; Set up routes to get all the above handlers accessible.
 (defroutes routes
