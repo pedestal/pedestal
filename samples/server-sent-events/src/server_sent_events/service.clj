@@ -46,9 +46,14 @@
   (let [{:keys [request response-channel]} ctx]
     (send-counter event-ch 10)))
 
+(defn about-page
+  [request]
+  (ring-resp/response "Server Sent Service"))
+
 ;; Wire root URL to sse event stream
 (defroutes routes
-  [[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}]]])
+  [[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}
+     ["/about" {:get about-page}]]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))

@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (defproject server-sent-events "0.0.1-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "a sample to demonstrate server sent events"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -33,13 +33,15 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.clojure/clojurescript "0.0-2341"]]
   :plugins [[lein-cljsbuild "1.0.3"]]
-  :profiles {:dev {:source-paths ["dev"]}}
   :min-lein-version "2.0.0"
   :resource-paths ["resources" "config"]
   :global-vars  {*warn-on-reflection* true
                  *assert* true}
   :pedantic? :abort
   :main ^{:skip-aot true} server-sent-events.server
+  :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "server-sent-events.server/run-dev"]}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.3.1"]]
+                   :source-paths ["dev"]}}
   :cljsbuild {:builds
               {:adv {:source-paths  ["src" "target/classes"]
                     :compiler
