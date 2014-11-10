@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (defproject template-server "0.0.1-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "a sample that demonstrates using template libraries with pedestal"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
