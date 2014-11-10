@@ -337,9 +337,7 @@ Here is an example:
 
 ```clojure
 [[["/order" {:get list-orders :post create-order}
-   ["/:id"
-    ^:interceptors [load-order-from-db]
-    {:get view-order :put update-order}]]]]
+   ["/:id" {:get view-order :put update-order} ^:interceptors [load-order-from-db]]]]]
 ```
 With this additional interceptor specified for the second two routes,
 the interceptor paths become:
@@ -356,9 +354,7 @@ Any number of interceptors may be specified as an order sequence:
 
 ```clojure
 [[["/order" {:get list-orders :post create-order}
-   ["/:id"
-    ^:interceptors [load-order-from-db verify-order-ownership]
-    {:get view-order :put update-order}]]]]
+   ["/:id" {:get view-order :put update-order} ^:interceptors [load-order-from-db verify-order-ownership]]]]]
 ```
 
 In this case, for requests that match the "/order/:id" route, the
@@ -371,12 +367,8 @@ Like paths, interceptors are inherited. Inherited interceptors always
 come first in the interceptor path for a given route.
 
 ```clojure
-[[["/order"
-   ^:interceptors [verify-request]
-   {:get list-orders :post create-order}
-   ["/:id"
-    ^:interceptors [verify-order-ownership load-order-from-db]
-    {:get view-order :put update-order}]]]]
+[[["/order" {:get list-orders :post create-order} ^:interceptors [verify-request]
+   ["/:id" {:get view-order :put update-order} ^:interceptors [verify-order-ownership load-order-from-db]]]]]
 ```
 
 This definition produces the following routes and interceptor paths:
@@ -517,14 +509,8 @@ Here is an example.
 (require '[orders :as o])
 
 (defroutes routes
-  [[["/order"
-     ^:interceptor [verify-request]
-     {:get o/list-orders
-      :post [:make-an-order o/create-order]}
-     ["/:id"
-      ^:interceptors [o/verify-order-ownership o/load-order-from-db]
-      {:get o/view-order
- :put o/update-order}]]]])
+  [[["/order" {:get o/list-orders :post [:make-an-order o/create-order]} ^:interceptor [verify-request]
+     ["/:id" {:get o/view-order :put o/update-order} ^:interceptors [o/verify-order-ownership o/load-order-from-db]]]]])
 ```
 
 In this case, the destination interceptors are all specified as
