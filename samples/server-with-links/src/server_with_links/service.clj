@@ -36,7 +36,9 @@
       (ring-resp/content-type "text/html")))
 
 (defroutes routes
-  [[["/" {:get home-page}]                   ; Unnamed route
+  [[["/" {:get home-page}]                   ; Unless otherwise named, the name of a route defaults
+                                             ; to the namespaced keyword form of the symbol. In this case,
+                                             ; the route is named :server-with-links.service/home-page
     ["/that" {:get [:that linked-page]}]]])  ; Name a route to be able to generate its path later
 
 ;; Consumed by server-with-links.server/create-server
