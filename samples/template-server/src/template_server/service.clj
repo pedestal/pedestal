@@ -35,7 +35,6 @@
                 "</ul>"))))
 
 (defn- title-as     [t] (format "Hello from %s!" t))
-(defn- message-as   [t] (format "Hello from the %s demo page. Have a nice day!" t))
 (defn- current-date []  (str (java.util.Date.)))
 
 ;; The /hiccup page uses hiccup.
@@ -48,7 +47,7 @@
       [:hr] 
       [:p "This page was rendered with Hiccup!"]
       [:br]
-      [:p {:id "the-text"}   (message-as "Hiccup")]
+      [:p {:id "the-text"}   "Hello from the Hiccup demo. Do you need a glass of water?"]
       [:p {:id "the-date"}   (current-date)]])))
 
 ;; The /enlive page uses enlive, plugging in
@@ -64,7 +63,7 @@
   (ring-resp/response 
    (apply str 
           (enlive-template {:title (title-as   "Enlive")
-                            :text  (message-as "Enlive")
+                            :text  "This is a special message from Enlive."
                             :date  (current-date)}))))
 
 ;; The /mustache page is done in (what else?) mustache.
@@ -74,7 +73,7 @@
   (ring-resp/response 
     (clostache/render-resource "public/clostache-template.html"
                                {:title (title-as   "Clostache")
-                                :text  (message-as "Clostache")
+                                :text  "With Clostache, it's November every month."
                                 :date  (current-date)})))
 
 ;; The /comb page is done with the very ERB/JSP-like comb
@@ -85,7 +84,7 @@
     (ring-resp/response
       (comb/eval template 
                  {:title (title-as   "Comb")
-                  :text  (message-as "Comb")
+                  :text  "You might be able to tame hairy markup with Comb."
                   :date  (current-date)}))))
 
 ;; The /stringtemplate page is done with the Java based String
@@ -95,7 +94,7 @@
   (let [template (org.stringtemplate.v4.ST. (slurp (io/resource "public/string-template.html")) \{ \})]
     (ring-resp/response (-> template
                             (.add "title" (title-as   "String Template"))
-                            (.add "text"  (message-as "String Template"))
+                            (.add "text"  "String Template might be useful when importing templates from Java.")
                             (.add "date"  (current-date))
                             (.render)))))
 

@@ -19,16 +19,14 @@
 (def service
   (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
 
-(defn- text-paragraph [t] (str "<p id=\"the-text\">Hello from the " t " demo page. Have a nice day!</p>"))
-
 (deftest test-templates-generate-correct-bodies
   (are [url partial-body-string]
        (.contains (->> url
                        (response-for service :get)
                        :body)
                   partial-body-string)
-       "/hiccup"         (text-paragraph "Hiccup")
-       "/enlive"         (text-paragraph "Enlive")
-       "/clostache"      (text-paragraph "Clostache")
-       "/stringtemplate" (text-paragraph "String Template")
-       "/comb"           (text-paragraph "Comb")))
+       "/hiccup"         "Hiccup"
+       "/enlive"         "Enlive"
+       "/clostache"      "Clostache"
+       "/stringtemplate" "String Template"
+       "/comb"           "Comb"))
