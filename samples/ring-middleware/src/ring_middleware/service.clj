@@ -34,7 +34,7 @@
 
 (defn introduction
   "Place the name provided by the user into their session, then send
-     them to hello."
+   them to hello."
   [req]
   (let [name (get-in req [:params :name])]
     (-> (ring-resp/redirect "/hello")
@@ -48,7 +48,7 @@
 ;; behavior of the service when no session data is present.
 (defn hello
   "Look up the name for this http session, if present greet the user
-     by their name. If not, greet the user as stranger."
+   by their name. If not, greet the user as stranger."
   [req]
   (let [name (or (get-in req [:session :name]) 
                  "Stranger")]
