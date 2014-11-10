@@ -74,14 +74,10 @@
 ;; Set up routes to get all the above handlers accessible.
 (defroutes routes
   [[["/" {:get intro-form}]
-    ["/introduce"
-     ^:interceptors [middlewares/params
-                     middlewares/keyword-params
-                     session-interceptor]
-     {:post introduction}]
-    ["/hello"
-     ^:interceptors [session-interceptor]
-     {:get hello}]]])
+    ["/introduce" {:post introduction} ^:interceptors [middlewares/params
+                                                       middlewares/keyword-params
+                                                       session-interceptor]]
+    ["/hello" {:get hello} ^:interceptors [session-interceptor]]]])
 
 ;; Consumed by ring-middleware.server/create-server
 ;; See bootstrap/default-interceptors for additional options you can configure
