@@ -7,20 +7,20 @@
 
 (defn about-page
   [request]
-  (ring-resp/response (format "Clojure %s - served from %s\n"
+  (ring-resp/response (format "Clojure %s - served from %s"
                               (clojure-version)
                               (route/url-for ::about-page))))
 
 (defn home-page
   [request]
-  (ring-resp/response "Hello World!\n"))
+  (ring-resp/response "Hello World!"))
 
 (defroutes routes
-  ;; Define the routes such that a GET request to / routes to the home-page
-  ;; function and a GET request to /about routes to the about-page function.
-  ;; In addition, set up two interceptors (body-params/body-params and
-  ;; bootstrap/html-body) that apply to / and any of its children (like /about).
-  [[["/" {:get home-page} ^:interceptors [(body-params/body-params) bootstrap/html-body]
+  ;; Defines "/" and "/about" routes with their associated :get handlers.
+  ;; The interceptors defined after the verb map (e.g., {:get home-page}
+  ;; apply to / and its children (/about).
+  [[["/" {:get home-page}
+     ^:interceptors [(body-params/body-params) bootstrap/html-body]
      ["/about" {:get about-page}]]]])
 
 ;; Consumed by {{namespace}}.server/create-server
