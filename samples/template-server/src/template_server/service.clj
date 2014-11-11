@@ -101,12 +101,12 @@
 
 ;; Define the routes that pull everything together.
 (defroutes routes
-  [[["/"                  {:get home-page} ^:interceptors [bootstrap/html-body]
-      ["/hiccup"          {:get hiccup-page}]
-      ["/enlive"          {:get enlive-page}]
-      ["/clostache"       {:get clostache-page}]
-      ["/stringtemplate"  {:get stringtemplate-page}]
-      ["/comb"            {:get comb-page}]]]])
+  [[["/" {:get home-page} ^:interceptors [bootstrap/html-body]
+      ["/hiccup" {:get hiccup-page}]
+      ["/enlive" {:get enlive-page}]
+      ["/clostache" {:get clostache-page}]
+      ["/stringtemplate" {:get stringtemplate-page}]
+      ["/comb" {:get comb-page}]]]])
 
 ;; Consumed by template-server.server/create-server
 ;; See bootstrap/default-interceptors for additional options you can configure
