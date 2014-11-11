@@ -273,8 +273,10 @@ inherits information from it's ancestors.
 Here is an example showing how a path is inherited:
 
 ```clojure
-[[["/order" {:get list-orders :post create-order}
-   ["/:id" {:get view-order :put update-order}]]]]
+[[["/order" {:get list-orders
+             :post create-order}
+   ["/:id" {:get view-order
+            :put update-order}]]]]
 ```
 This defines these four routes:
 
@@ -292,8 +294,10 @@ It is worth noting that this same structure could be defined without
 hierarchy:
 
 ```clojure
-[[["/order" {:get list-orders :post create-order}]
-  ["/order/:id" {:get view-order :put update-order}]]]
+[[["/order" {:get list-orders
+             :post create-order}]
+  ["/order/:id" {:get view-order
+                 :put update-order}]]]
 ```
 This would produce the same four routes.
 
@@ -336,8 +340,11 @@ values specified in the interceptors vector may be:
 Here is an example:
 
 ```clojure
-[[["/order" {:get list-orders :post create-order}
-   ["/:id" {:get view-order :put update-order} ^:interceptors [load-order-from-db]]]]]
+[[["/order" {:get list-orders
+             :post create-order}
+   ["/:id" ^:interceptors [load-order-from-db]
+    {:get view-order
+     :put update-order}]]]]
 ```
 With this additional interceptor specified for the second two routes,
 the interceptor paths become:
@@ -353,8 +360,12 @@ the interceptor paths become:
 Any number of interceptors may be specified as an order sequence:
 
 ```clojure
-[[["/order" {:get list-orders :post create-order}
-   ["/:id" {:get view-order :put update-order} ^:interceptors [load-order-from-db verify-order-ownership]]]]]
+[[["/order" {:get list-orders
+             :post create-order}
+   ["/:id" ^:interceptors [load-order-from-db
+                           verify-order-ownership]
+    {:get view-order
+     :put update-order}]]]]
 ```
 
 In this case, for requests that match the "/order/:id" route, the
@@ -367,8 +378,13 @@ Like paths, interceptors are inherited. Inherited interceptors always
 come first in the interceptor path for a given route.
 
 ```clojure
-[[["/order" {:get list-orders :post create-order} ^:interceptors [verify-request]
-   ["/:id" {:get view-order :put update-order} ^:interceptors [verify-order-ownership load-order-from-db]]]]]
+[[["/order" ^:interceptors [verify-request]
+   {:get list-orders
+    :post create-order}
+   ["/:id" ^:interceptors [verify-order-ownership
+                           load-order-from-db]
+    {:get view-order
+     :put update-order}]]]]
 ```
 
 This definition produces the following routes and interceptor paths:
@@ -399,9 +415,10 @@ parameter values.
 Here is an example of how constraints can be used:
 
 ```clojure
-["/user" {:get list-users :post add-user}
+["/user" {:get list-users
+          :post add-user}
  ["/:user-id"
-  ^:constraints {:user-id #"[0-9]+"}
+ ^:constraints {:user-id #"[0-9]+"}
   {:put update-user}
   [^:constraints {:view #"long|short"}
    {:get view-user}]]]
@@ -509,8 +526,13 @@ Here is an example.
 (require '[orders :as o])
 
 (defroutes routes
-  [[["/order" {:get o/list-orders :post [:make-an-order o/create-order]} ^:interceptors [verify-request]
-     ["/:id" {:get o/view-order :put o/update-order} ^:interceptors [o/verify-order-ownership o/load-order-from-db]]]]])
+  [[["/order" {:get o/list-orders
+               :post [:make-an-order o/create-order]}
+              ^:interceptors [verify-request]
+     ["/:id" {:get o/view-order
+              :put o/update-order}
+             ^:interceptors [o/verify-order-ownership
+                             o/load-order-from-db]]]]])
 ```
 
 In this case, the destination interceptors are all specified as
