@@ -10,8 +10,12 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defn dev
-  []
-  (require 'dev)
-  (in-ns 'dev)
-  #_(dev/start))
+(defproject io.pedestal/samples "0.3.2-SNAPSHOT"
+  :plugins [[lein-sub "0.2.3"]]
+  :sub ["hello-world"
+        "server-sent-events"
+        "template-server"
+        "cors"
+        "ring-middleware"
+        "server-with-links"])
+

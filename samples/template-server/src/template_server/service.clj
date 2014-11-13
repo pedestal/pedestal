@@ -11,15 +11,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns template-server.service
-  (:require [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.route :as route]
-            [io.pedestal.service.http.body-params :as content-type]
-            [io.pedestal.service.http.route.definition :refer [defroutes]]
+  (:require [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [clojure.java.io :as io]
-            [hiccup.page :as page]
-            [net.cgrand.enlive-html :as html]
-            [clostache.parser :as mustache]
+            [hiccup.page :as hiccup]
+            [net.cgrand.enlive-html :as enlive :refer [deftemplate]]
+            [clostache.parser :as clostache]
             [comb.template :as comb]
             [clojure.string :as str]))
 
@@ -30,92 +29,89 @@
    (format "<html><body>%s<br/>%s</body></html>"
            "Each of the links below is rendered by a different templating library. Check them out:"
            (str "<ul>"
-                (->> ["hiccup" "enlive" "mustache" "stringtemplate" "comb"]
+                (->> ["hiccup" "enlive" "clostache" "stringtemplate" "comb"]
                      (map #(format "<li><a href='/%s'>%s</a></li>" % %))
                      (str/join ""))
                 "</ul>"))))
 
-;; The /hiccup page is done with hiccup.
-;; https://github.com/weavejester/hiccup
+(defn- title-as     [t] (format "Hello from %s!" t))
+(defn- current-date []  (str (java.util.Date.)))
 
+;; The /hiccup page uses hiccup.
+;; https://github.com/weavejester/hiccup
 (defn hiccup-page
   [request]
-  (ring-resp/response (page/html5 [:body [:p "Hello from Hiccup"]])))
+  (ring-resp/response (hiccup/html5 
+    [:body
+      [:h1 {:id "the-title"} (title-as "Hiccup")]
+      [:hr] 
+      [:p "This page was rendered with Hiccup!"]
+      [:br]
+      [:p {:id "the-text"}   "Hello from the Hiccup demo. Do you need a glass of water?"]
+      [:p {:id "the-date"}   (current-date)]])))
 
-;; The /enlive page is done with enlive, plugging in
+;; The /enlive page uses enlive, plugging in
 ;; values for title and text. https://github.com/cgrand/enlive
-
-(html/deftemplate enlive-template "public/enlive-template.html"
+(deftemplate enlive-template "public/enlive-template.html"
   [ctxt]
-  [:h1] (html/content (:title ctxt))
-  [:#the-text] (html/content (:text ctxt))
-  [:#the-date] (html/content (:date ctxt)))
+  [:h1] (enlive/content (:title ctxt))
+  [:#the-text] (enlive/content (:text ctxt))
+  [:#the-date] (enlive/content (:date ctxt)))
 
 (defn enlive-page
   [request]
-  (ring-resp/response (apply str (enlive-template {:title "Enlive Demo Page"
-                                              :text "Hello from the Enlive demo page. Have a nice day!"
-                                              :date (str (java.util.Date.))}))))
+  (ring-resp/response 
+   (apply str 
+          (enlive-template {:title (title-as   "Enlive")
+                            :text  "This is a special message from Enlive."
+                            :date  (current-date)}))))
 
 ;; The /mustache page is done in (what else?) mustache.
 ;; https://github.com/fhd/clostache
-
-(defn mustache-page
+(defn clostache-page
   [request]
-  (ring-resp/response (mustache/render-resource "public/mustache-template.html"
-                                                 {:title "Mustache Demo Page"
-                                                  :text "Hello from the Mustache demo page. Have a great day!"
-                                                  :date (str (java.util.Date.))})))
-
-;; The /stringtemplate page is done with the Java based String
-;; template. http://www.stringtemplate.org
-
-(def template-string
-  "<html>
-    <body>
-      <h1>Hello from {name}</h1>
-    </body>
-  </html>")
-
-(defn stringtemplate-page
-  [request]
-  (let [template (org.stringtemplate.v4.ST. template-string \{ \})]
-    (ring-resp/response (-> template
-                       (.add "name" "String Template")
-                       (.render)))))
+  (ring-resp/response 
+    (clostache/render-resource "public/clostache-template.html"
+                               {:title (title-as   "Clostache")
+                                :text  "With Clostache, it's November every month."
+                                :date  (current-date)})))
 
 ;; The /comb page is done with the very ERB/JSP-like comb
 ;; templating package. https://github.com/weavejester/comb
-
 (defn comb-page
   [request]
-  (ring-resp/response
-   (comb/eval (slurp (io/resource "public/comb.html")) {:name "erb"})))
+  (let [template (slurp (io/resource "public/comb-template.html"))]
+    (ring-resp/response
+      (comb/eval template 
+                 {:title (title-as   "Comb")
+                  :text  "You might be able to tame hairy markup with Comb."
+                  :date  (current-date)}))))
+
+;; The /stringtemplate page is done with the Java based String
+;; template. http://www.stringtemplate.org
+(defn stringtemplate-page
+  [request]
+  (let [template (org.stringtemplate.v4.ST. (slurp (io/resource "public/string-template.html")) \{ \})]
+    (ring-resp/response (-> template
+                            (.add "title" (title-as   "String Template"))
+                            (.add "text"  "String Template might be useful when importing templates from Java.")
+                            (.add "date"  (current-date))
+                            (.render)))))
+
 
 ;; Define the routes that pull everything together.
-
 (defroutes routes
   [[["/" {:get home-page} ^:interceptors [bootstrap/html-body]
-     ["/hiccup" {:get hiccup-page}]
-     ["/enlive"  {:get enlive-page}]
-     ["/mustache"  {:get mustache-page}]
-     ["/stringtemplate"  {:get stringtemplate-page}]
-     ["/comb" {:get comb-page}]]]])
-
-;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
-(def url-for (route/url-for-routes routes))
+      ["/hiccup" {:get hiccup-page}]
+      ["/enlive" {:get enlive-page}]
+      ["/clostache" {:get clostache-page}]
+      ["/stringtemplate" {:get stringtemplate-page}]
+      ["/comb" {:get comb-page}]]]])
 
 ;; Consumed by template-server.server/create-server
+;; See bootstrap/default-interceptors for additional options you can configure
 (def service {:env :prod
-              ;; You can bring your own non-default interceptors. Make
-              ;; sure you include routing and set it up right for
-              ;; dev-mode. If you do, many other keys for configuring
-              ;; default interceptors will be ignored.
-              ;; :bootstrap/interceptors []
               ::bootstrap/routes routes
-              ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"
-              ;; Choose from [:jetty :tomcat].
               ::bootstrap/type :jetty
               ::bootstrap/port 8080})
-

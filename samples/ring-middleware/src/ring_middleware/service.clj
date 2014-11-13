@@ -11,35 +11,32 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ring-middleware.service
-    (:require [clojure.java.io :as io]
-              [io.pedestal.service.http :as bootstrap]
-              [io.pedestal.service.http.route :as route]
-              [io.pedestal.service.http.body-params :as body-params]
-              [io.pedestal.service.http.route.definition :refer [defroutes]]
-              [io.pedestal.service.http.ring-middlewares :as middlewares]
-              [io.pedestal.service.interceptor :refer [defhandler definterceptor]]
-              [ring.middleware.session.cookie :as cookie]
-              [ring.util.response :as ring-resp]))
-
+  (:require [clojure.java.io :as io]
+            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.http.route.definition :refer [defroutes]]
+            [io.pedestal.http.ring-middlewares :as middlewares]
+            [io.pedestal.interceptor :refer [definterceptor]]
+            [ring.util.response :as ring-resp]
+            [ring.middleware.session.cookie :as cookie]))
 
 (defn html-response
   [html]
   (ring-resp/content-type (ring-resp/response html) "text/html"))
 
 ;; Gather some data from the user to retain in their session.
-(defhandler intro-form
+(defn intro-form
   "Prompt a user for their name, then remember it."
   [req]
   (html-response
    (slurp (io/resource "hello-form.html"))))
 
-(defhandler introduction
+(defn introduction
   "Place the name provided by the user into their session, then send
-  them to hello."
+   them to hello."
   [req]
-  (let [name (-> req
-                 :params
-                 :name)]
+  (let [name (get-in req [:params :name])]
     (-> (ring-resp/redirect "/hello")
         (assoc :session {:name name}))))
 
@@ -49,32 +46,28 @@
 
 ;; We default in 'Stranger' so users visiting the service can see the
 ;; behavior of the service when no session data is present.
-(defhandler hello
+(defn hello
   "Look up the name for this http session, if present greet the user
-  by their name. If not, greet the user as stranger."
+   by their name. If not, greet the user as stranger."
   [req]
-  (let [name (or (-> req
-                     :session
-                     :name)
+  (let [name (or (get-in req [:session :name])
                  "Stranger")]
-    (html-response (str "<html><body><h1>Hello, " name "!</h1></body></html>"))))
+    (html-response (str "<html><body><h1>Hello, " name "!</h1></body></html>\n"))))
+
 
 ;; Two notes:
 
-;; 1: You can create a session interceptor without specifying a store,
-;; in which case the interceptor will store the session data nowhere
-;; and it will be about as useful as not having it in the first
-;; place. Storing session data requires specifying the session store.
+;; 1. Storing session data requires specifying the session store
+;; in the map. (e.g. `{:store (cookie/cookie-store)}` If :store
+;; is not specified, the session data will not be stored.
 
 ;; 2: In this example code we do not specify the secret with which the
 ;; session data is encrypted prior to being sent back to the
-;; browser. This has two consequences, the first being that we need to
-;; use the same interceptor instance throughout the service so that the
-;; session data is readable and writable to all paths. The second
-;; consequence is that session data will become unrecoverable when the
-;; server process is ended. Even though the browser retains the
-;; cookie, it is not unrecoverable ciphertext and the session
-;; interceptor will treat it as non-existant.
+;; browser. As a result, the same interceptor instance must be used
+;; through the service for the data to be readable and writable. Also,
+;; the session data will become unrecoverable when the server process
+;; ends. While the browser retains the cookie, the interceptor will
+;; treat the unrecoverable ciphertext as non-existant.
 (definterceptor session-interceptor
   (middlewares/session {:store (cookie/cookie-store)}))
 
@@ -88,10 +81,8 @@
     ["/hello" ^:interceptors [session-interceptor]
      {:get hello}]]])
 
-;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
-(def url-for (route/url-for-routes routes))
-
 ;; Consumed by ring-middleware.server/create-server
+;; See bootstrap/default-interceptors for additional options you can configure
 (def service {:env :prod
               ;; You can bring your own non-default interceptors. Make
               ;; sure you include routing and set it up right for
@@ -99,8 +90,20 @@
               ;; default interceptors will be ignored.
               ;; :bootstrap/interceptors []
               ::bootstrap/routes routes
+
+              ;; Uncomment next line to enable CORS support, add
+              ;; string(s) specifying scheme, host and port for
+              ;; allowed source(s):
+              ;;
+              ;; "http://localhost:8080"
+              ;;
+              ;;::bootstrap/allowed-origins ["scheme://host:port"]
+
               ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"
-              ;; Choose from [:jetty :tomcat].
+
+              ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
               ::bootstrap/type :jetty
+              ;;::bootstrap/host "localhost"
               ::bootstrap/port 8080})
+

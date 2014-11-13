@@ -10,10 +10,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns cors.server
+(ns hello-world.server
   (:gen-class) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
-            [cors.service :as service]))
+            [hello-world.service :as service]))
 
 ;; This is an adapted service map, that can be started and stopped
 ;; From the REPL you can call server/start and server/stop on this service

@@ -1,6 +1,6 @@
 <!-- Logback configuration. See http://logback.qos.ch/manual/index.html -->
 <configuration scan="true" scanPeriod="10 seconds">
-  
+
   <!-- Simple file output -->
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
@@ -31,7 +31,7 @@
     </encoder>
     <!-- Only log level INFO and above -->
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>WARN</level>
+      <level>INFO</level>
     </filter>
   </appender>
 

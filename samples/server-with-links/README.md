@@ -1,13 +1,15 @@
+# server-with-links
+
 ## Description
 
-This is a sample app that demonstrates using a linker fn that
-generates a link based on your routing table.
+This very simple app demonstrates generating a link
+based on your application's routing table.
 
 ## Usage
 
 1. Start the application: `lein run`
 2. Go to [localhost:8080](http://localhost:8080/) to see a body with a link.
-
+3. Follow that link to the second page.
 
 License
 -------
