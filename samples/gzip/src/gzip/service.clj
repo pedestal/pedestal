@@ -15,7 +15,7 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition :refer [defroutes]]
-            [io.pedestal.http.jetty.util :as jetty]
+            [io.pedestal.http.jetty.util :as jetty-util]
             [ring.util.response :as ring-resp])
   (:import [org.eclipse.jetty.servlets GzipFilter]))
 
@@ -28,9 +28,6 @@
 (defn home-page
   [request]
   (ring-resp/response "Hello World!"))
-
-(defn gzip-filter [ctx]
-  (jetty/add-servlet-filter ctx {:filter GzipFilter}))
 
 (defroutes routes
   [[["/" {:get home-page}
@@ -61,7 +58,7 @@
               ::bootstrap/type :jetty
 
               ;; Add our filter-fn a the context configurator 
-              ::bootstrap/container-options {:context-configurator gzip-filter}
+              ::bootstrap/container-options {:context-configurator  #(jetty-util/add-servlet-filter % {:filter GzipFilter})}
               ;;::bootstrap/host "localhost"
               ::bootstrap/port 8080})
 

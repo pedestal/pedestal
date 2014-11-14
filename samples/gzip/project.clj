@@ -21,7 +21,6 @@
                  ;; This samples is specific to jetty, so
                  ;; other options don't appear here.
                  [io.pedestal/pedestal.jetty "0.3.1"]
-                 [org.eclipse.jetty/jetty-server "9.2.0.v20140526"]
                  [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
                  [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.7"]
