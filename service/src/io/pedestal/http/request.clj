@@ -14,9 +14,10 @@
   Object
   (getKey [this] k)
   (getValue [this] (derefing-delays v))
+  ;; TODO: equiv
 
-  ;; TODO: Seqable for first/second?
-  )
+  clojure.lang.Seqable
+  (seq [this] (seq [k v])))
 
 (defn derefing-map-entry
   "Create a new MapEntry-like object that derefs any values
