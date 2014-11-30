@@ -1,4 +1,4 @@
-(ns io.pedestal.http.request)
+(ns io.pedestal.http.impl.lazy-request)
 
 (defn- derefing-delays
   "For values that are delays, return the derefed value, otherwise return the

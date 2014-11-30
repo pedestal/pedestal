@@ -1,6 +1,6 @@
-(ns io.pedestal.http.request-test
+(ns io.pedestal.http.impl.lazy-request-test
   (:require [clojure.test :refer :all]
-            [io.pedestal.http.request :refer :all]))
+            [io.pedestal.http.impl.lazy-request :refer :all]))
 
 (deftest test-classify-keys
   (is (= :normal   (classify-keys [:foo :bar])))
@@ -8,41 +8,41 @@
   (is (= :realized (classify-keys [:foo (doto (delay :bar) deref)]))))
 
 (deftest test-equality-only-exists-between-lazy-requests
-  (is (not= {:foo :bar}                 (lazy-request {:foo :bar})))
-  (is (not= (lazy-request {:foo :bar}) {:foo :bar}))
-  (is (=    (lazy-request {:foo :bar}) (lazy-request {:foo :bar})))
-  (is (not= (lazy-request {:foo :bar}) (lazy-request {:foo (delay :bar)}))))
+  (is (not= {:foo :bar}                 (->LazyRequest {:foo :bar})))
+  (is (not= (->LazyRequest {:foo :bar}) {:foo :bar}))
+  (is (=    (->LazyRequest {:foo :bar}) (->LazyRequest {:foo :bar})))
+  (is (not= (->LazyRequest {:foo :bar}) (->LazyRequest {:foo (delay :bar)}))))
 
 (deftest test-works-like-map
   ;; Get
-  (is (= :delayed (get (lazy-request {:foo (delay :delayed)}) :foo)))
-  (is (= :immediate (get (lazy-request {:foo :immediate}) :foo)))
+  (is (= :delayed (get (->LazyRequest {:foo (delay :delayed)}) :foo)))
+  (is (= :immediate (get (->LazyRequest {:foo :immediate}) :foo)))
 
   ;; Assoc
   (is (= {:foo :bar}
-         (raw (assoc (lazy-request {}) :foo :bar))))
+         (raw (assoc (->LazyRequest {}) :foo :bar))))
 
   ;; Dissoc
   (is (= {}
-         (raw (dissoc (lazy-request {:foo :bar}) :foo))))
+         (raw (dissoc (->LazyRequest {:foo :bar}) :foo))))
 
   ;; Empty
-  (is (= (lazy-request {})
-         (empty (lazy-request {:foo :bar}))))
+  (is (= (->LazyRequest {})
+         (empty (->LazyRequest {:foo :bar}))))
 
   ;; Map
   (is (= [2] (map (comp inc second)
-                  (lazy-request {:a 1}))))
+                  (->LazyRequest {:a 1}))))
 
   ;; Count
-  (is (= 1 (count (lazy-request {:foo :bar}))))
+  (is (= 1 (count (->LazyRequest {:foo :bar}))))
 
   ;; Contains
-  (is (= true (contains? (lazy-request {:foo :bar}) :foo)))
+  (is (= true (contains? (->LazyRequest {:foo :bar}) :foo)))
 
   ;; Iterators
   (is (= [[:foo :bar]]
-         (->> ^java.lang.Iterable (lazy-request {:foo :bar})
+         (->> ^java.lang.Iterable (->LazyRequest {:foo :bar})
              (.iterator)
              iterator-seq
              (map seq) ;; Turn DerefingMapEntry into [<key> <val>]
@@ -50,7 +50,7 @@
 
   ;; seq
   (is (= [[:foo :bar]]
-         (->> (lazy-request {:foo :bar})
+         (->> (->LazyRequest {:foo :bar})
               seq
               (map seq) ;; Turn DerefingMapEntry into [<key> <val>]
               (into [])))))
@@ -61,7 +61,7 @@
   []
   (let [canary (atom :alive)]
     {:canary canary
-     :coalmine (lazy-request {:kill (delay (reset! canary :dead))})}))
+     :coalmine (->LazyRequest {:kill (delay (reset! canary :dead))})}))
 
 (deftest test-assoc-doesnt-realize-delays
   (let [{:keys [canary coalmine]} (gen-coalmine)]
@@ -104,7 +104,7 @@
 (deftest test-derefing-map-entry-equality
   (is (= (clojure.lang.MapEntry. :a :b)
          (seq (derefing-map-entry :a :b)))
-      "Seq'd Entry should be equal to equivalent MapEntry")
+      "Entry should be equal to equivalent MapEntry")
   (is (= [:a :b]
          (seq (derefing-map-entry :a :b)))
       "Seq'd Entry should be equal to equivalent vector")
