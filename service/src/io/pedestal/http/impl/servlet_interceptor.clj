@@ -20,6 +20,7 @@
             [io.pedestal.interceptor :as interceptor :refer [definterceptor]]
             [io.pedestal.http.route :as route]
             [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.http.impl.lazy-request :refer [lazy-request]]
             [io.pedestal.http.container :as container]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
@@ -175,30 +176,33 @@
       path-info)))
 
 (defn- base-request-map [servlet ^HttpServletRequest servlet-req servlet-resp]
-  {:server-port       (.getServerPort servlet-req)
-   :server-name       (.getServerName servlet-req)
-   :remote-addr       (.getRemoteAddr servlet-req)
-   :uri               (.getRequestURI servlet-req)
-   :query-string      (.getQueryString servlet-req)
-   :scheme            (keyword (.getScheme servlet-req))
-   :request-method    (keyword (.toLowerCase (.getMethod servlet-req)))
-   :headers           (request-headers servlet-req)
-   :body              (.getInputStream servlet-req)
-   :servlet           servlet
-   :servlet-request   servlet-req
-   :servlet-response  servlet-resp
-   :servlet-context   (.getServletContext ^ServletConfig servlet)
-   :context-path      (.getContextPath servlet-req)
-   :servlet-path      (.getServletPath servlet-req)
-   :path-info         (path-info servlet-req)
-   ::protocol         (.getProtocol servlet-req)
-   ::async-supported? (.isAsyncSupported servlet-req)})
+  (lazy-request
+    {:server-port       (delay (.getServerPort servlet-req))
+     :server-name       (delay (.getServerName servlet-req))
+     :remote-addr       (delay (.getRemoteAddr servlet-req))
+     :uri               (delay (.getRequestURI servlet-req))
+     :query-string      (delay (.getQueryString servlet-req))
+     :scheme            (delay (keyword (.getScheme servlet-req)))
+     :request-method    (delay (keyword (.toLowerCase (.getMethod servlet-req))))
+     :headers           (delay (request-headers servlet-req))
+     :body              (delay (.getInputStream servlet-req))
+     :servlet           servlet
+     :servlet-request   servlet-req
+     :servlet-response  servlet-resp
+     :servlet-context   (delay (.getServletContext ^ServletConfig servlet))
+     :context-path      (delay (.getContextPath servlet-req))
+     :servlet-path      (delay (.getServletPath servlet-req))
+     :path-info         (delay (path-info servlet-req))
+     ::protocol         (delay (.getProtocol servlet-req))
+     ::async-supported? (delay (.isAsyncSupported servlet-req))}))
+
+;; TODO: Re-add transient/persistent for request-map + add-* fns
 
 (defn- add-content-type [req-map ^HttpServletRequest servlet-req]
   (if-let [ctype (.getContentType servlet-req)]
     (let [headers (:headers req-map)]
-      (-> (assoc! req-map :content-type ctype)
-          (assoc! :headers (assoc headers "content-type" ctype))))
+      (-> (assoc req-map :content-type ctype)
+          (assoc :headers (assoc headers "content-type" ctype))))
     req-map))
 
 (defn- add-content-length [req-map ^HttpServletRequest servlet-req]
@@ -206,27 +210,28 @@
         headers (:headers req-map)]
     (if (neg? c)
       req-map
-      (-> (assoc! req-map :content-length c)
-          (assoc! :headers (assoc headers "content-length" c))))))
+      (-> (assoc req-map :content-length c)
+          (assoc :headers (assoc headers "content-length" c))))))
 
 (defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
   (if-let [e (.getCharacterEncoding servlet-req)]
-    (assoc! req-map :character-encoding e)
+    (assoc req-map :character-encoding e)
     req-map))
 
 (defn- add-ssl-client-cert [req-map ^HttpServletRequest servlet-req]
   (if-let [c (.getAttribute servlet-req "javax.servlet.request.X509Certificate")]
-    (assoc! req-map :ssl-client-cert c)
+    (assoc req-map :ssl-client-cert c)
     req-map))
 
 (defn- request-map [^Servlet servlet ^HttpServletRequest servlet-req servlet-resp]
   (-> (base-request-map servlet servlet-req servlet-resp)
-      transient
+      ;; transient
       (add-content-length servlet-req)
       (add-content-type servlet-req)
       (add-character-encoding servlet-req)
       (add-ssl-client-cert servlet-req)
-      persistent!))
+      ;; persistent!
+      ))
 
 (defn- start-servlet-async*
   "Begins an asynchronous response to a request."
