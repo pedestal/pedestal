@@ -36,7 +36,10 @@
 (defprotocol RawAccess
   "Utilities for exposing raw access to advanced data
   structures that layer new semantics onto simpler types."
-  (raw [this] "Return the raw data structure underlying a more advanced wrapper")
+  (raw [this] "Return the raw data structure underlying a more advanced wrapper"))
+
+(defprotocol LazyDatastructure
+  "Utilities for manipulating/realizing lazy data structures."
   (touch [this] "Realize all portions of the underlying data structure. Returns this.")
   (realized [this] "Return fully-realized version of underlying data structure."))
 
@@ -55,6 +58,8 @@
 
   RawAccess
   (raw [this] m)
+
+  LazyDatastructure
   (touch [this]
     (doseq [[k v] m]
       (derefing-delays v))
