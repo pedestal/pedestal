@@ -1,6 +1,9 @@
 (ns io.pedestal.http.request)
 
-(defn- derefing-delays [v]
+(defn- derefing-delays
+  "For values that are delays, return the derefed value, otherwise return the
+  original value."
+  [v]
   (if (delay? v)
     (deref v)
     v))
@@ -14,14 +17,17 @@
   Object
   (getKey [this] k)
   (getValue [this] (derefing-delays v))
-  ;; TODO: equiv
+  ;; TODO: provide facilities for equiv a la MapEntry (which extends AMapEntry)
 
   clojure.lang.Seqable
-  (seq [this] (seq [k v])))
+  (seq [this] (lazy-seq [(key this) (val this)])))
 
 (defn derefing-map-entry
-  "Create a new MapEntry-like object that derefs any values
-  that are delays."
+  "Create a new MapEntry-like object, but allow for values to be transparently
+  derefed when accessed.
+
+  Does not provide the same level of 'equivalency' checking that MapEntry does.
+  Use 'seq' to get a realized pair of key-value."
   ([kv]
    (DerefingMapEntry. (key kv) (val kv)))
   ([k v]
@@ -31,7 +37,8 @@
   "Utilities for exposing raw access to advanced data
   structures that layer new semantics onto simpler types."
   (raw [this] "Return the raw data structure underlying a more advanced wrapper")
-  (touch [this] "Realize all delays, returning this"))
+  (touch [this] "Realize all portions of the underlying data structure. Returns this.")
+  (realized [this] "Return fully-realized version of underlying data structure."))
 
 (deftype LazyRequest [m]
 
@@ -52,6 +59,8 @@
     (doseq [[k v] m]
       (derefing-delays v))
     this)
+  (realized [this]
+    (into {} this))
 
   clojure.lang.Associative
   (containsKey [this key]
@@ -59,18 +68,23 @@
   (entryAt [this key]
     (get m key))
   (assoc [this key val]
-    (->LazyRequest (assoc m key val)))
+    (LazyRequest. (assoc m key val)))
 
   clojure.lang.IPersistentMap
   (without [this key]
-    (->LazyRequest (dissoc m key)))
+    (LazyRequest. (dissoc m key)))
   ;; TODO: No assocEx -- what does it used for?
 
   clojure.lang.Counted
   clojure.lang.IPersistentCollection
   (count [this] (count m))
-  (empty [this] (->LazyRequest {}))
-  (equiv [this o] (= m o)) ;; TODO: Do we require deeper semantics?
+  (empty [this] (LazyRequest. {}))
+  ;; Equality exists only between LazyRequest's with the same underlying map.
+  ;; If you want deeper equality, use RawAccess's `raw` or `realized`
+  (equiv [this o]
+    (if (instance? LazyRequest o)
+      (= m (raw o))
+      false))
 
   clojure.lang.Seqable
   (seq [this]
@@ -85,6 +99,19 @@
         (hasNext [_] (.hasNext it))
         (next [_]    (derefing-map-entry (.next it)))
         (remove [_]  (throw (UnsupportedOperationException.)))))))
+
+(defn lazy-request
+  "Return a LazyRequest map that transparently derefs values that are delays.
+
+  Example:
+  (:foo (lazy-request {:foo (delay :bar)}))
+  ;; => :bar
+
+  LazyRequest's are value-equal to other LazyRequest's that share the same
+  underlying map, but not to raw maps. Use `raw` or `realized` to return plain
+  maps of original key-vals or realized key-vals, respectively."
+  [m]
+  (->LazyRequest m))
 
 (defn classify-keys
  "Classify key-value pair based on whether its value is
@@ -115,9 +142,4 @@
                  " realized map: "
                  (pr-str all-realized)
                  ">"))))
-
-(comment
-  (get lr :a)
-  (get lr :b :c)
-  (assoc lr :c :d))
 
