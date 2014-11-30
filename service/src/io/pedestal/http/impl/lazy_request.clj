@@ -70,6 +70,10 @@
   (assoc [this key val]
     (LazyRequest. (assoc m key val)))
 
+  clojure.lang.IFn
+  (invoke [this k] (get this k))
+  (invoke [this k default] (get this k default))
+
   clojure.lang.IPersistentMap
   (without [this key]
     (LazyRequest. (dissoc m key)))

@@ -15,7 +15,10 @@
 
 (deftest test-works-like-map
   ;; Get
-  (is (= :delayed (get (->LazyRequest {:foo (delay :delayed)}) :foo)))
+  (is (= :delayed (get  (->LazyRequest {:foo (delay :delayed)}) :foo)))
+  (is (= :delayed (:foo (->LazyRequest {:foo (delay :delayed)}))))
+  (is (= :delayed ((->LazyRequest {:foo (delay :delayed)}) :foo)))
+  (is (= :default ((->LazyRequest {:foo (delay :delayed)}) :bar :default)))
   (is (= :immediate (get (->LazyRequest {:foo :immediate}) :foo)))
 
   ;; Assoc
