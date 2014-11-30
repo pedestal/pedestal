@@ -40,7 +40,7 @@
   (touch [this] "Realize all portions of the underlying data structure. Returns this.")
   (realized [this] "Return fully-realized version of underlying data structure."))
 
-(deftype LazyRequest [m]
+(deftype LazyRequest [^clojure.lang.IPersistentMap m]
 
   clojure.lang.ILookup
   ;; Upon lookup, transparently deref delayed values.
@@ -82,6 +82,7 @@
   clojure.lang.Counted
   clojure.lang.IPersistentCollection
   (count [this] (count m))
+  (cons [this o] (LazyRequest. (.cons m o)))
   (empty [this] (LazyRequest. {}))
   ;; Equality exists only between LazyRequest's with the same underlying map.
   ;; If you want deeper equality, use RawAccess's `raw` or `realized`

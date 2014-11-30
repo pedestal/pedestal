@@ -31,6 +31,11 @@
              (assoc-in [:foo :bar] :baz)
              realized)))
 
+  ;; Conj
+  (is (= {:foo :bar}
+         (-> (lazy-request {})
+             (conj [:foo (delay :bar)])
+             realized)))
   ;; Dissoc
   (is (= {}
          (raw (dissoc (lazy-request {:foo :bar}) :foo))))
