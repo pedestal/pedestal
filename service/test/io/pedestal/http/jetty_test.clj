@@ -11,7 +11,8 @@
             [clojure.edn]
             [io.pedestal.interceptor :as interceptor :refer [defhandler definterceptorfn handler]]
             [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor])
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.http.impl.lazy-request :as lr])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
@@ -47,14 +48,16 @@
 
 (defhandler echo-handler [request]
   {:status 200
-   :headers {"request-map" (str (dissoc request
-                                        :body
-                                        :servlet
-                                        :servlet-request
-                                        :servlet-response
-                                        :servlet-context
-                                        :pedestal.http.impl.servlet-interceptor/protocol
-                                        :pedestal.http.impl.servlet-interceptor/async-supported?))}
+   :headers {"request-map" (-> request
+                               (dissoc :body
+                                       :servlet
+                                       :servlet-request
+                                       :servlet-response
+                                       :servlet-context
+                                       :pedestal.http.impl.servlet-interceptor/protocol
+                                       :pedestal.http.impl.servlet-interceptor/async-supported?)
+                               lr/realized
+                               str)}
    :body (:body request)})
 
 (defn jetty-server
