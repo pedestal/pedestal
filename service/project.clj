@@ -47,26 +47,23 @@
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :profiles {:default [:dev :provided :user :base]
-             :provided
-             {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
-             :dev
-             {:source-paths ["dev" "src" "bench"]
-              :plugins      [[codox "0.8.10"]]
-              :dependencies [[criterium "0.3.1"]
-                             [org.clojure/java.classpath "0.2.2"]
-                             [org.clojure/tools.namespace "0.2.4"]
-                             [clj-http "0.9.1"]
-                             [io.pedestal/pedestal.jetty "0.3.2-SNAPSHOT"]
-                             [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
-                             [io.pedestal/pedestal.immutant "0.3.2-SNAPSHOT"]
-                             [io.pedestal/pedestal.tomcat "0.3.2-SNAPSHOT"]
-                             [javax.servlet/javax.servlet-api "3.1.0"]
-                             ;; Logging:
-                             [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
-                             [org.clojure/tools.logging "0.2.6"]
-                             [org.slf4j/jul-to-slf4j "1.7.7"]
-                             [org.slf4j/jcl-over-slf4j "1.7.7"]
-                             [org.slf4j/log4j-over-slf4j "1.7.7"]]
-              :repositories
-              [["sonatype-oss"
-                "https://oss.sonatype.org/content/groups/public/"]]}})
+             :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
+             :dev {:source-paths ["dev" "src" "bench"]
+                   :plugins      [[codox "0.8.10" :exclusions [[org.clojure/clojure]]]]
+                   :dependencies [[criterium "0.3.1"]
+                                  [org.clojure/java.classpath "0.2.2"]
+                                  [org.clojure/tools.namespace "0.2.4"]
+                                  [clj-http "0.9.1"]
+                                  [io.pedestal/pedestal.jetty "0.3.2-SNAPSHOT"]
+                                  [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
+                                  [io.pedestal/pedestal.immutant "0.3.2-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.3.2-SNAPSHOT"]
+                                  [javax.servlet/javax.servlet-api "3.1.0"]
+                                  ;; Logging:
+                                  [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
+                                  [org.clojure/tools.logging "0.2.6"]
+                                  [org.slf4j/jul-to-slf4j "1.7.7"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.7"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.7"]]
+                   :repositories [["sonatype-oss"
+                                   "https://oss.sonatype.org/content/groups/public/"]]}})
