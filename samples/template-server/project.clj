@@ -28,6 +28,7 @@
                  [comb "0.1.0"]
                  [org.antlr/stringtemplate "4.0.2"]
                  [de.ubercode.clostache/clostache "1.4.0"]
+                 [selmer "0.7.6"]
 ]
 
 

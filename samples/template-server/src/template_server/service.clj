@@ -20,6 +20,7 @@
             [net.cgrand.enlive-html :as enlive :refer [deftemplate]]
             [clostache.parser :as clostache]
             [comb.template :as comb]
+            [selmer.parser :as selmer]
             [clojure.string :as str]))
 
 ;; The home page is just a plain html page.
@@ -29,7 +30,7 @@
    (format "<html><body>%s<br/>%s</body></html>"
            "Each of the links below is rendered by a different templating library. Check them out:"
            (str "<ul>"
-                (->> ["hiccup" "enlive" "clostache" "stringtemplate" "comb"]
+                (->> ["hiccup" "enlive" "clostache" "stringtemplate" "comb" "selmer"]
                      (map #(format "<li><a href='/%s'>%s</a></li>" % %))
                      (str/join ""))
                 "</ul>"))))
@@ -98,6 +99,15 @@
                             (.add "date"  (current-date))
                             (.render)))))
 
+;; The /selmer page uses selmer.
+;; https://github.com/yogthos/Selmer
+(defn selmer-page
+  [request]
+  (ring-resp/response
+   (selmer/render-file "public/selmer-template.html"
+                               {:title (title-as   "Selmer")
+                                :text  "Ha Ha! I'm Selmer."
+                                :date  (current-date)})))
 
 ;; Define the routes that pull everything together.
 (defroutes routes
@@ -106,7 +116,8 @@
       ["/enlive" {:get enlive-page}]
       ["/clostache" {:get clostache-page}]
       ["/stringtemplate" {:get stringtemplate-page}]
-      ["/comb" {:get comb-page}]]]])
+      ["/comb" {:get comb-page}]
+      ["/selmer" {:get selmer-page}]]]])
 
 ;; Consumed by template-server.server/create-server
 ;; See bootstrap/default-interceptors for additional options you can configure
