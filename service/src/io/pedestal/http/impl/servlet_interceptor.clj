@@ -158,15 +158,18 @@
 
 ;;; HTTP Request
 
-(defn- request-headers [^HttpServletRequest servlet-req]
-  (loop [out (transient {})
+(defn- request-headers
+  ([^HttpServletRequest servlet-req]
+   (request-headers servlet-req (transient {})))
+  ([^HttpServletRequest servlet-req transient-out]
+   (loop [out transient-out
          names (enumeration-seq (.getHeaderNames servlet-req))]
     (if (seq names)
       (let [key (first names)]
         (recur (assoc! out (.toLowerCase ^String key)
                        (.getHeader servlet-req key))
                (rest names)))
-      (persistent! out))))
+      (persistent! out)))))
 
 (defn- path-info [^HttpServletRequest request]
   (let [path-info (.substring (.getRequestURI request)
@@ -176,62 +179,68 @@
       path-info)))
 
 (defn- base-request-map [servlet ^HttpServletRequest servlet-req servlet-resp]
-  (lazy-request
-    {:server-port       (delay (.getServerPort servlet-req))
-     :server-name       (delay (.getServerName servlet-req))
-     :remote-addr       (delay (.getRemoteAddr servlet-req))
-     :uri               (delay (.getRequestURI servlet-req))
-     :query-string      (delay (.getQueryString servlet-req))
-     :scheme            (delay (keyword (.getScheme servlet-req)))
-     :request-method    (delay (keyword (.toLowerCase (.getMethod servlet-req))))
-     :headers           (delay (request-headers servlet-req))
-     :body              (delay (.getInputStream servlet-req))
-     :servlet           servlet
-     :servlet-request   servlet-req
-     :servlet-response  servlet-resp
-     :servlet-context   (delay (.getServletContext ^ServletConfig servlet))
-     :context-path      (delay (.getContextPath servlet-req))
-     :servlet-path      (delay (.getServletPath servlet-req))
-     :path-info         (delay (path-info servlet-req))
-     ::protocol         (delay (.getProtocol servlet-req))
-     ::async-supported? (delay (.isAsyncSupported servlet-req))}))
+  (doto (java.util.HashMap. 22)
+    (.put :server-port       (delay (.getServerPort servlet-req)))
+    (.put :server-name       (delay (.getServerName servlet-req)))
+    (.put :remote-addr       (delay (.getRemoteAddr servlet-req)))
+    (.put :uri               (.getRequestURI servlet-req))
+    (.put :query-string      (.getQueryString servlet-req))
+    (.put :scheme            (delay (keyword (.getScheme servlet-req))))
+    (.put :request-method    (keyword (.toLowerCase (.getMethod servlet-req))))
+    (.put :headers           (transient {})) ;; this gets replaced with a delay in `delayed-headers` below
+    (.put :body              (delay (.getInputStream servlet-req)))
+    (.put :servlet           servlet)
+    (.put :servlet-request   servlet-req)
+    (.put :servlet-response  servlet-resp)
+    (.put :servlet-context   (delay (.getServletContext ^ServletConfig servlet)))
+    (.put :context-path      (delay (.getContextPath servlet-req)))
+    (.put :servlet-path      (delay (.getServletPath servlet-req)))
+    (.put :path-info         (path-info servlet-req))
+    (.put ::protocol         (delay (.getProtocol servlet-req)))
+    (.put ::async-supported? (delay (.isAsyncSupported servlet-req)))))
 
-;; TODO: Re-add transient/persistent for request-map + add-* fns
 
-(defn- add-content-type [req-map ^HttpServletRequest servlet-req]
+(defn- add-content-type [^java.util.HashMap req-map ^HttpServletRequest servlet-req headers]
   (if-let [ctype (.getContentType servlet-req)]
-    (let [headers (:headers req-map)]
-      (-> (assoc req-map :content-type ctype)
-          (assoc :headers (assoc headers "content-type" ctype))))
+    (doto req-map
+      (.put :content-type ctype)
+      (.put :headers (assoc! headers "content-type" ctype)))
     req-map))
 
-(defn- add-content-length [req-map ^HttpServletRequest servlet-req]
-  (let [c (.getContentLength servlet-req)
-        headers (:headers req-map)]
+(defn- add-content-length [^java.util.HashMap req-map ^HttpServletRequest servlet-req headers]
+  (let [c (.getContentLength servlet-req)]
     (if (neg? c)
       req-map
-      (-> (assoc req-map :content-length c)
-          (assoc :headers (assoc headers "content-length" c))))))
+      (doto req-map
+        (.put :content-length c)
+        (.put :headers (assoc! headers "content-length" c))))))
 
-(defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
+(defn delayed-headers [^java.util.HashMap req-map ^HttpServletRequest servlet-req headers]
+  (.put req-map :headers (delay (request-headers servlet-req headers)))
+  req-map)
+
+(defn- add-character-encoding [^java.util.HashMap req-map ^HttpServletRequest servlet-req]
   (if-let [e (.getCharacterEncoding servlet-req)]
-    (assoc req-map :character-encoding e)
+    (doto req-map
+      (.put :character-encoding e))
     req-map))
 
-(defn- add-ssl-client-cert [req-map ^HttpServletRequest servlet-req]
+(defn- add-ssl-client-cert [^java.util.HashMap req-map ^HttpServletRequest servlet-req]
   (if-let [c (.getAttribute servlet-req "javax.servlet.request.X509Certificate")]
-    (assoc req-map :ssl-client-cert c)
+    (doto req-map
+      (.put :ssl-client-cert c))
     req-map))
 
 (defn- request-map [^Servlet servlet ^HttpServletRequest servlet-req servlet-resp]
-  (-> (base-request-map servlet servlet-req servlet-resp)
-      ;; transient
-      (add-content-length servlet-req)
-      (add-content-type servlet-req)
+  (let [req-map ^java.util.HashMap (base-request-map servlet servlet-req servlet-resp)
+        headers (.get req-map :headers)]
+    (-> req-map
+      (add-content-length servlet-req headers)
+      (add-content-type servlet-req headers)
+      (delayed-headers servlet-req headers)
       (add-character-encoding servlet-req)
       (add-ssl-client-cert servlet-req)
-      ;; persistent!
-      ))
+      lazy-request)))
 
 (defn- start-servlet-async*
   "Begins an asynchronous response to a request."

@@ -1,5 +1,6 @@
 (ns io.pedestal.http.impl.lazy-request)
 
+;; TODO: Consider wrapping everything in a delay on entry to the map
 (defn- derefing-delays
   "For values that are delays, return the derefed value, otherwise return the
   original value."
@@ -110,6 +111,17 @@
         (next [_]    (derefing-map-entry (.next it)))
         (remove [_]  (throw (UnsupportedOperationException.)))))))
 
+(defprotocol IntoLazyRequest
+  (-lazy-request [t] "Create a lazy request"))
+
+(extend-protocol IntoLazyRequest
+
+  clojure.lang.IPersistentMap
+  (-lazy-request [t] (->LazyRequest t))
+
+  java.util.HashMap
+  (-lazy-request [t] (->LazyRequest (into {} t))))
+
 (defn lazy-request
   "Return a LazyRequest map that transparently derefs values that are delays.
 
@@ -121,7 +133,7 @@
   underlying map, but not to raw maps. Use `raw` or `realized` to return plain
   maps of original key-vals or realized key-vals, respectively."
   [m]
-  (->LazyRequest m))
+  (-lazy-request m))
 
 (defn classify-keys
  "Classify key-value pair based on whether its value is
