@@ -20,6 +20,7 @@
             [io.pedestal.interceptor :as interceptor :refer [definterceptor]]
             [io.pedestal.http.route :as route]
             [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.http.impl.lazy-request :refer [lazy-request]]
             [io.pedestal.http.container :as container]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
@@ -157,15 +158,18 @@
 
 ;;; HTTP Request
 
-(defn- request-headers [^HttpServletRequest servlet-req]
-  (loop [out (transient {})
+(defn- request-headers
+  ([^HttpServletRequest servlet-req]
+   (request-headers servlet-req (transient {})))
+  ([^HttpServletRequest servlet-req transient-out]
+   (loop [out transient-out
          names (enumeration-seq (.getHeaderNames servlet-req))]
     (if (seq names)
       (let [key (first names)]
         (recur (assoc! out (.toLowerCase ^String key)
                        (.getHeader servlet-req key))
                (rest names)))
-      (persistent! out))))
+      (persistent! out)))))
 
 (defn- path-info [^HttpServletRequest request]
   (let [path-info (.substring (.getRequestURI request)
@@ -175,39 +179,43 @@
       path-info)))
 
 (defn- base-request-map [servlet ^HttpServletRequest servlet-req servlet-resp]
-  {:server-port       (.getServerPort servlet-req)
-   :server-name       (.getServerName servlet-req)
-   :remote-addr       (.getRemoteAddr servlet-req)
+  {:server-port       (delay (.getServerPort servlet-req))
+   :server-name       (delay (.getServerName servlet-req))
+   :remote-addr       (delay (.getRemoteAddr servlet-req))
    :uri               (.getRequestURI servlet-req)
    :query-string      (.getQueryString servlet-req)
-   :scheme            (keyword (.getScheme servlet-req))
+   :scheme            (delay (keyword (.getScheme servlet-req)))
    :request-method    (keyword (.toLowerCase (.getMethod servlet-req)))
-   :headers           (request-headers servlet-req)
-   :body              (.getInputStream servlet-req)
+   :headers           (transient {}) ;; this gets replaced with a delay in `delayed-headers` below
+   :body              (delay (.getInputStream servlet-req))
    :servlet           servlet
    :servlet-request   servlet-req
    :servlet-response  servlet-resp
-   :servlet-context   (.getServletContext ^ServletConfig servlet)
-   :context-path      (.getContextPath servlet-req)
-   :servlet-path      (.getServletPath servlet-req)
+   :servlet-context   (delay (.getServletContext ^ServletConfig servlet))
+   :context-path      (delay (.getContextPath servlet-req))
+   :servlet-path      (delay (.getServletPath servlet-req))
    :path-info         (path-info servlet-req)
-   ::protocol         (.getProtocol servlet-req)
-   ::async-supported? (.isAsyncSupported servlet-req)})
+   ::protocol         (delay (.getProtocol servlet-req))
+   ::async-supported? (delay (.isAsyncSupported servlet-req))})
 
-(defn- add-content-type [req-map ^HttpServletRequest servlet-req]
+
+(defn- add-content-type [req-map ^HttpServletRequest servlet-req headers]
   (if-let [ctype (.getContentType servlet-req)]
-    (let [headers (:headers req-map)]
-      (-> (assoc! req-map :content-type ctype)
-          (assoc! :headers (assoc headers "content-type" ctype))))
+    (-> req-map
+      (assoc! :content-type ctype)
+      (assoc! :headers (assoc! headers "content-type" ctype)))
     req-map))
 
-(defn- add-content-length [req-map ^HttpServletRequest servlet-req]
-  (let [c (.getContentLength servlet-req)
-        headers (:headers req-map)]
+(defn- add-content-length [req-map ^HttpServletRequest servlet-req headers]
+  (let [c (.getContentLength servlet-req)]
     (if (neg? c)
       req-map
-      (-> (assoc! req-map :content-length c)
-          (assoc! :headers (assoc headers "content-length" c))))))
+      (-> req-map
+        (assoc! :content-length c)
+        (assoc! :headers (assoc! headers "content-length" c))))))
+
+(defn delayed-headers [req-map ^HttpServletRequest servlet-req headers]
+  (assoc! req-map :headers (delay (request-headers servlet-req headers))))
 
 (defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
   (if-let [e (.getCharacterEncoding servlet-req)]
@@ -220,13 +228,17 @@
     req-map))
 
 (defn- request-map [^Servlet servlet ^HttpServletRequest servlet-req servlet-resp]
-  (-> (base-request-map servlet servlet-req servlet-resp)
-      transient
-      (add-content-length servlet-req)
-      (add-content-type servlet-req)
-      (add-character-encoding servlet-req)
-      (add-ssl-client-cert servlet-req)
-      persistent!))
+  (let [req-map (base-request-map servlet servlet-req servlet-resp)
+        headers (:headers req-map)]
+    (-> req-map
+        transient
+        (add-content-length servlet-req headers)
+        (add-content-type servlet-req headers)
+        (delayed-headers servlet-req headers)
+        (add-character-encoding servlet-req)
+        (add-ssl-client-cert servlet-req)
+        persistent!
+        lazy-request)))
 
 (defn- start-servlet-async*
   "Begins an asynchronous response to a request."

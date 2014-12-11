@@ -45,6 +45,7 @@
   :global-vars {*warn-on-reflection* true}
   :pedantic? :abort
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
+            "bench-service" ["trampoline" "run" "-m" "io.pedestal.niotooling.server"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :profiles {:default [:dev :provided :user :base]
              :provided
@@ -56,6 +57,8 @@
                              [org.clojure/java.classpath "0.2.2"]
                              [org.clojure/tools.namespace "0.2.4"]
                              [clj-http "0.9.1"]
+                             ;[clj-http "1.0.0"]
+                             [com.ning/async-http-client "1.8.13"]
                              [io.pedestal/pedestal.jetty "0.3.2-SNAPSHOT"]
                              [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
                              [io.pedestal/pedestal.immutant "0.3.2-SNAPSHOT"]
