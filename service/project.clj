@@ -29,7 +29,7 @@
                  ;; interceptors
                  [ring/ring-core "1.3.2" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
-                                                      [srypto-random]
+                                                      [crypto-random]
                                                       [crypto-equality]]]
                  [org.clojure/tools.reader "0.8.8"]
                  [com.fasterxml.jackson.core/jackson-core "2.3.2"]
