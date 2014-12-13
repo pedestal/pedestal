@@ -27,11 +27,10 @@
                  [org.clojure/core.async "0.1.338.0-5c5012-alpha"]
 
                  ;; interceptors
-                 [ring/ring-core "1.3.0"
-                  :exclusions [[org.clojure/clojure]
-                               [org.clojure/tools.reader]
-                               [srypto-random]
-                               [crypto-equality]]]
+                 [ring/ring-core "1.3.2" :exclusions [[org.clojure/clojure]
+                                                      [org.clojure/tools.reader]
+                                                      [srypto-random]
+                                                      [crypto-equality]]]
                  [org.clojure/tools.reader "0.8.8"]
                  [com.fasterxml.jackson.core/jackson-core "2.3.2"]
                  [cheshire "5.3.1" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
