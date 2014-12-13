@@ -1,4 +1,3 @@
-; Copyright 2013 Relevance, Inc.
 ; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -57,7 +56,7 @@
               ::bootstrap/resource-path "/public"
               ::bootstrap/type :jetty
 
-              ;; Add our filter-fn a the context configurator 
+              ;; Add our filter-fn a the context configurator
               ::bootstrap/container-options {:context-configurator  #(jetty-util/add-servlet-filter % {:filter GzipFilter})}
               ;;::bootstrap/host "localhost"
               ::bootstrap/port 8080})

@@ -1,7 +1,8 @@
-# gzip
+# Servlet Filters
 
-This sample applies a gzip filter to the service configuration
-of Jetty. To check on the encoding of the server's response, 
+This sample shows how to use Servlet Filters within your Pedestal services.
+The sample specifically applies a gzip filter to the service configuration
+of Jetty. To check on the encoding of the server's response,
 hit with curl, requesting compression:
 
 `curl -vv --compressed http://localhost:8080`
@@ -32,7 +33,6 @@ To learn more about configuring Logback, read its [documentation](http://logback
 
 License
 -------
-Copyright 2013 Relevance, Inc.
 Copyright 2014 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the

@@ -1,4 +1,3 @@
-; Copyright 2013 Relevance, Inc.
 ; Copyright 2014 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
