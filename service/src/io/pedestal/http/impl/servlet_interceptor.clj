@@ -125,7 +125,7 @@
 (defn- set-header [^HttpServletResponse servlet-resp h vs]
   (cond
    (= h "Content-Type") (.setContentType servlet-resp vs)
-   (= h "Content-Length") (.setContentLength servlet-resp (Integer/parseInt vs))
+   (= h "Content-Length") (.setContentLength servlet-resp (Long/parseLong vs))
    (string? vs) (.setHeader servlet-resp h vs)
    (sequential? vs) (doseq [v vs] (.addHeader servlet-resp h v))
    :else
