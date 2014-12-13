@@ -65,8 +65,8 @@ public class ClojureVarServlet extends GenericServlet {
     public void init() throws ServletException {
         ServletConfig config = this.getServletConfig();
         IFn initFn = getVar(config, "init");
-        IFn serviceFn = getVar(config, "service");
-        IFn destroyFn = getVar(config, "destroy");
+        serviceFn = getVar(config, "service");
+        destroyFn = getVar(config, "destroy");
 
         if (serviceFn == null) {
             throw new ServletException("Missing required parameter 'service'");
