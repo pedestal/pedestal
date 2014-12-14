@@ -19,8 +19,6 @@
 ;; From the REPL you can call server/start and server/stop on this service
 (defonce runnable-service (server/create-server service/service))
 
-;; Or if you want a dev-mode server on the REPL you can do something like:
-;; `(def dev-serv (run-dev))`
 (defn run-dev
   "The entry-point for 'lein run-dev'"
   [& args]
@@ -31,8 +29,7 @@
               ::server/join? false
               ;; Routes can be a function that resolve routes,
               ;;  we can use this to set the routes to be reloadable
-              ;; We do this via a config option
-              ;::server/routes #(deref #'service/routes)
+              ::server/routes #(deref #'service/routes)
               ;; all origins are allowed in dev mode
               ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
       ;; Wire up interceptor chains
@@ -41,13 +38,9 @@
       server/create-server
       server/start))
 
-(defn run-prod
-  [& args]
-  (println "\nCreating your server...")
-  (server/start runnable-service))
-
 (defn -main
   "The entry-point for 'lein run'"
   [& args]
-  (run-prod))
+  (println "\nCreating your server...")
+  (server/start runnable-service))
 

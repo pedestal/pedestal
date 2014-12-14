@@ -11,39 +11,36 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns cors.server
-  (:require [cors.service :as service]
-            [io.pedestal.service.http :as bootstrap]))
+  (:gen-class) ; for -main method in uberjar
+  (:require [io.pedestal.http :as server]
+            [cors.service :as service]))
 
-(def service-instance
-  "Global var to hold service instance."
-  nil)
+;; This is an adapted service map, that can be started and stopped
+;; From the REPL you can call server/start and server/stop on this service
+(defonce runnable-service (server/create-server service/service))
 
-(defn create-server
-  "Standalone dev/prod mode."
-  [& [opts]]
-  (alter-var-root #'service-instance
-                  (constantly (bootstrap/create-server (merge service/service opts)))))
+(defn run-dev
+  "The entry-point for 'lein run-dev'"
+  [& args]
+  (println "\nCreating your [DEV] server...")
+  (-> service/service ;; start with production configuration
+      (merge {:env :dev
+              ;; do not block thread that starts web server
+              ::server/join? false
+              ;; Routes can be a function that resolve routes,
+              ;;  we can use this to set the routes to be reloadable
+              ::server/routes #(deref #'service/routes)
+              ;; all origins are allowed in dev mode
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
+      ;; Wire up interceptor chains
+      server/default-interceptors
+      server/dev-interceptors
+      server/create-server
+      server/start))
 
-(defn -main [& args]
-  (let [port (Long/valueOf (first args))]
-    (println "Creating server...")
-    (create-server [::bootstrap/port port])
-    (println (str "Server created. Awaiting connections on port " port))
-    (bootstrap/start service-instance)))
+(defn -main
+  "The entry-point for 'lein run'"
+  [& args]
+  (println "\nCreating your server...")
+  (server/start runnable-service))
 
-
-;; Container prod mode for use with the pedestal.servlet.ClojureVarServlet class.
-
-(defn servlet-init [this config]
-  (require 'cors.service)
-  (alter-var-root #'service-instance (bootstrap/create-servlet service/service))
-  (bootstrap/start service-instance)
-  (.init (::bootstrap/servlet service-instance) config))
-
-(defn servlet-destroy [this]
-  (bootstrap/stop service-instance)
-  (alter-var-root #'service-instance nil))
-
-(defn servlet-service [this servlet-req servlet-resp]
-  (.service ^javax.servlet.Servlet (::bootstrap/servlet service-instance)
-            servlet-req servlet-resp))

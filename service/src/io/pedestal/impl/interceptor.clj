@@ -226,16 +226,6 @@
   [context pred]
   (update-in context [::terminators] conj pred))
 
-(defrecord Interceptor [name enter leave error])
-
-(defn interceptor
-  "Treats arguments as a map from keys to functions and
-  constructs an Interceptor from that map.
-
-  Keys should be one of: :name :enter :leave :error"
-  ([& more]
-     (map->Interceptor (apply array-map more))))
-
 (def ^:private ^AtomicLong execution-id (AtomicLong.))
 
 (defn- begin [context]

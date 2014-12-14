@@ -17,7 +17,7 @@
             [io.pedestal.http.ring-middlewares :as middlewares]
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
-            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]

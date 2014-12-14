@@ -15,7 +15,7 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.cors :as cors]
-            [io.pedestal.interceptor :as interceptor :refer [defhandler]]
+            [io.pedestal.interceptor.helpers :refer [defhandler]]
             [io.pedestal.http :as service]
             [ring.util.response :as ring-resp])
   (:use [clojure.test]

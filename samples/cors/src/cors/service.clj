@@ -12,60 +12,53 @@
 
 (ns cors.service
   (:require [clojure.java.io :as io]
-            [io.pedestal.service.interceptor :refer [defhandler defbefore defafter definterceptor]]
-            [io.pedestal.service.log :as log]
-            [io.pedestal.service.http :as bootstrap]
-            [io.pedestal.service.http.route :as route]
-            [io.pedestal.service.http.body-params :as body-params]
-            [io.pedestal.service.http.route.definition :refer [defroutes]]
-            [io.pedestal.service.http.sse :refer [sse-setup send-event end-event-stream]]
-            [io.pedestal.service.http.impl.servlet-interceptor :as servlet-interceptor]
-            [ring.util.response :as ring-response]
+            [clojure.core.async :as async]
+            [io.pedestal.log :as log]
+            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.http.route.definition :refer [defroutes]]
+            [io.pedestal.http.sse :as sse]
+            [ring.util.response :as ring-resp]
             [ring.middleware.cors :as cors]))
 
-(defn send-thread-id [context]
-  (send-event context "thread-id" (str (.getId (Thread/currentThread)))))
+;; If this looks familiar, it's very similar to the server-sent-events sample!
+;; have a look at that sample if it's not immediately apparent what's happening
+;; in send-counter and sse-stream-ready. The important part is in the service
+;; definition.
 
-(defn thread-id-sender [{{^ServletResponse response :servlet-response
-                 :as request} :request :as context}]
+(defn send-counter
+  "Counts down to 0, sending value of counter to sse context and
+  recursing on a different thread; ends event stream when counter
+  is 0."
+  [event-ch count-num]
+  (async/put! event-ch {:name "count"
+                        :data (str count-num ", thread: " (.getId (Thread/currentThread)))})
+  (Thread/sleep 1500)
+  (if (> count-num 0)
+    (recur event-ch (dec count-num))
+    (do
+      (async/put! event-ch {:name "close" :data ""})
+      (async/close! event-ch))))
 
-  (log/info :msg "starting sending thread id")
-  (dotimes [_ 10]
-    (Thread/sleep 3000)
-    (send-thread-id context))
-  (log/info :msg "stopping sending thread id")
+(defn sse-stream-ready
+  "Starts sending counter events to client."
+  [event-ch ctx]
+  (let [{:keys [request response-channel]} ctx]
+    (send-counter event-ch 10)))
 
-  (end-event-stream context))
-
-(defhandler send-js
-  "Send the client a response containing the stub JS which consumes an
-  event source."
-  [req]
-  (log/info :msg "returning js")
-  (-> (ring-response/response (slurp (io/resource "blob.html")))
-      (ring-response/content-type "text/html")))
-
-(definterceptor thread-id-sender (sse-setup thread-id-sender))
-
+;; Where are the html and javascript files?
+;; They are served statically from resources/public/
 (defroutes routes
-  [[["/js" {:get send-js}]
-    ["/" {:get thread-id-sender}]]])
+  [[["/"   {:get [::send-stuff (sse/start-event-stream sse-stream-ready)]}]]])
 
-
-;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
-(def url-for (route/url-for-routes routes))
-
-;; Consumed by cors.server/create-server
 (def service {:env :prod
-              ;; You can bring your own non-default interceptors. Make
-              ;; sure you include routing and set it up right for
-              ;; dev-mode. If you do, many other keys for configuring
-              ;; default interceptors will be ignored.
-              ;; :bootstrap/interceptors []
               ::bootstrap/routes routes
+              ;; Allow services that are accessing this
+              ;; service from a http-referer[sic] of http://localhost:8080.
+              ;; All others are denied.
               ::bootstrap/allowed-origins ["http://localhost:8080"]
-              ;; Root for resource interceptor that is available by default.
               ::bootstrap/resource-path "/public"
-              ;; Choose from [:jetty :tomcat].
               ::bootstrap/type :jetty
+              ;; Run this service on port 8081 (not default).
               ::bootstrap/port 8081})

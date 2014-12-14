@@ -103,6 +103,7 @@
      (getHeader [this header] (get-in options [:headers header]))
      ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
      (getContentLength [this] (get-in options [:headers "Content-Length"] (int 0)))
+     (getContentLengthLong [this] (get-in options [:headers "Content-Length"] (long 0)))
      (getContentType [this] (get-in options [:headers "Content-Type"] ""))
      (getCharacterEncoding [this] "UTF-8")
      (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
@@ -141,6 +142,7 @@
                  (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
+                 (setContentLengthLong [this content-length] (swap! headers-map assoc :content-length content-length))
                  (flushBuffer [this] (reset! committed true))
                  (isCommitted [this] @committed)
 
