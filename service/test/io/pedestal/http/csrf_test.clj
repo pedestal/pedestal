@@ -22,13 +22,12 @@
    use of a conventional form with a hidden field."
   [context]
   (let [token   (get-in context [:response :session "__anti-forgery-token"])
-        _ (println "Token from sniffer:" token)
         headers (merge {} (when token {"csrf-token" token}))]
     (assoc-in context [:response :headers] headers)))
 
 (defroutes request-handling-routes
   [[:request-handling "csrf-test.pedestal"
-    ["/anti-forgery" ^:interceptors [rm/session token-sniffer anti-forgery]
+    ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (anti-forgery)]
      ["/leaf" {:any [:leaf terminator]}]]]])
 
 (defn make-app [options]
@@ -60,7 +59,6 @@
 
 (defn header-data-from-initial-request []
   (let [headers (:headers (response-for app :get url))
-        _ (println "Headers:" (pr-str headers))
         cookie  (-> headers (get "Set-Cookie") first (s/split #";") first)
         token   (-> headers (get "csrf-token"))]
     [cookie token]))
