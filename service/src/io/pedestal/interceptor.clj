@@ -35,8 +35,39 @@
   clojure.lang.Cons
   (-interceptor [t] (interceptor (eval t)))
 
+  clojure.lang.Symbol
+  (-interceptor [t] (interceptor (resolve t)))
+
+  clojure.lang.Var
+  (-interceptor [t] (interceptor (deref t)))
+
   Interceptor
   (-interceptor [t] t))
+
+;; For prosterity, I'm going to keep the multimethod version handy as well
+;
+;(defmulti -interceptor class)
+;
+;(defmethod -interceptor clojure.lang.IPersistentMap [t]
+;  (map->Interceptor t))
+;
+;(defmethod -interceptor clojure.lang.PersistentArrayMap [t]
+;  (map->Interceptor t))
+;
+;(defmethod -interceptor clojure.lang.Fn [t]
+;  (interceptor (t)))
+;
+;(defmethod -interceptor clojure.lang.IPersistentList [t]
+;  (interceptor (eval t)))
+;
+;(defmethod -interceptor clojure.lang.PersistentList [t]
+;  (interceptor (eval t)))
+;
+;(defmethod -interceptor clojure.lang.Cons [t]
+;  (interceptor (eval t)))
+;
+;(defmethod -interceptor Interceptor [t]
+;  t)
 
 (defn interceptor-name
   [n]
@@ -61,7 +92,7 @@
 (defn interceptor
   "Given a value, produces and returns an Interceptor (Record)."
   [t]
-  {:pre [(if-not (satisfies? IntoInterceptor t)
+  {:pre [(if-not (satisfies? IntoInterceptor t) ; For multi- ((.getMethodTable -interceptor) (class t))
            (throw (ex-info "You're trying to use something as an interceptor
                            that isn't supported by the protocol; Perhaps you need to extend it?"
                            {:t t
@@ -69,7 +100,6 @@
            true)]
    :post [valid-interceptor?]}
   (-interceptor t))
-
 
 
 (defmacro definterceptor
