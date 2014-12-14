@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.cors
-  (:require [io.pedestal.interceptor :refer :all]
+  (:require [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.log :as log]
             [clojure.string :as str]
@@ -51,7 +51,7 @@
     arg
     {:allowed-origins (if (fn? arg) arg (fn [origin] (some #(= % origin) (seq arg))))}))
 
-(definterceptorfn allow-origin
+(defn allow-origin
   "Builds a CORS interceptor that allows calls from the specified `allowed-origins`, which is one of the following:
 
   - a sequence of strings
@@ -70,43 +70,43 @@
   "
   [allowed-origins]
   (let [{:keys [creds max-age methods allowed-origins] :as args} (normalize-args allowed-origins)]
-    (around ::allow-origin
-            (fn [context]
-              (let [origin (get-in context [:request :headers "origin"])
-                    allowed (allowed-origins origin)
-                    preflight-request (= :options (get-in context [:request :request-method]))]
-                (log/info :msg "cors request processing"
-                          :origin origin
-                          :allowed allowed)
-                (cond
-                 ;; origin is allowed and this is preflight
-                 (and origin allowed preflight-request)
-                 (preflight context origin args)
+    (interceptor/around ::allow-origin
+                        (fn [context]
+                          (let [origin (get-in context [:request :headers "origin"])
+                                allowed (allowed-origins origin)
+                                preflight-request (= :options (get-in context [:request :request-method]))]
+                            (log/info :msg "cors request processing"
+                                      :origin origin
+                                      :allowed allowed)
+                            (cond
+                              ;; origin is allowed and this is preflight
+                              (and origin allowed preflight-request)
+                              (preflight context origin args)
 
-                 ;; origin is allowed and this is real
-                 (and origin allowed (not preflight-request))
-                 (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
-                                                     (when creds {"Access-Control-Allow-Credentials" (str creds)})))
+                              ;; origin is allowed and this is real
+                              (and origin allowed (not preflight-request))
+                              (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
+                                                                  (when creds {"Access-Control-Allow-Credentials" (str creds)})))
 
-                 ;; origin is not allowed
-                 (and origin (not allowed))
-                 (assoc context :response {:status 403 :body "Forbidden" :headers {}})
+                              ;; origin is not allowed
+                              (and origin (not allowed))
+                              (assoc context :response {:status 403 :body "Forbidden" :headers {}})
 
-                 ;; no origin
-                 :else
-                 context)))
+                              ;; no origin
+                              :else
+                              context)))
 
-            (fn [{:keys [response cors-headers] :as context}]
-              (if (and cors-headers response)
-                (let [cors-headers (merge cors-headers
-                                          {"Access-Control-Expose-Headers"
-                                           (convert-header-names (keys (:headers response)))})]
-                  (log/info :msg "cors response processing"
-                            :cors-headers cors-headers)
-                  (update-in context [:response :headers] merge cors-headers))
-                context)))))
+                        (fn [{:keys [response cors-headers] :as context}]
+                          (if (and cors-headers response)
+                            (let [cors-headers (merge cors-headers
+                                                      {"Access-Control-Expose-Headers"
+                                                       (convert-header-names (keys (:headers response)))})]
+                              (log/info :msg "cors response processing"
+                                        :cors-headers cors-headers)
+                              (update-in context [:response :headers] merge cors-headers))
+                            context)))))
 
-(defbefore dev-allow-origin
+(interceptor/defbefore dev-allow-origin
   [context]
   (let [origin (get-in context [:request :headers "origin"])]
     (log/debug :msg "cors dev processing"

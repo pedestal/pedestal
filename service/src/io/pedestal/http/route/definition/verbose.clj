@@ -12,25 +12,29 @@
 
 (ns io.pedestal.http.route.definition.verbose
   (:require [io.pedestal.http.route :as route]
-            [io.pedestal.interceptor :as interceptor]))
+            [io.pedestal.interceptor :refer [interceptor?]]
+            [io.pedestal.interceptor.helpers :as interceptor]))
 
 (defn handler-interceptor
   [handler name]
   (cond
-   (interceptor/interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
-                                        (assoc interceptor :name (or interceptor-name name)))
-   (fn? handler) (interceptor/handler name handler)))
+    (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
+                             (assoc interceptor :name (or interceptor-name name)))
+    (fn? handler) (interceptor/handler name handler)))
 
 
 (defn resolve-interceptor [interceptor name]
-  (cond
-   (symbol? interceptor) (if (-> (resolve interceptor)
-                                 meta
-                                 :interceptor-fn)
-                           (handler-interceptor ((resolve interceptor)) name)
-                           (handler-interceptor @(resolve interceptor) name))
-   (seq? interceptor) (handler-interceptor (eval interceptor) name)
-   (interceptor/interceptor? interceptor) (handler-interceptor interceptor name)))
+  (if (interceptor? interceptor)
+    (handler-interceptor interceptor name)
+    (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) name)
+
+   ;(symbol? interceptor) (if (-> (resolve interceptor)
+   ;                              fn?)
+   ;                        (handler-interceptor ((resolve interceptor)) name)
+   ;                        (handler-interceptor @(resolve interceptor) name))
+   ;(seq? interceptor) (handler-interceptor (eval interceptor) name)
+
+   ))
 
 (defn symbol->keyword
   [s]
@@ -46,11 +50,12 @@
    (let [handler-name (symbol->keyword m)]
      {:route-name handler-name
       :handler (resolve-interceptor m handler-name)})
-   (isa? (type m) clojure.lang.APersistentMap)
+   ;(isa? (type m) clojure.lang.APersistentMap)
+   (instance? clojure.lang.IPersistentMap m)
    (let [{:keys [route-name handler interceptors]} m
          handler-name (cond
                        (symbol? handler) (symbol->keyword handler)
-                       (interceptor/interceptor? handler) (:name handler))
+                       (interceptor? handler) (:name handler))
          interceptor (resolve-interceptor handler (or route-name handler-name))
          interceptor-name (:name interceptor)]
      {:route-name (if route-name
@@ -60,7 +65,7 @@
                       (throw (ex-info "Handler was not symbol or interceptor with name, no route name provided"
                                       {:handler-spec m}))))
       :handler (resolve-interceptor handler (or route-name handler-name))
-      :interceptors (vec (map #(resolve-interceptor % nil) interceptors))})))
+      :interceptors (mapv #(resolve-interceptor % nil) interceptors)})))
 
 (defn- add-terminal-info
   "Merge in data from `handler-map` to `start-terminal`"

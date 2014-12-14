@@ -17,7 +17,8 @@
             [clojure.stacktrace :as stacktrace]
             [clojure.core.async :as async]
             [io.pedestal.log :as log]
-            [io.pedestal.interceptor :as interceptor :refer [definterceptor]]
+            [io.pedestal.interceptor]
+            [io.pedestal.interceptor.helpers :as interceptor :refer [definterceptor]]
             [io.pedestal.http.route :as route]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.container :as container]
@@ -330,10 +331,10 @@
   [1]: https://github.com/ring-clojure/ring/blob/master/SPEC
   [2]: http://jcp.org/aboutJava/communityprocess/final/jsr315/index.html"
 
-  (interceptor/interceptor {:name ::stylobate
-                            :enter enter-stylobate
-                            :leave leave-stylobate
-                            :error error-stylobate}))
+  (io.pedestal.interceptor/interceptor {:name ::stylobate
+                                        :enter enter-stylobate
+                                        :leave leave-stylobate
+                                        :error error-stylobate}))
 
 (definterceptor ring-response
   "An interceptor which transmits a Ring specified response map to an
@@ -344,9 +345,9 @@
   to 500 with a generic error message. Also, if later interceptors
   fail to furnish the context with a :response map, this interceptor
   will set the HTTP response to a 500 error."
-  (interceptor/interceptor {:name ::ring-response
-                            :leave leave-ring-response
-                            :error error-ring-response}))
+  (io.pedestal.interceptor/interceptor {:name ::ring-response
+                                        :leave leave-ring-response
+                                        :error error-ring-response}))
 
 (definterceptor terminator-injector
   "An interceptor which causes a interceptor to terminate when one of
@@ -376,8 +377,8 @@
   services. Including it in interceptor paths on production systems
   may present a security risk by exposing call stacks of the
   application when exceptions are encountered."
-  (interceptor/interceptor {:name ::exception-debug
-                            :error error-debug}))
+  (io.pedestal.interceptor/interceptor {:name ::exception-debug
+                                        :error error-debug}))
 
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the

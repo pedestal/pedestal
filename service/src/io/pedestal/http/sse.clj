@@ -16,7 +16,7 @@
             [clojure.core.async.impl.protocols :as asyncimpl]
             [io.pedestal.http.servlet :refer :all]
             [io.pedestal.log :as log]
-            [io.pedestal.interceptor :as interceptor :refer [definterceptorfn]]
+            [io.pedestal.interceptor :as interceptor]
             [clojure.stacktrace]
             [clojure.string :as string])
   (:import [java.nio.charset Charset]
@@ -135,7 +135,7 @@
 
     (assoc context :response response))))
 
-(definterceptorfn start-event-stream
+(defn start-event-stream
   "Returns an interceptor which will start a Server Sent Event stream
   with the requesting client, and set the ServletResponse to go
   async. After the request handling context has been paused in the
@@ -146,11 +146,11 @@
   ([stream-ready-fn heartbeat-delay]
    (start-event-stream stream-ready-fn heartbeat-delay 10))
   ([stream-ready-fn heartbeat-delay buffer-or-n]
-     (interceptor/interceptor
-      :name "io.pedestal.http.sse/start-event-stream"
+   (interceptor/interceptor
+     {:name "io.pedestal.http.sse/start-event-stream"
       :enter (fn [context]
                (log/trace :msg "switching to sse")
-               (start-stream stream-ready-fn context heartbeat-delay buffer-or-n)))))
+               (start-stream stream-ready-fn context heartbeat-delay buffer-or-n))})))
 
 (defn sse-setup
   "See start-event-stream. This function is for backward compatibility."

@@ -13,8 +13,8 @@
 (ns io.pedestal.interceptor-test
   (:require [clojure.test :refer (deftest is)]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
-            [io.pedestal.interceptor :as interceptor
-             :refer (definterceptor definterceptorfn interceptor defaround defmiddleware)]
+            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
             [io.pedestal.impl.interceptor :as impl
              :refer (execute enqueue)]))
 
@@ -22,9 +22,9 @@
   (update-in context [::trace] (fnil conj []) [direction name]))
 
 (defn tracer [name]
-  (interceptor {:name name
-                :enter #(trace % :enter name)
-                :leave #(trace % :leave name)}))
+  (interceptor/interceptor {:name name
+                            :enter #(trace % :enter name)
+                            :leave #(trace % :leave name)}))
 
 (defn thrower [name]
   (assoc (tracer name)
@@ -48,8 +48,8 @@
                     a-chan))))
 
 (defn deliverer [ch]
-  (interceptor {:name ::deliverer
-                :leave #(>!! ch %)}))
+  (interceptor/interceptor {:name ::deliverer
+                            :leave #(>!! ch %)}))
 
 (deftest t-simple-execution
   (is (= {::trace [[:enter :a]

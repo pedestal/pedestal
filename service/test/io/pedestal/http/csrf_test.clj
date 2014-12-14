@@ -1,7 +1,7 @@
 (ns io.pedestal.http.csrf-test
     (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition :refer [defroutes]]
-            [io.pedestal.interceptor :as interceptor :refer [interceptor defhandler defafter]]
+            [io.pedestal.interceptor.helpers :refer [defhandler defafter]]
             [io.pedestal.http :as service]
             [io.pedestal.http.ring-middlewares :as rm]
             [clojure.string :as s])

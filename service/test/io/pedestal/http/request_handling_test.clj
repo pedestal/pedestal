@@ -16,7 +16,7 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [ring.util.response :as ring-response]
             [io.pedestal.http.route.definition :refer [defroutes]]
-            [io.pedestal.interceptor :as interceptor :refer [defhandler]]
+            [io.pedestal.interceptor.helpers :refer [defhandler defafter]]
             [io.pedestal.http :as service])
   (:use [clojure.test]
         [clojure.pprint]
@@ -74,7 +74,7 @@
        "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
        tempfile-url "some test data"))
 
-(interceptor/defafter custom-not-found
+(defafter custom-not-found
   [context]
   (assoc context :response (ring-response/not-found "Custom Not Found")))
 

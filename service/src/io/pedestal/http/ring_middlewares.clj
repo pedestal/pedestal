@@ -12,7 +12,8 @@
 
 (ns io.pedestal.http.ring-middlewares
   "This namespace creates interceptors for ring-core middlewares."
-  (:require [io.pedestal.interceptor :as interceptor :refer [interceptor definterceptorfn defon-request defon-response defmiddleware]]
+  (:require [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.interceptor.helpers :as interceptor :refer [defon-request defon-response defmiddleware]]
             [ring.middleware.cookies :as cookies]
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
@@ -51,7 +52,7 @@
     (assoc-in resp [:headers "Content-Type"] mime-type)
     resp))
 
-(definterceptorfn content-type
+(defn content-type
   "Interceptor for content-type ring middleware."
   [& [opts]]
   (leave-interceptor ::content-type-interceptor content-type-response opts))
@@ -61,67 +62,67 @@
   from the request to response."
   cookies/cookies-request cookies/cookies-response)
 
-(definterceptorfn file
+(defn file
   "Interceptor for file ring middleware."
   [root-path & [opts]]
   (interceptor/handler ::file #(file/file-request % root-path opts)))
 
-(definterceptorfn file-info
+(defn file-info
   "Interceptor for file-info ring middleware."
   [& [mime-types]]
   (leave-interceptor ::file-info file-info/file-info-response mime-types))
 
-(definterceptorfn flash
+(defn flash
   "Interceptor for flash ring middleware. Be sure to persist keys needed
   by session and cookie interceptors."
   []
-  (interceptor :name ::flash
-               :enter #(update-in % [:request] flash/flash-request)
-               :leave (response-fn-adapter flash/flash-response)))
+  (interceptor {:name ::flash
+                :enter #(update-in % [:request] flash/flash-request)
+                :leave (response-fn-adapter flash/flash-response)}))
 
-(definterceptorfn head
+(defn head
   "Interceptor for head ring middleware. If used with defroutes, it will not work
   if specified in an interceptors meta-key."
   []
-  (interceptor :name ::head
-               :enter #(update-in % [:request] head/head-request)
-               :leave (response-fn-adapter head/head-response)))
+  (interceptor {:name ::head
+                :enter #(update-in % [:request] head/head-request)
+                :leave (response-fn-adapter head/head-response)}))
 
 (defon-request keyword-params
   "Interceptor for keyword-params ring middleware."
   keyword-params/keyword-params-request)
 
-(definterceptorfn multipart-params
+(defn multipart-params
   "Interceptor for multipart-params ring middleware."
   [& [opts]]
   (interceptor/on-request ::multipart-params
                           multipart-params/multipart-params-request
                           opts))
 
-(definterceptorfn nested-params
+(defn nested-params
   "Interceptor for nested-params ring middleware."
   [& [opts]]
   (interceptor/on-request ::nested-params
                           nested-params/nested-params-request
                           opts))
 
-(definterceptorfn not-modified
+(defn not-modified
   "Interceptor for not-modified ring middleware."
   []
   (leave-interceptor ::not-modified not-modified/not-modified-response))
 
-(definterceptorfn params
+(defn params
   "Interceptor for params ring middleware."
   [& [opts]]
   (interceptor/on-request ::params params/params-request opts))
 
 
-(definterceptorfn resource
+(defn resource
   "Interceptor for resource ring middleware."
   [root-path]
   (interceptor/handler ::resource #(resource/resource-request % root-path)))
 
-(definterceptorfn session
+(defn session
   "Interceptor for session ring middleware. Be sure to persist :session and
   :session/key from request to the response."
   ([] (session {}))

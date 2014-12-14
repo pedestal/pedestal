@@ -19,8 +19,8 @@
             [clojure.string :as str]
             ring.middleware.resource
             [ring.util.response :as ring-response]
-            [io.pedestal.interceptor :as interceptor
-             :refer [defhandler defon-request defbefore definterceptor definterceptorfn handler]]
+            [io.pedestal.interceptor.helpers :as interceptor
+             :refer [defhandler defon-request defbefore definterceptor handler]]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition.verbose :as verbose]
@@ -71,14 +71,15 @@
           (assoc req ::interceptor-1 :clobbered)
           (assoc req ::interceptor-2 :fired-without-1)))
 
-(definterceptorfn interceptor-3
+(defn interceptor-3
   ([] (interceptor-3 ::fn-called-implicitly))
   ([value]
      (interceptor/on-request
       (fn [req] (assoc req ::interceptor-3 value)))))
 
 (defn site-demo [site-name]
-  (fn [req] (ring-response/response (str "demo page for " site-name))))
+  (fn [req & more]
+    (ring-response/response (str "demo page for " site-name))))
 
 ;; schemes, hosts, path, verb and maybe query string
 (verbose/defroutes verbose-routes ;; the verbose hierarchical data structure
@@ -776,7 +777,7 @@
   model. Should not be adapted."
   ring-style)
 
-(definterceptorfn make-ring-adapted
+(defn make-ring-adapted
   "An interceptor fn which returns ring-adapted when called."
   []
   ring-adapted)
