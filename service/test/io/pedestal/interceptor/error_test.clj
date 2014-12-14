@@ -46,7 +46,7 @@
   (is (= (:body (response-for app :get url))
          "A bad one")))
 
-(deftest captures-specific-excpetion
+(deftest captures-specific-exception
   (is (= (:body (response-for app :get url-two))
          "Another bad one")))
 
