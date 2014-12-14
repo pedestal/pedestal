@@ -3,7 +3,7 @@
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
             [io.pedestal.http.secure-headers :as sec-headers]
-            [io.pedestal.interceptor :as interceptor :refer [defafter]]
+            [io.pedestal.interceptor.helpers :refer [defafter]]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]))
 

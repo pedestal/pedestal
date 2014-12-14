@@ -9,7 +9,7 @@
         io.pedestal.http.jetty)
   (:require [clj-http.client :as http]
             [clojure.edn]
-            [io.pedestal.interceptor :as interceptor :refer [defhandler definterceptorfn handler]]
+            [io.pedestal.interceptor.helpers :refer [defhandler handler]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
@@ -38,7 +38,7 @@
      :headers {"Content-Type" "text/plain"}
      :body    (.source p)}))
 
-(definterceptorfn content-type-handler [content-type]
+(defn content-type-handler [content-type]
   (handler
     (fn [_]
       {:status  200

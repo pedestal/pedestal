@@ -1,9 +1,21 @@
+; Copyright 2013 Relevance, Inc.
+; Copyright 2014 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.tomcat-test
   (:use clojure.test
         io.pedestal.http.tomcat)
   (:require [clj-http.client :as http]
             [clojure.edn]
-            [io.pedestal.interceptor :as interceptor :refer [defhandler definterceptorfn handler]]
+            [io.pedestal.interceptor.helpers :refer [defhandler handler]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]))
 
@@ -12,7 +24,7 @@
    :headers {"Content-Type" "text/plain"}
    :body    "Hello World"})
 
-(definterceptorfn content-type-handler [content-type]
+(defn content-type-handler [content-type]
   (handler
    (fn [_]
      {:status  200

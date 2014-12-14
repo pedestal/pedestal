@@ -14,7 +14,7 @@
   "CSRF protection interceptor support, compatible with ring-anti-forgery"
   (:require [crypto.random :as random]
             [crypto.equality :as crypto]
-            [io.pedestal.interceptor :as interceptor :refer [definterceptorfn around]]))
+            [io.pedestal.interceptor.helpers :as interceptor :refer [around]]))
 
 ;; This is a port of the ring-anti-forgery CSRF protection, with the following
 ;; differences:
@@ -79,7 +79,7 @@
 
 (def default-error-response (access-denied-response denied-msg))
 
-(definterceptorfn anti-forgery
+(defn anti-forgery
   "Interceptor that prevents CSRF attacks. Any POST/PUT/PATCH/DELETE request to
   the handler returned by this function must contain a valid anti-forgery
   token, or else an access-denied response is returned.

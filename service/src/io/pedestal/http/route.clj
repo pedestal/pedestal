@@ -12,8 +12,9 @@
 
 (ns io.pedestal.http.route
   (:require [clojure.string :as str]
-            [clojure.core.incubator :refer (dissoc-in)]
-            [io.pedestal.interceptor :as interceptor :refer [definterceptor definterceptorfn]]
+            [clojure.core.incubator :refer [dissoc-in]]
+            [io.pedestal.interceptor]
+            [io.pedestal.interceptor.helpers :as interceptor :refer [definterceptor]]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.log :as log])
   (:import (java.util.regex Pattern)
@@ -201,15 +202,6 @@
 
 (defn- enqueue-all [context interceptors]
   (apply interceptor-impl/enqueue context interceptors))
-
-(definterceptor query-params
-  "Returns an interceptor which parses query-string parameters from an
-  HTTP request into a map. Keys in the map are query-string parameter
-  names, as keywords, and values are strings. The map is assoc'd into
-  the request at :query-params."
-  ;; This doesn't need to be a function but it's done that way for
-  ;; consistency with 'method-param'
-  (interceptor/on-request ::query-params parse-query-params))
 
 (defn- replace-method
   "Replace the HTTP method of a request with the value provided at
@@ -478,7 +470,7 @@
   ;; consistency with 'method-param'
   (interceptor/on-request ::query-params parse-query-params))
 
-(definterceptorfn method-param
+(defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
   the request. Must come *after* the interceptor that populates that
   value (e.g. query-params or body-params).

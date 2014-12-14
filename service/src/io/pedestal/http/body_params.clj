@@ -15,7 +15,7 @@
             [cheshire.core :as json]
             [cheshire.parse :as parse]
             [clojure.string :as str]
-            [io.pedestal.interceptor :as interceptor :refer [definterceptorfn]]
+            [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.log :as log]
             [cognitect.transit :as transit]
             [ring.middleware.params :as params]))
@@ -163,7 +163,7 @@
      #"^application/transit\+json" (apply custom-transit-parser :json transit-options)
      #"^application/transit\+msgpack" (apply custom-transit-parser :msgpack transit-options)}))
 
-(definterceptorfn body-params
+(defn body-params
   ([] (body-params (default-parser-map)))
   ([parser-map]
      (interceptor/on-request ::body-params
