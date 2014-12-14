@@ -32,7 +32,7 @@
            (merge {:execution-id execution-id
                    :stage stage
                    :interceptor (name interceptor)
-                   :exception-type (type t)} ;; TODO: Does this say the root-cause exception? Or the `Throwable`
+                   :exception-type (keyword (pr-str (type t)))}
                   (ex-data t))
            t))
 
