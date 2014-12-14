@@ -39,6 +39,9 @@
   clojure.lang.Symbol
   (expand-verb-action [symbol] symbol)
 
+  clojure.lang.IPersistentList
+  (expand-verb-action [l] (expand-verb-action (eval l)))
+
   clojure.lang.APersistentVector
   (expand-verb-action [vector]
     (let [route-name (first (filter #(isa? (type %) clojure.lang.Keyword) vector))

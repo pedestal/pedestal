@@ -402,20 +402,22 @@
        data-routes
        syntax-quote-data-routes))
 
-(deftest fire-interceptor-fn-symbol
-  (are [routes] (= ::fn-called-implicitly
-                   (-> (test-query-execute routes {:request {:request-method :get
-                                                             :scheme "do-not-match-scheme"
-                                                             :server-name "do-not-match-host"
-                                                             :path-info "/intercepted-by-fn-symbol"
-                                                             :query-params {}}})
-                       :response
-                       :request
-                       ::interceptor-3))
-       verbose-routes
-       terse-routes
-       data-routes
-       syntax-quote-data-routes))
+;; TODO: This is no longer supported - *ALL* symbols that resolve to fns are treated like handlers
+;;       *ALL* lists (fn call of an Interceptor Fn), get eval'd, returning the interceptor
+;(deftest fire-interceptor-fn-symbol
+;  (are [routes] (= ::fn-called-implicitly
+;                   (-> (test-query-execute routes {:request {:request-method :get
+;                                                             :scheme "do-not-match-scheme"
+;                                                             :server-name "do-not-match-host"
+;                                                             :path-info "/intercepted-by-fn-symbol"
+;                                                             :query-params {}}})
+;                       :response
+;                       :request
+;                       ::interceptor-3))
+;       verbose-routes
+;       terse-routes
+;       data-routes
+;       syntax-quote-data-routes))
 
 (deftest fire-interceptor-fn-list
   (are [routes] (= ::fn-called-explicitly
@@ -780,13 +782,14 @@
 (defn make-ring-adapted
   "An interceptor fn which returns ring-adapted when called."
   []
-  ring-adapted)
+  ;; This new ring-adpated needs a unique name when it is added into the routes
+  [::another-ring-adapted ring-adapted])
 
 (defroutes ring-adaptation-routes ;; When the handler for a verb is a ring style middleware, automagically treat it as an interceptor
   [[:ring-adaptation "ring-adapt.pedestal"
     ["/adapted" {:get ring-style}]
     ["/verbatim" {:get ring-adapted}]
-    ["/returned" {:get make-ring-adapted}]]])
+    ["/returned" {:get (make-ring-adapted)}]]])
 
 (deftest ring-adapting
   (are [path] (= "Oppa Ring Style!" (-> ring-adaptation-routes
