@@ -54,7 +54,7 @@
        :handler handler
        :interceptors interceptors}))
 
-  io.pedestal.impl.interceptor.Interceptor
+  io.pedestal.interceptor.Interceptor
   (expand-verb-action [interceptor]
     {:handler interceptor}))
 

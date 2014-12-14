@@ -127,7 +127,7 @@
   ([] (session {}))
   ([options]
      (let [options ((deref #'session/session-options) options)]
-       (interceptor :name ::session
-                    :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
-                    :leave (response-fn-adapter session/session-response options)))))
+       (interceptor {:name ::session
+                     :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
+                     :leave (response-fn-adapter session/session-response options)}))))
 

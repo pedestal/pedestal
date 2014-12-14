@@ -15,16 +15,62 @@
   common interceptor creation patterns."
   (:require [io.pedestal.impl.interceptor :as impl]))
 
-(defn interceptor?
-  [o]
-  (= (type o)
-     io.pedestal.impl.interceptor.Interceptor))
+(defrecord Interceptor [name enter leave error])
+
+(defprotocol IntoInterceptor
+  (-interceptor [t] "Given a value, produce an Interceptor Record."))
+
+(declare interceptor)
+(extend-protocol IntoInterceptor
+
+  clojure.lang.IPersistentMap
+  (-interceptor [t] (map->Interceptor t))
+
+  clojure.lang.Fn
+  (-interceptor [t] (interceptor (t)))
+
+  clojure.lang.IPersistentList
+  (-interceptor [t] (interceptor (eval t)))
+
+  clojure.lang.Cons
+  (-interceptor [t] (interceptor (eval t)))
+
+  Interceptor
+  (-interceptor [t] t))
 
 (defn interceptor-name
   [n]
   (if-not (or (nil? n) (keyword? n))
     (throw (ex-info "Name must be keyword or nil" {:name n}))
     n))
+
+(defn interceptor?
+  [o]
+  (= (type o) Interceptor))
+
+(defn valid-interceptor?
+  [o]
+  (if-let [int-vals (and (interceptor? o)
+                           (vals (select-keys o [:enter :leave :error])))]
+    (and (some identity int-vals)
+         (every? fn? (remove nil? int-vals))
+         (interceptor-name (:name o))
+         o)
+    false))
+
+(defn interceptor
+  "Given a value, produces and returns an Interceptor (Record)."
+  [t]
+  {:pre [(if-not (satisfies? IntoInterceptor t)
+           (throw (ex-info "You're trying to use something as an interceptor
+                           that isn't supported by the protocol; Perhaps you need to extend it?"
+                           {:t t
+                            :type (type t)}))
+           true)]
+   :post [valid-interceptor?]}
+  (-interceptor t))
+
+
 
 (defmacro definterceptor
   "Define an instance of an interceptor and store it in a var. An
@@ -40,13 +86,13 @@
                (first body))
         doc (when (string? (first body))
               (first body))]
-    `(def ~(with-meta name {:doc doc :interceptor true})  ~init)))
+    `(def ~(with-meta name {:doc doc})  ~(interceptor init))))
 
 (defmacro definterceptorfn
   "Define an interceptor factory function and give it a name. An
    optional doc string can be provided."
   [name & body]
-  `(defn ~(with-meta name {:interceptor-fn true}) ~@body))
+  `(defn ~(with-meta name {}) ~@body))
 
 (defn- infer-basic-interceptor-function
   "Given list `args`, infer a form that will evaluate to a function
@@ -96,22 +142,22 @@
        `(definterceptor ~@prefix-list#
           (~~n ~interceptor-name# ~fn-form#)))))
 
-(definterceptorfn interceptor
-  "Build an interceptor by interpreting `args` as a map specifying what
-  fns fire at what stages of interceptor execution."
-  [& args]
-  (apply impl/interceptor args))
+;(definterceptorfn interceptor
+;  "Build an interceptor by interpreting `args` as a map specifying what
+;  fns fire at what stages of interceptor execution."
+;  [& args]
+;  (apply interceptor args))
 
-(definterceptorfn before
+(defn before
   "Returns an interceptor which calls `f` on context during the enter
   stage."
-  ([f] (interceptor :enter f))
+  ([f] (interceptor {:enter f}))
   ([f & args]
      (let [[n f args] (if (fn? f)
                         [nil f args]
                         [f (first args) (rest args)])]
-       (interceptor :name (interceptor-name n)
-                    :enter #(apply f % args)))))
+       (interceptor {:name (interceptor-name n)
+                     :enter #(apply f % args)}))))
 
 (defsimpleinterceptordef before "Defines a before interceptor. The
   defined function performs processing during interceptor execution
@@ -125,13 +171,13 @@
 (definterceptorfn after
   "Return an interceptor which calls `f` on context during the leave
   stage."
-  ([f] (interceptor :leave f))
+  ([f] (interceptor {:leave f}))
   ([f & args]
      (let [[n f args] (if (fn? f)
                         [nil f args]
                         [f (first args) (rest args)])]
-       (interceptor :name (interceptor-name n)
-                    :leave #(apply f % args)))))
+       (interceptor {:name (interceptor-name n)
+                     :leave #(apply f % args)}))))
 
 (defsimpleinterceptordef after
   "Defines an after interceptor. The defined function is processed
@@ -150,12 +196,12 @@
   "Return an interceptor which calls `f1` on context during the enter
   stage, and calls `f2` on context during the leave stage."
   ([f1 f2]
-     (interceptor :enter f1
-                  :leave f2))
+     (interceptor {:enter f1
+                   :leave f2}))
   ([n f1 f2]
-     (interceptor :name (interceptor-name n)
-                  :enter f1
-                  :leave f2)))
+     (interceptor {:name (interceptor-name n)
+                   :enter f1
+                   :leave f2})))
 
 (defmacro defaround
   "Defines an around interceptor. The definition resembles a multiple
@@ -182,7 +228,7 @@
     `(definterceptor ~@prefix-list
        (around ~interceptor-name# ~enter-fn-form ~leave-fn-form))))
 
-(definterceptorfn on-request
+(defn on-request
   "Returns an interceptor which updates the :request value of context
   with f during the enter stage."
   ([f] (before (fn [context]
@@ -191,9 +237,9 @@
      (let [[n f args] (if (fn? f)
                         [nil f args]
                         [f (first args) (rest args)])]
-       (interceptor :name (interceptor-name n)
-                    :enter (fn [context]
-                             (assoc context :request (apply f (:request context) args)))))))
+       (interceptor {:name (interceptor-name n)
+                     :enter (fn [context]
+                              (assoc context :request (apply f (:request context) args)))}))))
 
 (defsimpleinterceptordef on-request
   "Defines an on-request interceptor. The definition performs
@@ -227,9 +273,9 @@
      (let [[n f args] (if (fn? f)
                         [nil f args]
                         [f (first args) (rest args)])]
-       (interceptor :name (interceptor-name n)
-                    :leave (fn [context]
-                             (assoc context :response (apply f (:response context) args)))))))
+       (interceptor {:name (interceptor-name n)
+                     :leave (fn [context]
+                              (assoc context :response (apply f (:response context) args)))}))))
 
 (defsimpleinterceptordef on-response
   "Defines an on-response interceptor. The definition performs post
@@ -296,12 +342,12 @@
   context during the enter stage, and `f2` on the :response value of
   context during the leave stage."
   ([f1 f2]
-     (interceptor :enter (when f1 #(update-in % [:request] f1))
-                  :leave (when f2 #(update-in % [:response] f2))))
+     (interceptor {:enter (when f1 #(update-in % [:request] f1))
+                   :leave (when f2 #(update-in % [:response] f2))}))
   ([n f1 f2]
-     (interceptor :name (interceptor-name n)
-                  :enter (when f1 #(update-in % [:request] f1))
-                  :leave (when f2 #(update-in % [:response] f2)))))
+     (interceptor {:name (interceptor-name n)
+                   :enter (when f1 #(update-in % [:request] f1))
+                   :leave (when f2 #(update-in % [:response] f2))})))
 
 (defmacro defmiddleware
   "Defines a middleware interceptor. The definition resembles a
