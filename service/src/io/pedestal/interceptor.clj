@@ -34,11 +34,8 @@
       (if (or (:interceptor int-meta)
               (:interceptorfn int-meta))
         (interceptor (t))
-        ;; We pass the function through, because it will be converted during route-creation time
-        t
-        ;(interceptor {:enter (fn [context]
-        ;                       (assoc context :response (t (:request context))))})
-        )))
+        (interceptor {:enter (fn [context]
+                               (assoc context :response (t (:request context))))}))))
 
   clojure.lang.IPersistentList
   (-interceptor [t] (interceptor (eval t)))
