@@ -32,7 +32,8 @@
            (merge {:execution-id execution-id
                    :stage stage
                    :interceptor (name interceptor)
-                   :exception-type (keyword (pr-str (type t)))}
+                   :exception-type (keyword (pr-str (type t)))
+                   :exception t}
                   (ex-data t))
            t))
 
@@ -69,7 +70,7 @@
                    :execution-id execution-id)
         (try (error-fn (dissoc context ::error) ex)
              (catch Throwable t
-               (if (identical? (type t) (:exception-type ex))
+               (if (identical? (type t) (type (:exception ex)))
                  (do (log/debug :rethrow t :execution-id execution-id)
                      context)
                  (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
