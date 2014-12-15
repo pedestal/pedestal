@@ -2,7 +2,7 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
-            [io.pedestal.interceptor :as interceptor :refer (defbefore)]
+            [io.pedestal.interceptor.helpers :as interceptor :refer (defbefore)]
             [io.pedestal.http.immutant :as immutant]
             [io.pedestal.http.jetty :as jetty])
   (:import (java.nio ByteBuffer))

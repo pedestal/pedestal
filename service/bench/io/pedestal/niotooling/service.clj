@@ -3,7 +3,7 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition :refer [defroutes]]
-            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.helpers :as interceptor]
             [ring.util.response :as ring-resp]
             [clojure.core.async :as async]
             [clojure.java.io :as io]
