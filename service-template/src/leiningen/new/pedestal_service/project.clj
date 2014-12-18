@@ -19,6 +19,7 @@
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.4.0-SNAPSHOT"]]}}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.4.0-SNAPSHOT"]]}
+             :uberjar {:aot [{{namespace}}.server]}}
   :main ^{:skip-aot true} {{namespace}}.server)
 
