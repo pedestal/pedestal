@@ -26,6 +26,17 @@
 (defn- name [interceptor]
   (get interceptor :name (pr-str interceptor)))
 
+;; TODO: liter this through the call sites below.  This will allow pattern match on the results
+(defn- throwable->ex-info [^Throwable t execution-id interceptor stage]
+  (ex-info (str "Interceptor Exception: " (.getMessage t))
+           (merge {:execution-id execution-id
+                   :stage stage
+                   :interceptor (name interceptor)
+                   :exception-type (keyword (pr-str (type t)))
+                   :exception t}
+                  (ex-data t))
+           t))
+
 (defn- try-f
   "If f is not nil, invokes it on context. If f throws an exception,
   assoc's it on to context as ::error."
@@ -39,7 +50,7 @@
            (f context)
            (catch Throwable t
              (log/debug :throw t :execution-id execution-id)
-             (assoc context ::error t)))
+             (assoc context ::error (throwable->ex-info t execution-id interceptor stage))))
       (do (log/trace :interceptor (name interceptor)
                      :skipped? true
                      :stage stage
@@ -52,18 +63,19 @@
   [context interceptor]
   (let [execution-id (::execution-id context)]
     (if-let [error-fn (get interceptor :error)]
-      (let [ex (::error context)]
+      (let [ex (::error context)
+            stage :error]
         (log/debug :interceptor (name interceptor)
                    :stage :error
                    :execution-id execution-id)
         (try (error-fn (dissoc context ::error) ex)
              (catch Throwable t
-               (if (identical? t ex)
+               (if (identical? (type t) (type (:exception ex)))
                  (do (log/debug :rethrow t :execution-id execution-id)
                      context)
-                 (do (log/debug :throw t :suppressed ex :execution-id execution-id)
+                 (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
                      (-> context
-                         (assoc ::error t)
+                         (assoc ::error (throwable->ex-info t execution-id interceptor :error))
                          (update-in [::suppressed] conj ex)))))))
       (do (log/trace :interceptor (name interceptor)
                      :skipped? true

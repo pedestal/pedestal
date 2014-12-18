@@ -106,14 +106,15 @@
                               (update-in context [:response :headers] merge cors-headers))
                             context)))))
 
-(interceptor/defbefore dev-allow-origin
-  [context]
-  (let [origin (get-in context [:request :headers "origin"])]
-    (log/debug :msg "cors dev processing"
-               :origin origin
-               :context context)
-    (if-not origin
-      (assoc-in context [:request :headers "origin"] "")
-      context)))
-
+(def dev-allow-origin
+  (interceptor/before
+    ::dev-allow-origin
+    (fn [context]
+      (let [origin (get-in context [:request :headers "origin"])]
+        (log/debug :msg "cors dev processing"
+                   :origin origin
+                   :context context)
+        (if-not origin
+          (assoc-in context [:request :headers "origin"] "")
+          context)))))
 
