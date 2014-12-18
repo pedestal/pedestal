@@ -185,6 +185,8 @@
   * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}.
   * :enable-session: A settings map to include the session middleware interceptor. If nil, this interceptor
      is not added.  Default is nil.
+  * :enable-flash: A setting for whether or not to include the session flash
+     interceptor. This implies sessions are enabled. Default is nil.
   * :enable-csrf: A settings map to include the csrf-protection interceptor. This implies
      sessions are enabled. If nil, this interceptor is not added. Default is nil.
   * :secure-headers: A settings map for various secure headers.
@@ -200,6 +202,7 @@
          not-found-interceptor ::not-found-interceptor
          ext-mime-types ::mime-types
          enable-session ::enable-session
+         enable-flash ::enable-flash
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
          :or {file-path nil
@@ -216,7 +219,8 @@
                      true (conj log-request)
                      (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
                      true (conj not-found-interceptor)
-                     (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
+                     (or enable-session enable-csrf enable-flash) (conj (middlewares/session (or enable-session {})))
+                     enable-flash (conj (middlewares/flash))
                      enable-csrf (conj (csrf/anti-forgery enable-csrf))
                      true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                      true (conj route/query-params)
