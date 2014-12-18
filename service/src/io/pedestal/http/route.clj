@@ -461,7 +461,7 @@
   [spec]
   (router-spec spec))
 
-(definterceptor query-params
+(def query-params
   "Returns an interceptor which parses query-string parameters from an
   HTTP request into a map. Keys in the map are query-string parameter
   names, as keywords, and values are strings. The map is assoc'd into

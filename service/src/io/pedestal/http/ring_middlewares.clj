@@ -13,7 +13,7 @@
 (ns io.pedestal.http.ring-middlewares
   "This namespace creates interceptors for ring-core middlewares."
   (:require [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.helpers :as interceptor :refer [defon-request defon-response defmiddleware]]
+            [io.pedestal.interceptor.helpers :as interceptor]
             [ring.middleware.cookies :as cookies]
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
@@ -57,10 +57,12 @@
   [& [opts]]
   (leave-interceptor ::content-type-interceptor content-type-response opts))
 
-(defmiddleware cookies
+(def cookies
   "Interceptor for cookies ring middleware. Be sure to persist :cookies
   from the request to response."
-  cookies/cookies-request cookies/cookies-response)
+  (interceptor/middleware
+    ::cookies
+    cookies/cookies-request cookies/cookies-response))
 
 (defn file
   "Interceptor for file ring middleware."
@@ -88,9 +90,11 @@
                 :enter #(update-in % [:request] head/head-request)
                 :leave (response-fn-adapter head/head-response)}))
 
-(defon-request keyword-params
+(def keyword-params
   "Interceptor for keyword-params ring middleware."
-  keyword-params/keyword-params-request)
+  (interceptor/on-request
+    ::keyword-params
+    keyword-params/keyword-params-request))
 
 (defn multipart-params
   "Interceptor for multipart-params ring middleware."

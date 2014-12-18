@@ -18,7 +18,7 @@
             [clojure.core.async :as async]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor]
-            [io.pedestal.interceptor.helpers :as interceptor :refer [definterceptor]]
+            [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.route :as route]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.container :as container]
@@ -307,7 +307,7 @@
   (send-error context "Internal server error: exception")
   context)
 
-(definterceptor stylobate
+(def stylobate
   "An interceptor which creates favorable pre-conditions for further
   io.pedestal.interceptors, and handles all post-conditions for
   processing an interceptor chain. It expects a context map
@@ -336,7 +336,7 @@
                                         :leave leave-stylobate
                                         :error error-stylobate}))
 
-(definterceptor ring-response
+(def ring-response
   "An interceptor which transmits a Ring specified response map to an
   HTTP response.
 
@@ -349,7 +349,7 @@
                                         :leave leave-ring-response
                                         :error error-ring-response}))
 
-(definterceptor terminator-injector
+(def terminator-injector
   "An interceptor which causes a interceptor to terminate when one of
   the interceptors produces a response, as defined by
   ring.util.response/response?"
@@ -370,7 +370,7 @@
                  (println "\nContext:\n")
                  (pprint/pprint context)))))
 
-(definterceptor exception-debug
+(def exception-debug
   "An interceptor which catches errors, renders them to readable text
   and sends them to the user. This interceptor is intended for
   development time assistance in debugging problems in pedestal

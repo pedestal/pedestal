@@ -61,15 +61,24 @@
   [obj]
   (data-response #(json-print obj) "application/json;charset=UTF-8"))
 
-;; interceptors
+;; Interceptors
+;; ------------
+;; We avoid using the macro-versions in here, to avoid complications with AOT.
+;; The error you'd see would be something like,
+;;   "java.lang.IllegalArgumentException:
+;;      No matching ctor found for class io.pedestal.interceptor.helpers$after$fn__6188"
+;; Where the macro tries to call a function on 0-arity, but the actual
+;; interceptor (already compiled) requires a 2-arity version.
 
-(interceptor/defon-request log-request
+(def log-request
   "Log the request's method and uri."
-  [request]
-  (log/info :msg (format "%s %s"
-                         (string/upper-case (name (:request-method request)))
-                         (:uri request)))
-  request)
+  (interceptor/on-request
+    ::log-request
+    (fn [request]
+      (log/info :msg (format "%s %s"
+                             (string/upper-case (name (:request-method request)))
+                             (:uri request)))
+      request)))
 
 (defn- response?
   "A valid response is any map that includes an integer :status
@@ -78,64 +87,74 @@
   (and (map? resp)
        (integer? (:status resp))))
 
-(interceptor/defafter not-found
+(def not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
-  [context]
-  (if-not (response? (:response context))
-    (assoc context :response (ring-response/not-found "Not Found"))
-    context))
+  (interceptor/after
+    ::not-found
+    (fn [context]
+      (if-not (response? (:response context))
+        (assoc context :response (ring-response/not-found "Not Found"))
+        context))))
 
-(interceptor/defon-response html-body
+(def html-body
   "Set the Content-Type header to \"text/html\" if the body is a string and a
   type has not been set."
-  [response]
-  (let [body (:body response)
-        content-type (get-in response [:headers "Content-Type"])]
-    (if (and (string? body) (not content-type))
-      (ring-response/content-type response "text/html;charset=UTF-8")
-      response)))
+  (interceptor/on-response
+    ::html-body
+    (fn [response]
+      (let [body (:body response)
+            content-type (get-in response [:headers "Content-Type"])]
+        (if (and (string? body) (not content-type))
+          (ring-response/content-type response "text/html;charset=UTF-8")
+          response)))))
 
-(interceptor/defon-response json-body
+(def json-body
   "Set the Content-Type header to \"application/json\" and convert the body to
   JSON if the body is a collection and a type has not been set."
-  [response]
-  (let [body (:body response)
-        content-type (get-in response [:headers "Content-Type"])]
-    (if (and (coll? body) (not content-type))
-      (-> response
-          (ring-response/content-type "application/json;charset=UTF-8")
-          (assoc :body (print-fn #(json-print body))))
-      response)))
+  (interceptor/on-response
+    ::json-body
+    (fn [response]
+      (let [body (:body response)
+            content-type (get-in response [:headers "Content-Type"])]
+        (if (and (coll? body) (not content-type))
+          (-> response
+              (ring-response/content-type "application/json;charset=UTF-8")
+              (assoc :body (print-fn #(json-print body))))
+          response)))))
 
-(interceptor/defon-response transit-json-body
+(def transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
   transit+json if the body is a collection and a type has not been set."
-  [response]
-  (let [body (:body response)
-        content-type (get-in response [:headers "Content-Type"])]
-    (if (and (coll? body) (not content-type))
-      (-> response
-          (ring-response/content-type "application/transit+json;charset=UTF-8")
-          (assoc :body (fn [^OutputStream output-stream]
-                         (transit/write (transit/writer output-stream :json)
-                                        body)
-                         (.flush output-stream))))
-      response)))
+  (interceptor/on-response
+    ::transit-json-body
+    (fn [response]
+      (let [body (:body response)
+            content-type (get-in response [:headers "Content-Type"])]
+        (if (and (coll? body) (not content-type))
+          (-> response
+              (ring-response/content-type "application/transit+json;charset=UTF-8")
+              (assoc :body (fn [^OutputStream output-stream]
+                             (transit/write (transit/writer output-stream :json)
+                                            body)
+                             (.flush output-stream))))
+          response)))))
 
-(interceptor/defon-response transit-msgpack-body
+(def transit-msgpack-body
   "Set the Content-Type header to \"application/transit+msgpack\" and convert the body to
   transit+msgpack if the body is a collection and a type has not been set."
-  [response]
-  (let [body (:body response)
-        content-type (get-in response [:headers "Content-Type"])]
-    (if (and (coll? body) (not content-type))
-      (-> response
-          (ring-response/content-type "application/transit+msgpack;charset=UTF-8")
-          (assoc :body (fn [^OutputStream output-stream]
-                         (transit/write (transit/writer output-stream :msgpack)
-                                        body)
-                         (.flush output-stream))))
-      response)))
+  (interceptor/on-response
+    ::transit-msgpack-body
+    (fn [response]
+      (let [body (:body response)
+            content-type (get-in response [:headers "Content-Type"])]
+        (if (and (coll? body) (not content-type))
+          (-> response
+              (ring-response/content-type "application/transit+msgpack;charset=UTF-8")
+              (assoc :body (fn [^OutputStream output-stream]
+                             (transit/write (transit/writer output-stream :msgpack)
+                                            body)
+                             (.flush output-stream))))
+          response)))))
 
 (def transit-body
   "Same as `transit-json-body` --
