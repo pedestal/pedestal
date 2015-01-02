@@ -162,7 +162,7 @@ Java HotSpot(TM) 64-Bit Server VM 1.7.0_21-b12
 helloworld.server=>
 ```
 
-To start a server, we call io.pedestal.httl/start with our configuration map:
+To start a server, we call io.pedestal.http/start with our configuration map:
 
 ```clojure
 helloworld.server=> (server/start runnable-service)
