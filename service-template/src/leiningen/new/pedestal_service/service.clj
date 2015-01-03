@@ -30,7 +30,7 @@
               ;; sure you include routing and set it up right for
               ;; dev-mode. If you do, many other keys for configuring
               ;; default interceptors will be ignored.
-              ;; :bootstrap/interceptors []
+              ;; ::bootstrap/interceptors []
               ::bootstrap/routes routes
 
               ;; Uncomment next line to enable CORS support, add
