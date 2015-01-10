@@ -86,6 +86,7 @@ like the following example:
           <param-name>destroy</param-name>
           <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-destroy</param-value>
         </init-param>
+        <load-on-startup>10</load-on-startup>
       </servlet>
       <servlet-mapping>
         <servlet-name>PedestalServlet</servlet-name>

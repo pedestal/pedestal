@@ -49,3 +49,19 @@
               ;;::bootstrap/host "localhost"
               ::bootstrap/port 8080})
 
+;; To run in container.
+(defonce servlet (atom nil))
+
+(defn servlet-init
+  [_ config]
+  ;; Do initialization here.
+  (reset! servlet (bootstrap/servlet-init service nil)))
+
+(defn servlet-service
+  [_ request response]
+  (bootstrap/servlet-service @servlet request response))
+
+(defn servlet-destroy
+  [_]
+  (bootstrap/servlet-destroy @servlet)
+  (reset! servlet nil))
