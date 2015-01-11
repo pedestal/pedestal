@@ -96,10 +96,30 @@ like the following example:
 
 Replace `YOUR_APP_SERVER_NAMESPACE` with the "server" namespace
 generated for your application by the Pedestal template. If your app
-is called "foo" then this would be `foo.server`. The
-template-generated source file at `src/foo/server.clj` should contain
-functions named `servlet-init`, `servlet-destroy`, and
-`servlet-service`.
+is called "foo" then this would be `foo.server`. Add the functions
+`servlet-init`, `servlet-destroy` and `servlet-service` to the
+template-generated source file at `src/foo/server.clj`. They should
+look something like this:
+
+    (defonce servlet (atom nil))
+
+    (defn servlet-init
+      [_ config]
+      ;; Initialize your app here.
+      (reset! servlet (server/servlet-init service/service nil)))
+
+    (defn servlet-service
+      [_ request response]
+      (server/servlet-service @servlet request response))
+
+    (defn servlet-destroy
+      [_]
+      (server/servlet-destroy @servlet)
+      (reset! servlet nil))
+
+This assumes the namespace `io.pedestal.http` is aliased as `server`
+and your service namespace as `service`. A solution using
+`alter-var-root` would work as well.
 
 **Note:** The `url-pattern` in the XML above must match the routes
 your Pedestal application is expected to handle **and** must match the
