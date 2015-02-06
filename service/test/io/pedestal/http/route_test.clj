@@ -880,6 +880,14 @@
             (assoc-in context [:request :body-params "_method"] "put")))
         "is configurable to extract method from any path in request")))
 
+;; Issue 314 - url-for-routes doesn't let you specify a default
+;; app-name option value
+(deftest respect-app-name-in-url-for-routes
+  (let [url-for-admin (url-for-routes terse-routes :app-name :admin)
+        url-for-public (url-for-routes terse-routes :app-name :public)]
+    (is (= "https://admin.example.com:9999/user/alice/delete" (url-for-admin ::delete-user :path-params {:user-id "alice"})))
+    (is (= "//example.com/" (url-for-public ::home-page)))))
+
 ;; Map-route support
 
 (deftest map-routes->vec-routes-string-key

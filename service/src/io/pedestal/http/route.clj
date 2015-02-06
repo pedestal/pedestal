@@ -390,7 +390,8 @@
         m (linker-map routes)]
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
-            route (find-route m app-name route-name)
+            default-app-name (:app-name default-opts)
+            route (find-route m (or app-name default-app-name) route-name)
             opts (combine-opts options-map default-opts route)]
         (link-str route opts)))))
 
