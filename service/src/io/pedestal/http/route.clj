@@ -375,12 +375,12 @@
                     that specifies a root context for the URL. Default
                     is nil.
 
-      :fragment     A string for the fragment part of the url.
+     :fragment      A string for the fragment part of the url.
 
-      :override     A map of aspects of the matching route to override
+     :override      A map of aspects of the matching route to override
                     including any of: :scheme, :host, :port.
 
-      :absolute?    Boolean, whether or not to force an absolute URL
+     :absolute?     Boolean, whether or not to force an absolute URL
 
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned
