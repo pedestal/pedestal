@@ -143,7 +143,7 @@
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
                  (flushBuffer [this] (deliver committed true))
-                 (isCommitted [this] (deref committed 10 false))
+                 (isCommitted [this] (realized? committed))
 
                  ;; Force all async NIO behaviors to be sync
                  container/WriteNIOByteBody
