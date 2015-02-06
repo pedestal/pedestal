@@ -129,10 +129,11 @@
   (let [output-stream (test-servlet-output-stream)
         headers-map (atom {})
         status-val (atom nil)
-        committed (atom false)
+        committed (promise)
         meta-data {:output-stream (:output-stream (meta output-stream))
                    :status status-val
-                   :headers-map headers-map}]
+                   :headers-map headers-map
+                   :committed committed}]
     (with-meta (reify HttpServletResponse
                  (getOutputStream [this] output-stream)
                  (setStatus [this status] (reset! status-val status))
@@ -141,8 +142,8 @@
                  (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
-                 (flushBuffer [this] (reset! committed true))
-                 (isCommitted [this] @committed)
+                 (flushBuffer [this] (deliver committed true))
+                 (isCommitted [this] (deref committed 10 false))
 
                  ;; Force all async NIO behaviors to be sync
                  container/WriteNIOByteBody
@@ -197,9 +198,11 @@
         servlet-request (apply test-servlet-request verb url args)
         servlet-response (test-servlet-response)]
     (.service servlet servlet-request servlet-response)
-    {:status (test-servlet-response-status servlet-response)
-     :body (test-servlet-response-body servlet-response)
-     :headers (test-servlet-response-headers servlet-response)}))
+    (if (deref (:committed (meta servlet-response)) 500 false)
+      {:status (test-servlet-response-status servlet-response)
+       :body (test-servlet-response-body servlet-response)
+       :headers (test-servlet-response-headers servlet-response)}
+      {})))
 
 (defn response-for
   "Return a ring response map for an HTTP request of type `verb`
