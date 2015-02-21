@@ -134,6 +134,9 @@ Copying your application files:
 
     mkdir -p target/war/WEB-INF/classes
     cp -R src/* config/* target/war/WEB-INF/classes
+    
+    # Optionally, you may want to include your static resources in your WAR
+    cp -R src/* config/* resources/* target/war/WEB-INF/classes
 
 Copying `web.xml`:
 
