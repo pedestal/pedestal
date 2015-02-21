@@ -121,7 +121,7 @@ destination interceptor. The value can be:
 
     - an interceptor
 
-    - a function that returns an interceptor and is marked with metadata ^{:interceptor-fn true}
+    - a function that returns an interceptor and is marked with metadata ^{:interceptorfn true}
 
 - a vector containing the following:
 
@@ -327,7 +327,7 @@ values specified in the interceptors vector may be:
 
     - an interceptor
 
-    - a function that returns an interceptor and is marked with metadata ^{:interceptor-fn true}
+    - a function that returns an interceptor and is marked with metadata ^{:interceptorfn true}
 
     - a function that accepts a Ring request map and returns a Ring response map (i.e. a Ring handler)
 

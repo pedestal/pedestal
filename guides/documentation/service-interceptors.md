@@ -248,11 +248,11 @@ but it is extremely verbose.
 ## Definition
 
 An interceptor is one instance of an Interceptor record or a map with
-:enter, :leave, :pause, :resume, and :error keys. An interceptor-fn is
+:enter, :leave, :pause, :resume, and :error keys. An interceptorfn is
 a function which returns an interceptor.
 
 Pedestal includes macros for defining interceptors, and for defining
-interceptor-fns. These macros are conveniences for attaching a
+interceptorfns. These macros are conveniences for attaching a
 symbolic name and docstring to an interceptor.
 
 There are functions and macros for constructing interceptors that deal
@@ -280,7 +280,7 @@ them in an interceptor using the `handler` function.  Alternatively,
 you can wrap them yourself using the `defhandler` macro.
 
 These macros also flag the vars they create with metadata identifying
-them as either interceptors or interceptor-fns. Other pieces in the
+them as either interceptors or interceptorfns. Other pieces in the
 Pedestal framework make use of this metadata to make intelligent
 decisions about how to work with these vars.
 
