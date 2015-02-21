@@ -15,7 +15,9 @@
   (:import (org.eclipse.jetty.server Server ServerConnector
                                      Request
                                      HttpConfiguration
-                                     HttpConnectionFactory)
+                                     ConnectionFactory
+                                     HttpConnectionFactory
+                                     SslConnectionFactory)
            (org.eclipse.jetty.server.handler AbstractHandler)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
@@ -38,7 +40,8 @@
   (let [{:keys [^KeyStore keystore key-password
                 ^KeyStore truststore
                 ^String trust-password
-                client-auth]} options
+                client-auth
+                ssl-include-protocols]} options
         context (SslContextFactory.)]
     (if (string? keystore)
       (.setKeyStorePath context keystore)
@@ -48,6 +51,8 @@
       (.setTrustStore context truststore))
     (when trust-password
       (.setTrustStorePassword context trust-password))
+    (when ssl-include-protocols
+      (.setIncludeProtocols context (into-array String ssl-include-protocols)))
     (case client-auth
       :need (.setNeedClientAuth context true)
       :want (.setWantClientAuth context true)
@@ -56,13 +61,19 @@
 
 (defn- ssl-connector
   "Creates a SslSelectChannelConnector instance."
-  [^Server server options]
+  [^Server server options ^HttpConfiguration http-conf]
   (let [{host :host
-         {:keys [ssl-port reuse-addr?]
+         {:keys [ssl-port reuse-addr? alpn connection-factory-fns]
           :or {ssl-port 443
-               reuse-addr? true}
-          :as container-options} :container-options} options]
-    (doto (ServerConnector. server (ssl-context-factory container-options))
+               reuse-addr? true
+               connection-factory-fns []}
+          :as container-options} :container-options} options
+        connector (if alpn
+                    (ServerConnector. server (into-array ConnectionFactory (into [(SslConnectionFactory. (ssl-context-factory container-options)
+                                                                                                         "alpn")]
+                                                                                 (map #(% options http-conf) connection-factory-fns))))
+                    (ServerConnector. server (ssl-context-factory container-options)))]
+    (doto connector
       (.setReuseAddress reuse-addr?)
       (.setPort ssl-port)
       (.setHost host))))
@@ -99,7 +110,7 @@
   [servlet options]
   (let [{host :host
          port :port
-         {:keys [ssl? ssl-port context-configurator configurator max-threads daemon? reuse-addr?]
+         {:keys [ssl? ssl-port alpn context-configurator configurator max-threads daemon? reuse-addr?]
           :or {configurator identity
                max-threads (max 50 (needed-pool-size))
                reuse-addr? true}} :container-options} options
@@ -111,14 +122,16 @@
                     (.setReuseAddress reuse-addr?)
                     (.setPort port)
                     (.setHost host))
-        server (doto server
-                 (.addConnector connector))
+        ssl-conn (when (or ssl? ssl-port alpn)
+                   (ssl-connector server options http-conf))
         context (doto (ServletContextHandler. server "/")
                   (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
     (when daemon?
       (.setDaemon thread-pool true))
-    (when (or ssl? ssl-port)
-      (.addConnector server (ssl-connector server options)))
+    (when connector
+      (.addConnector server connector))
+    (when ssl-conn
+      (.addConnector server ssl-conn))
     (when context-configurator
       (context-configurator context))
     (configurator server)))

@@ -60,7 +60,7 @@
                                   ;[clj-http "1.0.0"]
                                   [com.ning/async-http-client "1.8.13"]
                                   [io.pedestal/pedestal.jetty "0.4.0-SNAPSHOT"]
-                                  [org.eclipse.jetty/jetty-servlets "9.2.0.v20140526"]
+                                  [org.eclipse.jetty/jetty-servlets "9.2.8.v20150217"]
                                   [io.pedestal/pedestal.immutant "0.4.0-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.4.0-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]

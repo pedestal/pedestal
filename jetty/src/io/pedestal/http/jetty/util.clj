@@ -1,7 +1,26 @@
+; Copyright 2014 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.jetty.util
   (:import (java.util EnumSet)
            (javax.servlet Servlet Filter DispatcherType)
-           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)))
+           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)
+           (org.eclipse.jetty.server HttpConfiguration
+                                     SecureRequestCustomizer
+                                     ConnectionFactory
+                                     HttpConnectionFactory)
+           (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
+           (org.eclipse.jetty.spdy.server.http HTTPSPDYServerConnectionFactory
+                                               PushStrategy$None)
+           (org.eclipse.jetty.spdy.api SPDY)))
 
 (def dispatch-types {:forward DispatcherType/FORWARD
                      :include DispatcherType/INCLUDE
@@ -61,4 +80,42 @@
   [context & more-filter-opts]
   (doseq [filter-opts more-filter-opts]
     (add-servlet-filter context filter-opts)))
+
+;; =========
+;; Connection Factories
+;; --------------------------
+;;
+;; These Factories may be added to your Jetty server instance to enhance
+;; it's functionality.  ALPN, SPDY, and more can all be added as connection
+;; factories.  Some of these factories assume other server settings (like SSL).
+
+(defn ^ALPNServerConnectionFactory alpn-connection-factory
+  "Creates a new ALPN Connection Factory to integrate on top of SSL,
+  from a map of ALPN options - {:protocols [...] :default-protocol \"\"} within
+  the container-options
+  Note: SSL must be active to use this factory"
+  [options http-conf]
+  (let [{:keys [alpn]} (:container-options options)
+        {:keys [protocols default-protocol]
+         :or {protocols ["http/1.1"]
+              default-protocol "http/1.1"}} alpn]
+    (.addCustomizer http-conf (SecureRequestCustomizer.))
+    (doto (ALPNServerConnectionFactory. (into-array String protocols))
+      (.setDefaultProtocol default-protocol))))
+
+(defn ^HTTPSPDYServerConnectionFactory spdy-connection-factory
+  "Creates a new HTTP SPDY Connection Factory on top of SSL and ALPN,
+  from a map of SPDY options - {:version int :push-strategy PushStrategy} within
+  the container options
+  Note: SSL and ALPN must be active to use this factory"
+  [options http-conf]
+  (let [{:keys [spdy]} (:container-options options)
+        {:keys [version push-strategy]
+         :or {version SPDY/V3
+              push-strategy (PushStrategy$None.)}} spdy]
+    (HTTPSPDYServerConnectionFactory. version http-conf push-strategy)))
+
+(defn ^HttpConnectionFactory http-connection-factory
+  [options http-conf]
+  (HttpConnectionFactory. http-conf))
 
