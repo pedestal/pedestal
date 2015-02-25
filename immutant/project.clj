@@ -16,7 +16,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.immutant/web "2.0.0-beta1"]]
+                 [org.immutant/web "2.0.0-beta2"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true})
 

@@ -50,7 +50,10 @@
   ([servlet]
      (server servlet {}))
   ([servlet options]
-     (let [server (-> (merge options (:container-options options))
+   (let [server (-> (merge options (:container-options options))
+                    (select-keys [:trust-managers :key-managers :keystore :buffer-size :buffers-per-region :worker-threads
+                                  :port :host :ssl-context :io-threads :client-auth :direct-buffers? :trust-password :key-password
+                                  :truststore :configuration :ssl-port])
                     undertow/options
                     (select-keys [:path :virtual-host :configuration])
                     (assoc :auto-start false)
