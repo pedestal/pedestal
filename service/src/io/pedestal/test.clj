@@ -20,7 +20,7 @@
             [io.pedestal.http.container :as container])
   (:import (javax.servlet.http HttpServlet HttpServletRequest HttpServletResponse)
            (javax.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
-           (java.io ByteArrayInputStream ByteArrayOutputStream)
+           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
            (clojure.lang IMeta)
            (java.util Enumeration NoSuchElementException)
            (java.nio.channels Channels)))
@@ -58,21 +58,36 @@
           (swap! data rest)
           result)))))
 
+
+(defprotocol TestRequestBody
+  (->servlet-input-stream [input]))
+
+(extend-protocol TestRequestBody
+
+  nil
+  (->servlet-input-stream [_]
+    (proxy [ServletInputStream]
+        []
+      (read ([] -1)
+        ([^bytes b] -1)
+        ([^bytes b ^Integer off ^Integer len] -1))
+      (readLine [bytes off len] -1)))
+
+  String
+  (->servlet-input-stream [string]
+    (->servlet-input-stream (ByteArrayInputStream. (.getBytes string))))
+
+  InputStream
+  (->servlet-input-stream [wrapped-stream]
+    (proxy [ServletInputStream]
+        []
+      (read ([] (.read wrapped-stream))
+        ([^bytes b] (.read wrapped-stream b))
+        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len)))) ))
+
 (defn- test-servlet-input-stream
-  ([]
-     (proxy [ServletInputStream]
-         []
-       (read ([] -1)
-         ([^bytes b] -1)
-         ([^bytes b ^Integer off ^Integer len] -1))
-       (readLine [bytes off len] -1)))
-  ([^String string]
-     (let [wrapped-stream (ByteArrayInputStream. (.getBytes string))]
-       (proxy [ServletInputStream]
-           []
-         (read ([] (.read wrapped-stream))
-           ([^bytes b] (.read wrapped-stream b))
-           ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len)))))))
+  ([] (test-servlet-input-stream nil))
+  ([input] (->servlet-input-stream input)))
 
 (defn- test-servlet-request
   [verb url & args]
