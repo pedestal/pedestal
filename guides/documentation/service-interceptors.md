@@ -191,7 +191,7 @@ All of the middlewares in Ring have been refactored so that in
 addition to the conventional `wrap-xyz` function for building a
 Ring-style middleware chain, there are `xyz-request` and
 `xyz-response` functions. These functions process requests and
-responses separately. The `wrap-xys` functions have been refactored to
+responses separately. The `wrap-xyz` functions have been refactored to
 use the separate request and response processing functions.
 
 The `io.pedestal.http.ring-middlewares` namespace defines
