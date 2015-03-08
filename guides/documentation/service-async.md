@@ -61,7 +61,7 @@ complete, and a response will be delivered to the client.
 
 This facility allows a single value to be placed on a channel per
 interceptor; for more extensive use of channels for SSE, see
-[Server-Sent Events](/documentation/service-sse).
+[Server-Sent Events](service-sse.md).
 
 For more about streaming, see
-[Streaming Responses](/documentation/service-streaming).
+[Streaming Responses](service-streaming.md).
