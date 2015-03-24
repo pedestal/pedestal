@@ -16,7 +16,9 @@
             [io.pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor :refer [definterceptor]]
             [io.pedestal.impl.interceptor :as interceptor-impl]
-            [io.pedestal.log :as log])
+            [io.pedestal.log :as log]
+            [io.pedestal.http.route.router :as router]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree])
   (:import (java.util.regex Pattern)
            (java.net URLEncoder URLDecoder)))
 
@@ -441,10 +443,27 @@
             matcher-routes)
       (assoc context :route nil)))
 
+(defn- route-context [context router routes]
+  (if-let [route (router/find-route router (:request context))]
+    ;;  This is where path-params are added to the request. vvvv
+    (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
+          linker (url-for-routes routes :request request-with-path-params)]
+      (-> context
+          (assoc :route route
+                 :request (assoc request-with-path-params :url-for linker)
+                 :url-for linker)
+          (assoc-in [:bindings #'*url-for*] linker)
+          (enqueue-all (:interceptors route))))
+    (assoc context :route nil)))
+
 (extend-protocol RouterSpecification
   clojure.lang.Sequential
   (router-spec [seq]
-    (let [matcher-routes (mapv #(assoc % :matcher (matcher %)) seq)]
+    ;; TODO: not sure where to fit this in
+    (let [router (prefix-tree/router seq)]
+      (interceptor/before ::router
+                          #(route-context % router seq)))
+    #_(let [matcher-routes (mapv #(assoc % :matcher (matcher %)) seq)]
       (interceptor/before ::router
                           #(route-context-to-matcher-routes % matcher-routes seq))))
 
