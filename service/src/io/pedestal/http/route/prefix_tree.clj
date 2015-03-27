@@ -290,11 +290,11 @@
                  (insert "/foo/baz/*rest" 5)))
 
   (:path-params (lookup ptree "/foo/bar"))
-  ;;=> {:foo "foo"}
+  ;;=> {}
   (:path-params (lookup ptree "/foo/bar/baz"))
-  ;;=> {:x "baz", :foo "foo"}
+  ;;=> {:x "baz"}
   (:path-params (lookup ptree "/foo/baz/one/two/three"))
-  ;;=> {:rest "one/two/three", :foo "foo"}
+  ;;=> {:rest "one/two/three"}
 
   (def ptree (-> nil
                  (insert "/:foo/bar" 1)
@@ -339,12 +339,6 @@
    (or scheme ::any)
    (or port ::any)])
 
-(defn- get-key-or-any
-  "Given a map and a key, lookup key or ::any."
-  [m k]
-  (or (get m k)
-      (get m ::any)))
-
 (defn- matcher-preds
   "Given a route, return a seq of predicate functions which, when
   passed a request, will return true if the request and route have
@@ -356,6 +350,28 @@
              (when host #(= host (:server-name %)))
              (when port #(= port (:server-port %)))
              (when scheme #(= scheme (:scheme %)))])))
+
+(defn- best-match [m [first & rest]]
+  (if first
+    (or (best-match (get m first) rest)
+        (best-match (::any m) rest))
+    m))
+
+(comment
+
+  (best-match {:x {:y {:z 42}}}
+              [:x :y :z])
+  ;;=> 42
+
+  (best-match {:x    {:y    {:a    nil}
+                      ::any {:c    nil}}
+               ::any {:y    {:b    nil}
+                      ::any {:d    nil
+                             ::any 42}}}
+              [:x :y :z])
+  ;;=> 42
+
+  )
 
 ;; The payload that we find in the prefix tree is a function of the
 ;; request. We call this function to get the route or nil. The
@@ -394,7 +410,8 @@
                         {}
                         routes)]
           (fn [request]
-            (get-key-or-any m (:request-method request))))
+            (or (get m (:request-method request))
+                (get m ::any))))
 
         :else
         ;; default case, lookup route using method, host, scheme and port
@@ -405,13 +422,10 @@
                                                     {:route route}))
                                     (assoc-in t (wild-path route) route))))
                               {}
-                              routes)]
+                              routes)
+              path [:request-method :server-name :scheme :server-port]]
           (fn [request]
-            (-> subtree
-                (get-key-or-any (:request-method request))
-                (get-key-or-any (:server-name request))
-                (get-key-or-any (:scheme request))
-                (get-key-or-any (:server-port request)))))))
+            (best-match subtree (map #(% request) path))))))
 
 (defn- optimize-payloads
   "Given a prefix tree which contains Payload nodes, return a tree
