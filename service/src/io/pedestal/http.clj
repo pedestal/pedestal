@@ -173,6 +173,8 @@
 
   * :routes: A seq of route maps that defines a service's routes. It's recommended to build this
     using io.pedestal.http.route.definition/defroutes.
+  * :router-impl: The router implementation to to use. Can be either :linear-search or
+    :prefix-tree. Defaults to :prefix-tree
   * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
     is not added. Default is nil.
   * :resource-path: File path used as root by the middlewares/resource interceptor. If nil, this interceptor
@@ -193,6 +195,7 @@
   [service-map]
   (let [{interceptors ::interceptors
          routes ::routes
+         router-impl ::router-impl
          file-path ::file-path
          resource-path ::resource-path
          method-param-name ::method-param-name
@@ -203,6 +206,7 @@
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
          :or {file-path nil
+              router-impl :prefix-tree
               resource-path nil
               not-found-interceptor not-found
               method-param-name :_method
@@ -224,7 +228,7 @@
                      (not (nil? resource-path)) (conj (middlewares/resource resource-path))
                      (not (nil? file-path)) (conj (middlewares/file file-path))
                      (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
-                     true (conj (route/router routes))))
+                     true (conj (route/router router-impl routes))))
       service-map)))
 
 (defn dev-interceptors

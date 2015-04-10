@@ -340,8 +340,9 @@
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol RouterSpecification
-  (router-spec [specification] "Returns an interceptor which attempts to match each route against
-  a :request in context. For the first route that matches, it will:
+  (router-spec [specification router-ctor]
+    "Returns an interceptor which attempts to match each route against
+    a :request in context. For the first route that matches, it will:
 
     - enqueue the matched route's interceptors
     - associate the route into the context at :route
@@ -364,28 +365,34 @@
 
 (extend-protocol RouterSpecification
   clojure.lang.Sequential
-  (router-spec [seq]
-    ;; TODO: not sure where to fit this in
-    (let [router (prefix-tree/router seq)]
+  (router-spec [seq router-ctor]
+    (let [router (router-ctor seq)]
       (interceptor/before ::router
-                          #(route-context % router seq)))
-    #_(let [matcher-routes (mapv #(assoc % :matcher (matcher %)) seq)]
-      (interceptor/before ::router
-                          #(route-context-to-matcher-routes % matcher-routes seq))))
+                          #(route-context % router seq))))
 
   clojure.lang.Fn
-  (router-spec [f]
+  (router-spec [f router-ctor]
+    ;; This will be very slow becuase it has to build the routing data
+    ;; structure every time it routes a request. Not sure how this is
+    ;; intended to be used.
     (interceptor/before ::router
                         (fn [context]
-                          (let [routes (f)]
-                            (route-context-to-matcher-routes context
-                                                             (mapv #(assoc % :matcher (matcher %)) routes)
-                                                             routes))))))
+                          (let [routes (f)
+                                router (router-ctor routes)]
+                            (route-context context router routes))))))
+
+(def router-implementations
+  {:prefix-tree prefix-tree/router
+   :linear-search linear-search/router})
 
 (defn router
   "Delegating fn for router-specification."
-  [spec]
-  (router-spec spec))
+  [router-impl-key spec]
+  (assert (contains? router-implementations router-impl-key)
+          (format "No router implementation exists for key %s. Please use one of %s."
+                  router-impl-key
+                  (keys router-implementations)))
+  (router-spec spec (router-impl-key router-implementations)))
 
 (def query-params
   "Returns an interceptor which parses query-string parameters from an
