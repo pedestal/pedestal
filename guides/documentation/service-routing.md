@@ -261,7 +261,7 @@ path segment prepended with '*', like this:
 
 ```clojure
 [[["/hello/:who" {:get hello-who}]
-  ["/*other" {:get get-other-stuff]]
+  ["/*other" {:get get-other-stuff}]]]
 ```
 
 ### Hierarchical route definitions
