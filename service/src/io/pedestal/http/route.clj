@@ -372,9 +372,10 @@
 
   clojure.lang.Fn
   (router-spec [f router-ctor]
-    ;; This will be very slow becuase it has to build the routing data
-    ;; structure every time it routes a request. Not sure how this is
-    ;; intended to be used.
+    ;; Caution: This could be very slow becuase it has to build the routing data
+    ;; structure every time it routes a request.
+    ;; This is only intended if you wanted to dynamically dispatch in a dynamic router
+    ;; or completely control all routing aspects.
     (interceptor/before ::router
                         (fn [context]
                           (let [routes (f)
@@ -387,12 +388,18 @@
 
 (defn router
   "Delegating fn for router-specification."
-  [router-impl-key spec]
-  (assert (contains? router-implementations router-impl-key)
-          (format "No router implementation exists for key %s. Please use one of %s."
-                  router-impl-key
-                  (keys router-implementations)))
-  (router-spec spec (router-impl-key router-implementations)))
+  ([spec]
+   (router spec :prefix-tree))
+  ([spec router-impl-key-or-fn]
+   (assert (or (contains? router-implementations router-impl-key-or-fn)
+               (fn? router-impl-key-or-fn))
+           (format "No router implementation exists for key %s. Please use one of %s."
+                   router-impl-key-or-fn
+                   (keys router-implementations)))
+   (let [router-ctor (if (fn? router-impl-key-or-fn)
+                       router-impl-key-or-fn
+                       (router-impl-key-or-fn router-implementations))]
+     (router-spec spec router-ctor))))
 
 (def query-params
   "Returns an interceptor which parses query-string parameters from an

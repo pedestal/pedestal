@@ -283,9 +283,12 @@
   [routes]
   (form-action-for-routes routes))
 ;; and here:
-(defn app-router
-  [router-impl-key routes]
-  (router router-impl-key routes)) ;; switch to routes-2, routes-3
+(def app-router router)
+;(defn app-router
+;  ([routes]
+;   (router routes))
+;  ([routes router-impl-key]
+;   (router routes router-impl-key))) ;; switch to routes-2, routes-3
 
 (defbefore print-context
   [context] (pprint context) context)
@@ -331,7 +334,7 @@
                        :query-string query}}
             (interceptor-impl/enqueue query-params
                                       (method-param)
-                                      (app-router router-impl route-table))
+                                      (app-router route-table router-impl))
             interceptor-impl/execute)]
     (when route
       (merge
@@ -345,15 +348,17 @@
   (-> query
       (interceptor-impl/enqueue query-params
                            (method-param)
-                           (app-router router-impl table))
+                           (app-router table router-impl))
       interceptor-impl/execute))
 
-(defn test-query-match [table uri params]
-  (-> (test-query-execute table {:request {:request-method :get
-                                           :scheme "do-not-match-scheme"
-                                           :server-name "do-not-match-host"
-                                           :path-info uri
-                                           :query-string params}})
+(defn test-linear-query-match [table uri params]
+  (-> (test-query-execute table
+                          :linear-search
+                          {:request {:request-method :get
+                                     :scheme "do-not-match-scheme"
+                                     :server-name "do-not-match-host"
+                                     :path-info uri
+                                     :query-string params}})
       :route
       :route-name))
 
@@ -594,27 +599,27 @@
   (test-match-user-constraints :prefix-tree)
   (test-match-user-constraints :linear-search))
 
-#_(deftest match-query
+(deftest match-query
   (are [routes] (= ::search-id
-                   (test-query-match routes "/search" "id=123"))
+                   (test-linear-query-match routes "/search" "id=123"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= ::search-query
-                   (test-query-match routes "/search" "q=foo"))
+                   (test-linear-query-match routes "/search" "q=foo"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= ::search-form
-                   (test-query-match routes "/search" nil))
+                   (test-linear-query-match routes "/search" nil))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= ::search-form
-                   (test-query-match routes "/search" "id=not-a-number"))
+                   (test-linear-query-match routes "/search" "id=not-a-number"))
        verbose-routes
        terse-routes
        data-routes
@@ -890,7 +895,7 @@
     ["/resource" {:get overriding-handler}]]])
 
 (defn test-overriding-routes [router-impl-key]
-  (let [router (app-router router-impl-key #(deref #'overridden-routes))
+  (let [router (app-router #(deref #'overridden-routes) router-impl-key)
         query {:request {:request-method :get
                          :scheme "do-not-match-scheme"
                          :server-name "overridden.pedestal"
