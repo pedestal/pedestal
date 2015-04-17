@@ -29,39 +29,13 @@
             [incanter.stats :as stats]
             [incanter.core :as incanter]
             [incanter.charts :as charts]
-            [io.pedestal.http.route :as route]
             [io.pedestal.http.route.router :as router]
+            [io.pedestal.http.route.path :as path]
+            [io.pedestal.http.route.linear-search :as linear]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.route.gen :as gen])
   (:import java.text.DecimalFormat))
 
-;; The existing Pedestal router
-;; ================================================================================
-
-(defrecord ExistingRouter [route-fn]
-  router/Router
-  (find-route [this req]
-    (route-fn req)))
-
-;; get the private matcher function
-(def matcher #'route/matcher)
-
-(defn make-existing-router
-  "This creates a router which uses the same routing algorithm as
-  the existing router, a sequential search using the matcher function
-  to find a match."
-  [routes]
-  (let [matcher-routes (mapv #(assoc % :matcher (matcher (route/expand-route-path %))) routes)
-        route-fn (fn [request]
-                   (some (fn [{:keys [matcher] :as route}]
-                           (when-let [path-params (matcher request)]
-                             (assoc route :path-params path-params)))
-                         matcher-routes))]
-    (->ExistingRouter route-fn)))
-
-
-;; Benchmark and reporting
-;; ================================================================================
 
 (defn time*
   ([thunk]
@@ -119,8 +93,14 @@
   (pp/print-table [:name :sd :mean :nerr :nroute :nreq :ns/req :req/sec]
                   results-map))
 
-(def routers [{:router-name "old" :ctor make-existing-router}
-              {:router-name "new" :ctor prefix-tree/router}])
+(defn expand-route-path [route]
+  (->> (:path route)
+       path/parse-path
+       (merge route)
+       path/merge-path-regex))
+
+(def routers [{:router-name "linear" :ctor #(linear/router (map expand-route-path %))}
+              {:router-name "prefix-tree" :ctor prefix-tree/router}])
 
 (defn make-chart [data file]
   (let [d (incanter/to-dataset (doall data))]

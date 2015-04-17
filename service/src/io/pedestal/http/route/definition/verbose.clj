@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.definition.verbose
-  (:require [io.pedestal.http.route :as route]
+  (:require [io.pedestal.http.route.path :as path]
             [io.pedestal.interceptor :refer [interceptor?]]
             [io.pedestal.interceptor.helpers :as interceptor]))
 
@@ -83,7 +83,7 @@
   [dna [verb handler]]
   (-> dna
       (merge {:method verb})
-      (route/merge-path-regex)
+      (path/merge-path-regex)
       (merge dna)
       (add-terminal-info (handler-map handler))))
 
@@ -114,7 +114,7 @@
    {:keys [constraints verbs interceptors path] :as current-node}]
   (cond-> parent-dna
           true (merge (select-keys current-node [:app-name :scheme :host :port]))
-          path (route/parse-path path)
+          path (path/parse-path path)
           ;; special case case where parent-path is "/" so we don't have double "//"
           path (assoc :path (str (if (and parent-path (.endsWith parent-path "/"))
                                    (subs parent-path 0 (dec (count parent-path))) parent-path)
