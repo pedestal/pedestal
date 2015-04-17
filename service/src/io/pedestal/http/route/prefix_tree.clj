@@ -248,36 +248,37 @@
 
 (defn lookup
   "Given a tree node and request path, find a matching leaf node and
-  return the path params and payload or return nil if not match is
+  return the path params and payload or return nil if no match is
   found. Returns a map with :path-params and :payload keys."
   [node ^String path]
   (loop [path-params {}
          node node
          path path]
     (let [segment (:segment node)]
-      (cond (or (nil? node) (empty? path))
-            nil
+      (cond
+        (or (nil? node) (empty? path))
+        nil
 
-            (:wild? node)
-            (let [i (.indexOf path "/")]
-              (if (pos? i)
-                (let [value (subs path 0 i)]
-                  (recur (assoc path-params (:param node) value)
-                         (get-child node path (inc i))
-                         (subs path (inc i))))
-                (result-map node path-params path)))
+        (= segment path)
+        (result-map node path-params)
 
-            (:catch-all? node)
-            (result-map node path-params path)
+        (:wild? node)
+        (let [i (.indexOf path "/")]
+          (if (pos? i)
+            (let [value (subs path 0 i)]
+              (recur (assoc path-params (:param node) value)
+                     (get-child node path (inc i))
+                     (subs path (inc i))))
+            (result-map node path-params path)))
 
-            (= segment path)
-            (result-map node path-params)
+        (:catch-all? node)
+        (result-map node path-params path)
 
-            :else
-            (let [segment-size (count segment)
-                  p (when (>= (count path) segment-size) (subs path 0 segment-size))]
-              (when (= segment p)
-                (recur path-params (get-child node path segment-size) (subs path segment-size))))))))
+        :else
+        (let [segment-size (count segment)
+              p (when (>= (count path) segment-size) (subs path 0 segment-size))]
+          (when (= segment p)
+            (recur path-params (get-child node path segment-size) (subs path segment-size))))))))
 
 (comment
 
@@ -288,11 +289,11 @@
                  (insert "/foo/bar/:x" 4)
                  (insert "/foo/baz/*rest" 5)))
 
-  (:path-params (lookup ptree "/foo/bar"))
+  (time (:path-params (lookup ptree "/foo/bar")))
   ;;=> {}
-  (:path-params (lookup ptree "/foo/bar/baz"))
+  (time (:path-params (lookup ptree "/foo/bar/baz")))
   ;;=> {:x "baz"}
-  (:path-params (lookup ptree "/foo/baz/one/two/three"))
+  (time (:path-params (lookup ptree "/foo/baz/one/two/three")))
   ;;=> {:rest "one/two/three"}
 
   (def ptree (-> nil
