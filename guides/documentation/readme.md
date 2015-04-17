@@ -20,8 +20,11 @@ a specific kind of application. It empowers developers to use
 Clojure to build internet applications requiring low-latency, streaming
 (soft real-time) collaboration and targeting multiple platforms.
 
-In short: Pedestal provides a better, cohesive way to build
-rich client web applications in Clojure.
+In short: Pedestal is a set of libraries written in Clojure that aims to bring
+both the language and its principles (Simplicity, Power and Focus) to
+server-side development.
+
+
 
 # Who is it for?
 
