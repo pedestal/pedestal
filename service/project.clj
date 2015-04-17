@@ -48,6 +48,7 @@
   :pedantic? :abort
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
             "bench-service" ["trampoline" "run" "-m" "io.pedestal.niotooling.server"]
+            "bench-route" ["trampoline" "run" "-m" "io.pedestal.route.route-bench"]
             "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
@@ -70,6 +71,10 @@
                                   [org.clojure/tools.logging "0.2.6"]
                                   [org.slf4j/jul-to-slf4j "1.7.7"]
                                   [org.slf4j/jcl-over-slf4j "1.7.7"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.7"]]
+                                  [org.slf4j/log4j-over-slf4j "1.7.7"]
+
+                                  ;; only used for route-bench - remove when no longer needed
+                                  [incanter/incanter-core "1.5.6"]
+                                  [incanter/incanter-charts "1.5.6"]]
                    :repositories [["sonatype-oss"
                                    "https://oss.sonatype.org/content/groups/public/"]]}})

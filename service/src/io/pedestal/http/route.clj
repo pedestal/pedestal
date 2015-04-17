@@ -16,9 +16,11 @@
             [io.pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor :refer [definterceptor]]
             [io.pedestal.impl.interceptor :as interceptor-impl]
-            [io.pedestal.log :as log])
-  (:import (java.util.regex Pattern)
-           (java.net URLEncoder URLDecoder)))
+            [io.pedestal.log :as log]
+            [io.pedestal.http.route.router :as router]
+            [io.pedestal.http.route.linear-search :as linear-search]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree])
+  (:import (java.net URLEncoder URLDecoder)))
 
 (comment
   ;; Structure of a route. 'tree' returns a list of these.
@@ -46,83 +48,6 @@
    :matcher (fn [request] ...)    ; returns map from path-params to string
                                   ; values on match, nil on non-match
    })
-
-;;; Parsing pattern strings to match URI paths
-
-(defn- parse-path-token [out string]
-  (condp re-matches string
-    #"^:(.+)$" :>> (fn [[_ token]]
-                     (let [key (keyword token)]
-                       (-> out
-                           (update-in [:path-parts] conj key)
-                           (update-in [:path-params] conj key)
-                           (assoc-in [:path-constraints key] "([^/]+)"))))
-    #"^\*(.+)$" :>> (fn [[_ token]]
-                      (let [key (keyword token)]
-                        (-> out
-                            (update-in [:path-parts] conj key)
-                            (update-in [:path-params] conj key)
-                            (assoc-in [:path-constraints key] "(.*)"))))
-    (update-in out [:path-parts] conj string)))
-
-(defn parse-path
-  ([pattern] (parse-path {:path-parts [] :path-params [] :path-constraints {}} pattern))
-  ([accumulated-info pattern]
-     (if-let [m (re-matches #"/(.*)" pattern)]
-       (let [[_ path] m]
-         (reduce parse-path-token
-                 accumulated-info
-                 (str/split path #"/")))
-       (throw (ex-info "Invalid route pattern" {:pattern pattern})))))
-
-(defn path-regex [route]
-  (let [{:keys [path-parts path-constraints]} route
-        path-parts (if (and (> (count path-parts) 1)
-                            (empty? (first path-parts)))
-                     (rest path-parts)
-                     path-parts)]
-    (re-pattern
-     (apply str
-      (interleave (repeat "/")
-                  (map #(or (get path-constraints %) (Pattern/quote %))
-                       path-parts))))))
-
-(defn merge-path-regex [route]
-  (assoc route :path-re (path-regex route)))
-
-(defn expand-route-path [route]
-  (let [r (merge route (parse-path (:path route)))]
-    (merge-path-regex r)))
-
-(defn- path-matcher [route]
-  (let [{:keys [path-re path-params]} route]
-    (fn [req]
-      (when req
-       (when-let [m (re-matches path-re (:path-info req))]
-         (zipmap path-params (rest m)))))))
-
-(defn- matcher-components [route]
-  (let [{:keys [method scheme host port path query-constraints]} route]
-    (list (when (and method (not= method :any)) #(= method (:request-method %)))
-          (when host   #(= host (:server-name %)))
-          (when port   #(= port (:server-port %)))
-          (when scheme #(= scheme (:scheme %)))
-          (when query-constraints
-            (fn [request]
-              (let [params (:query-params request)]
-                (every? (fn [[k re]]
-                          (and (contains? params k)
-                               (re-matches re (get params k))))
-                        query-constraints)))))))
-
-(defn- matcher [route]
-  (let [base-matchers (remove nil? (matcher-components route))
-        base-match (if (seq base-matchers)
-                     (apply every-pred base-matchers)
-                     (constantly true))
-        path-match (path-matcher route)]
-    (fn [request]
-      (and (base-match request) (path-match request)))))
 
 ;;; Parsing URL query strings (RFC 3986)
 
@@ -415,8 +340,9 @@
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol RouterSpecification
-  (router-spec [specification] "Returns an interceptor which attempts to match each route against
-  a :request in context. For the first route that matches, it will:
+  (router-spec [specification router-ctor]
+    "Returns an interceptor which attempts to match each route against
+    a :request in context. For the first route that matches, it will:
 
     - enqueue the matched route's interceptors
     - associate the route into the context at :route
@@ -424,43 +350,56 @@
 
   If no route matches, returns context with :route nil."))
 
-(defn- route-context-to-matcher-routes
-  "Route context based on matcher-routes."
-  [{:keys [request] :as context} matcher-routes routes]
-  (or (some (fn [{:keys [matcher interceptors] :as route}]
-              (when-let [path-params (matcher request)]
-                 ;;  This is where path-params are added to the request. vvvv
-                (let [request-with-path-params (assoc request :path-params path-params)
-                      linker (url-for-routes routes :request request-with-path-params)]
-                  (-> context
-                      (assoc :route route
-                             :request (assoc request-with-path-params :url-for linker)
-                             :url-for linker)
-                      (assoc-in [:bindings #'*url-for*] linker)
-                      (enqueue-all interceptors)))))
-            matcher-routes)
-      (assoc context :route nil)))
+(defn- route-context [context router routes]
+  (if-let [route (router/find-route router (:request context))]
+    ;;  This is where path-params are added to the request. vvvv
+    (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
+          linker (url-for-routes routes :request request-with-path-params)]
+      (-> context
+          (assoc :route route
+                 :request (assoc request-with-path-params :url-for linker)
+                 :url-for linker)
+          (assoc-in [:bindings #'*url-for*] linker)
+          (enqueue-all (:interceptors route))))
+    (assoc context :route nil)))
 
 (extend-protocol RouterSpecification
   clojure.lang.Sequential
-  (router-spec [seq]
-    (let [matcher-routes (mapv #(assoc % :matcher (matcher %)) seq)]
+  (router-spec [seq router-ctor]
+    (let [router (router-ctor seq)]
       (interceptor/before ::router
-                          #(route-context-to-matcher-routes % matcher-routes seq))))
+                          #(route-context % router seq))))
 
   clojure.lang.Fn
-  (router-spec [f]
+  (router-spec [f router-ctor]
+    ;; Caution: This could be very slow becuase it has to build the routing data
+    ;; structure every time it routes a request.
+    ;; This is only intended if you wanted to dynamically dispatch in a dynamic router
+    ;; or completely control all routing aspects.
     (interceptor/before ::router
                         (fn [context]
-                          (let [routes (f)]
-                            (route-context-to-matcher-routes context
-                                                             (mapv #(assoc % :matcher (matcher %)) routes)
-                                                             routes))))))
+                          (let [routes (f)
+                                router (router-ctor routes)]
+                            (route-context context router routes))))))
+
+(def router-implementations
+  {:prefix-tree prefix-tree/router
+   :linear-search linear-search/router})
 
 (defn router
   "Delegating fn for router-specification."
-  [spec]
-  (router-spec spec))
+  ([spec]
+   (router spec :prefix-tree))
+  ([spec router-impl-key-or-fn]
+   (assert (or (contains? router-implementations router-impl-key-or-fn)
+               (fn? router-impl-key-or-fn))
+           (format "No router implementation exists for key %s. Please use one of %s."
+                   router-impl-key-or-fn
+                   (keys router-implementations)))
+   (let [router-ctor (if (fn? router-impl-key-or-fn)
+                       router-impl-key-or-fn
+                       (router-impl-key-or-fn router-implementations))]
+     (router-spec spec router-ctor))))
 
 (def query-params
   "Returns an interceptor which parses query-string parameters from an

@@ -283,9 +283,12 @@
   [routes]
   (form-action-for-routes routes))
 ;; and here:
-(defn app-router
-  [routes]
-  (router routes)) ;; switch to routes-2, routes-3
+(def app-router router)
+;(defn app-router
+;  ([routes]
+;   (router routes))
+;  ([routes router-impl-key]
+;   (router routes router-impl-key))) ;; switch to routes-2, routes-3
 
 (defbefore print-context
   [context] (pprint context) context)
@@ -316,7 +319,7 @@
             {:query-params query-params}))))))
 
 (defn test-match
-  [route-table method uri & args]
+  [route-table router-impl method uri & args]
   (let [{:keys [scheme host port query]
          :or {scheme "do-not-match-scheme"
               host "do-not-match-host"
@@ -331,7 +334,7 @@
                        :query-string query}}
             (interceptor-impl/enqueue query-params
                                       (method-param)
-                                      (app-router route-table))
+                                      (app-router route-table router-impl))
             interceptor-impl/execute)]
     (when route
       (merge
@@ -341,29 +344,54 @@
          {:query-params query-params})))))
 
 (defn test-query-execute
-  [table query]
+  [table router-impl query]
   (-> query
       (interceptor-impl/enqueue query-params
                            (method-param)
-                           (app-router table))
+                           (app-router table router-impl))
       interceptor-impl/execute))
 
-(defn test-query-match [table uri params]
-  (-> (test-query-execute table {:request {:request-method :get
-                                           :scheme "do-not-match-scheme"
-                                           :server-name "do-not-match-host"
-                                           :path-info uri
-                                           :query-string params}})
+(defn test-linear-query-match [table uri params]
+  (-> (test-query-execute table
+                          :linear-search
+                          {:request {:request-method :get
+                                     :scheme "do-not-match-scheme"
+                                     :server-name "do-not-match-host"
+                                     :path-info uri
+                                     :query-string params}})
       :route
       :route-name))
 
-(deftest fire-interceptors
+(defn test-fire-interceptors [router-impl-key]
   (are [routes] (= :clobbered
-                   (-> (test-query-execute routes {:request {:request-method :get
-                                                             :scheme "do-not-match-scheme"
-                                                             :server-name "do-not-match-host"
-                                                             :path-info "/intercepted"
-                                                             :query-params {}}})
+                   (-> (test-query-execute routes
+                                           router-impl-key
+                                           {:request {:request-method :get
+                                                      :scheme "do-not-match-scheme"
+                                                      :server-name "do-not-match-host"
+                                                      :path-info "/intercepted"
+                                                      :query-params {}}})
+                       :response
+                       :request
+                       ::interceptor-1))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest fire-interceptors
+  (test-fire-interceptors :prefix-tree)
+  (test-fire-interceptors :linear-search))
+
+(defn test-fire-hierarchical-interceptors [router-impl-key]
+  (are [routes] (= :clobbered
+                   (-> (test-query-execute routes
+                                           router-impl-key
+                                           {:request {:request-method :get
+                                                      :scheme "do-not-match-scheme"
+                                                      :server-name "do-not-match-host"
+                                                      :path-info "/hierarchical/intercepted"
+                                                      :query-params {}}})
                        :response
                        :request
                        ::interceptor-1))
@@ -373,12 +401,18 @@
        syntax-quote-data-routes))
 
 (deftest fire-hierarchical-interceptors
+  (test-fire-hierarchical-interceptors :prefix-tree)
+  (test-fire-hierarchical-interceptors :linear-search))
+
+(defn test-fire-terminal-interceptors [router-impl-key]
   (are [routes] (= :clobbered
-                   (-> (test-query-execute routes {:request {:request-method :get
-                                                             :scheme "do-not-match-scheme"
-                                                             :server-name "do-not-match-host"
-                                                             :path-info "/hierarchical/intercepted"
-                                                             :query-params {}}})
+                   (-> (test-query-execute routes
+                                           router-impl-key
+                                           {:request {:request-method :get
+                                                      :scheme "do-not-match-scheme"
+                                                      :server-name "do-not-match-host"
+                                                      :path-info "/terminal/intercepted"
+                                                      :query-params {}}})
                        :response
                        :request
                        ::interceptor-1))
@@ -388,19 +422,8 @@
        syntax-quote-data-routes))
 
 (deftest fire-terminal-interceptors
-  (are [routes] (= :clobbered
-                   (-> (test-query-execute routes {:request {:request-method :get
-                                                             :scheme "do-not-match-scheme"
-                                                             :server-name "do-not-match-host"
-                                                             :path-info "/terminal/intercepted"
-                                                             :query-params {}}})
-                       :response
-                       :request
-                       ::interceptor-1))
-       verbose-routes
-       terse-routes
-       data-routes
-       syntax-quote-data-routes))
+  (test-fire-terminal-interceptors :prefix-tree)
+  (test-fire-terminal-interceptors :linear-search))
 
 ;; TODO: This is no longer supported - *ALL* symbols that resolve to fns are treated like handlers
 ;;       *ALL* lists (fn call of an Interceptor Fn), get eval'd, returning the interceptor
@@ -419,13 +442,15 @@
 ;       data-routes
 ;       syntax-quote-data-routes))
 
-(deftest fire-interceptor-fn-list
+(defn test-fire-interceptor-fn-list [router-impl-key]
   (are [routes] (= ::fn-called-explicitly
-                   (-> (test-query-execute routes {:request {:request-method :get
-                                                             :scheme "do-not-match-scheme"
-                                                             :server-name "do-not-match-host"
-                                                             :path-info "/intercepted-by-fn-list"
-                                                             :query-params {}}})
+                   (-> (test-query-execute routes
+                                           router-impl-key
+                                           {:request {:request-method :get
+                                                      :scheme "do-not-match-scheme"
+                                                      :server-name "do-not-match-host"
+                                                      :path-info "/intercepted-by-fn-list"
+                                                      :query-params {}}})
                        :response
                        :request
                        ::interceptor-3))
@@ -434,33 +459,50 @@
        data-routes
        syntax-quote-data-routes))
 
-(deftest match-root
+(deftest fire-interceptor-fn-list
+  (test-fire-interceptor-fn-list :prefix-tree)
+  (test-fire-interceptor-fn-list :linear-search))
+
+(defn test-match-root [router-impl-key]
   (are [routes] (= {:route-name ::home-page :path-params {}}
-                   (test-match routes :get "/" :host "example.com"))
+                   (test-match routes router-impl-key :get "/" :host "example.com"))
        verbose-routes
        terse-routes))
 
-(deftest match-update-user
+(deftest match-root
+  (test-match-root :prefix-tree)
+  (test-match-root :linear-search))
+
+(defn test-match-update-user [router-impl-key]
   (are [routes] (= {:route-name ::update-user
                     :path-params {:user-id "123"}}
-                   (test-match routes :put "/user/123" :host "example.com"))
+                   (test-match routes router-impl-key :put "/user/123" :host "example.com"))
+       verbose-routes
+       terse-routes
+       data-routes
+       syntax-quote-data-routes))
+
+(deftest match-update-user
+  (test-match-update-user :prefix-tree)
+  (test-match-update-user :linear-search))
+
+(defn test-match-logout [router-impl-key]
+  (are [routes] (= {:route-name ::logout :path-params {}}
+                   (test-match routes router-impl-key :post "/logout"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes))
 
 (deftest match-logout
-  (are [routes] (= {:route-name ::logout :path-params {}}
-                   (test-match routes :post "/logout"))
-       verbose-routes
-       terse-routes
-       data-routes
-       syntax-quote-data-routes))
+  (test-match-logout :prefix-tree)
+  (test-match-logout :linear-search))
 
-(deftest match-non-root-trailing-slash
+(defn test-match-non-root-trailing-slash [router-impl-key]
   (are [routes] (= {:route-name :admin-trailing-slash :path "/trailing-slash/child-path"}
                    (-> routes
                        (test-query-execute
+                        router-impl-key
                         {:request {:request-method :get
                                    :path-info "/trailing-slash/child-path"}})
                        :route
@@ -470,10 +512,15 @@
        data-routes
        syntax-quote-data-routes))
 
-(deftest match-root-trailing-slash
+(deftest match-non-root-trailing-slash
+  (test-match-non-root-trailing-slash :prefix-tree)
+  (test-match-non-root-trailing-slash :linear-search))
+
+(defn test-match-root-trailing-slash [router-impl-key]
   (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
                    (-> routes
                        (test-query-execute
+                        router-impl-key
                         {:request {:request-method :get
                                    :server-name "example.com"
                                    :path-info "/child-path"}})
@@ -484,18 +531,26 @@
        data-routes
        syntax-quote-data-routes))
 
-(deftest check-host
+(deftest match-root-trailing-slash
+  (test-match-non-root-trailing-slash :prefix-tree)
+  (test-match-non-root-trailing-slash :linear-search))
+
+(defn test-check-host [router-impl-key]
   (are [routes] (nil? (test-match
-                       routes :put "/user/123" :host "admin.example.com"))
+                       routes router-impl-key :put "/user/123" :host "admin.example.com"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes))
 
-(deftest match-demo-one
+(deftest check-host
+  (test-check-host :prefix-tree)
+  (test-check-host :linear-search))
+
+(defn test-match-demo-one [router-impl-key]
   (are [routes] (= {:route-name :site-one-demo
                     :path-params {:site-path "foo/bar/baz"}}
-                   (test-match routes :get "/demo/site-one/foo/bar/baz"
+                   (test-match routes router-impl-key :get "/demo/site-one/foo/bar/baz"
                                :scheme :https
                                :host "admin.example.com"
                                :port 9999))
@@ -504,59 +559,67 @@
        data-routes
        syntax-quote-data-routes))
 
-(deftest match-user-constraints
+(deftest match-demo-one
+  (test-match-demo-one :prefix-tree)
+  (test-match-demo-one :linear-search))
+
+(defn test-match-user-constraints [router-impl-key]
   (are [routes] (= {:path-params {:user-id "123"} :route-name ::update-user}
-                   (test-match routes :put "/user/123" :host "example.com"))
+                   (test-match routes router-impl-key :put "/user/123" :host "example.com"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= nil
-                   (test-match routes :put "/user/abc" :host "example.com"))
+                   (test-match routes router-impl-key :put "/user/abc" :host "example.com"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= {:path-params {:user-id "123"} :query-params {:view "long"} :route-name ::view-user}
-                   (test-match routes :get "/user/123" :scheme :http :host "example.com" :query "view=long"))
+                   (test-match routes router-impl-key :get "/user/123" :scheme :http :host "example.com" :query "view=long"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= nil
-                   (test-match routes :get "/user/123" :scheme :http :host "example.com" :query "view=none"))
+                   (test-match routes router-impl-key :get "/user/123" :scheme :http :host "example.com" :query "view=none"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= nil
-                   (test-match routes :get "/user/abc" :scheme :http :host "example.com" :query "view=long"))
+                   (test-match routes router-impl-key :get "/user/abc" :scheme :http :host "example.com" :query "view=long"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes))
 
+(deftest match-user-constraints
+  (test-match-user-constraints :prefix-tree)
+  (test-match-user-constraints :linear-search))
+
 (deftest match-query
   (are [routes] (= ::search-id
-                   (test-query-match routes "/search" "id=123"))
+                   (test-linear-query-match routes "/search" "id=123"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= ::search-query
-                   (test-query-match routes "/search" "q=foo"))
+                   (test-linear-query-match routes "/search" "q=foo"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= ::search-form
-                   (test-query-match routes "/search" nil))
+                   (test-linear-query-match routes "/search" nil))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes)
   (are [routes] (= ::search-form
-                   (test-query-match routes "/search" "id=not-a-number"))
+                   (test-linear-query-match routes "/search" "id=not-a-number"))
        verbose-routes
        terse-routes
        data-routes
@@ -791,9 +854,10 @@
     ["/verbatim" {:get ring-adapted}]
     ["/returned" {:get (make-ring-adapted)}]]])
 
-(deftest ring-adapting
+(defn test-ring-adapting [router-impl-key]
   (are [path] (= "Oppa Ring Style!" (-> ring-adaptation-routes
-                                        (test-query-execute {:request {:request-method :get
+                                        (test-query-execute router-impl-key
+                                                            {:request {:request-method :get
                                                                        :scheme "do-not-match-scheme"
                                                                        :server-name "ring-adapt.pedestal"
                                                                        :path-info path
@@ -803,6 +867,10 @@
        "/adapted"
        "/verbatim"
        "/returned"))
+
+(deftest ring-adapting
+  (test-ring-adapting :prefix-tree)
+  (test-ring-adapting :linear-search))
 
 (defn overridden-handler
   "A handler which will be overridden."
@@ -826,8 +894,8 @@
   [[:overridden-routes "overridden.pedestal"
     ["/resource" {:get overriding-handler}]]])
 
-(deftest overriding-routes-test
-  (let [router (app-router #(deref #'overridden-routes))
+(defn test-overriding-routes [router-impl-key]
+  (let [router (app-router #(deref #'overridden-routes) router-impl-key)
         query {:request {:request-method :get
                          :scheme "do-not-match-scheme"
                          :server-name "overridden.pedestal"
@@ -850,6 +918,10 @@
                               :response
                               :body)))
         "When the overridden-routes have their binding overridden, routing dispatches to the overridden binding")))
+
+(deftest overriding-routes-test
+  (test-overriding-routes :prefix-tree)
+  (test-overriding-routes :linear-search))
 
 (deftest route-names-match-test
   (let [verbose-route-names (set (map :route-name verbose-routes))
@@ -935,10 +1007,11 @@
                ["/somewhere" {:get :advanced}]]]
              (map-routes->vec-routes routes-under-test)))))
 
-(deftest match-root-trailing-slash-map
+(defn test-match-root-trailing-slash-map [router-impl-key]
   (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
                    (-> routes
                        (test-query-execute
+                        :prefix-tree
                         {:request {:request-method :get
                                    :path-info "/child-path"}})
                        :route
@@ -946,10 +1019,14 @@
        map-routes
        data-map-routes))
 
+(deftest match-root-trailing-slash-map
+  (test-match-root-trailing-slash-map :prefix-tree)
+  (test-match-root-trailing-slash-map :linear-search))
+
 (deftest match-update-map
   (are [routes] (= {:route-name ::update-user
                     :path-params {:user-id "123"}}
-                   (test-match routes :put "/user/123"))
+                   (test-match routes :prefix-tree :put "/user/123"))
        map-routes
        data-map-routes))
 
