@@ -8,11 +8,11 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.3.1"]
-[io.pedestal/pedestal.service-tools "0.3.1"] ;; Only needed for ns-watching
-[io.pedestal/pedestal.jetty         "0.3.1"]
-[io.pedestal/pedestal.immutant      "0.3.1"]
-[io.pedestal/pedestal.tomcat        "0.3.1"]
+[io.pedestal/pedestal.service       "0.4.0"]
+[io.pedestal/pedestal.service-tools "0.4.0"] ;; Only needed for ns-watching
+[io.pedestal/pedestal.jetty         "0.4.0"]
+[io.pedestal/pedestal.immutant      "0.4.0"]
+[io.pedestal/pedestal.tomcat        "0.4.0"]
 ```
 
 ## Getting started
