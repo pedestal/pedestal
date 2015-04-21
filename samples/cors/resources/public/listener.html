@@ -1,0 +1,30 @@
+<!--
+  ; Copyright 2013 Relevance, Inc.
+  ; Copyright 2014 Cognitect, Inc.
+
+  ; The use and distribution terms for this software are covered by the
+  ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+  ; which can be found in the file epl-v10.html at the root of this distribution.
+  ;
+  ; By using this software in any fashion, you are agreeing to be bound by
+  ; the terms of this license.
+  ;
+  ; You must not remove this notice, or any other, from this software.
+  -->
+<html>
+  <head>
+    <script type="text/javascript" 
+	    src="/javascripts/eventsource.min.js"></script>
+    <script type="text/javascript">
+      function startListening() {
+        console.log("Starting event listener for http://localhost:8081/");
+        var source = new EventSource('http://localhost:8081/');
+        source.addEventListener('count', function(e) {console.log(e.data);}, false);
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Open your javascript console!</h1>
+    <p>...and <a href="javascript:startListening();false">click here</a></p>
+  </body>
+</html>

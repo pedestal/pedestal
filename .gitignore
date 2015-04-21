@@ -1,0 +1,48 @@
+# Project related
+generated-js/
+
+# Java related
+pom.xml
+pom.xml.asc
+*jar
+*.class
+
+# Leiningen
+classes/
+lib/
+native/
+checkouts/
+target/
+.lein-deps-sum
+.lein-failures
+.lein-repl-history
+.lein-cljsbuild-repl
+.lein-plugins/
+repl-port
+.nrepl-port
+
+# Temp Files
+tmp/
+*.orig
+*~
+.*.swp
+.*.swo
+*.tmp
+*.bak
+
+# Editors (IntelliJ / Eclipse)
+*/.idea
+*/.classpath
+*/.project
+*/.settings
+
+# OS X
+.DS_Store
+
+# Logging
+*.log
+logs/
+
+# Docs
+autodoc/
+docs
