@@ -363,12 +363,13 @@
   rethrow it."
   [{:keys [servlet-response] :as context} exception]
   (assoc context
-    :response (ring-response/response
-               (with-out-str (println "Error processing request!")
-                 (println "Exception:\n")
-                 (stacktrace/print-cause-trace exception)
-                 (println "\nContext:\n")
-                 (pprint/pprint context)))))
+         :response (-> (ring-response/response
+                        (with-out-str (println "Error processing request!")
+                          (println "Exception:\n")
+                          (stacktrace/print-cause-trace exception)
+                          (println "\nContext:\n")
+                          (pprint/pprint context)))
+                       (ring-response/status 500))))
 
 (def exception-debug
   "An interceptor which catches errors, renders them to readable text
