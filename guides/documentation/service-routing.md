@@ -213,7 +213,7 @@ function and builds an interceptor from it, to meet the requirement
 that a value in a verb map must be a symbol, an interceptor, or a list.
 
 Alternatively, `hello-world` can be defined as an interceptor
-directly, using the `io.pedestal.interceptor/defhandler` macro:
+directly, using the `io.pedestal.interceptor.helpers/defhandler` macro:
 
 ```clojure
 (defhandler hello-world [req] {:status 200 :body "Hello World!"})
