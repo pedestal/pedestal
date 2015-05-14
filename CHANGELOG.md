@@ -7,7 +7,7 @@
  * Tree-based router (used by default)
  * Open routing (users can set their own router)
  * Robust error-handler interceptor (pattern-matching across all interceptors)
- * Updated Interceptor API (built around a protocol / open for extension)
+ * [Updated Interceptor API](https://github.com/pedestal/pedestal/pull/301) (built around a protocol / open for extension)
  * Updated documentation samples
  * Bug fixes and small enhancements to the testing tools
 
