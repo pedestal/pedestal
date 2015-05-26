@@ -22,7 +22,7 @@ version details, updates, and necessary migration steps.**
 
  * Fast and secure by default (automatically uses secure headers, CSRF-protection, and other best practices)
  * A guiding principle of "data > functions > macros" - the core pieces of Pedestal
-   are data-driven and programmed against a protocol.  The entire platform is extensible.
+   are data-driven and programmed against protocols.  The entire platform is extensible.
  * A high-performance [prefix-tree router](https://github.com/pedestal/pedestal/pull/330)
    that is significantly faster and more space efficient than other Clojure web routers
  * The ability to plug-in any router, including one you write
