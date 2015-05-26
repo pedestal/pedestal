@@ -31,6 +31,7 @@ version details, updates, and necessary migration steps.**
    resulting in better performance and capacity than a synchronous-only solution
  * Advanced [error handling](https://github.com/pedestal/pedestal/pull/302) for async systems
  * Integrated streaming capabilites like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
+ * Integrated support for Cross-origin resource sharing/[CORS](https://github.com/pedestal/pedestal/tree/master/samples/cors)
  * Integrated linking and testing tools
  * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
@@ -52,7 +53,7 @@ Pedestal service. This will automatically pull templates from
 lein new pedestal-service the-next-big-server-side-thing
 ```
 
-See [documentation](./guides/documentation) for information on Pedestal concepts and
+See the [samples](./samples) or [documentation](./guides/documentation) for information on Pedestal concepts and
 advice on getting started.
 
 ## Digging deeper
