@@ -4,6 +4,20 @@ Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
 server-side development.
 
+## Getting the Latest Release
+
+Leiningen dependencies:
+```
+[io.pedestal/pedestal.service       "0.4.0"]
+[io.pedestal/pedestal.service-tools "0.4.0"] ;; Only needed for ns-watching
+[io.pedestal/pedestal.jetty         "0.4.0"]
+[io.pedestal/pedestal.immutant      "0.4.0"]
+[io.pedestal/pedestal.tomcat        "0.4.0"]
+```
+
+**Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
+version details, updates, and necessary migration steps.**
+
 ### Notable capabilities
 
  * Fast and secure by default (automatically uses secure headers, CSRF-protection, and other best practices)
@@ -24,19 +38,6 @@ server-side development.
  * Support to run on Jetty, Immutant/Undertow, and Tomcat
  * and more!
 
-## Getting the Latest Release
-
-Leiningen dependencies:
-```
-[io.pedestal/pedestal.service       "0.4.0"]
-[io.pedestal/pedestal.service-tools "0.4.0"] ;; Only needed for ns-watching
-[io.pedestal/pedestal.jetty         "0.4.0"]
-[io.pedestal/pedestal.immutant      "0.4.0"]
-[io.pedestal/pedestal.tomcat        "0.4.0"]
-```
-
-**Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
-version details, updates, and necessary migration steps.**
 
 ## Getting started
 
