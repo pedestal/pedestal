@@ -9,19 +9,20 @@ with the examples.
 
 ## Samples
 
-* [hello-world](./hello-world) A minimal service that exhibits the
+* [Hello-world](./hello-world) A minimal service that exhibits the
   bare-minimum necessary to integrate Pedestal into an applicaiton.
-* [ring-middleware](./ring-middleware), shows how to use
-  [ring](https://github.com/ring-clojure/ring) middlewares with
+* [Ring-middleware](./ring-middleware), shows how to use
+  [Ring](https://github.com/ring-clojure/ring) middlewares with
   services
-* [server-with-links](./server-with-links), a service that
+* [Server-with-links](./server-with-links), a service that
   demonstrates generating links to routes using `url-for`
-* [template-server](./template-server), a service that shows how to
+* [Template-server](./template-server), a service that shows how to
   use different template engines
-* [cors](./cors)
-* [jboss](./jboss), a service that can be deployed in
-  [JBoss](http://jboss.org)
-* [server-sent-events](./server-sent-events)
+* [Cors](./cors)
+* [Immutant/Wildfly](./immutant), a service that can be deployed standalone
+  (on Immutant/Undertow) or [within](http://immutant.org/tutorials/wildfly/)
+  [Wildfly](http://wildfly.org/)
+* [Server-sent-events](./server-sent-events)
 
 ## Contributing
 
