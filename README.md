@@ -4,6 +4,26 @@ Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
 server-side development.
 
+### Notable capabilities
+
+ * Fast and secure by default (automatically uses secure headers, CSRF-protection, and other best practices)
+ * A guiding principle of "data > functions > macros" - the core pieces of Pedestal
+   are data-driven and programmed against a protocol.  The entire platform is extensible.
+ * A high-performance [prefix-tree router](https://github.com/pedestal/pedestal/pull/330)
+   that is significantly faster and more space efficient than other Clojure web routers
+ * The ability to plug-in any router, including one you write
+ * The ability to express routes in any format you like
+ * [Full/true async support](https://groups.google.com/d/msg/clojure/rKqT13Ofy4k/H9xvkZA9Yy4J) (Async Servlet + core.async + NIO),
+   resulting in better performance and capacity than a synchronous-only solution
+ * Advanced [error handling](https://github.com/pedestal/pedestal/pull/302) for async systems
+ * Integrated streaming capabilites like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
+ * Integrated linking and testing tools
+ * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
+ * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
+ * The ability to utilize Ring Middleware as Pedestal Interceptors
+ * Support to run on Jetty, Immutant/Undertow, and Tomcat
+ * and more!
+
 ## Getting the Latest Release
 
 Leiningen dependencies:
@@ -14,6 +34,9 @@ Leiningen dependencies:
 [io.pedestal/pedestal.immutant      "0.4.0"]
 [io.pedestal/pedestal.tomcat        "0.4.0"]
 ```
+
+**Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
+version details, updates, and necessary migration steps.**
 
 ## Getting started
 
@@ -74,6 +97,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
 
 To install Pedestal library components in your local Maven repository run
 `lein sub install` from a local checkout of this repository.
+
+### Running the tests
+
+After installing all the library components, you can run the tests with
+`lein sub test` from a local checkout of this repository.
 
 ---
 
