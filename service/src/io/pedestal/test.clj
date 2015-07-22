@@ -192,9 +192,9 @@
   (let [^ByteArrayOutputStream baos (-> test-servlet-response
                                         meta
                                         :output-stream)]
-    (.flush baos)
-    (.close baos)
-    (.toString baos "UTF-8")))
+    (doto baos
+      (.flush)
+      (.close))))
 
 (defn test-servlet-response-headers
   [test-servlet-response]
@@ -218,12 +218,13 @@
      :body (test-servlet-response-body servlet-response)
      :headers (test-servlet-response-headers servlet-response)}))
 
-(defn response-for
+(defn raw-response-for
   "Return a ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
-  the servlet infrastructure.
+  the servlet infrastructure. The response body will be returned as
+  a ByteArrayOutputStream.
   Options:
 
   :body : An optional string that is the request body.
@@ -238,3 +239,18 @@
                                                  {"Content-Type" content-type})
                                                (when-let [content-length (:content-length %)]
                                                  {"Content-Length" content-length})))))
+
+(defn response-for
+  "Return a ring response map for an HTTP request of type `verb`
+  against url `url`, when applied to interceptor-service-fn. Useful
+  for integration testing pedestal applications and getting all
+  relevant middlewares invoked, including ones which integrate with
+  the servlet infrastructure. The response body will be converted
+  to a UTF-8 string.
+  Options:
+
+  :body : An optional string that is the request body.
+  :headers : An optional map that are the headers"
+  [interceptor-service-fn verb url & options]
+  (-> (apply raw-response-for interceptor-service-fn verb url options)
+      (update-in [:body] #(.toString % "UTF-8"))))
