@@ -80,7 +80,7 @@
                              (:uri request)))
       request)))
 
-(defn- response?
+(defn response?
   "A valid response is any map that includes an integer :status
   value."
   [resp]
