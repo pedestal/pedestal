@@ -28,6 +28,11 @@
   (ring-resp/response (format "Yeah, this is a self-link to %s"
                               (io.pedestal.http.route/url-for :about))))
 
+(defn- page
+  [body]
+  (fn [_]
+    (ring-resp/response body)))
+
 (defn hello-page
   [request] (ring-resp/response "HELLO"))
 
@@ -82,6 +87,9 @@
 
 (defroutes app-routes
   [[["/about" {:get [:about about-page]}]
+    ["/people" {:get [:people (page "people")]}
+     ["/:id" {:get [:person (page "person")]}
+      ["/friends" {:get [:friends (page "friends")]}]]]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
     ["/token" {:get hello-token-page}]
     ["/bytebuffer" {:get hello-byte-buffer-page}]
@@ -112,6 +120,12 @@
       ::service/service-fn))
 
 (def app (make-app app-interceptors))
+
+(deftest trailing-slash-in-path
+  (doseq [path ["/people" "/people/"]]
+    (testing path
+      (let [{:keys [status body]} (response-for app :get path)]
+        (is (= status 200))))))
 
 (deftest html-body-test
   (let [response (response-for app :get "/text-as-html")]
@@ -301,4 +315,3 @@
     (is (> (count body) 5))
     (is (= "HELLO" (subs body 0 5)))
     (is (not-empty (subs body 4)))))
-
