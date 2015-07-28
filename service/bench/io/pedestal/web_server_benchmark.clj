@@ -1,10 +1,11 @@
 (ns io.pedestal.web-server-benchmark
-  (:require [io.pedestal.http :as http]
-            [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
-            [io.pedestal.interceptor.helpers :as interceptor :refer (defbefore)]
+  (:require [clojure.java.io :as io]
+            [io.pedestal.http :as http]
             [io.pedestal.http.immutant :as immutant]
-            [io.pedestal.http.jetty :as jetty])
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.http.jetty :as jetty]
+            [io.pedestal.http.servlet :as servlet]
+            [io.pedestal.interceptor.helpers :as interceptor :refer (defbefore)])
   (:import (java.nio ByteBuffer))
   (:gen-class))
 
@@ -63,10 +64,16 @@
 ;; Feel free to try the String responses instead of ByteBuffer responses.
 ;; ----
 
-(def bb-response ^ByteBuffer (ByteBuffer/wrap (.getBytes ^String (slurp "../index.html") "UTF-8")))
-(def response {:status 200
-               :headers {"Content-Type" "text/html"}
-               :body bb-response})
+(def bb-response
+  (let [path "io/pedestal/benchmark/index.html"
+        ^String s (some-> path io/resource slurp)]
+    (assert s (str path " not found"))
+    ^ByteBuffer (ByteBuffer/wrap (.getBytes s "UTF-8"))))
+
+(def response
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body bb-response})
 
 (defbefore h
   "A static NIO response."
@@ -74,9 +81,10 @@
   (.rewind bb-response)
   (assoc ctx :response response))
 
-(def server (immutant/server
-              (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [h]))
-              {:port 8088}))
+(def server
+  (immutant/server
+   (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [h]))
+   {:port 8088}))
 
 (defn -main [& args]
   (println "Starting...")
