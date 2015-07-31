@@ -53,7 +53,9 @@
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev {:source-paths ["dev" "src" "bench"]
-                   :plugins      [[codox "0.8.13"]]
+                   :plugins      [[codox "0.8.13"]
+                                  [info.sunng/lein-bootclasspath-deps "0.2.0"]]
+                   :boot-dependencies [[org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"]]
                    :dependencies [[criterium "0.4.3"]
                                   [org.clojure/java.classpath "0.2.2"]
                                   [org.clojure/tools.namespace "0.2.11"]
