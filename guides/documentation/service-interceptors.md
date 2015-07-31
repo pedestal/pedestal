@@ -149,6 +149,39 @@ functions of further interceptors in the path are invoked as if no
 pause had occurred. A single context may pause and resume an arbitrary
 number of times.
 
+### Examples
+
+Here's how you define a "before" interceptor:
+
+```clojure
+(ns interceptor.example
+  (:require [io.pedestal.interceptor :refer [interceptor]]))
+
+(def my-before-interceptor
+  (interceptor
+   {:name ::hello-world
+    :enter
+    (fn [context]
+      (assoc context :response 
+                     {:status 200 :body "Hello world!" 
+                      :headers {"Content-Type" "text/plain"}}))}))
+```
+
+And an "after" interceptor:
+
+```clojure
+(ns interceptor.example
+  (:require [io.pedestal.interceptor :refer [interceptor]]))
+
+(def my-after-interceptor
+  (interceptor
+   {:name ::add-foo-header
+    :leave
+    (fn [context]
+      (update-in context [:response :headers] 
+                 merge "Foo" "Bar"))}))
+```
+
 ## Request Processing Across Threads
 
 This architecture allows for processing a single request across
@@ -191,7 +224,7 @@ All of the middlewares in Ring have been refactored so that in
 addition to the conventional `wrap-xyz` function for building a
 Ring-style middleware chain, there are `xyz-request` and
 `xyz-response` functions. These functions process requests and
-responses separately. The `wrap-xys` functions have been refactored to
+responses separately. The `wrap-xyz` functions have been refactored to
 use the separate request and response processing functions.
 
 The `io.pedestal.http.ring-middlewares` namespace defines
@@ -248,11 +281,11 @@ but it is extremely verbose.
 ## Definition
 
 An interceptor is one instance of an Interceptor record or a map with
-:enter, :leave, :pause, :resume, and :error keys. An interceptor-fn is
+:enter, :leave, :pause, :resume, and :error keys. An interceptorfn is
 a function which returns an interceptor.
 
 Pedestal includes macros for defining interceptors, and for defining
-interceptor-fns. These macros are conveniences for attaching a
+interceptorfns. These macros are conveniences for attaching a
 symbolic name and docstring to an interceptor.
 
 There are functions and macros for constructing interceptors that deal
@@ -280,7 +313,7 @@ them in an interceptor using the `handler` function.  Alternatively,
 you can wrap them yourself using the `defhandler` macro.
 
 These macros also flag the vars they create with metadata identifying
-them as either interceptors or interceptor-fns. Other pieces in the
+them as either interceptors or interceptorfns. Other pieces in the
 Pedestal framework make use of this metadata to make intelligent
 decisions about how to work with these vars.
 

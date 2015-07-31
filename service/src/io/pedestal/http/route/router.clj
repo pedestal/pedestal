@@ -10,12 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/samples "0.4.1-SNAPSHOT"
-  :plugins [[lein-sub "0.2.3"]]
-  :sub ["hello-world"
-        "server-sent-events"
-        "template-server"
-        "cors"
-        "ring-middleware"
-        "server-with-links"])
+(ns io.pedestal.http.route.router)
 
+(defprotocol Router
+  (find-route [this req]))

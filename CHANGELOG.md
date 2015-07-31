@@ -2,6 +2,17 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.4.0 - April 17, 2015
+
+ * Tree-based router (used by default)
+ * Open routing (users can set their own router)
+ * Robust error-handler interceptor (pattern-matching across all interceptors)
+ * [Updated Interceptor API](https://github.com/pedestal/pedestal/pull/301) (built around a protocol / open for extension)
+ * Updated documentation samples
+ * Bug fixes and small enhancements to the testing tools
+
+For a full list of changes, please see this comparison of [0.3.1...0.4.0](https://github.com/pedestal/pedestal/compare/0.3.1...0.4.0).
+
 ## 0.3.1 - October 9, 2014
 
  * Container specific functionality is tucked behind a protocol

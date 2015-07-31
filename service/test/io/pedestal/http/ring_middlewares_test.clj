@@ -140,8 +140,10 @@
   (is (valid-interceptor? (not-modified)))
   (is (= 304
          (->
-          {:request {:headers {"if-none-match" "42"}}
-           :response {:headers {"etag" "42"}}}
+          {:request {:headers {"if-none-match" "42"}
+                     :request-method :get}
+           :response {:headers {"etag" "42"}
+                      :status 200}}
           app
           ((:leave (not-modified)))
           (get-in [:response :status])))))

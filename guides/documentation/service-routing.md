@@ -121,7 +121,7 @@ destination interceptor. The value can be:
 
     - an interceptor
 
-    - a function that returns an interceptor and is marked with metadata ^{:interceptor-fn true}
+    - a function that returns an interceptor and is marked with metadata ^{:interceptorfn true}
 
 - a vector containing the following:
 
@@ -213,7 +213,7 @@ function and builds an interceptor from it, to meet the requirement
 that a value in a verb map must be a symbol, an interceptor, or a list.
 
 Alternatively, `hello-world` can be defined as an interceptor
-directly, using the `io.pedestal.interceptor/defhandler` macro:
+directly, using the `io.pedestal.interceptor.helpers/defhandler` macro:
 
 ```clojure
 (defhandler hello-world [req] {:status 200 :body "Hello World!"})
@@ -261,7 +261,7 @@ path segment prepended with '*', like this:
 
 ```clojure
 [[["/hello/:who" {:get hello-who}]
-  ["/*other" {:get get-other-stuff]]
+  ["/*other" {:get get-other-stuff}]]]
 ```
 
 ### Hierarchical route definitions
@@ -327,7 +327,7 @@ values specified in the interceptors vector may be:
 
     - an interceptor
 
-    - a function that returns an interceptor and is marked with metadata ^{:interceptor-fn true}
+    - a function that returns an interceptor and is marked with metadata ^{:interceptorfn true}
 
     - a function that accepts a Ring request map and returns a Ring response map (i.e. a Ring handler)
 

@@ -144,7 +144,7 @@
   ([context] (assoc context :around :leave)))
 
 (deftest test-around-interceptor
-  (is (= (interceptor/interceptor? around-interceptor))
+  (is (interceptor/interceptor? around-interceptor)
       "defaround creates an interceptor.")
   ;(is (= true (:interceptor (meta #'around-interceptor)))
   ;    "The defined interceptor is tagged as an interceptor in metadata.")
@@ -163,7 +163,7 @@
   ([response] (assoc response :middleware :leave)))
 
 (deftest test-middleware-interceptor
-  (is (= (interceptor/interceptor? middleware-interceptor))
+  (is (interceptor/interceptor? middleware-interceptor)
       "defmiddleware creates an interceptor.")
   ;(is (= true (:interceptor (meta #'middleware-interceptor)))
   ;    "The defined interceptor is tagged as an interceptor in metadata.")
