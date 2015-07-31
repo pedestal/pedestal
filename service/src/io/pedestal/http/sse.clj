@@ -96,16 +96,20 @@
     (.scheduleWithFixedDelay scheduler f 0 heartbeat-delay TimeUnit/SECONDS)))
 
 (defn end-event-stream
-  "Given a `context`, clean up the event stream it represents."
+  "DEPRECATED. Given a `context`, clean up the event stream it represents."
+  {:deprecated "0.4.0"}
   [{end-fn ::end-event-stream}]
-  (end-fn))
+  ;;(end-fn)
+  )
 
 (defn start-stream
-  "Given a `context`, starts an event stream using it's response and
-  initiates a heartbeat to keep the connection alive. Also adds a
-  reference to an end-stream function into context. An application
-  must use this function to clean up a stream when it is no longer
-  needed."
+  "Starts an SSE event stream and initiates a heartbeat to keep the
+  connection alive. `stream-ready-fn` will be called with a core.async
+  channel. The application can then put maps with keys :name and :data
+  on that channel to cause SSE events to be sent to the client. Either
+  the client or the application may close the channel to terminate and
+  clean up the event stream; the client closes it by closing the
+  connection."
   ([stream-ready-fn context heartbeat-delay]
    (start-stream stream-ready-fn context heartbeat-delay 10))
   ([stream-ready-fn context heartbeat-delay buffer-or-n]
