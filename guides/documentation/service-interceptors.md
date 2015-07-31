@@ -149,6 +149,39 @@ functions of further interceptors in the path are invoked as if no
 pause had occurred. A single context may pause and resume an arbitrary
 number of times.
 
+### Examples
+
+Here's how you define a "before" interceptor:
+
+```clojure
+(ns interceptor.example
+  (:require [io.pedestal.interceptor :refer [interceptor]]))
+
+(def my-before-interceptor
+  (interceptor
+   {:name ::hello-world
+    :enter
+    (fn [context]
+      (assoc context :response 
+                     {:status 200 :body "Hello world!" 
+                      :headers {"Content-Type" "text/plain"}}))}))
+```
+
+And an "after" interceptor:
+
+```clojure
+(ns interceptor.example
+  (:require [io.pedestal.interceptor :refer [interceptor]]))
+
+(def my-after-interceptor
+  (interceptor
+   {:name ::add-foo-header
+    :leave
+    (fn [context]
+      (update-in context [:response :headers] 
+                 merge "Foo" "Bar"))}))
+```
+
 ## Request Processing Across Threads
 
 This architecture allows for processing a single request across
