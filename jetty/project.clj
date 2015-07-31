@@ -16,9 +16,9 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.eclipse.jetty/jetty-server "9.2.0.v20140526"]
-                 [org.eclipse.jetty/jetty-servlet "9.2.0.v20140526"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.eclipse.jetty/jetty-server "9.3.1.v20150714"]
+                 [org.eclipse.jetty/jetty-servlet "9.3.1.v20150714"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true})
