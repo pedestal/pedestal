@@ -177,9 +177,7 @@
                         (try-error context interceptor)
                         (try-f context interceptor :leave))]
           (cond
-           (channel? context) (do
-                                (prepare-for-async old-context)
-                                (go-async old-context context))
+           (channel? context) (go-async old-context context)
            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
            true (recur context)))))))
 
