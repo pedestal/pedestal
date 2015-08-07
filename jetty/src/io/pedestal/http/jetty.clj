@@ -24,6 +24,7 @@
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory)
+           (org.eclipse.jetty.alpn ALPN)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.server HTTP2ServerConnectionFactory
@@ -46,67 +47,71 @@
   (let [{:keys [^KeyStore keystore key-password
                 ^KeyStore truststore
                 ^String trust-password
-                client-auth
-                ssl-include-protocols]} options
+                client-auth]} options
         context (SslContextFactory.)]
     (if (string? keystore)
       (.setKeyStorePath context keystore)
       (.setKeyStore context keystore))
     (.setKeyStorePassword context key-password)
-    ;(.setKeyManagerPassword context key-password)
     (when truststore
       (.setTrustStore context truststore))
     (when trust-password
       (.setTrustStorePassword context trust-password))
-    (when ssl-include-protocols
-      (.setIncludeProtocols context (into-array String ssl-include-protocols)))
     (case client-auth
       :need (.setNeedClientAuth context true)
       :want (.setWantClientAuth context true)
       nil)
     (.setCipherComparator context HTTP2Cipher/COMPARATOR)
-    ;(.setUseCipherSuitesOrder context true)
+    (.setUseCipherSuitesOrder context true)
     context))
 
 (defn- ssl-conn-factory
-  "Creates a SslConnectionFactory instance."
+  "Create an SslConnectionFactory instance."
   [options]
-  (let [{host :host
-         alpn-factory :alpn-factory
-         {:keys [ssl-port reuse-addr?]
-          :or {ssl-port 443
-               reuse-addr? true}
-          :as container-options} :container-options} options]
-        (if alpn-factory
-          (SslConnectionFactory. (ssl-context-factory container-options) (.getProtocol ^ALPNServerConnectionFactory alpn-factory))
-          (SslConnectionFactory. (ssl-context-factory container-options) "http/1.1"))))
+  (let [{:keys [alpn container-options]} options]
+    (SslConnectionFactory.
+      (ssl-context-factory container-options)
+      (if alpn
+        (.getProtocol ^ALPNServerConnectionFactory alpn)
+        "http/1.1"))))
 
 (defn- ssl-connector
   "Creates a SslSelectChannelConnector instance."
-  [^Server server options ^HttpConfiguration http-conf]
-  (let [{host :host
-         {:keys [ssl-port reuse-addr?]
-          :or {ssl-port 443
-               reuse-addr? true
-               connection-factory-fns []}
-          :as container-options} :container-options} options
-        conn-factory (ssl-conn-factory options)
-        connector (ServerConnector. server conn-factory)]
-    (doto connector
-      (.setReuseAddress reuse-addr?)
-      (.setPort ssl-port)
-      (.setHost host))))
+  ([^Server server options]
+   (ssl-connector server options nil))
+  ([^Server server options connection-factories]
+   (let [{host :host
+          alpn :alpn
+          {:keys [ssl-port reuse-addr?]
+           :or {ssl-port 443
+                reuse-addr? true}
+           :as container-options} :container-options} options
+         ssl-factories (when alpn
+                         (into-array ConnectionFactory
+                                     (remove nil?
+                                             (into [(SslConnectionFactory.
+                                                      (ssl-context-factory container-options)
+                                                      (.getProtocol ^ALPNServerConnectionFactory alpn))]
+                                                   connection-factories))))
+         connector (if ssl-factories
+                     (ServerConnector. server ssl-factories)
+                     (ServerConnector. server (ssl-context-factory container-options)))]
+     (doto connector
+       (.setReuseAddress reuse-addr?)
+       (.setPort ssl-port)
+       (.setHost host)))))
 
 (defn- http-configuration
   "Provides an HttpConfiguration that can be consumed by connection factories"
   [options]
-  (let [{:keys [ssl? ssl-port alpn?]} options
+  (let [{:keys [ssl? ssl-port h2?]} options
         http-conf ^HttpConfiguration (HttpConfiguration.)]
-    (when (or ssl? ssl-port alpn?)
+    (when (or ssl? ssl-port h2?)
       (.setSecurePort http-conf ssl-port)
       (.setSecureScheme http-conf "https"))
     (doto http-conf
-      (.setSendDateHeader true))))
+      (.setSendDateHeader true)
+      (.addCustomizer (SecureRequestCustomizer.)))))
 
 (defn- needed-pool-size
   "Jetty 9 calculates a needed number of threads per acceptors and selectors,
@@ -131,39 +136,39 @@
   (let [{host :host
          port :port
          {:keys [ssl? ssl-port
-                 alpn? connection-factory-fns
+                 h2? h2c? connection-factory-fns
                  context-configurator configurator max-threads daemon? reuse-addr?]
           :or {configurator identity
                max-threads (max 50 (needed-pool-size))
+               h2c? true
                reuse-addr? true}} :container-options} options
         thread-pool (QueuedThreadPool. ^Integer max-threads)
         server (Server. thread-pool)
         http-conf (http-configuration (:container-options options))
-        https-conf (doto (HttpConfiguration. http-conf)
-                     (.addCustomizer (SecureRequestCustomizer.)))
         http (HttpConnectionFactory. http-conf)
-        http2c (HTTP2CServerConnectionFactory. http-conf)
-        http2 (when alpn?
-                (HTTP2ServerConnectionFactory. https-conf))
-        alpn (when alpn?
+        http2c (when h2c? (HTTP2CServerConnectionFactory. http-conf))
+        http2 (when h2? (HTTP2ServerConnectionFactory. http-conf))
+        alpn (when h2?
+               ;(set! (. ALPN debug) true)
                (NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable)
-               (doto (ALPNServerConnectionFactory. (.getProtocol ^HttpConnectionFactory http))
-                 (.setDefaultProtocol (.getProtocol http))))
-        ssl (when (or ssl? ssl-port alpn?)
-              (ssl-conn-factory (assoc options :alpn-factory alpn)))
+               (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
+                 (.setDefaultProtocol "http/1.1")))
+        ssl (when (or ssl? ssl-port h2?)
+              (ssl-conn-factory (assoc options :alpn alpn)))
         http-connector (doto (ServerConnector. server (into-array ConnectionFactory
-                                                                  [http http2c]))
+                                                                  (remove nil? [http http2c])))
                          (.setReuseAddress reuse-addr?)
                          (.setPort port)
                          (.setHost host))
         ssl-connector (when ssl
-                        (doto (ServerConnector. server (into-array ConnectionFactory
-                                                                   (keep identity
-                                                                         (into [ssl alpn http2 (HttpConnectionFactory. https-conf)]
-                                                                               (map #((% options http-conf)) connection-factory-fns)))))
-                          (.setReuseAddress reuse-addr?)
-                          (.setPort ssl-port)
-                          (.setHost host)))
+                        (doto (ServerConnector. server
+                                                (into-array ConnectionFactory
+                                                            (remove nil?
+                                                                    (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]
+                                                                          (map (fn [ffn] (ffn options http-conf)) connection-factory-fns)))))
+                         (.setReuseAddress reuse-addr?)
+                         (.setPort ssl-port)
+                         (.setHost host)))
         context (doto (ServletContextHandler. server "/")
                   (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
     (when daemon?
@@ -207,6 +212,10 @@
   ;; :context-configurator - a function called with the Jetty ServletContextHandler
   ;; :ssl?         - allow connections over HTTPS
   ;; :ssl-port     - the SSL port to listen on (defaults to 443, implies :ssl?)
+  ;; :h2?          - enable http2 protocol on secure socket port
+  ;; :h2c?         - enable http2 clear text on plain socket port
+  ;; :connection-factory-fns - a vector of functions that take the options map and HttpConfiguration
+  ;;                           and return a ConnectionFactory obj (applied to SSL connection)
   ;; :keystore     - the keystore to use for SSL connections
   ;; :key-password - the password to the keystore
   ;; :truststore   - a truststore to use for SSL connections
