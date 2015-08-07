@@ -49,10 +49,11 @@
               ::http/type :jetty
               ;;::http/host "localhost"
               ::http/port 8080
-              ::http/enable-session {:cookie-name "PEDEX"
-                                     :store (cookie/cookie-store)}
-              ::http/enable-csrf {}
-              ::http/container-options {;:alpn? true
+              ;::http/enable-session {:cookie-name "PEDEX"
+              ;                       :store (cookie/cookie-store)}
+              ;::http/enable-csrf {}
+              ::http/container-options {:h2c? true
+                                        ;:h2? true
                                         :ssl? true
                                         :ssl-port 8443
                                         :keystore "test/hp/keystore.jks"
