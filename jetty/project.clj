@@ -19,7 +19,6 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.eclipse.jetty/jetty-server "9.3.1.v20150714"]
                  [org.eclipse.jetty/jetty-alpn-server "9.3.1.v20150714"]
-                 [org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"]
                  [org.eclipse.jetty.http2/http2-server "9.3.1.v20150714"]
                  [org.eclipse.jetty/jetty-servlet "9.3.1.v20150714"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
