@@ -92,37 +92,51 @@
 (defn- test-servlet-request
   [verb url & args]
   (let [{:keys [scheme host path query-string]} (parse-url url)
-        options (apply array-map args)]
-    (reify HttpServletRequest
-     (getMethod [this] (-> verb
-                           name
-                           cstr/upper-case))
-     (getRequestURL [this] url)
-     (getServerPort [this] -1)
-     (getServerName [this] host)
-     (getRemoteAddr [this] "127.0.0.1")
-     (getRequestURI [this] (str "/" path))
-     (getServletPath [this] (.getRequestURI this))
-     (getContextPath [this] "")
-     (getQueryString [this] query-string)
-     (getScheme [this] scheme)
-     (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
-     (getProtocol [this] "HTTP/1.1")
-     (isAsyncSupported [this] false)
-     (isAsyncStarted [this] false)
-     (startAsync [this] (reify AsyncContext
-                          (complete [this] nil)
-                          (setTimeout [this n] nil)
-                          (start [this r] nil))) ;; Needed for NIO testing (see Servlet Interceptor)
-     (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
-     (getHeader [this header] (get-in options [:headers header]))
-     ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
-     (getContentLength [this] (get-in options [:headers "Content-Length"] (int 0)))
-     (getContentLengthLong [this] (get-in options [:headers "Content-Length"] (long 0)))
-     (getContentType [this] (get-in options [:headers "Content-Type"] ""))
-     (getCharacterEncoding [this] "UTF-8")
-     (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
-     (getAttribute [this attribute] nil))))
+        options (apply array-map args)
+        async-context (atom nil)
+        completion (promise)
+        meta-data {:completion completion}]
+    (with-meta
+      (reify HttpServletRequest
+        (getMethod [this] (-> verb
+                            name
+                            cstr/upper-case))
+        (getRequestURL [this] url)
+        (getServerPort [this] -1)
+        (getServerName [this] host)
+        (getRemoteAddr [this] "127.0.0.1")
+        (getRequestURI [this] (str "/" path))
+        (getServletPath [this] (.getRequestURI this))
+        (getContextPath [this] "")
+        (getQueryString [this] query-string)
+        (getScheme [this] scheme)
+        (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
+        (getProtocol [this] "HTTP/1.1")
+        (isAsyncSupported [this] true)
+        (isAsyncStarted [this] (some? @async-context))
+        (getAsyncContext [this] @async-context)
+        (startAsync [this]
+          (compare-and-set! async-context
+                            nil
+                            (reify AsyncContext
+                              (complete [this]
+                                (deliver completion true)
+                                nil)
+                              (setTimeout [this n]
+                                nil)
+                              (start [this r]
+                                nil)))
+          @async-context) ;; Needed for NIO testing (see Servlet Interceptor)
+        (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
+        (getHeader [this header] (get-in options [:headers header]))
+        ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
+        (getContentLength [this] (get-in options [:headers "Content-Length"] (int 0)))
+        (getContentLengthLong [this] (get-in options [:headers "Content-Length"] (long 0)))
+        (getContentType [this] (get-in options [:headers "Content-Type"] ""))
+        (getCharacterEncoding [this] "UTF-8")
+        (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
+        (getAttribute [this attribute] nil))
+      meta-data)))
 
 (defn- test-servlet-output-stream
   []
@@ -212,8 +226,10 @@
   [interceptor-service-fn verb url & args]
   (let [servlet (test-servlet interceptor-service-fn)
         servlet-request (apply test-servlet-request verb url args)
-        servlet-response (test-servlet-response)]
-    (.service servlet servlet-request servlet-response)
+        servlet-response (test-servlet-response)
+        context (.service servlet servlet-request servlet-response)]
+    (when (.isAsyncStarted servlet-request)
+      (-> servlet-request meta :completion deref))
     {:status (test-servlet-response-status servlet-response)
      :body (test-servlet-response-body servlet-response)
      :headers (test-servlet-response-headers servlet-response)}))
