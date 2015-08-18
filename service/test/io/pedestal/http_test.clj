@@ -90,6 +90,8 @@
     ["/people" {:get [:people (page "people")]}
      ["/:id" {:get [:person (page "person")]}
       ["/friends" {:get [:friends (page "friends")]}]]]
+    ["/trailing-slash/" {:get [:trailing-slash (page "trailing-slash")]}
+     ["/:id" {:get [:trailing-slash-by-id (page "trailing-slash-by-id")]}]]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
     ["/token" {:get hello-token-page}]
     ["/bytebuffer" {:get hello-byte-buffer-page}]
@@ -122,10 +124,20 @@
 (def app (make-app app-interceptors))
 
 (deftest trailing-slash-in-path
-  (doseq [path ["/people" "/people/"]]
-    (testing path
-      (let [{:keys [status body]} (response-for app :get path)]
-        (is (= status 200))))))
+  (testing "GET /people"
+    (let [{:keys [status body]} (response-for app :get "/people")]
+      (is (= 200 status))
+      (is (= "people" body))))
+  (testing "GET /people/"
+    (let [{:keys [status body]} (response-for app :get "/people/")]
+      (is (= 404 status))))
+  (testing "GET /trailing-slash/"
+    (let [{:keys [status body]} (response-for app :get "/trailing-slash/")]
+      (is (= 200 status))
+      (is (= "trailing-slash" body))))
+  (testing "GET /trailing-slash"
+    (let [{:keys [status body]} (response-for app :get "/trailing-slash")]
+      (is (= 404 status)))))
 
 (deftest html-body-test
   (let [response (response-for app :get "/text-as-html")]
