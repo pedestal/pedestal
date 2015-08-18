@@ -28,6 +28,11 @@
   (ring-resp/response (format "Yeah, this is a self-link to %s"
                               (io.pedestal.http.route/url-for :about))))
 
+(defn- page
+  [body]
+  (fn [_]
+    (ring-resp/response body)))
+
 (defn hello-page
   [request] (ring-resp/response "HELLO"))
 
@@ -82,6 +87,11 @@
 
 (defroutes app-routes
   [[["/about" {:get [:about about-page]}]
+    ["/people" {:get [:people (page "people")]}
+     ["/:id" {:get [:person (page "person")]}
+      ["/friends" {:get [:friends (page "friends")]}]]]
+    ["/trailing-slash/" {:get [:trailing-slash (page "trailing-slash")]}
+     ["/:id" {:get [:trailing-slash-by-id (page "trailing-slash-by-id")]}]]
     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
     ["/token" {:get hello-token-page}]
     ["/bytebuffer" {:get hello-byte-buffer-page}]
@@ -112,6 +122,22 @@
       ::service/service-fn))
 
 (def app (make-app app-interceptors))
+
+(deftest trailing-slash-in-path
+  (testing "GET /people"
+    (let [{:keys [status body]} (response-for app :get "/people")]
+      (is (= 200 status))
+      (is (= "people" body))))
+  (testing "GET /people/"
+    (let [{:keys [status body]} (response-for app :get "/people/")]
+      (is (= 404 status))))
+  (testing "GET /trailing-slash/"
+    (let [{:keys [status body]} (response-for app :get "/trailing-slash/")]
+      (is (= 200 status))
+      (is (= "trailing-slash" body))))
+  (testing "GET /trailing-slash"
+    (let [{:keys [status body]} (response-for app :get "/trailing-slash")]
+      (is (= 404 status)))))
 
 (deftest html-body-test
   (let [response (response-for app :get "/text-as-html")]
@@ -301,4 +327,3 @@
     (is (> (count body) 5))
     (is (= "HELLO" (subs body 0 5)))
     (is (not-empty (subs body 4)))))
-

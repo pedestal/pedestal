@@ -1008,16 +1008,26 @@
              (map-routes->vec-routes routes-under-test)))))
 
 (defn test-match-root-trailing-slash-map [router-impl-key]
-  (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
-                   (-> routes
-                       (test-query-execute
-                        :prefix-tree
-                        {:request {:request-method :get
-                                   :path-info "/child-path"}})
-                       :route
-                       (select-keys [:route-name :path])))
-       map-routes
-       data-map-routes))
+  (testing "/child-path"
+    (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
+                     (-> routes
+                         (test-query-execute
+                          router-impl-key
+                          {:request {:request-method :get
+                                     :path-info "/child-path"}})
+                         :route
+                         (select-keys [:route-name :path])))
+      map-routes
+      data-map-routes))
+  (testing "/child-path/"
+    (are [routes] (nil? (-> routes
+                            (test-query-execute
+                             router-impl-key
+                             {:request {:request-method :get
+                                        :path-info "/child-path/"}})
+                            :route))
+      map-routes
+      data-map-routes)))
 
 (deftest match-root-trailing-slash-map
   (test-match-root-trailing-slash-map :prefix-tree)

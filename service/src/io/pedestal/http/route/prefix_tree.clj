@@ -264,7 +264,7 @@
 
         (:wild? node)
         (let [i (.indexOf path "/")]
-          (if (pos? i)
+          (if (and (pos? i) (not= (inc i) (count path)))
             (let [value (subs path 0 i)]
               (recur (assoc path-params (:param node) value)
                      (get-child node path (inc i))
@@ -303,6 +303,8 @@
                  (insert "/:foo/bar/:x" 4)
                  (insert "/:foo/baz/*rest" 5)))
 
+  (:path-params (lookup ptree "/foo/"))
+  ;;=> {:foo "foo/"}
   (:path-params (lookup ptree "/foo/bar"))
   ;;=> {:foo "foo"}
   (:path-params (lookup ptree "/foo/bar/baz"))
@@ -318,10 +320,11 @@
     ;; find a result in the prefix-tree - payload could contains mutiple routes
     (when-let [result (lookup tree (:path-info req))]
       ;; call payload function to find specific match based on method, host, scheme and port
-      (when-let [route ((:payload result) req)]
-        ;; return a match only if path and query constraints are satisfied
-        (when ((::satisfies-constraints? route) req (:path-params result))
-          (assoc route :path-params (:path-params result)))))))
+      (when-let [payload (:payload result)]
+        (when-let [route (payload req)]
+          ;; return a match only if path and query constraints are satisfied
+          (when ((::satisfies-constraints? route) req (:path-params result))
+            (assoc route :path-params (:path-params result))))))))
 
 ;; The prefix tree is used to find a collection of routes which are
 ;; indexed by method, host, scheme and port, in that order. This is
