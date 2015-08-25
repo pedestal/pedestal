@@ -17,7 +17,8 @@
             [clojure.string :as cstr]
             [clojure.java.io :as io]
             [clojure.core.async :as async]
-            [io.pedestal.http.container :as container])
+            [io.pedestal.http.container :as container]
+            [io.pedestal.http.sse :as sse])
   (:import (javax.servlet.http HttpServlet HttpServletRequest HttpServletResponse)
            (javax.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
            (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
@@ -269,4 +270,36 @@
   :headers : An optional map that are the headers"
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
-      (update-in [:body] #(.toString % "UTF-8"))))
+    (update-in [:body] #(.toString % "UTF-8"))))
+
+;; This is all a bit ugly, as it relies on what are essentially
+;; internal implementation details. But there isn't an obviously
+;; better way to do this, so at least we can capture it in a function
+;; so people don't have to reinvent this particular broken wheel.
+;; Hopefully we'll come up with something better at some point
+(let [original sse/send-event]
+  (defn hook-sse-events!
+    "Given a channel, hooks the SSE infrastructure so that every SSE
+  event will be copied to that channel as a map with keys :name
+  and :data. Note that all events are copied, regardless of endpoint,
+  until unhook-sse-events! is called, and Pedestal can block on sends
+  to the provided channel if events are not read nor something like a
+  dropping buffer is not used. Also note, the hook channel will NOT
+  close when the event channel is closed."
+    [hook-chan]
+    (alter-var-root #'io.pedestal.http.sse/send-event
+                    (fn [f]
+                      (when-not (= f original)
+                        (throw (ex-info "Can't call hook-sse-events! twice without first calling `unhook-sse-events!`."
+                                        {:reason ::multiple-hook-sse-events-calls})))
+                      (fn [channel name data]
+                        (async/>!! hook-chan
+                                   {:name name
+                                    :data data})
+                        (original channel name data)))))
+
+  (defn unhook-sse-events!
+    "Undoes a call to `hook-sse-events!`."
+    []
+    (alter-var-root #'io.pedestal.http.sse/send-event
+                    (constantly original))))
