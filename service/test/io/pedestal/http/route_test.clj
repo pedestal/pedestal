@@ -1030,3 +1030,31 @@
        map-routes
        data-map-routes))
 
+;; Issue #340 - correctly 404 non-matching routes
+;; https://github.com/pedestal/pedestal/issues/340
+(defhandler echo-request
+  [request]
+  {:status 200
+   :body (pr-str request)
+   :headers {}})
+
+(defroutes routes-with-params
+  [[["/a/:a/b/:b" {:any echo-request}]]])
+
+(deftest non-matching-routes-should-404
+  (are [path]
+    (-> (test-query-execute routes-with-params
+                            :prefix-tree
+                            {:request
+                             {:request-method :get
+                              :path-info path}})
+      :route
+      nil?)
+    "/a"
+    "/a/"
+    "/a/a"
+    "/a/a/b"
+    "/a/a/b/"
+    "/a/a/b/b/"
+    "/a/a/b/b/c"))
+
