@@ -28,7 +28,8 @@
   "Return the single character child key for the string started at
   index i."
   [s i]
-  (subs s i (inc i)))
+  (when (< i (count s))
+    (subs s i (inc i))))
 
 (defn- wild? [s]
   (contains? #{\: \*} (first s)))
@@ -316,9 +317,9 @@
   router/Router
   (find-route [this req]
     ;; find a result in the prefix-tree - payload could contains mutiple routes
-    (when-let [result (lookup tree (:path-info req))]
+    (when-let [{:keys [payload] :as result} (lookup tree (:path-info req))]
       ;; call payload function to find specific match based on method, host, scheme and port
-      (when-let [route ((:payload result) req)]
+      (when-let [route (when payload (payload req))]
         ;; return a match only if path and query constraints are satisfied
         (when ((::satisfies-constraints? route) req (:path-params result))
           (assoc route :path-params (:path-params result)))))))
@@ -505,3 +506,4 @@
   ;;=> {:rest "one/two", :x "bar"}
 
   )
+
