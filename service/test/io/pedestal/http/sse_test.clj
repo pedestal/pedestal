@@ -13,11 +13,8 @@
 (ns io.pedestal.http.sse-test
   (:require [io.pedestal.impl.interceptor :as interceptor]
             [io.pedestal.log :as log]
-            [io.pedestal.http :as service]
             [io.pedestal.http.sse :refer :all]
-            [io.pedestal.http.cors :as cors]
-            [io.pedestal.http.route.definition :refer [defroutes]]
-            [clojure.core.async :as async])
+            [io.pedestal.http.cors :as cors])
   (:use [clojure.test]
         [io.pedestal.test]))
 
@@ -46,30 +43,4 @@
         "The client is instructed not to cache the event stream")
     (is (= "http://foo.com:8080" allow-origin)
         "The origin is allowed")))
-
-
-(defn stream-ready [event-chan context]
-  (async/>!! event-chan {:name "foo" :data "bar"})
-  (async/>!! event-chan {:name "foo" :data "bar 2"})
-  (async/close! event-chan))
-
-(defroutes route-table
-  [[["/events" {:get [::events (start-event-stream stream-ready)]}]]])
-
-(deftest sse-events
-  (try
-    (let [hook-chan (async/chan 100)
-          _         (hook-sse-events! hook-chan)
-          app       (-> {::service/routes route-table}
-                      service/default-interceptors
-                      service/service-fn
-                      ::service/service-fn)
-          response  (response-for app :get "/events")]
-      (is (= {:name "foo" :data "bar"}
-             (async/<!! hook-chan)))
-      (is (= {:name "foo" :data "bar 2"}
-             (async/<!! hook-chan))))
-    (finally
-      (unhook-sse-events!))))
-
 
