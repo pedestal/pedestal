@@ -126,7 +126,8 @@
                                 nil)
                               (start [this r]
                                 nil)))
-          @async-context) ;; Needed for NIO testing (see Servlet Interceptor)
+          @async-context)
+        ;; Needed for NIO testing (see Servlet Interceptor)
         (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
         (getHeader [this header] (get-in options [:headers header]))
         ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
