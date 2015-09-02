@@ -102,6 +102,30 @@
   ;;(end-fn)
   )
 
+;; This is extracted as a separate function mainly to support advanced
+;; users who want to rebind it during tests. Note to those that do so:
+;; the function is private to indicate that the contract may break in
+;; future revisions. Use at your own risk. If you find yourself using
+;; this to see what data is being put on `event-channel` consider
+;; instead modifying your application's stream-ready-fn to support the
+;; tests you want to write.
+(defn- start-dispatch-loop
+  "Kicks off the loop that transfers data provided by the application
+  on `event-channel` to the HTTP infrastructure via
+  `response-channel`."
+  [event-channel response-channel heartbeat]
+  (async/go
+    (loop []
+      (when-let [event (async/<! event-channel)]
+        ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
+        (let [event-name (if (map? event) (str (:name event)) nil)
+              event-data (if (map? event) (str (:data event)) (str event))]
+          (when (send-event response-channel event-name event-data)
+            (recur)))))
+    (.cancel ^ScheduledFuture heartbeat true)
+    (async/close! event-channel)
+    (async/close! response-channel)))
+
 (defn start-stream
   "Starts an SSE event stream and initiates a heartbeat to keep the
   connection alive. `stream-ready-fn` will be called with a core.async
@@ -125,17 +149,7 @@
     (async/thread
      (stream-ready-fn event-channel (assoc context :response-channel response-channel)))
 
-    (async/go
-      (loop []
-        (when-let [event (async/<! event-channel)]
-          ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
-          (let [event-name (if (map? event) (str (:name event)) nil)
-                event-data (if (map? event) (str (:data event)) (str event))]
-            (when (send-event response-channel event-name event-data)
-              (recur)))))
-      (.cancel ^ScheduledFuture heartbeat true)
-      (async/close! event-channel)
-      (async/close! response-channel))
+    (start-dispatch-loop event-channel response-channel heartbeat)
 
     (assoc context :response response))))
 
