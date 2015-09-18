@@ -81,19 +81,17 @@
                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
       (throw t))))
 
-(defn do-heartbeat [channel]
-  (try
-    (log/trace :msg "writing heartbeat to stream")
-    (async/>!! channel CRLF)
-    (catch Throwable t
-      (log/error :msg "exception sending heartbeat"
-                 :throwable t
-                 :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
-      (throw t))))
-
-(defn- ^ScheduledFuture schedule-heartbeart [channel heartbeat-delay]
-  (let [f #(do-heartbeat channel)]
-    (.scheduleWithFixedDelay scheduler f 0 heartbeat-delay TimeUnit/SECONDS)))
+(defn do-heartbeat
+  ([channel] (do-heartbeat channel {}))
+  ([channel {:keys [on-client-disconnect]}]
+   (try
+     (log/trace :msg "writing heartbeat to stream")
+     (async/>!! channel CRLF)
+     (catch Throwable t
+       (log/error :msg "exception sending heartbeat"
+                  :throwable t
+                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
+       (throw t)))))
 
 (defn end-event-stream
   "DEPRECATED. Given a `context`, clean up the event stream it represents."
@@ -113,18 +111,31 @@
   "Kicks off the loop that transfers data provided by the application
   on `event-channel` to the HTTP infrastructure via
   `response-channel`."
-  [event-channel response-channel heartbeat]
+  [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
   (async/go
     (loop []
-      (when-let [event (async/<! event-channel)]
-        ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
-        (let [event-name (if (map? event) (str (:name event)) nil)
-              event-data (if (map? event) (str (:data event)) (str event))]
-          (when (send-event response-channel event-name event-data)
-            (recur)))))
-    (.cancel ^ScheduledFuture heartbeat true)
+      (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
+           [event port] (async/alts! [event-channel hb-timeout])]
+       (cond
+         (= port hb-timeout)
+         (if (async/>! response-channel CRLF)
+           (recur)
+           (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
+
+         (and (some? event) (= port event-channel))
+         ;; You can name your events using the maps
+         ;; {:name "my-event" :data "some message data here"}
+         (let [event-name (if (map? event) (str (:name event)) nil)
+               event-data (if (map? event) (str (:data event)) (str event))]
+           (if (send-event response-channel event-name event-data)
+             (recur)
+             (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+
+         :else
+         (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
     (async/close! event-channel)
-    (async/close! response-channel)))
+    (async/close! response-channel)
+    (when on-client-disconnect (on-client-disconnect))))
 
 (defn start-stream
   "Starts an SSE event stream and initiates a heartbeat to keep the
@@ -137,38 +148,52 @@
   ([stream-ready-fn context heartbeat-delay]
    (start-stream stream-ready-fn context heartbeat-delay 10))
   ([stream-ready-fn context heartbeat-delay buffer-or-n]
+   (start-stream stream-ready-fn context heartbeat-delay buffer-or-n {}))
+  ([stream-ready-fn context heartbeat-delay buffer-or-n {:keys [on-client-disconnect]}]
    (let [response-channel (async/chan buffer-or-n)
-        response (-> (ring-response/response response-channel)
-                     (ring-response/content-type "text/event-stream")
-                     (ring-response/charset "UTF-8")
-                     (ring-response/header "Connection" "close")
-                     (ring-response/header "Cache-Control" "no-cache")
-                     (update-in [:headers] merge (:cors-headers context)))
-        heartbeat (schedule-heartbeart response-channel heartbeat-delay)
-        event-channel (async/chan buffer-or-n)]
-    (async/thread
-     (stream-ready-fn event-channel (assoc context :response-channel response-channel)))
-
-    (start-dispatch-loop event-channel response-channel heartbeat)
-
-    (assoc context :response response))))
+         response (-> (ring-response/response response-channel)
+                      (ring-response/content-type "text/event-stream")
+                      (ring-response/charset "UTF-8")
+                      (ring-response/header "Connection" "close")
+                      (ring-response/header "Cache-Control" "no-cache")
+                      (update-in [:headers] merge (:cors-headers context)))
+         event-channel (async/chan buffer-or-n)
+         context* (assoc context
+                         :response-channel response-channel
+                         :response response)]
+     (async/thread
+       (stream-ready-fn event-channel context*))
+     (start-dispatch-loop (merge {:event-channel event-channel
+                                  :response-channel response-channel
+                                  :heartbeat-delay heartbeat-delay
+                                  :context context*}
+                                 (when on-client-disconnect
+                                   {:on-client-disconnect #(on-client-disconnect context*)})))
+     context*)))
 
 (defn start-event-stream
   "Returns an interceptor which will start a Server Sent Event stream
   with the requesting client, and set the ServletResponse to go
   async. After the request handling context has been paused in the
   Servlet thread, `stream-ready-fn` will be called in a future, with
-  the resulting context from setting up the SSE event stream."
+  the resulting context from setting up the SSE event stream.
+
+  opts is a map with optional keys:
+
+  :on-client-disconnect - A function of one argument which will be
+    called when the client permanently disconnects."
   ([stream-ready-fn]
    (start-event-stream stream-ready-fn 10 10))
   ([stream-ready-fn heartbeat-delay]
    (start-event-stream stream-ready-fn heartbeat-delay 10))
   ([stream-ready-fn heartbeat-delay buffer-or-n]
+   (start-event-stream stream-ready-fn heartbeat-delay buffer-or-n {}))
+  ([stream-ready-fn heartbeat-delay buffer-or-n opts]
    (interceptor/interceptor
      {:name "io.pedestal.http.sse/start-event-stream"
       :enter (fn [context]
                (log/trace :msg "switching to sse")
-               (start-stream stream-ready-fn context heartbeat-delay buffer-or-n))})))
+               (start-stream stream-ready-fn context heartbeat-delay buffer-or-n opts))})))
 
 (defn sse-setup
   "See start-event-stream. This function is for backward compatibility."
