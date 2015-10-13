@@ -39,12 +39,13 @@ The generated project definition looks like this:
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [io.pedestal/pedestal.service "0.3.0"]
+                 [io.pedestal/pedestal.service "0.4.0"]
 
-                 ;; Remove this line and uncomment the next line to
-                 ;; use Tomcat instead of Jetty:
-                 [io.pedestal/pedestal.jetty "0.3.0"]
-                 ;; [io.pedestal/pedestal.tomcat "0.3.0"]
+                 ;; Remove this line and uncomment one of the next lines to
+                 ;; use Immutant or Tomcat instead of Jetty:
+                 [io.pedestal/pedestal.jetty "0.4.0"]
+                 ;; [io.pedestal/pedestal.immutant "0.4.0"]
+                 ;; [io.pedestal/pedestal.tomcat "0.4.0"]
 
                  [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.7"]
@@ -53,7 +54,8 @@ The generated project definition looks like this:
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "helloworld.server/run-dev"]}
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.3.0"]]}}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.4.0"]]}
+             :uberjar {:aot [helloworld.server]}}
   :main ^{:skip-aot true} helloworld.server)
 ```
 
@@ -146,18 +148,17 @@ configured by `helloworld.service/service`, then start it with
 We'll start the server from a repl, which is how we will normally run in development mode.
 
 ```bash
-$ lein repl
-INFO  org.eclipse.jetty.util.log - Logging initialized @11433ms
-nREPL server started on port 63370 on host 127.0.0.1 - nrepl://127.0.0.1:63370
-REPL-y 0.3.2, nREPL 0.2.3
+INFO  org.eclipse.jetty.util.log - Logging initialized @10952ms
+nREPL server started on port 57657 on host 127.0.0.1 - nrepl://127.0.0.1:57657
+REPL-y 0.3.7, nREPL 0.2.10
 Clojure 1.6.0
-Java HotSpot(TM) 64-Bit Server VM 1.7.0_21-b12
-    Docs: (doc function-name-here)
-          (find-doc "part-of-name-here")
-  Source: (source function-name-here)
- Javadoc: (javadoc java-object-or-class-here)
-    Exit: Control+D or (exit) or (quit)
- Results: Stored in vars *1, *2, *3, an exception in *e
+Java HotSpot(TM) 64-Bit Server VM 1.8.0_25-b17
+   Docs: (doc function-name-here)
+         (find-doc "part-of-name-here")
+ Source: (source function-name-here)
+Javadoc: (javadoc java-object-or-class-here)
+   Exit: Control+D or (exit) or (quit)
+Results: Stored in vars *1, *2, *3, an exception in *e
 
 helloworld.server=>
 ```
