@@ -133,11 +133,14 @@
   on that channel to cause SSE events to be sent to the client. Either
   the client or the application may close the channel to terminate and
   clean up the event stream; the client closes it by closing the
-  connection."
+  connection.
+
+  The SSE's core.async buffer can either be a fixed buffer (n) or a 0-arity
+  function that returns a buffer."
   ([stream-ready-fn context heartbeat-delay]
    (start-stream stream-ready-fn context heartbeat-delay 10))
-  ([stream-ready-fn context heartbeat-delay buffer-or-n]
-   (let [response-channel (async/chan buffer-or-n)
+  ([stream-ready-fn context heartbeat-delay bufferfn-or-n]
+   (let [response-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
         response (-> (ring-response/response response-channel)
                      (ring-response/content-type "text/event-stream")
                      (ring-response/charset "UTF-8")
@@ -145,7 +148,7 @@
                      (ring-response/header "Cache-Control" "no-cache")
                      (update-in [:headers] merge (:cors-headers context)))
         heartbeat (schedule-heartbeart response-channel heartbeat-delay)
-        event-channel (async/chan buffer-or-n)]
+        event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))]
     (async/thread
      (stream-ready-fn event-channel (assoc context :response-channel response-channel)))
 
@@ -163,12 +166,12 @@
    (start-event-stream stream-ready-fn 10 10))
   ([stream-ready-fn heartbeat-delay]
    (start-event-stream stream-ready-fn heartbeat-delay 10))
-  ([stream-ready-fn heartbeat-delay buffer-or-n]
+  ([stream-ready-fn heartbeat-delay bufferfn-or-n]
    (interceptor/interceptor
      {:name "io.pedestal.http.sse/start-event-stream"
       :enter (fn [context]
                (log/trace :msg "switching to sse")
-               (start-stream stream-ready-fn context heartbeat-delay buffer-or-n))})))
+               (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n))})))
 
 (defn sse-setup
   "See start-event-stream. This function is for backward compatibility."
