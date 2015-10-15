@@ -63,10 +63,10 @@ In the terse format, a route table is a vector of vectors, each
 describing an application. Each application vector can contain the
 following optional elements:
 
-- a keyword identifying the application by name
-- required URL scheme(s)
-- a required host header value, e.g., example.com
-- one or more nested vectors specifying routes
+- a keyword identifying the application by name (optional)
+- a URL scheme (optional)
+- a host name (optional)
+- one or more nested vectors specifying routes (required)
 
 Here is a simple "Hello World" example:
 
