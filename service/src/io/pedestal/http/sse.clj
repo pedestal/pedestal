@@ -149,8 +149,9 @@
    (start-stream stream-ready-fn context heartbeat-delay 10))
   ([stream-ready-fn context heartbeat-delay buffer-or-n]
    (start-stream stream-ready-fn context heartbeat-delay buffer-or-n {}))
-  ([stream-ready-fn context heartbeat-delay buffer-or-n {:keys [on-client-disconnect]}]
-   (let [response-channel (async/chan buffer-or-n)
+  ([stream-ready-fn context heartbeat-delay buffer-or-n opts]
+   (let [{:keys [on-client-disconnect]} opts
+         response-channel (async/chan buffer-or-n)
          response (-> (ring-response/response response-channel)
                       (ring-response/content-type "text/event-stream")
                       (ring-response/charset "UTF-8")
