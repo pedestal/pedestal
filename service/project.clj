@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.4.1"
+(defproject io.pedestal/pedestal.service "0.4.2-SNAPSHOT"
   :description "Pedestal Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -61,10 +61,10 @@
                                   [clj-http "2.0.0" :exclusions [[potemkin]
                                                                  [clj-tuple]]]
                                   [com.ning/async-http-client "1.8.13"]
-                                  [io.pedestal/pedestal.jetty "0.4.1"]
+                                  [io.pedestal/pedestal.jetty "0.4.2-SNAPSHOT"]
                                   [org.eclipse.jetty/jetty-servlets "9.3.1.v20150714"]
-                                  [io.pedestal/pedestal.immutant "0.4.1"]
-                                  [io.pedestal/pedestal.tomcat "0.4.1"]
+                                  [io.pedestal/pedestal.immutant "0.4.2-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.4.2-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.1.3" :exclusions [org.slf4j/slf4j-api]]
