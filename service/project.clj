@@ -16,7 +16,7 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0-RC4"]
                  ;; logging
                  [org.slf4j/slf4j-api "1.7.12"]
 
@@ -24,26 +24,25 @@
                  [org.clojure/core.incubator "0.1.3"]
 
                  ;; channels
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha" :exclusions [[org.clojure/tools.analyzer.jvm]]]
+                 [org.clojure/core.async "0.2.374"]
 
                  ;; interceptors
                  [ring/ring-core "1.4.0" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
-                 [org.clojure/tools.reader "0.9.2"]
-                 [org.clojure/tools.analyzer.jvm "0.6.7"]
                  [org.clojure/core.match "0.3.0-alpha4" :exclusions [[org.clojure/clojurescript]
                                                                      [org.clojure/tools.analyzer.jvm]]]
                  ;[com.fasterxml.jackson.core/jackson-core "2.3.2"]
                  [cheshire "5.5.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
-                 [com.cognitect/transit-clj "0.8.275"]
+                 [com.cognitect/transit-clj "0.8.285"]
                  [commons-codec "1.10"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
   :javac-options ["-target" "1.7" "-source" "1.7"]
+  :jvm-opts ["-D\"clojure.compiler.direct-linking=true\""]
   :global-vars {*warn-on-reflection* true}
   :pedantic? :abort
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
