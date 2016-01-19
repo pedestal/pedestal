@@ -162,8 +162,8 @@ Here's how you define a "before" interceptor:
    {:name ::hello-world
     :enter
     (fn [context]
-      (assoc context :response 
-                     {:status 200 :body "Hello world!" 
+      (assoc context :response
+                     {:status 200 :body "Hello world!"
                       :headers {"Content-Type" "text/plain"}}))}))
 ```
 
@@ -178,8 +178,8 @@ And an "after" interceptor:
    {:name ::add-foo-header
     :leave
     (fn [context]
-      (update-in context [:response :headers] 
-                 merge "Foo" "Bar"))}))
+      (update-in context [:response :headers]
+                 assoc "Foo" "Bar"))}))
 ```
 
 ## Request Processing Across Threads
