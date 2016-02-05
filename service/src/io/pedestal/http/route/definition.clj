@@ -59,7 +59,7 @@
 
 (def valid-handler?      (some-fn seq? symbol? interceptor/interceptor?))
 (def interceptor-vector? (every-pred vector? (comp :interceptors meta)))
-(def constraint-map?     (every-pred map?    (comp :contraints   meta)))
+(def constraint-map?     (every-pred map?    (comp :constraints  meta)))
 
 (extend-protocol ExpandableVerbAction
   clojure.lang.Symbol
@@ -105,7 +105,7 @@
         children     (filter (comp not :interceptors meta) vectors)
         interceptors (filter interceptor-vector? specs)
         verbs        (reduce merge {} (filter (comp not :constraints meta) maps))
-        constraints  (reduce merge {} (filter constraint-maps? specs))]
+        constraints  (reduce merge {} (filter constraint-map? specs))]
     (cond-> routing-tree-node
             (not (empty? verbs)) (assoc :verbs (expand-verbs verbs))
             (not (empty? constraints)) (assoc :constraints constraints)
@@ -193,21 +193,18 @@
 (def preamble? (some-fn number? string? keyword?))
 
 (defn flatten-terse-app-routes
-  "Return S-expressions that are equivalent to the terse routing syntax, but
-   expanded for consumption by the router itself."
+  "Return a vector of maps that are equivalent to the terse routing syntax, but
+   expanded for consumption by the verbose route parser."
   [route-spec]
   (let [[preamble routes] (split-with preamble? route-spec)]
     (assert (count routes) "There should be at least one route in the application vector")
-
     (log/debug :app-name (extract-app-name preamble) :route-count (count routes))
-
     (->> {:app-name (extract-app-name preamble)
           :host     (extract-host     preamble)
           :scheme   (extract-scheme   preamble)
           :port     (extract-port     preamble)}
          (dissoc-when nil?)
-         (add-children routes)
-         )))
+         (add-children routes))))
 
 (extend-protocol ExpandableRoutes
   clojure.lang.APersistentVector
