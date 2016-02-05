@@ -13,9 +13,25 @@
 (ns io.pedestal.http.route.definition
   (:require [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.log :as log]
             [clojure.set :as set]))
 
 (def schemes #{:http :https})
+
+(defn- unexpected-vector-in-route [spec]
+  (format "The route specification probably has too many levels of nested vectors: %s" spec))
+
+(defn- unmatched-type-in-constraint [spec]
+  (format "Cannot expand '%s' as a route. Expected a verb map or path string, but found a %s instead" spec (type spec)))
+
+(defn- invalid-handler [handler original]
+  (format "While parsing a verb map, found a %s as a handler. It must be a symbol that resolves to an interceptor or an actual interceptor. The full vector is %s" (type handler) original))
+
+(defn- missing-handler [handler original]
+  (format "When parsing a verb map, tried in vain to find a handler (as the first symbol that resolves to an interceptor or interceptor map in a vector). Looking in %s" vector))
+
+(defn- leftover-declarations [vector original]
+  (format "This vector for the verb map has extra elements. The leftover elements are %s from the original data %s" vector original))
 
 (declare expand-path)
 (declare expand-query-constraint)
@@ -31,9 +47,19 @@
 (defmethod expand-constraint clojure.lang.APersistentMap [query-constraint-spec]
   (expand-query-constraint query-constraint-spec))
 
+(defmethod expand-constraint clojure.lang.PersistentVector [spec]
+  (assert false (unexpected-vector-in-route spec)))
+
+(defmethod expand-constraint :default [unmatched]
+  (assert false (unmatched-type-in-constraint unmatched)))
+
 (defprotocol ExpandableVerbAction
   (expand-verb-action [expandable-verb-action]
     "Expand `expandable-verb-action` into a verbose-form verb-map."))
+
+(def valid-handler?      (some-fn seq? symbol? interceptor/interceptor?))
+(def interceptor-vector? (every-pred vector? (comp :interceptors meta)))
+(def constraint-map?     (every-pred map?    (comp :contraints   meta)))
 
 (extend-protocol ExpandableVerbAction
   clojure.lang.Symbol
@@ -44,17 +70,20 @@
 
   clojure.lang.APersistentVector
   (expand-verb-action [vector]
-    (let [route-name (first (filter #(isa? (type %) clojure.lang.Keyword) vector))
-          handler (or (first (filter seq? vector))
-                      (first (filter symbol? vector))
-                      (first (filter interceptor/interceptor? vector)))
-          interceptors (vec (apply concat (filter #(and (vector? %)
-                                                        (-> %
-                                                            meta
-                                                            :interceptors))
-                                                  vector)))]
-      {:route-name route-name
-       :handler handler
+    ;; Take this apart by hand so we can provide nice error
+    ;; messages. Exceptions from destructuring are opaque to users.
+    (let [original     vector
+          route-name   (when (keyword? (first vector)) (first vector))
+          vector       (if   (keyword? (first vector)) (next vector) vector)
+          interceptors (vec (apply concat (filter interceptor-vector? vector)))
+          vector       (remove interceptor-vector? vector)
+          handler      (first vector)
+          vector       (next vector)
+          _            (assert (valid-handler? handler) (invalid-handler handler original))]
+      (assert handler (missing-handler handler original))
+      (assert (empty? vector) (leftover-declarations vector original))
+      {:route-name   route-name
+       :handler      handler
        :interceptors interceptors}))
 
   io.pedestal.interceptor.Interceptor
@@ -71,14 +100,12 @@
 (defn- expand-abstract-constraint
   "Expand all of the directives in specs, adding them to routing-tree-node."
   [routing-tree-node specs]
-  (let [vectors (filter #(isa? (type %) clojure.lang.APersistentVector)
-                         specs)
-        maps (filter #(isa? (type %) clojure.lang.APersistentMap)
-                     specs)
-        children (filter (comp not :interceptors meta) vectors)
-        interceptors (filter (comp :interceptors meta) vectors)
-        verbs (reduce merge {} (filter (comp not :constraints meta) maps))
-        constraints (reduce merge {} (filter (comp :constraints meta) maps))]
+  (let [vectors      (filter vector? specs)
+        maps         (filter map? specs)
+        children     (filter (comp not :interceptors meta) vectors)
+        interceptors (filter interceptor-vector? specs)
+        verbs        (reduce merge {} (filter (comp not :constraints meta) maps))
+        constraints  (reduce merge {} (filter constraint-maps? specs))]
     (cond-> routing-tree-node
             (not (empty? verbs)) (assoc :verbs (expand-verbs verbs))
             (not (empty? constraints)) (assoc :constraints constraints)
@@ -100,79 +127,36 @@
 (defn- extract-children
   "Return the children, if present, from route-domain."
   [route-domain]
-  (filter #(isa? (type %) clojure.lang.APersistentVector) route-domain))
+  (filter vector? route-domain))
 
 (defn- add-children
   "Add the :children key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
+  [route-domain verbose-map]
   (if-let [children (extract-children route-domain)]
     (assoc verbose-map :children (map expand-constraint children))
     verbose-map))
 
+(defn first-of [p coll] (first (filter p coll)))
+
 (defn- extract-port
   "Return the port, if present, from route-domain."
   [route-domain]
-  (first (filter #(isa? (type %) Long) route-domain)))
-
-(defn- add-port
-  "Add the :host key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [port (extract-port route-domain)]
-    (assoc verbose-map :port port)
-    verbose-map))
+  (first-of number? route-domain))
 
 (defn- extract-host
   "Return the host, if present, from route-domain."
   [route-domain]
-  (first (filter #(isa? (type %) String) route-domain)))
-
-(defn- add-host
-  "Add the :host key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [host (extract-host route-domain)]
-    (assoc verbose-map :host host)
-    verbose-map))
+  (first-of string? route-domain))
 
 (defn- extract-scheme
   "Return the scheme, if present, from route-domain."
   [route-domain]
-  (first (set/intersection (set (filter #(isa? (type %)
-                                               clojure.lang.Keyword)
-                                        route-domain))
-                           schemes)))
-
-(defn- add-scheme
-  "Add the :scheme key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [scheme (extract-scheme route-domain)]
-    (assoc verbose-map :scheme scheme)
-    verbose-map))
+  (first-of #(and (keyword? %) (schemes %)) route-domain))
 
 (defn- extract-app-name
   "Return the app name, if present, from route-domain."
   [route-domain]
-  (first (set/difference (set (filter #(isa? (type %)
-                                             clojure.lang.Keyword)
-                                      route-domain))
-                         schemes)))
-
-(defn- add-app-name
-  "Add the :app-name key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [app-name (extract-app-name route-domain)]
-    (assoc verbose-map :app-name app-name)
-    verbose-map))
-
-(defn- expand-terse-route-domain
-  "Expand a top-level routing domain to a verbose-style
-  map of route entries."
-  [route-domain]
-  (-> {}
-      (add-app-name route-domain)
-      (add-scheme route-domain)
-      (add-host route-domain)
-      (add-port route-domain)
-      (add-children route-domain)))
+  (first-of #(and (keyword? %) (not (schemes %))) route-domain))
 
 (defn map-routes->vec-routes
   "Given a map-based route description,
@@ -201,13 +185,34 @@
                  "Generate and return the routing table from a given expandable
                  form of the routing syntax."))
 
-(extend-protocol ExpandableRoutes
+(defn dissoc-when
+  "Dissoc those keys from m whose values in m satisfy pred."
+  [pred m]
+  (apply dissoc m (filter #(pred (m %)) (keys m))))
 
+(def preamble? (some-fn number? string? keyword?))
+
+(defn flatten-terse-app-routes
+  "Return S-expressions that are equivalent to the terse routing syntax, but
+   expanded for consumption by the router itself."
+  [route-spec]
+  (let [[preamble routes] (split-with preamble? route-spec)]
+    (assert (count routes) "There should be at least one route in the application vector")
+
+    (log/debug :app-name (extract-app-name preamble) :route-count (count routes))
+
+    (->> {:app-name (extract-app-name preamble)
+          :host     (extract-host     preamble)
+          :scheme   (extract-scheme   preamble)
+          :port     (extract-port     preamble)}
+         (dissoc-when nil?)
+         (add-children routes)
+         )))
+
+(extend-protocol ExpandableRoutes
   clojure.lang.APersistentVector
   (expand-routes [route-spec]
-    (->> route-spec
-       (map expand-terse-route-domain)
-       verbose/expand-verbose-routes))
+    (verbose/expand-verbose-routes (map flatten-terse-app-routes route-spec)))
 
   clojure.lang.APersistentMap
   (expand-routes [route-spec]
@@ -217,4 +222,3 @@
   "Define a routing table from the terse routing syntax."
   [name route-spec]
   `(def ~name (expand-routes (quote ~route-spec))))
-
