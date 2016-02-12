@@ -978,16 +978,18 @@
     (is (= ["/" ^:interceptors [interceptor-1] ["/foo" {:get :int}]]
            (map-routes->vec-routes routes-under-test)))))
 
+(defn- constraints-meta [o]
+  (when-let [m (some-> o meta (select-keys [:constraints]))]
+    (if (empty? m) nil m)))
+
 (deftest map-routes->vec-routes-with-constraints
-  (let [regex-constraint #"[0-9]+"
+  (let [regex-constraint  #"[0-9]+"
         routes-under-test {"/:user-id" {:constraints {:user-id regex-constraint}
-                                        "/foo" {:get :int}}}]
-    (is (= ["/:user-id" ^:constraints {:user-id regex-constraint}
-            ["/foo" {:get :int}]]
-           (map-routes->vec-routes routes-under-test)))
-    (is (= (map meta ["/:user-id" ^:constraints {:user-id regex-constraint}
-            ["/foo" {:get :int}]])
-           (map meta (map-routes->vec-routes routes-under-test))))))
+                                        "/foo" {:get :int}}}
+        expected-routes   ["/:user-id" ^:constraints {:user-id regex-constraint} ["/foo" {:get :int}]]
+        expected-meta     (map meta expected-routes)]
+    (is (= expected-routes (map-routes->vec-routes routes-under-test)))
+    (is (= expected-meta   (map constraints-meta (map-routes->vec-routes routes-under-test))))))
 
 (deftest map-routes->vec-routes-advanced2
   (let [routes-under-test {"/" {:get :advanced
@@ -1057,4 +1059,3 @@
     "/a/a/b/"
     "/a/a/b/b/"
     "/a/a/b/b/c"))
-
