@@ -24,6 +24,7 @@
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition.verbose :as verbose]
+            [io.pedestal.http.route.table :refer [route-table]]
             [io.pedestal.http.route.definition :refer [defroutes expand-routes map-routes->vec-routes]]))
 
 (defhandler home-page
@@ -273,6 +274,36 @@
           {:get [:hierarchical-intercepted request-inspection]}]]
         ["/terminal/intercepted"
          {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])))
+
+(def id #"[0-9]+")
+
+(def tabular-routes
+  (concat
+   (route-table
+    {:app-name :public :host "example.com"}
+    [["/"                           :get    [home-page]]
+     ["/child-path"                 :get    trailing-slash]
+     ["/user"                       :get    list-users]
+     ["/user"                       :post   add-user]
+     ["/:user-id"                   :put    update-user  :constraints {:user-id id}]
+     ["/:user-id"                   :get    view-user    :constraints {:view #"long|short"}]])
+   (route-table
+    {:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+    [["/demo/site-one/*site-path"   :get    (site-demo "one")                                           :route-name :site-one-demo]
+     ["/demo/site-two/*site-path"   :get    (site-demo "two")                                           :route-name :site-two-demo]
+     ["/user/:user-id/delete"       :delete delete-user]])
+   (route-table
+    {}
+    [["/logout"                     :any    logout]
+     ["/search"                     :get    search-id    :constraints {:id id}]
+     ["/search"                     :get    search-query :constraints {:q #".+"}]
+     ["/search"                     :get    search-form]
+     ["/intercepted"                :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :intercepted]
+     ["/intercepted-by-fn-symbol"   :get    [(interceptor-3) request-inspection]                        :route-name :intercepted-by-fn-symbol]
+     ["/intercepted-by-fn-list"     :get    [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+     ["/trailing-slash/child-path"  :get    trailing-slash                                              :route-name :admin-trailing-slash]
+     ["/hierarchical/intercepted"   :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :hierarchical-intercepted]
+     ["/terminal/intercepted"       :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :terminal-intercepted]])))
 
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker
@@ -1057,4 +1088,3 @@
     "/a/a/b/"
     "/a/a/b/b/"
     "/a/a/b/b/c"))
-

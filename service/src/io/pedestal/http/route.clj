@@ -22,6 +22,8 @@
             [io.pedestal.http.route.prefix-tree :as prefix-tree])
   (:import (java.net URLEncoder URLDecoder)))
 
+(def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
+
 (comment
   ;; Structure of a route. 'tree' returns a list of these.
   {:route-name :new-user
