@@ -12,27 +12,32 @@
 
 (ns io.pedestal.http.route.table
   (:require [io.pedestal.interceptor :as i]
-            [io.pedestal.http.route :as route]))
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.route.path :as path]))
+
+(defn- error
+  [{:keys [row original]} msg]
+  (format "In row %d, %s\nThe whole route was: %s" (inc row) msg (or original "nil")))
 
 (defn- syntax-error
-  [{:keys [row original]} posn expected was]
-  (format  "In row %d, %s should have been %s but was %s.\nThe whole route was was: %s"
-           (inc row) posn expected (or was "nil") (or original "nil")))
+  [ctx posn expected was]
+  (error ctx (format "%s should have been %s but was %s." posn expected (or was "nil"))))
 
 (defn- surplus-declarations
-  [{:keys [row original remaining]}]
-  (format "In row %s, there were unused elements %s.\nThe input was: %s"
-          (inc row) remaining original))
+  [{:keys [remaining] :as ctx}]
+  (error ctx (format "there were unused elements %s." remaining)))
 
 (def ^:private known-options [:app-name :host :port :scheme])
 (def ^:private known-verb    #{:any :get :put :post :delete :patch :options :head})
 (def ^:private default-port  {:http 80 :https 443})
 
-(defn apply-defaults
-  [{:keys [port scheme] :as opts}]
-  (if-not port
-    (assoc opts :port (default-port (or scheme :http)))
-    opts))
+(defn make-parse-context
+  [opts row route]
+  (assert (vector? route) (syntax-error row nil "the element" "a vector" route))
+  (merge {:row       row
+          :original  route
+          :remaining route}
+         (select-keys opts known-options)))
 
 (defn take-next-pair
   [argname expected-pred expected-str ctx]
@@ -43,14 +48,13 @@
         (assoc ctx argname arg :remaining more))
       ctx)))
 
-(def parse-constraints (partial take-next-pair :constraints map? "a map"))
-(def parse-route-name  (partial take-next-pair :route-name  keyword? "a keyword"))
-
 (defn parse-path
   [ctx]
   (let [[path & more] (:remaining ctx)]
     (assert (string? path) (syntax-error ctx "the path (first element)" "a string" path))
-    (assoc ctx :path path :remaining more)))
+    (-> ctx
+        (merge (path/parse-path path))
+        (assoc :path path :remaining more))))
 
 (defn parse-verb
   [ctx]
@@ -62,17 +66,45 @@
   [ctx]
   (let [[handlers & more] (:remaining ctx)]
     (if (vector? handlers)
-      (assert (every? i/interceptor? handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
-      (assert (i/interceptor? handlers)        (syntax-error ctx "the handler" "an interceptor" handlers)))
-    (assoc ctx :interceptors handlers :remaining more)))
+      (assert (every? #(satisfies? i/IntoInterceptor %) handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
+      (assert (satisfies? i/IntoInterceptor handlers)             (syntax-error ctx "the handler" "an interceptor" handlers)))
+    (let [handlers (if (vector? handlers) (vec handlers) [handlers])
+          handlers (mapv i/-interceptor handlers)]
+      (assoc ctx :interceptors handlers :remaining more))))
 
-(defn parse-context
-  [opts row route]
-  (assert (vector? route) (syntax-error row nil "the element" "a vector" route))
-  (merge {:row       row
-          :original  route
-          :remaining route}
-         (select-keys opts known-options)))
+(def attach-route-name  (partial take-next-pair :route-name  keyword? "a keyword"))
+
+(defn parse-route-name
+  [{:keys [route-name interceptors] :as ctx}]
+  (if route-name
+    ctx
+    (let [default-route-name (some-> interceptors last :name)]
+      (assert default-route-name (error ctx "the last interceptor does not have a name and there is no explicit :route-name."))
+      (assoc ctx :route-name default-route-name))))
+
+(defn- remove-empty-constraints
+  [ctx]
+  (apply dissoc ctx
+         (filter #(empty? (ctx %)) [:path-constraints :query-constraints])))
+
+(defn- capture-constraint
+  [[k v]]
+  [k (re-pattern (str "(" v ")"))])
+
+(defn parse-constraints
+  [{:keys [constraints path-params] :as ctx}]
+  (let [path-param?                          (fn [[k v]] (some #{k} path-params))
+        [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
+    (-> ctx
+        (update :path-constraints  merge (into {} (map capture-constraint path-constraints)))
+        (update :query-constraints merge query-constraints)
+        remove-empty-constraints)))
+
+(def attach-constraints (partial take-next-pair :constraints map? "a map"))
+
+(defn attach-path-regex
+  [ctx]
+  (path/merge-path-regex ctx))
 
 (defn finalize
   [ctx]
@@ -82,13 +114,15 @@
 (defn route-table-row
   [opts row route]
   (-> opts
-      apply-defaults
-      (parse-context row route)
+      (make-parse-context row route)
       parse-path
       parse-verb
       parse-handlers
+      attach-route-name
       parse-route-name
+      attach-constraints
       parse-constraints
+      attach-path-regex
       finalize))
 
 (defn route-table
