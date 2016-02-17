@@ -40,7 +40,7 @@
          (reduce parse-path-token
                  accumulated-info
                  (str/split path #"/")))
-       (throw (ex-info "Invalid route pattern" {:pattern pattern})))))
+       (throw (ex-info "Routes must start from the root, so they must begin with a '/'" {:pattern pattern})))))
 
 (defn path-regex [route]
   (let [{:keys [path-parts path-constraints]} route

@@ -141,12 +141,6 @@
           (dissoc-in param-path))
       request)))
 
-(defn print-routes
-  "Prints route table `routes` in easier to read format."
-  [routes]
-  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) routes)]
-    (println r)))
-
 ;;; Linker
 
 (defn- merge-param-options
@@ -452,3 +446,17 @@
                                 (not (= :get method)))
                          :post
                          method))}))))
+
+;;; Help for debugging
+(defn print-routes
+  "Prints route table `routes` in easier to read format."
+  [routes]
+  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) routes)]
+    (println r)))
+
+(defn try-routing-for [spec router-type query-string verb]
+  (let [router  (router spec router-type)
+        context {:request {:path-info query-string
+                           :request-method verb}}
+        context ((:enter router) context)]
+    (:route context)))
