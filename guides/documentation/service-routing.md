@@ -253,7 +253,7 @@ You tell the router about constraints by supplying a map from
 parameter name to regular expression:
 
 ```clojure
-["/user/:user-id" :get view-user :constraints {:user-id #"[0-9]+"}
+["/user/:user-id" :get view-user :constraints {:user-id #"[0-9]+"}]
 ```
 
 If the constraint doesn't match, then the router keeps considering
