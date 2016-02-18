@@ -17,6 +17,10 @@
 
 (defrecord Interceptor [name enter leave error])
 
+(defmethod print-method Interceptor
+  [^Interceptor i ^java.io.Writer w]
+  (.write w (str "#Interceptor{:name " (.name i) "}")))
+
 (defprotocol IntoInterceptor
   (-interceptor [t] "Given a value, produce an Interceptor Record."))
 
@@ -83,5 +87,3 @@
            true)]
    :post [valid-interceptor?]}
   (-interceptor t))
-
-
