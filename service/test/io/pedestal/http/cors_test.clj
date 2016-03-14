@@ -54,3 +54,31 @@
   (let [response (response-for app :get "/hello-world" :headers {"origin" "https://bar.org"})]
     (is (= 403 (:status response)))
     (is (= nil (get-in response [:headers "Origin"])))))
+
+
+;; regression test when allowed-origins options is represented as a map
+(def allowed-origins-as-map-app
+  (::service/service-fn (-> {::service/routes routes
+                             ::service/allowed-origins {:allowed-origins ["http://foo.com:8080"]}}
+                            service/default-interceptors
+                            service/service-fn)))
+
+(deftest allowed-origins-as-map-no-origin-test
+  (let [response (response-for allowed-origins-as-map-app :get "/hello-world")]
+    (is (= 200 (:status response)))
+    (is (= nil (get-in response [:headers "Origin"])))))
+
+(deftest allowed-origins-as-map-good-origin-test
+  (let [response (response-for allowed-origins-as-map-app :get "/hello-world" :headers {"origin" "http://foo.com:8080"})]
+    (is (= 200 (:status response)))
+    (is (= "http://foo.com:8080" (get-in response [:headers "Access-Control-Allow-Origin"])))))
+
+(deftest allowed-origins-as-map-good-origin-patch-test
+  (let [response (response-for allowed-origins-as-map-app :patch "/hello-world" :headers {"origin" "http://foo.com:8080"})]
+    (is (= 200 (:status response)))
+    (is (= "http://foo.com:8080" (get-in response [:headers "Access-Control-Allow-Origin"])))))
+
+(deftest allowed-origins-as-map-bad-origin-test
+  (let [response (response-for allowed-origins-as-map-app :get "/hello-world" :headers {"origin" "https://bar.org"})]
+    (is (= 403 (:status response)))
+    (is (= nil (get-in response [:headers "Origin"])))))
