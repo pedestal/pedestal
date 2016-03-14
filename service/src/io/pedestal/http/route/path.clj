@@ -47,9 +47,9 @@
         path-parts (if (and (seq pps) (string? pp) (empty? pp)) pps path-parts)]
     (re-pattern
      (apply str
-            (interleave (repeat "/")
-                        (map #(or (get path-constraints %) (Pattern/quote %))
-                             path-parts))))))
+      (interleave (repeat "/")
+                  (map #(or (get path-constraints %) (Pattern/quote %))
+                       path-parts))))))
 
 (defn merge-path-regex [route]
   (assoc route :path-re (path-regex route)))
