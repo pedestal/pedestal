@@ -42,12 +42,9 @@
                  (str/split path #"/")))
        (throw (ex-info "Routes must start from the root, so they must begin with a '/'" {:pattern pattern})))))
 
-(defn path-regex [route]
-  (let [{:keys [path-parts path-constraints]} route
-        path-parts (if (and (> (count path-parts) 1)
-                            (empty? (first path-parts)))
-                     (rest path-parts)
-                     path-parts)]
+(defn path-regex [{:keys [path-parts path-constraints] :as route}]
+  (let [[pp & pps] path-parts
+        path-parts (if (and (seq pps) (string? pp) (empty? pp)) pps path-parts)]
     (re-pattern
      (apply str
       (interleave (repeat "/")

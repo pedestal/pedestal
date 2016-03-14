@@ -1130,3 +1130,25 @@
     "/a/a/b/"
     "/a/a/b/b/"
     "/a/a/b/b/c"))
+
+(deftest nested-path-params
+  (let [terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
+        terse-sans-root `[[["/:resource/:thing"      {:get add-user}]]]
+        table-with-root [["/base/:resource/:thing"   :get add-user]]
+        table-sans-root [["/:resource/:thing"        :get add-user]]]
+    (testing "path parts extracted with root"
+      (is (= ["base" :resource :thing]
+             (:path-parts (first (expand-routes  terse-with-root)))
+             (:path-parts (first (route-table {} table-with-root))))))
+
+    (testing "path parts extracted without root"
+      (is (= [:resource :thing]
+             (:path-parts (first (expand-routes  terse-sans-root)))
+             (:path-parts (first (route-table {} table-sans-root))))))
+
+    (testing "path params extracted"
+      (is (= [:resource :thing]
+             (:path-params (first (expand-routes  terse-with-root)))
+             (:path-params (first (route-table {} table-with-root)))
+             (:path-params (first (expand-routes  terse-sans-root)))
+             (:path-params (first (route-table {} table-sans-root))))))))
