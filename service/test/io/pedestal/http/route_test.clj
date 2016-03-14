@@ -1132,8 +1132,8 @@
     "/a/a/b/b/c"))
 
 (deftest nested-path-params
-  (let [terse-with-root '[[["/base/:resource/:thing" {:get add-user}]]]
-        terse-sans-root '[[["/:resource/:thing"      {:get add-user}]]]
+  (let [terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
+        terse-sans-root `[[["/:resource/:thing"      {:get add-user}]]]
         table-with-root [["/base/:resource/:thing"   :get add-user]]
         table-sans-root [["/:resource/:thing"        :get add-user]]]
     (testing "path parts extracted with root"
