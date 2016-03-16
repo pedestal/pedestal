@@ -293,7 +293,7 @@
 
 (defn create-server
   ([service-map]
-   (create-server service-map log/init-java-util-log))
+   (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
    (init-fn)
    (-> service-map

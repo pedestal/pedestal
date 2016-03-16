@@ -208,7 +208,7 @@
     (if (neg? c)
       req-map
       (-> (assoc! req-map :content-length c)
-          (assoc! :headers (assoc headers "content-length" c))))))
+          (assoc! :headers (assoc headers "content-length" (str c)))))))
 
 (defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
   (if-let [e (.getCharacterEncoding servlet-req)]

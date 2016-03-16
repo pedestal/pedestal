@@ -9,13 +9,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.immutant "0.4.1-SNAPSHOT"
+(defproject io.pedestal/pedestal.immutant "0.4.2-SNAPSHOT"
   :description "Embedded Immutant adapter for Pedestal HTTP Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0-RC4"]
+                 [potemkin "0.4.2"]
                  [org.immutant/web "2.0.2"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true})

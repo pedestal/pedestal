@@ -53,7 +53,7 @@
               ;                       :store (cookie/cookie-store)}
               ;::http/enable-csrf {}
               ::http/container-options {:h2c? true
-                                        ;:h2? true
+                                        :h2? true
                                         :ssl? true
                                         :ssl-port 8443
                                         :keystore "test/hp/keystore.jks"

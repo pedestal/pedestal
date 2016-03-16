@@ -177,9 +177,7 @@
                         (try-error context interceptor)
                         (try-f context interceptor :leave))]
           (cond
-           (channel? context) (do
-                                (prepare-for-async old-context)
-                                (go-async old-context context))
+           (channel? context) (go-async old-context context)
            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
            true (recur context)))))))
 
@@ -238,9 +236,12 @@
       (assoc context ::execution-id execution-id))))
 
 (defn- end [context]
-  (log/debug :in 'end :execution-id execution-id)
-  (log/trace :context context)
-  context)
+  (if (contains? context ::execution-id)
+    (do
+      (log/debug :in 'end :execution-id (::execution-id context) :context-keys (keys context))
+      (log/trace :context context)
+      (dissoc context ::stack ::execution-id))
+    context))
 
 (defn execute
   "Executes a queue of Interceptors attached to the context. Context
@@ -274,9 +275,7 @@
                         enter-all
                         (dissoc ::queue)
                         leave-all
-                        (dissoc ::stack ::execution-id)
                         end)]
     (if-let [ex (::error context)]
       (throw ex)
       context)))
-

@@ -16,7 +16,8 @@
             [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.jetty.util :as jetty-util]
             [ring.util.response :as ring-resp])
-  (:import [org.eclipse.jetty.servlets GzipFilter]))
+  (:import (org.eclipse.jetty.servlets DoSFilter)
+           (org.eclipse.jetty.server.handler.gzip GzipHandler)))
 
 (defn about-page
   [request]
@@ -57,7 +58,14 @@
               ::bootstrap/type :jetty
 
               ;; Add our filter-fn a the context configurator
-              ::bootstrap/container-options {:context-configurator  #(jetty-util/add-servlet-filter % {:filter GzipFilter})}
+              ::bootstrap/container-options {:context-configurator (fn [c]
+                                                                     (let [gzip-handler (GzipHandler.)]
+                                                                       (.setGzipHandler c gzip-handler)
+                                                                       ;; You can also add Servlet Filters...
+                                                                       (jetty-util/add-servlet-filter c {:filter DoSFilter})
+                                                                       c))}
+              ; If you have a just a Servlet Filter...
+              ;:container-options {:context-configurator #(jetty-util/add-servlet-filter % {:filter DoSFilter})}
               ;;::bootstrap/host "localhost"
               ::bootstrap/port 8080})
 

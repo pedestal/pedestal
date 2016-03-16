@@ -2,6 +2,20 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.4.1 - November 04, 2015
+
+ * Bug fixes for tree-based router - you can no longer fall off the tree
+ * NIO speed enhancements - utilize a better API call
+ * `response-for` split apart to allow for better instrumentation and test control
+ * `response-for` now handles async use
+ * Dependencies updated
+ * SSE buffer bug patched - can't resuse core.async buffers
+ * SSE updated for open-ended option; New option for cleanup callback added
+ * Samples and docs cleaned up and improved
+ * Dedicated branches for HTTP2/ALPN support and WebSockets (not integrated into the interceptor chain)
+
+For a full list of changes, please see this comparison of [0.4.0...0.4.1](https://github.com/pedestal/pedestal/compare/0.4.0...0.4.1).
+
 ## 0.4.0 - April 17, 2015
 
  * Tree-based router (used by default)

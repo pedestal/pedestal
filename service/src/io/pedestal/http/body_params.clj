@@ -152,7 +152,11 @@
 
   (default-parser-map :edn-options {:readers *data-readers*})
   ;; This parser-map will parse edn bodies using any custom edn readers you
-  ;; define (in a data_readers.clj file, for example.)"
+  ;; define (in a data_readers.clj file, for example.)
+  
+  (default-parser-map :transit-options [{:handlers {\"custom/model\" custom-model-read-handler}}])
+  ;; This parser-map will parse the transit body using a handler defined by 
+  ;; custom-model-read-handler."
   [& parser-options]
   (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)
         edn-options-vec (apply concat edn-options)

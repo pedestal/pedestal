@@ -13,7 +13,8 @@
 (ns io.pedestal.http.route.definition.verbose
   (:require [io.pedestal.http.route.path :as path]
             [io.pedestal.interceptor :refer [interceptor?]]
-            [io.pedestal.interceptor.helpers :as interceptor]))
+            [io.pedestal.interceptor.helpers :as interceptor]
+            [clojure.string :as str]))
 
 (defn handler-interceptor
   [handler name]
@@ -106,6 +107,13 @@
           (update-in [:path-constraints] merge (into {} (map capture-constraint path-constraints)))
           (update-in [:query-constraints] merge query-constraints)))))
 
+(defn undoubleslash
+  [^String s]
+  (str/replace s #"/+" "/"))
+
+(defn path-join
+  [parent-path path]
+  (str parent-path "/" path))
 
 (defn- update-dna
   "Return new DNA based on the contents of `parent-dna` and
@@ -116,9 +124,7 @@
           true (merge (select-keys current-node [:app-name :scheme :host :port]))
           path (path/parse-path path)
           ;; special case case where parent-path is "/" so we don't have double "//"
-          path (assoc :path (str (if (and parent-path (.endsWith parent-path "/"))
-                                   (subs parent-path 0 (dec (count parent-path))) parent-path)
-                                 path))
+          path (assoc :path (undoubleslash (path-join parent-path path)))
           constraints (update-constraints constraints verbs)
           interceptors (update-in [:interceptors]
                                   into
@@ -190,4 +196,3 @@
   "Define a routing table from a collection of route maps."
   [name route-maps]
   `(def ~name (quote ~(expand-verbose-routes route-maps))))
-

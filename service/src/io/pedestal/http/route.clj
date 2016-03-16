@@ -22,6 +22,8 @@
             [io.pedestal.http.route.prefix-tree :as prefix-tree])
   (:import (java.net URLEncoder URLDecoder)))
 
+(def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
+
 (comment
   ;; Structure of a route. 'tree' returns a list of these.
   {:route-name :new-user
@@ -138,12 +140,6 @@
           (assoc :request-method (keyword method))
           (dissoc-in param-path))
       request)))
-
-(defn print-routes
-  "Prints route table `routes` in easier to read format."
-  [routes]
-  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) routes)]
-    (println r)))
 
 ;;; Linker
 
@@ -450,3 +446,17 @@
                                 (not (= :get method)))
                          :post
                          method))}))))
+
+;;; Help for debugging
+(defn print-routes
+  "Prints route table `routes` in easier to read format."
+  [routes]
+  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) routes)]
+    (println r)))
+
+(defn try-routing-for [spec router-type query-string verb]
+  (let [router  (router spec router-type)
+        context {:request {:path-info query-string
+                           :request-method verb}}
+        context ((:enter router) context)]
+    (:route context)))

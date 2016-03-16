@@ -1,6 +1,7 @@
 # Servlet Filters
 
-This sample shows how to use Servlet Filters within your Pedestal services.
+This sample shows how to use Servlet Filters and new Jetty Handlers
+within your Pedestal services.
 The sample specifically applies a gzip filter to the service configuration
 of Jetty. To check on the encoding of the server's response,
 hit with curl, requesting compression:
