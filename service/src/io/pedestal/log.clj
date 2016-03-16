@@ -17,7 +17,9 @@
   key :exception should have a java.lang.Throwable as its value, and
   will be passed separately to the underlying logging API."
   (:require clojure.string)
-  (:import (org.slf4j LoggerFactory)))
+  (:import (org.slf4j LoggerFactory)
+           (com.codahale.metrics MetricRegistry
+                                 Gauge Counter Histogram Meter)))
 
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
@@ -61,6 +63,9 @@
                                        :value value'))
        ~value')))
 
+;; Utility/Auxiliary log functions
+;; --------------------------------
+
 (defn maybe-init-java-util-log
   "Invoke this once when starting your application to redirect all
   java.util.logging log messages to SLF4J. The current project's
@@ -78,3 +83,50 @@
     (.. bridge
         (getMethod "install" (make-array Class 0))
         (invoke nil (make-array Object 0)))))
+
+;; Metrics
+;; -----------
+
+(defprotocol MetricRecorder
+
+  (counter [t ^String metric-name ^Long delta]
+           "Update a single Numeric/Long metric by the `delta` amount")
+  (gauge [t ^String metric-name ^IFn value-fn]
+         "Register a single metric value, returned by a 0-arg function;
+         This function will be called everytime the Guage value is requested.")
+  (histogram [t ^String metric-name ^Long value]
+             "Measure a distribution of Long values")
+  (meter [t ^String metric-name]
+         [t ^String metric-name ^Long value]
+         "Measure the rate of a ticking metric - a meter."))
+
+(extend-protocol MetricRecorder
+
+  MetricRegistry
+  (counter [registry ^String metric-name ^Long delta]
+    (when-let [c (.counter registry metric-name)]
+      (.increment ^Counter c delta)
+      delta))
+
+  (gauge [registry ^String metric-name value-fn]
+    (try
+      (.register registry metric-name (reify Gauge
+                                        (getValue [this] (value-fn))))
+      value-fn
+      (catch IllegalArgumentException iae
+        nil)))
+
+  (histogram [registry ^String metric-name value]
+    (when-let [h (.histogram registry metric-name)]
+      (.update ^Histogram h value)
+      value))
+
+  (meter [registry ^String metric-name]
+    (when-let [m (.meter registry metric-name)]
+      (.mark ^Meter m)
+      1))
+  (meter [registry ^String metric-name ^Long value]
+    (when-let [m (.meter registry metric-name)]
+      (.mark ^Meter m value)
+      value)))
+
