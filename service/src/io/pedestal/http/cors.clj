@@ -45,13 +45,11 @@
     (assoc context :response {:status 200
                               :headers cors-headers})))
 
-
 (defn- normalize-args
   [arg]
   (if (map? arg)
-    (update-in arg [:allowed-origins] #(if (fn? %) % (fn [origin] (some #{origin} (seq %)))))
-    (normalize-args {:allowed-origins arg})))
-
+    arg
+    {:allowed-origins (if (fn? arg) arg (fn [origin] (some #(= % origin) (seq arg))))}))
 
 (defn allow-origin
   "Builds a CORS interceptor that allows calls from the specified `allowed-origins`, which is one of the following:
