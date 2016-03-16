@@ -120,7 +120,7 @@
 
   (-histogram [registry metric-name value]
     (when-let [h (.histogram registry ^String metric-name)]
-      (.update ^Histogram h value)
+      (.update ^Histogram h ^long value)
       value))
 
   (-meter [registry metric-name n-events]
