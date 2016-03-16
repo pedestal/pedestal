@@ -395,7 +395,7 @@
                           :servlet servlet})]
       (log/debug :in :interceptor-service-fn
                  :context context)
-      (log/counter "active-servlet-calls" 1)
+      (log/counter :io.pedestal/active-servlet-calls 1)
       (try
         (let [final-context (interceptor-impl/execute
                              (apply interceptor-impl/enqueue context interceptors))]
@@ -407,7 +407,7 @@
                      :cause-trace (with-out-str
                                     (stacktrace/print-cause-trace t))))
         (finally
-          (log/counter "active-servlet-calls" -1))))))
+          (log/counter :io.pedestal/active-servlet-calls -1))))))
 
 (defn http-interceptor-service-fn
   "Returns a function which can be used as an implementation of the
