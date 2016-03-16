@@ -107,7 +107,7 @@
   MetricRegistry
   (-counter [registry metric-name delta]
     (when-let [c (.counter registry ^String metric-name)]
-      (.increment ^Counter c delta)
+      (.inc ^Counter c delta)
       delta))
 
   (-gauge [registry metric-name value-fn]

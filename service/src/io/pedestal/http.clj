@@ -278,7 +278,7 @@
 
 (defn bind-metrics-recorder [service-map]
   (when-let [init-fn (::metrics-init service-map)]
-    (alter-var-root log/default-recorder (init-fn))))
+    (alter-var-root #'log/default-recorder (fn [x] (init-fn)))))
 
 (defn server
   [{servlet ::servlet
