@@ -61,15 +61,17 @@
                                        :value value'))
        ~value')))
 
-(defn init-java-util-log
+(defn maybe-init-java-util-log
   "Invoke this once when starting your application to redirect all
   java.util.logging log messages to SLF4J. The current project's
   dependencies must include org.slf4j/jul-to-slf4j."
   []
   ;; Use reflection to avoid compile-time dependency on
   ;; org.slf4j/jul-to-slf4j
-  (let [bridge (.. Thread currentThread getContextClassLoader
-                   (loadClass "org.slf4j.bridge.SLF4JBridgeHandler"))]
+  (when-let [bridge (try (.. Thread currentThread getContextClassLoader
+                             (loadClass "org.slf4j.bridge.SLF4JBridgeHandler"))
+                         (catch Throwable t
+                           nil))]
     (.. bridge
         (getMethod "removeHandlersForRootLogger" (make-array Class 0))
         (invoke nil (make-array Object 0)))
