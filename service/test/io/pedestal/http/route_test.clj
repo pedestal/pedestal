@@ -22,10 +22,11 @@
             [io.pedestal.interceptor.helpers :as interceptor
              :refer [defhandler defon-request defbefore definterceptor handler]]
             [io.pedestal.impl.interceptor :as interceptor-impl]
-            [io.pedestal.http.route :as route]
+            [io.pedestal.http.route :as route :refer [expand-routes]]
+            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.http.route.table :refer [route-table]]
-            [io.pedestal.http.route.definition :refer [defroutes expand-routes map-routes->vec-routes]]))
+            [io.pedestal.http.route.definition.table :refer [route-table]]
+            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
 
 (defhandler home-page
   [request]
@@ -83,104 +84,105 @@
     (ring-response/response (str "demo page for " site-name))))
 
 ;; schemes, hosts, path, verb and maybe query string
-(verbose/defroutes verbose-routes ;; the verbose hierarchical data structure
-  [{:app-name :public
-    :host "example.com"
-    ;;    :interceptors []
-    :children [{:path "/"
-                ;; :interceptors []
-                ;;                :verbs {:get {:handler home-page :interceptors []}
-                :verbs {:get home-page}
-                :children [{:path "/child-path"
-                            :verbs {:get trailing-slash}}]}
-               {:path "/user"
-                :verbs {:get list-users
-                        :post add-user}
-                :children [{:path "/:user-id"
-                            :constraints {:user-id #"[0-9]+"}
-                            :verbs {:put update-user}
-                            :children [{:constraints {:view #"long|short"}
-                                        :verbs {:get view-user}}]}]}]}
-   {:app-name :admin
-    :scheme :https
-    :host "admin.example.com"
-    :port 9999
-    :children [{:path "/demo/site-one/*site-path"
-                ;; :verbs {:get {:name :site-one-demo :handler (site-demo "one") :interceptors []}}
-                :verbs {:get {:route-name :site-one-demo
-                              :handler (site-demo "one")}}}
-               {:path "/demo/site-two/*site-path"
-                :verbs {:get {:route-name :site-two-demo
-                              :handler (site-demo "two")}}}
-               {:path "/user/:user-id/delete"
-                :verbs {:delete delete-user}}]}
-   {:children [{:path "/logout"
-                :verbs {:any logout}}
-               {:path "/search"
-                :verbs {:get search-form}
-                :children [{:constraints {:id #"[0-9]+"}
-                            :verbs {:get search-id}}
-                           {:constraints {:q #".+"}
-                            :verbs {:get search-query}}]}
-               {:path "/intercepted"
-                :verbs {:get {:route-name :intercepted
-                              :handler request-inspection}}
-                :interceptors [interceptor-1 interceptor-2]}
-               {:path "/intercepted-by-fn-symbol"
-                :verbs {:get {:route-name :intercepted-by-fn-symbol
-                              :handler request-inspection}}
-                :interceptors [interceptor-3]}
-               {:path "/intercepted-by-fn-list"
-                :verbs {:get {:route-name :intercepted-by-fn-list
-                              :handler request-inspection}}
-                :interceptors [(interceptor-3 ::fn-called-explicitly)]}
-               {:path "/trailing-slash/"
-                :children [{:path "/child-path"
-                            :verbs {:get {:route-name :admin-trailing-slash
-                                          :handler trailing-slash}}}]}
-               {:path "/hierarchical"
-                :interceptors [interceptor-1]
-                :children [{:path "/intercepted"
-                            :interceptors [interceptor-2]
-                            :verbs {:get {:route-name :hierarchical-intercepted
-                                          :handler request-inspection}}}]}
-               {:path "/terminal/intercepted"
-                :verbs {:get {:route-name :terminal-intercepted
-                              :handler request-inspection
-                              :interceptors [interceptor-1 interceptor-2]}}}]}])
+(def verbose-routes ;; the verbose hierarchical data structure
+  (verbose/expand-verbose-routes
+    `[{:app-name :public
+       :host "example.com"
+       ;;    :interceptors []
+       :children [{:path "/"
+                   ;; :interceptors []
+                   ;;                :verbs {:get {:handler home-page :interceptors []}
+                   :verbs {:get home-page}
+                   :children [{:path "/child-path"
+                               :verbs {:get trailing-slash}}]}
+                  {:path "/user"
+                   :verbs {:get list-users
+                           :post add-user}
+                   :children [{:path "/:user-id"
+                               :constraints {:user-id #"[0-9]+"}
+                               :verbs {:put update-user}
+                               :children [{:constraints {:view #"long|short"}
+                                           :verbs {:get view-user}}]}]}]}
+      {:app-name :admin
+       :scheme :https
+       :host "admin.example.com"
+       :port 9999
+       :children [{:path "/demo/site-one/*site-path"
+                   ;; :verbs {:get {:name :site-one-demo :handler (site-demo "one") :interceptors []}}
+                   :verbs {:get {:route-name :site-one-demo
+                                 :handler (site-demo "one")}}}
+                  {:path "/demo/site-two/*site-path"
+                   :verbs {:get {:route-name :site-two-demo
+                                 :handler (site-demo "two")}}}
+                  {:path "/user/:user-id/delete"
+                   :verbs {:delete delete-user}}]}
+      {:children [{:path "/logout"
+                   :verbs {:any logout}}
+                  {:path "/search"
+                   :verbs {:get search-form}
+                   :children [{:constraints {:id #"[0-9]+"}
+                               :verbs {:get search-id}}
+                              {:constraints {:q #".+"}
+                               :verbs {:get search-query}}]}
+                  {:path "/intercepted"
+                   :verbs {:get {:route-name :intercepted
+                                 :handler request-inspection}}
+                   :interceptors [interceptor-1 interceptor-2]}
+                  {:path "/intercepted-by-fn-symbol"
+                   :verbs {:get {:route-name :intercepted-by-fn-symbol
+                                 :handler request-inspection}}
+                   :interceptors [interceptor-3]}
+                  {:path "/intercepted-by-fn-list"
+                   :verbs {:get {:route-name :intercepted-by-fn-list
+                                 :handler request-inspection}}
+                   :interceptors [(interceptor-3 ::fn-called-explicitly)]}
+                  {:path "/trailing-slash/"
+                   :children [{:path "/child-path"
+                               :verbs {:get {:route-name :admin-trailing-slash
+                                             :handler trailing-slash}}}]}
+                  {:path "/hierarchical"
+                   :interceptors [interceptor-1]
+                   :children [{:path "/intercepted"
+                               :interceptors [interceptor-2]
+                               :verbs {:get {:route-name :hierarchical-intercepted
+                                             :handler request-inspection}}}]}
+                  {:path "/terminal/intercepted"
+                   :verbs {:get {:route-name :terminal-intercepted
+                                 :handler request-inspection
+                                 :interceptors [interceptor-1 interceptor-2]}}}]}]))
 
 (defroutes terse-routes ;; the terse hierarchical data structure
   [[:public "example.com"
-    ["/" {:get home-page}
-     ["/child-path" {:get trailing-slash}]]
-    ["/user" {:get list-users
-              :post add-user}
-     ["/:user-id"
-      ^:constraints {:user-id #"[0-9]+"}
-      {:put update-user}
-      [^:constraints {:view #"long|short"}
-       {:get view-user}]]]]
-   [:admin :https "admin.example.com" 9999
-    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
-    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
-    ["/user/:user-id/delete" {:delete delete-user}]]
-   [["/logout" {:any logout}]
-    ["/search" {:get search-form}
-     [^:constraints {:id #"[0-9]+"} {:get search-id}]
-     [^:constraints {:q #".+"} {:get search-query}]]
-    ["/intercepted" {:get [:intercepted request-inspection]}
-     ^:interceptors [interceptor-1 interceptor-2]]
-    ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
-     ^:interceptors [interceptor-3]]
-    ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
-     ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
-    ["/trailing-slash/"
-     ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
-    ["/hierarchical" ^:interceptors [interceptor-1]
-     ["/intercepted" ^:interceptors [interceptor-2]
-      {:get [:hierarchical-intercepted request-inspection]}]]
-    ["/terminal/intercepted"
-     {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+       ["/" {:get home-page}
+        ["/child-path" {:get trailing-slash}]]
+       ["/user" {:get list-users
+                 :post add-user}
+        ["/:user-id"
+         ^:constraints {:user-id #"[0-9]+"}
+         {:put update-user}
+         [^:constraints {:view #"long|short"}
+          {:get view-user}]]]]
+      [:admin :https "admin.example.com" 9999
+       ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
+       ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
+       ["/user/:user-id/delete" {:delete delete-user}]]
+      [["/logout" {:any logout}]
+       ["/search" {:get search-form}
+        [^:constraints {:id #"[0-9]+"} {:get search-id}]
+        [^:constraints {:q #".+"} {:get search-query}]]
+       ["/intercepted" {:get [:intercepted request-inspection]}
+        ^:interceptors [interceptor-1 interceptor-2]]
+       ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+        ^:interceptors [interceptor-3]]
+       ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+        ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+       ["/trailing-slash/"
+        ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+       ["/hierarchical" ^:interceptors [interceptor-1]
+        ["/intercepted" ^:interceptors [interceptor-2]
+         {:get [:hierarchical-intercepted request-inspection]}]]
+       ["/terminal/intercepted"
+        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
 
 (defroutes map-routes
   ;; One limitation is you can't control hostname or protocol
@@ -207,7 +209,7 @@
 
 (def data-routes
   (expand-routes
-   [[:public "example.com"
+    [[:public "example.com"
       ["/" {:get home-page}
        ["/child-path" {:get trailing-slash}]]
       ["/user" {:get list-users
@@ -279,31 +281,30 @@
 
 (def tabular-routes
   (doall (concat
-    (route-table
-     {:app-name :public :host "example.com"}
-     [["/"                           :get    [home-page]]
-      ["/child-path"                 :get    trailing-slash]
-      ["/user"                       :get    list-users]
-      ["/user"                       :post   add-user]
-      ["/user/:user-id"              :put    update-user  :constraints {:user-id id}]
-      ["/user/:user-id"              :get    view-user    :constraints {:user-id id :view #"long|short"}]])
-    (route-table
-     {:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
-     [["/demo/site-one/*site-path"   :get    (site-demo "one")                                           :route-name :site-one-demo]
-      ["/demo/site-two/*site-path"   :get    (site-demo "two")                                           :route-name :site-two-demo]
-      ["/user/:user-id/delete"       :delete delete-user]])
-    (route-table
-     {}
-     [["/logout"                     :any    logout]
-      ["/search"                     :get    search-id    :constraints {:id id}]
-      ["/search"                     :get    search-query :constraints {:q #".+"}]
-      ["/search"                     :get    search-form]
-      ["/intercepted"                :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :intercepted]
-      ["/intercepted-by-fn-symbol"   :get    [(interceptor-3) request-inspection]                        :route-name :intercepted-by-fn-symbol]
-      ["/intercepted-by-fn-list"     :get    [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
-      ["/trailing-slash/child-path"  :get    trailing-slash                                              :route-name :admin-trailing-slash]
-      ["/hierarchical/intercepted"   :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :hierarchical-intercepted]
-      ["/terminal/intercepted"       :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :terminal-intercepted]]))))
+    (expand-routes
+      #{{:app-name :public :host "example.com"}
+        ["/"                           :get    [home-page]]
+        ["/child-path"                 :get    trailing-slash]
+        ["/user"                       :get    list-users]
+        ["/user"                       :post   add-user]
+        ["/user/:user-id"              :put    update-user  :constraints {:user-id id}]
+        ["/user/:user-id"              :get    view-user    :constraints {:user-id id :view #"long|short"}]})
+    (expand-routes
+      #{{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+        ["/demo/site-one/*site-path"   :get    (site-demo "one")                                           :route-name :site-one-demo]
+        ["/demo/site-two/*site-path"   :get    (site-demo "two")                                           :route-name :site-two-demo]
+        ["/user/:user-id/delete"       :delete delete-user]})
+    (expand-routes
+      #{["/logout"                     :any    logout]
+        ["/search"                     :get    search-id    :constraints {:id id}]
+        ["/search"                     :get    search-query :constraints {:q #".+"}]
+        ["/search"                     :get    search-form]
+        ["/intercepted"                :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :intercepted]
+        ["/intercepted-by-fn-symbol"   :get    [(interceptor-3) request-inspection]                        :route-name :intercepted-by-fn-symbol]
+        ["/intercepted-by-fn-list"     :get    [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+        ["/trailing-slash/child-path"  :get    trailing-slash                                              :route-name :admin-trailing-slash]
+        ["/hierarchical/intercepted"   :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :hierarchical-intercepted]
+        ["/terminal/intercepted"       :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :terminal-intercepted]}))))
 
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker
@@ -1105,7 +1106,7 @@
 
 ;; Issue #340 - correctly 404 non-matching routes
 ;; https://github.com/pedestal/pedestal/issues/340
-(defhandler echo-request
+(defn echo-request
   [request]
   {:status 200
    :body (pr-str request)
@@ -1134,21 +1135,23 @@
 (deftest nested-path-params
   (let [terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
         terse-sans-root `[[["/:resource/:thing"      {:get add-user}]]]
-        table-with-root [["/base/:resource/:thing"   :get add-user]]
-        table-sans-root [["/:resource/:thing"        :get add-user]]]
+        table-with-root #{["/base/:resource/:thing"   :get add-user]}
+        table-sans-root #{["/:resource/:thing"        :get add-user]}]
     (testing "path parts extracted with root"
       (is (= ["base" :resource :thing]
              (:path-parts (first (expand-routes  terse-with-root)))
-             (:path-parts (first (route-table {} table-with-root))))))
+             (:path-parts (first (route-table table-with-root)))
+             (:path-parts (first (expand-routes table-with-root))))))
 
     (testing "path parts extracted without root"
       (is (= [:resource :thing]
              (:path-parts (first (expand-routes  terse-sans-root)))
-             (:path-parts (first (route-table {} table-sans-root))))))
+             (:path-parts (first (route-table table-sans-root))))))
 
     (testing "path params extracted"
       (is (= [:resource :thing]
              (:path-params (first (expand-routes  terse-with-root)))
-             (:path-params (first (route-table {} table-with-root)))
+             (:path-params (first (route-table table-with-root)))
              (:path-params (first (expand-routes  terse-sans-root)))
-             (:path-params (first (route-table {} table-sans-root))))))))
+             (:path-params (first (route-table table-sans-root)))
+             (:path-params (first (expand-routes table-sans-root))))))))

@@ -192,7 +192,3 @@
        prioritize-constraints
        verify-unique-route-names))
 
-(defmacro defroutes
-  "Define a routing table from a collection of route maps."
-  [name route-maps]
-  `(def ~name (quote ~(expand-verbose-routes route-maps))))

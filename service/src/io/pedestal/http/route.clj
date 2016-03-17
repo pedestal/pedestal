@@ -13,16 +13,16 @@
 (ns io.pedestal.http.route
   (:require [clojure.string :as str]
             [clojure.core.incubator :refer [dissoc-in]]
-            [io.pedestal.interceptor]
-            [io.pedestal.interceptor.helpers :as interceptor :refer [definterceptor]]
+            [io.pedestal.interceptor :as interceptor]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.log :as log]
+            [io.pedestal.http.route.definition.terse :as terse]
+            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.prefix-tree :as prefix-tree])
   (:import (java.net URLEncoder URLDecoder)))
 
-(def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
 
 (comment
   ;; Structure of a route. 'tree' returns a list of these.
@@ -335,6 +335,24 @@
     (apply *url-for* route-name options)
     (throw (ex-info "*url-for* not bound" {}))))
 
+(defprotocol ExpandableRoutes
+  (expand-routes [expandable-route-spec]
+                 "Generate and return the routing table from a given expandable
+                 form of routing data."))
+
+(extend-protocol ExpandableRoutes
+  clojure.lang.APersistentVector
+  (expand-routes [route-spec]
+    (terse/terse-routes route-spec))
+
+  clojure.lang.APersistentMap
+  (expand-routes [route-spec]
+    (expand-routes [[(terse/map-routes->vec-routes route-spec)]]))
+
+  clojure.lang.APersistentSet
+  (expand-routes [route-spec]
+    (table/route-table route-spec)))
+
 (defprotocol RouterSpecification
   (router-spec [specification router-ctor]
     "Returns an interceptor which attempts to match each route against
@@ -356,15 +374,16 @@
                  :request (assoc request-with-path-params :url-for linker)
                  :url-for linker)
           (assoc-in [:bindings #'*url-for*] linker)
-          (enqueue-all (:interceptors route))))
+          (interceptor-impl/enqueue* (:interceptors route))))
     (assoc context :route nil)))
 
 (extend-protocol RouterSpecification
   clojure.lang.Sequential
   (router-spec [seq router-ctor]
     (let [router (router-ctor seq)]
-      (interceptor/before ::router
-                          #(route-context % router seq))))
+      (interceptor/interceptor
+        {:name ::router
+         :enter #(route-context % router seq)})))
 
   clojure.lang.Fn
   (router-spec [f router-ctor]
@@ -372,11 +391,12 @@
     ;; structure every time it routes a request.
     ;; This is only intended if you wanted to dynamically dispatch in a dynamic router
     ;; or completely control all routing aspects.
-    (interceptor/before ::router
-                        (fn [context]
-                          (let [routes (f)
-                                router (router-ctor routes)]
-                            (route-context context router routes))))))
+    (interceptor/interceptor
+      {:name ::router
+       :enter (fn [context]
+                (let [routes (f)
+                      router (router-ctor routes)]
+                  (route-context context router routes)))})))
 
 (def router-implementations
   {:prefix-tree prefix-tree/router
@@ -404,7 +424,10 @@
   the request at :query-params."
   ;; This doesn't need to be a function but it's done that way for
   ;; consistency with 'method-param'
-  (interceptor/on-request ::query-params parse-query-params))
+  (interceptor/interceptor
+    {:name ::query-params
+     :enter (fn [ctx]
+              (update-in ctx [:request] parse-query-params))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
@@ -425,7 +448,10 @@
      (let [param-path (if (vector? query-param-or-param-path)
                         query-param-or-param-path
                         [:query-params query-param-or-param-path])]
-       (interceptor/on-request ::method-param #(replace-method param-path %)))))
+       (interceptor/interceptor
+         {:name ::method-param
+          :enter (fn [ctx]
+                   (update-in ctx [:request] #(replace-method param-path %)))}))))
 
 (defn form-action-for-routes
   "Like 'url-for-routes' but the returned function returns a map with the keys

@@ -10,9 +10,9 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.route.table
-  (:require [io.pedestal.interceptor :as i]
-            [io.pedestal.http.route :as route]
+(ns io.pedestal.http.route.definition.table
+  (:require [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.http.route.definition :as route-definition]
             [io.pedestal.http.route.path :as path]))
 
 (defn- error
@@ -66,10 +66,10 @@
   [ctx]
   (let [[handlers & more] (:remaining ctx)]
     (if (vector? handlers)
-      (assert (every? #(satisfies? i/IntoInterceptor %) handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
-      (assert (satisfies? i/IntoInterceptor handlers)             (syntax-error ctx "the handler" "an interceptor" handlers)))
+      (assert (every? #(satisfies? interceptor/IntoInterceptor %) handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
+      (assert (satisfies? interceptor/IntoInterceptor handlers)             (syntax-error ctx "the handler" "an interceptor" handlers)))
     (let [handlers (if (vector? handlers) (vec handlers) [handlers])
-          handlers (mapv i/-interceptor handlers)]
+          handlers (mapv interceptor/-interceptor handlers)]
       (assoc ctx :interceptors handlers :remaining more))))
 
 (def attach-route-name  (partial take-next-pair :route-name  keyword? "a keyword"))
@@ -109,7 +109,7 @@
 (defn finalize
   [ctx]
   (assert (empty? (:remaining ctx)) (surplus-declarations ctx))
-  (select-keys ctx route/allowed-keys))
+  (select-keys ctx route-definition/allowed-keys))
 
 (defn route-table-row
   [opts row route]
@@ -126,6 +126,12 @@
       finalize))
 
 (defn route-table
-  [opts routes]
-  {:pre [(map? opts) (sequential? routes)]}
-  (map-indexed (partial route-table-row opts) routes))
+  ([routes]
+   (route-table (or (first (filter map? routes)) {})
+                routes))
+  ([opts routes]
+   {:pre [(map? opts) (or (set? routes)
+                          (sequential? routes))]}
+   (map-indexed (partial route-table-row opts)
+                (filter vector? routes))))
+
