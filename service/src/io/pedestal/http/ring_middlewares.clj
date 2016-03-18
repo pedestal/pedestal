@@ -88,7 +88,7 @@
   []
   (interceptor {:name ::head
                 :enter (fn [ctx]
-                         (if (= :head (-> ctx :request :request-method))
+                         (if (= :head (get-in ctx [:request :request-method]))
                            (-> ctx
                                (assoc :head-request? true)
                                (assoc-in [:request :request-method] :get))
