@@ -235,7 +235,7 @@
                      (not (nil? resource-path)) (conj (middlewares/resource resource-path))
                      (not (nil? file-path)) (conj (middlewares/file file-path))
                      (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
-                     true (conj (route/router routes router))))
+                     true (conj (route/router processed-routes router))))
       service-map)))
 
 (defn dev-interceptors
