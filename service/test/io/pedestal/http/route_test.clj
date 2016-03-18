@@ -25,7 +25,7 @@
             [io.pedestal.http.route :as route :refer [expand-routes]]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.http.route.definition.table :refer [route-table]]
+            [io.pedestal.http.route.definition.table :refer [table-routes]]
             [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
 
 (defhandler home-page
@@ -280,31 +280,32 @@
 (def id #"[0-9]+")
 
 (def tabular-routes
-  (doall (concat
-    (expand-routes
-      #{{:app-name :public :host "example.com"}
-        ["/"                           :get    [home-page]]
-        ["/child-path"                 :get    trailing-slash]
-        ["/user"                       :get    list-users]
-        ["/user"                       :post   add-user]
-        ["/user/:user-id"              :put    update-user  :constraints {:user-id id}]
-        ["/user/:user-id"              :get    view-user    :constraints {:user-id id :view #"long|short"}]})
-    (expand-routes
-      #{{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
-        ["/demo/site-one/*site-path"   :get    (site-demo "one")                                           :route-name :site-one-demo]
-        ["/demo/site-two/*site-path"   :get    (site-demo "two")                                           :route-name :site-two-demo]
-        ["/user/:user-id/delete"       :delete delete-user]})
-    (expand-routes
-      #{["/logout"                     :any    logout]
-        ["/search"                     :get    search-id    :constraints {:id id}]
-        ["/search"                     :get    search-query :constraints {:q #".+"}]
-        ["/search"                     :get    search-form]
-        ["/intercepted"                :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :intercepted]
-        ["/intercepted-by-fn-symbol"   :get    [(interceptor-3) request-inspection]                        :route-name :intercepted-by-fn-symbol]
-        ["/intercepted-by-fn-list"     :get    [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
-        ["/trailing-slash/child-path"  :get    trailing-slash                                              :route-name :admin-trailing-slash]
-        ["/hierarchical/intercepted"   :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :hierarchical-intercepted]
-        ["/terminal/intercepted"       :get    [interceptor-1 interceptor-2 request-inspection]            :route-name :terminal-intercepted]}))))
+  (into []
+        (concat
+          (table-routes
+            [{:app-name :public :host "example.com"}
+             ["/"              :get  [home-page]]
+             ["/child-path"    :get  trailing-slash]
+             ["/user"          :get  list-users]
+             ["/user"          :post add-user]
+             ["/user/:user-id" :get  view-user :constraints {:user-id id :view #"long|short"}]
+             ["/user/:user-id" :put  update-user :constraints {:user-id id}]])
+          (table-routes
+            [{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+             ["/demo/site-one/*site-path" :get    (site-demo "one") :route-name :site-one-demo]
+             ["/demo/site-two/*site-path" :get    (site-demo "two") :route-name :site-two-demo]
+             ["/user/:user-id/delete"     :delete delete-user]])
+          (table-routes
+            [["/logout"       :any logout]
+             ["/search"       :get search-id    :constraints {:id id}]
+             ["/search"       :get search-query :constraints {:q #".+"}]
+             ["/search"       :get search-form]
+             ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+             ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+             ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+             ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+             ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+             ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]]))))
 
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker
@@ -351,7 +352,7 @@
             {:query-params query-params}))))))
 
 (defn test-match
-  [route-table router-impl method uri & args]
+  [routes router-impl method uri & args]
   (let [{:keys [scheme host port query]
          :or {scheme "do-not-match-scheme"
               host "do-not-match-host"
@@ -366,7 +367,7 @@
                        :query-string query}}
             (interceptor-impl/enqueue query-params
                                       (method-param)
-                                      (app-router route-table router-impl))
+                                      (app-router routes router-impl))
             interceptor-impl/execute)]
     (when route
       (merge
@@ -1140,18 +1141,18 @@
     (testing "path parts extracted with root"
       (is (= ["base" :resource :thing]
              (:path-parts (first (expand-routes  terse-with-root)))
-             (:path-parts (first (route-table table-with-root)))
+             (:path-parts (first (table-routes table-with-root)))
              (:path-parts (first (expand-routes table-with-root))))))
 
     (testing "path parts extracted without root"
       (is (= [:resource :thing]
              (:path-parts (first (expand-routes  terse-sans-root)))
-             (:path-parts (first (route-table table-sans-root))))))
+             (:path-parts (first (table-routes table-sans-root))))))
 
     (testing "path params extracted"
       (is (= [:resource :thing]
              (:path-params (first (expand-routes  terse-with-root)))
-             (:path-params (first (route-table table-with-root)))
+             (:path-params (first (table-routes table-with-root)))
              (:path-params (first (expand-routes  terse-sans-root)))
-             (:path-params (first (route-table table-sans-root)))
+             (:path-params (first (table-routes table-sans-root)))
              (:path-params (first (expand-routes table-sans-root))))))))

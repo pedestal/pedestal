@@ -351,7 +351,7 @@
 
   clojure.lang.APersistentSet
   (expand-routes [route-spec]
-    (table/route-table route-spec)))
+    (table/table-routes route-spec)))
 
 (defprotocol RouterSpecification
   (router-spec [specification router-ctor]

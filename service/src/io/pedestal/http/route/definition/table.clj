@@ -125,13 +125,29 @@
       attach-path-regex
       finalize))
 
-(defn route-table
+(defn route-name [route]
+  (if-let [rname-pos (some-> route (.indexOf :route-name))]
+    (if (pos? rname-pos)
+      (nth route (inc rname-pos))
+      (nth route 2))
+    nil))
+
+(defn ensure-unique-route-names [routes]
+  (loop [seen-route-names #{}
+         rname (route-name (first routes))
+         rroutes (rest routes)]
+    (when rname
+      (assert (nil? (seen-route-names rname)) (str "Route name or handler appears more than once in the route spec: " rname))
+      (recur (conj seen-route-names rname) (route-name (first rroutes)) (rest rroutes)))))
+
+(defn table-routes
   ([routes]
-   (route-table (or (first (filter map? routes)) {})
-                routes))
+   (table-routes (or (first (filter map? routes)) {})
+                 (filterv vector? routes)))
   ([opts routes]
-   {:pre [(map? opts) (or (set? routes)
-                          (sequential? routes))]}
-   (map-indexed (partial route-table-row opts)
-                (filter vector? routes))))
+   {:pre [(map? opts)
+          (or (set? routes)
+              (sequential? routes))]}
+   (ensure-unique-route-names routes)
+   (map-indexed (partial route-table-row opts) routes)))
 
