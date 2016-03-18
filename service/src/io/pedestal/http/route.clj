@@ -127,9 +127,6 @@
 
 ;;; Combined matcher & request handler
 
-(defn- enqueue-all [context interceptors]
-  (apply interceptor-impl/enqueue context interceptors))
-
 (defn- replace-method
   "Replace the HTTP method of a request with the value provided at
   param-path (if provided). Removes the value found at param-path."
@@ -204,12 +201,12 @@
   given the route and opts. opts is a map as described in the
   docstring for 'url-for'."
   [route opts]
-  (let [{:keys           [path-params
-                          query-params
-                          request
-                          fragment
-                          override
-                          absolute?]
+  (let [{:keys [path-params
+                query-params
+                request
+                fragment
+                override
+                absolute?]
          override-host   :host
          override-port   :port
          override-scheme :scheme} opts

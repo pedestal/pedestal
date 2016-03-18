@@ -282,30 +282,30 @@
 (def tabular-routes
   (into []
         (concat
-          (table-routes
-            [{:app-name :public :host "example.com"}
-             ["/"              :get  [home-page]]
-             ["/child-path"    :get  trailing-slash]
-             ["/user"          :get  list-users]
-             ["/user"          :post add-user]
-             ["/user/:user-id" :get  view-user :constraints {:user-id id :view #"long|short"}]
-             ["/user/:user-id" :put  update-user :constraints {:user-id id}]])
-          (table-routes
-            [{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
-             ["/demo/site-one/*site-path" :get    (site-demo "one") :route-name :site-one-demo]
-             ["/demo/site-two/*site-path" :get    (site-demo "two") :route-name :site-two-demo]
-             ["/user/:user-id/delete"     :delete delete-user]])
-          (table-routes
-            [["/logout"       :any logout]
-             ["/search"       :get search-id    :constraints {:id id}]
-             ["/search"       :get search-query :constraints {:q #".+"}]
-             ["/search"       :get search-form]
-             ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
-             ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
-             ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
-             ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
-             ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
-             ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]]))))
+          (expand-routes
+            #{{:app-name :public :host "example.com"}
+              ["/"              :get  [home-page]]
+              ["/child-path"    :get  trailing-slash]
+              ["/user"          :get  list-users]
+              ["/user"          :post add-user]
+              ["/user/:user-id" :get  view-user :constraints {:user-id id :view #"long|short"}]
+              ["/user/:user-id" :put  update-user :constraints {:user-id id}]})
+          (expand-routes
+            #{{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+              ["/demo/site-one/*site-path" :get    (site-demo "one") :route-name :site-one-demo]
+              ["/demo/site-two/*site-path" :get    (site-demo "two") :route-name :site-two-demo]
+              ["/user/:user-id/delete"     :delete delete-user]})
+          (expand-routes
+            #{["/logout"       :any logout]
+              ["/search"       :get search-id    :constraints {:id id}]
+              ["/search"       :get search-query :constraints {:q #".+"}]
+              ["/search"       :get search-form]
+              ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+              ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+              ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+              ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+              ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+              ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))))
 
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker

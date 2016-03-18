@@ -127,7 +127,6 @@
                                   into
                                   (map #(resolve-interceptor % nil) interceptors))))
 
-
 (defn- generate-route-entries
   "Return a list of route table entries based on the treeish structure
   of `route-map` and `dna`"
@@ -136,13 +135,10 @@
     (concat (map (partial generate-verb-terminal current-dna) verbs)
             (mapcat (partial generate-route-entries current-dna) children))))
 
-
-
 (def default-dna
   {:path-parts []
    :path-params []
    :interceptors []})
-
 
 (defn expand-verbose-routes
   "Expand route-maps into a routing table of route entries."
