@@ -97,6 +97,19 @@
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
 
+  ;; clj-http (and by proxy, Apache HttpClient only speak HTTP 1.1
+  ;(testing "HTTP2 via HTTPS/ALPN"
+  ;  (with-server hello-world {:port 4347
+  ;                            :container-options {:ssl? true
+  ;                                                :ssl-port 4348
+  ;                                                :keystore "test/io/pedestal/http/keystore.jks"
+  ;                                                :key-password "password"
+  ;                                                :alpn true}}
+  ;    (let [response (http/get "https://localhost:4348" {:insecure? true})]
+  ;      (is (= (:status response) 200))
+  ;      (is (= (:body response) "Hello World"))
+  ;      (is (= nil (:headers response))))))
+
   (testing "configurator set to run last"
     (let [max-threads 20
           new-handler  (proxy [AbstractHandler] []
