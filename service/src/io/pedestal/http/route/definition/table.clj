@@ -13,6 +13,7 @@
 (ns io.pedestal.http.route.definition.table
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.route.definition :as route-definition]
+            [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.http.route.path :as path]))
 
 (defn- error
@@ -87,10 +88,6 @@
   (apply dissoc ctx
          (filter #(empty? (ctx %)) [:path-constraints :query-constraints])))
 
-(defn- capture-constraint
-  [[k v]]
-  [k (re-pattern (str "(" v ")"))])
-
 (defn parse-constraints
   [{:keys [constraints path-params] :as ctx}]
   (let [path-param?                          (fn [[k v]] (some #{k} path-params))
@@ -149,5 +146,6 @@
           (or (set? routes)
               (sequential? routes))]}
    (ensure-unique-route-names routes)
-   (map-indexed (partial route-table-row opts) routes)))
+   (route-definition/ensure-routes-integrity
+     (map-indexed (partial route-table-row opts) routes))))
 

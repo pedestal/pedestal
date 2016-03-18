@@ -11,10 +11,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.definition.verbose
-  (:require [io.pedestal.http.route.path :as path]
+  (:require [io.pedestal.http.route.definition :as definition]
+            [io.pedestal.http.route.path :as path]
             [io.pedestal.interceptor :refer [interceptor?]]
             [io.pedestal.interceptor.helpers :as interceptor]
-            [clojure.string :as str]))
+            [clojure.string :as string]))
 
 (defn handler-interceptor
   [handler name]
@@ -88,10 +89,6 @@
       (merge dna)
       (add-terminal-info (handler-map handler))))
 
-(defn- capture-constraint
-  "Add parenthesis to a regex in order to capture its value during evaluation."
-  [[k v]] [k (str "(" v ")")])
-
 (defn- update-constraints
   "Return a new DNA based on the contents of `dna` and
   `constraints`. Constraints are added to path-constraints if no verbs
@@ -100,16 +97,16 @@
   constraint's key identifies a path-param."
   [{path-params :path-params :as dna} constraints verbs]
   (if (empty? verbs)
-    (update-in dna [:path-constraints] merge (map capture-constraint constraints))
+    (update-in dna [:path-constraints] merge (map definition/capture-constraint constraints))
     (let [path-param? (fn [[k _]] (some #{k} path-params))
           [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
       (-> dna
-          (update-in [:path-constraints] merge (into {} (map capture-constraint path-constraints)))
+          (update-in [:path-constraints] merge (into {} (map definition/capture-constraint path-constraints)))
           (update-in [:query-constraints] merge query-constraints)))))
 
 (defn undoubleslash
   [^String s]
-  (str/replace s #"/+" "/"))
+  (string/replace s #"/+" "/"))
 
 (defn path-join
   [parent-path path]
@@ -139,56 +136,18 @@
     (concat (map (partial generate-verb-terminal current-dna) verbs)
             (mapcat (partial generate-route-entries current-dna) children))))
 
-(defn- uniquely-add-route-path
-  "Append `route-path` to `route-paths` if route-paths doesn't contain it
-  already."
-  [route-paths route-path]
-  (if (some #{route-path} route-paths)
-    route-paths
-    (conj route-paths route-path)))
 
-(defn- sort-by-constraints
-  "Sort the grouping of route entries which all correspond to
-  `route-path` from `groupings` such that the most constrained route
-  table entries appear first and the least constrained appear last."
-  [groupings route-path]
-  (let [grouping (groupings route-path)]
-    (sort-by (comp - count :query-constraints) grouping)))
-
-(defn- prioritize-constraints
-  "Sort a flat routing table of entries to guarantee that the most
-  constrained route entries appear in the table prior to entries which
-  have fewer constraints or no constraints."
-  [routing-table]
-  (let [route-paths (map #(map % [:app-name :scheme :host :port :path-parts])
-                                        routing-table)
-        unique-route-paths (reduce uniquely-add-route-path [] route-paths)
-        groupings (group-by #(map % [:app-name :scheme :host :port :path-parts])
-                            routing-table)]
-    (mapcat (partial sort-by-constraints groupings) unique-route-paths)))
 
 (def default-dna
   {:path-parts []
    :path-params []
    :interceptors []})
 
-(defn- verify-unique-route-names
-  [routing-table]
-  (let [non-unique-names (->> routing-table
-                              (group-by :route-name)
-                              (map (fn [[k v]] [k (count v)]))
-                              (filter (fn [[_ v]] (> v 1)))
-                              (map first))]
-    (when (seq non-unique-names)
-      (throw (ex-info "Route names are not unique"
-                      {:non-unique-names non-unique-names})))
-    routing-table))
 
 (defn expand-verbose-routes
   "Expand route-maps into a routing table of route entries."
   [route-maps]
   (->> route-maps
        (mapcat (partial generate-route-entries default-dna))
-       prioritize-constraints
-       verify-unique-route-names))
+       definition/ensure-routes-integrity))
 

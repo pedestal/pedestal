@@ -326,31 +326,6 @@
 (defbefore print-context
   [context] (pprint context) context)
 
-#_(defn test-match
-  ([table method uri]
-     (test-match table "do-not-match-scheme" "do-not-match-host" method uri nil))
-  ([table host method uri]
-     (test-match table "do-not-match-scheme" host method uri nil))
-  ([table scheme host method uri]
-     (test-match table scheme host method uri nil))
-  ([table scheme host method uri qs]
-     (let [{:keys [route request]}
-           (-> {:request {:request-method method
-                          :scheme scheme
-                          :server-name host
-                          :path-info uri
-                          :query-string qs}}
-               (interceptor-impl/enqueue query-params
-                                         (method-param)
-                                         (app-router table))
-               interceptor-impl/execute)]
-       (when route
-         (merge
-          {:route-name (:route-name route)
-           :path-params (:path-params request)}
-          (when-let [query-params (:query-params request)]
-            {:query-params query-params}))))))
-
 (defn test-match
   [routes router-impl method uri & args]
   (let [{:keys [scheme host port query]
@@ -384,16 +359,9 @@
                            (app-router table router-impl))
       interceptor-impl/execute))
 
-(defn test-linear-query-match [table uri params]
-  (-> (test-query-execute table
-                          :linear-search
-                          {:request {:request-method :get
-                                     :scheme "do-not-match-scheme"
-                                     :server-name "do-not-match-host"
-                                     :path-info uri
-                                     :query-string params}})
-      :route
-      :route-name))
+(defn test-query-match [table router-impl uri params]
+  (:route-name (test-match table router-impl :get uri :query params)))
+
 
 (defn test-fire-interceptors [router-impl-key]
   (are [routes] (= :clobbered
@@ -650,28 +618,36 @@
 
 (deftest match-query
   (are [routes] (= ::search-id
-                   (test-linear-query-match routes "/search" "id=123"))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   ;(test-query-match routes :prefix-tree "/search" "id=123")
+                   (test-query-match routes :linear-search "/search" "id=123"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes
        tabular-routes)
   (are [routes] (= ::search-query
-                   (test-linear-query-match routes "/search" "q=foo"))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   ;(test-query-match routes :prefix-tree "/search" "q=foo")
+                   (test-query-match routes :linear-search "/search" "q=foo"))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes
        tabular-routes)
   (are [routes] (= ::search-form
-                   (test-linear-query-match routes "/search" nil))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   (test-query-match routes :linear-search "/search" nil)
+                   (test-query-match routes :prefix-tree "/search" nil))
        verbose-routes
        terse-routes
        data-routes
        syntax-quote-data-routes
        tabular-routes)
   (are [routes] (= ::search-form
-                   (test-linear-query-match routes "/search" "id=not-a-number"))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   (test-query-match routes :linear-search "/search" "id=not-a-number")
+                   (test-query-match routes :prefix-tree "/search" "id=not-a-number"))
        verbose-routes
        terse-routes
        data-routes
