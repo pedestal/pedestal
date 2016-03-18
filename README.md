@@ -37,6 +37,7 @@ version details, updates, and necessary migration steps.**
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
  * The ability to utilize Ring Middleware as Pedestal Interceptors
  * Support to run on Jetty, Immutant/Undertow, and Tomcat
+ * HTTP/2, HTTP/2 Cleartext, and ALPN support
  * and more!
 
 

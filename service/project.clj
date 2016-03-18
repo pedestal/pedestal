@@ -16,7 +16,7 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0-RC4"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  ;; logging
                  [org.slf4j/slf4j-api "1.7.12"]
 
@@ -52,7 +52,9 @@
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev {:source-paths ["dev" "src" "bench"]
-                   :plugins      [[codox "0.8.13"]]
+                   :plugins      [[codox "0.8.13"]
+                                  [info.sunng/lein-bootclasspath-deps "0.2.0"]]
+                   :boot-dependencies [[org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"]]
                    :dependencies [[criterium "0.4.3"]
                                   [org.clojure/java.classpath "0.2.2"]
                                   [org.clojure/tools.namespace "0.2.11"]
@@ -61,7 +63,7 @@
                                                                  [clj-tuple]]]
                                   [com.ning/async-http-client "1.8.13"]
                                   [io.pedestal/pedestal.jetty "0.4.2-SNAPSHOT"]
-                                  [org.eclipse.jetty/jetty-servlets "9.3.1.v20150714"]
+                                  [org.eclipse.jetty/jetty-servlets "9.3.8.v20160314"]
                                   [io.pedestal/pedestal.immutant "0.4.2-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.4.2-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
