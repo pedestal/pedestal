@@ -68,6 +68,8 @@
 
 ;; TODO: Remove and refactor across the codebase
 (defmacro defroutes
-  "Define a routing table from the terse routing syntax."
+  "Deprecated. -- Prefer `def` and program against ExpandableRoutes
+  Define a routing table from the terse routing syntax."
   [name route-spec]
   `(def ~name (io.pedestal.http.route/expand-routes (quote ~route-spec))))
+
