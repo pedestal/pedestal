@@ -90,6 +90,7 @@
              (get-in [:request :request-method]))))
   (is (= {:body nil :status 200}
          (-> (context {:request-method :head})
+             ((:enter (head)))
              app
              ((:leave (head)))
              (#(select-keys (:response %) [:status :body]))))))

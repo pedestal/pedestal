@@ -83,12 +83,20 @@
                 :leave (response-fn-adapter flash/flash-response)}))
 
 (defn head
-  "Interceptor for head ring middleware. If used with defroutes, it will not work
+  "Interceptor to handle head requests. If used with defroutes, it will not work
   if specified in an interceptors meta-key."
   []
   (interceptor {:name ::head
-                :enter #(update-in % [:request] head/head-request)
-                :leave (response-fn-adapter head/head-response)}))
+                :enter (fn [ctx]
+                         (if (= :head (get-in ctx [:request :request-method]))
+                           (-> ctx
+                               (assoc :head-request? true)
+                               (assoc-in [:request :request-method] :get))
+                           ctx))
+                :leave (fn [{:keys [request response] :as ctx}]
+                         (if (and response (:head-request? ctx))
+                           (update ctx :response assoc :body nil)
+                           ctx))}))
 
 (def keyword-params
   "Interceptor for keyword-params ring middleware."
@@ -135,4 +143,3 @@
        (interceptor {:name ::session
                      :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
                      :leave (response-fn-adapter session/session-response options)}))))
-
