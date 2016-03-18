@@ -171,8 +171,9 @@
 
   Options:
 
-  * :routes: A seq of route maps that defines a service's routes. It's recommended to build this
-    using io.pedestal.http.route.definition/defroutes.
+  * :routes: Something that satisfies the io.pedestal.http.route/ExpandableRoutes protocol
+    or a seq of route maps that defines a service's routes.
+    If passing in a seq of routes, it's recommended to use io.pedestal.http.route/expand-routes.
   * :router: The router implementation to to use. Can be either :linear-search,
     :prefix-tree, or a custom Router constructor function. Defaults to :prefix-tree
   * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
@@ -213,7 +214,13 @@
               ext-mime-types {}
               enable-session nil
               enable-csrf nil
-              secure-headers {}}} service-map]
+              secure-headers {}}} service-map
+        processed-routes (cond
+                           (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
+                           (and (seq? routes) (every? map? routes)) routes
+                           :else (throw (ex-info "Routes specified in the service map don't fulfill the contract.
+                                                 They must be a seq of full-route maps or satisfy the ExpandableRoutes protocol"
+                                                 {:routes routes})))]
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []

@@ -93,7 +93,7 @@
   (let [path-param?                          (fn [[k v]] (some #{k} path-params))
         [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
     (-> ctx
-        (update :path-constraints  merge (into {} (map capture-constraint path-constraints)))
+        (update :path-constraints  merge (into {} (map route-definition/capture-constraint path-constraints)))
         (update :query-constraints merge query-constraints)
         remove-empty-constraints)))
 
