@@ -14,10 +14,18 @@
   [request]
   (ring-resp/response "Hello World!"))
 
+;; Defines "/" and "/about" routes with their associated :get handlers.
+;; The interceptors defined after the verb map (e.g., {:get home-page}
+;; apply to / and its children (/about).
 (def common-interceptors [(body-params/body-params) http/html-body])
 
-(def routes #{["/" :get home-page]
-              ["/about" :get (conj common-interceptors about-page)]})
+(def routes #{["/" :get (conj common-interceptors `home-page)]
+              ["/about" :get (conj common-interceptors `about-page)]})
+
+;(def routes
+;  `[[["/" {:get home-page}
+;      ^:interceptors [(body-params/body-params) bootstrap/html-body]
+;      ["/about" {:get about-page}]]]])
 
 ;; Consumed by {{namespace}}.server/create-server
 ;; See http/default-interceptors for additional options you can configure

@@ -69,17 +69,23 @@
     (if (vector? handlers)
       (assert (every? #(satisfies? interceptor/IntoInterceptor %) handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
       (assert (satisfies? interceptor/IntoInterceptor handlers)             (syntax-error ctx "the handler" "an interceptor" handlers)))
-    (let [handlers (if (vector? handlers) (vec handlers) [handlers])
-          handlers (mapv interceptor/-interceptor handlers)]
-      (assoc ctx :interceptors handlers :remaining more))))
+    (let [original-handlers (if (vector? handlers) (vec handlers) [handlers])
+          handlers (mapv interceptor/interceptor original-handlers)]
+      (assoc ctx :interceptors handlers
+                 :remaining more
+                 :last-handler (last original-handlers)))))
 
 (def attach-route-name  (partial take-next-pair :route-name  keyword? "a keyword"))
 
 (defn parse-route-name
-  [{:keys [route-name interceptors] :as ctx}]
+  [{:keys [route-name interceptors last-handler] :as ctx}]
   (if route-name
     ctx
-    (let [default-route-name (some-> interceptors last :name)]
+    (let [last-interceptor (some-> interceptors last)
+          default-route-name (cond
+                               (:name last-interceptor) (:name last-interceptor)
+                               (symbol? last-handler) (route-definition/symbol->keyword last-handler)
+                               :else nil)]
       (assert default-route-name (error ctx "the last interceptor does not have a name and there is no explicit :route-name."))
       (assoc ctx :route-name default-route-name))))
 
@@ -147,5 +153,7 @@
               (sequential? routes))]}
    (ensure-unique-route-names routes)
    (route-definition/ensure-routes-integrity
-     (map-indexed (partial route-table-row opts) routes))))
+     (if (sequential? routes)
+       (map-indexed (partial route-table-row opts) routes)
+       (map #(route-table-row opts "" %) routes)))))
 

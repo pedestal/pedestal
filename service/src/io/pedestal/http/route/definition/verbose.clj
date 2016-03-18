@@ -38,25 +38,19 @@
 
    ))
 
-(defn symbol->keyword
-  [s]
-  (let [resolved (resolve s)
-        {ns :ns n :name} (meta resolved)]
-    (if resolved
-      (keyword (name (ns-name ns)) (name n))
-      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
+
 
 (defn handler-map [m]
   (cond
    (symbol? m)
-   (let [handler-name (symbol->keyword m)]
+   (let [handler-name (definition/symbol->keyword m)]
      {:route-name handler-name
       :handler (resolve-interceptor m handler-name)})
    ;(isa? (type m) clojure.lang.APersistentMap)
    (instance? clojure.lang.IPersistentMap m)
    (let [{:keys [route-name handler interceptors]} m
          handler-name (cond
-                       (symbol? handler) (symbol->keyword handler)
+                       (symbol? handler) (definition/symbol->keyword handler)
                        (interceptor? handler) (:name handler))
          interceptor (resolve-interceptor handler (or route-name handler-name))
          interceptor-name (:name interceptor)]

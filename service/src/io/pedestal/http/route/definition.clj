@@ -15,6 +15,14 @@
 (def schemes #{:http :https})
 (def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
 
+(defn symbol->keyword
+  [s]
+  (let [resolved (resolve s)
+        {ns :ns n :name} (meta resolved)]
+    (if resolved
+      (keyword (name (ns-name ns)) (name n))
+      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
+
 (defn capture-constraint
   "Add parenthesis to a regex in order to capture its value during evaluation."
   [[k v]]
