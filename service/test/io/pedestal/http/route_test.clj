@@ -15,9 +15,8 @@
         clojure.pprint
         clojure.test
         clojure.repl)
-  (:require [clojure.set :as set]
-            [clojure.string :as str]
-            ring.middleware.resource
+  (:require [clojure.set]
+            [ring.middleware.resource]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.helpers :as interceptor
              :refer [defhandler defon-request defbefore definterceptor handler]]
@@ -307,6 +306,34 @@
               ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
               ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))))
 
+(def quoted-tabular-routes
+  (into []
+        (concat
+          (expand-routes
+            `#{{:app-name :public :host "example.com"}
+               ["/"              :get  [home-page]]
+               ["/child-path"    :get  trailing-slash]
+               ["/user"          :get  list-users]
+               ["/user"          :post add-user]
+               ["/user/:user-id" :get  view-user :constraints {:user-id #"[0-9]+" :view #"long|short"}]
+               ["/user/:user-id" :put  update-user :constraints {:user-id #"[0-9]+"}]})
+          (expand-routes
+            `#{{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+               ["/demo/site-one/*site-path" :get    (site-demo "one") :route-name :site-one-demo]
+               ["/demo/site-two/*site-path" :get    (site-demo "two") :route-name :site-two-demo]
+               ["/user/:user-id/delete"     :delete delete-user]})
+          (expand-routes
+            `#{["/logout"       :any logout]
+               ["/search"       :get search-id    :constraints {:id #"[0-9]+"}]
+               ["/search"       :get search-query :constraints {:q #".+"}]
+               ["/search"       :get search-form]
+               ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+               ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+               ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+               ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+               ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+               ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))))
+
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker
   [routes]
@@ -379,7 +406,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-interceptors
   (test-fire-interceptors :prefix-tree)
@@ -401,7 +429,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-hierarchical-interceptors
   (test-fire-hierarchical-interceptors :prefix-tree)
@@ -423,7 +452,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-terminal-interceptors
   (test-fire-terminal-interceptors :prefix-tree)
@@ -462,7 +492,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-interceptor-fn-list
   (test-fire-interceptor-fn-list :prefix-tree)
@@ -486,7 +517,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-update-user
   (test-match-update-user :prefix-tree)
@@ -499,7 +531,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-logout
   (test-match-logout :prefix-tree)
@@ -519,7 +552,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-non-root-trailing-slash
   (test-match-non-root-trailing-slash :prefix-tree)
@@ -539,7 +573,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-root-trailing-slash
   (test-match-root-trailing-slash :prefix-tree)
@@ -552,7 +587,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest check-host
   (test-check-host :prefix-tree)
@@ -569,7 +605,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes))
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-demo-one
   (test-match-demo-one :prefix-tree)
@@ -582,6 +619,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)
   (are [routes] (= nil
                    (test-match routes router-impl-key :put "/user/abc" :host "example.com"))
@@ -589,6 +627,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)
   (are [routes] (= {:path-params {:user-id "123"} :query-params {:view "long"} :route-name ::view-user}
                    (test-match routes router-impl-key :get "/user/123" :scheme :http :host "example.com" :query "view=long"))
@@ -596,6 +635,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)
   (are [routes] (= nil
                    (test-match routes router-impl-key :get "/user/123" :scheme :http :host "example.com" :query "view=none"))
@@ -603,6 +643,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)
   (are [routes] (= nil
                    (test-match routes router-impl-key :get "/user/abc" :scheme :http :host "example.com" :query "view=long"))
@@ -610,6 +651,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest match-user-constraints
@@ -625,7 +667,8 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
-       tabular-routes)
+       tabular-routes
+       quoted-tabular-routes)
   (are [routes] (= ::search-query
                    ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
                    ;(test-query-match routes :prefix-tree "/search" "q=foo")
@@ -634,6 +677,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)
   (are [routes] (= ::search-form
                    ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
@@ -643,6 +687,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)
   (are [routes] (= ::search-form
                    ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
@@ -652,6 +697,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest trailing-slash-link
@@ -663,6 +709,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest logout-link
@@ -671,6 +718,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest view-user-link
@@ -680,6 +728,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest view-user-link-on-non-standard-port
@@ -693,6 +742,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-link
@@ -702,6 +752,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-action
@@ -712,6 +763,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-action-without-verb-smuggling
@@ -725,6 +777,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-action-with-alternate-verb-param
@@ -738,6 +791,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-link-with-scheme
@@ -750,6 +804,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-link-with-host
@@ -762,6 +817,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-link-with-overrides
@@ -777,6 +833,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-link-absolute
@@ -790,6 +847,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest delete-user-action-with-host
@@ -803,6 +861,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest search-id-link
@@ -812,6 +871,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest search-id-with-host
@@ -822,6 +882,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest search-id-link-with-extra-params
@@ -832,6 +893,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes)) ; order is undefined
 
 (deftest search-id-link-with-extra-params-and-fragment
@@ -842,6 +904,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest search-query-link
@@ -851,6 +914,7 @@
        terse-routes
        data-routes
        syntax-quote-data-routes
+       quoted-tabular-routes
        tabular-routes))
 
 (deftest query-encoding
@@ -976,10 +1040,10 @@
         data-route-names (set (map :route-name data-routes))
         syntax-quote-data-route-names (set (map :route-name syntax-quote-data-routes))
         tabular-route-names (set (map :route-name tabular-routes))]
-    (is (and (empty? (set/difference verbose-route-names terse-route-names))
-             (empty? (set/difference terse-route-names data-route-names))
-             (empty? (set/difference data-route-names syntax-quote-data-route-names))
-             (empty? (set/difference syntax-quote-data-route-names tabular-route-names)))
+    (is (and (empty? (clojure.set/difference verbose-route-names terse-route-names))
+             (empty? (clojure.set/difference terse-route-names data-route-names))
+             (empty? (clojure.set/difference data-route-names syntax-quote-data-route-names))
+             (empty? (clojure.set/difference syntax-quote-data-route-names tabular-route-names)))
         "Route names for all routing syntaxes match")))
 
 (deftest url-for-without-*url-for*-should-error-properly
@@ -1117,18 +1181,18 @@
     (testing "path parts extracted with root"
       (is (= ["base" :resource :thing]
              (:path-parts (first (expand-routes  terse-with-root)))
-             (:path-parts (first (table-routes table-with-root)))
+             (:path-parts (first (expand-routes table-with-root)))
              (:path-parts (first (expand-routes table-with-root))))))
 
     (testing "path parts extracted without root"
       (is (= [:resource :thing]
              (:path-parts (first (expand-routes  terse-sans-root)))
-             (:path-parts (first (table-routes table-sans-root))))))
+             (:path-parts (first (expand-routes table-sans-root))))))
 
     (testing "path params extracted"
       (is (= [:resource :thing]
              (:path-params (first (expand-routes  terse-with-root)))
-             (:path-params (first (table-routes table-with-root)))
+             (:path-params (first (expand-routes table-with-root)))
              (:path-params (first (expand-routes  terse-sans-root)))
-             (:path-params (first (table-routes table-sans-root)))
+             (:path-params (first (expand-routes table-sans-root)))
              (:path-params (first (expand-routes table-sans-root))))))))
