@@ -214,7 +214,7 @@ interceptors (or things that resolve to interceptors) in that third
 position.
 
 ```clojure
-["/user/:user-id/private" :post [inject-connection auth-required (body-params/body-params) view-user]
+["/user/:user-id/private" :post [inject-connection auth-required (body-params/body-params) view-user]]
 ```
 
 In this example, `inject-connection` and `auth-required` are
@@ -375,7 +375,7 @@ arguments) and returns a map containing a URL and an HTTP verb.
 ```clojure
 (def form-action (route/form-action-for-routes app-routes))
 
-(form-action :timeline :params {:user-id 12345)
+(form-action :timeline :params {:user-id 12345})
 ;; => {:method "post", :action "/user/:user-id/timeline"}
 ```
 
