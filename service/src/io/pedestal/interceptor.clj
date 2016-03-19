@@ -59,7 +59,7 @@
 (defn interceptor-name
   [n]
   (if-not (or (nil? n) (keyword? n))
-    (throw (ex-info "Name must be keyword or nil" {:name n}))
+    (throw (ex-info (str "Name must be keyword or nil; Got: " (pr-str n)) {:name n}))
     n))
 
 (defn interceptor?
@@ -72,7 +72,7 @@
                            (vals (select-keys o [:enter :leave :error])))]
     (and (some identity int-vals)
          (every? fn? (remove nil? int-vals))
-         (interceptor-name (:name o))
+         (or (interceptor-name (:name o)) true) ;; Could return `nil`
          true)
     false))
 
@@ -85,5 +85,6 @@
                            {:t t
                             :type (type t)}))
            true)]
-   :post [valid-interceptor?]}
+   :post [(valid-interceptor? %)]}
   (-interceptor t))
+

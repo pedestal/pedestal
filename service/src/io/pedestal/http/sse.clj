@@ -194,7 +194,7 @@
    (start-event-stream stream-ready-fn heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn heartbeat-delay bufferfn-or-n opts]
    (interceptor/interceptor
-     {:name "io.pedestal.http.sse/start-event-stream"
+     {:name (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
       :enter (fn [context]
                (log/trace :msg "switching to sse")
                (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))
