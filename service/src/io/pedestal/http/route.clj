@@ -16,6 +16,7 @@
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.log :as log]
+            [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
@@ -333,22 +334,40 @@
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol ExpandableRoutes
-  (expand-routes [expandable-route-spec]
-                 "Generate and return the routing table from a given expandable
-                 form of routing data."))
+  (-expand-routes [expandable-route-spec]
+                  "Generate and return the routing table from a given expandable
+                  form of routing data."))
 
 (extend-protocol ExpandableRoutes
   clojure.lang.APersistentVector
-  (expand-routes [route-spec]
+  (-expand-routes [route-spec]
     (terse/terse-routes route-spec))
 
   clojure.lang.APersistentMap
-  (expand-routes [route-spec]
-    (expand-routes [[(terse/map-routes->vec-routes route-spec)]]))
+  (-expand-routes [route-spec]
+    (-expand-routes [[(terse/map-routes->vec-routes route-spec)]]))
 
   clojure.lang.APersistentSet
-  (expand-routes [route-spec]
+  (-expand-routes [route-spec]
     (table/table-routes route-spec)))
+
+(defn expand-routes
+  "Given a value (the route specification), produce and return a sequence of of
+  route-maps -- the expanded routes from the specification.
+
+  Ensure the integrity of the sequence of route maps (even if they've already been checked).
+    - Constraints are correctly ordered (most specific to least specific)
+    - Route names are unique"
+  [route-spec]
+  {:pre [(if-not (satisfies? ExpandableRoutes route-spec)
+           (throw (ex-info "You're trying to use something as a route specification
+                           that isn't supported by the protocol; Perhaps you need to extend it?"
+                           {:routes route-spec
+                            :type (type route-spec)}))
+           true)]
+   :post [(seq? %)
+          (every? (every-pred map? :path :route-name :method) %)]}
+  (definition/ensure-routes-integrity (-expand-routes route-spec)))
 
 (defprotocol RouterSpecification
   (router-spec [specification router-ctor]
