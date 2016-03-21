@@ -49,6 +49,8 @@
                 ^String trust-password
                 client-auth]} options
         context (SslContextFactory.)]
+    (when (every? nil? [keystore key-password truststore trust-password client-auth])
+      (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
     (if (string? keystore)
       (.setKeyStorePath context keystore)
       (.setKeyStore context keystore))
@@ -144,6 +146,8 @@
                reuse-addr? true}} :container-options} options
         thread-pool (QueuedThreadPool. ^Integer max-threads)
         server (Server. thread-pool)
+        _ (when (and h2? (not ssl-port))
+            (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
         http-conf (http-configuration (:container-options options))
         http (HttpConnectionFactory. http-conf)
         http2c (when h2c? (HTTP2CServerConnectionFactory. http-conf))
