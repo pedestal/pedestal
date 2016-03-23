@@ -183,14 +183,14 @@
                      (try (io/copy instream-body output-stream)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error t)))
+                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan)))))
                  (write-byte-buffer-body [this body resume-chan context]
                    (let [out-chan (Channels/newChannel output-stream)]
                      (try (.write out-chan body)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error t)))
+                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan))))))
 
       meta-data)))

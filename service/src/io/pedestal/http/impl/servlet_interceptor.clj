@@ -20,7 +20,7 @@
             [io.pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.route :as route]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
@@ -282,7 +282,7 @@
 
 (defn- terminator-inject
   [context]
-  (interceptor-impl/terminate-when context #(ring-response/response? (:response %))))
+  (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
 
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
@@ -395,16 +395,19 @@
                           :servlet servlet})]
       (log/debug :in :interceptor-service-fn
                  :context context)
+      (log/counter :io.pedestal/active-servlet-calls 1)
       (try
-        (let [final-context (interceptor-impl/execute
-                             (apply interceptor-impl/enqueue context interceptors))]
+        (let [final-context (interceptor.chain/execute
+                             (apply interceptor.chain/enqueue context interceptors))]
           (log/debug :msg "Leaving servlet"
                      :final-context final-context))
         (catch Throwable t
           (log/error :msg "Servlet code threw an exception"
                      :throwable t
                      :cause-trace (with-out-str
-                                    (stacktrace/print-cause-trace t))))))))
+                                    (stacktrace/print-cause-trace t))))
+        (finally
+          (log/counter :io.pedestal/active-servlet-calls -1))))))
 
 (defn http-interceptor-service-fn
   "Returns a function which can be used as an implementation of the

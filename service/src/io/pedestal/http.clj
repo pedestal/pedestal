@@ -78,6 +78,7 @@
       (log/info :msg (format "%s %s"
                              (string/upper-case (name (:request-method request)))
                              (:uri request)))
+      (log/meter ::request)
       request)))
 
 (defn response?
@@ -93,7 +94,8 @@
     ::not-found
     (fn [context]
       (if-not (response? (:response context))
-        (assoc context :response (ring-response/not-found "Not Found"))
+        (do (log/meter ::not-found)
+          (assoc context :response (ring-response/not-found "Not Found")))
         context))))
 
 (def html-body
@@ -282,6 +284,10 @@
   [server-map]
   (into {} (map (fn [[k v]] [(keyword "io.pedestal.http" (name k)) v]) server-map)))
 
+(defn bind-metrics-recorder [service-map]
+  (when-let [init-fn (::metrics-init service-map)]
+    (alter-var-root #'log/default-recorder (fn [x] (init-fn)))))
+
 (defn server
   [{servlet ::servlet
     type ::type
@@ -304,6 +310,7 @@
    (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
    (init-fn)
+   (bind-metrics-recorder service-map)
    (-> service-map
       create-servlet
       server)))

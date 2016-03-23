@@ -17,7 +17,12 @@
   key :exception should have a java.lang.Throwable as its value, and
   will be passed separately to the underlying logging API."
   (:require clojure.string)
-  (:import (org.slf4j LoggerFactory)))
+  (:import (org.slf4j LoggerFactory)
+           (com.codahale.metrics MetricRegistry
+                                 Gauge Counter Histogram Meter
+                                 JmxReporter Slf4jReporter)
+           (java.util.concurrent TimeUnit)
+           (clojure.lang IFn)))
 
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
@@ -61,6 +66,9 @@
                                        :value value'))
        ~value')))
 
+;; Utility/Auxiliary log functions
+;; --------------------------------
+
 (defn maybe-init-java-util-log
   "Invoke this once when starting your application to redirect all
   java.util.logging log messages to SLF4J. The current project's
@@ -78,3 +86,123 @@
     (.. bridge
         (getMethod "install" (make-array Class 0))
         (invoke nil (make-array Object 0)))))
+
+;; Metrics
+;; -----------
+
+(defprotocol MetricRecorder
+
+  (-counter [t metric-name delta]
+            "Update a single Numeric/Long metric by the `delta` amount")
+  (-gauge [t metric-name value-fn]
+          "Register a single metric value, returned by a 0-arg function;
+          This function will be called everytime the Guage value is requested.")
+  (-histogram [t metric-name value]
+              "Measure a distribution of Long values")
+  (-meter [t metric-name n-events]
+          "Measure the rate of a ticking metric - a meter."))
+
+(extend-protocol MetricRecorder
+
+  MetricRegistry
+  (-counter [registry metric-name delta]
+    (when-let [c (.counter registry ^String metric-name)]
+      (.inc ^Counter c delta)
+      delta))
+
+  (-gauge [registry metric-name value-fn]
+    (try
+      (.register registry ^String metric-name (reify Gauge
+                                        (getValue [this] (value-fn))))
+      value-fn
+      (catch IllegalArgumentException iae
+        nil)))
+
+  (-histogram [registry metric-name value]
+    (when-let [h (.histogram registry ^String metric-name)]
+      (.update ^Histogram h ^long value)
+      value))
+
+  (-meter [registry metric-name n-events]
+    (when-let [m (.meter registry ^String metric-name)]
+      (.mark ^Meter m n-events)
+      n-events))
+
+  clojure.lang.Fn
+  (-counter [f metric-name delta]
+    (f :counter metric-name delta))
+  (-gauge [f metric-name value-fn]
+    (f :gauge metric-name (value-fn)))
+  (-histogram [f metric-name value]
+    (f :histogram metric-name value))
+  (-meter [f metric-name n-events]
+    (f :meter metric-name n-events))
+
+  nil
+  (-counter [t m d]
+    nil)
+  (-gauge [t m vfn]
+    nil)
+  (-histogram [t m v]
+    nil)
+  (-meter [t m v]
+    nil))
+
+;; Utility/Auxiliary metric functions
+;; ----------------------------------
+
+(defn metric-registry
+  "Create a metric-registry.
+  Optionally pass in single-arg functions, which when passed a registry,
+  create, start, and return a reporter."
+  [& reporter-init-fns]
+  (let [registry (MetricRegistry.)]
+    (doseq [reporter-fn reporter-init-fns]
+      (reporter-fn registry))
+    registry))
+
+(defn jmx-reporter [^MetricRegistry registry]
+  (doto (some-> (JmxReporter/forRegistry registry)
+                (.inDomain "io.pedestal.metrics")
+                (.build))
+    (.start)))
+
+(defn log-reporter [^MetricRegistry registry]
+  (doto (some-> (Slf4jReporter/forRegistry registry)
+                (.outputTo (LoggerFactory/getLogger "io.pedestal.metrics"))
+                (.convertRatesTo TimeUnit/SECONDS)
+                (.convertDurationsTo TimeUnit/MILLISECONDS)
+                (.build))
+    (.start 1 TimeUnit/MINUTES)))
+
+(def default-recorder (metric-registry jmx-reporter))
+
+;; Public Metrics API
+;; -------------------
+
+(defn counter
+  ([metric-name ^Long delta]
+   (-counter default-recorder (str metric-name) delta))
+  ([recorder metric-name ^Long delta]
+   (-counter recorder (str metric-name) delta)))
+
+(defn gauge
+  ([metric-name ^IFn value-fn]
+   (-gauge default-recorder (str metric-name) value-fn))
+  ([recorder metric-name ^IFn value-fn]
+   (-gauge recorder (str metric-name) value-fn)))
+
+(defn histogram
+  ([metric-name ^Long value]
+   (-histogram default-recorder (str metric-name) value))
+  ([recorder metric-name ^Long value]
+   (-histogram recorder (str metric-name) value)))
+
+(defn meter
+  ([metric-name]
+   (-meter default-recorder (str metric-name) 1))
+  ([metric-name ^Long n-events]
+   (-meter default-recorder (str metric-name) n-events))
+  ([recorder metric-name ^Long n-events]
+   (-meter recorder (str metric-name) n-events)))
+

@@ -18,7 +18,9 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  ;; logging
-                 [org.slf4j/slf4j-api "1.7.12"]
+                 [org.slf4j/slf4j-api "1.7.13"]
+                 ;; metrics
+                 [io.dropwizard.metrics/metrics-core "3.1.2"]
 
                  ;; route
                  [org.clojure/core.incubator "0.1.3"]
@@ -52,11 +54,10 @@
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev {:source-paths ["dev" "src" "bench"]
-                   :plugins      [[codox "0.8.13"]
-                                  [info.sunng/lein-bootclasspath-deps "0.2.0"]]
-                   :boot-dependencies [[org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"]]
-                   :dependencies [[criterium "0.4.3"]
-                                  [org.clojure/java.classpath "0.2.2"]
+
+                   :plugins      [[codox "0.9.4"]]
+                   :dependencies [[criterium "0.4.4"]
+                                  [org.clojure/java.classpath "0.2.3"]
                                   [org.clojure/tools.namespace "0.2.11"]
                                   ;[clj-http "0.9.1"]
                                   [clj-http "2.0.0" :exclusions [[potemkin]
@@ -69,10 +70,10 @@
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.1.3" :exclusions [org.slf4j/slf4j-api]]
-                                  [org.clojure/tools.logging "0.2.6"]
-                                  [org.slf4j/jul-to-slf4j "1.7.12"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.12"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.12"]
+                                  [org.clojure/tools.logging "0.3.1"]
+                                  [org.slf4j/jul-to-slf4j "1.7.13"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.13"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.13"]
 
                                   ;; only used for route-bench - remove when no longer needed
                                   [incanter/incanter-core "1.5.6"]

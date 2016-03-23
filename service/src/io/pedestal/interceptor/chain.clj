@@ -10,23 +10,24 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.impl.interceptor
+(ns io.pedestal.interceptor.chain
   "Interceptor pattern. Executes a chain of Interceptor functions on a
   common \"context\" map, maintaining a virtual \"stack\", with error
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
   (:require [clojure.core.async :as async :refer [<! go]]
-            [io.pedestal.log :as log])
+            [io.pedestal.log :as log]
+            [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong))
 
 (declare execute)
 
 (defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
 
+;; This is used for printing out interceptors within debug messages
 (defn- name [interceptor]
   (get interceptor :name (pr-str interceptor)))
 
-;; TODO: liter this through the call sites below.  This will allow pattern match on the results
 (defn- throwable->ex-info [^Throwable t execution-id interceptor stage]
   (ex-info (str "Interceptor Exception: " (.getMessage t))
            (merge {:execution-id execution-id
@@ -198,6 +199,7 @@
   "Adds interceptors to the end of context's execution queue. Creates
   the queue if necessary. Returns updated context."
   [context & interceptors]
+  {:pre (every? interceptor/interceptor? interceptors)}
   (log/trace :enqueue (map name interceptors) :context context)
   (update-in context [::queue]
              (fnil into clojure.lang.PersistentQueue/EMPTY)

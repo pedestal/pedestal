@@ -14,7 +14,7 @@
   (:require [clojure.string :as str]
             [clojure.core.incubator :refer [dissoc-in]]
             [io.pedestal.interceptor :as interceptor]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.log :as log]
             [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.definition.terse :as terse]
@@ -390,7 +390,7 @@
                  :request (assoc request-with-path-params :url-for linker)
                  :url-for linker)
           (assoc-in [:bindings #'*url-for*] linker)
-          (interceptor-impl/enqueue* (:interceptors route))))
+          (interceptor.chain/enqueue* (:interceptors route))))
     (assoc context :route nil)))
 
 (extend-protocol RouterSpecification

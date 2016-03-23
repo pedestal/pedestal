@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.sse-test
-  (:require [io.pedestal.impl.interceptor :as interceptor]
+  (:require [io.pedestal.interceptor.chain :as interceptor]
             [io.pedestal.log :as log]
             [io.pedestal.http.sse :refer :all]
             [io.pedestal.http.cors :as cors])

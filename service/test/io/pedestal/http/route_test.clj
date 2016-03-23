@@ -20,7 +20,7 @@
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.helpers :as interceptor
              :refer [defhandler defon-request defbefore definterceptor handler]]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.route :as route :refer [expand-routes]]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
@@ -367,10 +367,10 @@
                        :server-port port
                        :path-info uri
                        :query-string query}}
-            (interceptor-impl/enqueue query-params
+            (interceptor.chain/enqueue query-params
                                       (method-param)
                                       (app-router routes router-impl))
-            interceptor-impl/execute)]
+            interceptor.chain/execute)]
     (when route
       (merge
        {:route-name (:route-name route)
@@ -381,10 +381,10 @@
 (defn test-query-execute
   [table router-impl query]
   (-> query
-      (interceptor-impl/enqueue query-params
+      (interceptor.chain/enqueue query-params
                            (method-param)
                            (app-router table router-impl))
-      interceptor-impl/execute))
+      interceptor.chain/execute))
 
 (defn test-query-match [table router-impl uri params]
   (:route-name (test-match table router-impl :get uri :query params)))
@@ -1012,20 +1012,20 @@
                          :server-name "overridden.pedestal"
                          :path-info "/resource"
                          :query-params {}}}]
-    (is (= "Overridden" (-> (interceptor-impl/enqueue query
+    (is (= "Overridden" (-> (interceptor.chain/enqueue query
                                                       query-params
                                                       (method-param)
                                                       router)
-                            interceptor-impl/execute
+                            interceptor.chain/execute
                             :response
                             :body))
         "When the overridden-routes have their base binding, routing dispatches to the base binding")
     (is (= "Overriding" (with-redefs [overridden-routes overriding-routes]
-                          (-> (interceptor-impl/enqueue query
+                          (-> (interceptor.chain/enqueue query
                                                         query-params
                                                         (method-param)
                                                         router)
-                              interceptor-impl/execute
+                              interceptor.chain/execute
                               :response
                               :body)))
         "When the overridden-routes have their binding overridden, routing dispatches to the overridden binding")))

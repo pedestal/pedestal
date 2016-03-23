@@ -12,8 +12,7 @@
 
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
-  common interceptor creation patterns."
-  (:require [io.pedestal.impl.interceptor :as impl]))
+  common interceptor creation patterns.")
 
 (defrecord Interceptor [name enter leave error])
 

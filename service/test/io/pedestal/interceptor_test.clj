@@ -15,8 +15,7 @@
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
-            [io.pedestal.impl.interceptor :as impl
-             :refer (execute enqueue)]))
+            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)]))
 
 (defn trace [context direction name]
   (update-in context [::trace] (fnil conj []) [direction name]))
