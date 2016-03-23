@@ -119,11 +119,14 @@
       (execute new-context)))
   nil)
 
-(defn- enter-all-with-binding
-  "Invokes :enter functions of all Interceptors on the execution
-  ::queue of context, saves them on the ::stack of context. Returns
-  updated context."
-  [context]
+(defn- process-all-with-binding
+  "Invokes `interceptor-key` functions of all Interceptors on the execution
+  ::queue of context, saves them on the ::stack of context.
+  Returns updated context.
+  By default, `interceptor-key` is :enter"
+  ([context]
+   (process-all-with-binding context :enter))
+  ([context interceptor-key]
   (log/debug :in 'enter-all :execution-id (::execution-id context))
   (loop [context context]
     (let [queue (::queue context)
@@ -139,12 +142,57 @@
                           (assoc ::queue (pop queue))
                           ;; conj on nil returns a list, acts like a stack:
                           (assoc ::stack (conj stack interceptor))
-                          (try-f interceptor :enter))]
+                          (try-f interceptor interceptor-key))]
           (cond
             (channel? context) (go-async old-context context)
             (::error context) (dissoc context ::queue)
             (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-            true (recur (check-terminators context))))))))
+            true (recur (check-terminators context)))))))))
+
+(defn- process-all
+  [context interceptor-key]
+  (let [context (with-bindings (or (:bindings context)
+                                   {})
+                  (process-all-with-binding context interceptor-key))]
+    (if (::rebind context)
+      (recur (dissoc context ::rebind) interceptor-key)
+      context)))
+
+(defn- process-any-errors-with-binding
+  "Unwinds the context by invoking :error functions of Interceptors on
+  the ::stack of context, but **only** if there is an ::error present in the context."
+  [context]
+  (log/debug :in 'process-any-errors :execution-id (::execution-id context))
+  (loop [context context]
+    (let [stack (::stack context)
+          execution-id (::execution-id context)]
+      (log/trace :context context)
+      (if (empty? stack)
+        context
+        (let [interceptor (peek stack)
+              pre-bindings (:bindings context)
+              old-context context
+              context (assoc context ::stack (pop stack))
+              context (if (::error context)
+                        (try-error context interceptor)
+                        context)]
+          (cond
+           (channel? context) (go-async old-context context)
+           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+           true (recur context)))))))
+
+(defn- process-any-errors
+  "Establish the bindings present in `context` as thread local
+  bindings, and then invoke process-any-errors-with-binding.
+  Conditionally re-establish bindings if a change in bindings is made by an
+  interceptor."
+  [context]
+  (let [context (with-bindings (or (:bindings context)
+                                   {})
+                  (process-any-errors-with-binding context))]
+    (if (::rebind context)
+        (recur (dissoc context ::rebind))
+        context)))
 
 (defn- enter-all
   "Establish the bindings present in `context` as thread local
@@ -152,12 +200,7 @@
   re-establish bindings if a change in bindings is made by an
   interceptor."
   [context]
-  (let [context (with-bindings (or (:bindings context)
-                                   {})
-                  (enter-all-with-binding context))]
-    (if (::rebind context)
-      (recur (dissoc context ::rebind))
-      context)))
+  (process-all context :enter))
 
 (defn- leave-all-with-binding
   "Unwinds the context by invoking :leave functions of Interceptors on
@@ -245,6 +288,30 @@
       (dissoc context ::stack ::execution-id))
     context))
 
+(defn execute-only
+  "Like `execute`, but only processes the interceptors in a single direction,
+  using `interceptor-key` (i.e. :enter, :leave) to determine which functions
+  to call.
+  ---
+  Executes a queue of Interceptors attached to the context. Context
+  must be a map, Interceptors are added with 'enqueue'.
+
+  An Interceptor Record has keys :enter, :leave, and :error.
+  The value of each key is a function; missing
+  keys or nil values are ignored. When executing a context, all
+  the `interceptor-key` functions are invoked in order. As this happens, the
+  Interceptors are pushed on to a stack."
+  [context interceptor-key]
+  (let [context (some-> context
+                        begin
+                        (process-all interceptor-key)
+                        terminate
+                        process-any-errors
+                        end)]
+    (if-let [ex (::error context)]
+      (throw ex)
+      context)))
+
 (defn execute
   "Executes a queue of Interceptors attached to the context. Context
   must be a map, Interceptors are added with 'enqueue'.
@@ -275,7 +342,7 @@
   (let [context (some-> context
                         begin
                         enter-all
-                        (dissoc ::queue)
+                        terminate
                         leave-all
                         end)]
     (if-let [ex (::error context)]

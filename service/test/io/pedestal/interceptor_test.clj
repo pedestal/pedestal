@@ -15,7 +15,7 @@
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
-            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)]))
+            [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
 (defn trace [context direction name]
   (update-in context [::trace] (fnil conj []) [direction name]))
@@ -62,13 +62,38 @@
                            (tracer :b)
                            (tracer :c))))))
 
+(deftest t-simple-oneway-execution
+  (is (= {::trace [[:enter :a]
+                   [:enter :b]
+                   [:enter :c]]}
+         (execute-only (enqueue {}
+                                (tracer :a)
+                                (tracer :b)
+                                (tracer :c))
+                       :enter)))
+  (is (= {::trace [[:leave :a]
+                   [:leave :b]
+                   [:leave :c]]}
+         (execute-only (enqueue {}
+                                (tracer :a)
+                                (tracer :b)
+                                (tracer :c))
+                       :leave))))
+
 (deftest t-error-propagates
   (is (thrown? Exception
                (execute (enqueue {}
                                  (tracer :a)
                                  (tracer :b)
                                  (thrower :c)
-                                 (tracer :d))))))
+                                 (tracer :d)))))
+  (is (thrown? Exception
+               (execute-only (enqueue {}
+                                      (tracer :a)
+                                      (tracer :b)
+                                      (thrower :c)
+                                      (tracer :d))
+                             :enter))))
 
 (deftest t-error-caught
   (is (= {::trace [[:enter :a]
@@ -86,7 +111,22 @@
                            (tracer :d)
                            (tracer :e)
                            (thrower :f)
-                           (tracer :g))))))
+                           (tracer :g)))))
+  (is (= {::trace [[:enter :a]
+                   [:enter :b]
+                   [:enter :c]
+                   [:enter :d]
+                   [:enter :e]
+                   [:error :c :from :f]]}
+         (execute-only (enqueue {}
+                                (tracer :a)
+                                (tracer :b)
+                                (catcher :c)
+                                (tracer :d)
+                                (tracer :e)
+                                (thrower :f)
+                                (tracer :g))
+                       :enter))))
 
 (deftest t-two-channels
   (let [result-chan (chan)
