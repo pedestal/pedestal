@@ -21,6 +21,7 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
+            [io.pedestal.http.sse :as sse]
             [ring.util.mime-type :as ring-mime]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
@@ -223,6 +224,7 @@
                      (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
                      enable-csrf (conj (csrf/anti-forgery enable-csrf))
                      true (conj (middlewares/content-type {:mime-types ext-mime-types}))
+                     true (conj sse/serialise-event-stream)
                      true (conj route/query-params)
                      true (conj (route/method-param method-param-name))
                      (not (nil? resource-path)) (conj (middlewares/resource resource-path))
@@ -321,4 +323,3 @@
 
 (defn servlet-service [service servlet-req servlet-resp]
   (.service ^javax.servlet.Servlet (::servlet service) servlet-req servlet-resp))
-

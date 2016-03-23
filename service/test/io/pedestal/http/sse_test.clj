@@ -11,7 +11,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.sse-test
-  (:require [io.pedestal.impl.interceptor :as interceptor]
+  (:require [clojure.core.async :as async]
+            [io.pedestal.impl.interceptor :as interceptor]
             [io.pedestal.log :as log]
             [io.pedestal.http.sse :refer :all]
             [io.pedestal.http.cors :as cors])
@@ -22,8 +23,13 @@
   (let [fake-context {:request {:headers {"origin" "http://foo.com:8080"}}}
         interceptor-context (interceptor/enqueue fake-context
                                                  (cors/allow-origin ["http://foo.com:8080"])
+                                                 serialise-event-stream
                                                  ;; The `stream-ready-fn` takes the channel and the context
-                                                 (start-event-stream (fn [ch context] ch)))
+                                                 (start-event-stream (fn [ch context]
+                                                                       (async/put! ch {:name "test-name"
+                                                                                       :data {:a 1}})
+                                                                       (do-heartbeat ch)
+                                                                       (async/close! ch))))
         {{body :body
           {content-type "Content-Type"
            connection "Connection"
@@ -33,6 +39,13 @@
           :as context} (interceptor/execute interceptor-context)]
     (is body "Response has a body")
     (is (instance? clojure.core.async.impl.protocols.Channel body) "Response body is a channel")
+    (is (= (slurp (mk-data {:name "test-name"
+                            :data {:a 1}}))
+           (slurp (first (async/alts!! [body (async/timeout 100)]))))
+        "Events are serialised correctly")
+    (is (= (slurp CRLF)
+           (slurp (first (async/alts!! [body (async/timeout 100)]))))
+        "Heartbeats are serialised correctly")
     (is (= 200 status)
         "A successful status code is sent to the client.")
     (is (= "text/event-stream; charset=UTF-8" content-type)
@@ -43,4 +56,3 @@
         "The client is instructed not to cache the event stream")
     (is (= "http://foo.com:8080" allow-origin)
         "The origin is allowed")))
-
