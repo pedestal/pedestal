@@ -128,6 +128,16 @@
       (.mark ^Meter m n-events)
       n-events))
 
+  clojure.lang.Fn
+  (-counter [f metric-name delta]
+    (f :counter metric-name delta))
+  (-gauge [f metric-name value-fn]
+    (f :gauge metric-name (value-fn)))
+  (-histogram [f metric-name value]
+    (f :histogram metric-name value))
+  (-meter [f metric-name n-events]
+    (f :meter metric-name n-events))
+
   nil
   (-counter [t m d]
     nil)
