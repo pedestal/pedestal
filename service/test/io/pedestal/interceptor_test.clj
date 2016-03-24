@@ -154,20 +154,20 @@
                               (channeler :b)
                               (channeler :c)
                               (tracer :d)))]
-    (<!! (go (let [result     (<!! result-chan)
-                   trace      (result ::trace)
-                   thread-ids (result ::thread-ids)]
-               (is (= [[:enter :a]
-                       [:enter :b]
-                       [:enter :c]
-                       [:enter :d]
-                       [:leave :d]
-                       [:leave :c]
-                       [:leave :b]
-                       [:leave :a]]
-                      trace))
-               (is (= 2
-                      (-> thread-ids distinct count))))))))
+    (let [result     (<!! result-chan)
+          trace      (result ::trace)
+          thread-ids (result ::thread-ids)]
+      (is (= [[:enter :a]
+              [:enter :b]
+              [:enter :c]
+              [:enter :d]
+              [:leave :d]
+              [:leave :c]
+              [:leave :b]
+              [:leave :a]]
+             trace))
+      (is (= 2
+             (-> thread-ids distinct count))))))
 
 
 (deftest t-two-channels-with-error
@@ -180,20 +180,20 @@
                               (tracer :d)
                               (thrower :e)
                               (tracer :f)))]
-    (<!! (go (let [result     (<!! result-chan)
-                   trace      (result ::trace)
-                   thread-ids (result ::thread-ids)]
-               (is (= [[:enter :a]
-                       [:enter :b]
-                       [:enter :c]
-                       [:enter :d]
-                       ;; :e throws, gets caught by :b
-                       [:error :b :from :e]
-                       ;; Finish and unwind the stack
-                       [:leave :a]]
-                      trace))
-               (is (= 1
-                      (-> thread-ids distinct count))))))))
+    (let [result     (<!! result-chan)
+          trace      (result ::trace)
+          thread-ids (result ::thread-ids)]
+      (is (= [[:enter :a]
+              [:enter :b]
+              [:enter :c]
+              [:enter :d]
+              ;; :e throws, gets caught by :b
+              [:error :b :from :e]
+              ;; Finish and unwind the stack
+              [:leave :a]]
+             trace))
+      (is (= 1
+             (-> thread-ids distinct count))))))
 
 (defaround around-interceptor
   "An interceptor that does the around pattern."
