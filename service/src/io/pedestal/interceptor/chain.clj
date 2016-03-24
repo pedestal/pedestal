@@ -151,7 +151,9 @@
 
 (defn- process-all
   [context interceptor-key]
-  (let [context (with-bindings (or (:bindings context)
+  ;; If we're processing leave handlers, reverse the queue
+  (let [context (if (= interceptor-key :leave) (update context ::queue reverse) context)
+        context (with-bindings (or (:bindings context)
                                    {})
                   (process-all-with-binding context interceptor-key))]
     (if (::rebind context)

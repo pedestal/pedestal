@@ -29,6 +29,10 @@
   (assoc (tracer name)
          :enter (fn [context] (throw (ex-info "Boom!" {:from name})))))
 
+(defn leave-thrower [name]
+  (assoc (tracer name)
+         :leave (fn [context] (throw (ex-info "Boom!" {:from name})))))
+
 (defn catcher [name]
   (assoc (tracer name)
          :error (fn [context error]
@@ -72,9 +76,9 @@
                                 (tracer :b)
                                 (tracer :c))
                        :enter)))
-  (is (= {::trace [[:leave :a]
+  (is (= {::trace [[:leave :c]
                    [:leave :b]
-                   [:leave :c]]}
+                   [:leave :a]]}
          (execute-only (enqueue {}
                                 (tracer :a)
                                 (tracer :b)
@@ -127,7 +131,20 @@
                                 (tracer :e)
                                 (thrower :f)
                                 (tracer :g))
-                       :enter))))
+                       :enter)))
+  (is (= {::trace [[:leave :h]
+                   [:leave :g]
+                   [:error :h :from :f]]}
+         (execute-only (enqueue {}
+                                (tracer :a)
+                                (tracer :b)
+                                (catcher :c)
+                                (tracer :d)
+                                (tracer :e)
+                                (leave-thrower :f)
+                                (tracer :g)
+                                (catcher :h))
+                       :leave))))
 
 (deftest t-two-channels
   (let [result-chan (chan)
