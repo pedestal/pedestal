@@ -390,7 +390,7 @@
                  :request (assoc request-with-path-params :url-for linker)
                  :url-for linker)
           (assoc-in [:bindings #'*url-for*] linker)
-          (interceptor.chain/enqueue* (:interceptors route))))
+          (interceptor.chain/enqueue (:interceptors route))))
     (assoc context :route nil)))
 
 (extend-protocol RouterSpecification

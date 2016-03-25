@@ -243,7 +243,7 @@
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates
   the queue if necessary. Returns updated context."
-  [context & interceptors]
+  [context interceptors]
   {:pre (every? interceptor/interceptor? interceptors)}
   (log/trace :enqueue (map name interceptors) :context context)
   (update-in context [::queue]
@@ -251,10 +251,13 @@
              interceptors))
 
 (defn enqueue*
-  "Like 'enqueue' but the last argument is a sequence of interceptors
-  to add to the context's execution queue."
+  "Like 'enqueue' but vararg.
+  If the last argument is a sequence of interceptors,
+  they're unpacked and to added to the context's execution queue."
   [context & interceptors-and-seq]
-  (apply enqueue context (apply list* interceptors-and-seq)))
+  (if (seq? (last interceptors-and-seq))
+    (enqueue context (apply list* interceptors-and-seq))
+    (enqueue context interceptors-and-seq)))
 
 (defn terminate
   "Removes all remaining interceptors from context's execution queue.
@@ -303,16 +306,18 @@
   keys or nil values are ignored. When executing a context, all
   the `interceptor-key` functions are invoked in order. As this happens, the
   Interceptors are pushed on to a stack."
-  [context interceptor-key]
-  (let [context (some-> context
-                        begin
-                        (process-all interceptor-key)
-                        terminate
-                        process-any-errors
-                        end)]
-    (if-let [ex (::error context)]
-      (throw ex)
-      context)))
+  ([context interceptor-key]
+   (let [context (some-> context
+                         begin
+                         (process-all interceptor-key)
+                         terminate
+                         process-any-errors
+                         end)]
+     (if-let [ex (::error context)]
+       (throw ex)
+       context)))
+  ([context interceptor-key interceptors]
+   (execute-only (enqueue context interceptors) interceptor-key)))
 
 (defn execute
   "Executes a queue of Interceptors attached to the context. Context
@@ -340,13 +345,15 @@
   re-throw the exception, passing control to the :error function on
   the stack. If the exception reaches the end of the stack without
   being handled, execute will throw it."
-  [context]
-  (let [context (some-> context
-                        begin
-                        enter-all
-                        terminate
-                        leave-all
-                        end)]
-    (if-let [ex (::error context)]
-      (throw ex)
-      context)))
+  ([context]
+   (let [context (some-> context
+                         begin
+                         enter-all
+                         terminate
+                         leave-all
+                         end)]
+     (if-let [ex (::error context)]
+       (throw ex)
+       context)))
+  ([context interceptors]
+   (execute (enqueue context interceptors))))

@@ -20,10 +20,10 @@
 
 (deftest sse-start-stream
   (let [fake-context {:request {:headers {"origin" "http://foo.com:8080"}}}
-        interceptor-context (interceptor/enqueue fake-context
-                                                 (cors/allow-origin ["http://foo.com:8080"])
-                                                 ;; The `stream-ready-fn` takes the channel and the context
-                                                 (start-event-stream (fn [ch context] ch)))
+        interceptor-context (interceptor/enqueue* fake-context
+                                                  (cors/allow-origin ["http://foo.com:8080"])
+                                                  ;; The `stream-ready-fn` takes the channel and the context
+                                                  (start-event-stream (fn [ch context] ch)))
         {{body :body
           {content-type "Content-Type"
            connection "Connection"

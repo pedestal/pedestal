@@ -397,8 +397,7 @@
                  :context context)
       (log/counter :io.pedestal/active-servlet-calls 1)
       (try
-        (let [final-context (interceptor.chain/execute
-                             (apply interceptor.chain/enqueue context interceptors))]
+        (let [final-context (interceptor.chain/execute context interceptors)]
           (log/debug :msg "Leaving servlet"
                      :final-context final-context))
         (catch Throwable t

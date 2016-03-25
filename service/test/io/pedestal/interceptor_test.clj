@@ -56,48 +56,66 @@
                                         ch)}))
 
 (deftest t-simple-execution
-  (is (= {::trace [[:enter :a]
-                   [:enter :b]
-                   [:enter :c]
-                   [:leave :c]
-                   [:leave :b]
-                   [:leave :a]]}
-         (execute (enqueue {}
-                           (tracer :a)
-                           (tracer :b)
-                           (tracer :c))))))
+  (let [expected {::trace [[:enter :a]
+                           [:enter :b]
+                           [:enter :c]
+                           [:leave :c]
+                           [:leave :b]
+                           [:leave :a]]}
+        actual-en (execute (enqueue {}
+                                    [(tracer :a)
+                                     (tracer :b)
+                                     (tracer :c)]))
+        actual-en* (execute (chain/enqueue* {}
+                                            (tracer :a)
+                                            (tracer :b)
+                                            (tracer :c)))
+        actual-ex (execute {} [(tracer :a)
+                               (tracer :b)
+                               (tracer :c)])]
+    (is (= expected actual-en actual-en* actual-ex))))
 
 (deftest t-simple-oneway-execution
-  (is (= {::trace [[:enter :a]
-                   [:enter :b]
-                   [:enter :c]]}
-         (execute-only (enqueue {}
-                                (tracer :a)
-                                (tracer :b)
-                                (tracer :c))
-                       :enter)))
-  (is (= {::trace [[:leave :c]
-                   [:leave :b]
-                   [:leave :a]]}
-         (execute-only (enqueue {}
-                                (tracer :a)
-                                (tracer :b)
-                                (tracer :c))
-                       :leave))))
+  (let [expected-enter {::trace [[:enter :a]
+                                 [:enter :b]
+                                 [:enter :c]]}
+        expected-leave {::trace [[:leave :c]
+                                 [:leave :b]
+                                 [:leave :a]]}
+        actual-en (execute-only (enqueue {}
+                                         [(tracer :a)
+                                          (tracer :b)
+                                          (tracer :c)])
+                                :enter)
+        actual-en* (execute-only (chain/enqueue* {}
+                                                 (tracer :a)
+                                                 (tracer :b)
+                                                 (tracer :c))
+                                 :enter)
+        actual-ex (execute-only {} :enter [(tracer :a)
+                                           (tracer :b)
+                                           (tracer :c)])]
+    (is (= expected-enter actual-en actual-en* actual-ex))
+    (is (= expected-leave
+           (execute-only (enqueue {}
+                                  [(tracer :a)
+                                   (tracer :b)
+                                   (tracer :c)])
+                         :leave)))))
 
 (deftest t-error-propagates
   (is (thrown? Exception
                (execute (enqueue {}
-                                 (tracer :a)
-                                 (tracer :b)
-                                 (thrower :c)
-                                 (tracer :d)))))
+                                 [(tracer :a)
+                                  (tracer :b)
+                                  (thrower :c)
+                                  (tracer :d)]))))
   (is (thrown? Exception
                (execute-only (enqueue {}
-                                      (tracer :a)
-                                      (tracer :b)
-                                      (thrower :c)
-                                      (tracer :d))
+                                      [(tracer :a)
+                                       (tracer :b)
+                                       (thrower :c)
+                                       (tracer :d)])
                              :enter))))
 
 (deftest t-error-caught
@@ -110,13 +128,13 @@
                    [:leave :b]
                    [:leave :a]]}
          (execute (enqueue {}
-                           (tracer :a)
-                           (tracer :b)
-                           (catcher :c)
-                           (tracer :d)
-                           (tracer :e)
-                           (thrower :f)
-                           (tracer :g)))))
+                           [(tracer :a)
+                            (tracer :b)
+                            (catcher :c)
+                            (tracer :d)
+                            (tracer :e)
+                            (thrower :f)
+                            (tracer :g)]))))
   (is (= {::trace [[:enter :a]
                    [:enter :b]
                    [:enter :c]
@@ -124,36 +142,36 @@
                    [:enter :e]
                    [:error :c :from :f]]}
          (execute-only (enqueue {}
-                                (tracer :a)
-                                (tracer :b)
-                                (catcher :c)
-                                (tracer :d)
-                                (tracer :e)
-                                (thrower :f)
-                                (tracer :g))
+                                [(tracer :a)
+                                 (tracer :b)
+                                 (catcher :c)
+                                 (tracer :d)
+                                 (tracer :e)
+                                 (thrower :f)
+                                 (tracer :g)])
                        :enter)))
   (is (= {::trace [[:leave :h]
                    [:leave :g]
                    [:error :h :from :f]]}
          (execute-only (enqueue {}
-                                (tracer :a)
-                                (tracer :b)
-                                (catcher :c)
-                                (tracer :d)
-                                (tracer :e)
-                                (leave-thrower :f)
-                                (tracer :g)
-                                (catcher :h))
+                                [(tracer :a)
+                                 (tracer :b)
+                                 (catcher :c)
+                                 (tracer :d)
+                                 (tracer :e)
+                                 (leave-thrower :f)
+                                 (tracer :g)
+                                 (catcher :h)])
                        :leave))))
 
 (deftest t-two-channels
   (let [result-chan (chan)
         res (execute (enqueue {}
-                              (deliverer result-chan)
-                              (tracer :a)
-                              (channeler :b)
-                              (channeler :c)
-                              (tracer :d)))]
+                              [(deliverer result-chan)
+                               (tracer :a)
+                               (channeler :b)
+                               (channeler :c)
+                               (tracer :d)]))]
     (let [result     (<!! result-chan)
           trace      (result ::trace)
           thread-ids (result ::thread-ids)]
@@ -173,13 +191,13 @@
 (deftest t-two-channels-with-error
   (let [result-chan (chan)
         res (execute (enqueue {}
-                              (deliverer result-chan)
-                              (tracer :a)
-                              (catcher :b)
-                              (channeler :c)
-                              (tracer :d)
-                              (thrower :e)
-                              (tracer :f)))]
+                              [(deliverer result-chan)
+                               (tracer :a)
+                               (catcher :b)
+                               (channeler :c)
+                               (tracer :d)
+                               (thrower :e)
+                               (tracer :f)]))]
     (let [result     (<!! result-chan)
           trace      (result ::trace)
           thread-ids (result ::thread-ids)]
