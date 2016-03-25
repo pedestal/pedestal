@@ -248,6 +248,7 @@
                         (cons cors/dev-allow-origin)
                         (cons servlet-interceptor/exception-debug)))))
 
+;; TODO: Make the next three functions a provider
 (defn service-fn
   [{interceptors ::interceptors
     :as service-map}]
@@ -275,6 +276,25 @@
       service-fn
       servlet))
 
+;;TODO: Make this a multimethod
+(defn interceptor-chain-provider
+  [service-map]
+  (let [provider (cond
+                   (fn? (::chain-provider service-map)) ((::chain-provider service-map))
+                   (keyword? (::type service-map)) (comp servlet service-fn)
+                   :else (throw (IllegalArgumentException. "There was no provider or server type specified.
+                                                           Unable to create/connect interceptor chain foundation.
+                                                           Try setting :type to :jetty in your service map.")))]
+    (provider service-map)))
+
+(defn create-provider
+  "Creates the base Interceptor Chain provider, connecting a backend to the interceptor
+  chain."
+  [service-map]
+  (-> service-map
+      default-interceptors
+      interceptor-chain-provider))
+
 (defn- service-map->server-options
   [service-map]
   (let [server-keys [::host ::port ::join? ::container-options]]
@@ -289,14 +309,15 @@
     (alter-var-root #'log/default-recorder (fn [x] (init-fn)))))
 
 (defn server
-  [{servlet ::servlet
-    type ::type
-    :or {type :jetty}
-    :as service-map}]
-  (let [server-ns (symbol (str "io.pedestal.http." (name type)))
-        server-fn (do (require server-ns)
-                      (resolve (symbol (name server-ns) "server")))
-        server-map (server-fn servlet (service-map->server-options service-map))]
+  [service-map]
+  (let [{type ::type
+         :or {type :jetty}} service-map
+        server-fn (if (fn? type)
+                    type
+                    (let [server-ns (symbol (str "io.pedestal.http." (name type)))]
+                      (require server-ns)
+                      (resolve (symbol (name server-ns) "server"))))
+        server-map (server-fn service-map (service-map->server-options service-map))]
     (when (= type :jetty)
       ;; Load in container optimizations (NIO)
       (require 'io.pedestal.http.jetty.container))
@@ -312,7 +333,7 @@
    (init-fn)
    (bind-metrics-recorder service-map)
    (-> service-map
-      create-servlet
+      create-provider ;; Creates/connects a backend to the interceptor chain
       server)))
 
 (defn start [service-map]
