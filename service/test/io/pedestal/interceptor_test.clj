@@ -55,6 +55,11 @@
                             :leave #(do (>!! ch %)
                                         ch)}))
 
+(defn enter-deliverer [ch]
+  (interceptor/interceptor {:name ::deliverer
+                            :enter #(do (>!! ch %)
+                                        ch)}))
+
 (deftest t-simple-execution
   (let [expected {::trace [[:enter :a]
                            [:enter :b]
@@ -187,7 +192,6 @@
     (is (= 2
            (-> thread-ids distinct count)))))
 
-
 (deftest t-two-channels-with-error
   (let [result-chan (chan)
         res (execute (enqueue {}
@@ -211,6 +215,26 @@
             [:leave :a]]
            trace))
     (is (= 1
+           (-> thread-ids distinct count)))))
+
+(deftest one-way-async-channel
+  (let [result-chan (chan)
+        res (execute-only (enqueue {}
+                              [(tracer :a)
+                               (channeler :b)
+                               (channeler :c)
+                               (tracer :d)
+                               (enter-deliverer result-chan)])
+                          :enter)
+        result     (<!! result-chan)
+        trace      (result ::trace)
+        thread-ids (result ::thread-ids)]
+    (is (= [[:enter :a]
+            [:enter :b]
+            [:enter :c]
+            [:enter :d]]
+           trace))
+    (is (= 2
            (-> thread-ids distinct count)))))
 
 (deftest termination

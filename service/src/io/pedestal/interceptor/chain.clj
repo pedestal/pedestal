@@ -21,6 +21,7 @@
   (:import java.util.concurrent.atomic.AtomicLong))
 
 (declare execute)
+(declare execute-only)
 
 (defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
 
@@ -112,12 +113,18 @@
 
   This function is non-blocking, returning nil immediately (a signal to halt
   further execution on this thread)."
-  [old-context context-channel]
-  (prepare-for-async old-context)
-  (go
-   (let [new-context (<! context-channel)]
-      (execute new-context)))
-  nil)
+  ([old-context context-channel]
+   (prepare-for-async old-context)
+   (go
+     (let [new-context (<! context-channel)]
+       (execute new-context)))
+   nil)
+  ([old-context context-channel interceptor-key]
+   (prepare-for-async old-context)
+   (go
+     (let [new-context (<! context-channel)]
+       (execute-only new-context interceptor-key)))
+   nil))
 
 (defn- process-all-with-binding
   "Invokes `interceptor-key` functions of all Interceptors on the execution
