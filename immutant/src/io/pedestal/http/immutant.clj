@@ -47,9 +47,9 @@
     :truststore (either file path or KeyStore)
     :trust-password
     :client-auth (either :want or :need)"
-  ([servlet]
-     (server servlet {}))
-  ([servlet options]
+  ([service-map]
+     (server service-map {}))
+  ([service-map options]
    (let [server (-> (merge options (:container-options options))
                     (select-keys [:trust-managers :key-managers :keystore :buffer-size :buffers-per-region :worker-threads
                                   :port :host :ssl-context :io-threads :client-auth :direct-buffers? :trust-password :key-password
@@ -57,7 +57,7 @@
                     undertow/options
                     (select-keys [:path :virtual-host :configuration])
                     (assoc :auto-start false)
-                    (->> (web/run servlet))
+                    (->> (web/run (:io.pedestal.http/servlet service-map)))
                     web/server)]
        {:server   server
         :start-fn #(start server)

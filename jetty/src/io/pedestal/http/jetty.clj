@@ -197,9 +197,9 @@
   server)
 
 (defn server
-  ([servlet] (server servlet {}))
-  ([servlet options]
-     (let [server (create-server servlet options)]
+  ([service-map] (server service-map {}))
+  ([service-map options]
+     (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
        {:server   server
         :start-fn #(start server options)
         :stop-fn  #(stop server)})))
