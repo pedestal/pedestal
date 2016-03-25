@@ -280,7 +280,7 @@
 (defn interceptor-chain-provider
   [service-map]
   (let [provider (cond
-                   (fn? (::chain-provider service-map)) ((::chain-provider service-map))
+                   (fn? (::chain-provider service-map)) (::chain-provider service-map)
                    (keyword? (::type service-map)) (comp servlet service-fn)
                    :else (throw (IllegalArgumentException. "There was no provider or server type specified.
                                                            Unable to create/connect interceptor chain foundation.

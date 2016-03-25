@@ -241,23 +241,24 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
-(defn- async? [^ServletRequest servlet-request]
-  (.isAsyncStarted servlet-request))
+(defn- servlet-async? [{:keys [servlet-request] :as context}]
+  (.isAsyncStarted ^ServletRequest servlet-request))
 
 (defn- start-servlet-async
-  [{:keys [servlet-request] :as context}]
-  (when-not (async? servlet-request)
+  [{:keys [servlet-request async?] :as context}]
+  (when-not (async? context)
     (start-servlet-async* servlet-request)))
 
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
   (-> context
-      (assoc :request (request-map servlet servlet-request servlet-response))
+      (assoc :request (request-map servlet servlet-request servlet-response)
+             :async? servlet-async?)
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
-  [{:keys [^HttpServletRequest servlet-request] :as context}]
-  (when (async? servlet-request)
+  [{:keys [^HttpServletRequest servlet-request async?] :as context}]
+  (when (async? context)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
