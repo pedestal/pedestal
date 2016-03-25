@@ -171,21 +171,21 @@
                                (tracer :a)
                                (channeler :b)
                                (channeler :c)
-                               (tracer :d)]))]
-    (let [result     (<!! result-chan)
-          trace      (result ::trace)
-          thread-ids (result ::thread-ids)]
-      (is (= [[:enter :a]
-              [:enter :b]
-              [:enter :c]
-              [:enter :d]
-              [:leave :d]
-              [:leave :c]
-              [:leave :b]
-              [:leave :a]]
-             trace))
-      (is (= 2
-             (-> thread-ids distinct count))))))
+                               (tracer :d)]))
+        result     (<!! result-chan)
+        trace      (result ::trace)
+        thread-ids (result ::thread-ids)]
+    (is (= [[:enter :a]
+            [:enter :b]
+            [:enter :c]
+            [:enter :d]
+            [:leave :d]
+            [:leave :c]
+            [:leave :b]
+            [:leave :a]]
+           trace))
+    (is (= 2
+           (-> thread-ids distinct count)))))
 
 
 (deftest t-two-channels-with-error
@@ -197,21 +197,21 @@
                                (channeler :c)
                                (tracer :d)
                                (thrower :e)
-                               (tracer :f)]))]
-    (let [result     (<!! result-chan)
-          trace      (result ::trace)
-          thread-ids (result ::thread-ids)]
-      (is (= [[:enter :a]
-              [:enter :b]
-              [:enter :c]
-              [:enter :d]
-              ;; :e throws, gets caught by :b
-              [:error :b :from :e]
-              ;; Finish and unwind the stack
-              [:leave :a]]
-             trace))
-      (is (= 1
-             (-> thread-ids distinct count))))))
+                               (tracer :f)]))
+        result     (<!! result-chan)
+        trace      (result ::trace)
+        thread-ids (result ::thread-ids)]
+    (is (= [[:enter :a]
+            [:enter :b]
+            [:enter :c]
+            [:enter :d]
+            ;; :e throws, gets caught by :b
+            [:error :b :from :e]
+            ;; Finish and unwind the stack
+            [:leave :a]]
+           trace))
+    (is (= 1
+           (-> thread-ids distinct count)))))
 
 (deftest termination
   (let [context (chain/terminate-when {} (fn [ctx]
