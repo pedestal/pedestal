@@ -213,6 +213,22 @@
       (is (= 1
              (-> thread-ids distinct count))))))
 
+(deftest termination
+  (let [context (chain/terminate-when {} (fn [ctx]
+                                           (some #{[:enter :b]} (::trace ctx))))
+        actual (execute (enqueue context
+                                 [(tracer :a)
+                                  (tracer :b)
+                                  (tracer :c)]))
+        expected-trace [[:enter :a] [:enter :b] [:leave :b] [:leave :a]]]
+    (is (= 1 (count (:io.pedestal.interceptor.chain/terminators actual))))
+    (is (every? fn? (:io.pedestal.interceptor.chain/terminators actual)))
+    (is (= (::trace actual) expected-trace))
+    (is (= (::trace (execute-only context :enter [(tracer :a)
+                                                  (tracer :b)
+                                                  (tracer :c)]))
+           [[:enter :a] [:enter :b]]))))
+
 (defaround around-interceptor
   "An interceptor that does the around pattern."
   ([context] (assoc context :around :enter))
