@@ -80,7 +80,9 @@
                  (.start server)
                  (when join? (.join server))
                  server)
-     :stop-fn #(.stop server)}))
+     :stop-fn (fn []
+                (.stop server)
+                server)}))
 
 ;; Consumed by peddemo.server/create-server
 ;; See http/default-interceptors for additional options you can configure
