@@ -54,27 +54,30 @@
 (def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
-(defn mk-data [name data]
-  (let [bab (ByteArrayBuilder.)]
-    (when name
-      (.write bab ^bytes EVENT_FIELD)
-      (.write bab ^bytes (get-bytes name))
-      (.write bab ^bytes CRLF))
+(defn mk-data
+  ([event] (mk-data (if (map? event) (str (:name event)) nil)
+                    (if (map? event) (str (:data event)) (str event))))
+  ([name data]
+   (let [bab (ByteArrayBuilder.)]
+     (when name
+       (.write bab ^bytes EVENT_FIELD)
+       (.write bab ^bytes (get-bytes name))
+       (.write bab ^bytes CRLF))
 
-    (doseq [part (string/split data #"\r?\n")]
-      (.write bab ^bytes DATA_FIELD)
-      (.write bab ^bytes (get-bytes part))
-      (.write bab ^bytes CRLF))
+     (doseq [part (string/split data #"\r?\n")]
+       (.write bab ^bytes DATA_FIELD)
+       (.write bab ^bytes (get-bytes part))
+       (.write bab ^bytes CRLF))
 
-    (.write bab ^bytes CRLF)
-    (.toByteArray bab)))
+     (.write bab ^bytes CRLF)
+     (.toByteArray bab))))
 
 (defn send-event [channel name data]
   (log/trace :msg "writing event to stream"
              :name name
              :data data)
   (try
-    (async/>!! channel (mk-data name data))
+    (async/>!! channel {:name name :data data})
     (catch Throwable t
       (log/error :msg "exception sending event"
                  :throwable t
@@ -123,13 +126,9 @@
            (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
          (and (some? event) (= port event-channel))
-         ;; You can name your events using the maps
-         ;; {:name "my-event" :data "some message data here"}
-         (let [event-name (if (map? event) (str (:name event)) nil)
-               event-data (if (map? event) (str (:data event)) (str event))]
-           (if (send-event response-channel event-name event-data)
-             (recur)
-             (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+         (if (async/>! response-channel event)
+           (recur)
+           (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream."))
 
          :else
          (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
@@ -164,7 +163,8 @@
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
                          :response-channel response-channel
-                         :response response)]
+                         :response response
+                         ::sse? true)]
      (async/thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel event-channel
@@ -199,8 +199,20 @@
                (log/trace :msg "switching to sse")
                (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))
 
+(def serialise-event-stream
+  "An interceptor which serialises the event stream's data, if present, into an SSE event format
+  You can name your events by emitting
+   `{:name \"my-event\" :data \"some message data here\"}`"
+  (interceptor/interceptor
+   {:name "io.pedestal.http.sse/serialise-event-stream"
+    :leave (fn [{:keys [response] :as context}]
+             (if (and (::sse? context)
+                      (satisfies? clojure.core.async.impl.protocols/Channel (:body response)))
+               (update-in context [:response :body]
+                          #(async/map (fn [e] (if (= CRLF e) CRLF (mk-data e))) [%]))
+               context))}))
+
 (defn sse-setup
   "See start-event-stream. This function is for backward compatibility."
   [& args]
   (apply start-event-stream args))
-
