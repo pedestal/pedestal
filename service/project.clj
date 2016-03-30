@@ -18,7 +18,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  ;; logging
-                 [org.slf4j/slf4j-api "1.7.13"]
+                 [org.slf4j/slf4j-api "1.7.20"]
                  ;; metrics
                  [io.dropwizard.metrics/metrics-core "3.1.2"]
 
@@ -71,9 +71,9 @@
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.1.3" :exclusions [org.slf4j/slf4j-api]]
                                   [org.clojure/tools.logging "0.3.1"]
-                                  [org.slf4j/jul-to-slf4j "1.7.13"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.13"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.13"]
+                                  [org.slf4j/jul-to-slf4j "1.7.20"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.20"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.20"]
 
                                   ;; only used for route-bench - remove when no longer needed
                                   [incanter/incanter-core "1.5.6"]
