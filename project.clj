@@ -16,6 +16,7 @@
         "jetty"
         "immutant"
         "tomcat"
+        "resin"
         "service-tools"
         "service-template"])
 

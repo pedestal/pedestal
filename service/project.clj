@@ -66,6 +66,7 @@
                                   [org.eclipse.jetty/jetty-servlets "9.3.8.v20160314"]
                                   [io.pedestal/pedestal.immutant "0.4.2-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.4.2-SNAPSHOT"]
+                                  [io.pedestal/pedestal.resin "0.4.2-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.1.3" :exclusions [org.slf4j/slf4j-api]]
