@@ -25,7 +25,7 @@
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)
+           (java.io OutputStreamWriter OutputStream EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -101,6 +101,10 @@
           (try
             (write-body servlet-response body-part)
             (.flushBuffer ^HttpServletResponse servlet-response)
+            (catch EOFException e
+              (log/warn :msg "Client unavailable for async write. Closing :src-chan."
+                        :src-chan body)
+              (async/close! body))
             (catch Throwable t
               (log/error :msg "An error occured when async writing to the client"
                          :throwable t
@@ -420,4 +424,3 @@
                 ring-response]
                interceptors)
        default-context)))
-
