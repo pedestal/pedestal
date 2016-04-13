@@ -117,11 +117,11 @@
   "Kicks off the loop that transfers data provided by the application
   on `event-channel` to the HTTP infrastructure via
   `response-channel`."
-  [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
+  [{:keys [event-channel response-channel heartbeat-delay last-event-id on-client-disconnect]}]
   (async/go
-    (loop [id 0]
+    (loop [id (if last-event-id last-event-id 0)]
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
-           [event port] (async/alts! [event-channel hb-timeout])]
+            [event port] (async/alts! [event-channel hb-timeout])]
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
@@ -136,7 +136,6 @@
          (let [event-name (if (map? event) (str (:name event)) nil)
                event-data (if (map? event) (str (:data event)) (str event))
                event-id (str id)]
-           (prn ::start-dispatch-loop "event-id" id)
            (if (send-event response-channel event-name event-data event-id)
              (recur (inc id))
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
@@ -174,12 +173,16 @@
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
                          :response-channel response-channel
-                         :response response)]
+                         :response response)
+         last-event-id (let [last-event-id
+                             (get-in context [:request :headers "last-event-id"])]
+                         (if last-event-id (Integer/parseInt last-event-id) nil))]
      (async/thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel event-channel
                                   :response-channel response-channel
                                   :heartbeat-delay heartbeat-delay
+                                  :last-event-id last-event-id
                                   :context context*}
                                  (when on-client-disconnect
                                    {:on-client-disconnect #(on-client-disconnect context*)})))
