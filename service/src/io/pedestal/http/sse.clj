@@ -35,6 +35,7 @@
 (def CRLF (get-bytes "\r\n"))
 (def EVENT_FIELD (get-bytes "event: "))
 (def DATA_FIELD (get-bytes "data: "))
+(def ID_FIELD (get-bytes "id: "))
 (def COMMENT_FIELD (get-bytes ": "))
 
 ;; Cloned from core.async.impl.concurrent
@@ -54,7 +55,7 @@
 (def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
-(defn mk-data [name data]
+(defn mk-data [name data id]
   (let [bab (ByteArrayBuilder.)]
     (when name
       (.write bab ^bytes EVENT_FIELD)
@@ -66,15 +67,20 @@
       (.write bab ^bytes (get-bytes part))
       (.write bab ^bytes CRLF))
 
+    (when id
+      (.write bab ^bytes ID_FIELD)
+      (.write bab ^bytes (get-bytes id))
+      (.write bab ^bytes CRLF))
     (.write bab ^bytes CRLF)
     (.toByteArray bab)))
 
-(defn send-event [channel name data]
+(defn send-event [channel name data id]
   (log/trace :msg "writing event to stream"
              :name name
-             :data data)
+             :data data
+             :id id)
   (try
-    (async/>!! channel (mk-data name data))
+    (async/>!! channel (mk-data name data id))
     (catch Throwable t
       (log/error :msg "exception sending event"
                  :throwable t
@@ -113,22 +119,26 @@
   `response-channel`."
   [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
   (async/go
-    (loop []
+    (loop [id 0]
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
            [event port] (async/alts! [event-channel hb-timeout])]
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
-           (recur)
+           (recur id)
            (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
          (and (some? event) (= port event-channel))
          ;; You can name your events using the maps
-         ;; {:name "my-event" :data "some message data here"}
+         ;; {:name "my-event"
+         ;;  :data "some message data here"
+         ;;  :id   "event-id or last-event-id}
          (let [event-name (if (map? event) (str (:name event)) nil)
-               event-data (if (map? event) (str (:data event)) (str event))]
-           (if (send-event response-channel event-name event-data)
-             (recur)
+               event-data (if (map? event) (str (:data event)) (str event))
+               event-id (str id)]
+           (prn ::start-dispatch-loop "event-id" id)
+           (if (send-event response-channel event-name event-data event-id)
+             (recur (inc id))
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
          :else
