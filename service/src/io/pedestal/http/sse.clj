@@ -106,6 +106,13 @@
   ;;(end-fn)
   )
 
+;; Default event id start value and update function.
+;; By default, event id starts from 0 and counts up by one.
+;; The update function takes one string argument.
+(def DEFAULT_EVENT_ID_CONFIG
+  {:start-value "0"
+   :update-fn (fn [x] (let [ix (Integer/parseInt x)] (-> ix inc str)))})
+
 ;; This is extracted as a separate function mainly to support advanced
 ;; users who want to rebind it during tests. Note to those that do so:
 ;; the function is private to indicate that the contract may break in
@@ -117,11 +124,12 @@
   "Kicks off the loop that transfers data provided by the application
   on `event-channel` to the HTTP infrastructure via
   `response-channel`."
-  [{:keys [event-channel response-channel heartbeat-delay last-event-id on-client-disconnect]}]
+  [{:keys [event-channel response-channel heartbeat-delay event-id-config on-client-disconnect]}]
   (async/go
-    (loop [id (if last-event-id last-event-id 0)]
+    (loop [id (:start-value event-id-config)]
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
-            [event port] (async/alts! [event-channel hb-timeout])]
+            [event port] (async/alts! [event-channel hb-timeout])
+            update-fn (:update-fn event-id-config)]
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
@@ -137,7 +145,7 @@
                event-data (if (map? event) (str (:data event)) (str event))
                event-id (str id)]
            (if (send-event response-channel event-name event-data event-id)
-             (recur (inc id))
+             (recur (update-fn id))
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
          :else
@@ -162,7 +170,7 @@
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n]
    (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n opts]
-   (let [{:keys [on-client-disconnect]} opts
+   (let [{:keys [on-client-disconnect event-id-config]} opts
          response-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          response (-> (ring-response/response response-channel)
                       (ring-response/content-type "text/event-stream")
@@ -174,15 +182,19 @@
          context* (assoc context
                          :response-channel response-channel
                          :response response)
-         last-event-id (let [last-event-id
-                             (get-in context [:request :headers "last-event-id"])]
-                         (if last-event-id (Integer/parseInt last-event-id) nil))]
+         event-id-config (let [event-id-config
+                               (merge DEFAULT_EVENT_ID_CONFIG event-id-config)
+                               last-event-id
+                               (get-in context [:request :headers "last-event-id"])]
+                           (if last-event-id
+                             (assoc event-id-config :start-value ((:update-fn event-id-config) last-event-id))
+                             event-id-config))]
      (async/thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel event-channel
                                   :response-channel response-channel
                                   :heartbeat-delay heartbeat-delay
-                                  :last-event-id last-event-id
+                                  :event-id-config event-id-config
                                   :context context*}
                                  (when on-client-disconnect
                                    {:on-client-disconnect #(on-client-disconnect context*)})))

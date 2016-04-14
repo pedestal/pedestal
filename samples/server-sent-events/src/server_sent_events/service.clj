@@ -50,9 +50,20 @@
   [request]
   (ring-resp/response "Server Sent Service"))
 
+(defn event-id-update-fn
+  "Updates event id."
+  [x]
+  ;; An event id update function always takes one string argument
+  ;; and returns a string as id.
+  (let [v (->> x (re-find #"\d+") Integer/parseInt (* 2))]
+    (str "my " v " cents")))
+
 ;; Wire root URL to sse event stream
+;; Wire /custom URL to sse event stream with custom event-id setting
 (defroutes routes
   [[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}
+     ["/custom" {:get [::send-custom
+                       (sse/start-event-stream sse-stream-ready 10 10 {:event-id-config {:start-value "my 2 cents" :update-fn event-id-update-fn}})]}]
      ["/about" {:get about-page}]]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
