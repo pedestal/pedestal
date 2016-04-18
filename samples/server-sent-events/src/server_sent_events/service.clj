@@ -46,24 +46,51 @@
   (let [{:keys [request response-channel]} ctx]
     (send-counter event-ch 10)))
 
+(defn update-event-id
+  "Updates event id. This function takes one string as an argument."
+  [x]
+  (let [d (re-find #"\d+" x)
+        v (if d (Integer/parseInt d) 2)]
+    (str (* 2 v) " cents")))
+
+(defn send-counter-with-id
+  "Sends value of counter and event id to sse context.
+  Counts down while counter is greater than 0 and updates event id as well."
+  [event-ch count-num event-id]
+  ;; This is how you set a specific event name for the client to listen for
+  (async/put! event-ch {:name "count-with-id"
+                        :data (str count-num ", thread: " (.getId (Thread/currentThread)))
+                        :id event-id})
+  (Thread/sleep 1500)
+  (if (> count-num 0)
+    (recur event-ch (dec count-num) (update-event-id event-id))
+    (do
+      (async/put! event-ch {:name "close" :data ""})
+      (async/close! event-ch))))
+
+(defn sse-stream-ready-with-id
+  "Starts sending counter events to client."
+  [event-ch ctx]
+  ;; The context is passed into this function - it contains everything you'd
+  ;; expect.  Additionally, there's a `response-channel` in the context.  This
+  ;; is the channel the connects directly to the response OutputStream, should
+  ;; you ever need low-level control over the SSE events.  It's advised that
+  ;; that you never use this channel unless you know what you're doing.
+  (let [{:keys [request response-channel]} ctx
+        last-event-id (get-in ctx [:request :headers "last-event-id"])
+        start-value (if last-event-id (update-event-id last-event-id) "2 cents")]
+    (send-counter-with-id event-ch 10 start-value)))
+
 (defn about-page
   [request]
   (ring-resp/response "Server Sent Service"))
-
-(defn event-id-update-fn
-  "Updates event id."
-  [x]
-  ;; An event id update function always takes one string argument
-  ;; and returns a string as id.
-  (let [v (->> x (re-find #"\d+") Integer/parseInt (* 2))]
-    (str "my " v " cents")))
 
 ;; Wire root URL to sse event stream
 ;; Wire /custom URL to sse event stream with custom event-id setting
 (defroutes routes
   [[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}
-     ["/custom" {:get [::send-custom
-                       (sse/start-event-stream sse-stream-ready 10 10 {:event-id-config {:start-value "my 2 cents" :update-fn event-id-update-fn}})]}]
+     ["/with-id" {:get [::send-counter-with-id
+                       (sse/start-event-stream sse-stream-ready-with-id)]}]
      ["/about" {:get about-page}]]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for

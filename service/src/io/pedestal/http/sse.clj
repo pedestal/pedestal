@@ -35,8 +35,8 @@
 (def CRLF (get-bytes "\r\n"))
 (def EVENT_FIELD (get-bytes "event: "))
 (def DATA_FIELD (get-bytes "data: "))
-(def ID_FIELD (get-bytes "id: "))
 (def COMMENT_FIELD (get-bytes ": "))
+(def ID_FIELD (get-bytes "id: "))
 
 ;; Cloned from core.async.impl.concurrent
 (defn counted-thread-factory
@@ -55,37 +55,42 @@
 (def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
-(defn mk-data [name data id]
-  (let [bab (ByteArrayBuilder.)]
-    (when name
-      (.write bab ^bytes EVENT_FIELD)
-      (.write bab ^bytes (get-bytes name))
-      (.write bab ^bytes CRLF))
+(defn mk-data
+  ([name data] (mk-data name data nil))
+  ([name data id]
+   (let [bab (ByteArrayBuilder.)]
+        (when name
+          (.write bab ^bytes EVENT_FIELD)
+          (.write bab ^bytes (get-bytes name))
+          (.write bab ^bytes CRLF))
 
-    (doseq [part (string/split data #"\r?\n")]
-      (.write bab ^bytes DATA_FIELD)
-      (.write bab ^bytes (get-bytes part))
-      (.write bab ^bytes CRLF))
+        (doseq [part (string/split data #"\r?\n")]
+          (.write bab ^bytes DATA_FIELD)
+          (.write bab ^bytes (get-bytes part))
+          (.write bab ^bytes CRLF))
 
-    (when id
-      (.write bab ^bytes ID_FIELD)
-      (.write bab ^bytes (get-bytes id))
-      (.write bab ^bytes CRLF))
-    (.write bab ^bytes CRLF)
-    (.toByteArray bab)))
+        (when (not (empty? id))
+          (.write bab ^bytes ID_FIELD)
+          (.write bab ^bytes (get-bytes id))
+          (.write bab ^bytes CRLF))
 
-(defn send-event [channel name data id]
-  (log/trace :msg "writing event to stream"
-             :name name
-             :data data
-             :id id)
-  (try
-    (async/>!! channel (mk-data name data id))
-    (catch Throwable t
-      (log/error :msg "exception sending event"
-                 :throwable t
-                 :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
-      (throw t))))
+        (.write bab ^bytes CRLF)
+        (.toByteArray bab))))
+
+(defn send-event
+  ([channel name data] (send-event channel name data nil))
+  ([channel name data id]
+   (log/trace :msg "writing event to stream"
+              :name name
+              :data data
+              :id id)
+   (try
+     (async/>!! channel (mk-data name data id))
+     (catch Throwable t
+       (log/error :msg "exception sending event"
+                  :throwable t
+                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
+       (throw t)))))
 
 (defn do-heartbeat
   ([channel] (do-heartbeat channel {}))
@@ -106,13 +111,6 @@
   ;;(end-fn)
   )
 
-;; Default event id start value and update function.
-;; By default, event id starts from 0 and counts up by one.
-;; The update function takes one string argument.
-(def DEFAULT_EVENT_ID_CONFIG
-  {:start-value "0"
-   :update-fn (fn [x] (let [ix (Integer/parseInt x)] (-> ix inc str)))})
-
 ;; This is extracted as a separate function mainly to support advanced
 ;; users who want to rebind it during tests. Note to those that do so:
 ;; the function is private to indicate that the contract may break in
@@ -124,28 +122,25 @@
   "Kicks off the loop that transfers data provided by the application
   on `event-channel` to the HTTP infrastructure via
   `response-channel`."
-  [{:keys [event-channel response-channel heartbeat-delay event-id-config on-client-disconnect]}]
+  [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
   (async/go
-    (loop [id (:start-value event-id-config)]
+    (loop []
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
-            [event port] (async/alts! [event-channel hb-timeout])
-            update-fn (:update-fn event-id-config)]
+           [event port] (async/alts! [event-channel hb-timeout])]
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
-           (recur id)
+           (recur)
            (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
          (and (some? event) (= port event-channel))
          ;; You can name your events using the maps
-         ;; {:name "my-event"
-         ;;  :data "some message data here"
-         ;;  :id   "event-id or last-event-id}
+         ;; {:name "my-event" :data "some message data here"}
          (let [event-name (if (map? event) (str (:name event)) nil)
                event-data (if (map? event) (str (:data event)) (str event))
-               event-id (str id)]
+               event-id (if (map? event) (str (:id event)) nil)]
            (if (send-event response-channel event-name event-data event-id)
-             (recur (update-fn id))
+             (recur)
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
          :else
@@ -170,7 +165,7 @@
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n]
    (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n opts]
-   (let [{:keys [on-client-disconnect event-id-config]} opts
+   (let [{:keys [on-client-disconnect]} opts
          response-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          response (-> (ring-response/response response-channel)
                       (ring-response/content-type "text/event-stream")
@@ -181,20 +176,12 @@
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
                          :response-channel response-channel
-                         :response response)
-         event-id-config (let [event-id-config
-                               (merge DEFAULT_EVENT_ID_CONFIG event-id-config)
-                               last-event-id
-                               (get-in context [:request :headers "last-event-id"])]
-                           (if last-event-id
-                             (assoc event-id-config :start-value ((:update-fn event-id-config) last-event-id))
-                             event-id-config))]
+                         :response response)]
      (async/thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel event-channel
                                   :response-channel response-channel
                                   :heartbeat-delay heartbeat-delay
-                                  :event-id-config event-id-config
                                   :context context*}
                                  (when on-client-disconnect
                                    {:on-client-disconnect #(on-client-disconnect context*)})))
