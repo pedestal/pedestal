@@ -17,34 +17,98 @@
   key :exception should have a java.lang.Throwable as its value, and
   will be passed separately to the underlying logging API."
   (:require clojure.string)
-  (:import (org.slf4j LoggerFactory)
+  (:import (org.slf4j Logger
+                      LoggerFactory)
            (com.codahale.metrics MetricRegistry
                                  Gauge Counter Histogram Meter
                                  JmxReporter Slf4jReporter)
            (java.util.concurrent TimeUnit)
            (clojure.lang IFn)))
 
+;;TODO: Doc strings
+(defprotocol LoggerSource
+  (-level-enabled? [t level-key])
+  (-trace [t body]
+          [t body trowable])
+  (-debug [t body]
+          [t body throwable])
+  (-info [t body]
+         [t body thowable])
+  (-warn [t body]
+         [t body throwable])
+  (-error [t body]
+          [t body throwable]))
+
+(extend-protocol LoggerSource
+  Logger
+  (-level-enabled? [t level-key]
+    (case level-key
+      :trace (.isTraceEnabled t)
+      :debug (.isDebugEnabled t)
+      :info (.isInfoEnabled t)
+      :warn (.isWarnEnabled t)
+      :error (.isErrorEnabled t)))
+  (-trace [t body]
+    (.trace t ^String (if (string? body) body (pr-str body))))
+  (-trace [t body throwable]
+    (.trace t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
+  (-debug [t body]
+    (.debug t ^String (if (string? body) body (pr-str body))))
+  (-debug [t body throwable]
+    (.debug t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
+  (-info [t body]
+    (.info t ^String (if (string? body) body (pr-str body))))
+  (-info [t body throwable]
+    (.info t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
+  (-warn [t body]
+    (.warn t ^String (if (string? body) body (pr-str body))))
+  (-warn [t body throwable]
+    (.warn t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
+  (-error [t body]
+    (.error t ^String (if (string? body) body (pr-str body))))
+  (-error [t body throwable]
+    (.error t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
+
+  nil
+  (-level-enabled? [t level-key] false)
+  (-trace [t body] nil)
+  (-trace [t body throwable] nil)
+  (-debug [t body] nil)
+  (-debug [t body throwable] nil)
+  (-info [t body] nil)
+  (-info [t body throwable] nil)
+  (-warn [t body] nil)
+  (-warn [t body throwable] nil)
+  (-error [t body] nil)
+  (-error [t body throwable] nil))
+
+;; TODO: document override-logger
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
-  (let [exception' (:exception (apply array-map keyvals))
-        keyvals' (mapcat identity (remove #(= :exception (first %))
-                                          (partition 2 keyvals)))
+  (let [keyvals-map (apply array-map keyvals)
+        exception' (:exception keyvals-map)
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
-        enabled-method' (symbol (str ".is"
-                                     (clojure.string/capitalize (name level))
-                                     "Enabled"))
-        log-method' (symbol (str "." (name level)))]
-    `(let [~logger' (LoggerFactory/getLogger ~(name (ns-name *ns*)))]
-       (when (~enabled-method' ~logger')
+        log-method' (symbol (str "io.pedestal.log/-" (name level)))
+        override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                    (System/getenv "PEDESTAL_LOGGER"))
+                                symbol
+                                resolve
+                                (apply []))]
+    `(let [~logger' ~(or (:logger keyvals-map)
+                         override-logger
+                         `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
+       (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
-                          (pr-str (array-map :line ~(:line (meta form)) ~@keyvals')))]
+                          (pr-str (assoc (dissoc ~keyvals-map
+                                                 :exception :logger)
+                                         :line ~(:line (meta form)))))]
            ~(if exception'
               `(~log-method' ~logger'
                              ~(with-meta string'
-                                {:tag 'java.lang.String})
+                                         {:tag 'java.lang.String})
                              ~(with-meta exception'
-                                {:tag 'java.lang.Throwable}))
+                                         {:tag 'java.lang.Throwable}))
               `(~log-method' ~logger' ~string')))))))
 
 (defmacro trace [& keyvals] (log-expr &form :trace keyvals))
@@ -62,7 +126,7 @@
   [expr]
   (let [value' (gensym "value")]
     `(let [~value' ~expr]
-       ~(log-expr &form 'debug (vector :spy (list 'quote expr)
+       ~(log-expr &form :debug (vector :spy (list 'quote expr)
                                        :value value'))
        ~value')))
 
@@ -128,15 +192,17 @@
       (.mark ^Meter m n-events)
       n-events))
 
-  clojure.lang.Fn
-  (-counter [f metric-name delta]
-    (f :counter metric-name delta))
-  (-gauge [f metric-name value-fn]
-    (f :gauge metric-name (value-fn)))
-  (-histogram [f metric-name value]
-    (f :histogram metric-name value))
-  (-meter [f metric-name n-events]
-    (f :meter metric-name n-events))
+  ;; One should reify the protocol to achieve this case
+  ;; This may come back if it proves to be a common case to funnel/smuggle metrics
+  ;clojure.lang.Fn
+  ;(-counter [f metric-name delta]
+  ;  (f :counter metric-name delta))
+  ;(-gauge [f metric-name value-fn]
+  ;  (f :gauge metric-name (value-fn)))
+  ;(-histogram [f metric-name value]
+  ;  (f :histogram metric-name value))
+  ;(-meter [f metric-name n-events]
+  ;  (f :meter metric-name n-events))
 
   nil
   (-counter [t m d]
@@ -175,7 +241,11 @@
                 (.build))
     (.start 1 TimeUnit/MINUTES)))
 
-(def default-recorder (metric-registry jmx-reporter))
+;;TODO docstring
+(def default-recorder (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultMetricsRecorder")
+                                             (System/getenv "PEDESTAL_METRICS_RECORDER"))]
+                        ((resolve (symbol ns-fn-str)))
+                        (metric-registry jmx-reporter)))
 
 ;; Public Metrics API
 ;; -------------------
