@@ -73,6 +73,7 @@
   (log/trace :msg "writing event to stream"
              :name name
              :data data)
+  (log/histogram ::payload-size (count data))
   (try
     (async/>!! channel (mk-data name data))
     (catch Throwable t
@@ -116,6 +117,7 @@
     (loop []
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
            [event port] (async/alts! [event-channel hb-timeout])]
+        (log/counter ::active-streams 1)
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
@@ -132,7 +134,9 @@
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
          :else
-         (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
+         (do
+           (log/counter ::active-streams -1)
+           (log/info :msg "Event channel has closed. Shutting down SSE stream.")))))
     (async/close! event-channel)
     (async/close! response-channel)
     (when on-client-disconnect (on-client-disconnect))))

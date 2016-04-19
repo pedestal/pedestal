@@ -78,6 +78,7 @@
       (log/info :msg (format "%s %s"
                              (string/upper-case (name (:request-method request)))
                              (:uri request)))
+      (log/meter ::request)
       request)))
 
 (defn response?
@@ -93,7 +94,8 @@
     ::not-found
     (fn [context]
       (if-not (response? (:response context))
-        (assoc context :response (ring-response/not-found "Not Found"))
+        (do (log/meter ::not-found)
+          (assoc context :response (ring-response/not-found "Not Found")))
         context))))
 
 (def html-body
