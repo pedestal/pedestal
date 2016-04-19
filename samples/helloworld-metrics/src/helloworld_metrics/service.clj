@@ -9,10 +9,6 @@
            [com.readytalk.metrics StatsDReporter]
            [java.util.concurrent TimeUnit]))
 
-(defn todays-date
-  "Gets today's date for metrics' name"
-  []
-  (.format (java.text.SimpleDateFormat. "MM/dd/yyyy") (java.util.Date.)))
 
 (defn statsd-reporter [^MetricRegistry registry]
   "Builds statsd reporter"
@@ -20,18 +16,23 @@
                 (.build "localhost" 8125))
     (.start 3, TimeUnit/SECONDS)))
 
-;; Defines statsd reporter to be passed to metrics functions
-(def reporter (log/metric-registry statsd-reporter))
+;; Defines statsd recorder to be passed to metrics functions
+(def custom-recorder (log/metric-registry statsd-reporter))
+
+;; Metric names
+;; --------------
+;; All metric names are converted into Strings when they're processed.
+;; In code, it's common to use namespaced-keywords, to ensure your metrics
+;; are appropriately namespaced.
+
 
 (defn statsd-page
   "A sample page to trigger statsd to count up"
   [request]
-  (let [counter-name (str "helloworld counter " (todays-date))]
-    (log/counter reporter counter-name 1)
-    (-> (ring-resp/response
-         (format "<body>Statsd metrics should start.<img src=\"smile.png\"/><br/>
-                  Type <code>nc -kul 8125</code>. Then reload this page.</body>\n"))
-        (ring-resp/content-type "text/html"))))
+  (log/counter custom-recorder ::statsd-hits 1)
+  (ring-resp/response
+    "Statsd metrics should start.
+    Type <code>nc -kul 8125</code>. Then reload this page.</body>\n"))
 
 (defn gauge-fn
   "A function used in a gauge metric. This function returns a value."
@@ -41,24 +42,11 @@
 (defn home-page
   "A sample page to trigger four metrics to be updated"
   [request]
-  (let [counter-name (str "helloworld counter "  (todays-date))
-        gauge-name (str "helloworld gauge " (todays-date))
-        hist-name (str "helloworld histgram " (todays-date))
-        meter-name (str "helloworld meter " (todays-date))]
-    ;; Counter counts how many times this service has been requested.
-    (log/counter counter-name 1)
-    ;; Gauge returns some random integer processed by gauge-fn.
-    (log/gauge gauge-name gauge-fn)
-    ;; Histogram calcuates value distributions (min, max, mean, etc.)  on the backend.
-    (log/histogram hist-name (rand-int Integer/MAX_VALUE))
-    ;; Meter takes long value as an occurence of some event; in this
-    ;; case, random integer as number of events.
-    (log/meter meter-name (rand-int Integer/MAX_VALUE))
-    ;; Http response includes an image file which means a broswer
-    ;; makes at least two requests to Pedestal but once to this
-    ;; service. The counter above counts request to this service.
-    (-> (ring-resp/response (format "<body>Hello World! <img src=\"smile.png\"/></body>\n"))
-        (ring-resp/content-type "text/html"))))
+  (log/counter ::homepage-hits 1)
+  (log/gauge ::random-home-guage gauge-fn)
+  (log/histogram ::distribution-of-rand (rand-int Integer/MAX_VALUE))
+  (log/meter ::homepage-reqs-rate (rand-int Integer/MAX_VALUE))
+  (ring-resp/response "Hello World!"))
 
 (defroutes routes
   ;; Defines "/" and "/about" routes with their associated :get handlers.
@@ -71,11 +59,6 @@
 ;; Consumed by my-sample.server/create-server
 ;; See http/default-interceptors for additional options you can configure
 (def service {:env :prod
-              ;; You can configure your specific metric system if needed.
-              ;;  - by default, metrics are published to JMX
-              ;; ::http/metrics-init #(log/metric-registry log/jmx-reporter
-              ;;                                           log/log-reporter)
-
               ;; You can bring your own non-default interceptors. Make
               ;; sure you include routing and set it up right for
               ;; dev-mode. If you do, many other keys for configuring
