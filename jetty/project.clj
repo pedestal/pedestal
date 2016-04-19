@@ -21,6 +21,7 @@
                  [org.eclipse.jetty/jetty-servlet "9.3.8.v20160314"]
                  [org.eclipse.jetty.alpn/alpn-api "1.1.2.v20150522"]
                  [org.eclipse.jetty/jetty-alpn-server "9.3.8.v20160314"]
+                 [org.eclipse.jetty.alpn/alpn-api "1.1.2.v20150522"]
                  [org.eclipse.jetty.http2/http2-server "9.3.8.v20160314"]
                  [org.eclipse.jetty.websocket/websocket-api "9.3.8.v20160314"]
                  [org.eclipse.jetty.websocket/websocket-servlet "9.3.8.v20160314"]

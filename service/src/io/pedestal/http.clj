@@ -304,10 +304,6 @@
   [server-map]
   (into {} (map (fn [[k v]] [(keyword "io.pedestal.http" (name k)) v]) server-map)))
 
-(defn bind-metrics-recorder [service-map]
-  (when-let [init-fn (::metrics-init service-map)]
-    (alter-var-root #'log/default-recorder (fn [x] (init-fn)))))
-
 (defn server
   [service-map]
   (let [{type ::type
@@ -331,7 +327,6 @@
    (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
    (init-fn)
-   (bind-metrics-recorder service-map)
    (-> service-map
       create-provider ;; Creates/connects a backend to the interceptor chain
       server)))

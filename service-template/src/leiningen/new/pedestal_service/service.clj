@@ -38,11 +38,6 @@
 ;; Consumed by {{namespace}}.server/create-server
 ;; See http/default-interceptors for additional options you can configure
 (def service {:env :prod
-              ;; You can configure your specific metric system if needed.
-              ;;  - by default, metrics are published to JMX
-              ;; ::http/metrics-init #(log/metric-registry log/jmx-reporter
-              ;;                                           log/log-reporter)
-
               ;; You can bring your own non-default interceptors. Make
               ;; sure you include routing and set it up right for
               ;; dev-mode. If you do, many other keys for configuring

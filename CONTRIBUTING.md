@@ -70,8 +70,7 @@ standard open source arrangement: Mostly it says that you are donating code that
 you wrote to the project. By submitting a signed contributor's agreement,
 you are helping to ensure that your work will be available to the largest possible audience.
 
-It is an extra step, but there really is not much to executing the Pedestal contributor's agreement: You just need to send a copy of the CA with your signature
-(and a few other details) to [contribute@pedestal.io](mailto:contribute@pedestal.io).
+It is an extra step, but there really is not much to executing the Pedestal contributor's agreement:
+You just need to complete the following online agreement to assign copyright to Cognitect.
 
-You can find the [CA form](cognitect-ca.pdf) in the repo.
-
+[Cognitect Contributor Agreement](https://secure.echosign.com/public/hostedForm?formid=8JU33Z7A7JX84U).

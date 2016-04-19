@@ -33,6 +33,7 @@ version details, updates, and necessary migration steps.**
  * Integrated streaming capabilites like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
  * Integrated support for Cross-origin resource sharing/[CORS](https://github.com/pedestal/pedestal/tree/master/samples/cors)
  * Integrated linking and testing tools
+ * Integrated logging and runtime metrics (which can be published to JMX, StatsD, Cloudwatch, and more)
  * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
  * The ability to utilize Ring Middleware as Pedestal Interceptors
