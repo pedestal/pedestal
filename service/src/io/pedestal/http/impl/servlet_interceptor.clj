@@ -25,7 +25,7 @@
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)
+           (java.io OutputStreamWriter OutputStream EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -101,7 +101,12 @@
           (try
             (write-body servlet-response body-part)
             (.flushBuffer ^HttpServletResponse servlet-response)
+            (catch EOFException e
+              (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
+                        :exception e
+                        :src-chan body))
             (catch Throwable t
+              (log/meter ::async-write-errors)
               (log/error :msg "An error occured when async writing to the client"
                          :throwable t
                          :src-chan body)
@@ -401,7 +406,10 @@
         (let [final-context (interceptor.chain/execute context interceptors)]
           (log/debug :msg "Leaving servlet"
                      :final-context final-context))
+        (catch EOFException e
+          (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
         (catch Throwable t
+          (log/meter ::base-servlet-error)
           (log/error :msg "Servlet code threw an exception"
                      :throwable t
                      :cause-trace (with-out-str
