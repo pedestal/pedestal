@@ -18,6 +18,7 @@
             [ring.util.response :as ring-resp]
             [clojure.core.async :as async]))
 
+
 (defn send-counter
   "Counts down to 0, sending value of counter to sse context and
   recursing on a different thread; ends event stream when counter
@@ -45,6 +46,13 @@
   ;; that you never use this channel unless you know what you're doing.
   (let [{:keys [request response-channel]} ctx]
     (send-counter event-ch 10)))
+
+;; The SSE Spec allows you to specify an ID (initially assigned by your service),
+;; to the SSE stream.  The ID must be a string and it can be *anything*.
+;; If the client disconnects and reconnects, it can pass the "Last-Event-Id"
+;; header to resume where it was previously.
+;; Again, this handling is optional for you, but supported by Pedestal.
+;; What follows are the functions for capturing our counter as an ID-aware stream
 
 (defn update-event-id
   "Updates event id. This function takes one string as an argument."
