@@ -56,7 +56,8 @@
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
 (defn mk-data
-  ([name data] (mk-data name data nil))
+  ([name data]
+   (mk-data name data nil))
   ([name data id]
    (let [bab (ByteArrayBuilder.)]
         (when name
@@ -69,7 +70,7 @@
           (.write bab ^bytes (get-bytes part))
           (.write bab ^bytes CRLF))
 
-        (when (not (empty? id))
+        (when (not-empty id)
           (.write bab ^bytes ID_FIELD)
           (.write bab ^bytes (get-bytes id))
           (.write bab ^bytes CRLF))
@@ -78,12 +79,14 @@
         (.toByteArray bab))))
 
 (defn send-event
-  ([channel name data] (send-event channel name data nil))
+  ([channel name data]
+   (send-event channel name data nil))
   ([channel name data id]
    (log/trace :msg "writing event to stream"
               :name name
               :data data
               :id id)
+   (log/histogram ::payload-size (count data))
    (try
      (async/>!! channel (mk-data name data id))
      (catch Throwable t
@@ -127,6 +130,7 @@
     (loop []
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
            [event port] (async/alts! [event-channel hb-timeout])]
+        (log/counter ::active-streams 1)
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
@@ -136,6 +140,8 @@
          (and (some? event) (= port event-channel))
          ;; You can name your events using the maps
          ;; {:name "my-event" :data "some message data here"}
+         ;; .. and optionally supply IDs (strings) that make sense to your application
+         ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
          (let [event-name (if (map? event) (str (:name event)) nil)
                event-data (if (map? event) (str (:data event)) (str event))
                event-id (if (map? event) (str (:id event)) nil)]
@@ -144,7 +150,9 @@
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
          :else
-         (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
+         (do
+           (log/counter ::active-streams -1)
+           (log/info :msg "Event channel has closed. Shutting down SSE stream.")))))
     (async/close! event-channel)
     (async/close! response-channel)
     (when on-client-disconnect (on-client-disconnect))))

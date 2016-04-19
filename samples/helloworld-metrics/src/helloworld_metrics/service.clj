@@ -1,18 +1,51 @@
-(ns {{namespace}}.service
+(ns helloworld-metrics.service
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition :refer [defroutes]]
-            [ring.util.response :as ring-resp]))
+            [io.pedestal.log :as log]
+            [ring.util.response :as ring-resp])
+  (:import [com.codahale.metrics MetricRegistry]
+           [com.readytalk.metrics StatsDReporter]
+           [java.util.concurrent TimeUnit]))
 
-(defn about-page
+
+(defn statsd-reporter [^MetricRegistry registry]
+  "Builds statsd reporter"
+  (doto (some-> (StatsDReporter/forRegistry registry)
+                (.build "localhost" 8125))
+    (.start 3, TimeUnit/SECONDS)))
+
+;; Defines statsd recorder to be passed to metrics functions
+(def custom-recorder (log/metric-registry statsd-reporter))
+
+;; Metric names
+;; --------------
+;; All metric names are converted into Strings when they're processed.
+;; In code, it's common to use namespaced-keywords, to ensure your metrics
+;; are appropriately namespaced.
+
+
+(defn statsd-page
+  "A sample page to trigger statsd to count up"
   [request]
-  (ring-resp/response (format "Clojure %s - served from %s"
-                              (clojure-version)
-                              (route/url-for ::about-page))))
+  (log/counter custom-recorder ::statsd-hits 1)
+  (ring-resp/response
+    "Statsd metrics should start.
+    Type <code>nc -kul 8125</code>. Then reload this page.</body>\n"))
+
+(defn gauge-fn
+  "A function used in a gauge metric. This function returns a value."
+  []
+  (rand-int Integer/MAX_VALUE))
 
 (defn home-page
+  "A sample page to trigger four metrics to be updated"
   [request]
+  (log/counter ::homepage-hits 1)
+  (log/gauge ::random-home-guage gauge-fn)
+  (log/histogram ::distribution-of-rand (rand-int Integer/MAX_VALUE))
+  (log/meter ::homepage-reqs-rate (rand-int Integer/MAX_VALUE))
   (ring-resp/response "Hello World!"))
 
 (defroutes routes
@@ -21,9 +54,9 @@
   ;; apply to / and its children (/about).
   [[["/" {:get home-page}
      ^:interceptors [(body-params/body-params) http/html-body]
-     ["/about" {:get about-page}]]]])
+     ["/statsd" {:get statsd-page}]]]])
 
-;; Consumed by {{namespace}}.server/create-server
+;; Consumed by my-sample.server/create-server
 ;; See http/default-interceptors for additional options you can configure
 (def service {:env :prod
               ;; You can bring your own non-default interceptors. Make
@@ -48,4 +81,3 @@
               ::http/type :jetty
               ;;::http/host "localhost"
               ::http/port 8080})
-
