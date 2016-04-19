@@ -48,39 +48,49 @@
       :info (.isInfoEnabled t)
       :warn (.isWarnEnabled t)
       :error (.isErrorEnabled t)))
-  (-trace [t body]
-    (.trace t ^String (if (string? body) body (pr-str body))))
-  (-trace [t body throwable]
-    (.trace t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
-  (-debug [t body]
-    (.debug t ^String (if (string? body) body (pr-str body))))
-  (-debug [t body throwable]
-    (.debug t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
-  (-info [t body]
-    (.info t ^String (if (string? body) body (pr-str body))))
-  (-info [t body throwable]
-    (.info t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
-  (-warn [t body]
-    (.warn t ^String (if (string? body) body (pr-str body))))
-  (-warn [t body throwable]
-    (.warn t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
-  (-error [t body]
-    (.error t ^String (if (string? body) body (pr-str body))))
-  (-error [t body throwable]
-    (.error t ^String (if (string? body) body (pr-str body)) ^Throwable throwable))
+  (-trace
+    ([t body]
+     (.trace t ^String (if (string? body) body (pr-str body))))
+    ([t body throwable]
+     (.trace t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+  (-debug
+    ([t body]
+     (.debug t ^String (if (string? body) body (pr-str body))))
+    ([t body throwable]
+     (.debug t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+  (-info
+    ([t body]
+     (.info t ^String (if (string? body) body (pr-str body))))
+    ([t body throwable]
+     (.info t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+  (-warn
+    ([t body]
+     (.warn t ^String (if (string? body) body (pr-str body))))
+    ([t body throwable]
+     (.warn t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+  (-error
+    ([t body]
+     (.error t ^String (if (string? body) body (pr-str body))))
+    ([t body throwable]
+     (.error t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
 
   nil
   (-level-enabled? [t level-key] false)
-  (-trace [t body] nil)
-  (-trace [t body throwable] nil)
-  (-debug [t body] nil)
-  (-debug [t body throwable] nil)
-  (-info [t body] nil)
-  (-info [t body throwable] nil)
-  (-warn [t body] nil)
-  (-warn [t body throwable] nil)
-  (-error [t body] nil)
-  (-error [t body throwable] nil))
+  (-trace
+    ([t body] nil)
+    ([t body throwable] nil))
+  (-debug
+    ([t body] nil)
+    ([t body throwable] nil))
+  (-info
+    ([t body] nil)
+    ([t body throwable] nil))
+  (-warn
+    ([t body] nil)
+    ([t body throwable] nil))
+  (-error
+    ([t body] nil)
+    ([t body throwable] nil)))
 
 ;; TODO: document override-logger
 (defn- log-expr [form level keyvals]
