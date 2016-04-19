@@ -13,9 +13,9 @@
                  ;; [io.pedestal/pedestal.tomcat "0.4.2-SNAPSHOT"]
 
                  [ch.qos.logback/logback-classic "1.1.7" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.13"]
-                 [org.slf4j/jcl-over-slf4j "1.7.13"]
-                 [org.slf4j/log4j-over-slf4j "1.7.13"]]
+                 [org.slf4j/jul-to-slf4j "1.7.20"]
+                 [org.slf4j/jcl-over-slf4j "1.7.20"]
+                 [org.slf4j/log4j-over-slf4j "1.7.20"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :plugins [[info.sunng/lein-bootclasspath-deps "0.2.0"]]
