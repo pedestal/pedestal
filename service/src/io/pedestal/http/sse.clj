@@ -36,6 +36,7 @@
 (def EVENT_FIELD (get-bytes "event: "))
 (def DATA_FIELD (get-bytes "data: "))
 (def COMMENT_FIELD (get-bytes ": "))
+(def ID_FIELD (get-bytes "id: "))
 
 ;; Cloned from core.async.impl.concurrent
 (defn counted-thread-factory
@@ -54,33 +55,45 @@
 (def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
-(defn mk-data [name data]
-  (let [bab (ByteArrayBuilder.)]
-    (when name
-      (.write bab ^bytes EVENT_FIELD)
-      (.write bab ^bytes (get-bytes name))
-      (.write bab ^bytes CRLF))
+(defn mk-data
+  ([name data]
+   (mk-data name data nil))
+  ([name data id]
+   (let [bab (ByteArrayBuilder.)]
+        (when name
+          (.write bab ^bytes EVENT_FIELD)
+          (.write bab ^bytes (get-bytes name))
+          (.write bab ^bytes CRLF))
 
-    (doseq [part (string/split data #"\r?\n")]
-      (.write bab ^bytes DATA_FIELD)
-      (.write bab ^bytes (get-bytes part))
-      (.write bab ^bytes CRLF))
+        (doseq [part (string/split data #"\r?\n")]
+          (.write bab ^bytes DATA_FIELD)
+          (.write bab ^bytes (get-bytes part))
+          (.write bab ^bytes CRLF))
 
-    (.write bab ^bytes CRLF)
-    (.toByteArray bab)))
+        (when (not-empty id)
+          (.write bab ^bytes ID_FIELD)
+          (.write bab ^bytes (get-bytes id))
+          (.write bab ^bytes CRLF))
 
-(defn send-event [channel name data]
-  (log/trace :msg "writing event to stream"
-             :name name
-             :data data)
-  (log/histogram ::payload-size (count data))
-  (try
-    (async/>!! channel (mk-data name data))
-    (catch Throwable t
-      (log/error :msg "exception sending event"
-                 :throwable t
-                 :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
-      (throw t))))
+        (.write bab ^bytes CRLF)
+        (.toByteArray bab))))
+
+(defn send-event
+  ([channel name data]
+   (send-event channel name data nil))
+  ([channel name data id]
+   (log/trace :msg "writing event to stream"
+              :name name
+              :data data
+              :id id)
+   (log/histogram ::payload-size (count data))
+   (try
+     (async/>!! channel (mk-data name data id))
+     (catch Throwable t
+       (log/error :msg "exception sending event"
+                  :throwable t
+                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
+       (throw t)))))
 
 (defn do-heartbeat
   ([channel] (do-heartbeat channel {}))
@@ -127,9 +140,12 @@
          (and (some? event) (= port event-channel))
          ;; You can name your events using the maps
          ;; {:name "my-event" :data "some message data here"}
+         ;; .. and optionally supply IDs (strings) that make sense to your application
+         ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
          (let [event-name (if (map? event) (str (:name event)) nil)
-               event-data (if (map? event) (str (:data event)) (str event))]
-           (if (send-event response-channel event-name event-data)
+               event-data (if (map? event) (str (:data event)) (str event))
+               event-id (if (map? event) (str (:id event)) nil)]
+           (if (send-event response-channel event-name event-data event-id)
              (recur)
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
