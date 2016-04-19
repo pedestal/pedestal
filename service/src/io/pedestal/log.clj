@@ -15,7 +15,8 @@
   info, warn, and error. Each namespace gets its own Logger. Arguments
   are key-value pairs, which will be printed as with 'pr'. The special
   key :exception should have a java.lang.Throwable as its value, and
-  will be passed separately to the underlying logging API."
+  will be passed separately to the underlying logging API.
+  One can override the logger via JVM or ENVAR settings."
   (:require clojure.string)
   (:import (org.slf4j Logger
                       LoggerFactory)
@@ -25,19 +26,35 @@
            (java.util.concurrent TimeUnit)
            (clojure.lang IFn)))
 
-;;TODO: Doc strings
 (defprotocol LoggerSource
-  (-level-enabled? [t level-key])
+  (-level-enabled? [t level-key]
+                   "Given the log level as a keyword,
+                   return a boolean if that log level is currently enabled.")
   (-trace [t body]
-          [t body trowable])
+          [t body trowable]
+          "Log a TRACE message,
+          and optionally handle a special Throwable/Exception related to the message.
+          The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-debug [t body]
-          [t body throwable])
+          [t body throwable]
+          "Log a DEBUG message,
+          and optionally handle a special Throwable/Exception related to the message.
+          The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-info [t body]
-         [t body thowable])
+         [t body thowable]
+         "Log an INFO message,
+         and optionally handle a special Throwable/Exception related to the message.
+         The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-warn [t body]
-         [t body throwable])
+         [t body throwable]
+         "Log a WARN message,
+         and optionally handle a special Throwable/Exception related to the message.
+         The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-error [t body]
-          [t body throwable]))
+          [t body throwable]
+          "Log an ERROR message,
+          and optionally handle a special Throwable/Exception related to the message.
+          The body may be any of Clojure's literal data types, but a map or string is encouraged."))
 
 (extend-protocol LoggerSource
   Logger
@@ -92,7 +109,19 @@
     ([t body] nil)
     ([t body throwable] nil)))
 
-;; TODO: document override-logger
+;; Override the logger
+;; ---------------------
+;; Pedestal's logging is backed by a protocol, which you are free to extend
+;; for your own system.
+;; Per logging message, you can substitute in your own logger and bypass SLF4J,
+;; using the :io.pedestal.log/logger key.
+;; You can also override the logger for an entire application by setting the
+;; JVM Property 'io.pedestal.log.overrideLogger' or ENVAR 'PEDESTAL_LOGGER'
+;; to a symbol that resolves to a single-arity function
+;; (passed a string logger tag, the NS string of the log call).
+;; This function should return something that satisifes the LoggerSource protocol.
+;; The function will be called multiple times (as the logging macros are expanded).
+
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
   (let [keyvals-map (apply array-map keyvals)
@@ -102,16 +131,14 @@
         log-method' (symbol (str "io.pedestal.log/-" (name level)))
         override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
                                     (System/getenv "PEDESTAL_LOGGER"))
-                                symbol
-                                resolve
-                                (apply []))]
-    `(let [~logger' ~(or (:logger keyvals-map)
-                         override-logger
+                                symbol)]
+    `(let [~logger' ~(or (::logger keyvals-map)
+                         (and override-logger `(~override-logger ~(name (ns-name *ns*))))
                          `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
                           (pr-str (assoc (dissoc ~keyvals-map
-                                                 :exception :logger)
+                                                 :exception :io.pedestal.log/logger)
                                          :line ~(:line (meta form)))))]
            ~(if exception'
               `(~log-method' ~logger'
@@ -251,10 +278,19 @@
                 (.build))
     (.start 1 TimeUnit/MINUTES)))
 
-;;TODO docstring
-(def default-recorder (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultMetricsRecorder")
+(def default-recorder
+  "This is the default recorder of all metrics.
+  This value is configured by setting the JVM Property 'io.pedestal.log.defaultMetricsRecorder'
+  or the environment variable 'PEDESTAL_METRICS_RECORDER'.
+  The value of the setting should be a namespaced symbol
+  that resolves to a 0-arity function or nil.
+  That function should return something that satisfies the MetricRecorder protocol.
+  If no function is found, metrics will be reported only to JMX via a DropWizard MetricRegistry."
+  (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultMetricsRecorder")
                                              (System/getenv "PEDESTAL_METRICS_RECORDER"))]
-                        ((resolve (symbol ns-fn-str)))
+                        (if (= "nil" ns-fn-str)
+                          nil
+                          ((resolve (symbol ns-fn-str))))
                         (metric-registry jmx-reporter)))
 
 ;; Public Metrics API
