@@ -10,6 +10,7 @@
 ;; This request type calls functions on lookup, which can close-over zero/low-copy datastructures.
 ;; No data is copied or cached, but all lookups involve an additional stackframe
 ;; (which may be optimized out by the JIT)
+
 (defprotocol ProxyDatastructure
   (realized [this] "Return fully-realized version of underlying data structure."))
 (extend-protocol ProxyDatastructure
@@ -109,8 +110,8 @@
   (cons [this o] (CallThroughRequest. base-request (.cons user-data o)))
 
   (empty [this] (CallThroughRequest. nil {}))
-  ;; Equality exists only between LazyRequest's with the same underlying map.
-  ;; If you want deeper equality, use RawAccess's `raw` or `realized`
+
+  ;; Equality is java.util.Map equality, against the fully realized map
   (equiv [this o]
     (.equals this o))
 
@@ -119,8 +120,6 @@
     (seq (realized this)))
 
   java.lang.Iterable
-  ;; Quite similar to map's implementation, but turn `next`
-  ;; MapEntry into a DerefingMapEntry
   (iterator [this]
     (let [it ^java.util.Iterator (.iterator ^java.lang.Iterable (seq this))]
       (reify java.util.Iterator
@@ -130,9 +129,10 @@
 
   java.util.Map
   (containsValue [this v]
-    ((set (.values this)) v))
+    (contains? (set (.values this)) v))
   (entrySet [this]
     (.entrySet (realized this)))
+  ;; Equality is java.util.Map equality, against the fully realized map
   (equals [this o]
     (if (instance? Map o)
       (= (.entrySet this) (.entrySet o))
