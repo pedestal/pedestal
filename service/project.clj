@@ -78,4 +78,16 @@
                                   [incanter/incanter-core "1.5.6"]
                                   [incanter/incanter-charts "1.5.6"]]
                    :repositories [["sonatype-oss"
-                                   "https://oss.sonatype.org/content/groups/public/"]]}})
+                                   "https://oss.sonatype.org/content/groups/public/"]]}}
+  ;:jvm-opts ^:replace ["-D\"clojure.compiler.direct-linking=true\""
+  ;                     "-d64" "-server"
+  ;                     "-Xms1g"                             ;"-Xmx1g"
+  ;                     "-XX:+UnlockCommercialFeatures"      ;"-XX:+FlightRecorder"
+  ;                     ;"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8030"
+  ;                     "-XX:+UseG1GC"
+  ;                     ;"-XX:+UseConcMarkSweepGC" "-XX:+UseParNewGC" "-XX:+CMSParallelRemarkEnabled"
+  ;                     ;"-XX:+ExplicitGCInvokesConcurrent"
+  ;                     "-XX:+AggressiveOpts"
+  ;                     ;-XX:+UseLargePages
+  ;                     "-XX:+UseCompressedOops"]
+  )

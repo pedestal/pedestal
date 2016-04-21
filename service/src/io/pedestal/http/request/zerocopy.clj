@@ -90,18 +90,18 @@
   (containsValue [this v]
     (contains? (set (.values this)) v))
   (entrySet [this]
-    (.entrySet (request/realized this)))
+    (.entrySet ^Map (request/realized this)))
   ;; Equality is java.util.Map equality, against the fully realized map
   (equals [this o]
     (if (instance? Map o)
-      (= (.entrySet this) (.entrySet o))
+      (= (.entrySet ^Map this) (.entrySet ^Map o))
       false))
   (get [this k]
     (.valAt this k))
   (isEmpty [this]
     (and (= base-request nil) (empty? user-data)))
   (keySet [this]
-    (.keySet (request/realized this)))
+    (.keySet ^Map (request/realized this)))
   (size [this]
     (.count this))
   (values [this]

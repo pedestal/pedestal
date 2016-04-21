@@ -189,11 +189,12 @@
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
   (-> context
-      (assoc ;:request (request-map/servlet-request-map servlet servlet-request servlet-response)
-             :request (request-zerocopy/call-through-request servlet-request
-                                                             {:servlet servlet
-                                                              :servlet-request servlet-request
-                                                              :servlet-response servlet-response})
+      (assoc :request (request-map/servlet-request-map servlet servlet-request servlet-response)
+             ;; While the zero-copy saves GCs and Heap utilization, Pedestal is still dominated by Interceptors
+             ;:request (request-zerocopy/call-through-request servlet-request
+             ;                                                {:servlet servlet
+             ;                                                 :servlet-request servlet-request
+             ;                                                 :servlet-response servlet-response})
              :async? servlet-async?)
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
