@@ -445,8 +445,8 @@ from before:
 
 Sometimes your routes will look right, but you still get a 404
 response. This can happen if the final interceptor doesn't attach a
-response. The easiest way to debug that is to add a `println` inside
-the interceptor that you think should be called.
+response to the context. The easiest way to debug that is to add a
+`println` inside the interceptor that you think should be called.
 
 You can also call one of an interceptor's functions directly to see if
 it behaves as expected. Suppose you are debugging the `view-user`
@@ -460,4 +460,6 @@ function on `view-user`:
 ```
 
 Here we can see that `view-user` does indeed attach a response to the
-resulting context.
+resulting context. You can also employ this technique with varying
+inputs to exercise the corresponding conditional branches of your
+interceptors from your test cases.
