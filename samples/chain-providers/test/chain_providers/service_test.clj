@@ -1,8 +1,8 @@
-(ns {{namespace}}.service-test
+(ns chain-providers.service-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as bootstrap]
-            [{{namespace}}.service :as service]))
+            [chain-providers.service :as service]))
 
 (def service
   (::bootstrap/service-fn (bootstrap/create-servlet service/service)))

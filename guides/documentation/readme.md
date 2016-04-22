@@ -17,8 +17,10 @@
 Pedestal is a collection of
 interacting libraries that together create a pathway for developing
 a specific kind of application. It empowers developers to use
-Clojure to build internet applications requiring low-latency, streaming
-(soft real-time) collaboration and targeting multiple platforms.
+Clojure to build fast, robust, and secure internet applications.
+In addition to standard web handling functionality, Pedestal also provides
+functionality for applications requiring low-latency, streaming
+(soft real-time) collaboration, and [more](https://github.com/pedestal/pedestal#notable-capabilities).
 
 In short: Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to

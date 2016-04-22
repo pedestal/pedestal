@@ -50,7 +50,7 @@
 
 (defn immutant-server
   [app options]
-  (server (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))
+  (server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))}
           (assoc options :join? false)))
 
 (defmacro with-server [app options & body]

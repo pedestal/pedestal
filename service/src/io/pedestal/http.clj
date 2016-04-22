@@ -173,8 +173,9 @@
 
   Options:
 
-  * :routes: A seq of route maps that defines a service's routes. It's recommended to build this
-    using io.pedestal.http.route.definition/defroutes.
+  * :routes: Something that satisfies the io.pedestal.http.route/ExpandableRoutes protocol
+    a function that returns routes when called, or a seq of route maps that defines a service's routes.
+    If passing in a seq of route maps, it's recommended to use io.pedestal.http.route/expand-routes.
   * :router: The router implementation to to use. Can be either :linear-search,
     :prefix-tree, or a custom Router constructor function. Defaults to :prefix-tree
   * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
@@ -215,7 +216,14 @@
               ext-mime-types {}
               enable-session nil
               enable-csrf nil
-              secure-headers {}}} service-map]
+              secure-headers {}}} service-map
+        processed-routes (cond
+                           (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
+                           (fn? routes) routes
+                           (and (seq? routes) (every? map? routes)) routes
+                           :else (throw (ex-info "Routes specified in the service map don't fulfill the contract.
+                                                 They must be a seq of full-route maps or satisfy the ExpandableRoutes protocol"
+                                                 {:routes routes})))]
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
@@ -230,7 +238,7 @@
                      (not (nil? resource-path)) (conj (middlewares/resource resource-path))
                      (not (nil? file-path)) (conj (middlewares/file file-path))
                      (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
-                     true (conj (route/router routes router))))
+                     true (conj (route/router processed-routes router))))
       service-map)))
 
 (defn dev-interceptors
@@ -240,6 +248,7 @@
                         (cons cors/dev-allow-origin)
                         (cons servlet-interceptor/exception-debug)))))
 
+;; TODO: Make the next three functions a provider
 (defn service-fn
   [{interceptors ::interceptors
     :as service-map}]
@@ -267,6 +276,25 @@
       service-fn
       servlet))
 
+;;TODO: Make this a multimethod
+(defn interceptor-chain-provider
+  [service-map]
+  (let [provider (cond
+                   (fn? (::chain-provider service-map)) (::chain-provider service-map)
+                   (keyword? (::type service-map)) (comp servlet service-fn)
+                   :else (throw (IllegalArgumentException. "There was no provider or server type specified.
+                                                           Unable to create/connect interceptor chain foundation.
+                                                           Try setting :type to :jetty in your service map.")))]
+    (provider service-map)))
+
+(defn create-provider
+  "Creates the base Interceptor Chain provider, connecting a backend to the interceptor
+  chain."
+  [service-map]
+  (-> service-map
+      default-interceptors
+      interceptor-chain-provider))
+
 (defn- service-map->server-options
   [service-map]
   (let [server-keys [::host ::port ::join? ::container-options]]
@@ -277,14 +305,15 @@
   (into {} (map (fn [[k v]] [(keyword "io.pedestal.http" (name k)) v]) server-map)))
 
 (defn server
-  [{servlet ::servlet
-    type ::type
-    :or {type :jetty}
-    :as service-map}]
-  (let [server-ns (symbol (str "io.pedestal.http." (name type)))
-        server-fn (do (require server-ns)
-                      (resolve (symbol (name server-ns) "server")))
-        server-map (server-fn servlet (service-map->server-options service-map))]
+  [service-map]
+  (let [{type ::type
+         :or {type :jetty}} service-map
+        server-fn (if (fn? type)
+                    type
+                    (let [server-ns (symbol (str "io.pedestal.http." (name type)))]
+                      (require server-ns)
+                      (resolve (symbol (name server-ns) "server"))))
+        server-map (server-fn service-map (service-map->server-options service-map))]
     (when (= type :jetty)
       ;; Load in container optimizations (NIO)
       (require 'io.pedestal.http.jetty.container))
@@ -299,7 +328,7 @@
   ([service-map init-fn]
    (init-fn)
    (-> service-map
-      create-servlet
+      create-provider ;; Creates/connects a backend to the interceptor chain
       server)))
 
 (defn start [service-map]

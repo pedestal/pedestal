@@ -1,8 +1,7 @@
-(ns {{namespace}}.server
+(ns jetty-web-sockets.server
   (:gen-class) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
-            [io.pedestal.http.route :as route]
-            [{{namespace}}.service :as service]))
+            [jetty-web-sockets.service :as service]))
 
 ;; This is an adapted service map, that can be started and stopped
 ;; From the REPL you can call server/start and server/stop on this service
@@ -18,7 +17,7 @@
               ::server/join? false
               ;; Routes can be a function that resolve routes,
               ;;  we can use this to set the routes to be reloadable
-              ::server/routes #(route/expand-routes (deref #'service/routes))
+              ::server/routes #(deref #'service/routes)
               ;; all origins are allowed in dev mode
               ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
       ;; Wire up interceptor chains

@@ -15,8 +15,7 @@
         clojure.pprint
         clojure.test
         clojure.repl)
-  (:require [clojure.instant :as inst]
-            [io.pedestal.impl.interceptor :as interceptor]))
+  (:require [clojure.instant :as inst]))
 
 (defn byte-context [content-type ^bytes body-bytes]
   (let [body-reader (java.io.ByteArrayInputStream. body-bytes)]

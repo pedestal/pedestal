@@ -20,12 +20,12 @@
             [io.pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.route :as route]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)
+           (java.io OutputStreamWriter OutputStream EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -101,7 +101,12 @@
           (try
             (write-body servlet-response body-part)
             (.flushBuffer ^HttpServletResponse servlet-response)
+            (catch EOFException e
+              (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
+                        :exception e
+                        :src-chan body))
             (catch Throwable t
+              (log/meter ::async-write-errors)
               (log/error :msg "An error occured when async writing to the client"
                          :throwable t
                          :src-chan body)
@@ -241,23 +246,24 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
-(defn- async? [^ServletRequest servlet-request]
-  (.isAsyncStarted servlet-request))
+(defn- servlet-async? [{:keys [servlet-request] :as context}]
+  (.isAsyncStarted ^ServletRequest servlet-request))
 
 (defn- start-servlet-async
-  [{:keys [servlet-request] :as context}]
-  (when-not (async? servlet-request)
+  [{:keys [servlet-request async?] :as context}]
+  (when-not (async? context)
     (start-servlet-async* servlet-request)))
 
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
   (-> context
-      (assoc :request (request-map servlet servlet-request servlet-response))
+      (assoc :request (request-map servlet servlet-request servlet-response)
+             :async? servlet-async?)
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
-  [{:keys [^HttpServletRequest servlet-request] :as context}]
-  (when (async? servlet-request)
+  [{:keys [^HttpServletRequest servlet-request async?] :as context}]
+  (when (async? context)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
@@ -282,7 +288,7 @@
 
 (defn- terminator-inject
   [context]
-  (interceptor-impl/terminate-when context #(ring-response/response? (:response %))))
+  (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
 
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
@@ -397,11 +403,13 @@
                  :context context)
       (log/counter :io.pedestal/active-servlet-calls 1)
       (try
-        (let [final-context (interceptor-impl/execute
-                             (apply interceptor-impl/enqueue context interceptors))]
+        (let [final-context (interceptor.chain/execute context interceptors)]
           (log/debug :msg "Leaving servlet"
                      :final-context final-context))
+        (catch EOFException e
+          (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
         (catch Throwable t
+          (log/meter ::base-servlet-error)
           (log/error :msg "Servlet code threw an exception"
                      :throwable t
                      :cause-trace (with-out-str

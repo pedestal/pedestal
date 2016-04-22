@@ -16,7 +16,6 @@
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
             [io.pedestal.interceptor.helpers :as interceptor :refer [defon-response defbefore defafter]]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp])
