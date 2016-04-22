@@ -159,6 +159,8 @@
               ;; :bootstrap/interceptors []
               ::bootstrap/routes routes
 
+              ;::router :prefix-tree
+
               ;; Uncomment next line to enable CORS support, add
               ;; string(s) specifying scheme, host and port for
               ;; allowed source(s):
