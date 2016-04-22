@@ -44,7 +44,7 @@
   [segment]
   (= \* (first segment)))
 
-(defn- partition-wilds
+(defn partition-wilds
   "Given a path-spec string, return a seq of strings with wildcards
   and catch-alls separated into their own strings. Eats the forward
   slash following a wildcard."
@@ -77,7 +77,7 @@
 
   )
 
-(defn- contains-wilds?
+(defn contains-wilds?
   "Return true if the given path-spec contains any wildcard params or
   catch-alls."
   [path-spec]
@@ -334,7 +334,7 @@
   "Given a route, create a key path which will be used to insert this
   route into a nested map. Use ::any to indicate that we match any
   value."
-  [{:keys [method host scheme port]}]
+  [{:keys [method host scheme port] :as route-map}]
   [(if (not= method :any) method ::any)
    (or host ::any)
    (or scheme ::any)
@@ -378,7 +378,7 @@
 ;; request. We call this function to get the route or nil. The
 ;; function below creates the payload function.
 
-(defn- create-payload-function
+(defn create-payload-fn
   "Given a sequence of routes, return a function of a request which
   will return a matching route. When the returned function is called
   we already know that the path matches. The function only considers
@@ -435,7 +435,7 @@
   [tree]
   (walk/postwalk (fn [node]
                    (if (= (type node) Payload)
-                     (create-payload-function (:routes node))
+                     (create-payload-fn (:routes node))
                      node))
                  tree))
 
@@ -464,7 +464,7 @@
                      (re-matches re (get path-params k))))
               path-constraints))))
 
-(defn- add-satisfies-constraints?
+(defn add-satisfies-constraints?
   "Given a route, add a function of the request which returns true if
   the request satisfies all path and query constraints."
   [{:keys [query-constraints path-constraints] :as route}]

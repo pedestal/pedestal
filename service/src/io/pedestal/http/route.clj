@@ -21,6 +21,7 @@
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
             [io.pedestal.http.route.linear-search :as linear-search]
+            [io.pedestal.http.route.map-tree :as map-tree]
             [io.pedestal.http.route.prefix-tree :as prefix-tree])
   (:import (java.net URLEncoder URLDecoder)))
 
@@ -415,13 +416,14 @@
                   (route-context context router routes)))})))
 
 (def router-implementations
-  {:prefix-tree prefix-tree/router
+  {:map-tree map-tree/router
+   :prefix-tree prefix-tree/router
    :linear-search linear-search/router})
 
 (defn router
   "Delegating fn for router-specification."
   ([spec]
-   (router spec :prefix-tree))
+   (router spec :map-tree))
   ([spec router-impl-key-or-fn]
    (assert (or (contains? router-implementations router-impl-key-or-fn)
                (fn? router-impl-key-or-fn))
