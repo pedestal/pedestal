@@ -176,8 +176,8 @@
   * :routes: Something that satisfies the io.pedestal.http.route/ExpandableRoutes protocol
     a function that returns routes when called, or a seq of route maps that defines a service's routes.
     If passing in a seq of route maps, it's recommended to use io.pedestal.http.route/expand-routes.
-  * :router: The router implementation to to use. Can be either :linear-search,
-    :prefix-tree, or a custom Router constructor function. Defaults to :prefix-tree
+  * :router: The router implementation to to use. Can be :linear-search, :map-tree
+    :prefix-tree, or a custom Router constructor function. Defaults to :map-tree, which fallsback on :prefix-tree
   * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
     is not added. Default is nil.
   * :resource-path: File path used as root by the middlewares/resource interceptor. If nil, this interceptor

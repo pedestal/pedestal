@@ -14,7 +14,8 @@
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.route.definition :as route-definition]
             [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.http.route.path :as path]))
+            [io.pedestal.http.route.path :as path])
+  (:import (java.util List)))
 
 (defn- error
   [{:keys [row original]} msg]
@@ -129,7 +130,8 @@
       finalize))
 
 (defn route-name [route]
-  (if-let [rname-pos (some-> route (.indexOf :route-name))]
+  (if-let [rname-pos (some-> ^List route
+                             (.indexOf :route-name))]
     (if (pos? rname-pos)
       (nth route (inc rname-pos))
       (nth route 2))

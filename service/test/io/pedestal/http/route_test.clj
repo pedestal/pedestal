@@ -334,6 +334,18 @@
                ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
                ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))))
 
+(def static-quoted-tabular-routes
+  (expand-routes
+    `#{["/logout"       :any logout]
+       ["/search"       :get search-query :constraints {:q #".+"}]
+       ["/search"       :post search-form]
+       ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+       ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+       ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+       ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+       ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+       ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))
+
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker
   [routes]
@@ -411,6 +423,7 @@
 
 (deftest fire-interceptors
   (test-fire-interceptors :prefix-tree)
+  (test-fire-interceptors :map-tree) ;; This should fallback to PrefixTree
   (test-fire-interceptors :linear-search))
 
 (defn test-fire-hierarchical-interceptors [router-impl-key]
@@ -434,6 +447,7 @@
 
 (deftest fire-hierarchical-interceptors
   (test-fire-hierarchical-interceptors :prefix-tree)
+  (test-fire-hierarchical-interceptors :prefix-tree) ;; This should fallback to PrefixTree
   (test-fire-hierarchical-interceptors :linear-search))
 
 (defn test-fire-terminal-interceptors [router-impl-key]
@@ -1196,3 +1210,19 @@
              (:path-params (first (expand-routes  terse-sans-root)))
              (:path-params (first (expand-routes table-sans-root)))
              (:path-params (first (expand-routes table-sans-root))))))))
+
+;; Static routes with the Map-Tree
+(deftest static-map-route-rules
+  (are [req]
+       (let [full-req {:request
+                       (merge {:request-method :get} req)}]
+         (= (:route-name (test-query-execute static-quoted-tabular-routes :map-tree full-req))
+            (:route-name (test-query-execute static-quoted-tabular-routes :prefix-tree full-req))
+            (:route-name (test-query-execute static-quoted-tabular-routes :linear-search full-req))))
+    {:path-info "/search" :query-string nil}
+    {:path-info "/search" :query-string "q=1234"}
+    {:request-method :put :path-info "/search" :query-string "q=1234"}
+    {:request-method :put :path-info "/search"}
+    {:path-info "/logout"}
+    {:request-method :post :path-info "/logout"}))
+

@@ -22,6 +22,9 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
+            [io.pedestal.http.request :as request]
+            [io.pedestal.http.request.map :as request-map]
+            [io.pedestal.http.request.zerocopy :as request-zerocopy]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
@@ -161,78 +164,7 @@
         (write-body servlet-response body)
         (.flushBuffer servlet-response)))))
 
-;;; HTTP Request
-
-(defn- request-headers [^HttpServletRequest servlet-req]
-  (loop [out (transient {})
-         names (enumeration-seq (.getHeaderNames servlet-req))]
-    (if (seq names)
-      (let [key (first names)]
-        (recur (assoc! out (.toLowerCase ^String key)
-                       (.getHeader servlet-req key))
-               (rest names)))
-      (persistent! out))))
-
-(defn- path-info [^HttpServletRequest request]
-  (let [path-info (.substring (.getRequestURI request)
-                              (.length (.getContextPath request)))]
-    (if (.isEmpty path-info)
-      "/"
-      path-info)))
-
-(defn- base-request-map [servlet ^HttpServletRequest servlet-req servlet-resp]
-  {:server-port       (.getServerPort servlet-req)
-   :server-name       (.getServerName servlet-req)
-   :remote-addr       (.getRemoteAddr servlet-req)
-   :uri               (.getRequestURI servlet-req)
-   :query-string      (.getQueryString servlet-req)
-   :scheme            (keyword (.getScheme servlet-req))
-   :request-method    (keyword (.toLowerCase (.getMethod servlet-req)))
-   :headers           (request-headers servlet-req)
-   :body              (.getInputStream servlet-req)
-   :servlet           servlet
-   :servlet-request   servlet-req
-   :servlet-response  servlet-resp
-   :servlet-context   (.getServletContext ^ServletConfig servlet)
-   :context-path      (.getContextPath servlet-req)
-   :servlet-path      (.getServletPath servlet-req)
-   :path-info         (path-info servlet-req)
-   ::protocol         (.getProtocol servlet-req)
-   ::async-supported? (.isAsyncSupported servlet-req)})
-
-(defn- add-content-type [req-map ^HttpServletRequest servlet-req]
-  (if-let [ctype (.getContentType servlet-req)]
-    (let [headers (:headers req-map)]
-      (-> (assoc! req-map :content-type ctype)
-          (assoc! :headers (assoc headers "content-type" ctype))))
-    req-map))
-
-(defn- add-content-length [req-map ^HttpServletRequest servlet-req]
-  (let [c (.getContentLengthLong servlet-req)
-        headers (:headers req-map)]
-    (if (neg? c)
-      req-map
-      (-> (assoc! req-map :content-length c)
-          (assoc! :headers (assoc headers "content-length" (str c)))))))
-
-(defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
-  (if-let [e (.getCharacterEncoding servlet-req)]
-    (assoc! req-map :character-encoding e)
-    req-map))
-
-(defn- add-ssl-client-cert [req-map ^HttpServletRequest servlet-req]
-  (if-let [c (.getAttribute servlet-req "javax.servlet.request.X509Certificate")]
-    (assoc! req-map :ssl-client-cert c)
-    req-map))
-
-(defn- request-map [^Servlet servlet ^HttpServletRequest servlet-req servlet-resp]
-  (-> (base-request-map servlet servlet-req servlet-resp)
-      transient
-      (add-content-length servlet-req)
-      (add-content-type servlet-req)
-      (add-character-encoding servlet-req)
-      (add-ssl-client-cert servlet-req)
-      persistent!))
+;;; Async handling and Provider bootstrapping
 
 (defn- start-servlet-async*
   "Begins an asynchronous response to a request."
@@ -247,7 +179,7 @@
     (.setTimeout 0)))
 
 (defn- servlet-async? [{:keys [servlet-request] :as context}]
-  (.isAsyncStarted ^ServletRequest servlet-request))
+  (request/async-started? servlet-request))
 
 (defn- start-servlet-async
   [{:keys [servlet-request async?] :as context}]
@@ -257,7 +189,12 @@
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
   (-> context
-      (assoc :request (request-map servlet servlet-request servlet-response)
+      (assoc :request (request-map/servlet-request-map servlet servlet-request servlet-response)
+             ;; While the zero-copy saves GCs and Heap utilization, Pedestal is still dominated by Interceptors
+             ;:request (request-zerocopy/call-through-request servlet-request
+             ;                                                {:servlet servlet
+             ;                                                 :servlet-request servlet-request
+             ;                                                 :servlet-response servlet-response})
              :async? servlet-async?)
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
