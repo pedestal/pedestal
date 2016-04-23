@@ -16,7 +16,8 @@
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.interceptor.chain :as chain]
-            [ring.util.io :as ringio]))
+            [ring.util.io :as ringio]
+            [io.pedestal.http.params :as params]))
 
 (defn resp [s b & {:as headers}]
   (assoc {:status s :body b} :headers headers))
@@ -86,7 +87,7 @@
   (table/table-routes
    {}
    [["/echo"  :any  echo :route-name :echo]
-    ["/fecho" :post [(body-params/body-params) echo] :route-name :echo-form]]))
+    ["/fecho" :post [(body-params/body-params) params/keyword-params echo] :route-name :echo-form]]))
 
 (defn- test-query
   [req query-params params form-params]
@@ -103,10 +104,10 @@
 (defn- param-post [u b q] (form-post u b :query-string q))
 
 (deftest query-params
-  (test-query (param-get "/echo" "q=searchterm")        {:q "searchterm"} {:q "searchterm"}   nil)
-  (test-query (param-get "/echo" "c=%20&b=2")           {:b "2" :c " "}   {:b "2" :c " "}     nil)
-  (test-query (param-post "/fecho" nil           "a=b") {:a "b"}          {:a "b"}            {})
-  (test-query (param-post "/fecho" "foo=bar" "c=d")     {:c "d"}          {:c "d" :foo "bar"} {:foo "bar"}))
+  (test-query (param-get "/echo" "q=searchterm")     {:q "searchterm"} {:q "searchterm"}   nil)
+  (test-query (param-get "/echo" "c=%20&b=2")        {:b "2" :c " "}   {:b "2" :c " "}     nil)
+  (test-query (param-post "/fecho" nil       "a=b")  {:a "b"}          {:a "b"}            {})
+  (test-query (param-post "/fecho" "foo=bar" "c=d")  {:c "d"}          {:c "d" :foo "bar"} {:foo "bar"}))
 
 (defn- test-method-params
   [m u b q p v]

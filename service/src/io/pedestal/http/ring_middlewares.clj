@@ -12,7 +12,8 @@
 
 (ns io.pedestal.http.ring-middlewares
   "This namespace creates interceptors for ring-core middlewares."
-  (:require [io.pedestal.interceptor :refer [interceptor]]
+  (:require [io.pedestal.http.params :as pedestal-params]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.helpers :as interceptor]
             [ring.middleware.cookies :as cookies]
             [ring.middleware.file :as file]
@@ -22,8 +23,8 @@
             [ring.middleware.keyword-params :as keyword-params]
             [ring.middleware.multipart-params :as multipart-params]
             [ring.middleware.nested-params :as nested-params]
-            [ring.middleware.params :as params]
             [ring.middleware.not-modified :as not-modified]
+            [ring.middleware.params :as params]
             [ring.middleware.resource :as resource]
             [ring.middleware.session :as session]
             [ring.util.mime-type :as mime]))
@@ -99,10 +100,8 @@
                            ctx))}))
 
 (def keyword-params
-  "Interceptor for keyword-params ring middleware."
-  (interceptor/on-request
-    ::keyword-params
-    keyword-params/keyword-params-request))
+  "Retained for backward compatibility. io.pedestal.http.params/keyword-params is recommended"
+  pedestal-params/keyword-params)
 
 (defn multipart-params
   "Interceptor for multipart-params ring middleware."
