@@ -13,7 +13,28 @@
 (ns io.pedestal.http.tomcat
   (:require [clojure.java.io :as io])
   (:import (org.apache.catalina.startup Tomcat)
+           (org.apache.catalina.connector Connector)
            (javax.servlet Servlet)))
+
+(def ssl-default-config
+  {:ssl-port 8443
+   :client-auth :none})
+
+;; TODO: How many set operations on Connector should we support?
+(defn- ssl-conn-factory
+  [opts]
+  (let [opts      (merge ssl-default-config opts)
+        connector (doto (Connector.)
+                    (.setPort (:ssl-port opts))
+                    (.setSecure true)
+                    (.setScheme "https")
+                    (.setAttribute "SSLEnabled" true)
+                    (.setAttribute "sslProtocol" "TLS")
+                    (.setAttribute "clientAuth" (not= :none (:client-auth opts))))
+        _         (if (and (:keysore opts) (:key-password opts))
+                    (.setAttribute connector "keystoreFile" (:keystore opts))
+                    (.setAttribute connector "keystorePass" (:key-password opts)))]
+    connector))
 
 (defn- create-server
   "Constructs a Tomcat Server instance."
@@ -21,8 +42,11 @@
    {:keys [port]
     :or {port 8080}
     :as options}]
-  (let [basedir (str "tmp/tomcat." port)
-        public (io/file basedir "public")]
+  (let [basedir                 (str "tmp/tomcat." port)
+        public                  (io/file basedir "public")
+        {:keys [ssl? ssl-port]} (:container-options options)
+        ssl-connector           (when (or ssl? ssl-port)
+                                  (ssl-conn-factory (:container-options options)))]
     (.mkdirs (io/file basedir "webapps"))
     (.mkdirs public)
     (let [tomcat (doto (Tomcat.)
@@ -31,6 +55,8 @@
           context (.addContext tomcat "/" (.getAbsolutePath public))]
       (Tomcat/addServlet context "default" servlet)
       (.addServletMapping context "/*" "default")
+      (if ssl-connector
+        (-> tomcat .getService (.addConnector ssl-connector)))
       tomcat)))
 
 (defn start
@@ -51,3 +77,10 @@
        {:server   server
         :start-fn #(start server options)
         :stop-fn  #(stop server)})))
+
+;; :ssl?         - allow connections over HTTPS
+;; :ssl-port     - the SSL port to listen on (defaults to 8443, implies :ssl?)
+;; :keystore     - the keystore to use for SSL connections
+;; :key-password - the password to the keystore
+;; :client-auth  - SSL client certificate authenticate, may be set to :need,
+;;                 :want or :none (defaults to :none)"
