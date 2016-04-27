@@ -69,6 +69,9 @@
 (defn stop [^Tomcat server]
   (.stop server))
 
+(defn destroy [^Tomcat server]
+  (.destroy server))
+
 (defn server
   ([service-map]
      (server service-map {}))
@@ -76,7 +79,8 @@
      (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
        {:server   server
         :start-fn #(start server options)
-        :stop-fn  #(stop server)})))
+        :stop-fn  #(stop server)
+        :destroy-fn #(destroy server)})))
 
 ;; :ssl?         - allow connections over HTTPS
 ;; :ssl-port     - the SSL port to listen on (defaults to 8443, implies :ssl?)

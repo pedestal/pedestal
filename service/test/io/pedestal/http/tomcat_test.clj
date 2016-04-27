@@ -53,10 +53,18 @@
      (try
        ((:start-fn server#))
        ~@body
-       (finally ((:stop-fn server#))))))
+       (finally (do ((:stop-fn server#)) ((:destroy-fn server#)))))))
 
 (deftest test-run-tomcat
   (testing "HTTP server"
+    (with-server hello-world {:port 4347}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World")))))
+
+  (testing "Tomcat's stop/destry release the port"
     (with-server hello-world {:port 4347}
       (let [response (http/get "http://localhost:4347")]
         (is (= (:status response) 200))
