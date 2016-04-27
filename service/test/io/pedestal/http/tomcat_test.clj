@@ -72,6 +72,17 @@
                          "text/plain"))
         (is (= (:body response) "Hello World")))))
 
+  (testing "SSL connection"
+    (with-server hello-world {:port 4347
+                              :container-options {:ssl-port 4348
+                                                  :keystore (-> "test/io/pedestal/http/tomcat-keystore" (java.io.File.) .getAbsolutePath)
+                                                  :key-password "changeit"}}
+      (let [response (http/get "https://localhost:4348" {:insecure? true})]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World")))))
+
   (testing "default character encoding"
     (with-server (content-type-handler "text/plain") {:port 4348}
       (let [response (http/get "http://localhost:4348")]
