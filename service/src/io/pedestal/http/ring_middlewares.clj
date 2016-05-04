@@ -31,18 +31,23 @@
 
 (defn response-fn-adapter
   "Adapts a ring middleware fn taking a response and request to an interceptor context."
-  [response-fn & [opts]]
-  (fn [{:keys [request response] :as context}]
-    (if response
-      (assoc context :response (if opts
-                                 (response-fn response request opts)
-                                 (response-fn response request)))
-      context)))
+  ([response-fn]
+   (fn [{:keys [request response] :as context}]
+     (if response
+       (assoc context :response (response-fn response request))
+       context)))
+  ([response-fn opts]
+   (if (seq opts)
+     (fn [{:keys [request response] :as context}]
+       (if response
+         (assoc context :response (response-fn response request opts))
+         context))
+     (response-fn-adapter response-fn))))
 
 (defn- leave-interceptor
   "Defines an leave only interceptor given a ring fn."
-  [name response-fn & args]
-  (interceptor/after name (apply response-fn-adapter response-fn args)))
+  [name response-fn & [args]]
+  (interceptor/after name (response-fn-adapter response-fn args)))
 
 (defn- content-type-response
   "Tries adding a content-type header to response by request URI (unless one
