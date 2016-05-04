@@ -100,5 +100,21 @@
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
           (is (= (:server-port request-map) 14344))
-          (is (= (:ssl-client-cert request-map) nil)))))))
+          (is (= (:ssl-client-cert request-map) nil))))))
+
+  (testing "SSL attributes"
+    (let [opts {:ssl-port 14346
+                :keystore (-> "test/io/pedestal/http/tomcat-keystore" (java.io.File.) .getAbsolutePath)
+                :key-password "changeit"
+                :ciphers "ALL"
+                :keyAlias "tomcat"
+                :sessionTimeout 60}
+          connector (ssl-conn-factory opts)]
+      (= 14346 (.getPort connector))
+      (= "changeit" (.getAttribute connector "keystorePass"))
+      (= "ALL" (.getAttribute connector "ciphers"))
+      (= "tomcat" (.getAttribute connector "keyAlias"))
+      (= 60 (.getAttribute connector "sessionTimeout"))))
+
+  )
 

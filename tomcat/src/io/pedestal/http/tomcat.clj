@@ -21,7 +21,36 @@
    :client-auth :none})
 
 ;; TODO: How many set operations on Connector should we support?
-(defn- ssl-conn-factory
+;; support ssl configs by setting attribute
+;; keywordize option map keys
+(def ssl-opt-keys
+  #{:algorithm
+    :allowUnsafeLegacyRenegotiation
+    :useServerCipherSuitesOrder
+    :ciphers
+    :clientCertProvider
+    :crlFile
+    :keyAlias
+    :keystoreProvider
+    :keystoreType
+    :sessionCacheSize
+    :sessionTimeout
+    :sslImplementationName
+    :trustManagerClassName
+    :trustMaxCertLength
+    :truststoreAlgorithm
+    :truststoreFile
+    :truststorePass
+    :truststoreProvider
+    :truststoreType})
+
+(defn other-ssl-opts
+  [^Connector connector opts]
+  (let [opt-map (reduce-kv (fn [m k v] (assoc m (keyword k) v)) {} opts)
+        opt-list (filter #(contains? ssl-opt-keys (first %)) opt-map)]
+    (doall (map (fn [v] (.setAttribute connector (name (first v)) (second v))) opt-list))))
+
+(defn ssl-conn-factory
   [opts]
   (let [opts      (merge ssl-default-config opts)
         connector (doto (Connector.)
@@ -33,7 +62,8 @@
                     (.setAttribute "clientAuth" (not= :none (:client-auth opts))))
         _         (if (and (:keysore opts) (:key-password opts))
                     (.setAttribute connector "keystoreFile" (:keystore opts))
-                    (.setAttribute connector "keystorePass" (:key-password opts)))]
+                    (.setAttribute connector "keystorePass" (:key-password opts)))
+        _         (other-ssl-opts connector opts)]
     connector))
 
 (defn- create-server
