@@ -220,6 +220,7 @@
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes
+                           (nil? routes) nil
                            (and (seq? routes) (every? map? routes)) routes
                            :else (throw (ex-info "Routes specified in the service map don't fulfill the contract.
                                                  They must be a seq of full-route maps or satisfy the ExpandableRoutes protocol"
