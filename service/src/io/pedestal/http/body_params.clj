@@ -15,6 +15,7 @@
             [cheshire.core :as json]
             [cheshire.parse :as parse]
             [clojure.string :as str]
+            [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.log :as log]
             [cognitect.transit :as transit]
@@ -133,8 +134,9 @@
 (defn form-parser
   "Take a request and parse its body as a form."
   [request]
-  (let [encoding (or (:character-encoding request) "UTF-8")]
-    (params/assoc-form-params request encoding)))
+  (let [encoding (or (:character-encoding request) "UTF-8")
+        request  (params/assoc-form-params request encoding)]
+    (update request :form-params pedestal-params/keywordize-keys)))
 
 (defn default-parser-map
   "Return a map of MIME-type to parsers. Included types are edn, json and
