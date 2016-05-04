@@ -53,46 +53,38 @@
      (try
        ((:start-fn server#))
        ~@body
-       (finally (do ((:stop-fn server#)) ((:destroy-fn server#)))))))
+       (finally ((:stop-fn server#))))))
 
 (deftest test-run-tomcat
   (testing "HTTP server"
-    (with-server hello-world {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
-        (is (= (:status response) 200))
-        (is (.startsWith ^String (get-in response [:headers "content-type"])
-                         "text/plain"))
-        (is (= (:body response) "Hello World")))))
-
-  (testing "Tomcat's stop/destry release the port"
-    (with-server hello-world {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server hello-world {:port 14340}
+      (let [response (http/get "http://localhost:14340")]
         (is (= (:status response) 200))
         (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (= (:body response) "Hello World")))))
 
   (testing "SSL connection"
-    (with-server hello-world {:port 4347
-                              :container-options {:ssl-port 4348
+    (with-server hello-world {:port 14341
+                              :container-options {:ssl-port 14342
                                                   :keystore (-> "test/io/pedestal/http/tomcat-keystore" (java.io.File.) .getAbsolutePath)
                                                   :key-password "changeit"}}
-      (let [response (http/get "https://localhost:4348" {:insecure? true})]
+      (let [response (http/get "https://localhost:14342" {:insecure? true})]
         (is (= (:status response) 200))
         (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (= (:body response) "Hello World")))))
 
   (testing "default character encoding"
-    (with-server (content-type-handler "text/plain") {:port 4347}
-      (let [response (http/get "http://localhost:4347")]
+    (with-server (content-type-handler "text/plain") {:port 14343}
+      (let [response (http/get "http://localhost:14343")]
         (is (.contains
              ^String (get-in response [:headers "content-type"])
              "text/plain")))))
 
   (testing "request translation"
-    (with-server echo-handler {:port 4347}
-      (let [response (http/get "http://localhost:4347/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
+    (with-server echo-handler {:port 14344}
+      (let [response (http/get "http://localhost:14344/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
         (is (= (:status response) 200))
         (is (= (:body response) "hello"))
         (let [request-map (clojure.edn/read-string
@@ -107,6 +99,6 @@
           (is (= (:remote-addr request-map) "127.0.0.1"))
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))
-          (is (= (:server-port request-map) 4347))
+          (is (= (:server-port request-map) 14344))
           (is (= (:ssl-client-cert request-map) nil)))))))
 
