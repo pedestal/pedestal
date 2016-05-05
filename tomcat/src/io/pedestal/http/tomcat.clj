@@ -39,6 +39,7 @@
     :keyAlias
     :keystoreProvider
     :keystoreType
+    :keyPass
     :sessionCacheSize
     :sessionTimeout
     :sslImplementationName
@@ -71,9 +72,9 @@
                     (.setAttribute "sslProtocol" "TLS")
                     (.setAttribute "clientAuth" (not= :none (:client-auth opts)))
                     (.setAttribute "socket.soReuseAddress" true))]
-    (if (and (:keystore opts) (:key-password opts))
+    (when (and (:keystore opts) (:key-password opts))
       (.setAttribute connector "keystoreFile" (:keystore opts))
-      (.setAttribute connector "keystorePass" (:key-password opts)))
+      (.setAttribute connector "keyPass" (:key-password opts)))
     (apply-ssl-opts connector (dissoc opts :keystore :key-password))
     connector))
 

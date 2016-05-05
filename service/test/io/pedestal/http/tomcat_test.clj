@@ -65,7 +65,7 @@
                          "text/plain"))
         (is (= (:body response) "Hello World")))))
 
-  #_(testing "SSL connection"
+  (testing "SSL connection"
     (with-server hello-world {:port 14341
                               :container-options {:ssl-port 14342
                                                   ;; Tomcat resolves relative paths to be based in SERVER_HOME
