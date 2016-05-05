@@ -71,7 +71,7 @@
                     (.setAttribute "sslProtocol" "TLS")
                     (.setAttribute "clientAuth" (not= :none (:client-auth opts)))
                     (.setAttribute "socket.soReuseAddress" true))]
-    (if (and (:keysore opts) (:key-password opts))
+    (if (and (:keystore opts) (:key-password opts))
       (.setAttribute connector "keystoreFile" (:keystore opts))
       (.setAttribute connector "keystorePass" (:key-password opts)))
     (apply-ssl-opts connector (dissoc opts :keystore :key-password))
