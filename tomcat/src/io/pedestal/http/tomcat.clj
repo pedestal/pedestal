@@ -20,9 +20,19 @@
   {:ssl-port 8443
    :client-auth :none})
 
-;; TODO: How many set operations on Connector should we support?
-;; support ssl configs by setting attribute
-;; keywordize option map keys
+;; These SSL configs are fixed to static values:
+;; setSecure - true
+;; setScheme - https
+;; SSLEnabled - true
+;; sslProtocol - TLS
+;;
+;; Upon compatibility to other web servers, four SSL config parameters
+;; are only given by keyword below:
+;; :ssl-port, :client-auth, :key-password, :keystore
+;;
+;; Tomcat has many other ssl configs. Those tomcat specific settings
+;; can be given by either string or keyword keys. Below are all
+;; supported keys.
 (def ssl-opt-keys
   #{:algorithm
     :allowUnsafeLegacyRenegotiation
