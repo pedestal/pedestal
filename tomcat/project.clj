@@ -17,9 +17,9 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.apache.tomcat.embed/tomcat-embed-logging-juli "8.0.24"]
-                 [org.apache.tomcat.embed/tomcat-embed-jasper "8.0.24"]
-                 [org.apache.tomcat.embed/tomcat-embed-core "8.0.24"]
+                 [org.apache.tomcat.embed/tomcat-embed-logging-juli "8.0.33"]
+                 [org.apache.tomcat.embed/tomcat-embed-jasper "8.0.33"]
+                 [org.apache.tomcat.embed/tomcat-embed-core "8.0.33"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true})
