@@ -16,10 +16,6 @@
            (org.apache.catalina.connector Connector)
            (javax.servlet Servlet)))
 
-(def ssl-default-config
-  {:ssl-port 8443
-   :client-auth :none})
-
 ;; These SSL configs are fixed to static values:
 ;; setSecure - true
 ;; setScheme - https
@@ -54,35 +50,38 @@
     :truststoreProvider
     :truststoreType})
 
-(defn other-ssl-opts
+(defn apply-ssl-opts
   [^Connector connector opts]
   (let [opt-map (reduce-kv (fn [m k v] (assoc m (keyword k) v)) {} opts)
-        opt-list (filter #(contains? ssl-opt-keys (first %)) opt-map)]
-    (doall (map (fn [v] (.setAttribute connector (name (first v)) (second v))) opt-list))))
+        clean-opts (filter #(ssl-opt-keys (key %)) opt-map)]
+    (doseq [[opt v] clean-opts]
+      (.setAttribute connector (name opt) v))
+    connector))
 
 (defn ssl-conn-factory
   [opts]
-  (let [opts      (merge ssl-default-config opts)
+  (let [opts      (merge {:ssl-port 8443
+                          :client-auth :none}
+                         opts)
         connector (doto (Connector.)
                     (.setPort (:ssl-port opts))
                     (.setSecure true)
                     (.setScheme "https")
                     (.setAttribute "SSLEnabled" true)
                     (.setAttribute "sslProtocol" "TLS")
-                    (.setAttribute "clientAuth" (not= :none (:client-auth opts))))
-        _         (if (and (:keysore opts) (:key-password opts))
-                    (.setAttribute connector "keystoreFile" (:keystore opts))
-                    (.setAttribute connector "keystorePass" (:key-password opts)))
-        _         (other-ssl-opts connector opts)]
+                    (.setAttribute "clientAuth" (not= :none (:client-auth opts)))
+                    (.setAttribute "socket.soReuseAddress" true))]
+    (if (and (:keysore opts) (:key-password opts))
+      (.setAttribute connector "keystoreFile" (:keystore opts))
+      (.setAttribute connector "keystorePass" (:key-password opts)))
+    (apply-ssl-opts connector (dissoc opts :keystore :key-password))
     connector))
 
 (defn- create-server
   "Constructs a Tomcat Server instance."
-  [^Servlet servlet
-   {:keys [port]
-    :or {port 8080}
-    :as options}]
-  (let [basedir                 (str "tmp/tomcat." port)
+  [^Servlet servlet options]
+  (let [{:keys [port] :or {port 8080}} options
+        basedir                 (str "tmp/tomcat." port)
         public                  (io/file basedir "public")
         {:keys [ssl? ssl-port]} (:container-options options)
         ssl-connector           (when (or ssl? ssl-port)
@@ -93,9 +92,12 @@
                    (.setPort port)
                    (.setBaseDir basedir))
           context (.addContext tomcat "/" (.getAbsolutePath public))]
+      ;; Configure the core HTTP connector
+      (doto (.getConnector tomcat)
+        (.setAttribute "socket.soReuseAddress" true))
       (Tomcat/addServlet context "default" servlet)
       (.addServletMapping context "/*" "default")
-      (if ssl-connector
+      (when ssl-connector
         (-> tomcat .getService (.addConnector ssl-connector)))
       tomcat)))
 
