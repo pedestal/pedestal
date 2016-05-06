@@ -14,21 +14,6 @@
   (:require [io.pedestal.http :as bootstrap]
             [ns-tracker.core :as tracker]))
 
-(defn init
-  "Initialize a development service for use by (start).
-
-  Arguments are:
-  * service - an application service map."
-  [service]
-  (-> service ;; start with production configuration
-      (merge {:env :dev
-              ;; do not block thread that starts web server
-              ::bootstrap/join? false
-              ;; all origins are allowed in dev mode
-              ::bootstrap/allowed-origins {:creds true :allowed-origins (constantly true)}})
-      (bootstrap/default-interceptors)
-      (bootstrap/dev-interceptors)))
-
 (defn- ns-reload [track]
  (try
    (doseq [ns-sym (track)]
@@ -49,4 +34,16 @@
          (.setDaemon true)
          (.start))
        (fn [] (swap! done not)))))
+
+(defn watch-routes-fn
+  "Given a routes var and optionally a vector of paths to watch,
+  return a function suitable for a service's :routes entry,
+  that reloads routes on source file changes."
+  ([routes-var]
+   (watch-routes-fn routes-var ["src"]))
+  ([routes-var src-paths]
+   (let [tracked (tracker/ns-tracker src-paths)]
+     (fn []
+       (ns-reload tracked)
+       (deref routes-var)))))
 
