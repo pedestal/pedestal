@@ -25,6 +25,7 @@ version details, updates, and necessary migration steps.**
    are data-driven and programmed against protocols.  The entire platform is extensible.
  * A high-performance [prefix-tree router](https://github.com/pedestal/pedestal/pull/330)
    that is significantly faster and more space efficient than other Clojure web routers
+   * When avoiding wildcard and param-routes, the router will be O(log32 N), otherwise O(log N), for the number of routes
  * The ability to plug-in any router, including one you write
  * The ability to express routes in any format you like
  * [Full/true async support](https://groups.google.com/d/msg/clojure/rKqT13Ofy4k/H9xvkZA9Yy4J) (Async Servlet + core.async + NIO),
