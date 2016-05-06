@@ -115,7 +115,7 @@ After installing all the library components, you can run the tests with
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2015 Cognitect, Inc.
+Copyright 2014-2016 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
