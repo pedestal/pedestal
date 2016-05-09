@@ -27,6 +27,8 @@
     (->files data
              ["README.md" (render "README.md" data)]
              ["project.clj" (render "project.clj" data)]
+             ["Capstanfile" (render "Capstanfile" data)]
+             ["Dockerfile" (render "Dockerfile" data)]
              [".gitignore" (render ".gitignore" data)]
              ["src/{{sanitized}}/server.clj" (render "server.clj" data)]
              ["src/{{sanitized}}/service.clj" (render "service.clj" data)]
