@@ -34,14 +34,15 @@ version details, updates, and necessary migration steps.**
  * Integrated streaming capabilites like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
  * Integrated support for Cross-origin resource sharing/[CORS](https://github.com/pedestal/pedestal/tree/master/samples/cors)
  * Integrated linking and testing tools
- * Integrated logging and runtime metrics (which can be published to JMX, StatsD, Cloudwatch, and more)
+ * Integrated logging and runtime [metrics](https://github.com/pedestal/pedestal/tree/master/samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
  * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
  * The ability to utilize Ring Middleware as Pedestal Interceptors
  * Support to run on Jetty, Immutant/Undertow, and Tomcat
  * The ability to run Pedestal services on non-Servlet containers (Vert.x, nginx, Netty, etc.)
  * HTTP/2, HTTP/2 Cleartext, and ALPN support
- * WebSocket support
+ * [WebSocket](https://github.com/pedestal/pedestal/tree/master/samples/jetty-web-sockets) support
+ * [Docker](https://www.docker.com/) and [OSv](http://osv.io/) support
  * and more!
 
 
