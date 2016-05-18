@@ -20,6 +20,8 @@ In general:
  * Avoid NIO bodies for small, static, intant responses.  Stay synchronous
  * Use the entire stack
   * If you're on an application container, consider other Java web technologies (for example, ServletFilters)
+ * If you need a `resources` interceptor, use `io.pedestal.http.ring-middlewares.fast-resource`,
+   which optimizes responses based on the HTTP buffer
 
 ## Configuration
 
