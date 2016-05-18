@@ -11,7 +11,8 @@
 
 (ns io.pedestal.http.content-negotiation
   (:require [clojure.string :as string]
-            [io.pedestal.interceptor :as interceptor]))
+            [io.pedestal.interceptor :as interceptor])
+  (:import (java.util List)))
 
 ;; Parsing the headers, building the map
 ;; --------------------------------------
@@ -68,8 +69,8 @@
       (reduce (fn [[max-q max-t _ :as max-vec] [weighted-q new-t _ :as new-q-vec]]
                 (cond
                   (> weighted-q max-q) new-q-vec
-                  (= weighted-q max-q) (if (< (.indexOf supported-types new-t)
-                                              (.indexOf supported-types max-t))
+                  (= weighted-q max-q) (if (< (.indexOf ^List supported-types new-t)
+                                              (.indexOf ^List supported-types max-t))
                                          new-q-vec max-vec)
                   :else max-vec))
               [0 nil nil]
@@ -171,7 +172,8 @@
               content-param-paths [[:request :headers "accept"]
                                    [:request :headers :accept]]}} opts-map]
     (interceptor/interceptor
-      {:enter (fn [ctx]
+      {:name ::negotiate-content
+       :enter (fn [ctx]
                 (if-let [accept-param (loop [[path & paths] content-param-paths]
                                         (if-let [a-param (get-in ctx path)]
                                           a-param
