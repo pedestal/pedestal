@@ -168,6 +168,16 @@
           (get-in [:response :body])
           slurp))))
 
+(deftest fast-resource-is-valid
+  (is (valid-interceptor? (fast-resource "public")))
+  (is (= "<h1>WOOT!</h1>\n"
+         (->
+          (context {:uri "/index.html"})
+          ((:enter (fast-resource "/io/pedestal/public")))
+          app
+          (get-in [:response :body])
+          slurp))))
+
 (defn- make-store [reader writer deleter]
   (reify SessionStore
     (read-session [_ k] (reader k))

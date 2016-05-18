@@ -168,6 +168,7 @@
                  (getOutputStream [this] output-stream)
                  (setStatus [this status] (reset! status-val status))
                  (getStatus [this] @status-val)
+                 (getBufferSize [this] 1500)
                  (setHeader [this header value] (swap! headers-map update-in [:set-header] assoc header value))
                  (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
