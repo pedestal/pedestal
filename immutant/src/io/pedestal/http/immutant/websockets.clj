@@ -35,14 +35,22 @@
                             ;; TODO m may be bytes
                             (let [payload (.getBytes m) 
                                   offset 0
-                                  length (size payload)]
+                                  length (count payload)]
                               (f payload offset length)))))]
     listener))
 
+(defn- passthru
+  [x message]
+  (prn ::passthru message x)
+  x)
+
 (defn add-ws-endpoints
-  [server ws-paths]
-  (doseq [[path ws-map] ws-paths]
-    (let [listener (make-ws-listener ws-map)
-          handler (fn [request]
-                    (async/as-channel (assoc request :websocket? true) listener))]
-      (-> server (assoc server :path path) (->> (web/run handler))))))
+  [request ws-paths]
+  (loop [ws-maps (seq ws-paths)
+         request request]
+    (if (empty? ws-maps) request
+        (let [[path ws-map] (first ws-maps)
+              listener (make-ws-listener ws-map)
+              handler (fn [request]
+                        (async/as-channel (assoc request :websocket? true) listener))]
+          (recur (rest ws-maps) (-> request (assoc :path path) (->> (web/run handler))))))))

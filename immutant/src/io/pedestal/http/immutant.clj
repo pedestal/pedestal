@@ -25,6 +25,18 @@
   (.stop server)
   server)
 
+(defn- passthru
+  [x message]
+  (prn ::passthru message x)
+  x)
+
+(defn- ws-endpoint-hookup
+  [request service-map]
+  (if-let [context-configurator
+           (get-in service-map [:io.pedestal.http/container-options :context-configurator])]
+    (context-configurator request)
+    request))
+
 (defn server
   "Standard options
     :port [8080]
@@ -58,6 +70,7 @@
                     (select-keys [:path :virtual-host :configuration])
                     (assoc :auto-start false)
                     (->> (web/run (:io.pedestal.http/servlet service-map)))
+                    (ws-endpoint-hookup service-map)
                     web/server)]
        {:server   server
         :start-fn #(start server)
