@@ -25,11 +25,6 @@
   (.stop server)
   server)
 
-(defn- passthru
-  [x message]
-  (prn ::passthru message x)
-  x)
-
 (defn- ws-endpoint-hookup
   [request service-map]
   (if-let [context-configurator

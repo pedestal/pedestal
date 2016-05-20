@@ -11,38 +11,31 @@
 
 (defn make-ws-listener
   [ws-map]
-  (let [listener {}
-        listener (when-let [f (:on-connect ws-map)]
-                   (assoc listener
-                          :on-open
-                          (fn [channel] (f channel))))
-        listener (when-let [f (:on-close ws-map)]
-                   (assoc listener
-                          :on-close
-                          (fn [channel {:keys [code reason ]}] (f code reason))))
-        listener (when-let [f (:on-error ws-map)]
-                   (assoc listener
-                          :on-error
-                          (fn [channel throwable] (f throwable))))
-        listener (when-let [f (:on-text ws-map)]
-                   (assoc listener
-                          :on-message
-                          (fn [channel m] (f m))))
-        listener (when-let [f (:on-binary ws-map)]
-                   (assoc listener
-                          :on-message
-                          (fn [channel m]
-                            ;; TODO m may be bytes
-                            (let [payload (.getBytes m) 
-                                  offset 0
-                                  length (count payload)]
-                              (f payload offset length)))))]
+  (let [full-set {:on-connect
+                  {:on-open
+                   (fn [channel]
+                     ((:on-connect ws-map) channel))}
+                  :on-close
+                  {:on-close
+                   (fn [channel {:keys [code reason]}]
+                     ((:on-close ws-map) code reason))}
+                  :on-error
+                  {:on-error
+                   (fn [channel throwable]
+                     ((:on-error ws-map) throwable))}
+                  :on-text
+                  {:on-message
+                   (fn [channel m]
+                     (async/send! channel ((:on-text ws-map) m)))}
+                  :on-binary
+                  {:on-message
+                   (fn [channel m]
+                     (let [payload (if (instance? String m) (.getBytes m) m)
+                           offset 0
+                           length (count payload)]
+                       (async/send! channel ((:on-binary ws-map) payload offset length))))}}
+        listener (reduce merge {} (map val (select-keys full-set (keys ws-map))))]
     listener))
-
-(defn- passthru
-  [x message]
-  (prn ::passthru message x)
-  x)
 
 (defn add-ws-endpoints
   [request ws-paths]
