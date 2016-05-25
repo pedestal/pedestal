@@ -23,14 +23,14 @@ Route vector format:
    4. Optional route name clause
    5. Optional constraint clause
 
-Syntax for calling `route-table`
+Syntax for calling `table-routes`
 
 ```clojure
 (ns myapp.service
-  (:require [io.pedestal.http.route.table :as table]))
+  (:require [io.pedestal.http.route.definition.table :as table]))
 
 (def application-routes
-  (table/route-table
+  (table/table-routes
     {:host "example.com" :scheme :https}
     [["/user"          :get user-search-form]
      ["/user/:user-id" :get view-user        :constraints {:user-id #"[0-9]+"}]
@@ -235,7 +235,7 @@ feature, but allows you to compose interceptors like this:
 ;; Make a var with the common stuff
 (def common-interceptors [inject-connection auth-required (body-params/body-params)])
 
-;; inside a call to route-table
+;; inside a call to table-routes
 ["/user/:user-id/private" :post (conj common-interceptors view-user)]
 ```
 
@@ -324,7 +324,7 @@ be used in a hyperlink.
 
 ```clojure
 (def app-routes
-   (table/route-table
+   (table/table-routes
      {}
      [["/user"                   :get  user-search-form]
       ["/user/:user-id"          :get  view-user        :route-name :show-user-profile]
@@ -405,7 +405,7 @@ We'll start with the `app-routes` definition from
 (ns myapp.service
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
-            [io.pedestal.http.route.table :as table]))
+            [io.pedestal.http.route.definition.table :as table]))
 
 ;; definition of app-routes from above
 
