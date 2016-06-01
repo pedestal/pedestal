@@ -11,7 +11,7 @@ WAR file.
 
 1. Remove the container dependency (e.g. Jetty) from the `project.clj` or move
    it to a dedicated profile.  Add a `:test` dependency on Servlet-3.1.
-2. Uncomment the WAR code changes in [`server.clj`](#)
+2. Uncomment the WAR code changes in [`server.clj`](https://github.com/pedestal/pedestal/blob/master/samples/war-example/src/war_example/server.clj#L39-L53)
 3. Add the [latest lein-pedestal](https://clojars.org/ohpauleez/lein-pedestal)
    to the `:plugins` section in your `project.clj` file.
 4. Set all WAR setting in the `:pedestal` section within your `project.clj` file.
