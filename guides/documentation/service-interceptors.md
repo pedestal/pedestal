@@ -16,10 +16,11 @@
 
 ## Ring Request Processing
 
-Any discussion of Interceptors should start with two important facts:
+Any discussion of Interceptors should start with an important fact:
 
-1. Interceptors are more complex to write than ring middlewares.
-2. Why would anyone ever choose to embrace this additional complexity?
+Interceptors are more complex to write than ring middlewares.
+
+So why would anyone ever choose to embrace this additional complexity?
 
 Let's start by first examining Ring's approach to request processing.
 
