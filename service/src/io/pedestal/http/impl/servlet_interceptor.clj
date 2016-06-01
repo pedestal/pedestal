@@ -305,6 +305,8 @@
   print it to the output stream of the HTTP request, and do not
   rethrow it."
   [{:keys [servlet-response] :as context} exception]
+  (log/error :msg "Dev interceptor caught an exception; Forwarding it as the response."
+             :exception exception)
   (assoc context
          :response (-> (ring-response/response
                         (with-out-str (println "Error processing request!")
