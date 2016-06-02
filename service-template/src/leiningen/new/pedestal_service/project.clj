@@ -18,13 +18,16 @@
                  [org.slf4j/log4j-over-slf4j "1.7.21"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
-  :plugins [[info.sunng/lein-bootclasspath-deps "0.2.0"]]
-  :boot-dependencies [;; See: https://www.eclipse.org/jetty/documentation/current/alpn-chapter.html#alpn-versions
-                      ;[org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"] ;; JDK 1.8.0_51
-                      ;[org.mortbay.jetty.alpn/alpn-boot "8.1.3.v20150130"] ;; JDK 1.8.0_31/40/45
-                      ;[org.mortbay.jetty.alpn/alpn-boot "8.1.2.v20141202"] ;; JDK 1.8.0_25
-                      [org.mortbay.jetty.alpn/alpn-boot "8.1.0.v20141016" :prepend true] ;; JDK 1.8.0_20 (1.8 up to _20)
-                      ]
+  ;; If you use HTTP/2 or ALPN, you'll need the ALPN boot dependency,
+  ;;  otherwise, you can ignore this or delete this.
+  ;;  Note that the ALPN boot dep can sometimes cause issues with older SSL Engines
+  ;:plugins [[info.sunng/lein-bootclasspath-deps "0.2.0"]]
+  ;:boot-dependencies [;; See: https://www.eclipse.org/jetty/documentation/current/alpn-chapter.html#alpn-versions
+  ;                    ;[org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"] ;; JDK 1.8.0_51
+  ;                    ;[org.mortbay.jetty.alpn/alpn-boot "8.1.3.v20150130"] ;; JDK 1.8.0_31/40/45
+  ;                    ;[org.mortbay.jetty.alpn/alpn-boot "8.1.2.v20141202"] ;; JDK 1.8.0_25
+  ;                    [org.mortbay.jetty.alpn/alpn-boot "8.1.0.v20141016" :prepend true] ;; JDK 1.8.0_20 (1.8 up to _20)
+  ;                    ]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "{{namespace}}.server/run-dev"]}
                    :dependencies [[io.pedestal/pedestal.service-tools "0.5.1-SNAPSHOT"]]}
              :uberjar {:aot [{{namespace}}.server]}}
