@@ -31,7 +31,7 @@
                    "Given the log level as a keyword,
                    return a boolean if that log level is currently enabled.")
   (-trace [t body]
-          [t body trowable]
+          [t body throwable]
           "Log a TRACE message,
           and optionally handle a special Throwable/Exception related to the message.
           The body may be any of Clojure's literal data types, but a map or string is encouraged.")
@@ -41,7 +41,7 @@
           and optionally handle a special Throwable/Exception related to the message.
           The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-info [t body]
-         [t body thowable]
+         [t body throwable]
          "Log an INFO message,
          and optionally handle a special Throwable/Exception related to the message.
          The body may be any of Clojure's literal data types, but a map or string is encouraged.")
