@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -155,9 +155,9 @@
   (default-parser-map :edn-options {:readers *data-readers*})
   ;; This parser-map will parse edn bodies using any custom edn readers you
   ;; define (in a data_readers.clj file, for example.)
-  
+
   (default-parser-map :transit-options [{:handlers {\"custom/model\" custom-model-read-handler}}])
-  ;; This parser-map will parse the transit body using a handler defined by 
+  ;; This parser-map will parse the transit body using a handler defined by
   ;; custom-model-read-handler."
   [& parser-options]
   (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)

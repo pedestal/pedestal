@@ -1,4 +1,4 @@
-; Copyright 2015 Cognitect, Inc.
+; Copyright 2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

@@ -1,4 +1,5 @@
-(ns io.pedestal.http.request.lazy)
+(ns io.pedestal.http.request.lazy
+  (:require [io.pedestal.http.request :as request]))
 
 ;; TODO: Consider wrapping everything in a delay on entry to the map
 (defn- derefing-delays
@@ -41,8 +42,7 @@
 
 (defprotocol LazyDatastructure
   "Utilities for manipulating/realizing lazy data structures."
-  (touch [this] "Realize all portions of the underlying data structure. Returns this.")
-  (realized [this] "Return fully-realized version of underlying data structure."))
+  (touch [this] "Realize all portions of the underlying data structure. Returns this."))
 
 (deftype LazyRequest [^clojure.lang.IPersistentMap m]
 
@@ -65,6 +65,8 @@
     (doseq [[k v] m]
       (derefing-delays v))
     this)
+
+  request/ProxyDatastructure
   (realized [this]
     (into {} this))
 
