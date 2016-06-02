@@ -2,6 +2,10 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.0 - June 02, 2016
+
+For a full list of changes, please see this comparison of [0.4.1...0.5.0](https://github.com/pedestal/pedestal/compare/0.4.1...0.5.0).
+
 ## 0.4.1 - November 04, 2015
 
  * Bug fixes for tree-based router - you can no longer fall off the tree
