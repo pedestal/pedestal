@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.immutant "0.5.0"
+(defproject io.pedestal/pedestal.immutant "0.5.1-SNAPSHOT"
   :description "Embedded Immutant adapter for Pedestal HTTP Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
