@@ -15,17 +15,17 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0-RC4"]
-                 [io.pedestal/pedestal.service "0.4.2-SNAPSHOT"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [io.pedestal/pedestal.service "0.5.0"]
 
                  ;; This samples is specific to jetty, so
                  ;; other options don't appear here.
-                 [io.pedestal/pedestal.jetty "0.4.2-SNAPSHOT"]
-                 [org.eclipse.jetty/jetty-servlets "9.3.1.v20150714"]
-                 [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.7"]
-                 [org.slf4j/jcl-over-slf4j "1.7.7"]
-                 [org.slf4j/log4j-over-slf4j "1.7.7"]
+                 [io.pedestal/pedestal.jetty "0.5.0"]
+                 [org.eclipse.jetty/jetty-servlets "9.3.8.v20160314"]
+                 [ch.qos.logback/logback-classic "1.1.7" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.21"]
+                 [org.slf4j/jcl-over-slf4j "1.7.21"]
+                 [org.slf4j/log4j-over-slf4j "1.7.21"]
                  [clj-http "2.0.0"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
