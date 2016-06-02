@@ -10,11 +10,11 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.4.1"]
-[io.pedestal/pedestal.service-tools "0.4.1"] ;; Only needed for ns-watching
-[io.pedestal/pedestal.jetty         "0.4.1"]
-[io.pedestal/pedestal.immutant      "0.4.1"]
-[io.pedestal/pedestal.tomcat        "0.4.1"]
+[io.pedestal/pedestal.service       "0.5.0"]
+[io.pedestal/pedestal.service-tools "0.5.0"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.0"]
+[io.pedestal/pedestal.immutant      "0.5.0"]
+[io.pedestal/pedestal.tomcat        "0.5.0"]
 ```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
