@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/samples "0.4.2-SNAPSHOT"
+(defproject io.pedestal/samples "0.5.0-SNAPSHOT"
   :plugins [[lein-sub "0.2.3"]]
   :sub ["hello-world"
         "server-sent-events"

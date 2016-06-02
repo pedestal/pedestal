@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.4.2-SNAPSHOT"
+(defproject io.pedestal/pedestal.service "0.5.0-SNAPSHOT"
   :description "Pedestal Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -62,10 +62,10 @@
                                   [clj-http "2.0.0" :exclusions [[potemkin]
                                                                  [clj-tuple]]]
                                   [com.ning/async-http-client "1.8.13"]
-                                  [io.pedestal/pedestal.jetty "0.4.2-SNAPSHOT"]
                                   [org.eclipse.jetty/jetty-servlets "9.3.8.v20160314"]
-                                  [io.pedestal/pedestal.immutant "0.4.2-SNAPSHOT"]
-                                  [io.pedestal/pedestal.tomcat "0.4.2-SNAPSHOT"]
+                                  [io.pedestal/pedestal.jetty "0.5.0-SNAPSHOT"]
+                                  [io.pedestal/pedestal.immutant "0.5.0-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.5.0-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.1.7" :exclusions [org.slf4j/slf4j-api]]

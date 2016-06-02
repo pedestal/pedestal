@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.jetty "0.4.2-SNAPSHOT"
+(defproject io.pedestal/pedestal.jetty "0.5.0-SNAPSHOT"
   :description "Embedded Jetty adapter for Pedestal HTTP Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
