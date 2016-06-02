@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject pedestal-service/lein-template "0.5.0-SNAPSHOT"
+(defproject pedestal-service/lein-template "0.5.0"
   :description "A Pedestal Service template."
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
