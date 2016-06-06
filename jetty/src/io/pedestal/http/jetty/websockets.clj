@@ -92,11 +92,23 @@
 (defn add-ws-endpoints
   "Given a ServletContextHandler and a map of WebSocket (String) paths to action maps,
   produce corresponding Servlets per path and add them to the context.
-  Return the context when complete."
-  [^ServletContextHandler ctx ws-paths]
-  (doseq [[path ws-map] ws-paths]
-    (let [listener (make-ws-listener ws-map)
-          servlet (ws-servlet (fn [req response] listener))]
-      (.addServlet ctx (ServletHolder. ^javax.servlet.Servlet servlet) path)))
-  ctx)
+  Return the context when complete.
+
+  You may optionally also pass in a map of options.
+  Currently supported options:
+   :listener-fn - A function of 3 args,
+                  the ServletUpgradeRequest, ServletUpgradeResponse, and the WS-Map
+                  that returns a WebSocketListener."
+  ([^ServletContextHandler ctx ws-paths]
+   (add-ws-endpoints ctx ws-paths {:listener-fn (fn [req response ws-map]
+                                                  (make-ws-listener ws-map))}))
+  ([^ServletContextHandler ctx ws-paths opts]
+   (let [{:keys [listener-fn]
+          :or {listener-fn (fn [req response ws-map]
+                             (make-ws-listener ws-map))}} opts]
+     (doseq [[path ws-map] ws-paths]
+       (let [servlet (ws-servlet (fn [req response]
+                                   (listener-fn req response ws-map)))]
+         (.addServlet ctx (ServletHolder. ^javax.servlet.Servlet servlet) path)))
+     ctx)))
 
