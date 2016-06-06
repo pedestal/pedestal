@@ -111,6 +111,20 @@
     (is (not (nil? (:response (i bad-form)))))
     (is (not (nil? (:response (i bad-mp-form)))))))
 
+(deftest kw-forms
+  (let [i (standalone-anti-forgery-interceptor)
+        s    "__anti-forgery-token"
+        k    :__anti-forgery-token
+        form {:request {:session {s "foo"}}}
+        good-form (assoc-in form [:request :form-params] {k "foo"})
+        bad-form  (assoc-in form [:request :form-params] {k "XXX"})
+        good-mp-form (assoc-in form [:request :multipart-params] {k "foo"})
+        bad-mp-form  (assoc-in form [:request :multipart-params] {k "XXX"})]
+    (is (nil? (:response (i good-form))))
+    (is (nil? (:response (i good-mp-form))))
+    (is (not (nil? (:response (i bad-form)))))
+    (is (not (nil? (:response (i bad-mp-form)))))))
+
 (deftest token-in-session
   (is (apply not= (map second (repeatedly 2 #(header-data-from-initial-request))))))
 
