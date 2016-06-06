@@ -56,7 +56,7 @@
          (:multipart-params request)))
 
 (defn- default-request-token [request]
-  (or (-> request form-params (get "__anti-forgery-token"))
+  (or (-> request form-params :__anti-forgery-token)
       (-> request :headers (get "x-csrf-token"))
       (-> request :headers (get "x-xsrf-token"))))
 
@@ -125,4 +125,3 @@
            (assoc context
                   :response (cond-> (assoc-session-token response req token)
                               cookie-token? (#(assoc-double-submit-cookie req %))))))))))
-
