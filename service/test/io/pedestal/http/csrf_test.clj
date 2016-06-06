@@ -100,8 +100,9 @@
 
 (deftest forms
   (let [i (standalone-anti-forgery-interceptor)
-        k    "__anti-forgery-token"
-        form {:request {:session {k "foo"}}}
+        s    "__anti-forgery-token"
+        k    :__anti-forgery-token
+        form {:request {:session {s "foo"}}}
         good-form (assoc-in form [:request :form-params] {k "foo"})
         bad-form  (assoc-in form [:request :form-params] {k "XXX"})
         good-mp-form (assoc-in form [:request :multipart-params] {k "foo"})
