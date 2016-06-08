@@ -16,10 +16,11 @@
 
 ## Ring Request Processing
 
-Any discussion of Interceptors should start with two important facts:
+Any discussion of Interceptors should start with an important fact:
 
-1. Interceptors are more complex to write than ring middlewares.
-2. Why would anyone ever choose to embrace this additional complexity?
+Interceptors are more complex to write than ring middlewares.
+
+So why would anyone ever choose to embrace this additional complexity?
 
 Let's start by first examining Ring's approach to request processing.
 
@@ -148,6 +149,39 @@ point in the path after the interceptor which paused. The enter
 functions of further interceptors in the path are invoked as if no
 pause had occurred. A single context may pause and resume an arbitrary
 number of times.
+
+### Examples
+
+Here's how you define a "before" interceptor:
+
+```clojure
+(ns interceptor.example
+  (:require [io.pedestal.interceptor :refer [interceptor]]))
+
+(def my-before-interceptor
+  (interceptor
+   {:name ::hello-world
+    :enter
+    (fn [context]
+      (assoc context :response
+                     {:status 200 :body "Hello world!"
+                      :headers {"Content-Type" "text/plain"}}))}))
+```
+
+And an "after" interceptor:
+
+```clojure
+(ns interceptor.example
+  (:require [io.pedestal.interceptor :refer [interceptor]]))
+
+(def my-after-interceptor
+  (interceptor
+   {:name ::add-foo-header
+    :leave
+    (fn [context]
+      (update-in context [:response :headers]
+                 assoc "Foo" "Bar"))}))
+```
 
 ## Request Processing Across Threads
 

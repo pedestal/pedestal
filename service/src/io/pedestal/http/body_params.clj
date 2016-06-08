@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -15,6 +15,7 @@
             [cheshire.core :as json]
             [cheshire.parse :as parse]
             [clojure.string :as str]
+            [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.log :as log]
             [cognitect.transit :as transit]
@@ -133,8 +134,9 @@
 (defn form-parser
   "Take a request and parse its body as a form."
   [request]
-  (let [encoding (or (:character-encoding request) "UTF-8")]
-    (params/assoc-form-params request encoding)))
+  (let [encoding (or (:character-encoding request) "UTF-8")
+        request  (params/assoc-form-params request encoding)]
+    (update request :form-params pedestal-params/keywordize-keys)))
 
 (defn default-parser-map
   "Return a map of MIME-type to parsers. Included types are edn, json and
@@ -152,7 +154,11 @@
 
   (default-parser-map :edn-options {:readers *data-readers*})
   ;; This parser-map will parse edn bodies using any custom edn readers you
-  ;; define (in a data_readers.clj file, for example.)"
+  ;; define (in a data_readers.clj file, for example.)
+
+  (default-parser-map :transit-options [{:handlers {\"custom/model\" custom-model-read-handler}}])
+  ;; This parser-map will parse the transit body using a handler defined by
+  ;; custom-model-read-handler."
   [& parser-options]
   (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)
         edn-options-vec (apply concat edn-options)

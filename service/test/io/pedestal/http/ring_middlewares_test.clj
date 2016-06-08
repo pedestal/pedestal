@@ -90,6 +90,7 @@
              (get-in [:request :request-method]))))
   (is (= {:body nil :status 200}
          (-> (context {:request-method :head})
+             ((:enter (head)))
              app
              ((:leave (head)))
              (#(select-keys (:response %) [:status :body]))))))
@@ -140,8 +141,10 @@
   (is (valid-interceptor? (not-modified)))
   (is (= 304
          (->
-          {:request {:headers {"if-none-match" "42"}}
-           :response {:headers {"etag" "42"}}}
+          {:request {:headers {"if-none-match" "42"}
+                     :request-method :get}
+           :response {:headers {"etag" "42"}
+                      :status 200}}
           app
           ((:leave (not-modified)))
           (get-in [:response :status])))))
@@ -161,6 +164,16 @@
          (->
           (context {:uri "/index.html"})
           ((:enter (resource "/io/pedestal/public")))
+          app
+          (get-in [:response :body])
+          slurp))))
+
+(deftest fast-resource-is-valid
+  (is (valid-interceptor? (fast-resource "public")))
+  (is (= "<h1>WOOT!</h1>\n"
+         (->
+          (context {:uri "/index.html"})
+          ((:enter (fast-resource "/io/pedestal/public")))
           app
           (get-in [:response :body])
           slurp))))

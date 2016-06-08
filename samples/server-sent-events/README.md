@@ -7,6 +7,8 @@ event stream. Events are sent from multiple threads.
 
 1. Start the application: `lein run`
 2. Use `curl http://localhost:8080` to see event stream data.
+3. Use `curl http://localhost:8080/with-id` to see event id alongside of event data.
+4. Try `curl -H "Last-Event-ID: 4 cents" http://localhost:8080/with-id` for Last-Event-ID test.
 3. Read the source code at src/server_sent_events/service.clj.
 
 #### Working with events in ClojureScript

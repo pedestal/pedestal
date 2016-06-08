@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.sse-test
-  (:require [io.pedestal.impl.interceptor :as interceptor]
+  (:require [io.pedestal.interceptor.chain :as interceptor]
             [io.pedestal.log :as log]
             [io.pedestal.http.sse :refer :all]
             [io.pedestal.http.cors :as cors])
@@ -20,10 +20,10 @@
 
 (deftest sse-start-stream
   (let [fake-context {:request {:headers {"origin" "http://foo.com:8080"}}}
-        interceptor-context (interceptor/enqueue fake-context
-                                                 (cors/allow-origin ["http://foo.com:8080"])
-                                                 ;; The `stream-ready-fn` takes the channel and the context
-                                                 (start-event-stream (fn [ch context] ch)))
+        interceptor-context (interceptor/enqueue* fake-context
+                                                  (cors/allow-origin ["http://foo.com:8080"])
+                                                  ;; The `stream-ready-fn` takes the channel and the context
+                                                  (start-event-stream (fn [ch context] ch)))
         {{body :body
           {content-type "Content-Type"
            connection "Connection"

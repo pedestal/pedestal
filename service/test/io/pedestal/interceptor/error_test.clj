@@ -12,7 +12,7 @@
       :interceptor ::another-bad-one}] (assoc ctx :response {:status 400 :body "Another bad one"})
     [{:exception-type :java.lang.ArithmeticException}] (assoc ctx :response {:status 400 :body "A bad one"})
     ;; If we don't match, forward it on
-    :else (assoc ctx :io.pedestal.impl.interceptor/error ex)))
+    :else (assoc ctx :io.pedestal.interceptor.chain/error ex)))
 
 
 (defn bad-page

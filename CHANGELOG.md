@@ -2,12 +2,47 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.0 - June 02, 2016
+
+ * Map-tree router (used by default)
+ * Servlet independence via Chain Providers between the container and the Interceptor Chain
+ * Jetty has ALPN, HTTP/2, and WebSocket support
+ * Interceptor chain refactor
+ * Interceptor chain can be run in, out, or in-out; Can now handle streams of data
+ * Metrics tooling and API added.  Reports/publishes to JMX by default
+ * Service template has Docker and OSv support -- Dockerfile and Capstanfile
+ * Service template has ALPN boot-dep configured.  Comment out or remove if not using ALPN (HTTP/2)
+ * Route definition API refactored
+ * Table-routes format added
+ * Terse-route parsing and error reporting improved
+ * Request API added while creating Chain Providers; Zero-copy, Lazy, and Map requests added
+ * Support for SSE Event-Id added
+ * Support for Content-Negotiation added
+ * Support for SSL added to embedded Tomcat
+ * WAR tooling added to service-tools
+
+For a full list of changes, please see this comparison of [0.4.1...0.5.0](https://github.com/pedestal/pedestal/compare/0.4.1...0.5.0).
+
+## 0.4.1 - November 04, 2015
+
+ * Bug fixes for tree-based router - you can no longer fall off the tree
+ * NIO speed enhancements - utilize a better API call
+ * `response-for` split apart to allow for better instrumentation and test control
+ * `response-for` now handles async use
+ * Dependencies updated
+ * SSE buffer bug patched - can't resuse core.async buffers
+ * SSE updated for open-ended option; New option for cleanup callback added
+ * Samples and docs cleaned up and improved
+ * Dedicated branches for HTTP2/ALPN support and WebSockets (not integrated into the interceptor chain)
+
+For a full list of changes, please see this comparison of [0.4.0...0.4.1](https://github.com/pedestal/pedestal/compare/0.4.0...0.4.1).
+
 ## 0.4.0 - April 17, 2015
 
  * Tree-based router (used by default)
  * Open routing (users can set their own router)
  * Robust error-handler interceptor (pattern-matching across all interceptors)
- * Updated Interceptor API (built around a protocol / open for extension)
+ * [Updated Interceptor API](https://github.com/pedestal/pedestal/pull/301) (built around a protocol / open for extension)
  * Updated documentation samples
  * Bug fixes and small enhancements to the testing tools
 

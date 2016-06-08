@@ -12,10 +12,10 @@
 
 (ns io.pedestal.http-test
   (:require [clojure.test :refer :all]
+            [clojure.core.async :as async]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
             [io.pedestal.interceptor.helpers :as interceptor :refer [defon-response defbefore defafter]]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp])
@@ -302,3 +302,24 @@
     (is (= "HELLO" (subs body 0 5)))
     (is (not-empty (subs body 4)))))
 
+;;; Async request handlers
+
+(defbefore hello-async [context]
+  (let [ch (async/chan 1)]
+    (async/go
+      (async/>! ch (assoc context
+                    :response
+                    {:status 200
+                     :body "Hello async"})))
+    ch))
+
+(defroutes async-hello-routes
+  [[["/hello-async" {:get hello-async}]]])
+
+(deftest channel-returning-request-handler
+  (let [app      (-> {::service/routes async-hello-routes}
+                   service/default-interceptors
+                   service/service-fn
+                   ::service/service-fn)
+        response (response-for app :get "/hello-async")]
+    (is (= "Hello async" (:body response)))))

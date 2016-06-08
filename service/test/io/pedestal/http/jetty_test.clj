@@ -59,7 +59,7 @@
 
 (defn jetty-server
   [app options]
-  (server (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))
+  (server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))}
           (assoc options :join? false)))
 
 (defmacro with-server [app options & body]
@@ -96,6 +96,19 @@
       (let [response (http/get "https://localhost:4348" {:insecure? true})]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
+
+  ;; clj-http (and by proxy, Apache HttpClient only speak HTTP 1.1
+  ;(testing "HTTP2 via HTTPS/ALPN"
+  ;  (with-server hello-world {:port 4347
+  ;                            :container-options {:ssl? true
+  ;                                                :ssl-port 4348
+  ;                                                :keystore "test/io/pedestal/http/keystore.jks"
+  ;                                                :key-password "password"
+  ;                                                :alpn true}}
+  ;    (let [response (http/get "https://localhost:4348" {:insecure? true})]
+  ;      (is (= (:status response) 200))
+  ;      (is (= (:body response) "Hello World"))
+  ;      (is (= nil (:headers response))))))
 
   (testing "configurator set to run last"
     (let [max-threads 20
@@ -146,10 +159,11 @@
                             (get-in response [:headers "request-map"]))]
           (is (= (:query-string request-map) "surname=jones&age=123"))
           (is (= (:uri request-map) "/foo/bar/baz"))
-          (is (= (:content-length request-map) 5))
-          (is (= (:character-encoding request-map) "UTF-8"))
+          ;; This are no longer part of the Ring Spec, and are removed from the base request protocol
+          ;(is (= (:content-length request-map) 5))
+          ;(is (= (:character-encoding request-map) "UTF-8"))
           (is (= (:request-method request-map) :get))
-          (is (= (:content-type request-map) "text/plain; charset=UTF-8"))
+          ;(is (= (:content-type request-map) "text/plain; charset=UTF-8"))
           (is (= (:remote-addr request-map) "127.0.0.1"))
           (is (= (:scheme request-map) :http))
           (is (= (:server-name request-map) "localhost"))

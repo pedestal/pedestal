@@ -23,7 +23,7 @@
 (deftest about-page-test
   (is (.contains
        (:body (response-for service :get "/about"))
-       "Clojure 1.6"))
+       "Clojure 1.8"))
   (is (=
        (:headers (response-for service :get "/about"))
        {"Content-Type" "text/html;charset=UTF-8"

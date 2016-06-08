@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -36,6 +36,7 @@
 (def EVENT_FIELD (get-bytes "event: "))
 (def DATA_FIELD (get-bytes "data: "))
 (def COMMENT_FIELD (get-bytes ": "))
+(def ID_FIELD (get-bytes "id: "))
 
 ;; Cloned from core.async.impl.concurrent
 (defn counted-thread-factory
@@ -54,105 +55,172 @@
 (def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
 (def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
-(defn mk-data [name data]
-  (let [bab (ByteArrayBuilder.)]
-    (when name
-      (.write bab ^bytes EVENT_FIELD)
-      (.write bab ^bytes (get-bytes name))
-      (.write bab ^bytes CRLF))
+(defn mk-data
+  ([name data]
+   (mk-data name data nil))
+  ([name data id]
+   (let [bab (ByteArrayBuilder.)]
+        (when name
+          (.write bab ^bytes EVENT_FIELD)
+          (.write bab ^bytes (get-bytes name))
+          (.write bab ^bytes CRLF))
 
-    (doseq [part (string/split data #"\r?\n")]
-      (.write bab ^bytes DATA_FIELD)
-      (.write bab ^bytes (get-bytes part))
-      (.write bab ^bytes CRLF))
+        (doseq [part (string/split data #"\r?\n")]
+          (.write bab ^bytes DATA_FIELD)
+          (.write bab ^bytes (get-bytes part))
+          (.write bab ^bytes CRLF))
 
-    (.write bab ^bytes CRLF)
-    (.toByteArray bab)))
+        (when (not-empty id)
+          (.write bab ^bytes ID_FIELD)
+          (.write bab ^bytes (get-bytes id))
+          (.write bab ^bytes CRLF))
 
-(defn send-event [channel name data]
-  (log/trace :msg "writing event to stream"
-             :name name
-             :data data)
-  (try
-    (async/>!! channel (mk-data name data))
-    (catch Throwable t
-      (log/error :msg "exception sending event"
-                 :throwable t
-                 :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
-      (throw t))))
+        (.write bab ^bytes CRLF)
+        (.toByteArray bab))))
 
-(defn do-heartbeat [channel]
-  (try
-    (log/trace :msg "writing heartbeat to stream")
-    (async/>!! channel CRLF)
-    (catch Throwable t
-      (log/error :msg "exception sending heartbeat"
-                 :throwable t
-                 :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
-      (throw t))))
+(defn send-event
+  ([channel name data]
+   (send-event channel name data nil))
+  ([channel name data id]
+   (log/trace :msg "writing event to stream"
+              :name name
+              :data data
+              :id id)
+   (log/histogram ::payload-size (count data))
+   (try
+     (async/>!! channel (mk-data name data id))
+     (catch Throwable t
+       (log/error :msg "exception sending event"
+                  :throwable t
+                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
+       (throw t)))))
 
-(defn- ^ScheduledFuture schedule-heartbeart [channel heartbeat-delay]
-  (let [f #(do-heartbeat channel)]
-    (.scheduleWithFixedDelay scheduler f 0 heartbeat-delay TimeUnit/SECONDS)))
+(defn do-heartbeat
+  ([channel] (do-heartbeat channel {}))
+  ([channel {:keys [on-client-disconnect]}]
+   (try
+     (log/trace :msg "writing heartbeat to stream")
+     (async/>!! channel CRLF)
+     (catch Throwable t
+       (log/error :msg "exception sending heartbeat"
+                  :throwable t
+                  :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
+       (throw t)))))
 
 (defn end-event-stream
-  "Given a `context`, clean up the event stream it represents."
+  "DEPRECATED. Given a `context`, clean up the event stream it represents."
+  {:deprecated "0.4.0"}
   [{end-fn ::end-event-stream}]
-  (end-fn))
+  ;;(end-fn)
+  )
+
+;; This is extracted as a separate function mainly to support advanced
+;; users who want to rebind it during tests. Note to those that do so:
+;; the function is private to indicate that the contract may break in
+;; future revisions. Use at your own risk. If you find yourself using
+;; this to see what data is being put on `event-channel` consider
+;; instead modifying your application's stream-ready-fn to support the
+;; tests you want to write.
+(defn- start-dispatch-loop
+  "Kicks off the loop that transfers data provided by the application
+  on `event-channel` to the HTTP infrastructure via
+  `response-channel`."
+  [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
+  (async/go
+    (loop []
+      (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
+           [event port] (async/alts! [event-channel hb-timeout])]
+        (log/counter ::active-streams 1)
+       (cond
+         (= port hb-timeout)
+         (if (async/>! response-channel CRLF)
+           (recur)
+           (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
+
+         (and (some? event) (= port event-channel))
+         ;; You can name your events using the maps
+         ;; {:name "my-event" :data "some message data here"}
+         ;; .. and optionally supply IDs (strings) that make sense to your application
+         ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
+         (let [event-name (if (map? event) (str (:name event)) nil)
+               event-data (if (map? event) (str (:data event)) (str event))
+               event-id (if (map? event) (str (:id event)) nil)]
+           (if (send-event response-channel event-name event-data event-id)
+             (recur)
+             (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+
+         :else
+         (do
+           (log/counter ::active-streams -1)
+           (log/info :msg "Event channel has closed. Shutting down SSE stream.")))))
+    (async/close! event-channel)
+    (async/close! response-channel)
+    (when on-client-disconnect (on-client-disconnect))))
 
 (defn start-stream
-  "Given a `context`, starts an event stream using it's response and
-  initiates a heartbeat to keep the connection alive. Also adds a
-  reference to an end-stream function into context. An application
-  must use this function to clean up a stream when it is no longer
-  needed."
+  "Starts an SSE event stream and initiates a heartbeat to keep the
+  connection alive. `stream-ready-fn` will be called with a core.async
+  channel. The application can then put maps with keys :name and :data
+  on that channel to cause SSE events to be sent to the client. Either
+  the client or the application may close the channel to terminate and
+  clean up the event stream; the client closes it by closing the
+  connection.
+
+  The SSE's core.async buffer can either be a fixed buffer (n) or a 0-arity
+  function that returns a buffer."
   ([stream-ready-fn context heartbeat-delay]
    (start-stream stream-ready-fn context heartbeat-delay 10))
-  ([stream-ready-fn context heartbeat-delay buffer-or-n]
-   (let [response-channel (async/chan buffer-or-n)
-        response (-> (ring-response/response response-channel)
-                     (ring-response/content-type "text/event-stream")
-                     (ring-response/charset "UTF-8")
-                     (ring-response/header "Connection" "close")
-                     (ring-response/header "Cache-Control" "no-cache")
-                     (update-in [:headers] merge (:cors-headers context)))
-        heartbeat (schedule-heartbeart response-channel heartbeat-delay)
-        event-channel (async/chan buffer-or-n)]
-    (async/thread
-     (stream-ready-fn event-channel (assoc context :response-channel response-channel)))
-
-    (async/go
-      (loop []
-        (when-let [event (async/<! event-channel)]
-          ;; You can name your events using the maps {:name "my-event" :data "some message data here"}
-          (let [event-name (if (map? event) (str (:name event)) nil)
-                event-data (if (map? event) (str (:data event)) (str event))]
-            (when (send-event response-channel event-name event-data)
-              (recur)))))
-      (.cancel ^ScheduledFuture heartbeat true)
-      (async/close! event-channel)
-      (async/close! response-channel))
-
-    (assoc context :response response))))
+  ([stream-ready-fn context heartbeat-delay bufferfn-or-n]
+   (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n {}))
+  ([stream-ready-fn context heartbeat-delay bufferfn-or-n opts]
+   (let [{:keys [on-client-disconnect]} opts
+         response-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         response (-> (ring-response/response response-channel)
+                      (ring-response/content-type "text/event-stream")
+                      (ring-response/charset "UTF-8")
+                      (ring-response/header "Connection" "close")
+                      (ring-response/header "Cache-Control" "no-cache")
+                      (update-in [:headers] merge (:cors-headers context)))
+         event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         context* (assoc context
+                         :response-channel response-channel
+                         :response response)]
+     (async/thread
+       (stream-ready-fn event-channel context*))
+     (start-dispatch-loop (merge {:event-channel event-channel
+                                  :response-channel response-channel
+                                  :heartbeat-delay heartbeat-delay
+                                  :context context*}
+                                 (when on-client-disconnect
+                                   {:on-client-disconnect #(on-client-disconnect context*)})))
+     context*)))
 
 (defn start-event-stream
   "Returns an interceptor which will start a Server Sent Event stream
   with the requesting client, and set the ServletResponse to go
   async. After the request handling context has been paused in the
   Servlet thread, `stream-ready-fn` will be called in a future, with
-  the resulting context from setting up the SSE event stream."
+  the resulting context from setting up the SSE event stream.
+
+  opts is a map with optional keys:
+
+  :on-client-disconnect - A function of one argument which will be
+    called when the client permanently disconnects."
   ([stream-ready-fn]
    (start-event-stream stream-ready-fn 10 10))
   ([stream-ready-fn heartbeat-delay]
    (start-event-stream stream-ready-fn heartbeat-delay 10))
-  ([stream-ready-fn heartbeat-delay buffer-or-n]
+  ([stream-ready-fn heartbeat-delay bufferfn-or-n]
+   (start-event-stream stream-ready-fn heartbeat-delay bufferfn-or-n {}))
+  ([stream-ready-fn heartbeat-delay bufferfn-or-n opts]
    (interceptor/interceptor
-     {:name "io.pedestal.http.sse/start-event-stream"
+     {:name (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
       :enter (fn [context]
                (log/trace :msg "switching to sse")
-               (start-stream stream-ready-fn context heartbeat-delay buffer-or-n))})))
+               (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))
 
 (defn sse-setup
   "See start-event-stream. This function is for backward compatibility."
   [& args]
   (apply start-event-stream args))
+

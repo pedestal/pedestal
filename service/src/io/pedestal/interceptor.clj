@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -12,10 +12,13 @@
 
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
-  common interceptor creation patterns."
-  (:require [io.pedestal.impl.interceptor :as impl]))
+  common interceptor creation patterns.")
 
 (defrecord Interceptor [name enter leave error])
+
+(defmethod print-method Interceptor
+  [^Interceptor i ^java.io.Writer w]
+  (.write w (str "#Interceptor{:name " (.name i) "}")))
 
 (defprotocol IntoInterceptor
   (-interceptor [t] "Given a value, produce an Interceptor Record."))
@@ -55,7 +58,7 @@
 (defn interceptor-name
   [n]
   (if-not (or (nil? n) (keyword? n))
-    (throw (ex-info "Name must be keyword or nil" {:name n}))
+    (throw (ex-info (str "Name must be keyword or nil; Got: " (pr-str n)) {:name n}))
     n))
 
 (defn interceptor?
@@ -68,7 +71,7 @@
                            (vals (select-keys o [:enter :leave :error])))]
     (and (some identity int-vals)
          (every? fn? (remove nil? int-vals))
-         (interceptor-name (:name o))
+         (or (interceptor-name (:name o)) true) ;; Could return `nil`
          true)
     false))
 
@@ -81,7 +84,6 @@
                            {:t t
                             :type (type t)}))
            true)]
-   :post [valid-interceptor?]}
+   :post [(valid-interceptor? %)]}
   (-interceptor t))
-
 

@@ -15,16 +15,17 @@
         clojure.pprint
         clojure.test
         clojure.repl)
-  (:require [clojure.set :as set]
-            [clojure.string :as str]
-            ring.middleware.resource
+  (:require [clojure.set]
+            [ring.middleware.resource]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.helpers :as interceptor
              :refer [defhandler defon-request defbefore definterceptor handler]]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
-            [io.pedestal.http.route :as route]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
+            [io.pedestal.http.route :as route :refer [expand-routes]]
+            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.http.route.definition :refer [defroutes expand-routes map-routes->vec-routes]]))
+            [io.pedestal.http.route.definition.table :refer [table-routes]]
+            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
 
 (defhandler home-page
   [request]
@@ -82,104 +83,105 @@
     (ring-response/response (str "demo page for " site-name))))
 
 ;; schemes, hosts, path, verb and maybe query string
-(verbose/defroutes verbose-routes ;; the verbose hierarchical data structure
-  [{:app-name :public
-    :host "example.com"
-    ;;    :interceptors []
-    :children [{:path "/"
-                ;; :interceptors []
-                ;;                :verbs {:get {:handler home-page :interceptors []}
-                :verbs {:get home-page}
-                :children [{:path "/child-path"
-                            :verbs {:get trailing-slash}}]}
-               {:path "/user"
-                :verbs {:get list-users
-                        :post add-user}
-                :children [{:path "/:user-id"
-                            :constraints {:user-id #"[0-9]+"}
-                            :verbs {:put update-user}
-                            :children [{:constraints {:view #"long|short"}
-                                        :verbs {:get view-user}}]}]}]}
-   {:app-name :admin
-    :scheme :https
-    :host "admin.example.com"
-    :port 9999
-    :children [{:path "/demo/site-one/*site-path"
-                ;; :verbs {:get {:name :site-one-demo :handler (site-demo "one") :interceptors []}}
-                :verbs {:get {:route-name :site-one-demo
-                              :handler (site-demo "one")}}}
-               {:path "/demo/site-two/*site-path"
-                :verbs {:get {:route-name :site-two-demo
-                              :handler (site-demo "two")}}}
-               {:path "/user/:user-id/delete"
-                :verbs {:delete delete-user}}]}
-   {:children [{:path "/logout"
-                :verbs {:any logout}}
-               {:path "/search"
-                :verbs {:get search-form}
-                :children [{:constraints {:id #"[0-9]+"}
-                            :verbs {:get search-id}}
-                           {:constraints {:q #".+"}
-                            :verbs {:get search-query}}]}
-               {:path "/intercepted"
-                :verbs {:get {:route-name :intercepted
-                              :handler request-inspection}}
-                :interceptors [interceptor-1 interceptor-2]}
-               {:path "/intercepted-by-fn-symbol"
-                :verbs {:get {:route-name :intercepted-by-fn-symbol
-                              :handler request-inspection}}
-                :interceptors [interceptor-3]}
-               {:path "/intercepted-by-fn-list"
-                :verbs {:get {:route-name :intercepted-by-fn-list
-                              :handler request-inspection}}
-                :interceptors [(interceptor-3 ::fn-called-explicitly)]}
-               {:path "/trailing-slash/"
-                :children [{:path "/child-path"
-                            :verbs {:get {:route-name :admin-trailing-slash
-                                          :handler trailing-slash}}}]}
-               {:path "/hierarchical"
-                :interceptors [interceptor-1]
-                :children [{:path "/intercepted"
-                            :interceptors [interceptor-2]
-                            :verbs {:get {:route-name :hierarchical-intercepted
-                                          :handler request-inspection}}}]}
-               {:path "/terminal/intercepted"
-                :verbs {:get {:route-name :terminal-intercepted
-                              :handler request-inspection
-                              :interceptors [interceptor-1 interceptor-2]}}}]}])
+(def verbose-routes ;; the verbose hierarchical data structure
+  (verbose/expand-verbose-routes
+    `[{:app-name :public
+       :host "example.com"
+       ;;    :interceptors []
+       :children [{:path "/"
+                   ;; :interceptors []
+                   ;;                :verbs {:get {:handler home-page :interceptors []}
+                   :verbs {:get home-page}
+                   :children [{:path "/child-path"
+                               :verbs {:get trailing-slash}}]}
+                  {:path "/user"
+                   :verbs {:get list-users
+                           :post add-user}
+                   :children [{:path "/:user-id"
+                               :constraints {:user-id #"[0-9]+"}
+                               :verbs {:put update-user}
+                               :children [{:constraints {:view #"long|short"}
+                                           :verbs {:get view-user}}]}]}]}
+      {:app-name :admin
+       :scheme :https
+       :host "admin.example.com"
+       :port 9999
+       :children [{:path "/demo/site-one/*site-path"
+                   ;; :verbs {:get {:name :site-one-demo :handler (site-demo "one") :interceptors []}}
+                   :verbs {:get {:route-name :site-one-demo
+                                 :handler (site-demo "one")}}}
+                  {:path "/demo/site-two/*site-path"
+                   :verbs {:get {:route-name :site-two-demo
+                                 :handler (site-demo "two")}}}
+                  {:path "/user/:user-id/delete"
+                   :verbs {:delete delete-user}}]}
+      {:children [{:path "/logout"
+                   :verbs {:any logout}}
+                  {:path "/search"
+                   :verbs {:get search-form}
+                   :children [{:constraints {:id #"[0-9]+"}
+                               :verbs {:get search-id}}
+                              {:constraints {:q #".+"}
+                               :verbs {:get search-query}}]}
+                  {:path "/intercepted"
+                   :verbs {:get {:route-name :intercepted
+                                 :handler request-inspection}}
+                   :interceptors [interceptor-1 interceptor-2]}
+                  {:path "/intercepted-by-fn-symbol"
+                   :verbs {:get {:route-name :intercepted-by-fn-symbol
+                                 :handler request-inspection}}
+                   :interceptors [interceptor-3]}
+                  {:path "/intercepted-by-fn-list"
+                   :verbs {:get {:route-name :intercepted-by-fn-list
+                                 :handler request-inspection}}
+                   :interceptors [(interceptor-3 ::fn-called-explicitly)]}
+                  {:path "/trailing-slash/"
+                   :children [{:path "/child-path"
+                               :verbs {:get {:route-name :admin-trailing-slash
+                                             :handler trailing-slash}}}]}
+                  {:path "/hierarchical"
+                   :interceptors [interceptor-1]
+                   :children [{:path "/intercepted"
+                               :interceptors [interceptor-2]
+                               :verbs {:get {:route-name :hierarchical-intercepted
+                                             :handler request-inspection}}}]}
+                  {:path "/terminal/intercepted"
+                   :verbs {:get {:route-name :terminal-intercepted
+                                 :handler request-inspection
+                                 :interceptors [interceptor-1 interceptor-2]}}}]}]))
 
 (defroutes terse-routes ;; the terse hierarchical data structure
   [[:public "example.com"
-    ["/" {:get home-page}
-     ["/child-path" {:get trailing-slash}]]
-    ["/user" {:get list-users
-              :post add-user}
-     ["/:user-id"
-      ^:constraints {:user-id #"[0-9]+"}
-      {:put update-user}
-      [^:constraints {:view #"long|short"}
-       {:get view-user}]]]]
-   [:admin :https "admin.example.com" 9999
-    ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
-    ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
-    ["/user/:user-id/delete" {:delete delete-user}]]
-   [["/logout" {:any logout}]
-    ["/search" {:get search-form}
-     [^:constraints {:id #"[0-9]+"} {:get search-id}]
-     [^:constraints {:q #".+"} {:get search-query}]]
-    ["/intercepted" {:get [:intercepted request-inspection]}
-     ^:interceptors [interceptor-1 interceptor-2]]
-    ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
-     ^:interceptors [interceptor-3]]
-    ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
-     ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
-    ["/trailing-slash/"
-     ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
-    ["/hierarchical" ^:interceptors [interceptor-1]
-     ["/intercepted" ^:interceptors [interceptor-2]
-      {:get [:hierarchical-intercepted request-inspection]}]]
-    ["/terminal/intercepted"
-     {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+       ["/" {:get home-page}
+        ["/child-path" {:get trailing-slash}]]
+       ["/user" {:get list-users
+                 :post add-user}
+        ["/:user-id"
+         ^:constraints {:user-id #"[0-9]+"}
+         {:put update-user}
+         [^:constraints {:view #"long|short"}
+          {:get view-user}]]]]
+      [:admin :https "admin.example.com" 9999
+       ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
+       ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
+       ["/user/:user-id/delete" {:delete delete-user}]]
+      [["/logout" {:any logout}]
+       ["/search" {:get search-form}
+        [^:constraints {:id #"[0-9]+"} {:get search-id}]
+        [^:constraints {:q #".+"} {:get search-query}]]
+       ["/intercepted" {:get [:intercepted request-inspection]}
+        ^:interceptors [interceptor-1 interceptor-2]]
+       ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+        ^:interceptors [interceptor-3]]
+       ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+        ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+       ["/trailing-slash/"
+        ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+       ["/hierarchical" ^:interceptors [interceptor-1]
+        ["/intercepted" ^:interceptors [interceptor-2]
+         {:get [:hierarchical-intercepted request-inspection]}]]
+       ["/terminal/intercepted"
+        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
 
 (defroutes map-routes
   ;; One limitation is you can't control hostname or protocol
@@ -206,7 +208,7 @@
 
 (def data-routes
   (expand-routes
-   [[:public "example.com"
+    [[:public "example.com"
       ["/" {:get home-page}
        ["/child-path" {:get trailing-slash}]]
       ["/user" {:get list-users
@@ -274,6 +276,76 @@
         ["/terminal/intercepted"
          {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])))
 
+(def id #"[0-9]+")
+
+(def tabular-routes
+  (into []
+        (concat
+          (expand-routes
+            #{{:app-name :public :host "example.com"}
+              ["/"              :get  [home-page]]
+              ["/child-path"    :get  trailing-slash]
+              ["/user"          :get  list-users]
+              ["/user"          :post add-user]
+              ["/user/:user-id" :get  view-user :constraints {:user-id id :view #"long|short"}]
+              ["/user/:user-id" :put  update-user :constraints {:user-id id}]})
+          (expand-routes
+            #{{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+              ["/demo/site-one/*site-path" :get    (site-demo "one") :route-name :site-one-demo]
+              ["/demo/site-two/*site-path" :get    (site-demo "two") :route-name :site-two-demo]
+              ["/user/:user-id/delete"     :delete delete-user]})
+          (expand-routes
+            #{["/logout"       :any logout]
+              ["/search"       :get search-id    :constraints {:id id}]
+              ["/search"       :get search-query :constraints {:q #".+"}]
+              ["/search"       :get search-form]
+              ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+              ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+              ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+              ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+              ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+              ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))))
+
+(def quoted-tabular-routes
+  (into []
+        (concat
+          (expand-routes
+            `#{{:app-name :public :host "example.com"}
+               ["/"              :get  [home-page]]
+               ["/child-path"    :get  trailing-slash]
+               ["/user"          :get  list-users]
+               ["/user"          :post add-user]
+               ["/user/:user-id" :get  view-user :constraints {:user-id #"[0-9]+" :view #"long|short"}]
+               ["/user/:user-id" :put  update-user :constraints {:user-id #"[0-9]+"}]})
+          (expand-routes
+            `#{{:app-name :admin :scheme :https :host "admin.example.com" :port 9999}
+               ["/demo/site-one/*site-path" :get    (site-demo "one") :route-name :site-one-demo]
+               ["/demo/site-two/*site-path" :get    (site-demo "two") :route-name :site-two-demo]
+               ["/user/:user-id/delete"     :delete delete-user]})
+          (expand-routes
+            `#{["/logout"       :any logout]
+               ["/search"       :get search-id    :constraints {:id #"[0-9]+"}]
+               ["/search"       :get search-query :constraints {:q #".+"}]
+               ["/search"       :get search-form]
+               ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+               ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+               ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+               ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+               ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+               ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))))
+
+(def static-quoted-tabular-routes
+  (expand-routes
+    `#{["/logout"       :any logout]
+       ["/search"       :get search-query :constraints {:q #".+"}]
+       ["/search"       :post search-form]
+       ["/intercepted"  :get [interceptor-1 interceptor-2 request-inspection]  :route-name :intercepted]
+       ["/intercepted-by-fn-symbol"  :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+       ["/intercepted-by-fn-list"    :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
+       ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+       ["/hierarchical/intercepted"  :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
+       ["/terminal/intercepted"      :get [interceptor-1 interceptor-2 request-inspection] :route-name :terminal-intercepted]}))
+
 ;; HTTP verb-smuggling in query string is disabled here:
 (defn make-linker
   [routes]
@@ -293,33 +365,8 @@
 (defbefore print-context
   [context] (pprint context) context)
 
-#_(defn test-match
-  ([table method uri]
-     (test-match table "do-not-match-scheme" "do-not-match-host" method uri nil))
-  ([table host method uri]
-     (test-match table "do-not-match-scheme" host method uri nil))
-  ([table scheme host method uri]
-     (test-match table scheme host method uri nil))
-  ([table scheme host method uri qs]
-     (let [{:keys [route request]}
-           (-> {:request {:request-method method
-                          :scheme scheme
-                          :server-name host
-                          :path-info uri
-                          :query-string qs}}
-               (interceptor-impl/enqueue query-params
-                                         (method-param)
-                                         (app-router table))
-               interceptor-impl/execute)]
-       (when route
-         (merge
-          {:route-name (:route-name route)
-           :path-params (:path-params request)}
-          (when-let [query-params (:query-params request)]
-            {:query-params query-params}))))))
-
 (defn test-match
-  [route-table router-impl method uri & args]
+  [routes router-impl method uri & args]
   (let [{:keys [scheme host port query]
          :or {scheme "do-not-match-scheme"
               host "do-not-match-host"
@@ -332,10 +379,10 @@
                        :server-port port
                        :path-info uri
                        :query-string query}}
-            (interceptor-impl/enqueue query-params
-                                      (method-param)
-                                      (app-router route-table router-impl))
-            interceptor-impl/execute)]
+            (interceptor.chain/enqueue [query-params
+                                        (method-param)
+                                        (app-router routes router-impl)])
+            interceptor.chain/execute)]
     (when route
       (merge
        {:route-name (:route-name route)
@@ -346,21 +393,14 @@
 (defn test-query-execute
   [table router-impl query]
   (-> query
-      (interceptor-impl/enqueue query-params
-                           (method-param)
-                           (app-router table router-impl))
-      interceptor-impl/execute))
+      (interceptor.chain/enqueue [query-params
+                                  (method-param)
+                                  (app-router table router-impl)])
+      interceptor.chain/execute))
 
-(defn test-linear-query-match [table uri params]
-  (-> (test-query-execute table
-                          :linear-search
-                          {:request {:request-method :get
-                                     :scheme "do-not-match-scheme"
-                                     :server-name "do-not-match-host"
-                                     :path-info uri
-                                     :query-string params}})
-      :route
-      :route-name))
+(defn test-query-match [table router-impl uri params]
+  (:route-name (test-match table router-impl :get uri :query params)))
+
 
 (defn test-fire-interceptors [router-impl-key]
   (are [routes] (= :clobbered
@@ -377,10 +417,13 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-interceptors
   (test-fire-interceptors :prefix-tree)
+  (test-fire-interceptors :map-tree) ;; This should fallback to PrefixTree
   (test-fire-interceptors :linear-search))
 
 (defn test-fire-hierarchical-interceptors [router-impl-key]
@@ -398,10 +441,13 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-hierarchical-interceptors
   (test-fire-hierarchical-interceptors :prefix-tree)
+  (test-fire-hierarchical-interceptors :prefix-tree) ;; This should fallback to PrefixTree
   (test-fire-hierarchical-interceptors :linear-search))
 
 (defn test-fire-terminal-interceptors [router-impl-key]
@@ -419,7 +465,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-terminal-interceptors
   (test-fire-terminal-interceptors :prefix-tree)
@@ -457,7 +505,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest fire-interceptor-fn-list
   (test-fire-interceptor-fn-list :prefix-tree)
@@ -480,7 +530,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-update-user
   (test-match-update-user :prefix-tree)
@@ -492,7 +544,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-logout
   (test-match-logout :prefix-tree)
@@ -501,6 +555,7 @@
 (defn test-match-non-root-trailing-slash [router-impl-key]
   (are [routes] (= {:route-name :admin-trailing-slash :path "/trailing-slash/child-path"}
                    (-> routes
+
                        (test-query-execute
                         router-impl-key
                         {:request {:request-method :get
@@ -510,7 +565,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-non-root-trailing-slash
   (test-match-non-root-trailing-slash :prefix-tree)
@@ -529,11 +586,13 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-root-trailing-slash
-  (test-match-non-root-trailing-slash :prefix-tree)
-  (test-match-non-root-trailing-slash :linear-search))
+  (test-match-root-trailing-slash :prefix-tree)
+  (test-match-root-trailing-slash :linear-search))
 
 (defn test-check-host [router-impl-key]
   (are [routes] (nil? (test-match
@@ -541,7 +600,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest check-host
   (test-check-host :prefix-tree)
@@ -557,7 +618,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes))
 
 (deftest match-demo-one
   (test-match-demo-one :prefix-tree)
@@ -569,31 +632,41 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)
   (are [routes] (= nil
                    (test-match routes router-impl-key :put "/user/abc" :host "example.com"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)
   (are [routes] (= {:path-params {:user-id "123"} :query-params {:view "long"} :route-name ::view-user}
                    (test-match routes router-impl-key :get "/user/123" :scheme :http :host "example.com" :query "view=long"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)
   (are [routes] (= nil
                    (test-match routes router-impl-key :get "/user/123" :scheme :http :host "example.com" :query "view=none"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)
   (are [routes] (= nil
                    (test-match routes router-impl-key :get "/user/abc" :scheme :http :host "example.com" :query "view=long"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest match-user-constraints
   (test-match-user-constraints :prefix-tree)
@@ -601,29 +674,45 @@
 
 (deftest match-query
   (are [routes] (= ::search-id
-                   (test-linear-query-match routes "/search" "id=123"))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   ;(test-query-match routes :prefix-tree "/search" "id=123")
+                   (test-query-match routes :linear-search "/search" "id=123"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       tabular-routes
+       quoted-tabular-routes)
   (are [routes] (= ::search-query
-                   (test-linear-query-match routes "/search" "q=foo"))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   ;(test-query-match routes :prefix-tree "/search" "q=foo")
+                   (test-query-match routes :linear-search "/search" "q=foo"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)
   (are [routes] (= ::search-form
-                   (test-linear-query-match routes "/search" nil))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   (test-query-match routes :linear-search "/search" nil)
+                   (test-query-match routes :prefix-tree "/search" nil))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)
   (are [routes] (= ::search-form
-                   (test-linear-query-match routes "/search" "id=not-a-number"))
+                   ;; Routing on constraints is considered bad practice, and isn't supported by the prefix-tree router
+                   (test-query-match routes :linear-search "/search" "id=not-a-number")
+                   (test-query-match routes :prefix-tree "/search" "id=not-a-number"))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest trailing-slash-link
   (are [routes] (= "/child-path" ((make-linker routes)
@@ -633,14 +722,18 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest logout-link
   (are [routes] (= "/logout" ((make-linker routes) ::logout :app-name :public))
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest view-user-link
   (are [routes] (= "//example.com/user/456"
@@ -648,7 +741,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest view-user-link-on-non-standard-port
   (are [routes] (= "http://example.com:8080/user/456"
@@ -660,7 +755,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-link
   (are [routes] (= "https://admin.example.com:9999/user/456/delete"
@@ -668,7 +765,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-action
   (are [routes] (= {:action "https://admin.example.com:9999/user/456/delete?_method=delete"
@@ -677,7 +776,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-action-without-verb-smuggling
   (are [routes] (= {:action "https://admin.example.com:9999/user/456/delete"
@@ -689,7 +790,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-action-with-alternate-verb-param
   (are [routes] (= {:action "https://admin.example.com:9999/user/456/delete?verb=delete"
@@ -701,7 +804,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-link-with-scheme
   (are [routes] (= "//admin.example.com:9999/user/456/delete"
@@ -712,7 +817,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-link-with-host
   (are [routes] (= "/user/456/delete"
@@ -723,7 +830,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-link-with-overrides
   (are [routes] (= "http://admin-staging.example.com:8080/user/456/delete"
@@ -737,7 +846,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-link-absolute
   (are [routes] (= "https://admin.example.com:9999/user/456/delete"
@@ -749,7 +860,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest delete-user-action-with-host
   (are [routes] (= {:action "/user/456/delete?_method=delete"
@@ -761,7 +874,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest search-id-link
   (are [routes] (= "/search?id=456"
@@ -769,7 +884,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest search-id-with-host
   (are [routes] (= "/search?id=456"
@@ -778,7 +895,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest search-id-link-with-extra-params
   (are [routes] (let [s ((make-linker routes) ::search-id :params {:id 456 :limit 100})]
@@ -787,7 +906,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes)) ; order is undefined
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes)) ; order is undefined
 
 (deftest search-id-link-with-extra-params-and-fragment
   (are [routes] (let [s ((make-linker routes) ::search-id :params {:id 456 :limit 100} :fragment "foo")]
@@ -796,7 +917,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest search-query-link
   (are [routes] (= "/search?q=Hello%2C+World%21"
@@ -804,7 +927,9 @@
        verbose-routes
        terse-routes
        data-routes
-       syntax-quote-data-routes))
+       syntax-quote-data-routes
+       quoted-tabular-routes
+       tabular-routes))
 
 (deftest query-encoding
   (are [s] (= s (decode-query-part (encode-query-part s)))
@@ -901,20 +1026,20 @@
                          :server-name "overridden.pedestal"
                          :path-info "/resource"
                          :query-params {}}}]
-    (is (= "Overridden" (-> (interceptor-impl/enqueue query
-                                                      query-params
-                                                      (method-param)
-                                                      router)
-                            interceptor-impl/execute
+    (is (= "Overridden" (-> (interceptor.chain/enqueue* query
+                                                        query-params
+                                                        (method-param)
+                                                        router)
+                            interceptor.chain/execute
                             :response
                             :body))
         "When the overridden-routes have their base binding, routing dispatches to the base binding")
     (is (= "Overriding" (with-redefs [overridden-routes overriding-routes]
-                          (-> (interceptor-impl/enqueue query
-                                                        query-params
-                                                        (method-param)
-                                                        router)
-                              interceptor-impl/execute
+                          (-> (interceptor.chain/enqueue* query
+                                                          query-params
+                                                          (method-param)
+                                                          router)
+                              interceptor.chain/execute
                               :response
                               :body)))
         "When the overridden-routes have their binding overridden, routing dispatches to the overridden binding")))
@@ -927,10 +1052,12 @@
   (let [verbose-route-names (set (map :route-name verbose-routes))
         terse-route-names (set (map :route-name terse-routes))
         data-route-names (set (map :route-name data-routes))
-        syntax-quote-data-route-names (set (map :route-name syntax-quote-data-routes))]
-    (is (and (empty? (set/difference verbose-route-names terse-route-names))
-             (empty? (set/difference terse-route-names data-route-names))
-             (empty? (set/difference data-route-names syntax-quote-data-route-names)))
+        syntax-quote-data-route-names (set (map :route-name syntax-quote-data-routes))
+        tabular-route-names (set (map :route-name tabular-routes))]
+    (is (and (empty? (clojure.set/difference verbose-route-names terse-route-names))
+             (empty? (clojure.set/difference terse-route-names data-route-names))
+             (empty? (clojure.set/difference data-route-names syntax-quote-data-route-names))
+             (empty? (clojure.set/difference syntax-quote-data-route-names tabular-route-names)))
         "Route names for all routing syntaxes match")))
 
 (deftest url-for-without-*url-for*-should-error-properly
@@ -978,16 +1105,18 @@
     (is (= ["/" ^:interceptors [interceptor-1] ["/foo" {:get :int}]]
            (map-routes->vec-routes routes-under-test)))))
 
+(defn- constraints-meta [o]
+  (when-let [m (some-> o meta (select-keys [:constraints]))]
+    (if (empty? m) nil m)))
+
 (deftest map-routes->vec-routes-with-constraints
-  (let [regex-constraint #"[0-9]+"
+  (let [regex-constraint  #"[0-9]+"
         routes-under-test {"/:user-id" {:constraints {:user-id regex-constraint}
-                                        "/foo" {:get :int}}}]
-    (is (= ["/:user-id" ^:constraints {:user-id regex-constraint}
-            ["/foo" {:get :int}]]
-           (map-routes->vec-routes routes-under-test)))
-    (is (= (map meta ["/:user-id" ^:constraints {:user-id regex-constraint}
-            ["/foo" {:get :int}]])
-           (map meta (map-routes->vec-routes routes-under-test))))))
+                                        "/foo" {:get :int}}}
+        expected-routes   ["/:user-id" ^:constraints {:user-id regex-constraint} ["/foo" {:get :int}]]
+        expected-meta     (map meta expected-routes)]
+    (is (= expected-routes (map-routes->vec-routes routes-under-test)))
+    (is (= expected-meta   (map constraints-meta (map-routes->vec-routes routes-under-test))))))
 
 (deftest map-routes->vec-routes-advanced2
   (let [routes-under-test {"/" {:get :advanced
@@ -1029,4 +1158,71 @@
                    (test-match routes :prefix-tree :put "/user/123"))
        map-routes
        data-map-routes))
+
+;; Issue #340 - correctly 404 non-matching routes
+;; https://github.com/pedestal/pedestal/issues/340
+(defn echo-request
+  [request]
+  {:status 200
+   :body (pr-str request)
+   :headers {}})
+
+(defroutes routes-with-params
+  [[["/a/:a/b/:b" {:any echo-request}]]])
+
+(deftest non-matching-routes-should-404
+  (are [path]
+    (-> (test-query-execute routes-with-params
+                            :prefix-tree
+                            {:request
+                             {:request-method :get
+                              :path-info path}})
+      :route
+      nil?)
+    "/a"
+    "/a/"
+    "/a/a"
+    "/a/a/b"
+    "/a/a/b/"
+    "/a/a/b/b/"
+    "/a/a/b/b/c"))
+
+(deftest nested-path-params
+  (let [terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
+        terse-sans-root `[[["/:resource/:thing"      {:get add-user}]]]
+        table-with-root #{["/base/:resource/:thing"   :get add-user]}
+        table-sans-root #{["/:resource/:thing"        :get add-user]}]
+    (testing "path parts extracted with root"
+      (is (= ["base" :resource :thing]
+             (:path-parts (first (expand-routes  terse-with-root)))
+             (:path-parts (first (expand-routes table-with-root)))
+             (:path-parts (first (expand-routes table-with-root))))))
+
+    (testing "path parts extracted without root"
+      (is (= [:resource :thing]
+             (:path-parts (first (expand-routes  terse-sans-root)))
+             (:path-parts (first (expand-routes table-sans-root))))))
+
+    (testing "path params extracted"
+      (is (= [:resource :thing]
+             (:path-params (first (expand-routes  terse-with-root)))
+             (:path-params (first (expand-routes table-with-root)))
+             (:path-params (first (expand-routes  terse-sans-root)))
+             (:path-params (first (expand-routes table-sans-root)))
+             (:path-params (first (expand-routes table-sans-root))))))))
+
+;; Static routes with the Map-Tree
+(deftest static-map-route-rules
+  (are [req]
+       (let [full-req {:request
+                       (merge {:request-method :get} req)}]
+         (= (:route-name (test-query-execute static-quoted-tabular-routes :map-tree full-req))
+            (:route-name (test-query-execute static-quoted-tabular-routes :prefix-tree full-req))
+            (:route-name (test-query-execute static-quoted-tabular-routes :linear-search full-req))))
+    {:path-info "/search" :query-string nil}
+    {:path-info "/search" :query-string "q=1234"}
+    {:request-method :put :path-info "/search" :query-string "q=1234"}
+    {:request-method :put :path-info "/search"}
+    {:path-info "/logout"}
+    {:request-method :post :path-info "/logout"}))
 

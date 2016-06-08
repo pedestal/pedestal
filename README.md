@@ -4,16 +4,50 @@ Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
 server-side development.
 
+**Pedestal requires Java 1.8+ and Servlet 3.1**
+
 ## Getting the Latest Release
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.4.0"]
-[io.pedestal/pedestal.service-tools "0.4.0"] ;; Only needed for ns-watching
-[io.pedestal/pedestal.jetty         "0.4.0"]
-[io.pedestal/pedestal.immutant      "0.4.0"]
-[io.pedestal/pedestal.tomcat        "0.4.0"]
+[io.pedestal/pedestal.service       "0.5.0"]
+[io.pedestal/pedestal.service-tools "0.5.0"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.0"]
+[io.pedestal/pedestal.immutant      "0.5.0"]
+[io.pedestal/pedestal.tomcat        "0.5.0"]
 ```
+
+**Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
+version details, updates, and necessary migration steps.**
+
+### Notable capabilities
+
+ * Fast and secure by default (automatically uses secure headers, CSRF-protection, and other best practices)
+ * A guiding principle of "data > functions > macros" - the core pieces of Pedestal
+   are data-driven and programmed against protocols.  The entire platform is extensible.
+ * A high-performance [prefix-tree router](https://github.com/pedestal/pedestal/pull/330)
+   that is significantly faster and more space efficient than other Clojure web routers
+   * When avoiding wildcard and param-routes, the router will be O(log32 N), otherwise O(log N), for the number of routes
+ * The ability to plug-in any router, including one you write
+ * The ability to express routes in any format you like
+ * [Full/true async support](https://groups.google.com/d/msg/clojure/rKqT13Ofy4k/H9xvkZA9Yy4J) (Async Servlet + core.async + NIO),
+   resulting in better performance and capacity than a synchronous-only solution
+ * Advanced [error handling](https://github.com/pedestal/pedestal/pull/302) for async systems
+ * Integrated streaming capabilities like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
+ * Integrated support for Cross-origin resource sharing/[CORS](https://github.com/pedestal/pedestal/tree/master/samples/cors)
+ * Integrated support for content negotiation
+ * Integrated linking and testing tools
+ * Integrated logging and runtime [metrics](https://github.com/pedestal/pedestal/tree/master/samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
+ * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
+ * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
+ * The ability to utilize Ring Middleware as Pedestal Interceptors
+ * Support to run on Jetty, Immutant/Undertow, and Tomcat
+ * The ability to run Pedestal services on non-Servlet containers (Vert.x, nginx, Netty, etc.)
+ * HTTP/2, HTTP/2 Cleartext, and ALPN support
+ * [WebSocket](https://github.com/pedestal/pedestal/tree/master/samples/jetty-web-sockets) support
+ * [Docker](https://www.docker.com/) and [OSv](http://osv.io/) support
+ * and more!
+
 
 ## Getting started
 
@@ -28,7 +62,7 @@ Pedestal service. This will automatically pull templates from
 lein new pedestal-service the-next-big-server-side-thing
 ```
 
-See [documentation](./guides/documentation) for information on Pedestal concepts and
+See the [samples](./samples) or [documentation](./guides/documentation) for information on Pedestal concepts and
 advice on getting started.
 
 ## Digging deeper
@@ -42,7 +76,7 @@ applications and improving general ease of use.
 
  * [Pedestal documentation](./guides/documentation) is coupled within this repository.
  * The latest [API Docs](http://pedestal.github.io/pedestal).
- * Build your own API docs with `lein doc`
+ * Build your own Service API docs: Within the `service` directory, `lein docs`
 
 ### Supported Platforms
 
@@ -75,12 +109,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
 To install Pedestal library components in your local Maven repository run
 `lein sub install` from a local checkout of this repository.
 
+### Running the tests
+
+After installing all the library components, you can run the tests with
+`lein sub test` from a local checkout of this repository.
+
 ---
 
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2015 Cognitect, Inc.
+Copyright 2014-2016 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

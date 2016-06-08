@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -92,37 +92,52 @@
 (defn- test-servlet-request
   [verb url & args]
   (let [{:keys [scheme host path query-string]} (parse-url url)
-        options (apply array-map args)]
-    (reify HttpServletRequest
-     (getMethod [this] (-> verb
-                           name
-                           cstr/upper-case))
-     (getRequestURL [this] url)
-     (getServerPort [this] -1)
-     (getServerName [this] host)
-     (getRemoteAddr [this] "127.0.0.1")
-     (getRequestURI [this] (str "/" path))
-     (getServletPath [this] (.getRequestURI this))
-     (getContextPath [this] "")
-     (getQueryString [this] query-string)
-     (getScheme [this] scheme)
-     (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
-     (getProtocol [this] "HTTP/1.1")
-     (isAsyncSupported [this] false)
-     (isAsyncStarted [this] false)
-     (startAsync [this] (reify AsyncContext
-                          (complete [this] nil)
-                          (setTimeout [this n] nil)
-                          (start [this r] nil))) ;; Needed for NIO testing (see Servlet Interceptor)
-     (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
-     (getHeader [this header] (get-in options [:headers header]))
-     ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
-     (getContentLength [this] (get-in options [:headers "Content-Length"] (int 0)))
-     (getContentLengthLong [this] (get-in options [:headers "Content-Length"] (long 0)))
-     (getContentType [this] (get-in options [:headers "Content-Type"] ""))
-     (getCharacterEncoding [this] "UTF-8")
-     (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
-     (getAttribute [this attribute] nil))))
+        options (apply array-map args)
+        async-context (atom nil)
+        completion (promise)
+        meta-data {:completion completion}]
+    (with-meta
+      (reify HttpServletRequest
+        (getMethod [this] (-> verb
+                            name
+                            cstr/upper-case))
+        (getRequestURL [this] url)
+        (getServerPort [this] -1)
+        (getServerName [this] host)
+        (getRemoteAddr [this] "127.0.0.1")
+        (getRequestURI [this] (str "/" path))
+        (getServletPath [this] (.getRequestURI this))
+        (getContextPath [this] "")
+        (getQueryString [this] query-string)
+        (getScheme [this] scheme)
+        (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
+        (getProtocol [this] "HTTP/1.1")
+        (isAsyncSupported [this] true)
+        (isAsyncStarted [this] (some? @async-context))
+        (getAsyncContext [this] @async-context)
+        (startAsync [this]
+          (compare-and-set! async-context
+                            nil
+                            (reify AsyncContext
+                              (complete [this]
+                                (deliver completion true)
+                                nil)
+                              (setTimeout [this n]
+                                nil)
+                              (start [this r]
+                                nil)))
+          @async-context)
+        ;; Needed for NIO testing (see Servlet Interceptor)
+        (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
+        (getHeader [this header] (get-in options [:headers header]))
+        ;;(getHeaders [this header] (enumerator (get-in options [:headers header]) ::getHeaders))
+        (getContentLength [this] (Integer/parseInt (get-in options [:headers "Content-Length"] "0")))
+        (getContentLengthLong [this] (Long/parseLong (get-in options [:headers "Content-Length"] "0")))
+        (getContentType [this] (get-in options [:headers "Content-Type"] ""))
+        (getCharacterEncoding [this] "UTF-8")
+        (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
+        (getAttribute [this attribute] nil))
+      meta-data)))
 
 (defn- test-servlet-output-stream
   []
@@ -153,6 +168,7 @@
                  (getOutputStream [this] output-stream)
                  (setStatus [this status] (reset! status-val status))
                  (getStatus [this] @status-val)
+                 (getBufferSize [this] 1500)
                  (setHeader [this header value] (swap! headers-map update-in [:set-header] assoc header value))
                  (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
@@ -168,14 +184,14 @@
                      (try (io/copy instream-body output-stream)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error t)))
+                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan)))))
                  (write-byte-buffer-body [this body resume-chan context]
                    (let [out-chan (Channels/newChannel output-stream)]
                      (try (.write out-chan body)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error t)))
+                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan))))))
 
       meta-data)))
@@ -192,9 +208,9 @@
   (let [^ByteArrayOutputStream baos (-> test-servlet-response
                                         meta
                                         :output-stream)]
-    (.flush baos)
-    (.close baos)
-    (.toString baos "UTF-8")))
+    (doto baos
+      (.flush)
+      (.close))))
 
 (defn test-servlet-response-headers
   [test-servlet-response]
@@ -212,18 +228,21 @@
   [interceptor-service-fn verb url & args]
   (let [servlet (test-servlet interceptor-service-fn)
         servlet-request (apply test-servlet-request verb url args)
-        servlet-response (test-servlet-response)]
-    (.service servlet servlet-request servlet-response)
+        servlet-response (test-servlet-response)
+        context (.service servlet servlet-request servlet-response)]
+    (when (.isAsyncStarted servlet-request)
+      (-> servlet-request meta :completion deref))
     {:status (test-servlet-response-status servlet-response)
      :body (test-servlet-response-body servlet-response)
      :headers (test-servlet-response-headers servlet-response)}))
 
-(defn response-for
+(defn raw-response-for
   "Return a ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
-  the servlet infrastructure.
+  the servlet infrastructure. The response body will be returned as
+  a ByteArrayOutputStream.
   Options:
 
   :body : An optional string that is the request body.
@@ -238,3 +257,18 @@
                                                  {"Content-Type" content-type})
                                                (when-let [content-length (:content-length %)]
                                                  {"Content-Length" content-length})))))
+
+(defn response-for
+  "Return a ring response map for an HTTP request of type `verb`
+  against url `url`, when applied to interceptor-service-fn. Useful
+  for integration testing pedestal applications and getting all
+  relevant middlewares invoked, including ones which integrate with
+  the servlet infrastructure. The response body will be converted
+  to a UTF-8 string.
+  Options:
+
+  :body : An optional string that is the request body.
+  :headers : An optional map that are the headers"
+  [interceptor-service-fn verb url & options]
+  (-> (apply raw-response-for interceptor-service-fn verb url options)
+      (update-in [:body] #(.toString % "UTF-8"))))

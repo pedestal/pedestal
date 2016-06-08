@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,211 +10,74 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.route.definition
-  (:require [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.interceptor :as interceptor]
-            [clojure.set :as set]))
+(ns io.pedestal.http.route.definition)
 
 (def schemes #{:http :https})
+(def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
 
-(declare expand-path)
-(declare expand-query-constraint)
+(defn symbol->keyword
+  [s]
+  (let [resolved (resolve s)
+        {ns :ns n :name} (meta resolved)]
+    (if resolved
+      (keyword (name (ns-name ns)) (name n))
+      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
 
-(defmulti expand-constraint
-  "Expand into additional nodes which reflect `constraints` and apply
-  them to specs. "
-  (fn [[constraint & specs]] (type constraint)))
+(defn capture-constraint
+  "Add parenthesis to a regex in order to capture its value during evaluation."
+  [[k v]]
+  [k (re-pattern (str "(" v ")"))])
 
-(defmethod expand-constraint String [path-spec]
-  (expand-path path-spec))
+(defn uniquely-add-route-path
+  "Append `route-path` to `route-paths` if route-paths doesn't contain it
+  already."
+  [route-paths route-path]
+  (if (some #{route-path} route-paths)
+    route-paths
+    (conj route-paths route-path)))
 
-(defmethod expand-constraint clojure.lang.APersistentMap [query-constraint-spec]
-  (expand-query-constraint query-constraint-spec))
+(defn sort-by-constraints
+  "Sort the grouping of route entries which all correspond to
+  `route-path` from `groupings` such that the most constrained route
+  table entries appear first and the least constrained appear last."
+  [groupings route-path]
+  (let [grouping (groupings route-path)]
+    (sort-by (comp - count :query-constraints) grouping)))
 
-(defprotocol ExpandableVerbAction
-  (expand-verb-action [expandable-verb-action]
-    "Expand `expandable-verb-action` into a verbose-form verb-map."))
+(defn prioritize-constraints
+  "Sort a flat routing table of entries to guarantee that the most
+  constrained route entries appear in the table prior to entries which
+  have fewer constraints or no constraints."
+  [routing-table]
+  (let [route-paths (map #(map % [:app-name :scheme :host :port :path-parts])
+                                        routing-table)
+        unique-route-paths (reduce uniquely-add-route-path [] route-paths)
+        groupings (group-by #(map % [:app-name :scheme :host :port :path-parts])
+                            routing-table)]
+    (mapcat (partial sort-by-constraints groupings) unique-route-paths)))
 
-(extend-protocol ExpandableVerbAction
-  clojure.lang.Symbol
-  (expand-verb-action [symbol] symbol)
+(defn verify-unique-route-names
+  [routing-table]
+  (let [non-unique-names (->> routing-table
+                              (group-by :route-name)
+                              (map (fn [[k v]] [k (count v)]))
+                              (filter (fn [[_ v]] (> v 1)))
+                              (map first))]
+    (when (seq non-unique-names)
+      (throw (ex-info "Route names are not unique"
+                      {:non-unique-names non-unique-names})))
+    routing-table))
 
-  clojure.lang.IPersistentList
-  (expand-verb-action [l] (expand-verb-action (eval l)))
+(defn ensure-routes-integrity [route-maps]
+  (-> route-maps
+      prioritize-constraints
+      verify-unique-route-names))
 
-  clojure.lang.APersistentVector
-  (expand-verb-action [vector]
-    (let [route-name (first (filter #(isa? (type %) clojure.lang.Keyword) vector))
-          handler (or (first (filter seq? vector))
-                      (first (filter symbol? vector))
-                      (first (filter interceptor/interceptor? vector)))
-          interceptors (vec (apply concat (filter #(and (vector? %)
-                                                        (-> %
-                                                            meta
-                                                            :interceptors))
-                                                  vector)))]
-      {:route-name route-name
-       :handler handler
-       :interceptors interceptors}))
 
-  io.pedestal.interceptor.Interceptor
-  (expand-verb-action [interceptor]
-    {:handler interceptor}))
-
-(defn- expand-verbs
-  "Expand tersely specified verb-map into a verbose verb-map."
-  [verb-map]
-  (into {}
-        (map (fn [[k v]] [k (expand-verb-action v)])
-             verb-map)))
-
-(defn- expand-abstract-constraint
-  "Expand all of the directives in specs, adding them to routing-tree-node."
-  [routing-tree-node specs]
-  (let [vectors (filter #(isa? (type %) clojure.lang.APersistentVector)
-                         specs)
-        maps (filter #(isa? (type %) clojure.lang.APersistentMap)
-                     specs)
-        children (filter (comp not :interceptors meta) vectors)
-        interceptors (filter (comp :interceptors meta) vectors)
-        verbs (reduce merge {} (filter (comp not :constraints meta) maps))
-        constraints (reduce merge {} (filter (comp :constraints meta) maps))]
-    (cond-> routing-tree-node
-            (not (empty? verbs)) (assoc :verbs (expand-verbs verbs))
-            (not (empty? constraints)) (assoc :constraints constraints)
-            (not (empty? interceptors)) (assoc :interceptors (vec (apply concat interceptors)))
-            (not (empty? children)) (assoc :children (map expand-constraint children)))))
-
-(defn- expand-path
-  "Expand a path node in the routing tree to a node specifying its
-  path, constraints, verbs, and children."
-  [[path & specs]]
-  (expand-abstract-constraint {:path path} specs))
-
-(defn- expand-query-constraint
-  "Expand a query constraint node in the routing tree to a node
-  specifying its constraints, verbs, and children."
-  [specs]
-  (expand-abstract-constraint {:constraints {} #_query-constraint} specs))
-
-(defn- extract-children
-  "Return the children, if present, from route-domain."
-  [route-domain]
-  (filter #(isa? (type %) clojure.lang.APersistentVector) route-domain))
-
-(defn- add-children
-  "Add the :children key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [children (extract-children route-domain)]
-    (assoc verbose-map :children (map expand-constraint children))
-    verbose-map))
-
-(defn- extract-port
-  "Return the port, if present, from route-domain."
-  [route-domain]
-  (first (filter #(isa? (type %) Long) route-domain)))
-
-(defn- add-port
-  "Add the :host key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [port (extract-port route-domain)]
-    (assoc verbose-map :port port)
-    verbose-map))
-
-(defn- extract-host
-  "Return the host, if present, from route-domain."
-  [route-domain]
-  (first (filter #(isa? (type %) String) route-domain)))
-
-(defn- add-host
-  "Add the :host key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [host (extract-host route-domain)]
-    (assoc verbose-map :host host)
-    verbose-map))
-
-(defn- extract-scheme
-  "Return the scheme, if present, from route-domain."
-  [route-domain]
-  (first (set/intersection (set (filter #(isa? (type %)
-                                               clojure.lang.Keyword)
-                                        route-domain))
-                           schemes)))
-
-(defn- add-scheme
-  "Add the :scheme key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [scheme (extract-scheme route-domain)]
-    (assoc verbose-map :scheme scheme)
-    verbose-map))
-
-(defn- extract-app-name
-  "Return the app name, if present, from route-domain."
-  [route-domain]
-  (first (set/difference (set (filter #(isa? (type %)
-                                             clojure.lang.Keyword)
-                                      route-domain))
-                         schemes)))
-
-(defn- add-app-name
-  "Add the :app-name key to verbose-map from route-domain, if appropriate."
-  [verbose-map route-domain]
-  (if-let [app-name (extract-app-name route-domain)]
-    (assoc verbose-map :app-name app-name)
-    verbose-map))
-
-(defn- expand-terse-route-domain
-  "Expand a top-level routing domain to a verbose-style
-  map of route entries."
-  [route-domain]
-  (-> {}
-      (add-app-name route-domain)
-      (add-scheme route-domain)
-      (add-host route-domain)
-      (add-port route-domain)
-      (add-children route-domain)))
-
-(defn map-routes->vec-routes
-  "Given a map-based route description,
-  return Pedestal's terse, vector-based routes, with interceptors correctly setup.
-  These generated routes can be consumed by `expand-routes`"
-  [route-map]
-  (reduce (fn [acc [k v :as route]]
-            (let [verbs (select-keys v [:get :post :put :delete :any])
-                  interceptors (:interceptors v)
-                  constraints (:constraints v)
-                  subroutes (map #(apply hash-map %) (select-keys v (filter string? (keys v))))
-                  subroute-vecs (mapv map-routes->vec-routes subroutes)]
-              (into acc (filter seq (into
-                                      [k verbs
-                                      (when (seq interceptors)
-                                          (with-meta interceptors
-                                                     {:interceptors true}))
-                                      (when (seq constraints)
-                                        (with-meta constraints
-                                                   {:constraints true}))]
-                                      subroute-vecs)))))
-          [] route-map))
-
-(defprotocol ExpandableRoutes
-  (expand-routes [expandable-route-spec]
-                 "Generate and return the routing table from a given expandable
-                 form of the routing syntax."))
-
-(extend-protocol ExpandableRoutes
-
-  clojure.lang.APersistentVector
-  (expand-routes [route-spec]
-    (->> route-spec
-       (map expand-terse-route-domain)
-       verbose/expand-verbose-routes))
-
-  clojure.lang.APersistentMap
-  (expand-routes [route-spec]
-    (expand-routes [[(map-routes->vec-routes route-spec)]])))
-
+;; TODO: Remove and refactor across the codebase
 (defmacro defroutes
-  "Define a routing table from the terse routing syntax."
+  "Deprecated. -- Prefer `def` and program against ExpandableRoutes
+  Define a routing table from the terse routing syntax."
   [name route-spec]
-  `(def ~name (expand-routes (quote ~route-spec))))
+  `(def ~name (io.pedestal.http.route/expand-routes (quote ~route-spec))))
 

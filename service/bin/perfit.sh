@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # To run this, just call: sh ./perfit.sh
 # You can optionally pass the port: sh ./perfit.sh 8383
@@ -18,6 +18,8 @@ url="/"
 #url="/nioproxy"
 #url="/anioproxy"
 URL=${2:-$url}
+WRK2="`which wrk2` -R 1000"
+WRK=`which wrk`
 
 #lein devprod-deploy
 #echo "Waiting for server to come up"
@@ -29,5 +31,11 @@ URL=${2:-$url}
 #echo
 #siege -c 20 -t 30S http://$HOST:$PORT$URL 1> /dev/null
 #echo
-wrk -t4 -c24 -d30s http://$HOST:$PORT$URL
+echo "Measuring constant throughput, consistent latency..."
+echo
+$WRK2 -t4 -c24 -d10s http://$HOST:$PORT$URL
+echo
+echo "Benching..."
+echo
+$WRK -t2 -c12 -d30s http://$HOST:$PORT$URL
 

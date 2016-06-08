@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -20,12 +20,15 @@
             [io.pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.route :as route]
-            [io.pedestal.impl.interceptor :as interceptor-impl]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
+            [io.pedestal.http.request :as request]
+            [io.pedestal.http.request.map :as request-map]
+            [io.pedestal.http.request.zerocopy :as request-zerocopy]
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream)
+           (java.io OutputStreamWriter OutputStream EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -101,7 +104,12 @@
           (try
             (write-body servlet-response body-part)
             (.flushBuffer ^HttpServletResponse servlet-response)
+            (catch EOFException e
+              (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
+                        :exception e
+                        :src-chan body))
             (catch Throwable t
+              (log/meter ::async-write-errors)
               (log/error :msg "An error occured when async writing to the client"
                          :throwable t
                          :src-chan body)
@@ -156,78 +164,7 @@
         (write-body servlet-response body)
         (.flushBuffer servlet-response)))))
 
-;;; HTTP Request
-
-(defn- request-headers [^HttpServletRequest servlet-req]
-  (loop [out (transient {})
-         names (enumeration-seq (.getHeaderNames servlet-req))]
-    (if (seq names)
-      (let [key (first names)]
-        (recur (assoc! out (.toLowerCase ^String key)
-                       (.getHeader servlet-req key))
-               (rest names)))
-      (persistent! out))))
-
-(defn- path-info [^HttpServletRequest request]
-  (let [path-info (.substring (.getRequestURI request)
-                              (.length (.getContextPath request)))]
-    (if (.isEmpty path-info)
-      "/"
-      path-info)))
-
-(defn- base-request-map [servlet ^HttpServletRequest servlet-req servlet-resp]
-  {:server-port       (.getServerPort servlet-req)
-   :server-name       (.getServerName servlet-req)
-   :remote-addr       (.getRemoteAddr servlet-req)
-   :uri               (.getRequestURI servlet-req)
-   :query-string      (.getQueryString servlet-req)
-   :scheme            (keyword (.getScheme servlet-req))
-   :request-method    (keyword (.toLowerCase (.getMethod servlet-req)))
-   :headers           (request-headers servlet-req)
-   :body              (.getInputStream servlet-req)
-   :servlet           servlet
-   :servlet-request   servlet-req
-   :servlet-response  servlet-resp
-   :servlet-context   (.getServletContext ^ServletConfig servlet)
-   :context-path      (.getContextPath servlet-req)
-   :servlet-path      (.getServletPath servlet-req)
-   :path-info         (path-info servlet-req)
-   ::protocol         (.getProtocol servlet-req)
-   ::async-supported? (.isAsyncSupported servlet-req)})
-
-(defn- add-content-type [req-map ^HttpServletRequest servlet-req]
-  (if-let [ctype (.getContentType servlet-req)]
-    (let [headers (:headers req-map)]
-      (-> (assoc! req-map :content-type ctype)
-          (assoc! :headers (assoc headers "content-type" ctype))))
-    req-map))
-
-(defn- add-content-length [req-map ^HttpServletRequest servlet-req]
-  (let [c (.getContentLengthLong servlet-req)
-        headers (:headers req-map)]
-    (if (neg? c)
-      req-map
-      (-> (assoc! req-map :content-length c)
-          (assoc! :headers (assoc headers "content-length" c))))))
-
-(defn- add-character-encoding [req-map ^HttpServletRequest servlet-req]
-  (if-let [e (.getCharacterEncoding servlet-req)]
-    (assoc! req-map :character-encoding e)
-    req-map))
-
-(defn- add-ssl-client-cert [req-map ^HttpServletRequest servlet-req]
-  (if-let [c (.getAttribute servlet-req "javax.servlet.request.X509Certificate")]
-    (assoc! req-map :ssl-client-cert c)
-    req-map))
-
-(defn- request-map [^Servlet servlet ^HttpServletRequest servlet-req servlet-resp]
-  (-> (base-request-map servlet servlet-req servlet-resp)
-      transient
-      (add-content-length servlet-req)
-      (add-content-type servlet-req)
-      (add-character-encoding servlet-req)
-      (add-ssl-client-cert servlet-req)
-      persistent!))
+;;; Async handling and Provider bootstrapping
 
 (defn- start-servlet-async*
   "Begins an asynchronous response to a request."
@@ -241,23 +178,29 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
-(defn- async? [^ServletRequest servlet-request]
-  (.isAsyncStarted servlet-request))
+(defn- servlet-async? [{:keys [servlet-request] :as context}]
+  (request/async-started? servlet-request))
 
 (defn- start-servlet-async
-  [{:keys [servlet-request] :as context}]
-  (when-not (async? servlet-request)
+  [{:keys [servlet-request async?] :as context}]
+  (when-not (async? context)
     (start-servlet-async* servlet-request)))
 
 (defn- enter-stylobate
   [{:keys [servlet servlet-request servlet-response] :as context}]
   (-> context
-      (assoc :request (request-map servlet servlet-request servlet-response))
+      (assoc :request (request-map/servlet-request-map servlet servlet-request servlet-response)
+             ;; While the zero-copy saves GCs and Heap utilization, Pedestal is still dominated by Interceptors
+             ;:request (request-zerocopy/call-through-request servlet-request
+             ;                                                {:servlet servlet
+             ;                                                 :servlet-request servlet-request
+             ;                                                 :servlet-response servlet-response})
+             :async? servlet-async?)
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
-  [{:keys [^HttpServletRequest servlet-request] :as context}]
-  (when (async? servlet-request)
+  [{:keys [^HttpServletRequest servlet-request async?] :as context}]
+  (when (async? context)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
@@ -282,7 +225,7 @@
 
 (defn- terminator-inject
   [context]
-  (interceptor-impl/terminate-when context #(ring-response/response? (:response %))))
+  (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
 
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
@@ -362,13 +305,16 @@
   print it to the output stream of the HTTP request, and do not
   rethrow it."
   [{:keys [servlet-response] :as context} exception]
+  (log/error :msg "Dev interceptor caught an exception; Forwarding it as the response."
+             :exception exception)
   (assoc context
-    :response (ring-response/response
-               (with-out-str (println "Error processing request!")
-                 (println "Exception:\n")
-                 (stacktrace/print-cause-trace exception)
-                 (println "\nContext:\n")
-                 (pprint/pprint context)))))
+         :response (-> (ring-response/response
+                        (with-out-str (println "Error processing request!")
+                          (println "Exception:\n")
+                          (stacktrace/print-cause-trace exception)
+                          (println "\nContext:\n")
+                          (pprint/pprint context)))
+                       (ring-response/status 500))))
 
 (def exception-debug
   "An interceptor which catches errors, renders them to readable text
@@ -394,16 +340,21 @@
                           :servlet servlet})]
       (log/debug :in :interceptor-service-fn
                  :context context)
+      (log/counter :io.pedestal/active-servlet-calls 1)
       (try
-        (let [final-context (interceptor-impl/execute
-                             (apply interceptor-impl/enqueue context interceptors))]
+        (let [final-context (interceptor.chain/execute context interceptors)]
           (log/debug :msg "Leaving servlet"
                      :final-context final-context))
+        (catch EOFException e
+          (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
         (catch Throwable t
+          (log/meter ::base-servlet-error)
           (log/error :msg "Servlet code threw an exception"
                      :throwable t
                      :cause-trace (with-out-str
-                                    (stacktrace/print-cause-trace t))))))))
+                                    (stacktrace/print-cause-trace t))))
+        (finally
+          (log/counter :io.pedestal/active-servlet-calls -1))))))
 
 (defn http-interceptor-service-fn
   "Returns a function which can be used as an implementation of the

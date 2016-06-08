@@ -15,8 +15,7 @@
         clojure.pprint
         clojure.test
         clojure.repl)
-  (:require [clojure.instant :as inst]
-            [io.pedestal.impl.interceptor :as interceptor]))
+  (:require [clojure.instant :as inst]))
 
 (defn byte-context [content-type ^bytes body-bytes]
   (let [body-reader (java.io.ByteArrayInputStream. body-bytes)]
@@ -75,7 +74,7 @@
   (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")
         new-context  (i form-context)
         new-request  (:request new-context)]
-    (is (= (:form-params new-request) {"foo" "BAR"}))))
+    (is (= (:form-params new-request) {:foo "BAR"}))))
 
 (deftest parses-edn
   (let [edn-context (as-context "application/edn" "(i wish i [was in] eden)")

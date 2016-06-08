@@ -96,7 +96,8 @@
 (deftest content-type-test
   (are [url content-type] (= content-type (get (->> url
                                                     (response-for app :get)
-                                                    :headers) "Content-Type"))
+                                                    :headers)
+                                               "Content-Type"))
        "http://request-handling.pedestal/test.html" "text/html"
        "http://request-handling.pedestal/test.js" "text/javascript"
        tempfile-url "text/css"))

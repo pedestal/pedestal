@@ -14,7 +14,8 @@
 
 # Server-Sent Events
 
-The Pedestal service library includes support for Server-Sent Events,
+The Pedestal service library includes support for
+[Server-Sent Events](http://www.w3.org/TR/eventsource/),
 or SSE. The SSE protocol defines a mechanism for sending event
 notifications from a server to a client using a form of long polling.
 However, unlike conventional long polling, SSE does not send each
@@ -29,8 +30,9 @@ API.
 
 You can setup an event source endpoint by defining a route that maps
 requests to an interceptor returned from the
-`io.pedestal.http.sse/start-event-stream` function. The
-resulting SSE interceptor processes a request by:
+`io.pedestal.http.sse/start-event-stream` function.
+`start-event-stream` takes as an argument a `stream-ready-fn`,
+described below. The resulting SSE interceptor processes a request by:
 
 - pausing interceptor execution (see [Service Async](service-async.md))
 
@@ -41,66 +43,34 @@ resulting SSE interceptor processes a request by:
 
 and
 
-- passing the current interceptor context to the `stream-ready-fn` function that was
-  passed as an argument to `start-event-stream` (previously
-called `sse-setup`, which is still supported for backward compatibility).
+- calling the `stream-read-fn` with two arguments: a core.async
+  channel and the current interceptor context.
 
-The `stream-ready-fn` is responsible for using the context or storing it for
-later use by some other piece of code.
-
-Events can be sent to the client using the
-`io.pedestal.http.sse/send-event` function. It takes the context
-passed to the `stream-ready-fn`, an event name and event data as
-arguments.
+The `stream-ready-fn` is responsible for using the channel and/or
+context or storing it for later use by some other piece of code.
+Events can be sent to the client by putting maps with keys `:name` and
+`:data` to the channel. Closing the channel will result in the SSE
+connection being cleaned up.
 
 `Note that in the current implementation the data must be a string.
 This restriction will be removed in the future.`
 
-If a client closes its connection, the call to `send-event` will
-throw a `java.io.IOException`. The calling code should catch it and
-clean up the streaming context.
+If a client closes its connection, the event channel will close,
+causing subsequent puts to the channel to return false. The event code
+should detect this and clean up any allocated resources.
 
-When a streaming context is no longer needed, either because there are
-no more events to send or the connection was broken by the client, it
-must be cleaned up by calling the
-`io.pedestal.http.sse/end-event-stream` function.
-
-Here is an example that shows how an SSE streaming context is created
-and used.
+Here is an example that shows how an SSE event stream can be used.
 
 ```clojure
-(def a-stored-streaming-context (atom nil))
-
-(defn clean-up []
-  (when-let [streaming-context @a-stored-streaming-context]
-    (reset! a-stored-streaming-context nil)
-    (end-event-stream streaming-context)))
-
-(defn notify [event-name event-data]
-  (when-let [streaming-context @a-stored-streaming-context]
-    (try
-      (send-event streaming-context event-name event-data)
-    (catch java.io.IOException ioe
-      (clean-up)))))
-
-(defn store-streaming-context [streaming-context]
-  (reset! a-stored-stream-context streaming-context))
+(defn stream-ready [event-chan context]
+  (dotimes [_ 20]
+    (async/>!! event-chan {:name "foo" :data "bar"})
+    (Thread/sleep 1000))
+  (async/close! event-chan))
 
 (defroutes route-table
-  [[["/events" {:get [::events (start-event-stream store-streaming-context)]}]]])
+  [[["/events" {:get [::events (start-event-stream stream-ready)]}]]])
 ```
-
-The `store-streaming-context` function is passed to `start-event-stream`. It is
-called when the streaming context is ready. It stores the streaming
-context in the `a-stored-streaming-context` atom. (A more sophisticated
-implementation would store it in a map keyed by some other information
-in the context, e.g., a cookie.)
-
-The `notify` function is used to send an event to the client attached
-to the stream. If an `IOException` is thrown, it catches it and cleans
-up the streaming context by calling `clean-up`. The `clean-up`
-function can also be used directly when there are no more events to
-send.
 
 It is important to understand that the server-sent events
 infrastructure uses the low-level streaming mechanism described

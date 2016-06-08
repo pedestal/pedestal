@@ -24,4 +24,4 @@ Benchmarking code is in the `bench` directory and includes a Logback
 configuration file.
 
 <!-- Copyright 2013 Relevance, Inc. -->
-<!-- Copyright 2014 Cognitect, Inc. -->
+<!-- Copyright 2014-2016 Cognitect, Inc. -->

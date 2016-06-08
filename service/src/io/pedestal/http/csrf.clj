@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -28,9 +28,10 @@
 
 ;; this is both the marker and the function (to use with the context)
 (def anti-forgery-token ::anti-forgery-token)
+(def anti-forgery-token-str "__anti-forgery-token")
 
 (defn existing-token [request]
-  (get-in request [:session "__anti-forgery-token"]))
+  (get-in request [:session anti-forgery-token-str]))
 
 (defn- session-token [request]
   (or (existing-token request)
@@ -41,14 +42,14 @@
     (if (= old-token token)
       response
       (-> response
-          (assoc :session (:session request))
-          (assoc-in [:session "__anti-forgery-token"] token)))))
+          (assoc :session (:session response (:session request)))
+          (assoc-in [:session anti-forgery-token-str] token)))))
 
 ;; This must be run after the session token setting
 (defn- assoc-double-submit-cookie [request response]
   ;; The token should also be in a cookie for JS (proper double submit)
   (assoc-in response
-            [:cookies "__anti-forgery-token"]
+            [:cookies anti-forgery-token-str]
             (existing-token request)))
 
 (defn- form-params [request]
@@ -56,9 +57,14 @@
          (:multipart-params request)))
 
 (defn- default-request-token [request]
-  (or (-> request form-params (get "__anti-forgery-token"))
-      (-> request :headers (get "x-csrf-token"))
-      (-> request :headers (get "x-xsrf-token"))))
+  (let [params (form-params request)]
+    ;; Or is used here to prevent multiple lookups from occuring
+    ;; `get` is used to be nil-safe
+    (or
+      (get params :__anti-forgery-token)
+      (get params anti-forgery-token-str)
+      (get-in request [:headers "x-csrf-token"])
+      (get-in request [:headers "x-xsrf-token"]))))
 
 (defn- valid-request? [request read-token]
   (let [user-token   (read-token request)
