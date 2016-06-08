@@ -112,7 +112,8 @@ To install Pedestal library components in your local Maven repository run
 ### Running the tests
 
 After installing all the library components, you can run the tests with
-`lein sub test` from a local checkout of this repository.
+`lein sub test` from a local checkout of this repository.  The majority of the
+tests are in the [service directory](./service/test/io/pedestal)
 
 ---
 
