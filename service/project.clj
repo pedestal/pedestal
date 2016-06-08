@@ -17,13 +17,10 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 ;; logging
-                 [org.slf4j/slf4j-api "1.7.21"]
-                 ;; metrics
-                 [io.dropwizard.metrics/metrics-core "3.1.2"]
 
-                 ;; route
-                 [org.clojure/core.incubator "0.1.3"]
+                 [io.pedestal/pedestal.log "0.5.1-SNAPSHOT"]
+                 [io.pedestal/pedestal.interceptor "0.5.1-SNAPSHOT"]
+                 [io.pedestal/pedestal.route "0.5.1-SNAPSHOT"]
 
                  ;; channels
                  [org.clojure/core.async "0.2.374"]
@@ -33,8 +30,7 @@
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
-                 [org.clojure/core.match "0.3.0-alpha4" :exclusions [[org.clojure/clojurescript]
-                                                                     [org.clojure/tools.analyzer.jvm]]]
+
                  ;[com.fasterxml.jackson.core/jackson-core "2.3.2"]
                  [cheshire "5.5.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
                  [com.cognitect/transit-clj "0.8.285"]

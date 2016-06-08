@@ -12,10 +12,32 @@
 
 (defproject io.pedestal/pedestal "0.5.1-SNAPSHOT"
   :plugins [[lein-sub "0.2.3"]]
-  :sub ["service"
+  :sub ["log"
+        "interceptor"
+        "route"
+        "service"
         "jetty"
         "immutant"
         "tomcat"
         "service-tools"
-        "service-template"])
-
+        "service-template"]
+  :aliases {"docs" ["with-profile" "dev" "codox"]}
+  :profiles {:dev {:plugins [[lein-codox "0.9.5"]]
+                   :dependencies [[io.pedestal/pedestal.log "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.interceptor "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.route "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.service "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.jetty "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.immutant "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.5.1-SNAPSHOT"]
+                                  [io.pedestal/pedestal.service-tools "0.5.1-SNAPSHOT"]]
+                   :codox {:output-path "codox"
+                           :source-uri "http://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"
+                           :source-paths ["log/src"
+                                          "interceptor/src"
+                                          "route/src"
+                                          "service/src"
+                                          "jetty/src"
+                                          "immutant/src"
+                                          "tomcat/src"
+                                          "service-tools/src"]}}})
