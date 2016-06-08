@@ -50,12 +50,13 @@
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
             "bench-service" ["trampoline" "run" "-m" "io.pedestal.niotooling.server"]
             "bench-route" ["trampoline" "run" "-m" "io.pedestal.route.route-bench"]
-            "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]}
+            "dumbrepl" ["trampoline" "run" "-m" "clojure.main/main"]
+            "docs" ["with-profile" "docs" "codox"]}
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev {:source-paths ["dev" "src" "bench"]
-                   :plugins      [[codox "0.9.4"]]
-                   :dependencies [[criterium "0.4.4"]
+                   :dependencies [[codox "0.9.5" :exclusions [[org.clojure/tools.reader]]]
+                                  [criterium "0.4.4"]
                                   [org.clojure/java.classpath "0.2.3"]
                                   [org.clojure/tools.namespace "0.2.11"]
                                   ;[clj-http "0.9.1"]
@@ -78,7 +79,10 @@
                                   [incanter/incanter-core "1.5.6"]
                                   [incanter/incanter-charts "1.5.6"]]
                    :repositories [["sonatype-oss"
-                                   "https://oss.sonatype.org/content/groups/public/"]]}}
+                                   "https://oss.sonatype.org/content/groups/public/"]]}
+             :docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]
+                    :dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}}
   ;:jvm-opts ^:replace ["-D\"clojure.compiler.direct-linking=true\""
   ;                     "-d64" "-server"
   ;                     "-Xms1g"                             ;"-Xmx1g"
