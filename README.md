@@ -76,7 +76,7 @@ applications and improving general ease of use.
 
  * [Pedestal documentation](./guides/documentation) is coupled within this repository.
  * The latest [API Docs](http://pedestal.github.io/pedestal).
- * Build your own Service API docs: Within the `service` directory, `lein docs`
+ * Build your own API docs with `lein docs`
 
 ### Supported Platforms
 
