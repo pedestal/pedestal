@@ -90,6 +90,7 @@
    (try
      (async/>!! channel (mk-data name data id))
      (catch Throwable t
+       (async/close! channel)
        (log/error :msg "exception sending event"
                   :throwable t
                   :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))
@@ -102,6 +103,7 @@
      (log/trace :msg "writing heartbeat to stream")
      (async/>!! channel CRLF)
      (catch Throwable t
+       (async/close! channel)
        (log/error :msg "exception sending heartbeat"
                   :throwable t
                   :stacktrace (with-out-str (clojure.stacktrace/print-stack-trace t)))

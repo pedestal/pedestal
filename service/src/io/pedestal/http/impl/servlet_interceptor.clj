@@ -107,7 +107,8 @@
             (catch EOFException e
               (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
                         :exception e
-                        :src-chan body))
+                        :src-chan body)
+              (async/close! body))
             (catch Throwable t
               (log/meter ::async-write-errors)
               (log/error :msg "An error occured when async writing to the client"
