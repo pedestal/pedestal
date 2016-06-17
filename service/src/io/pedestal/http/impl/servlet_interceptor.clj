@@ -104,17 +104,16 @@
           (try
             (write-body servlet-response body-part)
             (.flushBuffer ^HttpServletResponse servlet-response)
-            (catch EOFException e
-              (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
-                        :exception e
-                        :src-chan body)
-              (async/close! body))
             (catch Throwable t
-              (log/meter ::async-write-errors)
-              (log/error :msg "An error occured when async writing to the client"
-                         :throwable t
-                         :src-chan body)
-              (async/close! body)))
+              (if (instance? EOFException t)
+                (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
+                          :exception t
+                          :src-chan body)
+                (do (log/meter ::async-write-errors)
+                    (log/error :msg "An error occured when async writing to the client"
+                               :throwable t
+                               :src-chan body))))
+            (finally (async/close! body)))
           (recur)))
       (async/>! resume-chan context)
       (async/close! resume-chan)))
@@ -371,4 +370,3 @@
                 ring-response]
                interceptors)
        default-context)))
-
