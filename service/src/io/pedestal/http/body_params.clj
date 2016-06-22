@@ -53,7 +53,7 @@
 
 (defn add-parser
   [parser-map content-type parser-fn]
-  (assoc parser-map (re-pattern (str "^" content-type "$") parser-fn)))
+  (assoc parser-map (re-pattern (str "^" content-type "$")) parser-fn))
 
 (defn add-ring-middleware
   [parser-map content-type middleware]
