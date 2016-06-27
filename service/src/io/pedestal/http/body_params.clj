@@ -122,10 +122,12 @@
   body of that request with `transit/read`. options is a sequence to
   pass to transit/reader along with the body of the request."
   [& options]
-  (fn [request]
-    (assoc request
-      :transit-params
-      (transit/read (apply transit/reader (:body request) options)))))
+  (fn [{:keys [body] :as request}]
+    (if (zero? (.available body))
+      request
+      (assoc request
+             :transit-params
+             (transit/read (apply transit/reader body options))))))
 
 (def transit-parser
   "Take a request and parse its body as transit."

@@ -105,10 +105,16 @@
   (is (thrown? Exception (i (as-context "application/edn" "#=(eval (println 1234)")))))
 
 (deftest empty-body-does-nothing
-  (let [empty-body  (as-context "application/edn" "")
-        new-context (i empty-body)
-        new-request (:request new-context)]
-      (is (= (:edn-params new-request) nil))))
+  (doseq [[content-type params]
+          {"application/edn" :edn-params
+           "application/json" :json-params
+           "application/transit+json" :transit-params
+           "application/transit+msgpack" :transit-params
+           "application/x-www-form-urlencoded" :form-params}]
+    (let [context (byte-context content-type (byte-array []))
+          new-context (i context)
+          new-request (:request new-context)]
+      (is (empty? (get new-request params))))))
 
 ;; Translation: "Today is a good day to die."
 (def klingon "Heghlu'meH QaQ jajvam")
