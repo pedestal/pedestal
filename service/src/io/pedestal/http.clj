@@ -124,39 +124,52 @@
               (assoc :body (print-fn #(json-print body))))
           response)))))
 
-(def transit-json-body
-  "Set the Content-Type header to \"application/transit+json\" and convert the body to
-  transit+json if the body is a collection and a type has not been set."
-  (interceptor/on-response
-    ::transit-json-body
+(defn transit-body-interceptor
+  "Returns an interceptor which sets the Content-Type header to the
+  appropriate value depending on the transit format. Converts the body
+  to the specified Transit format if the body is a collection and a
+  type has not been set. Optionally accepts transit-opts which are
+  handed to trasit/writer and may contain custom write handlers.
+  
+  Expects the following arguments:
+ 
+  iname                - namespaced keyword for the interceptor name
+  default-content-type - content-type string to set in the response
+  transit-format       - either :json or :msgpack
+  transit-options      - optional. map of options for transit/writer"
+  ([iname default-content-type transit-format]
+   (transit-body-interceptor iname default-content-type transit-format {}))
+  
+  ([iname default-content-type transit-format transit-opts]
+   (interceptor/on-response
+    iname 
     (fn [response]
       (let [body (:body response)
             content-type (get-in response [:headers "Content-Type"])]
         (if (and (coll? body) (not content-type))
           (-> response
-              (ring-response/content-type "application/transit+json;charset=UTF-8")
+              (ring-response/content-type default-content-type)
               (assoc :body (fn [^OutputStream output-stream]
-                             (transit/write (transit/writer output-stream :json)
-                                            body)
+                             (transit/write
+                              (transit/writer output-stream transit-format transit-opts) body)
                              (.flush output-stream))))
-          response)))))
+          response))))))
+
+(def transit-json-body
+  "Set the Content-Type header to \"application/transit+json\" and convert the body to
+  transit+json if the body is a collection and a type has not been set."
+  (transit-body-interceptor
+   ::transit-json-body
+   "application/transit+json;charset=UTF-8"
+   :json))
 
 (def transit-msgpack-body
   "Set the Content-Type header to \"application/transit+msgpack\" and convert the body to
   transit+msgpack if the body is a collection and a type has not been set."
-  (interceptor/on-response
-    ::transit-msgpack-body
-    (fn [response]
-      (let [body (:body response)
-            content-type (get-in response [:headers "Content-Type"])]
-        (if (and (coll? body) (not content-type))
-          (-> response
-              (ring-response/content-type "application/transit+msgpack;charset=UTF-8")
-              (assoc :body (fn [^OutputStream output-stream]
-                             (transit/write (transit/writer output-stream :msgpack)
-                                            body)
-                             (.flush output-stream))))
-          response)))))
+  (transit-body-interceptor
+   ::transit-msgpack-body
+   "application/transit+msgpack;charset=UTF-8"
+   :msgpack))
 
 (def transit-body
   "Same as `transit-json-body` --
