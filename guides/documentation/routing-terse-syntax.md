@@ -37,7 +37,7 @@ A route matching is based on:
 * URL path
 * Constraints on param values in URL path and/or query string
 
-## Defining route tables
+## Defining Routes in Terse Syntax
 
 A route table is simply a data structure; in our case, it is a
 sequence of maps. The structure caters to the needs of matching and
@@ -45,9 +45,9 @@ dispatching of requests, and as such has a great deal of repeated
 and derived data intended for use in that process. Creating the
 data structure in its final, verbose form by hand would be very tedious.
 
-We've built a simpler, terse form for route tables. The
-terse form is also a data structure, albeit more explicitly hierarchical; Writing
-a route table in the terse form is easier because information is not
+We've built a simpler, terse form for route tables. The terse form is
+also a data structure, albeit more explicitly hierarchical; Writing a
+route table in the terse form is easier because information is not
 explicitly duplicated. Instead, child nodes implicitly inherit
 relevant route data from their ancestors.
 
@@ -451,10 +451,10 @@ input and returns an interceptor that handles routing.
 ```clojure
 (defn hello-world [req] {:status 200 :body "Hello World!"})
 
-(defroutes route-table
+(defroutes master-routes
     [[["/hello-world" {:get hello-world}]]])
 
-(def router (router route-table))
+(def router (router master-routes))
 ```
 
 When a routing interceptor's enter function is invoked, it attempts to
@@ -475,7 +475,7 @@ called every time the routing interceptor is used. This allows your
 Web server to use the latest compiled routes without restarting.
 
 ```clojure
-(def router (router #(deref #'route-table)))
+(def router (router #(deref #'master-routes)))
 ```
 
 If you are using the Pedestal service template for lein, it provides a
@@ -483,14 +483,8 @@ default route table and handles setting up a routing interceptor as
 one of the steps of building a service. It also configures use of the
 latest compiled routes when running in the repl.
 
-# URL generation
 
-In addition to routing, route tables are also used for URL
-generation. You can request a URL for a given route by name and
-specify parameter values to fill in. This section describes URL
-generation, starting with how routes are named.
-
-## Route names
+# Route names
 
 Every route has a name, represented as a keyword. Route names are
 implicit, where possible. For routes that specify destination
@@ -553,83 +547,3 @@ which takes precedence over the implicit name for that route,
 The `io.pedestal.http.route/print-routes` helper function prints
 route verbs, paths and names at the repl. When in doubt, you can use
 it to find route names.
-
-## URL generation
-
-The `io.pedestal.http.route/url-for-routes` function takes a
-route table and returns a function that accepts a route-name (and optional
-arguments) and returns a URL that can be used in a hyperlink.
-
-```clojure
-(def url-for (route/url-for-routes route-table))
-
-(url-for ::o/list-orders) ;; use keyword derived from symbol to name route
-;; => "/order"
-
-(url-for :make-an-order) ;; use specified route name
-;; => "/order"
-```
-
-An `url-for` function can populate parameters in a route. Parameter values
-are passed as additional arguments:
-
-```clojure
-(url-for :view-order :params {:id 10})
-;; => "/order/10"
-```
-
-Entries in the `:params` map that do not correspond to parameter values
-in a route's path are added to the returned URL as query string
-parameters. Alternatively, `:path-params` and `:query-params` can be
-used to specify parameter values independently.
-
-## Request-specific URL generation
-
-A route table provides the basis for URL generation. A request map can
-act as an additional basis. This allows for the generation of absolute
-vs relative URLs, depending on the URL a request was sent to and how
-specific a route-table is about an application's host name and
-supported schemes.
-
-When the routing interceptor matches a request to a route, it creates
-a new URL generator function that closes over the request. It adds the
-function to the interceptor context and the Ring request map, using
-the key `:url-for`.
-
-The request-specific URL generator function is also dynamically bound
-to a private var in the `io.pedestal.http.route` namespace. The
-`io.pedestal.http.route/url-for` function calls the dynamically
-bound function.
-
-The `io.pedestal.http.route/url-for` function can be called from
-any thread that is currently executing an interceptor. If you need to
-use a request-specific URL generator function elsewhere, extract
-`:url-for` from the context or request map and propagate it as needed.
-
-## Verb smuggling
-
-The `url-for` functions only return URLs. The
-`io.pedestal.http.route/form-action-for-routes` function takes a
-route table and returns a function that accepts a route-name (and optional
-arguments) and returns a map containing a URL and an HTTP verb.
-
-```clojure
-(def form-action (route/form-action-for-routes routes-table))
-
-(form-action :make-an-order)
-;; => {:action "/order" :method :post}
-```
-
-A form action function will (by default) convert verbs other than GET
-or POST to POST, with the actual verb added as a query string
-parameter named `method`:
-
-```clojure
-(form-action ::o/update-order :params {:id 20})
-;; => {:action "/order/20?`method=put" :method :post}
-```
-
-This behavior can be disabled (or enabled for `url-for` functions) and
-the query string parameter name can be changed. All of these settings
-can be modified when an `url-for` or `form-action` function is created
-or when it is invoked.

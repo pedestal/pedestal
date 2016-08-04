@@ -86,6 +86,8 @@ The "terse" and "verbose" syntaxes are both still supported, until we
 hear from the community. We've also put some effort into better error
 messages when dealing with the terse format.
 
+   * [Terse Syntax Reference](routing-terse-syntax.md)
+
 # Defining a route
 
 ## The Bare Minimum
@@ -306,6 +308,38 @@ interceptors.) Most of the time, you'll have different handler
 functions in that terminal position. But, if you reuse an interceptor
 as the final step of the chain, you will have to assign unique route
 names to distinguish them.
+
+### Using Route Names to Distinguish Handlers
+
+Suppose you have a single interceptor or handler that deals with
+multiple verbs on the same path. Maybe it's a general API endpoint
+function or a function created by another library. If you just try to
+make multiple rows in a table, you will get errors:
+
+```clojure
+;;; This won't work in table syntax. Both rows get the same automatic
+;;; route name.
+["/users" :get user-api-handler]
+["/users" :post user-api-handler]
+```
+
+You have a couple of options. To stick with table syntax, you can use
+route names to distinguish the rows:
+
+```clojure
+["/users" :get user-api-handler :route-name :users-view]
+["/users" :post user-api-handler :route-name :user-create]
+```
+
+The route names are enough to make each row unique.
+
+With terse syntax, one path has a map that allows multiple verbs. Each
+verb can use the same handler as long as they specify different route names:
+
+```clojure
+["/users" {:get user-api-handler
+           :post [:user-create user-api-handler]}]
+```
 
 ## Generating URLs
 
