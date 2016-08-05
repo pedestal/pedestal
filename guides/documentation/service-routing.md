@@ -87,6 +87,7 @@ hear from the community. We've also put some effort into better error
 messages when dealing with the terse format.
 
    * [Terse Syntax Reference](routing-terse-syntax.md)
+   * [Routing Data Flow](routing-data-flow.md)
 
 # Defining a route
 
