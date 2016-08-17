@@ -30,19 +30,27 @@ Of course, if you run into any straight-up bugs or weirdness feel free to skip
 the thinking (or at least too much of it) and immediately submit an
 [issue](https://github.com/pedestal/pedestal/issues/new).
 
-At minimum include details about the platform you are running and steps to
-reproduce--you know we're going to ask. A good starting point is the following:
 
-* Operating System (including version).
+We have an issue template in place that will ask you some details
+about the platform you are running and how to reproduce the bug. (If
+you can reproduce it reliably. If not, go ahead and file the issue
+anyway so we can start looking at it.)
+
+Some of the usual stuff we'll want to know:
+
+* What happened?
+    * "I manifested a being from the outer dimensions."
+* What did you expect to happen?
+    * "Hello, world."
+* How can you reprodice it?
+    * "I created a new Pedestal service with the template, then installed some code that Bob Howard gave me."
+* What operating system and version are you using?
     * e.g. "OS X 10.8"
-* Your current Leiningen version (`lein --version`)
-    * e.g. "Leiningen 2.0.0 on Java 1.6.0_45 Java HotSpot(TM) 64-Bit Server VM"
-* Pedestal version
-    * e.g. "0.1.6"
-    * or, for a SNAPSHOT: "0.1.6-SNAPSHOT at 57d4911"
-* Steps to reproduce:
-    * e.g. "When you create a new pedestal app, and do X, Y and Z you will
-      see this error: ..."
+* What version of Clojure, Java, and Leiningen or Boot are you using?
+    * e.g. "Leiningen 2.5.2 on Java 1.8.0_u40 Java HotSpot(TM) 64-Bit Server VM"
+* What Pedestal version are you using?
+    * e.g. "0.5.0"
+    * or, for a SNAPSHOT: "0.5.1-SNAPSHOT at d0cf2b4"
 
 Even better, include a link to a gist or repository where we can jump straight
 to the problem.
@@ -53,7 +61,7 @@ We love well-tested code. All of our code is tested on [Travis
 CI](https://travis-ci.org/pedestal/pedestal) and so too will any pull requests
 you submit. It's super-cool and automatic!
 
-But lets be serious, we won't accept pull requests unless they're either well
+But let's be serious, we won't accept pull requests unless they're either well
 tested or sufficiently trivial (think docstring changes).
 
 ## Contributor's Agreement
