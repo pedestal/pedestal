@@ -21,5 +21,9 @@
                  ;; metrics
                  [io.dropwizard.metrics/metrics-core "3.1.2"]]
   :min-lein-version "2.0.0"
-  :global-vars {*warn-on-reflection* true})
+  :global-vars {*warn-on-reflection* true}
 
+  :aliases {"docs" ["with-profile" "docs" "codox"]}
+
+  :profiles {:docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]}})

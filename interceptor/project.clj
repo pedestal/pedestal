@@ -24,5 +24,9 @@
                                                                      [org.clojure/tools.analyzer.jvm]]]]
   :min-lein-version "2.0.0"
   :pedantic? :abort
-  :global-vars {*warn-on-reflection* true})
+  :global-vars {*warn-on-reflection* true}
 
+  :aliases {"docs" ["with-profile" "docs" "codox"]}
+
+  :profiles {:docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]}})

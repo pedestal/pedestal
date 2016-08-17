@@ -22,5 +22,9 @@
                  [org.apache.tomcat.embed/tomcat-embed-core "8.0.35"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
-  :global-vars {*warn-on-reflection* true})
+  :global-vars {*warn-on-reflection* true}
 
+  :aliases {"docs" ["with-profile" "docs" "codox"]}
+
+  :profiles {:docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]}})

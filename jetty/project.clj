@@ -28,5 +28,9 @@
                  [org.eclipse.jetty.websocket/websocket-server "9.3.8.v20160314"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
-  :global-vars {*warn-on-reflection* true})
+  :global-vars {*warn-on-reflection* true}
 
+  :aliases {"docs" ["with-profile" "docs" "codox"]}
+
+  :profiles {:docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]}})

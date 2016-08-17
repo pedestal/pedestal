@@ -21,5 +21,9 @@
                  [io.pedestal/pedestal.interceptor "0.5.1-SNAPSHOT"]
                  [org.clojure/core.incubator "0.1.3"]]
   :min-lein-version "2.0.0"
-  :global-vars {*warn-on-reflection* true})
+  :global-vars {*warn-on-reflection* true}
 
+  :aliases {"docs" ["with-profile" "docs" "codox"]}
+
+  :profiles {:docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]}})

@@ -29,5 +29,9 @@
                  [org.slf4j/jcl-over-slf4j "1.7.21"]
                  [org.slf4j/log4j-over-slf4j "1.7.21"]
 
-                 [javax.servlet/javax.servlet-api "3.1.0" :scope "test"]])
+                 [javax.servlet/javax.servlet-api "3.1.0" :scope "test"]]
 
+  :aliases {"docs" ["with-profile" "docs" "codox"]}
+
+  :profiles {:docs {:pedantic? :ranges
+                    :plugins [[lein-codox "0.9.5"]]}})
