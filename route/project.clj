@@ -16,10 +16,10 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/core.async "0.2.374"]
+                 [org.clojure/core.async "0.2.385"]
                  [io.pedestal/pedestal.log "0.5.2-SNAPSHOT"]
                  [io.pedestal/pedestal.interceptor "0.5.2-SNAPSHOT"]
-                 [org.clojure/core.incubator "0.1.3"]]
+                 [org.clojure/core.incubator "0.1.4"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
 
