@@ -49,8 +49,13 @@
 (defn- normalize-args
   [arg]
   (if (map? arg)
-    arg
-    {:allowed-origins (if (fn? arg) arg (fn [origin] (some #(= % origin) (seq arg))))}))
+    (update-in arg [:allowed-origins]
+               (fn [x] (if (fn? x)
+                         x
+                         (let [x-set (into #{} x)]
+                           ;; We could just return x-set, but this adheres to the old API
+                           (fn [origin] (x-set origin))))))
+    (normalize-args {:allowed-origins arg})))
 
 (defn allow-origin
   "Builds a CORS interceptor that allows calls from the specified `allowed-origins`, which is one of the following:
