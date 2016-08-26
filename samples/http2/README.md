@@ -9,7 +9,7 @@ This very simple app demonstrates using Jetty's HTTP2 capabilties.
 1. Set the appropriate ALPN-Boot version within `project.clj` based on your JDK Version
 2. Start the application: `lein run`
 3. Go to [localhost:8080](http://localhost:8080/) to see an HTTP 1.1 message.
-4. Go to [localhost:8443](http://localhost:8443/) to see an HTTP2 message.
+4. Go to [localhost:8443](https://localhost:8443/) to see an HTTP2 message.
 
 You can also use an HTTP2-enabled command line client:
 
