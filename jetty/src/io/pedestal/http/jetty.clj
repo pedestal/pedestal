@@ -44,28 +44,29 @@
 (defn- ^SslContextFactory ssl-context-factory
   "Creates a new SslContextFactory instance from a map of options."
   [options]
-  (let [{:keys [^KeyStore keystore key-password
-                ^KeyStore truststore
-                ^String trust-password
-                client-auth]} options
-        context (SslContextFactory.)]
-    (when (every? nil? [keystore key-password truststore trust-password client-auth])
-      (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
-    (if (string? keystore)
-      (.setKeyStorePath context keystore)
-      (.setKeyStore context keystore))
-    (.setKeyStorePassword context key-password)
-    (when truststore
-      (.setTrustStore context truststore))
-    (when trust-password
-      (.setTrustStorePassword context trust-password))
-    (case client-auth
-      :need (.setNeedClientAuth context true)
-      :want (.setWantClientAuth context true)
-      nil)
-    (.setCipherComparator context HTTP2Cipher/COMPARATOR)
-    (.setUseCipherSuitesOrder context true)
-    context))
+  (or (:ssl-context-factory options)
+      (let [{:keys [^KeyStore keystore key-password
+                    ^KeyStore truststore
+                    ^String trust-password
+                    client-auth]} options
+            context (SslContextFactory.)]
+        (when (every? nil? [keystore key-password truststore trust-password client-auth])
+          (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
+        (if (string? keystore)
+          (.setKeyStorePath context keystore)
+          (.setKeyStore context keystore))
+        (.setKeyStorePassword context key-password)
+        (when truststore
+          (.setTrustStore context truststore))
+        (when trust-password
+          (.setTrustStorePassword context trust-password))
+        (case client-auth
+          :need (.setNeedClientAuth context true)
+          :want (.setWantClientAuth context true)
+          nil)
+        (.setCipherComparator context HTTP2Cipher/COMPARATOR)
+        (.setUseCipherSuitesOrder context true)
+        context)))
 
 (defn- ssl-conn-factory
   "Create an SslConnectionFactory instance."
@@ -227,6 +228,8 @@
   ;; :h2c?         - enable http2 clear text on plain socket port
   ;; :connection-factory-fns - a vector of functions that take the options map and HttpConfiguration
   ;;                           and return a ConnectionFactory obj (applied to SSL connection)
+  ;; :ssl-context-factor - a Jetty SslContectFactory to use in place on Pedestal building one.
+  ;;                       If passed in, all other SSL related options are ignored.
   ;; :keystore     - the keystore to use for SSL connections
   ;; :key-password - the password to the keystore
   ;; :truststore   - a truststore to use for SSL connections
