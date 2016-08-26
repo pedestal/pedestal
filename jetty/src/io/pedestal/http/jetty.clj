@@ -57,7 +57,9 @@
           (.setKeyStore context keystore))
         (.setKeyStorePassword context key-password)
         (when truststore
-          (.setTrustStore context truststore))
+          (if (string? truststore)
+            (.setTrustStorePath context truststore)
+            (.setTrustStore context truststore)))
         (when trust-password
           (.setTrustStorePassword context trust-password))
         (case client-auth
@@ -230,9 +232,9 @@
   ;;                           and return a ConnectionFactory obj (applied to SSL connection)
   ;; :ssl-context-factor - a Jetty SslContectFactory to use in place on Pedestal building one.
   ;;                       If passed in, all other SSL related options are ignored.
-  ;; :keystore     - the keystore to use for SSL connections
+  ;; :keystore     - the keystore to use for SSL connections - may be the object or a string path
   ;; :key-password - the password to the keystore
-  ;; :truststore   - a truststore to use for SSL connections
+  ;; :truststore   - a truststore to use for SSL connections - may be the object or a string path
   ;; :trust-password - the password to the truststore
   ;; :client-auth  - SSL client certificate authenticate, may be set to :need,
   ;;                 :want or :none (defaults to :none)"
