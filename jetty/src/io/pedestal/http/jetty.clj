@@ -148,6 +148,10 @@
         server (Server. thread-pool)
         _ (when (and h2? (not ssl-port))
             (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
+        _ (when (and (nil? port) (not (or ssl? ssl-port h2?)))
+            (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but no SSL config was supplied.  Please set an HTTP port or configure SSL")))
+        _ (when (and (nil? port) (true? h2c?))
+            (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but you attempted to turn on HTTP2-Cleartext.  Please set an HTTP port or set `h2c?` to false in your service config")))
         http-conf (http-configuration (:container-options options))
         http (HttpConnectionFactory. http-conf)
         http2c (when h2c? (HTTP2CServerConnectionFactory. http-conf))
@@ -159,20 +163,21 @@
                  (.setDefaultProtocol "http/1.1")))
         ssl (when (or ssl? ssl-port h2?)
               (ssl-conn-factory (assoc options :alpn alpn)))
-        http-connector (doto (ServerConnector. server (into-array ConnectionFactory
-                                                                  (remove nil? [http http2c])))
-                         (.setReuseAddress reuse-addr?)
-                         (.setPort port)
-                         (.setHost host))
+        http-connector (when port
+                         (doto (ServerConnector. server (into-array ConnectionFactory
+                                                                    (remove nil? [http http2c])))
+                           (.setReuseAddress reuse-addr?)
+                           (.setPort port)
+                           (.setHost host)))
         ssl-connector (when ssl
                         (doto (ServerConnector. server
                                                 (into-array ConnectionFactory
                                                             (remove nil?
                                                                     (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]
                                                                           (map (fn [ffn] (ffn options http-conf)) connection-factory-fns)))))
-                         (.setReuseAddress reuse-addr?)
-                         (.setPort ssl-port)
-                         (.setHost host)))
+                          (.setReuseAddress reuse-addr?)
+                          (.setPort ssl-port)
+                          (.setHost host)))
         context (doto (ServletContextHandler. server "/")
                   (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
     (when daemon?
@@ -199,16 +204,18 @@
 (defn server
   ([service-map] (server service-map {}))
   ([service-map options]
-     (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
-       {:server   server
-        :start-fn #(start server options)
-        :stop-fn  #(stop server)})))
+   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
+     {:server   server
+      :start-fn #(start server options)
+      :stop-fn  #(stop server)})))
 
 
-  ;; :port         - the port to listen on (defaults to 80)
+  ;; :port         - the http/h2c port to listen on (defaults to 80);
+  ;;                     If nil and SSL Config is set, HTTP is disabled.
   ;; :host         - the hostname to listen on
   ;; :join?        - blocks the thread until server ends (defaults to true)
 
+  ;; -- Container Options --
   ;; :daemon?      - use daemon threads (defaults to false)
   ;; :max-threads  - the maximum number of threads to use (default 50)
   ;; :resue-addr?  - reuse the socket address (defaults to true)
