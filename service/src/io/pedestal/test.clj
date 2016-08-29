@@ -80,7 +80,8 @@
   InputStream
   (->servlet-input-stream [wrapped-stream]
     (proxy [ServletInputStream]
-        []
+      []
+      (available ([] (.available wrapped-stream)))
       (read ([] (.read wrapped-stream))
         ([^bytes b] (.read wrapped-stream b))
         ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len)))) ))
