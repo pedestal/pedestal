@@ -48,10 +48,11 @@
 ;; This must be run after the session token setting
 (defn- assoc-double-submit-cookie [request response]
   ;; The token should also be in a cookie for JS (proper double submit)
-  (when-let [token (or (existing-token request)
+  (if-let [token (or (existing-token request)
                        (get-in response [:session anti-forgery-token-str]))]
     (assoc-in response
-              [:cookies anti-forgery-token-str] token)))
+              [:cookies anti-forgery-token-str] token)
+    response))
 
 (defn- form-params [request]
   (merge (:form-params request)
