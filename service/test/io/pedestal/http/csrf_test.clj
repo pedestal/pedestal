@@ -174,3 +174,10 @@
     (testing "custom read token is respected"
      (is (= "foo"
             (get-in (i request) [:response :cookies "__anti-forgery-token"]))))))
+
+(deftest sessionless-cookie-token
+  (let [i (standalone-anti-forgery-interceptor {:cookie-token true})
+        request {:request {}}]
+    (testing "get 403 if missing both session and cookie"
+     (is (= 403
+            (get-in (i request) [:response :status]))))))
