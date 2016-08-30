@@ -18,6 +18,7 @@
             [io.pedestal.interceptor.helpers :as interceptor :refer [defon-response defbefore defafter]]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.route.definition :refer [defroutes]]
+            [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream FileInputStream File)
            (java.nio ByteBuffer)
@@ -54,6 +55,11 @@
 
 (defn hello-plaintext-no-content-type-page [request]
   (hello-page request))
+
+(defn transit-params [{:keys [transit-params] :as request}]
+  {:status 200
+   :headers {"Content-Type" "text/plain"}
+   :body (pr-str transit-params)})
 
 (def ^:dynamic *req* {})
 
@@ -100,6 +106,8 @@
      ^:interceptors [service/json-body]]
     ["/data-as-transit" {:get [::data-as-transit get-edn]}
      ^:interceptors [service/transit-body]]
+    ["/transit-params" {:post transit-params}
+     ^:interceptors [(body-params)]]
     ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit get-plaintext-edn]}
      ^:interceptors [service/transit-body]]]])
 
@@ -154,10 +162,17 @@
   (let [response (response-for app :get "/plaintext-body-with-json-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
-(deftest transit-body-test
+(deftest transit-response-body-test
   (let [response (response-for app :get "/data-as-transit")]
     (is (= "application/transit+json;charset=UTF-8" (get-in response [:headers "Content-Type"])))
     (is (= "[\"^ \",\"~:a\",1]" (:body response)))))
+
+(deftest transit-request-body-test
+  (let [response (response-for app :post "/transit-params"
+                               :headers {"Content-Type" "application/transit+json"}
+                               :body "[\"^ \",\"~:a\",1]")]
+    (is (= 200 (:status response)))
+    (is (= "{:a 1}" (:body response)) response)))
 
 (deftest plaintext-body-with-transit-interceptor-test
   "Explicit request for plain-text content-type is honored by transit-body interceptor."
