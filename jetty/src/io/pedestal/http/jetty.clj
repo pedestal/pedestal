@@ -116,6 +116,8 @@
       (.setSecureScheme http-conf "https"))
     (doto http-conf
       (.setSendDateHeader true)
+      (.setSendXPoweredBy false)
+      (.setSendServerVersion false)
       (.addCustomizer (SecureRequestCustomizer.)))))
 
 (defn- needed-pool-size
