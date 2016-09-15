@@ -222,7 +222,7 @@
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
          :or {file-path nil
-              router :prefix-tree
+              router :map-tree
               resource-path nil
               not-found-interceptor not-found
               method-param-name :_method
