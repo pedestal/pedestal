@@ -23,7 +23,7 @@
                  [io.pedestal/pedestal.route "0.5.2-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.2.385"]
+                 [org.clojure/core.async "0.2.391"]
 
                  ;; interceptors
                  [ring/ring-core "1.4.0" :exclusions [[org.clojure/clojure]
