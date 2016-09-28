@@ -13,11 +13,11 @@
 (ns server-sent-events.service-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
-            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http :as http]
             [server-sent-events.service :as service]))
 
 (def service
-  (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
+  (::http/service-fn (http/create-servlet service/service)))
 
 (deftest service-comes-up-test
   (is (.contains

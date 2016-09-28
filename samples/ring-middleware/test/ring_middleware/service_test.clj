@@ -12,11 +12,11 @@
 (ns ring-middleware.service-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
-            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http :as http]
             [ring-middleware.service :as service]))
 
 (def service
-  (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
+  (::http/service-fn (http/create-servlet service/service)))
 
 (deftest home-page-renders-correctly
   (is (.contains

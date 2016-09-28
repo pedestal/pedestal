@@ -13,11 +13,11 @@
 (ns template-server.service-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
-            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http :as http]
             [template-server.service :as service]))
 
 (def service
-  (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
+  (::http/service-fn (http/create-servlet service/service)))
 
 (deftest test-templates-generate-correct-bodies
   (are [url partial-body-string]

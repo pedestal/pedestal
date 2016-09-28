@@ -12,28 +12,27 @@
 
 ;; dev mode in repl (can get prod mode by passing prod options to dev-init
 (ns dev
-  (:require [io.pedestal.service.http :as bootstrap]
+  (:require [io.pedestal.service.http :as http]
             [server-sent-events.service :as service]
             [server-sent-events.server :as server]))
 
 (def service (-> service/service
                  (merge  {:env :dev
-                          ::bootstrap/join? false
-                          ::bootstrap/routes #(deref #'service/routes)})
-                 (bootstrap/default-interceptors)
-                 (bootstrap/dev-interceptors)))
+                          ::http/join? false
+                          ::http/routes #(deref #'service/routes)})
+                 (http/default-interceptors)
+                 (http/dev-interceptors)))
 
 (defn start
   [& [opts]]
   (server/create-server (merge service opts))
-  (bootstrap/start server/service-instance))
+  (http/start server/service-instance))
 
 (defn stop
   []
-  (bootstrap/stop server/service-instance))
+  (http/stop server/service-instance))
 
 (defn restart
   []
   (stop)
   (start))
-

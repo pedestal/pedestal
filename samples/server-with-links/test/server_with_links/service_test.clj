@@ -13,16 +13,13 @@
 (ns server-with-links.service-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
-            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http :as http]
             [server-with-links.service :as service]))
 
 (def service
-  (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
+  (::http/service-fn (http/create-servlet service/service)))
 
 (deftest link-generates-correct-link
   (is (.contains
        (:body (response-for service :get "/"))
        "<a href='/that'>that</a>")))
-
-
-

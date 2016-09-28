@@ -30,13 +30,13 @@
 (def routes #{["/" :get (conj common-interceptors `home-page)]
               ["/about" :get (conj common-interceptors `about-page)]})
 
-;(def routes `{"/" {:interceptors [(body-params/body-params) bootstrap/html-body]
+;(def routes `{"/" {:interceptors [(body-params/body-params) http/html-body]
 ;                   :get home-page
 ;                   "/about" {:get about-page}}})
 
 ;(def routes
 ;  `[[["/" {:get home-page}
-;      ^:interceptors [(body-params/body-params) bootstrap/html-body]
+;      ^:interceptors [(body-params/body-params) http/html-body]
 ;      ["/about" {:get about-page}]]]])
 
 (defn my-custom-provider
@@ -118,5 +118,3 @@
               ;                          ;:ssl-port 8443
               ;                          :ssl? false}
               })
-
-

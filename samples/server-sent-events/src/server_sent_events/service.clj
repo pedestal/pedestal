@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns server-sent-events.service
-  (:require [io.pedestal.http :as bootstrap]
+  (:require [io.pedestal.http :as http]
             [io.pedestal.http.sse :as sse]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition :refer [defroutes]]
@@ -110,11 +110,11 @@
               ;; sure you include routing and set it up right for
               ;; dev-mode. If you do, many other keys for configuring
               ;; default interceptors will be ignored.
-              ;; :bootstrap/interceptors []
-              ::bootstrap/routes routes
+              ;; :http/interceptors []
+              ::http/routes routes
               ;; Root for resource interceptor that is available by default.
-              ::bootstrap/resource-path "/public"
+              ::http/resource-path "/public"
               ;; Either :jetty or :tomcat (see comments in project.clj
               ;; to enable Tomcat)
-              ::bootstrap/type :jetty
-              ::bootstrap/port 8080})
+              ::http/type :jetty
+              ::http/port 8080})
