@@ -129,10 +129,10 @@
   `response-channel`."
   [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
   (async/go
+    (log/counter ::active-streams 1)
     (loop []
       (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
            [event port] (async/alts! [event-channel hb-timeout])]
-        (log/counter ::active-streams 1)
        (cond
          (= port hb-timeout)
          (if (async/>! response-channel CRLF)
@@ -225,4 +225,3 @@
   "See start-event-stream. This function is for backward compatibility."
   [& args]
   (apply start-event-stream args))
-
