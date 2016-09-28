@@ -15,15 +15,13 @@
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.ring-middlewares :as middlewares]
-            [io.pedestal.interceptor :refer [definterceptor]]
             [ring.util.response :as ring-resp]
             [ring.middleware.session.cookie :as cookie]))
 
 (defn html-response
   [html]
-  (ring-resp/content-type (ring-resp/response html) "text/html"))
+  {:status 200 :body html :headers {"Content-Type" "text/html"}})
 
 ;; Gather some data from the user to retain in their session.
 (defn intro-form
@@ -36,7 +34,8 @@
   "Place the name provided by the user into their session, then send
    them to hello."
   [req]
-  (let [name (get-in req [:params :name])]
+  (let [name (get-in req [:params :name])
+        name (if (empty? name) nil name)]
     (-> (ring-resp/redirect "/hello")
         (assoc :session {:name name}))))
 
@@ -50,8 +49,7 @@
   "Look up the name for this http session, if present greet the user
    by their name. If not, greet the user as stranger."
   [req]
-  (let [name (or (get-in req [:session :name])
-                 "Stranger")]
+  (let [name (or (get-in req [:session :name]) "Stranger")]
     (html-response (str "<html><body><h1>Hello, " name "!</h1></body></html>\n"))))
 
 
@@ -68,41 +66,22 @@
 ;; the session data will become unrecoverable when the server process
 ;; ends. While the browser retains the cookie, the interceptor will
 ;; treat the unrecoverable ciphertext as non-existant.
-(definterceptor session-interceptor
-  (middlewares/session {:store (cookie/cookie-store)}))
 
 ;; Set up routes to get all the above handlers accessible.
-(defroutes routes
-  [[["/" {:get intro-form}]
-    ["/introduce" ^:interceptors [middlewares/params
-                                  middlewares/keyword-params
-                                  session-interceptor]
-     {:post introduction}]
-    ["/hello" ^:interceptors [session-interceptor]
-     {:get hello}]]])
+(def routes
+  (let [session-interceptor (middlewares/session {:store (cookie/cookie-store)})]
+    (route/expand-routes
+     [[["/" {:get `intro-form}]
+       ["/introduce" ^:interceptors [(body-params/body-params)
+                                     middlewares/params
+                                     middlewares/keyword-params
+                                     session-interceptor]
+        {:post `introduction}]
+       ["/hello" ^:interceptors [session-interceptor]
+        {:get `hello}]]])))
 
-;; Consumed by ring-middleware.server/create-server
-;; See http/default-interceptors for additional options you can configure
-(def service {:env :prod
-              ;; You can bring your own non-default interceptors. Make
-              ;; sure you include routing and set it up right for
-              ;; dev-mode. If you do, many other keys for configuring
-              ;; default interceptors will be ignored.
-              ;; :http/interceptors []
-              ::http/routes routes
-
-              ;; Uncomment next line to enable CORS support, add
-              ;; string(s) specifying scheme, host and port for
-              ;; allowed source(s):
-              ;;
-              ;; "http://localhost:8080"
-              ;;
-              ;;::http/allowed-origins ["scheme://host:port"]
-
-              ;; Root for resource interceptor that is available by default.
+(def service {:env                 :prod
+              ::http/routes        routes
               ::http/resource-path "/public"
-
-              ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
-              ::http/type :jetty
-              ;;::http/host "localhost"
-              ::http/port 8080})
+              ::http/type          :jetty
+              ::http/port          8080})

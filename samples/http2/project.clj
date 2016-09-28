@@ -1,11 +1,11 @@
-(defproject hp "0.0.1-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject hp "0.5.1"
+  :description "HTTP2 support"
+  :url "http://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [io.pedestal/pedestal.service "0.5.0"]
-                 [io.pedestal/pedestal.jetty "0.5.0"]
+                 [io.pedestal/pedestal.service "0.5.1"]
+                 [io.pedestal/pedestal.jetty "0.5.1"]
 
                  [ch.qos.logback/logback-classic "1.1.7" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.21"]
@@ -17,4 +17,3 @@
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "hp.server/run-dev"]}}
              :uberjar {:aot [hp.server]}}
   :main ^{:skip-aot true} hp.server)
-
