@@ -14,7 +14,7 @@
   (:require [clojure.java.io :as io]
             [clojure.core.async :as async]
             [io.pedestal.log :as log]
-            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition :refer [defroutes]]
@@ -53,12 +53,12 @@
   [[["/"   {:get [::send-stuff (sse/start-event-stream sse-stream-ready)]}]]])
 
 (def service {:env :prod
-              ::bootstrap/routes routes
+              ::http/routes routes
               ;; Allow services that are accessing this
               ;; service from a http-referer[sic] of http://localhost:8080.
               ;; All others are denied.
-              ::bootstrap/allowed-origins ["http://localhost:8080"]
-              ::bootstrap/resource-path "/public"
-              ::bootstrap/type :jetty
+              ::http/allowed-origins ["http://localhost:8080"]
+              ::http/resource-path "/public"
+              ::http/type :jetty
               ;; Run this service on port 8081 (not default).
-              ::bootstrap/port 8081})
+              ::http/port 8081})

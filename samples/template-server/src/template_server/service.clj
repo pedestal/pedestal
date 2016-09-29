@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns template-server.service
-  (:require [io.pedestal.http :as bootstrap]
+  (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
@@ -42,10 +42,10 @@
 ;; https://github.com/weavejester/hiccup
 (defn hiccup-page
   [request]
-  (ring-resp/response (hiccup/html5 
+  (ring-resp/response (hiccup/html5
     [:body
       [:h1 {:id "the-title"} (title-as "Hiccup")]
-      [:hr] 
+      [:hr]
       [:p "This page was rendered with Hiccup!"]
       [:br]
       [:p {:id "the-text"}   "Hello from the Hiccup demo. Do you need a glass of water?"]
@@ -61,8 +61,8 @@
 
 (defn enlive-page
   [request]
-  (ring-resp/response 
-   (apply str 
+  (ring-resp/response
+   (apply str
           (enlive-template {:title (title-as   "Enlive")
                             :text  "This is a special message from Enlive."
                             :date  (current-date)}))))
@@ -71,7 +71,7 @@
 ;; https://github.com/fhd/clostache
 (defn clostache-page
   [request]
-  (ring-resp/response 
+  (ring-resp/response
     (clostache/render-resource "public/clostache-template.html"
                                {:title (title-as   "Clostache")
                                 :text  "With Clostache, it's November every month."
@@ -83,7 +83,7 @@
   [request]
   (let [template (slurp (io/resource "public/comb-template.html"))]
     (ring-resp/response
-      (comb/eval template 
+      (comb/eval template
                  {:title (title-as   "Comb")
                   :text  "You might be able to tame hairy markup with Comb."
                   :date  (current-date)}))))
@@ -111,7 +111,7 @@
 
 ;; Define the routes that pull everything together.
 (defroutes routes
-  [[["/" {:get home-page} ^:interceptors [bootstrap/html-body]
+  [[["/" {:get home-page} ^:interceptors [http/html-body]
       ["/hiccup" {:get hiccup-page}]
       ["/enlive" {:get enlive-page}]
       ["/clostache" {:get clostache-page}]
@@ -120,9 +120,9 @@
       ["/selmer" {:get selmer-page}]]]])
 
 ;; Consumed by template-server.server/create-server
-;; See bootstrap/default-interceptors for additional options you can configure
+;; See http/default-interceptors for additional options you can configure
 (def service {:env :prod
-              ::bootstrap/routes routes
-              ::bootstrap/resource-path "/public"
-              ::bootstrap/type :jetty
-              ::bootstrap/port 8080})
+              ::http/routes routes
+              ::http/resource-path "/public"
+              ::http/type :jetty
+              ::http/port 8080})

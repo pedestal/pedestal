@@ -6,15 +6,6 @@ that stores your name in the session via setting a session token
 in the cookie store. We are depending on `ring.middleware.session.cookie`
 for this functionality.
 
-To make this work, we use `definterceptor` to define the interceptor
-we'll need in the processing list to store a value in a cookie. From
-`services.clj`:
-
-```clojure
-(definterceptor session-interceptor
-  (middlewares/session {:store (cookie/cookie-store)}))
-```
-
 For further enlightenment, take a look at:
 
 *  The pedestal ring-middlewares package: `io.pedestal.http.ring-middlewares`

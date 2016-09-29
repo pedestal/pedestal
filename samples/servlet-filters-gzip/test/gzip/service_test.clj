@@ -10,10 +10,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns gzip.service-test
-  (:require [clj-http.client :as http]
+  (:require [clj-http.client :as http-cl]
             [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
-            [io.pedestal.http :as bootstrap]
+            [io.pedestal.http :as http]
             [io.pedestal.http.jetty :as jetty]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as incept]
@@ -21,7 +21,7 @@
             [gzip.server :as server]))
 
 (def service
-  (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
+  (::http/service-fn (http/create-servlet service/service)))
 
 (defn jetty-server
   [app opts]
@@ -34,7 +34,7 @@
 
 (defn get-response [addy]
   (try
-    (http/get addy)
+    (http-cl/get addy)
     (catch clojure.lang.ExceptionInfo ex
       (prn "BOOM!\n\n")
       (prn ex)
@@ -43,7 +43,7 @@
 (deftest home-page-test
   (let [jetty (server/run-dev)
         response (get-response "http://localhost:8080")
-        _ (bootstrap/stop jetty)]
+        _ (http/stop jetty)]
     (testing "service response"
       (is (=
            (:body response)
@@ -52,5 +52,3 @@
       (is (.startsWith
            (:orig-content-encoding response)
            "gzip")))))
-
-

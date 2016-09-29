@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns server-with-links.service
-  (:require [io.pedestal.http :as bootstrap]
+  (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition :refer [defroutes]]
@@ -42,10 +42,9 @@
     ["/that" {:get [:that linked-page]}]]])  ; Name a route to be able to generate its path later
 
 ;; Consumed by server-with-links.server/create-server
-;; See bootstrap/default-interceptors for additional options you can configure
+;; See http/default-interceptors for additional options you can configure
 (def service {:env :prod
-              ::bootstrap/routes routes
-              ::bootstrap/resource-path "/public"
-              ::bootstrap/type :jetty
-              ::bootstrap/port 8080})
-
+              ::http/routes routes
+              ::http/resource-path "/public"
+              ::http/type :jetty
+              ::http/port 8080})

@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns hello-world.service
-  (:require [io.pedestal.http :as bootstrap]
+  (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition :refer [defroutes]]
@@ -27,8 +27,7 @@
       ["/hello" {:get hello-world}]]]])
 
 (def service {:env :prod
-              ::bootstrap/routes routes
-              ::bootstrap/resource-path "/public"
-              ::bootstrap/type :immutant
-              ::bootstrap/port 8080})
-
+              ::http/routes routes
+              ::http/resource-path "/public"
+              ::http/type :immutant
+              ::http/port 8080})
