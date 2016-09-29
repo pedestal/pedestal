@@ -23,6 +23,11 @@ In general:
  * If you need a `resources` interceptor, use `io.pedestal.http.ring-middlewares.fast-resource`,
    which optimizes responses based on the HTTP buffer
 
+## Requirements
+
+Note that this sample uses features of Oracle's commercial JVM that
+are not available in the OpenJDK VM.
+
 ## Configuration
 
 To configure logging see config/logback.xml. By default, the app logs to stdout and logs/.
@@ -30,4 +35,3 @@ To learn more about configuring Logback, read its [documentation](http://logback
 
 ## Links
 * [Other examples](https://github.com/pedestal/samples)
-

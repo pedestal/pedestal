@@ -29,13 +29,7 @@
                 *assert* true}
   :pedantic? :abort
   :resource-paths ["config", "resources"]
-  :plugins [[info.sunng/lein-bootclasspath-deps "0.1.1"]]
-  :boot-dependencies [;; See: https://www.eclipse.org/jetty/documentation/current/alpn-chapter.html#alpn-versions
-                      ;[org.mortbay.jetty.alpn/alpn-boot "8.1.4.v20150727"] ;; JDK 1.8.0_51
-                      ;[org.mortbay.jetty.alpn/alpn-boot "8.1.3.v20150130"] ;; JDK 1.8.0_31/40/45
-                      ;[org.mortbay.jetty.alpn/alpn-boot "8.1.2.v20141202"] ;; JDK 1.8.0_25
-                      [org.mortbay.jetty.alpn/alpn-boot "8.1.0.v20141016" :prepend true] ;; JDK 1.8.0_20 (1.8 up to _20)
-                      ]
+  :java-agents [[org.mortbay.jetty.alpn/jetty-alpn-agent "2.0.3"]]
   :profiles {:dev {:aliases {"run-fastjetty" ["trampoline" "run" "-m" "fast-pedestal.fastjetty-service/-main"]
                              "run-fasterjetty" ["trampoline" "run" "-m" "fast-pedestal.fasterjetty-service/-main"]}}
              :uberjar {:aot [fast-pedestal.server]}}
