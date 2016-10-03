@@ -297,10 +297,14 @@
 
      :fragment      A string for the fragment part of the url.
 
-     :override      A map of aspects of the matching route to override
-                    including any of: :scheme, :host, :port.
-
      :absolute?     Boolean, whether or not to force an absolute URL
+    
+     :scheme        Keyword (:http | :https) used to override the scheme 
+                    portion of the url.
+  
+     :host          A string used to override the host portion of the URL.
+     
+     :port          An integer used to override the port in the URL.
 
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned
