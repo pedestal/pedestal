@@ -11,8 +11,8 @@ This sample illustrates how to use WebSockets with Pedestal and Jetty.
 ```javascript
 w = new WebSocket("ws://localhost:8080/ws")
 w.onmessage = function(e) { console.log(e.data); }
-w.onclose = function(e) {  console.log("The server closed"); }
-w.send("Hello from the Client!");
+w.onopen = function(e) { w.send("Hello from the Client!"); }
+w.onclose = function(e) { console.log("The server closed"); }
 ```
 
 You'll notice the log message in Clojure REPL

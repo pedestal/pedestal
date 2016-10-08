@@ -1,4 +1,5 @@
 (ns jetty-web-sockets.service
+  (:import (java.nio ByteBuffer))
   (:require [io.pedestal.http :as http]
             [io.pedestal.log :as log]
             [io.pedestal.http.route :as route]
@@ -40,9 +41,18 @@
     ;; And now let's close it down...
     (async/close! send-ch)))
 
+; Send message to all ws-clients
+; and also checks if the client has an open connection.
+(defn send-message-to-all
+  [message]
+  (doseq [[session channel] @ws-clients]
+    (if (.isOpen session)
+      (async/put! channel message)
+      (swap! ws-clients dissoc session channel))))
+
 (def ws-paths
   {"/ws" {:on-connect (ws/start-ws-connection new-ws-client)
-          :on-text (fn [msg] (log/info :msg (str "A client sent - " msg)))
+          :on-text (fn [message] (send-message-to-all message))
           :on-binary (fn [payload offset length] (log/info :msg "Binary Messag!" :bytes payload))
           :on-error (fn [t] (log/error :msg "WS Error happened" :exception t))
           :on-close (fn [num-code reason-text]
