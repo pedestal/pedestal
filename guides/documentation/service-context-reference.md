@@ -14,4 +14,8 @@
 
 # Obsolete Guide
 
-Please see the new reference at http://pedestal.io/reference/service-map
+Please see the new reference at [http://pedestal.io/reference/service-map](http://pedestal.io/reference/service-map)
+
+The new source for the guide can be found in the [Pedestal Docs Repo](https://github.com/pedestal/pedestal-docs).
+Guide-specific content lives in the [guides section](https://github.com/pedestal/pedestal-docs/tree/master/content/guides).
+

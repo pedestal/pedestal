@@ -14,5 +14,9 @@
 
 # Obsolete Guide
 
-Please see the new guide at http://pedestal.io/guides/defining-routes
-or the reference at http://pedestal.io/reference/table-syntax
+Please see the new guide at [http://pedestal.io/guides/defining-routes](http://pedestal.io/guides/defining-routes)
+or the reference at [http://pedestal.io/reference/table-syntax](http://pedestal.io/reference/table-syntax).
+
+The new source for the guide can be found in the [Pedestal Docs Repo](https://github.com/pedestal/pedestal-docs).
+Guide-specific content lives in the [guides section](https://github.com/pedestal/pedestal-docs/tree/master/content/guides).
+

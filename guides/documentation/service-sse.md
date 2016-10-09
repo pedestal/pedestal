@@ -15,4 +15,8 @@
 # Obsolete Guide
 
 Please see the new guide at
-http://pedestal.io/reference/server-sent-events
+[http://pedestal.io/reference/server-sent-events](http://pedestal.io/reference/server-sent-events).
+
+The new source for the guide can be found in the [Pedestal Docs Repo](https://github.com/pedestal/pedestal-docs).
+Guide-specific content lives in the [guides section](https://github.com/pedestal/pedestal-docs/tree/master/content/guides).
+
