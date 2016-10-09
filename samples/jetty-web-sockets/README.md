@@ -11,7 +11,7 @@ This sample illustrates how to use WebSockets with Pedestal and Jetty.
 ```javascript
 w = new WebSocket("ws://localhost:8080/ws")
 w.onmessage = function(e) { console.log(e.data); }
-w.onclose = function(e) {  console.log("The server closed the connection"); }
+w.onclose = function(e) {  console.log("The connection to the server has closed."); }
 w.send("Hello from the Client!");
 ```
 
