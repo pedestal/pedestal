@@ -5,7 +5,8 @@
            (org.eclipse.jetty.websocket.servlet WebSocketCreator
                                                 WebSocketServlet
                                                 WebSocketServletFactory)
-           (org.eclipse.jetty.websocket.api WebSocketListener
+           (org.eclipse.jetty.websocket.api Session
+                                            WebSocketListener
                                             WebSocketConnectionListener
                                             RemoteEndpoint)))
 
@@ -39,7 +40,7 @@
   ([on-connect-fn]
    (start-ws-connection on-connect-fn 10))
   ([on-connect-fn send-buffer-or-n]
-   (fn [ws-session]
+   (fn [^Sesson ws-session]
      (let [send-ch (async/chan send-buffer-or-n)
            remote ^RemoteEndpoint (.getRemote ws-session)]
        ;; Let's process sends...

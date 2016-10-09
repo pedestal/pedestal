@@ -6,7 +6,8 @@
             [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [clojure.core.async :as async]
-            [io.pedestal.http.jetty.websockets :as ws]))
+            [io.pedestal.http.jetty.websockets :as ws])
+  (:import [org.eclipse.jetty.websocket.api Session]))
 
 (defn about-page
   [request]
@@ -38,12 +39,24 @@
   (let [[ws-session send-ch] (first @ws-clients)]
     (async/put! send-ch "A message from the server")
     ;; And now let's close it down...
-    (async/close! send-ch)))
+    (async/close! send-ch)
+    ;; And now clean up
+    (swap! ws-clients dissoc ws-session)))
+
+;; Also for demo purposes...
+(defn send-message-to-all!
+  [message]
+  (doseq [[^Session session channel] @ws-clients]
+    ;; The Pedestal Websocket API performs all defensive checks before sending,
+    ;;  like `.isOpen`, but this example shows you can make calls directly on
+    ;;  on the Session object if you need to
+    (when (.isOpen session)
+      (async/put! channel message))))
 
 (def ws-paths
   {"/ws" {:on-connect (ws/start-ws-connection new-ws-client)
           :on-text (fn [msg] (log/info :msg (str "A client sent - " msg)))
-          :on-binary (fn [payload offset length] (log/info :msg "Binary Messag!" :bytes payload))
+          :on-binary (fn [payload offset length] (log/info :msg "Binary Message!" :bytes payload))
           :on-error (fn [t] (log/error :msg "WS Error happened" :exception t))
           :on-close (fn [num-code reason-text]
                       (log/info :msg "WS Closed:" :reason reason-text))}})
