@@ -40,7 +40,8 @@
 (defn weighted-accept-qs [supported-types accept-elem]
   (when-let [weighted-qs (seq
                              (for [target supported-types
-                                   :let [weighted-q (if (and (= (:type accept-elem) (:type target))
+                                   :let [weighted-q (if (and (or (= (:type accept-elem) (:type target))
+                                                                 (= (:type accept-elem) "*"))
                                                              (or (= (:subtype accept-elem)
                                                                     (:subtype target))
                                                                  (= (:subtype accept-elem) "*")))

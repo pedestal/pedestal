@@ -38,7 +38,7 @@
 (deftest parse-and-weight-tests
   (testing "single request"
     (are [request-str supported-strs expected]
-         (= (cn/weighted-accept-qs (mapv cn/parse-accept-element supported-strs)
+        (= (cn/weighted-accept-qs (mapv cn/parse-accept-element supported-strs)
                                    (cn/parse-accept-element request-str))
             expected)
 
@@ -67,7 +67,9 @@
             expected)
 
          ;; A multi request; single supported
-         ["foo/bar"] [nil
+         ["foo/bar"] [[55.2
+                       {:params {:q 1.0}, :field "foo/bar", :type "foo", :subtype "bar"}
+                       {:params {:q 0.2}, :field "*/*", :type "*", :subtype "*"}]
                       [105.2
                        {:field "foo/bar" :type "foo" :subtype "bar" :params {:q 1.0}}
                        {:field "foo/*" :type "foo" :subtype "*" :params {:q 0.2}}]
@@ -79,10 +81,15 @@
                       [112.0
                        {:field "foo/bar" :type "foo" :subtype "bar" :params {:q 1.0}}
                        {:field "foo/bar" :type "foo" :subtype "bar" :params {:q 1.0 :baz "spam"}}]]
-         ;; A multi request; single supported with no match
-         ["qux/burt"] [nil nil nil nil nil nil]
+         ;; A multi request; single supported with no match apart from */*
+         ["qux/burt"] [[55.2
+                        {:params {:q 1.0}, :field "qux/burt", :type "qux", :subtype "burt"}
+                        {:params {:q 0.2}, :field "*/*", :type "*", :subtype "*"}]
+                       nil nil nil nil nil]
          ;; A multi request; multi-supported with one applicable
-         ["foo/bar" "qux/burt"] [nil
+         ["foo/bar" "qux/burt"] [[55.2
+                                  {:params {:q 1.0}, :field "foo/bar", :type "foo", :subtype "bar"}
+                                  {:params {:q 0.2}, :field "*/*", :type "*", :subtype "*"}]
                                  [105.2
                                   {:field "foo/bar" :type "foo" :subtype "bar" :params {:q 1.0}}
                                   {:field "foo/*" :type "foo" :subtype "*" :params {:q 0.2}}]
@@ -95,7 +102,9 @@
                                   {:field "foo/bar" :type "foo" :subtype "bar" :params {:q 1.0}}
                                   {:field "foo/bar" :type "foo" :subtype "bar" :params {:q 1.0 :baz "spam"}}]]
          ;; A multi-request; multi supported; multi applicable
-         ["foo/burt" "spam/burt"] [nil
+         ["foo/burt" "spam/burt"] [[55.2
+                                    {:params {:q 1.0}, :field "foo/burt", :type "foo", :subtype "burt"}
+                                    {:params {:q 0.2}, :field "*/*", :type "*", :subtype "*"}]
                                    [105.2
                                     {:field "foo/burt" :type "foo" :subtype "burt" :params {:q 1.0}}
                                     {:field "foo/*" :type "foo" :subtype "*" :params {:q 0.2}}]
@@ -103,8 +112,11 @@
                                     {:field "spam/burt" :type "spam" :subtype "burt" :params {:q 1.0}}
                                     {:field "spam/*" :type "spam" :subtype "*" :params {:q 0.5}}]
                                    nil nil nil]
-         ;; A multi-request; multi supported with no match
-         ["qux/burt" "qax/burt"] [nil nil nil nil nil nil])))
+         ;; A multi-request; multi supported with no match apart from */*
+         ["qux/burt" "qax/burt"] [[55.2
+                                   {:params {:q 1.0}, :field "qux/burt", :type "qux", :subtype "burt"}
+                                   {:params {:q 0.2}, :field "*/*", :type "*", :subtype "*"}]
+                                  nil nil nil nil nil])))
 
 ;; Since matching is just a fallout of weighting, this next test is
 ;; just to ensure we fetch the correct value out of the weight response...
@@ -118,7 +130,7 @@
     (is (= nil
            (cn/best-match
              (cn/best-match-fn ["qux/burt" "qax/burt"])
-             (cn/parse-accept-* example-accept))))))
+             (cn/parse-accept-* (subs example-accept 12)))))))
 
 ;; Interceptor testing approach taken from io.pedestal.http.ring-middlewares-test
 ;; ----------------
