@@ -82,13 +82,15 @@
   ([channel name data]
    (send-event channel name data nil))
   ([channel name data id]
+   (send-event channel name data id async/>!!))
+  ([channel name data id put-fn]
    (log/trace :msg "writing event to stream"
               :name name
               :data data
               :id id)
    (log/histogram ::payload-size (count data))
    (try
-     (async/>!! channel (mk-data name data id))
+     (put-fn channel (mk-data name data id))
      (catch Throwable t
        (async/close! channel)
        (log/error :msg "exception sending event"
@@ -147,7 +149,7 @@
          (let [event-name (if (map? event) (str (:name event)) nil)
                event-data (if (map? event) (str (:data event)) (str event))
                event-id (if (map? event) (str (:id event)) nil)]
-           (if (send-event response-channel event-name event-data event-id)
+           (if (send-event response-channel event-name event-data event-id async/put!)
              (recur)
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
