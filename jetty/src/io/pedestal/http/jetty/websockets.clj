@@ -40,7 +40,7 @@
   ([on-connect-fn]
    (start-ws-connection on-connect-fn 10))
   ([on-connect-fn send-buffer-or-n]
-   (fn [^Sesson ws-session]
+   (fn [^Session ws-session]
      (let [send-ch (async/chan send-buffer-or-n)
            remote ^RemoteEndpoint (.getRemote ws-session)]
        ;; Let's process sends...
