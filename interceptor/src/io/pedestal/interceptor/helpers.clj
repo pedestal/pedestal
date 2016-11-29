@@ -11,6 +11,19 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor.helpers
+  "A collection of interceptor helpers.
+
+  The usage of the Interceptor API is preferred over the macros
+  defined in this namespace. Usage of the macro helpers should be
+  limited to cases where you are porting an existing Pedestal code
+  base.
+   
+  The helper macros predate the interceptor API and can break AOT
+  compilation but they are maintained for backwards
+  compatibility. Refer to
+  https://github.com/pedestal/pedestal/issues/308 and
+  https://github.com/pedestal/pedestal/pull/301 for more details about
+  macro helper issues and the rationale for the Interceptor API."
   (:require [io.pedestal.interceptor :as interceptor :refer [interceptor
                                                              interceptor-name]]))
 
