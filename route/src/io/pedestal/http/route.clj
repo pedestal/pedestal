@@ -212,7 +212,7 @@
          override-host   :host
          override-port   :port
          override-scheme :scheme} opts
-        {:keys [scheme host port path-parts]} route
+        {:keys [scheme host port path-parts path]} route
         context-path-parts (context-path opts)
         path-parts (do (log/debug :in :link-str
                                   :path-parts path-parts
@@ -220,7 +220,8 @@
                        (if (and context-path-parts (empty? (first path-parts)))
                          (concat context-path-parts (rest path-parts))
                          path-parts))
-        path (str/join \/ (map #(get path-params % %) path-parts))
+        path-chunk (str/join \/ (map #(get path-params % %) path-parts))
+        path (if (= \/ (last path)) (str path-chunk "/") path-chunk)
         request-scheme (:scheme request)
         request-host (:server-name request)
         request-port (:server-port request)
