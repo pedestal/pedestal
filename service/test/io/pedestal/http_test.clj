@@ -197,6 +197,12 @@
               (response-for app :get)
               :status))))
 
+(deftest response-with-bad-query
+  (let [resp (response-for app :get "/just-status?q=%")]
+    (is (= 400 (:status resp)))
+    (is (= "Bad Request - URLDecoder: Incomplete trailing escape (%) pattern"
+           (:body resp)))))
+
 (deftest adding-a-binding-to-context-appears-in-user-request
   (is (= ":req was bound to {:a 1}"
          (->> "/with-binding"
