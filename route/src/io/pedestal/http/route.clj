@@ -64,12 +64,7 @@
   "Decodes one key or value of URL-encoded UTF-8 characters in a URL
   query string."
   [string]
-  (try
-    (URLDecoder/decode string "UTF-8")
-    (catch java.lang.IllegalArgumentException e
-      (throw (ex-info (str "Failed to decode query part: " string)
-                      {:error :malformed-query-params}
-                      e)))))
+  (URLDecoder/decode string "UTF-8"))
 
 (defn encode-query-part
   "Encodes one key or value for a UTF-8 URL-encoded query string.
@@ -456,10 +451,9 @@
      :enter (fn [ctx]
               (try
                 (update-in ctx [:request] parse-query-params)
-                (catch clojure.lang.ExceptionInfo e
-                  (if (= (:error (ex-data e)) :malformed-query-params)
-                    (assoc ctx :response {:status 400 :body "Bad Request"})
-                    (throw e)))))}))
+                (catch IllegalArgumentException _
+                  (interceptor.chain/terminate
+                   (assoc ctx :response {:status 400 :body "Bad Request"})))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
