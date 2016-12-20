@@ -449,7 +449,11 @@
   (interceptor/interceptor
     {:name ::query-params
      :enter (fn [ctx]
-              (update-in ctx [:request] parse-query-params))}))
+              (try
+                (update-in ctx [:request] parse-query-params)
+                (catch IllegalArgumentException _
+                  (interceptor.chain/terminate
+                   (assoc ctx :response {:status 400 :body "Bad Request"})))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
