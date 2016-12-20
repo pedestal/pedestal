@@ -296,29 +296,36 @@
 ;; Public Metrics API
 ;; -------------------
 
+(defn format-name
+  "Format a given metric name, regardless of type, into a string"
+  [n]
+  (if (keyword? n)
+    (subs (str n) 1)
+    (str n)))
+
 (defn counter
   ([metric-name ^Long delta]
-   (-counter default-recorder (str metric-name) delta))
+   (-counter default-recorder (format-name metric-name) delta))
   ([recorder metric-name ^Long delta]
-   (-counter recorder (str metric-name) delta)))
+   (-counter recorder (format-name metric-name) delta)))
 
 (defn gauge
   ([metric-name ^IFn value-fn]
-   (-gauge default-recorder (str metric-name) value-fn))
+   (-gauge default-recorder (format-name metric-name) value-fn))
   ([recorder metric-name ^IFn value-fn]
-   (-gauge recorder (str metric-name) value-fn)))
+   (-gauge recorder (format-name metric-name) value-fn)))
 
 (defn histogram
   ([metric-name ^Long value]
-   (-histogram default-recorder (str metric-name) value))
+   (-histogram default-recorder (format-name metric-name) value))
   ([recorder metric-name ^Long value]
-   (-histogram recorder (str metric-name) value)))
+   (-histogram recorder (format-name metric-name) value)))
 
 (defn meter
   ([metric-name]
-   (-meter default-recorder (str metric-name) 1))
+   (-meter default-recorder (format-name metric-name) 1))
   ([metric-name ^Long n-events]
-   (-meter default-recorder (str metric-name) n-events))
+   (-meter default-recorder (format-name metric-name) n-events))
   ([recorder metric-name ^Long n-events]
-   (-meter recorder (str metric-name) n-events)))
+   (-meter recorder (format-name metric-name) n-events)))
 
