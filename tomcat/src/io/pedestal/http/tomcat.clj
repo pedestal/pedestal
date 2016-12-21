@@ -95,6 +95,7 @@
           context (.addContext tomcat "/" (.getAbsolutePath public))]
       ;; Configure the core HTTP connector
       (doto (.getConnector tomcat)
+        (.setXpoweredBy false)
         (.setAttribute "socket.soReuseAddress" true))
       (Tomcat/addServlet context "default" servlet)
       (.addServletMapping context "/*" "default")
