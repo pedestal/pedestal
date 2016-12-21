@@ -10,30 +10,42 @@
      (on-connect-fn "immutant-ws-session" send-ch))))
 
 (defn make-ws-listener
+  "Creates an Immutant listener (map) for a WebSocket connection.
+  Note that on-text and on-binary will override each other in this implementation,
+  and you should use on-message if you need a single handler to fulfill both binary
+  and text messages."
   [ws-map]
-  (let [full-set {:on-connect
-                  {:on-open
-                   (fn [channel]
-                     ((:on-connect ws-map) channel))}
-                  :on-close
-                  {:on-close
-                   (fn [channel {:keys [code reason]}]
-                     ((:on-close ws-map) code reason))}
-                  :on-error
-                  {:on-error
-                   (fn [channel throwable]
-                     ((:on-error ws-map) throwable))}
-                  :on-text
-                  {:on-message
-                   (fn [channel m]
-                     (async/send! channel ((:on-text ws-map) m)))}
-                  :on-binary
-                  {:on-message
-                   (fn [channel m]
-                     (let [payload (if (instance? String m) (.getBytes m) m)
-                           offset 0
-                           length (count payload)]
-                       (async/send! channel ((:on-binary ws-map) payload offset length))))}}
+  (let [{:keys [on-connect
+                on-close
+                on-error
+                on-text
+                on-binary
+                on-message]} ws-map
+        full-set {:on-connect {:on-open
+                               (fn [channel]
+                                 (on-connect channel))}
+
+                  :on-close {:on-close
+                             (fn [channel {:keys [code reason]}]
+                               (on-close code reason))}
+
+                  :on-error {:on-error
+                             (fn [channel throwable]
+                               (on-error throwable))}
+
+                  :on-text {:on-message
+                            (fn [channel m]
+                              (async/send! channel (on-text m)))}
+
+                  :on-binary {:on-message
+                              (fn [channel m]
+                                (let [payload (if (instance? String m) (.getBytes m) m)
+                                      offset 0
+                                      length (count payload)]
+                                  (async/send! channel (on-binary payload offset length))))}
+
+                  :on-message {:on-message (fn [channel m]
+                                             (async/send! channel (on-message m)))}}
         listener (reduce merge {} (map val (select-keys full-set (keys ws-map))))]
     listener))
 
@@ -46,4 +58,7 @@
               listener (make-ws-listener ws-map)
               handler (fn [request]
                         (async/as-channel (assoc request :websocket? true) listener))]
-          (recur (rest ws-maps) (-> request (assoc :path path) (->> (web/run handler))))))))
+          (recur (rest ws-maps) (-> request
+                                    (assoc :path path)
+                                    (->> (web/run handler))))))))
+
