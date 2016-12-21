@@ -19,7 +19,8 @@
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.log :as log]
             [cognitect.transit :as transit]
-            [ring.middleware.params :as params]))
+            [ring.middleware.params :as params])
+  (:import [java.util.regex Pattern]))
 
 (defn- parser-for
   "Find a parser for the given content-type, never returns nil"
@@ -53,7 +54,10 @@
 
 (defn add-parser
   [parser-map content-type parser-fn]
-  (assoc parser-map (re-pattern (str "^" content-type "$")) parser-fn))
+  (let [content-pattern (if (instance? java.util.regex.Pattern content-type)
+                          content-type
+                          (re-pattern (str "^" (Pattern/quote content-type) "$")))]
+    (assoc parser-map content-pattern parser-fn)))
 
 (defn add-ring-middleware
   [parser-map content-type middleware]
