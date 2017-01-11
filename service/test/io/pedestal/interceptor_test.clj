@@ -50,6 +50,33 @@
                       (>! a-chan context*))
                     a-chan))))
 
+(defn failed-channeler [name]
+  (assoc (tracer name)
+         :enter (fn [context]
+                  (go
+                    (<! (timeout 100))
+                    (throw (ex-info "This gets swallowed and the channel produced by `go` is closed"
+                                    {:from name}))))))
+
+(defn two-channeler [name]
+  (assoc (tracer name)
+         :enter (fn [context]
+                  (let [a-chan (chan)
+                        context* (-> (trace context :enter name)
+                                     (update-in [::thread-ids] (fnil conj []) (.. Thread currentThread getId)))]
+                    (go
+                      (<! (timeout 100))
+                      (>! a-chan context*))
+                    a-chan))
+         :leave (fn [context]
+                  (let [a-chan (chan)
+                        context* (-> (trace context :leave name)
+                                     (update-in [::thread-ids] (fnil conj []) (.. Thread currentThread getId)))]
+                    (go
+                      (<! (timeout 100))
+                      (>! a-chan context*))
+                    a-chan))))
+
 (defn deliverer [ch]
   (interceptor/interceptor {:name ::deliverer
                             :leave #(do (>!! ch %)
@@ -217,7 +244,21 @@
     (is (= 1
            (-> thread-ids distinct count)))))
 
-(deftest one-way-async-channel
+(deftest failed-channel-produces-error
+  (let [result-chan (chan)
+        res (execute (enqueue {}
+                              [(deliverer result-chan)
+                               (tracer :a)
+                               (catcher :b)
+                               (failed-channeler :c)
+                               (tracer :d)]))
+        result (<!! result-chan)]
+    (is (= [[:enter :a]
+            [:enter :b]
+            [:error :b :from nil]
+            [:leave :a]]))))
+
+(deftest one-way-async-channel-enter
   (let [result-chan (chan)
         res (execute-only (enqueue {}
                               [(tracer :a)
@@ -236,6 +277,46 @@
            trace))
     (is (= 2
            (-> thread-ids distinct count)))))
+
+(deftest one-way-async-channel-enter-error
+  (let [result-chan (chan)
+        res (execute-only (enqueue {}
+                              [(deliverer result-chan)
+                               (tracer :a)
+                               (catcher :b)
+                               (failed-channeler :c) ;; Failures go back down the stack
+                               (tracer :d)])
+                          :enter)
+        result     (<!! result-chan)
+        trace      (result ::trace)]
+    (is (= [[:enter :a]
+            [:enter :b]
+            [:error :b :from nil]
+            [:leave :a]]
+           trace))))
+
+;; TODO: While `go-async` supports directions, it isn't currently used when
+;;       executing leave.  `enter` behaves as expected, because of the
+;;       queue/stack handling.
+;(deftest one-way-async-channel-leave
+;  (let [result-chan (chan)
+;        res (execute-only (enqueue {}
+;                              [(deliverer result-chan)
+;                               (tracer :a)
+;                               (two-channeler :b)
+;                               (two-channeler :c)
+;                               (tracer :d)])
+;                          :leave)
+;        result     (<!! result-chan)
+;        trace      (result ::trace)
+;        thread-ids (result ::thread-ids)]
+;    (is (= [[:leave :d]
+;            [:leave :c]
+;            [:leave :b]
+;            [:leave :a]]
+;           trace))
+;    (is (= 2
+;           (-> thread-ids distinct count)))))
 
 (deftest termination
   (let [context (chain/terminate-when {} (fn [ctx]

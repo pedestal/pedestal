@@ -116,14 +116,29 @@
   ([old-context context-channel]
    (prepare-for-async old-context)
    (go
-     (let [new-context (<! context-channel)]
-       (execute new-context)))
+     (if-let [new-context (<! context-channel)]
+       (execute new-context)
+       (execute (assoc (dissoc old-context ::queue ::async-info)
+                       ::stack (get-in old-context [::async-info :stack])
+                       ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                                        {:execution-id (::execution-id old-context)
+                                         :stage (get-in old-context [::async-info :stage])
+                                         :interceptor (name (get-in old-context [::async-info :interceptor]))
+                                         :exception-type :PedestalChainAsyncPrematureClose})))))
    nil)
   ([old-context context-channel interceptor-key]
    (prepare-for-async old-context)
    (go
-     (let [new-context (<! context-channel)]
-       (execute-only new-context interceptor-key)))
+     (if-let [new-context (<! context-channel)]
+       (execute-only new-context interceptor-key)
+       (execute-only (assoc (dissoc old-context ::queue ::async-info)
+                       ::stack (get-in old-context [::async-info :stack])
+                       ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                                        {:execution-id (::execution-id old-context)
+                                         :stage (get-in old-context [::async-info :stage])
+                                         :interceptor (name (get-in old-context [::async-info :interceptor]))
+                                         :exception-type :PedestalChainAsyncPrematureClose}))
+                     interceptor-key)))
    nil))
 
 (defn- process-all-with-binding
@@ -134,7 +149,7 @@
   ([context]
    (process-all-with-binding context :enter))
   ([context interceptor-key]
-  (log/debug :in 'enter-all :execution-id (::execution-id context))
+  (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
   (loop [context context]
     (let [queue (::queue context)
           stack (::stack context)
@@ -145,13 +160,19 @@
         (let [interceptor (peek queue)
               pre-bindings (:bindings context)
               old-context context
+              new-queue (pop queue)
+              ;; conj on nil returns a list, acts like a stack:
+              new-stack (conj stack interceptor)
               context (-> context
-                          (assoc ::queue (pop queue))
-                          ;; conj on nil returns a list, acts like a stack:
-                          (assoc ::stack (conj stack interceptor))
+                          (assoc ::queue new-queue
+                                 ::stack new-stack)
                           (try-f interceptor interceptor-key))]
           (cond
-            (channel? context) (go-async old-context context)
+            (channel? context) (go-async (assoc old-context
+                                                ::async-info {:interceptor interceptor
+                                                              :stage interceptor-key
+                                                              :stack new-stack})
+                                         context)
             (::error context) (dissoc context ::queue)
             (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
             true (recur (check-terminators context)))))))))
