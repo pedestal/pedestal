@@ -1,6 +1,6 @@
 <!-- Logback configuration. See http://logback.qos.ch/manual/index.html -->
 <configuration scan="true" scanPeriod="10 seconds">
-  
+
   <!-- Simple file output -->
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
@@ -8,14 +8,11 @@
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
 
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
       <!-- rollover daily -->
       <fileNamePattern>logs/pedestal-service-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-      <timeBasedFileNamingAndTriggeringPolicy
-          class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-        <!-- or whenever the file size reaches 64 MB -->
-        <maxFileSize>64 MB</maxFileSize>
-      </timeBasedFileNamingAndTriggeringPolicy>
+      <!-- or whenever the file size reaches 64 MB -->
+      <maxFileSize>64 MB</maxFileSize>
     </rollingPolicy>
 
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">

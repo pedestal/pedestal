@@ -65,11 +65,11 @@
                                   [io.pedestal/pedestal.tomcat "0.5.2-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
-                                  [ch.qos.logback/logback-classic "1.1.7" :exclusions [org.slf4j/slf4j-api]]
+                                  [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]
                                   [org.clojure/tools.logging "0.3.1"]
-                                  [org.slf4j/jul-to-slf4j "1.7.21"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.21"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.21"]
+                                  [org.slf4j/jul-to-slf4j "1.7.22"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.22"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.22"]
 
                                   ;; only used for route-bench - remove when no longer needed
                                   [incanter/incanter-core "1.5.6"]
