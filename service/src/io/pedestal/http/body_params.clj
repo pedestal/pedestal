@@ -127,7 +127,7 @@
   pass to transit/reader along with the body of the request."
   [& options]
   (fn [{:keys [body] :as request}]
-    (if (zero? (.available body))
+    (if (zero? (.available ^java.io.InputStream body))
       request
       (assoc request
              :transit-params

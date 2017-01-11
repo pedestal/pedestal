@@ -20,10 +20,10 @@
             [io.pedestal.http.container :as container])
   (:import (javax.servlet.http HttpServlet HttpServletRequest HttpServletResponse)
            (javax.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
-           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
+           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream OutputStream)
            (clojure.lang IMeta)
            (java.util Enumeration NoSuchElementException)
-           (java.nio.channels Channels)))
+           (java.nio.channels Channels ReadableByteChannel)))
 
 (defn- ^Servlet test-servlet
   [interceptor-service-fn]
@@ -181,14 +181,14 @@
                  ;; Force all async NIO behaviors to be sync
                  container/WriteNIOByteBody
                  (write-byte-channel-body [this body resume-chan context]
-                   (let [instream-body (Channels/newInputStream body)]
+                   (let [instream-body (Channels/newInputStream ^ReadableByteChannel body)]
                      (try (io/copy instream-body output-stream)
                           (async/put! resume-chan context)
                           (catch Throwable t
                             (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan)))))
                  (write-byte-buffer-body [this body resume-chan context]
-                   (let [out-chan (Channels/newChannel output-stream)]
+                   (let [out-chan (Channels/newChannel ^java.io.OutputStream output-stream)]
                      (try (.write out-chan body)
                           (async/put! resume-chan context)
                           (catch Throwable t
@@ -231,7 +231,7 @@
         servlet-request (apply test-servlet-request verb url args)
         servlet-response (test-servlet-response)
         context (.service servlet servlet-request servlet-response)]
-    (when (.isAsyncStarted servlet-request)
+    (when (.isAsyncStarted ^HttpServletRequest servlet-request)
       (-> servlet-request meta :completion deref))
     {:status (test-servlet-response-status servlet-response)
      :body (test-servlet-response-body servlet-response)
@@ -272,4 +272,5 @@
   :headers : An optional map that are the headers"
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
-      (update-in [:body] #(.toString % "UTF-8"))))
+      (update-in [:body] #(.toString ^ByteArrayOutputStream % "UTF-8"))))
+

@@ -181,10 +181,10 @@
                              (loadClass "org.slf4j.bridge.SLF4JBridgeHandler"))
                          (catch Throwable t
                            nil))]
-    (.. bridge
+    (.. ^Class bridge
         (getMethod "removeHandlersForRootLogger" (make-array Class 0))
         (invoke nil (make-array Object 0)))
-    (.. bridge
+    (.. ^Class bridge
         (getMethod "install" (make-array Class 0))
         (invoke nil (make-array Object 0)))))
 
