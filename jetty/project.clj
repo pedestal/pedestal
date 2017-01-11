@@ -17,15 +17,14 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.eclipse.jetty/jetty-server "9.3.8.v20160314"]
-                 [org.eclipse.jetty/jetty-servlet "9.3.8.v20160314"]
-                 [org.eclipse.jetty.alpn/alpn-api "1.1.2.v20150522"]
-                 [org.eclipse.jetty/jetty-alpn-server "9.3.8.v20160314"]
-                 [org.eclipse.jetty.alpn/alpn-api "1.1.2.v20150522"]
-                 [org.eclipse.jetty.http2/http2-server "9.3.8.v20160314"]
-                 [org.eclipse.jetty.websocket/websocket-api "9.3.8.v20160314"]
-                 [org.eclipse.jetty.websocket/websocket-servlet "9.3.8.v20160314"]
-                 [org.eclipse.jetty.websocket/websocket-server "9.3.8.v20160314"]
+                 [org.eclipse.jetty/jetty-server "9.4.0.v20161208"]
+                 [org.eclipse.jetty/jetty-servlet "9.4.0.v20161208"]
+                 [org.eclipse.jetty.alpn/alpn-api "1.1.3.v20160715"]
+                 [org.eclipse.jetty/jetty-alpn-server "9.4.0.v20161208"]
+                 [org.eclipse.jetty.http2/http2-server "9.4.0.v20161208"]
+                 [org.eclipse.jetty.websocket/websocket-api "9.4.0.v20161208"]
+                 [org.eclipse.jetty.websocket/websocket-servlet "9.4.0.v20161208"]
+                 [org.eclipse.jetty.websocket/websocket-server "9.4.0.v20161208"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}

@@ -59,7 +59,7 @@
                                   [clj-http "2.0.0" :exclusions [[potemkin]
                                                                  [clj-tuple]]]
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.3.8.v20160314"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.0.v20161208"]
                                   [io.pedestal/pedestal.jetty "0.5.2-SNAPSHOT"]
                                   [io.pedestal/pedestal.immutant "0.5.2-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.5.2-SNAPSHOT"]
