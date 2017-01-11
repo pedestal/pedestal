@@ -1,5 +1,7 @@
 <!-- Logback configuration. See http://logback.qos.ch/manual/index.html -->
 <configuration scan="true" scanPeriod="10 seconds">
+  <!-- Silence Logback's own status messages about config parsing -->
+  <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
 
   <!-- Simple file output -->
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
