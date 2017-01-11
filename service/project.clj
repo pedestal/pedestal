@@ -26,7 +26,7 @@
                  [org.clojure/core.async "0.2.391"]
 
                  ;; interceptors
-                 [ring/ring-core "1.4.0" :exclusions [[org.clojure/clojure]
+                 [ring/ring-core "1.5.1" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
