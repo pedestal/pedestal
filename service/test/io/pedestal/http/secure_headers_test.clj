@@ -25,13 +25,18 @@
   (let [app (make-app {::service/secure-headers
                        {:hsts-settings (sec-headers/hsts-header 500)
                         :frame-options-settings (sec-headers/frame-options-header "SAMEORIGIN")
-                        :xss-protection-settings (sec-headers/xss-protection-header 1)}})
+                        :xss-protection-settings (sec-headers/xss-protection-header 1)
+                        :download-options-settings (sec-headers/download-options-header nil)
+                        :cross-domain-policies-settings (sec-headers/cross-domain-policies-header "master-only")
+                        :content-security-policy-settings (sec-headers/content-security-policy-header {:default-src "'self'"})}})
         response (response-for app :get "/hello")]
     (is (= {"Content-Type" "text/plain"
             "Strict-Transport-Security" "max-age=500"
             "X-Frame-Options" "SAMEORIGIN"
             "X-Content-Type-Options" "nosniff"
-            "X-XSS-Protection" "1"}
+            "X-XSS-Protection" "1"
+            "X-Permitted-Cross-Domain-Policies" "master-only"
+            "Content-Security-Policy" "default-src 'self'"}
            (:headers response)))))
 
 (deftest secure-headers-can-be-turned-off

@@ -11,16 +11,26 @@
 
 (ns io.pedestal.http.secure-headers
   "Secure header settings applied in interceptors"
-  (:require [io.pedestal.interceptor.helpers :refer [after]]))
+  (:require [clojure.string :as string]
+            [io.pedestal.interceptor :refer [interceptor]]))
 
 (def header-names
   {:hsts "Strict-Transport-Security"
    :frame-options "X-Frame-Options"
    :content-type "X-Content-Type-Options"
-   :xss-protection "X-XSS-Protection"})
+   :xss-protection "X-XSS-Protection"
+   :download-options "X-Download-Options"
+   :cross-domain-policies "X-Permitted-Cross-Domain-Policies"
+   :content-security-policy "Content-Security-Policy"})
 
 (def header-names-vec
-  ["Strict-Transport-Security" "X-Frame-Options" "X-Content-Type-Options" "X-XSS-Protection"])
+  ["Strict-Transport-Security"
+   "X-Frame-Options"
+   "X-Content-Type-Options"
+   "X-XSS-Protection"
+   "X-Download-Options"
+   "X-Permitted-Cross-Domain-Policies"
+   "Content-Security-Policy"])
 
 (defn hsts-header
   "Create a max-age (and optionally include subdomains) Strict-Transport header
@@ -68,28 +78,108 @@
           (#{"block"} mode)]}
    (str value "; mode=" mode)))
 
+(defn download-options-header
+  "Create a custom value for the X-Download-Options header.
+  No arg version returns the most secure setting: noopen.
+  Passing a nil value will return nil, and the header won't be added."
+  ([] "noopen")
+  ([value]
+   (when (some? value)
+     (str value))))
+
+(defn cross-domain-policies-header
+  "Create a custom value for the X-Permitted-Cross-Domain-Policies header.
+  No arg version returns the most secure setting: none."
+  ([]
+   "none")
+  ([value]
+   {:pre [(#{"none" "master-only" "by-content-type" "by-ftp-filename" "all"} value)]}
+   value))
+
+(defn csp-map->str
+  [options]
+  (if (string? options)
+    options
+    (string/join "; "
+                 (map (fn [[k v]] (str (name k) " " v))
+                      (select-keys options [:base-uri
+                                            :default-src
+                                            :script-src
+                                            :object-src
+                                            :style-src
+                                            :img-src
+                                            :media-src
+                                            :frame-src
+                                            :child-src
+                                            :frame-ancestors
+                                            :font-src
+                                            :connect-src
+                                            :manifest-src
+                                            :form-action
+                                            :sandbox
+                                            :script-nonce
+                                            :plugin-types
+                                            :reflected-xss
+                                            :block-all-mixed-content
+                                            :upgrade-insecure-requests
+                                            :referrer
+                                            :report-uri
+                                            :report-to])))))
+
+(defn content-security-policy-header
+  "Create a custom value for the Content-Security-Policy header.
+  No arg version returns a semi-'Strict' or script-focused policy:
+    object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"
+  ([]
+   "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;")
+  ([options]
+   (csp-map->str options)))
+
 (defn create-headers
   ([]
-   (create-headers (hsts-header) (frame-options-header) (content-type-header) (xss-protection-header)))
-  ([hsts-settings frame-options-settings content-type-settings xss-protection-settings]
-   (zipmap header-names-vec
-           [hsts-settings frame-options-settings content-type-settings xss-protection-settings])))
+   (create-headers (hsts-header)
+                   (frame-options-header)
+                   (content-type-header)
+                   (xss-protection-header)
+                   (download-options-header)
+                   (cross-domain-policies-header)
+                   (content-security-policy-header)))
+  ([hsts-settings frame-options-settings content-type-settings xss-protection-settings download-options-settings cross-domain-policies-settings content-security-policy-settings]
+   (into {}
+         (filter second
+                 (zipmap header-names-vec
+                         [hsts-settings
+                          frame-options-settings
+                          content-type-settings
+                          xss-protection-settings
+                          download-options-settings
+                          cross-domain-policies-settings
+                          (csp-map->str content-security-policy-settings)])))))
 
 (defn secure-headers
   "Options are header values, which can be generated by the helper functions here"
   ([] (secure-headers {}))
   ([options]
    (let [{:keys [hsts-settings frame-options-settings
-                 content-type-settings xss-protection-settings]
+                 content-type-settings xss-protection-settings
+                 download-options-settings cross-domain-policies-settings
+                 content-security-policy-settings]
           :or {hsts-settings (hsts-header)
                frame-options-settings (frame-options-header)
                content-type-settings (content-type-header)
-               xss-protection-settings (xss-protection-header)}} options
+               xss-protection-settings (xss-protection-header)
+               download-options-settings (download-options-header)
+               cross-domain-policies-settings (cross-domain-policies-header)
+               content-security-policy-settings (content-security-policy-header)}} options
          sec-headers (create-headers hsts-settings
                                      frame-options-settings
                                      content-type-settings
-                                     xss-protection-settings)]
-     (after ::secure-headers
-       (fn [{response :response :as context}]
-         (assoc-in context [:response :headers] (merge sec-headers (:headers response))))))))
+                                     xss-protection-settings
+                                     download-options-settings
+                                     cross-domain-policies-settings
+                                     content-security-policy-settings)]
+     (interceptor
+       {:name ::secure-headers
+        :leave (fn [{response :response :as context}]
+                 (assoc-in context [:response :headers] (merge sec-headers (:headers response))))}))))
 
