@@ -2,6 +2,29 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.2 - January 12, 2017
+
+ * Immutant WebSocket support added
+ * Dependency refresh; Logback config updates based on latest version
+ * Sample and doc updates
+ * Secure Headers now supports Content Security Policy, Download Options, and Cross Domain Policy settings
+ * `response-for` now correctly handles Transit bodies (requests and replies)
+ * CSRF double-submit cookie can now bootstrap itself even if sessions are turned off
+ * Metric name formatting was breaking StatsD and other aggregators; A new format function fixes this
+
+For a full list of changes, please see this comparison of [0.5.1...0.5.2](https://github.com/pedestal/pedestal/compare/0.5.1...0.5.2).
+
+## 0.5.1 - August 26, 2016
+
+ * New module/artifact layout.  Internal pieces (interceptor chain, routing, logging/metrics) can be individually consumed
+ * WebSocket interface improvements to support new initializations/setups
+ * Configurable SSL options for Jetty
+ * The ability to completely disable HTTP on Jetty if you want to force HTTPS only
+ * HTTP/2 and ALPN support through a Java Agent
+ * New Pedestal sit and documentation updates
+
+For a full list of changes, please see this comparison of [0.5.0...0.5.1](https://github.com/pedestal/pedestal/compare/0.5.0...0.5.1).
+
 ## 0.5.0 - June 02, 2016
 
  * Map-tree router (used by default)
