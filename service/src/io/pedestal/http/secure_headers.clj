@@ -129,7 +129,9 @@
 (defn content-security-policy-header
   "Create a custom value for the Content-Security-Policy header.
   No arg version returns a semi-'Strict' or script-focused policy:
-    object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"
+    object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+  To lock your resources to only those served by your domain (subdomains not included), consider:
+    object-src 'none'; default-src 'self'"
   ([]
    "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;")
   ([options]
