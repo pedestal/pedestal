@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.interceptor "0.5.2-SNAPSHOT"
+(defproject io.pedestal/pedestal.interceptor "0.5.2"
   :description "Pedestal interceptor chain and execution utilities"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -17,7 +17,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.391"]
-                 [io.pedestal/pedestal.log "0.5.2-SNAPSHOT"]
+                 [io.pedestal/pedestal.log "0.5.2"]
 
                  ;; Error interceptor tooling
                  [org.clojure/core.match "0.3.0-alpha4" :exclusions [[org.clojure/clojurescript]
