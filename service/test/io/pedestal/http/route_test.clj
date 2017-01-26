@@ -1226,3 +1226,13 @@
     {:path-info "/logout"}
     {:request-method :post :path-info "/logout"}))
 
+(deftest url-param-trailing-slash
+  (let [routes (expand-routes `[[["/api/" {:get list-users}]
+                                 ["/things/:date"
+                                  ["/" {:get home-page}]]]])
+        rts-fn (route/url-for-routes routes)]
+    (is (= "/things/2017-01-23/"
+           (rts-fn ::home-page :params {:date "2017-01-23"})))
+    (is (= "/api/"
+           (rts-fn ::list-users)))))
+
