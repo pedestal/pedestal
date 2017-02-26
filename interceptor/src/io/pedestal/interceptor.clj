@@ -40,6 +40,11 @@
         (interceptor {:enter (fn [context]
                                (assoc context :response (t (:request context))))}))))
 
+  clojure.lang.MultiFn
+  (-interceptor [t] 
+    (interceptor {:enter (fn [context]
+                           (assoc context :response (t (:request context))))}))
+
   clojure.lang.IPersistentList
   (-interceptor [t] (interceptor (eval t)))
 
@@ -70,7 +75,7 @@
   (if-let [int-vals (and (interceptor? o)
                            (vals (select-keys o [:enter :leave :error])))]
     (and (some identity int-vals)
-         (every? fn? (remove nil? int-vals))
+         (every? #(or (fn? %1) (instance? clojure.lang.MultiFn %1)) (remove nil? int-vals))
          (or (interceptor-name (:name o)) true) ;; Could return `nil`
          true)
     false))
