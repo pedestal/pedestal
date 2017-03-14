@@ -69,8 +69,14 @@ Pedestal service. This will automatically pull templates from
 lein new pedestal-service the-next-big-server-side-thing
 ```
 
-See the [samples](./samples) or [documentation](./guides/documentation) for information on Pedestal concepts and
-advice on getting started.
+See the [samples](./samples) or [Pedestal.io docs site](http://pedestal.io/) for information on Pedestal,
+including:
+
+ * Getting started tutorial and other guides
+ * Main concepts
+ * Advanced usage
+ * API docs
+ * Reference docs
 
 ## Digging deeper
 
@@ -79,10 +85,14 @@ advice on getting started.
 Our primary focus for the near future is Pedestal documentation, sample
 applications and improving general ease of use.
 
+Pedestal's roadmap gets captured [within the GitHub issues](https://github.com/pedestal/pedestal/issues).
+
+
 ### Documentation
 
- * [Pedestal documentation](./guides/documentation) is coupled within this repository.
- * The latest [API Docs](http://pedestal.github.io/pedestal).
+ * [Pedestal documentation](http://pedestal.io/)
+   * Older [docs](./guides/documentation) are coupled within this repository - some may be outdated.
+ * The latest [API Docs](http://pedestal.io/api/index).
  * Build your own API docs with `lein sub install; lein docs`
 
 ### Supported Platforms
@@ -105,7 +115,7 @@ diagnosing or correcting Windows issues.
 ### Looking for Pedestal App?
 
  * Pedestal App now lives in [its own github repo](https://github.com/pedestal/pedestal-app).
- * Please see the [community announcement](https://groups.google.com/forum/#!topic/pedestal-users/jODwmJUIUcg) for more details.
+ * Please see the [community announcement discontinuing "App"](https://groups.google.com/forum/#!topic/pedestal-users/jODwmJUIUcg) for more details.
 
 ## Contributing
 
@@ -127,7 +137,7 @@ tests are in the [service directory](./service/test/io/pedestal)
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2016 Cognitect, Inc.
+Copyright 2014-2017 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
