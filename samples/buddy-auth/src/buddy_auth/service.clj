@@ -4,9 +4,9 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.interceptor.error :refer [error-dispatch]]
-            [io.pedestal.interceptor.helpers :refer [on-request]]
             [ring.util.response :as ring-resp]
             [buddy.auth :as auth]
             [buddy.auth.backends :as auth.backends]
@@ -25,7 +25,7 @@
   "A buddy-auth Basic Authentication backend.  See
   https://funcool.github.io/buddy-auth/latest/#http-basic"
   (auth.backends/basic {:realm  "MyApi"
-                        :authfn (fn [_ authdata]
+                        :authfn (fn [request authdata]
                                   (let [{:keys [username password]} authdata
                                         known-user                  (get users (keyword username))]
                                     (when (= (:password known-user) password)
@@ -50,7 +50,10 @@
 
 (def authentication-interceptor
   "Port of buddy-auth's wrap-authentication middleware."
-  (on-request ::authenticate auth.middleware/authentication-request basic-auth-backend))
+  (interceptor/interceptor
+   {:name ::authenticate
+    :enter (fn [ctx]
+             (update ctx :request auth.middleware/authentication-request basic-auth-backend))}))
 
 (defn authorization-interceptor
   "Port of buddy-auth's wrap-authorization middleware."
