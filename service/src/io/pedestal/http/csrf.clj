@@ -110,6 +110,9 @@
     :error-handler
       a handler function (passed the context) to call if the anti-forgery
       token is incorrect or missing (intended to return a valid response).
+    :body-params
+      a body-params parser map to use; If none is supplied, the default parsers
+      will be used (standard body-params behavior)
 
   Only one of :error-response, :error-handler may be specified."
   ([] (anti-forgery {}))
