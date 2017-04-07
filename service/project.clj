@@ -23,7 +23,7 @@
                  [io.pedestal/pedestal.route "0.5.3-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.2.391"]
+                 [org.clojure/core.async "0.3.442"]
 
                  ;; interceptors
                  [ring/ring-core "1.5.1" :exclusions [[org.clojure/clojure]
@@ -32,8 +32,8 @@
                                                       [crypto-equality]]]
 
                  ;[com.fasterxml.jackson.core/jackson-core "2.3.2"]
-                 [cheshire "5.5.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
-                 [com.cognitect/transit-clj "0.8.285"]
+                 [cheshire "5.7.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
+                 [com.cognitect/transit-clj "0.8.300"]
                  [commons-codec "1.10"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
