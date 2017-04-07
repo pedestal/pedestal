@@ -17,6 +17,7 @@
             [io.pedestal.http.ring-middlewares :as middlewares]
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
+            [io.pedestal.http.body-params :as body-params]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
@@ -130,19 +131,19 @@
   to the specified Transit format if the body is a collection and a
   type has not been set. Optionally accepts transit-opts which are
   handed to trasit/writer and may contain custom write handlers.
-  
+
   Expects the following arguments:
- 
+
   iname                - namespaced keyword for the interceptor name
   default-content-type - content-type string to set in the response
   transit-format       - either :json or :msgpack
   transit-options      - optional. map of options for transit/writer"
   ([iname default-content-type transit-format]
    (transit-body-interceptor iname default-content-type transit-format {}))
-  
+
   ([iname default-content-type transit-format transit-opts]
    (interceptor/on-response
-    iname 
+    iname
     (fn [response]
       (let [body (:body response)
             content-type (get-in response [:headers "Content-Type"])]
@@ -245,7 +246,8 @@
                      (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
                      true (conj not-found-interceptor)
                      (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
-                     enable-csrf (conj (csrf/anti-forgery enable-csrf))
+                     enable-csrf (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
+                                        (csrf/anti-forgery enable-csrf)])
                      true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                      true (conj route/query-params)
                      true (conj (route/method-param method-param-name))
