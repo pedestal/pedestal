@@ -23,9 +23,9 @@
   (loop [out (transient {})
          names (enumeration-seq (.getHeaderNames servlet-req))]
     (if (seq names)
-      (let [key (first names)]
-        (recur (assoc! out (.toLowerCase ^String key)
-                       (.getHeader servlet-req key))
+      (let [^String key (first names)
+            hdrstr (java.lang.String/join "," ^clojure.lang.EnumerationSeq (enumeration-seq (.getHeaders servlet-req key)))]
+        (recur (assoc! out (.toLowerCase key) hdrstr)
                (rest names)))
       (persistent! out))))
 
