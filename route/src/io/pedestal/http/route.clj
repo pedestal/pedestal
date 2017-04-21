@@ -339,7 +339,8 @@
     - The incoming request being routed."
   [route-name & options]
   (if *url-for*
-    (apply *url-for* route-name options)
+    (apply (if (delay? *url-for*) (deref *url-for*) *url-for*)
+           route-name options)
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol ExpandableRoutes
@@ -393,7 +394,7 @@
   (if-let [route (router/find-route router (:request context))]
     ;;  This is where path-params are added to the request. vvvv
     (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
-          linker (url-for-routes routes :request request-with-path-params)]
+          linker (delay (url-for-routes routes :request request-with-path-params))]
       (-> context
           (assoc :route route
                  :request (assoc request-with-path-params :url-for linker)
