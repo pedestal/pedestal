@@ -2,32 +2,27 @@
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as http]
-            [chain-providers.service :as service]))
+            [chain-providers.service :as service])
+  (import (java.net URL)))
 
-(def service
-  (::http/service-fn (http/create-servlet service/service)))
+(def ^:dynamic *service* nil)
+
+(defn service-fixture
+  [f]
+  (binding [*service* (-> service/service (assoc ::http/port 0) http/create-server http/start)]
+    (try
+      (f)
+      (finally
+        (http/stop *service*)))))
+
+(defn port
+  "Returns bound port of the started service"
+  [service]
+  (some-> service ::http/server
+          .getConnectors (aget 0) .getLocalPort))
+
+(use-fixtures :once service-fixture)
 
 (deftest home-page-test
-  (is (=
-       (:body (response-for service :get "/"))
-       "Hello World!"))
-  (is (=
-       (:headers (response-for service :get "/"))
-       {"Content-Type" "text/html;charset=UTF-8"
-        "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
-        "X-Frame-Options" "DENY"
-        "X-Content-Type-Options" "nosniff"
-        "X-XSS-Protection" "1; mode=block"})))
-
-
-(deftest about-page-test
-  (is (.contains
-       (:body (response-for service :get "/about"))
-       "Clojure 1.8"))
-  (is (=
-       (:headers (response-for service :get "/about"))
-       {"Content-Type" "text/html;charset=UTF-8"
-        "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
-        "X-Frame-Options" "DENY"
-        "X-Content-Type-Options" "nosniff"
-        "X-XSS-Protection" "1; mode=block"})))
+  (is (= "Hello World"
+         (slurp (URL. "http" "localhost" (port *service*) "/")))))
