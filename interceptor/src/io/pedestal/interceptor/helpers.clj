@@ -47,7 +47,7 @@
                (first body))
         doc (when (string? (first body))
               (first body))]
-    `(def ~(with-meta name {:doc doc})  ~(interceptor init))))
+    `(def ~(with-meta name {:doc doc})  (interceptor ~init))))
 
 (defn- infer-basic-interceptor-function
   "Given list `args`, infer a form that will evaluate to a function
