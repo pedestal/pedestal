@@ -104,6 +104,10 @@
           (try
             (write-body servlet-response body-part)
             (.flushBuffer ^HttpServletResponse servlet-response)
+            (catch EOFException e
+              (log/warn :msg "Client unavailable for async write. Closing :src-chan."
+                        :src-chan body)
+              (async/close! body))
             (catch Throwable t
               ;; Defend against exhausting core.async thread pool
               ;;  -- ASYNC-169 :: http://dev.clojure.org/jira/browse/ASYNC-169
@@ -375,4 +379,3 @@
                 ring-response]
                interceptors)
        default-context)))
-
