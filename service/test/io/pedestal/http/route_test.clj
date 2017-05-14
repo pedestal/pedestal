@@ -1140,7 +1140,7 @@
   (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
                    (-> routes
                        (test-query-execute
-                        :prefix-tree
+                        router-impl-key
                         {:request {:request-method :get
                                    :path-info "/child-path"}})
                        :route
