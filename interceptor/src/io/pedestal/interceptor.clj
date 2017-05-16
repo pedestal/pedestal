@@ -79,11 +79,9 @@
   "Given a value, produces and returns an Interceptor (Record)."
   [t]
   {:pre [(if-not (satisfies? IntoInterceptor t)
-           (throw (ex-info "You're trying to use something as an interceptor
-                           that isn't supported by the protocol; Perhaps you need to extend it?"
+           (throw (ex-info "You're trying to use something as an interceptor that isn't supported by the protocol; Perhaps you need to extend it?"
                            {:t t
                             :type (type t)}))
            true)]
    :post [(valid-interceptor? %)]}
   (-interceptor t))
-

@@ -370,8 +370,7 @@
     - Route names are unique"
   [route-spec]
   {:pre [(if-not (satisfies? ExpandableRoutes route-spec)
-           (throw (ex-info "You're trying to use something as a route specification
-                           that isn't supported by the protocol; Perhaps you need to extend it?"
+           (throw (ex-info "You're trying to use something as a route specification that isn't supported by the protocol; Perhaps you need to extend it?"
                            {:routes route-spec
                             :type (type route-spec)}))
            true)]
