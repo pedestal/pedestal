@@ -4,7 +4,7 @@ Included (in no particular order):
 
 * [hiccup](https://github.com/weavejester/hiccup)
 * [enlive](https://github.com/cgrand/enlive)
-* [mustache](http://http://mustache.github.com/)
+* [mustache](http://mustache.github.io/)
 * [stringtemplate](http://www.stringtemplate.org/)
 * [comb](https://github.com/weavejester/comb)
 
