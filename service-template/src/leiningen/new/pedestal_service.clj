@@ -28,6 +28,7 @@
              ["README.md" (render "README.md" data)]
              ["project.clj" (render "project.clj" data)]
              ["Capstanfile" (render "Capstanfile" data)]
+             ["Procfile" (render "Procfile" data)]
              ["Dockerfile" (render "Dockerfile" data)]
              [".gitignore" (render ".gitignore" data)]
              ["src/{{sanitized}}/server.clj" (render "server.clj" data)]

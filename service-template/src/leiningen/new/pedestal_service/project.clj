@@ -15,8 +15,12 @@
                  [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.22"]
                  [org.slf4j/jcl-over-slf4j "1.7.22"]
-                 [org.slf4j/log4j-over-slf4j "1.7.22"]]
+                 [org.slf4j/log4j-over-slf4j "1.7.22"]
+                 [environ "1.1.0"]]
+
   :min-lein-version "2.0.0"
+  :plugins [[lein-environ "1.1.0"]]
+  :hooks [lein-environ.plugin/hooks]
   :resource-paths ["config", "resources"]
   ;; If you use HTTP/2 or ALPN, use the java-agent to pull in the correct alpn-boot dependency
   ;:java-agents [[org.mortbay.jetty.alpn/jetty-alpn-agent "2.0.5"]]

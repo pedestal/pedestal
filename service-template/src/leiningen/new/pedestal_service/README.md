@@ -39,6 +39,11 @@ Once the image it built, it's cached.  To delete the image and build a new one:
 
 1. `capstan rmi {{name}}; capstan build`
 
+### [Heroku](https://www.heroku.com/) support
+
+1. Create heroku dyno: `heroku create`
+2. Push your service: `git push heroku master`
+3. View heroku logs: `heroku logs --tail`
 
 ## Links
 * [Other examples](https://github.com/pedestal/samples)

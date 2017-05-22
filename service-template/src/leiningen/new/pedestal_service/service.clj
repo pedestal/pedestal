@@ -2,7 +2,8 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [ring.util.response :as ring-resp]))
+            [ring.util.response :as ring-resp]
+            [environ.core :refer [env]]))
 
 (defn about-page
   [request]
@@ -59,7 +60,7 @@
               ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
               ::http/type :jetty
               ;;::http/host "localhost"
-              ::http/port 8080
+              ::http/port (Integer. (or (env :port) 8080))
               ;; Options to pass to the container (Jetty)
               ::http/container-options {:h2c? true
                                         :h2? false
