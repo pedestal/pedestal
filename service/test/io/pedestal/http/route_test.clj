@@ -1236,3 +1236,14 @@
     (is (= "/api/"
            (rts-fn ::list-users)))))
 
+(deftest verb-neutral-routing
+  (let [test-routes [{:path "/app" :method :quux}]
+        test-route {:path-info "/app" :request-method :quux}
+        expand-route-path (fn [route] (->>  (:path route)
+                                            io.pedestal.http.route.path/parse-path
+                                            (merge route)
+                                            io.pedestal.http.route.path/merge-path-regex))
+        test-routers [(io.pedestal.http.route.map-tree/router test-routes)
+                      (io.pedestal.http.route.prefix-tree/router test-routes)
+                      (io.pedestal.http.route.linear-search/router (mapv expand-route-path test-routes))]]
+    (is (every? #(not (nil? %)) (map #(io.pedestal.http.route.router/find-route % test-route) test-routers)))))
