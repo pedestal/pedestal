@@ -188,7 +188,8 @@
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
                          :response-channel response-channel
-                         :response response)]
+                         :response response
+                         :event-channel event-channel)]
      (async/thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel event-channel
