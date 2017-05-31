@@ -1236,9 +1236,12 @@
     (is (= "/api/"
            (rts-fn ::list-users)))))
 
+;; Verb neutral routing
+;; -------------------------
 (deftest verb-neutral-routing
   (let [test-routes [{:path "/app" :method :quux}]
-        test-route {:path-info "/app" :request-method :quux}
+        test-request {:path-info "/app" :request-method :quux}
+        test-bad-request {:path-info "/app" :request-method :foo}
         expand-route-path (fn [route] (->>  (:path route)
                                             io.pedestal.http.route.path/parse-path
                                             (merge route)
@@ -1246,4 +1249,23 @@
         test-routers [(io.pedestal.http.route.map-tree/router test-routes)
                       (io.pedestal.http.route.prefix-tree/router test-routes)
                       (io.pedestal.http.route.linear-search/router (mapv expand-route-path test-routes))]]
-    (is (every? #(not (nil? %)) (map #(io.pedestal.http.route.router/find-route % test-route) test-routers)))))
+    (is (every? some? (map #(io.pedestal.http.route.router/find-route % test-request) test-routers)))
+    (is (every? nil? (map #(io.pedestal.http.route.router/find-route % test-bad-request) test-routers)))))
+
+(deftest verb-neutral-table-routes
+  (let [test-routes (table-routes {:verbs #{:walk :open :read :clunk :stat :wstat :version}}
+                                  #{["/hello" :walk `home-page]})
+        test-request {:path-info "/hello" :request-method :walk}
+        test-bad-request {:path-info "/hello" :request-method :clunk}
+        test-routers [(io.pedestal.http.route.map-tree/router test-routes)
+                      (io.pedestal.http.route.prefix-tree/router test-routes)]]
+    (is (every? some? (map #(io.pedestal.http.route.router/find-route % test-request) test-routers)))
+    (is (every? nil? (map #(io.pedestal.http.route.router/find-route % test-bad-request) test-routers)))
+    (is (try
+          ;; `thrown` won't work with Compiler/AssertionErrors
+          (table-routes {:verbs #{:walk :open :read :clunk :stat :wstat :version}}
+                                  #{["/hello" :remove `home-page]})
+          false
+          (catch java.lang.AssertionError ae
+            true)))))
+

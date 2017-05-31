@@ -19,7 +19,7 @@
 
 (defn- error
   [{:keys [row original]} msg]
-  (format "In row %d, %s\nThe whole route was: %s" (inc row) msg (or original "nil")))
+  (format "In row %s, %s\nThe whole route was: %s" (if row (str (inc row)) "") msg (or original "nil")))
 
 (defn- syntax-error
   [ctx posn expected was]
@@ -29,8 +29,8 @@
   [{:keys [remaining] :as ctx}]
   (error ctx (format "there were unused elements %s." remaining)))
 
-(def ^:private known-options [:app-name :host :port :scheme])
-(def ^:private known-verb    #{:any :get :put :post :delete :patch :options :head})
+(def ^:private known-options [:app-name :host :port :scheme :verbs])
+(def ^:private default-verbs #{:any :get :put :post :delete :patch :options :head})
 (def ^:private default-port  {:http 80 :https 443})
 
 (defn make-parse-context
@@ -38,7 +38,8 @@
   (assert (vector? route) (syntax-error row nil "the element" "a vector" route))
   (merge {:row       row
           :original  route
-          :remaining route}
+          :remaining route
+          :verbs     default-verbs}
          (select-keys opts known-options)))
 
 (defn take-next-pair
@@ -60,7 +61,9 @@
 
 (defn parse-verb
   [ctx]
-  (let [[verb & more] (:remaining ctx)]
+  (let [[verb & more] (:remaining ctx)
+        known-verb (:verbs ctx default-verbs)]
+    (assert (set? known-verb) (str "The verb set used in table route options *must* be a set.  Got: " known-verb))
     (assert (known-verb verb) (syntax-error ctx "the verb (second element)" (str "one of " known-verb) verb))
     (assoc ctx :method verb :remaining more)))
 
@@ -157,5 +160,5 @@
    (route-definition/ensure-routes-integrity
      (if (sequential? routes)
        (map-indexed (partial route-table-row opts) routes)
-       (map #(route-table-row opts "" %) routes)))))
+       (map #(route-table-row opts nil %) routes)))))
 
