@@ -362,7 +362,7 @@
     (table/table-routes route-spec)))
 
 (defn expand-routes
-  "Given a value (the route specification), produce and return a sequence of of
+  "Given a value (the route specification), produce and return a sequence of
   route-maps -- the expanded routes from the specification.
 
   Ensure the integrity of the sequence of route maps (even if they've already been checked).
