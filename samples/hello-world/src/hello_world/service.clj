@@ -13,16 +13,15 @@
 (ns hello-world.service
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
-            [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]))
+            [io.pedestal.http.body-params :as body-params]))
 
 (defn hello-world
   [request]
   (let [name (get-in request [:params :name] "World")]
     {:status 200 :body (str "Hello " name "!\n")}))
 
-(defroutes routes
-  [[["/"
+(def routes
+  `[[["/"
       ["/hello" {:get hello-world}]]]])
 
 (def service {:env                 :prod

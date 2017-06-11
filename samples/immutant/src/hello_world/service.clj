@@ -14,7 +14,6 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]))
 
 (defn hello-world
@@ -22,8 +21,8 @@
   (let [name (get-in request [:params :name] "World")]
     (ring-resp/response (str "Hello " name "!\n"))))
 
-(defroutes routes
-  [[["/"
+(def routes
+  `[[["/"
       ["/hello" {:get hello-world}]]]])
 
 (def service {:env :prod
