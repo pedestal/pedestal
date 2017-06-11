@@ -2,7 +2,6 @@
   (:require [io.pedestal.http :as bootstrap]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.interceptor.helpers :as interceptor]
             [ring.util.response :as ring-resp]
             [clojure.core.async :as async]
@@ -136,18 +135,18 @@
    :headers {"Content-Type" "text/plain"}
    :body (nio-body "Hello NIO World!")})
 
-(defroutes routes
-  [[["/" {:get home-page}
-     ["/nio" {:get nio-home}]
-     ["/file" {:get basic-file}]
-     ["/niofile" {:get nio-file}]
-     ["/proxy" {:get basic-proxy}]
-     ["/nioproxy" {:get nio-proxy}]
-     ["/anioproxy" {:get async-nio-proxy}]
-     ;; Set default interceptors for /about and any other paths under /
-     ^:interceptors [(body-params/body-params) bootstrap/html-body]
-     ["/about" {:get about-page}]
-     ["/headers" {:get headers-echo}]]]])
+(def routes
+  `[[["/" {:get home-page}
+      ["/nio" {:get nio-home}]
+      ["/file" {:get basic-file}]
+      ["/niofile" {:get nio-file}]
+      ["/proxy" {:get basic-proxy}]
+      ["/nioproxy" {:get nio-proxy}]
+      ["/anioproxy" {:get async-nio-proxy}]
+      ;; Set default interceptors for /about and any other paths under /
+      ^:interceptors [(body-params/body-params) bootstrap/html-body]
+      ["/about" {:get about-page}]
+      ["/headers" {:get headers-echo}]]]])
 
 ;; Consumed by niotooling.server/create-server
 ;; See bootstrap/default-interceptors for additional options you can configure

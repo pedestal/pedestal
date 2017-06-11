@@ -17,7 +17,6 @@
             [io.pedestal.http :as service]
             [io.pedestal.interceptor.helpers :as interceptor :refer [defon-response defbefore defafter]]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream FileInputStream File)
@@ -86,30 +85,30 @@
   [context]
   (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
 
-(defroutes app-routes
-  [[["/about" {:get [:about about-page]}]
-    ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
-    ["/token" {:get hello-token-page}]
-    ["/bytebuffer" {:get hello-byte-buffer-page}]
-    ["/bytechannel" {:get hello-byte-channel-page}]
-    ["/edn" {:get get-edn}]
-    ["/just-status" {:get just-status-page}]
-    ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
-    ["/text-as-html" {:get [::text-as-html hello-page]}
-     ^:interceptors [service/html-body]]
-    ["/plaintext-body-with-html-interceptor" {:get hello-plaintext-page}
-     ^:interceptors [service/html-body]]
-    ["/plaintext-body-no-interceptors" {:get hello-plaintext-no-content-type-page}]
-    ["/data-as-json" {:get [::data-as-json get-edn]}
-     ^:interceptors [service/json-body]]
-    ["/plaintext-body-with-json-interceptor" {:get get-plaintext-edn}
-     ^:interceptors [service/json-body]]
-    ["/data-as-transit" {:get [::data-as-transit get-edn]}
-     ^:interceptors [service/transit-body]]
-    ["/transit-params" {:post transit-params}
-     ^:interceptors [(body-params)]]
-    ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit get-plaintext-edn]}
-     ^:interceptors [service/transit-body]]]])
+(def app-routes
+  `[[["/about" {:get [:about about-page]}]
+     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
+     ["/token" {:get hello-token-page}]
+     ["/bytebuffer" {:get hello-byte-buffer-page}]
+     ["/bytechannel" {:get hello-byte-channel-page}]
+     ["/edn" {:get get-edn}]
+     ["/just-status" {:get just-status-page}]
+     ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
+     ["/text-as-html" {:get [::text-as-html hello-page]}
+      ^:interceptors [service/html-body]]
+     ["/plaintext-body-with-html-interceptor" {:get hello-plaintext-page}
+      ^:interceptors [service/html-body]]
+     ["/plaintext-body-no-interceptors" {:get hello-plaintext-no-content-type-page}]
+     ["/data-as-json" {:get [::data-as-json get-edn]}
+      ^:interceptors [service/json-body]]
+     ["/plaintext-body-with-json-interceptor" {:get get-plaintext-edn}
+      ^:interceptors [service/json-body]]
+     ["/data-as-transit" {:get [::data-as-transit get-edn]}
+      ^:interceptors [service/transit-body]]
+     ["/transit-params" {:post transit-params}
+      ^:interceptors [(body-params)]]
+     ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit get-plaintext-edn]}
+      ^:interceptors [service/transit-body]]]])
 
 (def app-interceptors
   (service/default-interceptors {::service/routes app-routes}))
@@ -338,8 +337,8 @@
                      :body "Hello async"})))
     ch))
 
-(defroutes async-hello-routes
-  [[["/hello-async" {:get hello-async}]]])
+(def async-hello-routes
+  `[[["/hello-async" {:get hello-async}]]])
 
 (deftest channel-returning-request-handler
   (let [app      (-> {::service/routes async-hello-routes}

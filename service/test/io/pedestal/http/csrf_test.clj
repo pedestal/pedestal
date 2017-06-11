@@ -1,6 +1,5 @@
 (ns io.pedestal.http.csrf-test
     (:require [io.pedestal.http.route :as route]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.interceptor.helpers :refer [defhandler defafter]]
             [io.pedestal.http :as service]
             [io.pedestal.http.ring-middlewares :as rm]
@@ -25,10 +24,10 @@
         headers (merge {} (when token {"csrf-token" token}))]
     (assoc-in context [:response :headers] headers)))
 
-(defroutes request-handling-routes
-  [[:request-handling "csrf-test.pedestal"
-    ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (anti-forgery)]
-     ["/leaf" {:any [:leaf terminator]}]]]])
+(def request-handling-routes
+  `[[:request-handling "csrf-test.pedestal"
+     ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (anti-forgery)]
+      ["/leaf" {:any [:leaf terminator]}]]]])
 
 (defn make-app [options]
   (-> options

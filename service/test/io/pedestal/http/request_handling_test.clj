@@ -15,7 +15,6 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [ring.util.response :as ring-response]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.interceptor.helpers :refer [defhandler defafter]]
             [io.pedestal.http :as service])
   (:use [clojure.test]
@@ -38,12 +37,12 @@
    :body "Leaf handled!"
    :headers {}})
 
-(defroutes request-handling-routes
-  [[:request-handling "request-handling.pedestal"
-    ["/terminated" ^:interceptors [terminator]
-     ["/leaf" {:get [:leaf1 leaf-handler]}]]
-    ["/unterminated"
-     ["/leaf" {:get [:leaf2 leaf-handler]}]]]])
+(def request-handling-routes
+  `[[:request-handling "request-handling.pedestal"
+     ["/terminated" ^:interceptors [terminator]
+      ["/leaf" {:get [:leaf1 leaf-handler]}]]
+     ["/unterminated"
+      ["/leaf" {:get [:leaf2 leaf-handler]}]]]])
 
 (let [file (java.io.File/createTempFile "request-handling-test" ".txt")]
   (def tempfile-url
