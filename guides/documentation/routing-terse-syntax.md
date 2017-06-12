@@ -148,7 +148,7 @@ The following sections explains how these values are used.
 A terse route definition must be expanded to a full route table
 before it can be used. There are two ways to do this:
 
-- the `io.pedestal.http.route.definition/expand-routes` function
+- the `io.pedestal.http.route/expand-routes` function
 
 - the `io.pedestal.http.route.definition/defroutes` macro
 
