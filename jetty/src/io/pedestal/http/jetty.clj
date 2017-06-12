@@ -223,7 +223,7 @@
   ;; -- Container Options --
   ;; :daemon?      - use daemon threads (defaults to false)
   ;; :max-threads  - the maximum number of threads to use (default 50)
-  ;; :resue-addr?  - reuse the socket address (defaults to true)
+  ;; :reuse-addr?  - reuse the socket address (defaults to true)
   ;; :configurator - a function called with the Jetty Server instance
   ;; :context-configurator - a function called with the Jetty ServletContextHandler
   ;; :ssl?         - allow connections over HTTPS
