@@ -20,7 +20,9 @@
               ;;  we can use this to set the routes to be reloadable
               ::server/routes #(route/expand-routes (deref #'service/routes))
               ;; all origins are allowed in dev mode
-              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}
+              ;; Relax Content Security Policy (CSP) in dev mode
+              ::server/secure-headers {:content-security-policy-settings {:object-src "none"}}})
       ;; Wire up interceptor chains
       server/default-interceptors
       server/dev-interceptors
