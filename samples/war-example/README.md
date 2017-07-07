@@ -3,6 +3,9 @@
 This sample shows the necessary tooling and options for building a deployable
 WAR file.
 
+Note that developing at the REPL with this sample is a bit different
+than usual. You must tell Pedestal what HTTP server to use. See the
+section "Developing Your Service" below for an example.
 
 **Pedestal requires Java 1.8+ and Servlet 3.1.0 support**
 
@@ -46,7 +49,15 @@ To learn more about configuring Logback, read its [documentation](http://logback
 
 ## Developing your service
 
-1. Start a new REPL: `lein repl`
+This project is set up to exclude the HTTP server from the runtime
+dependencies. That way you don't accidentally deploy all of Jetty as
+jar files inside a Tomcat container! To run in dev mode, you need to
+tell Pedestal which HTTP server to run. `project.clj` has a profile
+called "jetty" that adds a dependency on Jetty. With that profile, you
+can do the usual REPL based development, but Jetty's jars _won't_ be
+included in the war file you create.
+
+1. Start a new REPL: `lein with-profile +jetty repl`
 2. Start your service in dev-mode: `(def dev-serv (run-dev))`
 3. Connect your editor to the running REPL session.
    Re-evaluated code will be seen immediately in the service.
