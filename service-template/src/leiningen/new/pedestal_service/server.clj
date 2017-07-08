@@ -20,7 +20,11 @@
               ;;  we can use this to set the routes to be reloadable
               ::server/routes #(route/expand-routes (deref #'service/routes))
               ;; all origins are allowed in dev mode
-              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}
+              ;; If you intend to run ClojureScript with :optimizations set to
+              ;; :none or :simple while in dev mode, it's a necessity to relax 
+              ;; the default Content Security Policy (CSP)
+              ::server/secure-headers {:content-security-policy-settings {:object-src "none"}}})
       ;; Wire up interceptor chains
       server/default-interceptors
       server/dev-interceptors
