@@ -30,7 +30,8 @@
   (get interceptor :name (pr-str interceptor)))
 
 (defn- throwable->ex-info [^Throwable t execution-id interceptor stage]
-  (ex-info (str "Interceptor Exception: " (.getMessage t))
+  (ex-info (str "Interceptor Exception: " (or (.getMessage t)
+                                              (.. t getClass getName)))
            (merge {:execution-id execution-id
                    :stage stage
                    :interceptor (name interceptor)
