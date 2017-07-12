@@ -30,14 +30,16 @@
   (get interceptor :name (pr-str interceptor)))
 
 (defn- throwable->ex-info [^Throwable t execution-id interceptor stage]
-  (ex-info (str "Interceptor Exception: " (.getMessage t))
+  (let [iname (name interceptor)
+        throwable-str (pr-str (type t))]
+    (ex-info (str throwable-str " in Interceptor " iname " - " (.getMessage t))
            (merge {:execution-id execution-id
                    :stage stage
-                   :interceptor (name interceptor)
-                   :exception-type (keyword (pr-str (type t)))
+                   :interceptor iname
+                   :exception-type (keyword throwable-str)
                    :exception t}
                   (ex-data t))
-           t))
+           t)))
 
 (defn- try-f
   "If f is not nil, invokes it on context. If f throws an exception,
