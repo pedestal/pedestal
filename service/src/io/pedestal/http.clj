@@ -251,11 +251,11 @@
                      true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                      true (conj route/query-params)
                      true (conj (route/method-param method-param-name))
+                     (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
                      ;; TODO: If all platforms support async/NIO responses, we can bring this back
                      ;(not (nil? resource-path)) (conj (middlewares/fast-resource resource-path))
                      (not (nil? resource-path)) (conj (middlewares/resource resource-path))
                      (not (nil? file-path)) (conj (middlewares/file file-path))
-                     (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
                      true (conj (route/router processed-routes router))))
       service-map)))
 
