@@ -53,10 +53,19 @@
               ;;
               ;;::http/allowed-origins ["scheme://host:port"]
 
+              ;; Tune the Secure Headers
+              ;; and specifically the Content Security Policy appropriate to your service/application
+              ;; For more information, see: https://content-security-policy.com/
+              ;;   See also: https://github.com/pedestal/pedestal/issues/499
+              ;;::http/secure-headers {:content-security-policy-settings {:object-src "'none'"
+              ;;                                                          :script-src "'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:"
+              ;;                                                          :frame-ancestors "'none'"}}
+
               ;; Root for resource interceptor that is available by default.
               ::http/resource-path "/public"
 
               ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
+              ;;  This can also be your own chain provider/server-fn -- http://pedestal.io/reference/architecture-overview#_chain_provider
               ::http/type :jetty
               ;;::http/host "localhost"
               ::http/port 8080
