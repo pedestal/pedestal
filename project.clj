@@ -19,6 +19,7 @@
         "jetty"
         "immutant"
         "tomcat"
+        "lambda"
         "service-tools"
         "service-template"]
   :aliases {"docs" ["with-profile" "docs" "codox"]}

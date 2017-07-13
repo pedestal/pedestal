@@ -31,7 +31,7 @@
                                                       [crypto-random]
                                                       [crypto-equality]]]
 
-                 ;[com.fasterxml.jackson.core/jackson-core "2.3.2"]
+                 [com.fasterxml.jackson.core/jackson-core "2.8.9"]
                  [cheshire "5.7.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
                  [com.cognitect/transit-clj "0.8.300"]
                  [commons-codec "1.10"]
