@@ -222,6 +222,7 @@
          enable-session ::enable-session
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
+         no-logging ::no-logging
          :or {file-path nil
               router :map-tree
               resource-path nil
@@ -230,6 +231,7 @@
               ext-mime-types {}
               enable-session nil
               enable-csrf nil
+              no-logging false
               secure-headers {}}} service-map
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
@@ -242,7 +244,7 @@
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
-                     true (conj log-request)
+                     (not no-logging) (conj log-request)
                      (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
                      true (conj not-found-interceptor)
                      (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
@@ -370,4 +372,3 @@
 
 (defn servlet-service [service servlet-req servlet-resp]
   (.service ^javax.servlet.Servlet (::servlet service) servlet-req servlet-resp))
-
