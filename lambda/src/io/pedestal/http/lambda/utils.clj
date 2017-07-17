@@ -1,7 +1,11 @@
 (ns io.pedestal.http.lambda.utils
-  (:require [clojure.string :as string])
+  (:require [clojure.string :as string]
+            [io.pedestal.interceptor.chain :as chain])
   (:import (java.io InputStream
-                    OutputStream)
+                    OutputStream
+                    InputStreamReader
+                    PushbackReader
+                    ByteArrayInputStream)
            (com.amazonaws.services.lambda.runtime Context
                                                   RequestHandler
                                                   RequestStreamHandler)))
@@ -85,7 +89,9 @@
   (cond
     (symbol? x) x
     (string? x) (symbol x)
-    (keyword? x) (symbol (name x))))
+    (keyword? x) (if-let [ns-str (namespace x)]
+                   (symbol (str ns-str "." (name x)))
+                   (symbol (name x)))))
 
 ;;TODO: Consider preserving metadata with these macros
 
@@ -161,12 +167,12 @@
   -- no conversion has taken place on the JSON object other than the original parse.
   -- This ensures parse optimizations can be made without affecting downstream code."
   [apigw-event]
-  (let [[http-version host] (string/split (get headers "Via" "") #" ")
-        path (get apigw-event "path" "/")
+  (let [path (get apigw-event "path" "/")
         headers (get apigw-event "headers" {})
+        [http-version host] (string/split (get headers "Via" "") #" ")
         port (try (Integer/parseInt (get headers "X-Forwarded-Port" "")) (catch Throwable t 80))
         source-ip (get-in apigw-event ["requestContext" "identity" "sourceIp"] "")]
-    {:server-port server-port
+    {:server-port port
      :server-name (or host "")
      :remote-addr source-ip
      :uri path
@@ -178,13 +184,65 @@
                              keyword)
      :headers headers
      ;:ssl-client-cert ssl-client-cert
-     :body (get apigw-event "body")
+     :body (when-let [body (get apigw-event "body")]
+             (ByteArrayInputStream. (.getBytes ^String body "UTF-8")))
      :path-info path
      :protocol (str "HTTP/" (or http-version "1.1"))
      :async-supported? false}))
 
-;; TODO: Create Chain Provider for running an interceptor chain directly in a lambda
-;; TODO: Create a function that given a service map, performs a gen-class pushing out the Lambda
+(defn apigw-response
+  [ring-response]
+  (assoc ring-response :statusCode (:status ring-response)))
 
-;; TODO: Create classes as needed for Lambda Servlet handling
+;; --- Proxy doesn't have to be InputStream/OutputStream!
+;;     It will perform the JSON parse automatically ---
+(defn direct-apigw-provider
+  "Given a service map, return a service map with a provider function
+  for an AWS API Gateway event, under `:io.pedestal.lambda/apigw-handler`.
+
+  This provider function takes the apigw-event map and the runtime.Context
+  and returns an AWS API Gateway response map (containing -- :statusCode :body :headers)
+  You may want to add a custom interceptor in your chain to handle Scheduled Events.
+
+  All additional conversion, coercion, writing, and extension should be handled by
+  interceptors in the interceptor chain."
+  [service-map]
+  (let [interceptors (:io.pedestal.http/interceptors service-map [])
+        default-context (get-in service-map [:io.pedestal.http/container-options :default-context])]
+    (assoc service-map
+           :io.pedestal.lambda/apigw-handler
+           (fn [apigw-event ^Context context] ;[^InputStream input-stream ^OutputStream output-stream ^Context context]
+             (let [;event (json/parse-stream
+                   ;        (java.io.PushbackReader. (java.io.InputStreamReader. input-stream))
+                   ;        nil
+                   ;        nil)
+                   request (apigw-request-map apigw-event)
+                   initial-context (merge {;:aws.lambda/input-stream input-stream
+                                           ;:aws.lambda/output-stream output-stream
+                                           :aws.lambda/context context
+                                           :aws.apigw/event apigw-event
+                                           :request request
+                                           ::chain/terminators [#(let [resp (:response %)]
+                                                                   (and (map? resp)
+                                                                        (integer? (:status resp))
+                                                                        (map? (:headers resp))))
+                                                                #(map? (:apigw-response %))]}
+                                          default-context)
+                   response-context (chain/execute initial-context interceptors)
+                   response-map (:apigw-response response-context
+                                                 (some-> (:response response-context)
+                                                         apigw-response))]
+               response-map)))))
+
+;; TODO
+;(defn servlet-apigw-provider
+;  [service-map]
+;  )
+
+(defmacro gen-pedestal-lambda
+  [name service-map]
+  `(gen-lambda ~(lambda-name name) ~(-> service-map
+                                        direct-apigw-provider
+                                        :io.pedestal.lambda/apigw-handler)))
+
 

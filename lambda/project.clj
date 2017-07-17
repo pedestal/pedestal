@@ -17,11 +17,13 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [com.amazonaws.serverless/aws-serverless-java-container-core "0.5.1" :exclusions [[com.fasterxml.jackson.core/jackson-databind]]]
+                 [io.pedestal/pedestal.interceptor "0.5.3-SNAPSHOT"]
+                 ;[com.amazonaws.serverless/aws-serverless-java-container-core "0.5.1" :exclusions [[com.fasterxml.jackson.core/jackson-databind]]]
+                 [javax.servlet/javax.servlet-api "3.1.0"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.8.9"] ;; matches io.pedestal/pedestal.service
                  [com.amazonaws/aws-lambda-java-core "1.1.0"]
                  ;[com.amazonaws/aws-lambda-java-events "1.3.0"]
-                 [com.fasterxml.jackson.core/jackson-databind "2.8.9"] ;; matches io.pedestal/pedestal.service
-                 [javax.servlet/javax.servlet-api "3.1.0"]]
+                 ]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
 
