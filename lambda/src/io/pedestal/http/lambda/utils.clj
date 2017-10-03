@@ -1,11 +1,13 @@
 (ns io.pedestal.http.lambda.utils
   (:require [clojure.string :as string]
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-utils]
             [io.pedestal.interceptor.chain :as chain])
   (:import (java.io InputStream
                     OutputStream
                     InputStreamReader
                     PushbackReader
-                    ByteArrayInputStream)
+                    ByteArrayInputStream
+                    ByteArrayOutputStream)
            (com.amazonaws.services.lambda.runtime Context
                                                   RequestHandler
                                                   RequestStreamHandler)))
@@ -126,10 +128,13 @@
                                       lambda-class-name
                                       (symbol (str *ns* "." lambda-class-name)))
         prefix (gensym "lambda")
-        handler-request-sym (symbol (str prefix "handleRequest"))]
+        handler-request-sym (symbol (str prefix "handleRequest"))
+        meta-data (merge (meta request-handler-fn))]
     `(do (gen-class {:name ~package-qualified-classname
                      :implements [com.amazonaws.services.lambda.runtime.RequestHandler]
-                     :prefix ~prefix})
+                     :prefix ~prefix
+                     ;:methods [[~handler-request-sym [Object com.amazonaws.services.lambda.runtime.Context] Object]]
+                     })
          (def ~handler-request-sym ~request-handler-fn))))
 
 ;; For example...
@@ -192,7 +197,15 @@
 
 (defn apigw-response
   [ring-response]
-  (assoc ring-response :statusCode (:status ring-response)))
+  (let [{:keys [status body headers]} ring-response
+        processed-body (if (string? body)
+                         body
+                         (->> (ByteArrayOutputStream.)
+                              (servlet-utils/write-body-to-stream body)
+                              (.toString)))]
+    {"statusCode" status
+     "body" processed-body
+     "headers" headers}))
 
 ;; --- Proxy doesn't have to be InputStream/OutputStream!
 ;;     It will perform the JSON parse automatically ---
@@ -208,7 +221,7 @@
   interceptors in the interceptor chain."
   [service-map]
   (let [interceptors (:io.pedestal.http/interceptors service-map [])
-        default-context (get-in service-map [:io.pedestal.http/container-options :default-context])]
+        default-context (get-in service-map [:io.pedestal.http/container-options :default-context] {})]
     (assoc service-map
            :io.pedestal.lambda/apigw-handler
            (fn [apigw-event ^Context context] ;[^InputStream input-stream ^OutputStream output-stream ^Context context]
@@ -241,8 +254,10 @@
 
 (defmacro gen-pedestal-lambda
   [name service-map]
-  `(gen-lambda ~(lambda-name name) ~(-> service-map
-                                        direct-apigw-provider
-                                        :io.pedestal.lambda/apigw-handler)))
+  (let [service-map (if (list? service-map) (eval service-map) service-map)]
+    `(gen-lambda ~(lambda-name name) ~(or (:io.pedestal.lambda/apigw-handler service-map)
+                                          (-> service-map
+                                              direct-apigw-provider
+                                              :io.pedestal.lambda/apigw-handler)))))
 
 
