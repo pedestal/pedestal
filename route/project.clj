@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.route "0.5.3"
+(defproject io.pedestal/pedestal.route "0.5.4-SNAPSHOT"
   :description "Pedestal route definition and router construction"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -17,8 +17,8 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.3.442"]
-                 [io.pedestal/pedestal.log "0.5.3"]
-                 [io.pedestal/pedestal.interceptor "0.5.3"]
+                 [io.pedestal/pedestal.log "0.5.4-SNAPSHOT"]
+                 [io.pedestal/pedestal.interceptor "0.5.4-SNAPSHOT"]
                  [org.clojure/core.incubator "0.1.4"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
