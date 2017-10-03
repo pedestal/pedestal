@@ -2,6 +2,12 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.3 - October 3, 2017
+
+ * TODO
+
+For a full list of changes, please see this comparison of [0.5.2...0.5.3](https://github.com/pedestal/pedestal/compare/0.5.2...0.5.3).
+
 ## 0.5.2 - January 12, 2017
 
  * Immutant WebSocket support added
