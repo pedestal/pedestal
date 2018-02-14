@@ -55,12 +55,12 @@ thread, as shown below:
 The `go` block allows work to take place asynchronously while the
 thread is released.
 
-The lengthy-computation returns a channel that
+The `lengthy-computation` function returns a channel that
 conveys the result, `<!` will park the go block until that value is conveyed,
-after which the block continues to construct a response and `assoc` it
+after which the `go` block continues to construct a response and `assoc` it
 into the context.
 
-A `go` block returns a channel that conveys that modified context, at
+The `go` block returns a channel that conveys that modified context, at
 which point Pedestal picks back up to resume handling of the original request.
 Since a response is now ready, the original request will
 complete, and that response will be delivered to the client.
