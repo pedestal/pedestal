@@ -44,20 +44,26 @@ thread, as shown below:
 ```clj
     (interceptors/defbefore takes-time
       [context]
-      (let [channel (chan)]
-        (go
-         (let [result (lengthy-computation (:request context))
-               new-context (assoc context :response (ring-resp/response result))]
-           (>! channel new-context)))
-        channel))
+      (go
+        (let [result (<! (lengthy-computation (:request context)))]
+          (assoc context :response (ring-resp/response result)))))
 
     (defroutes routes
       [[["/takes-time" {:get takes-time}]]])
 ```
 
 The `go` block allows work to take place asynchronously while the
-thread is released. When that work is complete, the request will
-complete, and a response will be delivered to the client.
+thread is released.
+
+The `lengthy-computation` function returns a channel that
+conveys the result, `<!` will park the go block until that value is conveyed,
+after which the `go` block continues to construct a response and `assoc` it
+into the context.
+
+The `go` block returns a channel that conveys that modified context, at
+which point Pedestal picks back up to resume handling of the original request.
+Since a response is now ready, the original request will
+complete, and that response will be delivered to the client.
 
 This facility allows a single value to be placed on a channel per
 interceptor; for more extensive use of channels for SSE, see
