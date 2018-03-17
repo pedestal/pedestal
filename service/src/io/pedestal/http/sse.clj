@@ -157,8 +157,8 @@
          (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
     (async/close! event-channel)
     (async/close! response-channel)
-    (when on-client-disconnect (on-client-disconnect))
-    (log/counter ::active-streams -1)))
+    (log/counter ::active-streams -1)
+    (when on-client-disconnect (on-client-disconnect))))
 
 (defn start-stream
   "Starts an SSE event stream and initiates a heartbeat to keep the
