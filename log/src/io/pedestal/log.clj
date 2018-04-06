@@ -109,6 +109,11 @@
     ([t body] nil)
     ([t body throwable] nil)))
 
+(def ^:dynamic ^{:added "0.5.4"} *mdc*
+  "The MDC (message diagnostic context) is a map of additional keys and values to be added
+  to every event. Per-event values may override the MDC."
+  nil)
+
 ;; Override the logger
 ;; ---------------------
 ;; Pedestal's logging is backed by a protocol, which you are free to extend
@@ -119,7 +124,7 @@
 ;; JVM Property 'io.pedestal.log.overrideLogger' or ENVAR 'PEDESTAL_LOGGER'
 ;; to a symbol that resolves to a single-arity function
 ;; (passed a string logger tag, the NS string of the log call).
-;; This function should return something that satisifes the LoggerSource protocol.
+;; This function should return something that satisfies the LoggerSource protocol.
 ;; The function will be called multiple times (as the logging macros are expanded).
 
 (defn- log-expr [form level keyvals]
@@ -137,9 +142,10 @@
                          `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
-                          (pr-str (assoc (dissoc ~keyvals-map
-                                                 :exception :io.pedestal.log/logger)
-                                         :line ~(:line (meta form)))))]
+                          (-> (merge *mdc* ~keyvals-map)
+                              (dissoc :exception :io.pedestal.log/logger)
+                              (assoc :line ~(:line (meta form)))
+                              pr-str))]
            ~(if exception'
               `(~log-method' ~logger'
                              ~(with-meta string'
