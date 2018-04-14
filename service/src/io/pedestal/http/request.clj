@@ -53,19 +53,22 @@
   (async-supported? [x] false)
   (async-started? [x] false))
 
+(defprotocol ResponseBuffer
+  (response-buffer-size [x]))
+
 (def ring-dispatch
-  {:server-port server-port
-   :server-name server-name
-   :remote-addr remote-addr
-   :uri uri
-   :query-string query-string
-   :scheme scheme
-   :request-method request-method
-   :headers headers
-   :ssl-client-cert ssl-client-cert
-   :body body
-   :path-info path-info
-   :protocol protocol
+  {:server-port      server-port
+   :server-name      server-name
+   :remote-addr      remote-addr
+   :uri              uri
+   :query-string     query-string
+   :scheme           scheme
+   :request-method   request-method
+   :headers          headers
+   :ssl-client-cert  ssl-client-cert
+   :body             body
+   :path-info        path-info
+   :protocol         protocol
    :async-supported? async-supported?})
 
 (def nil-fn (constantly nil))

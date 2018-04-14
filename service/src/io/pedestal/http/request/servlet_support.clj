@@ -10,8 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.request.servlet-support
-  (:require [io.pedestal.http.request :as http.request])
-  (:import (javax.servlet.http HttpServletRequest)))
+  (:require [io.pedestal.http.request :as request])
+  (:import (javax.servlet.http HttpServletRequest HttpServletResponse)))
 
 (defn servlet-request-headers [^HttpServletRequest servlet-req]
   (loop [out   (transient {})
@@ -30,7 +30,7 @@
       "/"
       path-info)))
 
-(extend-protocol http.request/ContainerRequest
+(extend-protocol request/ContainerRequest
   HttpServletRequest
   (server-port [req] (.getServerPort req))
   (server-name [req] (.getServerName req))
@@ -47,3 +47,7 @@
   (path-info [req] (servlet-path-info req))
   (async-supported? [req] (.isAsyncSupported req))
   (async-started? [req] (.isAsyncStarted req)))
+
+(extend-protocol request/ResponseBuffer
+  HttpServletResponse
+  (response-buffer-size [req]))
