@@ -69,3 +69,17 @@
    :async-supported? async-supported?})
 
 (def nil-fn (constantly nil))
+
+(defn base-request-map [req]
+  {:server-port      (server-port req)
+   :server-name      (server-name req)
+   :remote-addr      (remote-addr req)
+   :uri              (uri req)
+   :query-string     (query-string req)
+   :scheme           (scheme req)
+   :request-method   (request-method req)
+   :headers          (headers req)
+   :body             (body req)
+   :path-info        (path-info req)
+   :protocol         (protocol req)
+   :async-supported? (async-supported? req)})
