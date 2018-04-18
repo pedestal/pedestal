@@ -50,4 +50,5 @@
 
 (extend-protocol request/ResponseBuffer
   HttpServletResponse
-  (response-buffer-size [req]))
+  (response-buffer-size [resp]
+    (.getBufferSize ^HttpServletResponse resp)))
