@@ -16,12 +16,14 @@
             [clojure.string :as string]
             [clojure.java.io :as io]))
 
-(def lein (or (System/getenv "LEIN_CMD") "lein"))
+(defn os?
+  [n]
+  (string/starts-with? (System/getProperty "os.name") n))
 
-(def project-dir
-  (->
-   (ClassLoader/getSystemResource *file*)
-   io/file .getParent io/file .getParent))
+(def lein (or (System/getenv "LEIN_CMD")
+            (if (os? "Windows") "lein.bat" "lein")))
+
+(def project-dir (io/file "."))
 
 ;; This code was heavily inspired by Overtone's version, thanks!
 ;; https://github.com/overtone/overtone/blob/e3de1f7ac59af7fa3cf75d696fbcfc2a15830594/src/overtone/helpers/file.clj#L360
@@ -43,6 +45,11 @@
             tmp-dir
             (recur (inc num-attempts))))))))
 
+(defn delete-recursively
+  [fname]
+  (doseq [f (reverse (file-seq (io/file fname)))]
+    (io/delete-file f)))
+
 (def tempdir (mk-tmp-dir!))
 
 (defn- sh-exits-successfully
@@ -55,25 +62,25 @@
 (deftest ^:not-travis generated-app-has-correct-files
   (let [app-name "test-app"
         full-app-name (.getPath (io/file tempdir app-name))]
-    (println (sh/with-sh-dir project-dir (sh/sh lein "install")))
-    (println (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name)))
+    (println (sh/sh lein "install" :dir project-dir))
+    (println (sh/sh lein "new" "pedestal-service" app-name "--snapshot" :dir tempdir))
     (println "Created app at" full-app-name)
     (is (.exists (io/file full-app-name "project.clj")))
     (is (.exists (io/file full-app-name "README.md")))
     (is (.exists (io/file full-app-name "src" "test_app" "service.clj")))
     (sh-exits-successfully full-app-name lein "test")
     (sh-exits-successfully full-app-name lein "with-profile" "production" "compile" ":all")
-    (sh/sh "rm" "-rf" full-app-name)))
+    (delete-recursively full-app-name)))
 
 (deftest ^:not-travis generated-app-with-namespace-has-correct-files
   (let [app-name "pedestal.test/test-ns-app"
         full-app-name (.getPath (io/file tempdir "test-ns-app"))]
-   (println (sh/with-sh-dir project-dir (sh/sh lein "install")))
-   (println (sh/with-sh-dir tempdir (sh/sh lein "new" "pedestal-service" app-name)))
+   (println (sh/sh lein "install" :dir project-dir))
+   (println (sh/sh lein "new" "pedestal-service" app-name "--snapshot" :dir tempdir))
    (println "Created app at" full-app-name)
    (is (.exists (io/file full-app-name "project.clj")))
    (is (.exists (io/file full-app-name "README.md")))
    (is (.exists (io/file full-app-name "src" "pedestal" "test" "test_ns_app" "service.clj")))
    (sh-exits-successfully full-app-name lein "test")
    (sh-exits-successfully full-app-name lein "with-profile" "production" "compile" ":all")
-   (sh/sh "rm" "-rf" full-app-name)))
+   (delete-recursively full-app-name)))
