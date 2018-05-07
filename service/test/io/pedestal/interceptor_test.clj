@@ -196,6 +196,12 @@
                                  (catcher :h)])
                        :leave))))
 
+(deftest t-enque-precondition
+  (is (thrown? AssertionError
+               (execute (enqueue {} [nil]))))
+  (is (thrown? AssertionError
+               (execute (enqueue {} [(fn [_])]))))) 
+
 (deftest t-two-channels
   (let [result-chan (chan)
         res (execute (enqueue {}
