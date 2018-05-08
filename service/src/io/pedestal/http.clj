@@ -255,6 +255,7 @@
                                           (csrf/anti-forgery enable-csrf)])
                true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                true (conj route/query-params)
+               true (conj route/path-params)
                true (conj (route/method-param method-param-name))
                (some? secure-headers) (conj (sec-headers/secure-headers secure-headers))
                ;; TODO: If all platforms support async/NIO responses, we can bring this back
