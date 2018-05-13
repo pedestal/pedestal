@@ -17,6 +17,7 @@
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.interceptor.chain :as chain]
             [ring.util.io :as ringio]
+            [io.pedestal.http.route :as route]
             [io.pedestal.http.params :as params]))
 
 (defn resp [s b & {:as headers}]
@@ -86,8 +87,9 @@
 (def params-routes
   (table/table-routes
    {}
-   [["/echo"  :any  echo :route-name :echo]
-    ["/fecho" :post [(body-params/body-params) params/keyword-params echo] :route-name :echo-form]]))
+   [["/echo"                    :any  echo :route-name :echo]
+    ["/pecho/:user-id"          :get  [route/path-params echo]:route-name :pecho]
+    ["/fecho"                   :post [(body-params/body-params) params/keyword-params echo] :route-name :echo-form]]))
 
 (defn- test-query
   [req query-params params form-params]
@@ -101,6 +103,7 @@
     (is (= 200 (:status r)))))
 
 (defn- param-get  [u q]   (request :get u :query-string q))
+(defn- param-path-get [u] (request :get u))
 (defn- param-post [u b q] (form-post u b :query-string q))
 
 (deftest query-params
@@ -108,6 +111,19 @@
   (test-query (param-get "/echo" "c=%20&b=2")        {:b "2" :c " "}   {:b "2" :c " "}     nil)
   (test-query (param-post "/fecho" nil       "a=b")  {:a "b"}          {:a "b"}            {})
   (test-query (param-post "/fecho" "foo=bar" "c=d")  {:c "d"}          {:c "d" :foo "bar"} {:foo "bar"}))
+
+(defn- test-path-params
+  [m u p]
+  (let [req (request m u)
+        res (:response (app params-routes req))]
+    (is (= p (-> res :body :path-params)))))
+
+(deftest path-params
+  (test-path-params :get "/pecho/john%20doe" {:user-id "john doe"})
+  (test-path-params :get "/pecho/%E2%99%A0%E2%99%A5%E2%99%A6%E2%99%A3" {:user-id "♠♥♦♣"})
+  (test-path-params :get "/pecho/abcdefghiklmnopqrstuvwxyz0123456789-._~" {:user-id "abcdefghiklmnopqrstuvwxyz0123456789-._~"})
+  (test-path-params :get "/pecho/:#[]@" {:user-id ":#[]@"})
+  (test-path-params :get "/pecho/!$&'()*,;=" {:user-id "!$&'()*,;="}))
 
 (defn- test-method-params
   [m u b q p v]

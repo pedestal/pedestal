@@ -121,10 +121,8 @@
                     key
                     (.append b c)))))))))
 
-(defn parse-param-map [m] (reduce
-                           (fn [acc [key val]] (assoc acc key (decode-query-part val)))
-                           {}
-                           m))
+(defn parse-param-map [m]
+  (persistent! (reduce-kv (fn [acc k v] (assoc! acc k (decode-query-part v))) (transient {}) m)))
 
 (defn parse-query-params [request]
   (merge-with merge request
@@ -133,8 +131,10 @@
                   {:query-params params :params params}))))
 
 (defn parse-path-params [request]
-  (let [m (:path-params request)]
-    (assoc request :path-params (parse-param-map m))))
+  (if-let [m (:path-params request)]
+    (let [res (assoc request :path-params (parse-param-map m))]
+      res)
+    request))
 
 ;;; Combined matcher & request handler
 
