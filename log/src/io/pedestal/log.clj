@@ -22,7 +22,15 @@
                       LoggerFactory)
            (com.codahale.metrics MetricRegistry
                                  Gauge Counter Histogram Meter
-                                 JmxReporter Slf4jReporter)
+                                 Slf4jReporter)
+           (com.codahale.metrics.jmx JmxReporter)
+           (io.opentracing Scope
+                           Span
+                           SpanContext
+                           Tracer
+                           Tracer$SpanBuilder)
+           (io.opentracing.util GlobalTracer)
+           (java.util Map)
            (java.util.concurrent TimeUnit)
            (clojure.lang IFn)))
 
@@ -287,11 +295,11 @@
   That function should return something that satisfies the MetricRecorder protocol.
   If no function is found, metrics will be reported only to JMX via a DropWizard MetricRegistry."
   (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultMetricsRecorder")
-                                             (System/getenv "PEDESTAL_METRICS_RECORDER"))]
-                        (if (= "nil" ns-fn-str)
-                          nil
-                          ((resolve (symbol ns-fn-str))))
-                        (metric-registry jmx-reporter)))
+                         (System/getenv "PEDESTAL_METRICS_RECORDER"))]
+    (if (= "nil" ns-fn-str)
+      nil
+      ((resolve (symbol ns-fn-str))))
+    (metric-registry jmx-reporter)))
 
 ;; Public Metrics API
 ;; -------------------
@@ -300,7 +308,7 @@
   "Format a given metric name, regardless of type, into a string"
   [n]
   (if (keyword? n)
-    (subs (str n) 1)
+    (subs (str n) 1) ;; This preserves the namespace
     (str n)))
 
 (defn counter
@@ -328,4 +336,348 @@
    (-meter default-recorder (format-name metric-name) n-events))
   ([recorder metric-name ^Long n-events]
    (-meter recorder (format-name metric-name) n-events)))
+
+;; Tracing
+;; -----------
+
+(defprotocol TraceSpan
+  (-set-operation-name [t operation-name]
+                       "Given a span and the operation name (String),
+                       set the logical operation this span represents,
+                       and return the Span.")
+  (-log-span [t msg]
+             [t msg micros]
+             "Given a span, a log message/string, and optionally an explicit timestamp in microseconds,
+             Record the event to the span,
+             and return the span.
+             If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.")
+  (-tag-span [t tag-key tag-value]
+             "Given a span, a tag key (String), and a tag value (String),
+             Set the tag key-value pair on the span for recording,
+             and returns the Span.
+
+             Some trace systems support numeric, object, boolean and other values.
+             The protocol encourages at a minimum String keys and values,
+             but extensions of the protocols are free to make platform-specific type/arg optimizations.
+             Some Trace platforms have semantics around tag keys/values, eg. https://github.com/opentracing/specification/blob/master/semantic_conventions.md")
+  (-finish-span [t]
+                [t micros]
+                "Given a span,
+                finish/complete and record the span optionally setting an explicit end timestamp in microseconds,
+                and return the span.
+                If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.
+                Multiple calls to -finishSpan should be noops"))
+
+(defprotocol TraceSpanMap
+  (-log-span-map [t msg-map]
+                 [t msg-map micros]
+                 "Given a span, a map of fields, and optionally an explicit timestamp in microseconds,
+                 Record the event to the span,
+                 and return the span.
+                 Some Trace Recorders don't fully support round-tripping maps -- use carefully.
+                 Some Trace platforms have semantics around key/values, eg. https://github.com/opentracing/specification/blob/master/semantic_conventions.md"))
+
+(defprotocol TraceSpanBaggage
+  (-set-baggage [t k v]
+                "Given a span, a baggage key (String) and baggage value (String),
+                add the key and value to the Span (and any additional context holding the span).
+                and return the Span
+
+                Adding baggage allows keys/values to be smuggled across span boundaries,
+                creating a powerful distributed context.
+                Baggage is only propagated to children of the span.")
+  (-get-baggage [t k]
+                [t k not-found]
+                "Given a span, a baggage key, and optionally a `not-found` value,
+                return the baggage value (String) for the corresponding key (if present).
+                If the key isn't present, return `not-found` or nil.")
+  (-get-baggage-map [t]
+                    "Given a span,
+                    return a Map of all baggage items."))
+
+(defprotocol TraceOrigin
+  (-register [t]
+             "Given a Tracer/TraceOrigin
+             perform whatver steps are necessary to register that Tracer/TraceOrigin
+             to support the creation of spans,
+             and return the Tracer/TraceOrigin.
+
+             It should not be necessary to make this call in application code.
+             This call is only used when bootstrapping Pedestal's `default-tracer`")
+  (-span [t operation-name]
+         [t operation-name parent]
+         [t operation-name parent initial-tags]
+         "Given a Tracer/TraceOrigin, an operation name,
+         and optionally a parent Span, and optionally a map of initial tags
+         return a new Span with the operation name set.
+         If the parent is not set, the span has no parent (ie: current active spans are ignored).
+
+         ** The span may be started on creation but should not be activated **
+         This should be left to application-specific span builders.")
+  (-activate-span [t span]
+                  "Given a Tracer/TraceOrigin and a span,
+                  activate the span
+                  and return the newly activated span.")
+  (-active-span [t]
+                "Given a Tracer/TraceOrigin,
+                return the current, active Span or nil if there isn't an active span"))
+
+(extend-protocol TraceSpan
+  nil
+  (-set-operation-name [t operation-name] nil)
+  (-log-span
+    ([t msg] nil)
+    ([t msg micros] nil))
+  (-tag-span [t tag-key tag-value] nil)
+  (-finish-span
+    ([t] nil)
+    ([t micros] nil))
+
+  Span
+  (-set-operation-name [t operation-name]
+    (.setOperationName t (format-name operation-name))
+    t)
+  (-log-span
+    ([t msg]
+     (.log t ^String msg)
+     t)
+    ([t msg micros]
+     (.log t ^long micros ^String micros)
+     t))
+  (-tag-span [t tag-key tag-value]
+    (cond
+      (string? tag-value) (.setTag t ^String (format-name tag-key) ^String tag-value)
+      (number? tag-value) (.setTag t ^String (format-name tag-key) ^Number tag-value)
+      (instance? Boolean tag-value) (.setTag t ^String (format-name tag-key) ^Boolean tag-value)
+      :else (.setTag t ^String (format-name tag-key) ^String (str tag-value)))
+    t)
+  (-finish-span
+    ([t] (.finish t) t)
+    ([t micros] (.finish t micros) t))
+
+  Scope
+  (-set-operation-name [t operation-name]
+    (-set-operation-name (.span t) operation-name))
+  (-log-span
+    ([t msg]
+     (-log-span (.span t) msg))
+    ([t msg micros]
+     (-log-span (.span t) msg micros)))
+  (-tag-span [t tag-key tag-value]
+    (-tag-span (.span t) tag-key tag-value))
+  (-finish-span
+    ([t]
+     (.close t)
+     (-finish-span (.span t)))
+    ([t micros]
+     (.close t)
+     (-finish-span (.span t) micros))))
+
+(extend-protocol TraceSpanMap
+  nil
+  (-log-span-map
+    ([t msg-map] nil)
+    ([t msg-map micros] nil))
+
+  Span
+  (-log-span-map
+    ([t msg-map]
+     (.log t ^Map (persistent!
+                    (reduce-kv (fn [acc k v]
+                                 (conj! acc (format-name k) v))
+                               (transient {})
+                               msg-map)))
+     t)
+    ([t msg-map micros]
+     (.log t ^Map (persistent!
+                    (reduce-kv (fn [acc k v]
+                                 (conj! acc (format-name k) v))
+                               (transient {})
+                               msg-map))
+           micros)
+     t))
+
+  Scope
+  (-log-span-map
+    ([t msg-map]
+     (-log-span-map (.span t) msg-map))
+    ([t msg-map micros]
+     (-log-span-map (.span t) msg-map micros))))
+
+(extend-protocol TraceSpanBaggage
+  nil
+  (-set-baggage [t k v] nil)
+  (-get-baggage
+    ([t k] nil)
+    ([t k not-found] not-found))
+  (-get-baggage-map [t] {})
+
+  Span
+  (-set-baggage [t k v]
+    (.setBaggageItem t (format-name k) (str v))
+    t)
+  (-get-baggage
+    ([t k]
+     (.getBaggageItem t (format-name k)))
+    ([t k not-found]
+     (or (.getBaggageItem t (format-name k)) not-found)))
+  (-get-baggage-map [t]
+    (into {} (.baggageItems ^SpanContext (.context t))))
+
+  Scope
+  (-set-baggage [t k v]
+    (-set-baggage (.span t) k v))
+  (-get-baggage
+    ([t k] (-get-baggage (.span t) k))
+    ([t k not-found] (-get-baggage (.span t) k not-found)))
+  (-get-baggage-map [t] (-get-baggage-map (.span t))))
+
+(extend-protocol TraceOrigin
+  nil
+  (-register [t] nil)
+  (-span
+    ([t operation-name] nil)
+    ([t opertaion-name parent] nil))
+  (-activate-span [t span] nil)
+  (-active-span [t] nil)
+
+  Tracer
+  (-register [t]
+    (GlobalTracer/register t))
+  (-span
+    ([t operation-name]
+     (.start ^Tracer$SpanBuilder (.ignoreActiveSpan (.buildSpan t (format-name operation-name)))))
+    ([t operation-name parent]
+     (let [builder (.buildSpan t (format-name operation-name))
+           builder (if (instance? Span parent)
+                     (.asChildOf builder ^Span parent)
+                     (.asChildOf builder ^SpanContext parent))]
+       (.start ^Tracer$SpanBuilder builder)))
+    ([t operation-name parent initial-tags]
+     (let [builder (.buildSpan t (format-name operation-name))
+           builder (cond
+                     (nil? parent) (.ignoreActiveSpan builder)
+                     (instance? Span parent) (.asChildOf builder ^Span parent)
+                     :else (.asChildOf builder ^SpanContext parent))]
+       (reduce (fn [builder k v]
+                 (cond
+                   (string? v) (.withTag builder ^String (format-name k) ^String v)
+                   (number? v) (.withTag builder ^String (format-name k) ^Number v)
+                   (instance? Boolean v) (.withTag ^String (format-name k) ^Boolean v)
+                   :else (.withTag ^String (format-name k) ^String (str v))))
+               builder
+               initial-tags)
+       (.start ^Tracer$SpanBuilder builder))))
+  (-activate-span [t span]
+    (.activate (.scopeManager t) ^Span span false))
+  (-active-span [t]
+    (if-let [scope (.active (.scopeManager t))]
+      (.span ^Scope scope)
+      nil)))
+
+;; Utility/Auxiliary trace functions
+;; ----------------------------------
+
+(def default-tracer
+  "This is the default Tracer, registered as the OpenTracing's GlobalTracer.
+  This value is configured by setting the JVM Property 'io.pedestal.log.defaultTracer'
+  or the environment variable 'PEDESTAL_TRACER'.
+  The value of the setting should be a namespaced symbol
+  that resolves to a 0-arity function or nil.
+  That function should return something that satisfies the TracerOrigin protocol.
+  If no function is found, the GlobalTracer will default to the NoopTracer and `GlobalTracer/isRegistered` will be false."
+  (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultTracer")
+                         (System/getenv "PEDESTAL_TRACER"))]
+    (if (= "nil" ns-fn-str)
+      nil
+      (let [tracer ((resolve (symbol ns-fn-str)))]
+        (when-not (GlobalTracer/isRegistered)
+          (-register tracer))
+        tracer))
+    (GlobalTracer/get)))
+
+;; Public Tracing API
+;; -------------------
+
+(defn span
+  "Given an operation name,
+  and optionally a parent Span, and optionally a map of initial tags
+  return a new Span with the operation name set, started, and active.
+
+  If the parent is not set, the span has no parent (ie: current active spans are ignored)."
+  ([operation-name]
+   (-activate-span default-tracer
+                   (-span default-tracer operation-name)))
+  ([operation-name parent-span]
+   (-activate-span default-tracer
+                   (-span default-tracer operation-name parent-span)))
+  ([operation-name parent-span initial-tags]
+   (-activate-span default-tracer
+                   (-span default-tracer operation-name parent-span initial-tags))))
+
+(defn active-span
+  "Return the current active span;
+  Returns nil if there isn't an active span."
+  []
+  (-active-span default-tracer))
+
+(defn tag-span
+  ([span m]
+   (reduce-kv (fn [span' k v]
+                (-tag-span span' k v))
+              span
+              m))
+  ([span k v]
+   (-tag-span span k v))
+  ([span tag-k tag-v & kvs]
+   (assert (even? (count kvs)) (str "You're trying to tag a span with an uneven set of key/value pairs.
+                                    Perhaps this key is missing a value: " (last kvs)
+                                    "\nProblem pair seq: " (pr-str kvs)))
+   (reduce (fn [span' [k v]]
+             (-tag-span span' k v))
+           (-tag-span span tag-k tag-v)
+           (partition 2 kvs))))
+
+(defn log-span
+  ([span x]
+   (cond
+     (string? x) (-log-span span x)
+     (map? x) (-log-span-map span x)
+     :else (-log-span span (format-name x))))
+  ([span k v]
+   (-log-span-map span {k v}))
+  ([span k v & kvs]
+   (assert (even? (count kvs)) (str "You're trying to log to a span with an uneven set of key/value pairs.
+                                    Perhaps this key is missing a value: " (last kvs)
+                                    "\nProblem pair seq: " (pr-str kvs)))
+   (-log-span-map (assoc (apply hash-map kvs) k v))))
+
+(defn span-baggage
+  ([span]
+   (-get-baggage-map span))
+  ([span k]
+   (-get-baggage span k))
+  ([span k not-found]
+   (-get-baggage span k not-found)))
+
+(defn add-span-baggage!
+  ([span m]
+   (reduce-kv (fn [span' k v]
+                (-set-baggage span' k v))
+              span
+              m))
+  ([span k v]
+   (-set-baggage span k v))
+  ([span bag-k bag-v & kvs]
+   (assert (even? (count kvs)) (str "You're trying to set span baggage with an uneven set of key/value pairs.
+                                    Perhaps this key is missing a value: " (last kvs)
+                                    "\nProblem pair seq: " (pr-str kvs)))
+   (reduce (fn [span' [k v]]
+             (-set-baggage span' k v))
+           (-set-baggage span bag-k bag-v)
+           (partition 2 kvs))))
+
+(defn finish-span
+  [span]
+  (-finish-span span))
 
