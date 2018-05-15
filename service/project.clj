@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2018 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -16,25 +16,25 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
 
                  [io.pedestal/pedestal.log "0.5.4-SNAPSHOT"]
                  [io.pedestal/pedestal.interceptor "0.5.4-SNAPSHOT"]
                  [io.pedestal/pedestal.route "0.5.4-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.3.442"]
+                 [org.clojure/core.async "0.4.474"]
 
                  ;; interceptors
-                 [ring/ring-core "1.5.1" :exclusions [[org.clojure/clojure]
+                 [ring/ring-core "1.6.3" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
 
-                 ;[com.fasterxml.jackson.core/jackson-core "2.3.2"]
-                 [cheshire "5.7.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
-                 [com.cognitect/transit-clj "0.8.300"]
-                 [commons-codec "1.10"]
+                 [cheshire "5.8.0"]
+                 [org.clojure/tools.reader "1.2.2"]
+                 [com.cognitect/transit-clj "0.8.309"]
+                 [commons-codec "1.11"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
@@ -65,11 +65,11 @@
                                   [io.pedestal/pedestal.tomcat "0.5.4-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
-                                  [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]
+                                  [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
                                   [org.clojure/tools.logging "0.3.1"]
-                                  [org.slf4j/jul-to-slf4j "1.7.22"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.22"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.22"]
+                                  [org.slf4j/jul-to-slf4j "1.7.25"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.25"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.25"]
 
                                   ;; only used for route-bench - remove when no longer needed
                                   [incanter/incanter-core "1.5.6"]
