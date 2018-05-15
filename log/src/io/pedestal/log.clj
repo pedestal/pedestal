@@ -29,6 +29,7 @@
                            SpanContext
                            Tracer
                            Tracer$SpanBuilder)
+           (io.opentracing.log.Fields)
            (io.opentracing.util GlobalTracer)
            (java.util Map)
            (java.util.concurrent TimeUnit)
@@ -350,10 +351,19 @@
                        and return the Span.")
   (-log-span [t msg]
              [t msg micros]
-             "Given a span, a log message/string, and optionally an explicit timestamp in microseconds,
-             Record the event to the span,
+             "Given a span, a log message/event, and optionally an explicit timestamp in microseconds,
+             Record the message to the span,
              and return the span.
+
+             If the message is a keyword, the message is recorded as an 'event',
+             otherwise message is coerced into a string and recorded as a 'message'.
+
              If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.")
+  (-error-span [t throwable]
+               [t throwable micros]
+               "Given a span, a Throwable, and optionally an explicit timestamp in microseconds,
+               Record the error to the span as an 'error', attaching Message, Error.Kind and Error.Object to the span,
+               and return the span.")
   (-tag-span [t tag-key tag-value]
              "Given a span, a tag key (String), and a tag value (String),
              Set the tag key-value pair on the span for recording,
@@ -377,6 +387,9 @@
                  "Given a span, a map of fields, and optionally an explicit timestamp in microseconds,
                  Record the event to the span,
                  and return the span.
+
+                 Semantic log fields can be found at: https://github.com/opentracing/specification/blob/master/semantic_conventions.md#log-fields-table
+
                  Some Trace Recorders don't fully support round-tripping maps -- use carefully.
                  Some Trace platforms have semantics around key/values, eg. https://github.com/opentracing/specification/blob/master/semantic_conventions.md"))
 
@@ -434,6 +447,9 @@
   (-log-span
     ([t msg] nil)
     ([t msg micros] nil))
+  (-error-span
+    ([t throwable] nil)
+    ([t throwable micros] nil))
   (-tag-span [t tag-key tag-value] nil)
   (-finish-span
     ([t] nil)
@@ -445,11 +461,28 @@
     t)
   (-log-span
     ([t msg]
-     (.log t ^String msg)
+     (if (keyword? msg)
+       (.log t ^String (format-name msg))
+       (.log t ^Map (array-map io.opentracing.log.Fields/EVENT "info"
+                              io.opentracing.log.Fields/MESSAGE msg)))
      t)
     ([t msg micros]
-     (.log t ^long micros ^String micros)
+     (if (keyword? msg)
+       (.log t ^long micros ^String (format-name msg))
+       (.log t ^long micros ^Map (array-map io.opentracing.log.Fields/MESSAGE msg)))
      t))
+  (-error-span
+    ([t throwable]
+     (.log t ^Map (array-map io.opentracing.log.Fields/EVENT "error"
+                             io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
+                             io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
+                             io.opentracing.log.Fields/ERROR_OBJECT throwable)))
+    ([t throwable micros]
+     (.log t ^long micros
+           ^Map (array-map io.opentracing.log.Fields/EVENT "error"
+                           io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
+                           io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
+                           io.opentracing.log.Fields/ERROR_OBJECT throwable))))
   (-tag-span [t tag-key tag-value]
     (cond
       (string? tag-value) (.setTag t ^String (format-name tag-key) ^String tag-value)
@@ -469,6 +502,11 @@
      (-log-span (.span t) msg))
     ([t msg micros]
      (-log-span (.span t) msg micros)))
+  (-error-span
+    ([t throwable]
+     (-error-span (.span t) throwable))
+    ([t throwable micros]
+     (-error-span (.span t) throwable micros)))
   (-tag-span [t tag-key tag-value]
     (-tag-span (.span t) tag-key tag-value))
   (-finish-span
@@ -495,12 +533,13 @@
                                msg-map)))
      t)
     ([t msg-map micros]
-     (.log t ^Map (persistent!
+     (.log t
+           ^long micros
+           ^Map (persistent!
                     (reduce-kv (fn [acc k v]
                                  (conj! acc (format-name k) v))
                                (transient {})
-                               msg-map))
-           micros)
+                               msg-map)))
      t))
 
   Scope
@@ -561,26 +600,25 @@
        (.start ^Tracer$SpanBuilder builder)))
     ([t operation-name parent opts]
      (let [{:keys [initial-tags]} opts
-           builder (.buildSpan t (format-name operation-name))
-           builder (cond
-                     (nil? parent) (.ignoreActiveSpan builder)
-                     (instance? Span parent) (.asChildOf builder ^Span parent)
-                     :else (.asChildOf builder ^SpanContext parent))]
-       (reduce (fn [builder k v]
+           ^Tracer$SpanBuilder builder (.buildSpan t (format-name operation-name))
+           ^Tracer$SpanBuilder builder (cond
+                                         (nil? parent) (.ignoreActiveSpan builder)
+                                         (instance? Span parent) (.asChildOf builder ^Span parent)
+                                         :else (.asChildOf builder ^SpanContext parent))]
+       (reduce (fn [^Tracer$SpanBuilder builder k v]
                  (cond
                    (string? v) (.withTag builder ^String (format-name k) ^String v)
                    (number? v) (.withTag builder ^String (format-name k) ^Number v)
-                   (instance? Boolean v) (.withTag ^String (format-name k) ^Boolean v)
-                   :else (.withTag ^String (format-name k) ^String (str v))))
+                   (instance? Boolean v) (.withTag builder ^String (format-name k) ^Boolean v)
+                   :else (.withTag builder ^String (format-name k) ^String (str v))))
                builder
                initial-tags)
        (.start ^Tracer$SpanBuilder builder))))
   (-activate-span [t span]
-    (.activate (.scopeManager t) ^Span span false))
+    (.activate (.scopeManager t) ^Span span false)
+    span)
   (-active-span [t]
-    (if-let [scope (.active (.scopeManager t))]
-      (.span ^Scope scope)
-      nil)))
+    (.activeSpan t)))
 
 ;; Utility/Auxiliary trace functions
 ;; ----------------------------------
@@ -602,6 +640,13 @@
           (-register tracer))
         tracer))
     (GlobalTracer/get)))
+
+;; OpenTracing Logging -- Semantic Fields
+(def span-log-event      io.opentracing.log.Fields/EVENT)
+(def span-log-msg        io.opentracing.log.Fields/MESSAGE)
+(def span-log-error-kind io.opentracing.log.Fields/ERROR_KIND)
+(def span-log-error-obj  io.opentracing.log.Fields/ERROR_OBJECT)
+(def span-log-stack      io.opentracing.log.Fields/STACK)
 
 ;; Public Tracing API
 ;; -------------------
@@ -633,6 +678,12 @@
   (-active-span default-tracer))
 
 (defn tag-span
+  "Tag a given span.
+
+  Tags can be expressed as:
+   - a single tag key and tag value
+   - a sequence of tag-key tag-values.
+   - a map of tag-keys -> tag-values"
   ([span m]
    (reduce-kv (fn [span' k v]
                 (-tag-span span' k v))
@@ -650,10 +701,22 @@
            (partition 2 kvs))))
 
 (defn log-span
+  "Log to a given span, and return the span.
+
+  If the log message is a string, the message is logged as an info 'message'.
+  If the log message is a keyword, the message is logged as an 'event', without a message.
+  If the log message is a Throwable, the message is logged as an 'error', with info extracted from the Throwable
+  If the log message is a map, the map is logged as a series of fields/values.
+
+  This also supports the same logging style as io.pedestal.log -- with any number of log keys and values.
+
+  You are encouraged to follow the OpenTracing semantics"
   ([span x]
    (cond
-     (string? x) (-log-span span x)
+     (or (string? x)
+         (keyword? x)) (-log-span span x)
      (map? x) (-log-span-map span x)
+     (instance? Throwable x) (-error-span span x)
      :else (-log-span span (format-name x))))
   ([span k v]
    (-log-span-map span {k v}))
@@ -689,6 +752,7 @@
            (partition 2 kvs))))
 
 (defn finish-span
+  "Given a span, finish the span and return it."
   [span]
   (-finish-span span))
 

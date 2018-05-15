@@ -23,7 +23,7 @@
                  [io.pedestal/pedestal.route "0.5.4-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.4.474"]
+                 [org.clojure/core.async "0.4.474" :exclusions [org.clojure/tools.analyzer.jvm]]
 
                  ;; interceptors
                  [ring/ring-core "1.6.3" :exclusions [[org.clojure/clojure]
@@ -33,6 +33,7 @@
 
                  [cheshire "5.8.0"]
                  [org.clojure/tools.reader "1.2.2"]
+                 [org.clojure/tools.analyzer.jvm "0.7.2"]
                  [com.cognitect/transit-clj "0.8.309"]
                  [commons-codec "1.11"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
