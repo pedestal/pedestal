@@ -409,11 +409,14 @@
              This call is only used when bootstrapping Pedestal's `default-tracer`")
   (-span [t operation-name]
          [t operation-name parent]
-         [t operation-name parent initial-tags]
+         [t operation-name parent opts]
          "Given a Tracer/TraceOrigin, an operation name,
-         and optionally a parent Span, and optionally a map of initial tags
+         and optionally a parent Span, and a map of additional options
          return a new Span with the operation name set.
          If the parent is not set, the span has no parent (ie: current active spans are ignored).
+
+         Additional options are platform specific, but all platforms should support the following:
+          :initial-tags - a map of initial tags for the span
 
          ** The span may be started on creation but should not be activated **
          This should be left to application-specific span builders.")
@@ -556,8 +559,9 @@
                      (.asChildOf builder ^Span parent)
                      (.asChildOf builder ^SpanContext parent))]
        (.start ^Tracer$SpanBuilder builder)))
-    ([t operation-name parent initial-tags]
-     (let [builder (.buildSpan t (format-name operation-name))
+    ([t operation-name parent opts]
+     (let [{:keys [initial-tags]} opts
+           builder (.buildSpan t (format-name operation-name))
            builder (cond
                      (nil? parent) (.ignoreActiveSpan builder)
                      (instance? Span parent) (.asChildOf builder ^Span parent)
@@ -604,19 +608,23 @@
 
 (defn span
   "Given an operation name,
-  and optionally a parent Span, and optionally a map of initial tags
+  and optionally a parent Span, and optionally a map of options
   return a new Span with the operation name set, started, and active.
 
-  If the parent is not set, the span has no parent (ie: current active spans are ignored)."
+  Options are Tracer/TraceOrigin specific but all platforms support a minimum of:
+   :initial-tags - a map of initial tags for the span
+
+  If the parent is not set, the span has no parent (ie: current active spans are ignored).
+  If the parent is nil, the behavior is Tracer/TraceOrigin specific -- by default, the span has no parent."
   ([operation-name]
    (-activate-span default-tracer
                    (-span default-tracer operation-name)))
   ([operation-name parent-span]
    (-activate-span default-tracer
                    (-span default-tracer operation-name parent-span)))
-  ([operation-name parent-span initial-tags]
+  ([operation-name parent-span opts]
    (-activate-span default-tracer
-                   (-span default-tracer operation-name parent-span initial-tags))))
+                   (-span default-tracer operation-name parent-span opts))))
 
 (defn active-span
   "Return the current active span;
