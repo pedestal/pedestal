@@ -137,6 +137,7 @@
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
         log-method' (symbol (str "io.pedestal.log/-" (name level)))
+        formatter (:io.pedestal.log/formatter keyvals-map pr-str)
         override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
                                     (System/getenv "PEDESTAL_LOGGER"))
                                 symbol)]
@@ -145,9 +146,11 @@
                          `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
-                          (pr-str (assoc (dissoc ~keyvals-map
-                                                 :exception :io.pedestal.log/logger)
-                                         :line ~(:line (meta form)))))]
+                          (~formatter ~(assoc (dissoc keyvals-map
+                                                 :exception
+                                                 :io.pedestal.log/logger
+                                                 :io.pedestal.log/formatter)
+                                         :line (:line (meta form)))))]
            ~(if exception'
               `(~log-method' ~logger'
                              ~(with-meta string'
@@ -650,7 +653,7 @@
    (assert (even? (count kvs)) (str "You're trying to log to a span with an uneven set of key/value pairs.
                                     Perhaps this key is missing a value: " (last kvs)
                                     "\nProblem pair seq: " (pr-str kvs)))
-   (-log-span-map (assoc (apply hash-map kvs) k v))))
+   (-log-span-map span (assoc (apply hash-map kvs) k v))))
 
 (defn span-baggage
   ([span]
