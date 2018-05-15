@@ -39,7 +39,7 @@
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
-  :javac-options ["-target" "1.7" "-source" "1.7"]
+  :javac-options ["-target" "1.8" "-source" "1.8"]
   :jvm-opts ["-D\"clojure.compiler.direct-linking=true\""]
   :global-vars {*warn-on-reflection* true}
   :pedantic? :abort
