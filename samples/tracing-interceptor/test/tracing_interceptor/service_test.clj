@@ -1,14 +1,14 @@
-(ns tracing.service-test
+(ns tracing-interceptor.service-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as bootstrap]
-            [tracing.service :as service]))
+            [tracing-interceptor.service :as service]))
 
 (def service
   (::bootstrap/service-fn (bootstrap/create-servlet service/service)))
 
 (deftest home-page-test
-  (is (=
+  (is (.contains
        (:body (response-for service :get "/"))
        "Hello Tracing World!"))
   (is (=
