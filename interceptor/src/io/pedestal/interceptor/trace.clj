@@ -10,7 +10,7 @@
 (defn default-span-resolver
   [context servlet-class]
   (let [servlet-req (and servlet-class (:servlet-request context))
-        servlet-request (with-meta servlet-req {:tag servlet-class})
+        servlet-request (and servlet-req servlet-class (with-meta servlet-req {:tag servlet-class}))
         operation-name (::span-operation context "PedestalSpan")]
     (try
       ;; OpenTracing can throw errors when an extract fails due to no span being present (according to the docs)
@@ -32,7 +32,7 @@
                                (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
             (log/span operation-name span))
           ;; Is there an AWS X-Ray specific span/segment in ther headers?
-          (when-let [xray-headers (get-in context [:request :headers "X-Amzn-Trace-Id"])]
+          (when-let [xray-header-str (get-in context [:request :headers "x-amzn-trace-id"])]
             ;;TODO: Amazon tracing
             ;;
             (log/error :msg "Found X-Ray Trace Headers, but currently not implemented")
@@ -74,37 +74,48 @@
 
   If the trace-filter or the span-resolver return something falsey, the context is forwarded without
   an active span"
-  [opts]
-  (let [{:keys [span-resolver
-                trace-filter
-                uri-as-span-operation?
-                default-span-operation]
-         :or {span-resolver default-span-resolver
-              trace-filter (fn [ctx] true)
-              uri-as-span-operation? true
-              default-span-operation "PedestalSpan"}} opts
-        servlet-class (try (Class/forName "javax.servlet.HttpServletRequest")
-                           (catch Exception _ nil))]
-    (interceptor/interceptor
-      {:enter (fn [context]
-                (if-let [span (and (trace-filter context)
-                                   (span-resolver (assoc context
-                                                         ::span-operation (if uri-as-span-operation?
-                                                                           (get-in context [:request :uri] default-span-operation)
-                                                                           default-span-operation))
-                                                  servlet-class))]
-                  (assoc context ::log/span (log/tag-span
-                                              span
-                                              {"http.method" (get-in context [:request :request-method])
-                                               "http.url" (get-in context [:request :uri])
-                                               "http.user-agent" (get-in context [:request :header "User-Agent"])}))
-                  context))
-       :leave (fn [context]
-                (if-let [span (::log/span context)]
-                  (log/tag-span span "http.status_code" (get-in context [:response :status]))
-                  context))
-       :error (fn [context]
-                (if-let [span (::log/span context)]
-                  (log/log-span (::chain/error context))
-                  context))})))
+  ([]
+   (tracing-interceptor {}))
+  ([opts]
+   (let [{:keys [span-resolver
+                 trace-filter
+                 uri-as-span-operation?
+                 default-span-operation]
+          :or {span-resolver default-span-resolver
+               trace-filter (fn [ctx] true)
+               uri-as-span-operation? true
+               default-span-operation "PedestalSpan"}} opts
+         servlet-class (try (Class/forName "javax.servlet.HttpServletRequest")
+                            (catch Exception _ nil))]
+     (interceptor/interceptor
+       {:name ::tracing-interceptor
+        :enter (fn [context]
+                 (if-let [span (and (trace-filter context)
+                                    (span-resolver (assoc context
+                                                          ::span-operation (if uri-as-span-operation?
+                                                                             (get-in context [:request :uri] default-span-operation)
+                                                                             default-span-operation))
+                                                   servlet-class))]
+                   (assoc context ::log/span (log/tag-span
+                                               span
+                                               {"http.method" (name (get-in context [:request :request-method]))
+                                                "http.url" (get-in context [:request :uri])
+                                                "http.user-agent" (get-in context [:request :headers "user-agent"])
+                                                "component" "pedestal"
+                                                "span.kind" "server"}))
+                   context))
+        :leave (fn [context]
+                 (if-let [span (::log/span context)]
+                   (do
+                     (log/tag-span span "http.status_code" (get-in context [:response :status]))
+                     (log/finish-span span)
+                     context)
+                   context))
+        :error (fn [context]
+                 (if-let [span (::log/span context)]
+                   (do
+                     (log/log-span span (::chain/error context))
+                     (log/finish-span span)
+                     context)
+                   context))}))))
 
