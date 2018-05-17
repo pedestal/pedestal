@@ -18,6 +18,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [io.pedestal/pedestal.interceptor "0.5.4-SNAPSHOT"]
+                 [io.pedestal/pedestal.log "0.5.4-SNAPSHOT"]
                  ;[com.amazonaws.serverless/aws-serverless-java-container-core "0.5.1" :exclusions [[com.fasterxml.jackson.core/jackson-databind]]]
                  [javax.servlet/javax.servlet-api "3.1.0"]
                  ;[com.fasterxml.jackson.core/jackson-databind "2.8.9"] ;; matches io.pedestal/pedestal.service
