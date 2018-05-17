@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2018 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -132,29 +132,68 @@
 ;; The function will be called multiple times (as the logging macros are expanded).
 
 (def override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                    (System/getenv "PEDESTAL_LOGGER"))
-                                symbol
-                                resolve))
+                                 (System/getenv "PEDESTAL_LOGGER"))
+                             symbol
+                             resolve))
 
-(defn new-log-expr
+(def log-level-dispatch
+  {:trace -trace
+   :debug -debug
+   :info  -info
+   :warn  -warn
+   :error -error})
+
+(defn log
+  "This function provides basic/core logging functionality as a function.
+  You may prefer to use this if you need custom logging functionality beyond
+  what is offered by the standard Pedestal logging marcos (which in turn just call the protocols).
+
+  Given a map of logging information,
+    and optionally a default log-level keyword (if not found in the map) -- default is :info,
+  Determine if the appropriate logger to use,
+   determine if logging-level is enabled,
+   format the logging message,
+  And return the result of calling the appropriate logging function, dispatched to the logging protocols.
+
+  Special keys within the log message:
+   :level -- A keyword, the log level to use for this message, defaults to `default-level`
+   :exception -- A Throwable/Exception to log
+   :io.pedestal.log/logger -- The logger to use for this message,
+                              defaults to the `override-logger` or the SLF4J logger
+   :io.pedestal.log/logger-name -- A String, the loggerName to use if SLF4J logger is used,
+                                   defaults to `*ns*` which may be 'clojure.core' depending on execution,
+   :io.pedestal.log/formatter -- A single-arg function that when given a map, returns a String for logging,
+                                 defaults to `pr-str`
+
+  If using this function within a macro, you're encouraged to merge all 'meta' information
+  (like line info) into the log message map.
+  For example:
+
+  (defmacro log-macro [log-map]
+  (let [named-log-map (if (::logger-name log-map)
+                        log-map
+                        (assoc log-map ::logger-name (name (ns-name *ns*))))
+        final-log-map (assoc named-log-map :line (:line (meta &form)))]
+    `(log ~final-log-map :info)))
+  "
   ([keyvals]
-   (new-log-expr keyvals :info nil))
+   (log keyvals :info))
   ([keyvals default-level]
-   (new-log-expr keyvals default-level nil))
-  ([keyvals default-level form]
    (let [keyvals-map (if (map? keyvals) keyvals (apply array-map keyvals))
          level (:level keyvals-map default-level)
-         ^String logger-name (or (::logger-name keyvals-map)
-                                 (name (ns-name *ns*)))
          logger (or (::logger keyvals-map)
                     override-logger
-                    (LoggerFactory/getLogger logger-name))]
+                    (LoggerFactory/getLogger ^String (or (::logger-name keyvals-map)
+                                                         (name (ns-name *ns*)))))]
      (when (io.pedestal.log/-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
+             formatter (::formatter keyvals-map pr-str)
              ;; You/Users have full control over binding *print-length*, use it wisely please
-             msg (pr-str (dissoc keyvals-map
-                                 :exception ::logger ::logger-name :level))
-             log-fn (resolve (symbol (str "io.pedestal.log/-" (name level))))]
+             msg (formatter (dissoc keyvals-map
+                                    :exception ::logger ::logger-name ::formatter :level))
+             ;; In order to get to here, `level` has to be enabled,
+             ;;  so it should be safe to look-up in the dispatch
+             log-fn (get log-level-dispatch level)]
          (if exception
            (log-fn logger ^String msg ^Throwable exception)
            (log-fn logger msg)))))))
@@ -166,12 +205,12 @@
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
         log-method' (symbol (str "io.pedestal.log/-" (name level)))
-        formatter (:io.pedestal.log/formatter keyvals-map pr-str)
-        override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                    (System/getenv "PEDESTAL_LOGGER"))
-                                symbol)]
+        formatter (::formatter keyvals-map pr-str)
+        override-logger-sym (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                        (System/getenv "PEDESTAL_LOGGER"))
+                                    symbol)]
     `(let [~logger' ~(or (::logger keyvals-map)
-                         (and override-logger `(~override-logger ~(name (ns-name *ns*))))
+                         (and override-logger-sym `(~override-logger-sym ~(name (ns-name *ns*))))
                          `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
