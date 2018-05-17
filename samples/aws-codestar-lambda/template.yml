@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform:
+- AWS::Serverless-2016-10-31
+- AWS::CodeStar
+
+Parameters:
+  ProjectId:
+    Type: String
+    Description: AWS CodeStar projectID used to associate new resources to team members
+
+Resources:
+  PedestalLambdaProxy:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: "pedestallambda.server::handler"
+      Runtime: java8
+      MemorySize: 320
+      Timeout: 3
+      Role:
+        Fn::ImportValue:
+          !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
+      Events:
+        GetEvent:
+          Type: Api
+          Properties:
+            Path: /{pedestallambda+}
+            Method: any
+
