@@ -416,21 +416,6 @@
                        "Given a span and the operation name (String),
                        set the logical operation this span represents,
                        and return the Span.")
-  (-log-span [t msg]
-             [t msg micros]
-             "Given a span, a log message/event, and optionally an explicit timestamp in microseconds,
-             Record the message to the span,
-             and return the span.
-
-             If the message is a keyword, the message is recorded as an 'event',
-             otherwise message is coerced into a string and recorded as a 'message'.
-
-             If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.")
-  (-error-span [t throwable]
-               [t throwable micros]
-               "Given a span, a Throwable, and optionally an explicit timestamp in microseconds,
-               Record the error to the span as an 'error', attaching Message, Error.Kind and Error.Object to the span,
-               and return the span.")
   (-tag-span [t tag-key tag-value]
              "Given a span, a tag key (String), and a tag value (String),
              Set the tag key-value pair on the span for recording,
@@ -448,7 +433,24 @@
                 If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.
                 Multiple calls to -finishSpan should be noops"))
 
-(defprotocol TraceSpanMap
+(defprotocol TraceSpanLog
+  (-log-span [t msg]
+             [t msg micros]
+             "Given a span, a log message/event, and optionally an explicit timestamp in microseconds,
+             Record the message to the span,
+             and return the span.
+
+             If the message is a keyword, the message is recorded as an 'event',
+             otherwise message is coerced into a string and recorded as a 'message'.
+
+             If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.")
+  (-error-span [t throwable]
+               [t throwable micros]
+               "Given a span, a Throwable, and optionally an explicit timestamp in microseconds,
+               Record the error to the span as an 'error', attaching Message, Error.Kind and Error.Object to the span,
+               and return the span."))
+
+(defprotocol TraceSpanLogMap
   (-log-span-map [t msg-map]
                  [t msg-map micros]
                  "Given a span, a map of fields, and optionally an explicit timestamp in microseconds,
@@ -511,12 +513,6 @@
 (extend-protocol TraceSpan
   nil
   (-set-operation-name [t operation-name] nil)
-  (-log-span
-    ([t msg] nil)
-    ([t msg micros] nil))
-  (-error-span
-    ([t throwable] nil)
-    ([t throwable micros] nil))
   (-tag-span [t tag-key tag-value] nil)
   (-finish-span
     ([t] nil)
@@ -526,6 +522,40 @@
   (-set-operation-name [t operation-name]
     (.setOperationName t (format-name operation-name))
     t)
+  (-tag-span [t tag-key tag-value]
+    (cond
+      (string? tag-value) (.setTag t ^String (format-name tag-key) ^String tag-value)
+      (number? tag-value) (.setTag t ^String (format-name tag-key) ^Number tag-value)
+      (instance? Boolean tag-value) (.setTag t ^String (format-name tag-key) ^Boolean tag-value)
+      :else (.setTag t ^String (format-name tag-key) ^String (str tag-value)))
+    t)
+  (-finish-span
+    ([t] (.finish t) t)
+    ([t micros] (.finish t micros) t))
+
+  Scope
+  (-set-operation-name [t operation-name]
+    (-set-operation-name (.span t) operation-name))
+  (-tag-span [t tag-key tag-value]
+    (-tag-span (.span t) tag-key tag-value))
+  (-finish-span
+    ([t]
+     (.close t)
+     (-finish-span (.span t)))
+    ([t micros]
+     (.close t)
+     (-finish-span (.span t) micros))))
+
+(extend-protocol TraceSpanLog
+  nil
+  (-log-span
+    ([t msg] nil)
+    ([t msg micros] nil))
+  (-error-span
+    ([t throwable] nil)
+    ([t throwable micros] nil))
+
+  Span
   (-log-span
     ([t msg]
      (if (keyword? msg)
@@ -550,20 +580,8 @@
                            io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
                            io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
                            io.opentracing.log.Fields/ERROR_OBJECT throwable))))
-  (-tag-span [t tag-key tag-value]
-    (cond
-      (string? tag-value) (.setTag t ^String (format-name tag-key) ^String tag-value)
-      (number? tag-value) (.setTag t ^String (format-name tag-key) ^Number tag-value)
-      (instance? Boolean tag-value) (.setTag t ^String (format-name tag-key) ^Boolean tag-value)
-      :else (.setTag t ^String (format-name tag-key) ^String (str tag-value)))
-    t)
-  (-finish-span
-    ([t] (.finish t) t)
-    ([t micros] (.finish t micros) t))
 
   Scope
-  (-set-operation-name [t operation-name]
-    (-set-operation-name (.span t) operation-name))
   (-log-span
     ([t msg]
      (-log-span (.span t) msg))
@@ -573,18 +591,9 @@
     ([t throwable]
      (-error-span (.span t) throwable))
     ([t throwable micros]
-     (-error-span (.span t) throwable micros)))
-  (-tag-span [t tag-key tag-value]
-    (-tag-span (.span t) tag-key tag-value))
-  (-finish-span
-    ([t]
-     (.close t)
-     (-finish-span (.span t)))
-    ([t micros]
-     (.close t)
-     (-finish-span (.span t) micros))))
+     (-error-span (.span t) throwable micros))))
 
-(extend-protocol TraceSpanMap
+(extend-protocol TraceSpanLogMap
   nil
   (-log-span-map
     ([t msg-map] nil)
@@ -702,7 +711,10 @@
                          (System/getenv "PEDESTAL_TRACER"))]
     (if (= "nil" ns-fn-str)
       nil
-      (let [tracer ((resolve (symbol ns-fn-str)))]
+      (let [tracer (try
+                     (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
+                       (require (symbol ns-str))
+                       ((resolve (symbol ns-fn-str)))))]
         (when-not (GlobalTracer/isRegistered)
           (-register tracer))
         tracer))
