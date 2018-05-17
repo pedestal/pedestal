@@ -131,6 +131,34 @@
 ;; This function should return something that satisifes the LoggerSource protocol.
 ;; The function will be called multiple times (as the logging macros are expanded).
 
+(def override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                    (System/getenv "PEDESTAL_LOGGER"))
+                                symbol
+                                resolve))
+
+(defn new-log-expr
+  ([keyvals]
+   (new-log-expr keyvals :info nil))
+  ([keyvals default-level]
+   (new-log-expr keyvals default-level nil))
+  ([keyvals default-level form]
+   (let [keyvals-map (if (map? keyvals) keyvals (apply array-map keyvals))
+         level (:level keyvals-map default-level)
+         ^String logger-name (or (::logger-name keyvals-map)
+                                 (name (ns-name *ns*)))
+         logger (or (::logger keyvals-map)
+                    override-logger
+                    (LoggerFactory/getLogger logger-name))]
+     (when (io.pedestal.log/-level-enabled? logger level)
+       (let [exception (:exception keyvals-map)
+             ;; You/Users have full control over binding *print-length*, use it wisely please
+             msg (pr-str (dissoc keyvals-map
+                                 :exception ::logger ::logger-name :level))
+             log-fn (resolve (symbol (str "io.pedestal.log/-" (name level))))]
+         (if exception
+           (log-fn logger ^String msg ^Throwable exception)
+           (log-fn logger msg)))))))
+
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
   (let [keyvals-map (apply array-map keyvals)
