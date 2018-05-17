@@ -154,11 +154,10 @@
              (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
          :else
-         (do
-           (log/counter ::active-streams -1)
-           (log/info :msg "Event channel has closed. Shutting down SSE stream.")))))
+         (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
     (async/close! event-channel)
     (async/close! response-channel)
+    (log/counter ::active-streams -1)
     (when on-client-disconnect (on-client-disconnect))))
 
 (defn start-stream
