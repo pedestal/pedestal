@@ -1,4 +1,4 @@
-(ns io.pedestal.http.lambda.utils
+(ns io.pedestal.http.aws.lambda.utils
   (:require [clojure.string :as string]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-utils]
             [io.pedestal.interceptor.chain :as chain])

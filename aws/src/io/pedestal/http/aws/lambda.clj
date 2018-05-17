@@ -1,4 +1,4 @@
-(ns io.pedestal.http.lambda
+(ns io.pedestal.http.aws.lambda
   )
 
 ;; AWS provides a ServletContext

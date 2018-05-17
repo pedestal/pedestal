@@ -19,7 +19,7 @@
         "jetty"
         "immutant"
         "tomcat"
-        "lambda"
+        "aws"
         "service-tools"
         "service-template"]
   :aliases {"docs" ["with-profile" "docs" "codox"]}
@@ -31,6 +31,7 @@
                                    [io.pedestal/pedestal.jetty "0.5.4-SNAPSHOT"]
                                    [io.pedestal/pedestal.immutant "0.5.4-SNAPSHOT"]
                                    [io.pedestal/pedestal.tomcat "0.5.4-SNAPSHOT"]
+                                   [io.pedestal/pedestal.aws "0.5.4-SNAPSHOT"]
                                    [io.pedestal/pedestal.service-tools "0.5.4-SNAPSHOT"]]
                     :codox {:output-path "codox"
                             :source-uri "http://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"
@@ -41,4 +42,5 @@
                                            "jetty/src"
                                            "immutant/src"
                                            "tomcat/src"
+                                           "aws/src"
                                            "service-tools/src"]}}})
