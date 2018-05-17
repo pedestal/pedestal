@@ -14,6 +14,7 @@
   "This namespace creates interceptors for ring-core middlewares."
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
+            [io.pedestal.http.request :as request]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.helpers :as interceptor]
             [ring.middleware.cookies :as cookies]
@@ -31,8 +32,7 @@
             [ring.util.mime-type :as mime]
             [ring.util.codec :as codec]
             [ring.util.response :as ring-resp])
-  (:import (javax.servlet.http HttpServletResponse)
-           (java.nio.channels FileChannel)
+  (:import (java.nio.channels FileChannel)
            (java.nio.file StandardOpenOption)
            (java.io File)))
 
@@ -165,7 +165,7 @@
                        {:keys [servlet-response uri path-info request-method]} request]
                    (if (#{:head :get} request-method)
                      (let [buffer-size-bytes (if servlet-response
-                                               (.getBufferSize ^HttpServletResponse servlet-response)
+                                               (request/response-buffer-size servlet-response)
                                                ;; let's play it safe and assume 1500 MTU
                                                1460)
                            uri-path (subs (codec/url-decode (or path-info uri)) 1)
@@ -200,4 +200,3 @@
        (interceptor {:name ::session
                      :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
                      :leave (response-fn-adapter session/session-response options)}))))
-
