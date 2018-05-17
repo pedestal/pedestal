@@ -10,6 +10,6 @@
 
 ## Operating System (including version).
 
-## Your current Leiningen version (`lein --version`)
+## Your current Leiningen or Boot version (`lein --version` or `boot --version`)
 
 ## Pedestal version

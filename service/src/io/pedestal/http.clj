@@ -18,6 +18,7 @@
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.interceptor :as pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
@@ -200,17 +201,20 @@
   * :allowed-origins: Determines what origins are allowed for the cors/allow-origin interceptor. If
      nil, this interceptor is not added. Default is nil.
   * :not-found-interceptor: Interceptor to use when returning a not found response. Default is
-     the not-found interceptor.
+     the not-found interceptor. `nil` to disable.
+  * :request-logger: Interceptor to log requests entering the interceptor chain. Default is
+     the log-request interceptor. `nil` to disable.
   * :mime-types: Mime-types map used by the middlewares/content-type interceptor. Default is {}.
   * :enable-session: A settings map to include the session middleware interceptor. If nil, this interceptor
      is not added.  Default is nil.
   * :enable-csrf: A settings map to include the csrf-protection interceptor. This implies
      sessions are enabled. If nil, this interceptor is not added. Default is nil.
   * :secure-headers: A settings map for various secure headers.
-     Keys are: [:hsts-settings :frame-options-settings :content-type-settings :xss-protection-settings]
+     Keys are: [:hsts-settings :frame-options-settings :content-type-settings :xss-protection-settings :download-options-settings :cross-domain-policies-settings :content-security-policy-settings]
      If nil, this interceptor is not added.  Default is the default secure-headers settings"
   [service-map]
   (let [{interceptors ::interceptors
+         request-logger ::request-logger
          routes ::routes
          router ::router
          file-path ::file-path
@@ -223,6 +227,7 @@
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
          :or {file-path nil
+              request-logger log-request
               router :map-tree
               resource-path nil
               not-found-interceptor not-found
@@ -242,21 +247,21 @@
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
-                     true (conj log-request)
-                     (not (nil? allowed-origins)) (conj (cors/allow-origin allowed-origins))
-                     true (conj not-found-interceptor)
-                     (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
-                     enable-csrf (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
-                                        (csrf/anti-forgery enable-csrf)])
-                     true (conj (middlewares/content-type {:mime-types ext-mime-types}))
-                     true (conj route/query-params)
-                     true (conj (route/method-param method-param-name))
-                     (not (nil? secure-headers)) (conj (sec-headers/secure-headers secure-headers))
-                     ;; TODO: If all platforms support async/NIO responses, we can bring this back
-                     ;(not (nil? resource-path)) (conj (middlewares/fast-resource resource-path))
-                     (not (nil? resource-path)) (conj (middlewares/resource resource-path))
-                     (not (nil? file-path)) (conj (middlewares/file file-path))
-                     true (conj (route/router processed-routes router))))
+               (some? request-logger) (conj (pedestal.interceptor/interceptor request-logger))
+               (some? allowed-origins) (conj (cors/allow-origin allowed-origins))
+               (some? not-found-interceptor) (conj (pedestal.interceptor/interceptor not-found-interceptor))
+               (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
+               (some? enable-csrf) (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
+                                          (csrf/anti-forgery enable-csrf)])
+               true (conj (middlewares/content-type {:mime-types ext-mime-types}))
+               true (conj route/query-params)
+               true (conj (route/method-param method-param-name))
+               (some? secure-headers) (conj (sec-headers/secure-headers secure-headers))
+               ;; TODO: If all platforms support async/NIO responses, we can bring this back
+               ;(not (nil? resource-path)) (conj (middlewares/fast-resource resource-path))
+               (some? resource-path) (conj (middlewares/resource resource-path))
+               (some? file-path) (conj (middlewares/file file-path))
+               true (conj (route/router processed-routes router))))
       service-map)))
 
 (defn dev-interceptors

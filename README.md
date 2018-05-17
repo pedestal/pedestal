@@ -10,18 +10,18 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.5.2"]
-[io.pedestal/pedestal.service-tools "0.5.2"] ;; Only needed for ns-watching; WAR tooling
-[io.pedestal/pedestal.jetty         "0.5.2"]
-[io.pedestal/pedestal.immutant      "0.5.2"]
-[io.pedestal/pedestal.tomcat        "0.5.2"]
+[io.pedestal/pedestal.service       "0.5.3"]
+[io.pedestal/pedestal.service-tools "0.5.3"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.3"]
+[io.pedestal/pedestal.immutant      "0.5.3"]
+[io.pedestal/pedestal.tomcat        "0.5.3"]
 ```
 
 You can also use Pedestal's internal modules standalone
 ```
-[io.pedestal/pedestal.log         "0.5.2"] ;; Logging and runtime metrics
-[io.pedestal/pedestal.interceptor "0.5.2"] ;; The Interceptor chain and the Interceptor API
-[io.pedestal/pedestal.route       "0.5.2"] ;; Efficient routing algorithms and data structures
+[io.pedestal/pedestal.log         "0.5.3"] ;; Logging and runtime metrics
+[io.pedestal/pedestal.interceptor "0.5.3"] ;; The Interceptor chain and the Interceptor API
+[io.pedestal/pedestal.route       "0.5.3"] ;; Efficient routing algorithms and data structures
 ```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for

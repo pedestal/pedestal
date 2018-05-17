@@ -2,6 +2,19 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.3 - October 3, 2017
+
+ * CSRF default interceptor now implies `body-params` when turned on
+ * The internal linker map within `url-for` is now delayed, while upholding the existing API
+ * `not-found` and `request-logging` default interceptors are now optional and can be toggled in the Service Map
+ * All Routers are verb-neutral.  Table Routes is the only verb-neutral data definition currently
+ * Service Template improves the developer experience around CSP (mostly turned off in dev-mode)
+ * `url-for` correctly handles trailing slashes
+ * Clojure 1.9.0 and core.async spec bugs all addressed by bumping dependencies
+ * Servlet Chain Provider correctly handles multi-valued header entries
+
+For a full list of changes, please see this comparison of [0.5.2...0.5.3](https://github.com/pedestal/pedestal/compare/0.5.2...0.5.3).
+
 ## 0.5.2 - January 12, 2017
 
  * Immutant WebSocket support added

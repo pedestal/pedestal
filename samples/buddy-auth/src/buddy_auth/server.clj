@@ -1,8 +1,8 @@
-(ns {{namespace}}.server
+(ns buddy-auth.server
   (:gen-class) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
             [io.pedestal.http.route :as route]
-            [{{namespace}}.service :as service]))
+            [buddy-auth.service :as service]))
 
 ;; This is an adapted service map, that can be started and stopped
 ;; From the REPL you can call server/start and server/stop on this service
@@ -20,9 +20,7 @@
               ;;  we can use this to set the routes to be reloadable
               ::server/routes #(route/expand-routes (deref #'service/routes))
               ;; all origins are allowed in dev mode
-              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}
-              ;; Content Security Policy (CSP) is mostly turned off in dev mode
-              ::server/secure-headers {:content-security-policy-settings {:object-src "'none'"}}})
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
       ;; Wire up interceptor chains
       server/default-interceptors
       server/dev-interceptors
