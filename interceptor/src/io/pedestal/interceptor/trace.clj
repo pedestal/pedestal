@@ -8,41 +8,34 @@
                                        TextMapExtractAdapter)))
 
 (defn default-span-resolver
-  [context servlet-class]
-  (let [servlet-req (and servlet-class (:servlet-request context))
-        servlet-request (and servlet-req servlet-class (with-meta servlet-req {:tag servlet-class}))
-        operation-name (::span-operation context "PedestalSpan")]
-    (try
-      ;; OpenTracing can throw errors when an extract fails due to no span being present (according to the docs)
-      ;; Defensively protect against span parse/extract errors,
-      ;;  and on exception, just create a new span without a parent, tagged appropriately
-      (or ;; Is there already a span in the context?
-          (::log/span context)
-          ;; Is there a span in the servlet request?
-          (when-let [span-context (and servlet-request
-                                       (.getAttribute servlet-request "TracingFilter.activeSpanContext"))]
-            (log/span operation-name ^SpanContext span-context))
-          ;; Is there a span in the headers?
-          (when-let [span-context (.extract ^Tracer log/default-tracer
-                                            Format$Builtin/HTTP_HEADERS
-                                            (TextMapExtractAdapter. (get-in context [:request :headers] {})))]
-            (log/span operation-name ^SpanContext span-context))
-          ;; Is there an AWS X-Ray specific span/segment in the servlet?
-          (when-let [span (and servlet-request
-                               (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
-            (log/span operation-name span))
-          ;; Is there an AWS X-Ray specific span/segment in ther headers?
-          (when-let [xray-header-str (get-in context [:request :headers "x-amzn-trace-id"])]
-            ;;TODO: Amazon tracing
-            ;;
-            (log/error :msg "Found X-Ray Trace Headers, but currently not implemented")
-            nil)
-          ;; Otherwise, create a new span
-          (log/span operation-name))
-      (catch Exception e
-        ;; Something happened during decoding a Span,
-        ;; Create a new span and tag it accordingly
-        (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e))))))
+  ([context]
+   (default-span-resolver context (try (Class/forName "javax.servlet.HttpServletRequest")
+                                       (catch Exception _ nil))))
+  ([context servlet-class]
+   (let [servlet-req (and servlet-class (:servlet-request context))
+         servlet-request (and servlet-req servlet-class (with-meta servlet-req {:tag servlet-class}))
+         operation-name (::span-operation context "PedestalSpan")]
+     (try
+       ;; OpenTracing can throw errors when an extract fails due to no span being present (according to the docs)
+       ;; Defensively protect against span parse/extract errors,
+       ;;  and on exception, just create a new span without a parent, tagged appropriately
+       (or ;; Is there already a span in the context?
+           (::log/span context)
+           ;; Is there a span in the servlet request?
+           (when-let [span-context (and servlet-request
+                                        (.getAttribute servlet-request "TracingFilter.activeSpanContext"))]
+             (log/span operation-name ^SpanContext span-context))
+           ;; Is there an OpenTracing span in the headers? (header key is "uber-id")
+           (when-let [span-context (.extract ^Tracer log/default-tracer
+                                             Format$Builtin/HTTP_HEADERS
+                                             (TextMapExtractAdapter. (get-in context [:request :headers] {})))]
+             (log/span operation-name ^SpanContext span-context))
+           ;; Otherwise, create a new span
+           (log/span operation-name))
+       (catch Exception e
+         ;; Something happened during decoding a Span,
+         ;; Create a new span and tag it accordingly
+         (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e)))))))
 
 
 (defn tracing-interceptor
@@ -58,13 +51,12 @@
   Possible options:
    :span-resolver - a single-arg function that is given the context and
                     returns a started and activated span, resolving any propagated or parent span.
-                    The default resolver is `io.pedestal.interceptor.trace.default-span-resolver`
+                    The default resolver is `io.pedestal.interceptor.trace.ot-span-resolver`
                     which resolves (in order; first resolution wins):
                     1. Pedestal tracing values in the Context
                     2. OpenTracing Servlet values (if the Servlet API class is detected)
                     3. OpenTracing Header values
-                    4. AWS X-Ray Servlet values (if the Servlet API class is detected)
-                    5. AWS X-Ray Header values
+                    4. Nothing found - A new span is created
    :trace-filter - a single-arg function that is given the context and
                    returns true if a span should be created for this request.
                    If not set or set to nil, spans are created for every request
@@ -111,11 +103,11 @@
                      (log/finish-span span)
                      context)
                    context))
-        :error (fn [context]
+        :error (fn [context throwable]
                  (if-let [span (::log/span context)]
                    (do
-                     (log/log-span span (::chain/error context))
+                     (log/log-span span throwable)
                      (log/finish-span span)
-                     context)
-                   context))}))))
+                     (assoc context ::chain/error throwable))
+                   (assoc context ::chain/error throwable)))}))))
 

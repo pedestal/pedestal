@@ -698,27 +698,7 @@
 
 ;; Utility/Auxiliary trace functions
 ;; ----------------------------------
-
-(def default-tracer
-  "This is the default Tracer, registered as the OpenTracing's GlobalTracer.
-  This value is configured by setting the JVM Property 'io.pedestal.log.defaultTracer'
-  or the environment variable 'PEDESTAL_TRACER'.
-  The value of the setting should be a namespaced symbol
-  that resolves to a 0-arity function or nil.
-  That function should return something that satisfies the TracerOrigin protocol.
-  If no function is found, the GlobalTracer will default to the NoopTracer and `GlobalTracer/isRegistered` will be false."
-  (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultTracer")
-                         (System/getenv "PEDESTAL_TRACER"))]
-    (if (= "nil" ns-fn-str)
-      nil
-      (let [tracer (try
-                     (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
-                       (require (symbol ns-str))
-                       ((resolve (symbol ns-fn-str)))))]
-        (when-not (GlobalTracer/isRegistered)
-          (-register tracer))
-        tracer))
-    (GlobalTracer/get)))
+(declare default-tracer)
 
 ;; OpenTracing Logging -- Semantic Fields
 (def span-log-event      io.opentracing.log.Fields/EVENT)
@@ -834,4 +814,29 @@
   "Given a span, finish the span and return it."
   [span]
   (-finish-span span))
+
+(def default-tracer
+  "This is the default Tracer, registered as the OpenTracing's GlobalTracer.
+  This value is configured by setting the JVM Property 'io.pedestal.log.defaultTracer'
+  or the environment variable 'PEDESTAL_TRACER'.
+  The value of the setting should be a namespaced symbol
+  that resolves to a 0-arity function or nil.
+  That function should return something that satisfies the TracerOrigin protocol.
+  If no function is found, the GlobalTracer will default to the NoopTracer and `GlobalTracer/isRegistered` will be false."
+  (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultTracer")
+                         (System/getenv "PEDESTAL_TRACER"))]
+    (if (= "nil" ns-fn-str)
+      nil
+      (let [tracer (try
+                     (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
+                       (info :msg "Setting up a new tracer; Requiring necessary namespace"
+                                 :ns ns-str)
+                       (require (symbol ns-str))
+                       (info :msg "Calling Tracer resolution function..."
+                                 :fn ns-fn-str)
+                       ((resolve (symbol ns-fn-str)))))]
+        (when-not (GlobalTracer/isRegistered)
+          (-register tracer))
+        tracer))
+    (GlobalTracer/get)))
 
