@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2018 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -22,7 +22,16 @@
                       LoggerFactory)
            (com.codahale.metrics MetricRegistry
                                  Gauge Counter Histogram Meter
-                                 JmxReporter Slf4jReporter)
+                                 Slf4jReporter)
+           (com.codahale.metrics.jmx JmxReporter)
+           (io.opentracing Scope
+                           Span
+                           SpanContext
+                           Tracer
+                           Tracer$SpanBuilder)
+           (io.opentracing.log.Fields)
+           (io.opentracing.util GlobalTracer)
+           (java.util Map)
            (java.util.concurrent TimeUnit)
            (clojure.lang IFn)))
 
@@ -122,6 +131,73 @@
 ;; This function should return something that satisifes the LoggerSource protocol.
 ;; The function will be called multiple times (as the logging macros are expanded).
 
+(def override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                 (System/getenv "PEDESTAL_LOGGER"))
+                             symbol
+                             resolve))
+
+(def log-level-dispatch
+  {:trace -trace
+   :debug -debug
+   :info  -info
+   :warn  -warn
+   :error -error})
+
+(defn log
+  "This function provides basic/core logging functionality as a function.
+  You may prefer to use this if you need custom logging functionality beyond
+  what is offered by the standard Pedestal logging marcos (which in turn just call the protocols).
+
+  Given a map of logging information,
+    and optionally a default log-level keyword (if not found in the map) -- default is :info,
+  Determine if the appropriate logger to use,
+   determine if logging-level is enabled,
+   format the logging message,
+  And return the result of calling the appropriate logging function, dispatched to the logging protocols.
+
+  Special keys within the log message:
+   :level -- A keyword, the log level to use for this message, defaults to `default-level`
+   :exception -- A Throwable/Exception to log
+   :io.pedestal.log/logger -- The logger to use for this message,
+                              defaults to the `override-logger` or the SLF4J logger
+   :io.pedestal.log/logger-name -- A String, the loggerName to use if SLF4J logger is used,
+                                   defaults to `*ns*` which may be 'clojure.core' depending on execution,
+   :io.pedestal.log/formatter -- A single-arg function that when given a map, returns a String for logging,
+                                 defaults to `pr-str`
+
+  If using this function within a macro, you're encouraged to merge all 'meta' information
+  (like line info) into the log message map.
+  For example:
+
+  (defmacro log-macro [log-map]
+  (let [named-log-map (if (::logger-name log-map)
+                        log-map
+                        (assoc log-map ::logger-name (name (ns-name *ns*))))
+        final-log-map (assoc named-log-map :line (:line (meta &form)))]
+    `(log ~final-log-map :info)))
+  "
+  ([keyvals]
+   (log keyvals :info))
+  ([keyvals default-level]
+   (let [keyvals-map (if (map? keyvals) keyvals (apply array-map keyvals))
+         level (:level keyvals-map default-level)
+         logger (or (::logger keyvals-map)
+                    override-logger
+                    (LoggerFactory/getLogger ^String (or (::logger-name keyvals-map)
+                                                         (name (ns-name *ns*)))))]
+     (when (io.pedestal.log/-level-enabled? logger level)
+       (let [exception (:exception keyvals-map)
+             formatter (::formatter keyvals-map pr-str)
+             ;; You/Users have full control over binding *print-length*, use it wisely please
+             msg (formatter (dissoc keyvals-map
+                                    :exception ::logger ::logger-name ::formatter :level))
+             ;; In order to get to here, `level` has to be enabled,
+             ;;  so it should be safe to look-up in the dispatch
+             log-fn (get log-level-dispatch level)]
+         (if exception
+           (log-fn logger ^String msg ^Throwable exception)
+           (log-fn logger msg)))))))
+
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
   (let [keyvals-map (apply array-map keyvals)
@@ -129,17 +205,20 @@
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
         log-method' (symbol (str "io.pedestal.log/-" (name level)))
-        override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                    (System/getenv "PEDESTAL_LOGGER"))
-                                symbol)]
+        formatter (::formatter keyvals-map pr-str)
+        override-logger-sym (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                        (System/getenv "PEDESTAL_LOGGER"))
+                                    symbol)]
     `(let [~logger' ~(or (::logger keyvals-map)
-                         (and override-logger `(~override-logger ~(name (ns-name *ns*))))
+                         (and override-logger-sym `(~override-logger-sym ~(name (ns-name *ns*))))
                          `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
-                          (pr-str (assoc (dissoc ~keyvals-map
-                                                 :exception :io.pedestal.log/logger)
-                                         :line ~(:line (meta form)))))]
+                          (~formatter ~(assoc (dissoc keyvals-map
+                                                 :exception
+                                                 :io.pedestal.log/logger
+                                                 :io.pedestal.log/formatter)
+                                         :line (:line (meta form)))))]
            ~(if exception'
               `(~log-method' ~logger'
                              ~(with-meta string'
@@ -287,11 +366,11 @@
   That function should return something that satisfies the MetricRecorder protocol.
   If no function is found, metrics will be reported only to JMX via a DropWizard MetricRegistry."
   (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultMetricsRecorder")
-                                             (System/getenv "PEDESTAL_METRICS_RECORDER"))]
-                        (if (= "nil" ns-fn-str)
-                          nil
-                          ((resolve (symbol ns-fn-str))))
-                        (metric-registry jmx-reporter)))
+                         (System/getenv "PEDESTAL_METRICS_RECORDER"))]
+    (if (= "nil" ns-fn-str)
+      nil
+      ((resolve (symbol ns-fn-str))))
+    (metric-registry jmx-reporter)))
 
 ;; Public Metrics API
 ;; -------------------
@@ -300,7 +379,7 @@
   "Format a given metric name, regardless of type, into a string"
   [n]
   (if (keyword? n)
-    (subs (str n) 1)
+    (subs (str n) 1) ;; This preserves the namespace
     (str n)))
 
 (defn counter
@@ -328,4 +407,419 @@
    (-meter default-recorder (format-name metric-name) n-events))
   ([recorder metric-name ^Long n-events]
    (-meter recorder (format-name metric-name) n-events)))
+
+;; Tracing
+;; -----------
+
+(defprotocol TraceSpan
+  (-set-operation-name [t operation-name]
+                       "Given a span and the operation name (String),
+                       set the logical operation this span represents,
+                       and return the Span.")
+  (-log-span [t msg]
+             [t msg micros]
+             "Given a span, a log message/event, and optionally an explicit timestamp in microseconds,
+             Record the message to the span,
+             and return the span.
+
+             If the message is a keyword, the message is recorded as an 'event',
+             otherwise message is coerced into a string and recorded as a 'message'.
+
+             If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.")
+  (-error-span [t throwable]
+               [t throwable micros]
+               "Given a span, a Throwable, and optionally an explicit timestamp in microseconds,
+               Record the error to the span as an 'error', attaching Message, Error.Kind and Error.Object to the span,
+               and return the span.")
+  (-tag-span [t tag-key tag-value]
+             "Given a span, a tag key (String), and a tag value (String),
+             Set the tag key-value pair on the span for recording,
+             and returns the Span.
+
+             Some trace systems support numeric, object, boolean and other values.
+             The protocol encourages at a minimum String keys and values,
+             but extensions of the protocols are free to make platform-specific type/arg optimizations.
+             Some Trace platforms have semantics around tag keys/values, eg. https://github.com/opentracing/specification/blob/master/semantic_conventions.md")
+  (-finish-span [t]
+                [t micros]
+                "Given a span,
+                finish/complete and record the span optionally setting an explicit end timestamp in microseconds,
+                and return the span.
+                If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.
+                Multiple calls to -finishSpan should be noops"))
+
+(defprotocol TraceSpanMap
+  (-log-span-map [t msg-map]
+                 [t msg-map micros]
+                 "Given a span, a map of fields, and optionally an explicit timestamp in microseconds,
+                 Record the event to the span,
+                 and return the span.
+
+                 Semantic log fields can be found at: https://github.com/opentracing/specification/blob/master/semantic_conventions.md#log-fields-table
+
+                 Some Trace Recorders don't fully support round-tripping maps -- use carefully.
+                 Some Trace platforms have semantics around key/values, eg. https://github.com/opentracing/specification/blob/master/semantic_conventions.md"))
+
+(defprotocol TraceSpanBaggage
+  (-set-baggage [t k v]
+                "Given a span, a baggage key (String) and baggage value (String),
+                add the key and value to the Span (and any additional context holding the span).
+                and return the Span
+
+                Adding baggage allows keys/values to be smuggled across span boundaries,
+                creating a powerful distributed context.
+                Baggage is only propagated to children of the span.")
+  (-get-baggage [t k]
+                [t k not-found]
+                "Given a span, a baggage key, and optionally a `not-found` value,
+                return the baggage value (String) for the corresponding key (if present).
+                If the key isn't present, return `not-found` or nil.")
+  (-get-baggage-map [t]
+                    "Given a span,
+                    return a Map of all baggage items."))
+
+(defprotocol TraceOrigin
+  (-register [t]
+             "Given a Tracer/TraceOrigin
+             perform whatver steps are necessary to register that Tracer/TraceOrigin
+             to support the creation of spans,
+             and return the Tracer/TraceOrigin.
+
+             It should not be necessary to make this call in application code.
+             This call is only used when bootstrapping Pedestal's `default-tracer`")
+  (-span [t operation-name]
+         [t operation-name parent]
+         [t operation-name parent opts]
+         "Given a Tracer/TraceOrigin, an operation name,
+         and optionally a parent Span, and a map of additional options
+         return a new Span with the operation name set.
+         If the parent is not set, the span has no parent (ie: current active spans are ignored).
+
+         Additional options are platform specific, but all platforms should support the following:
+          :initial-tags - a map of initial tags for the span
+
+         ** The span may be started on creation but should not be activated **
+         This should be left to application-specific span builders.")
+  (-activate-span [t span]
+                  "Given a Tracer/TraceOrigin and a span,
+                  activate the span
+                  and return the newly activated span.")
+  (-active-span [t]
+                "Given a Tracer/TraceOrigin,
+                return the current, active Span or nil if there isn't an active span"))
+
+(extend-protocol TraceSpan
+  nil
+  (-set-operation-name [t operation-name] nil)
+  (-log-span
+    ([t msg] nil)
+    ([t msg micros] nil))
+  (-error-span
+    ([t throwable] nil)
+    ([t throwable micros] nil))
+  (-tag-span [t tag-key tag-value] nil)
+  (-finish-span
+    ([t] nil)
+    ([t micros] nil))
+
+  Span
+  (-set-operation-name [t operation-name]
+    (.setOperationName t (format-name operation-name))
+    t)
+  (-log-span
+    ([t msg]
+     (if (keyword? msg)
+       (.log t ^String (format-name msg))
+       (.log t ^Map (array-map io.opentracing.log.Fields/EVENT "info"
+                              io.opentracing.log.Fields/MESSAGE msg)))
+     t)
+    ([t msg micros]
+     (if (keyword? msg)
+       (.log t ^long micros ^String (format-name msg))
+       (.log t ^long micros ^Map (array-map io.opentracing.log.Fields/MESSAGE msg)))
+     t))
+  (-error-span
+    ([t throwable]
+     (.log t ^Map (array-map io.opentracing.log.Fields/EVENT "error"
+                             io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
+                             io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
+                             io.opentracing.log.Fields/ERROR_OBJECT throwable)))
+    ([t throwable micros]
+     (.log t ^long micros
+           ^Map (array-map io.opentracing.log.Fields/EVENT "error"
+                           io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
+                           io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
+                           io.opentracing.log.Fields/ERROR_OBJECT throwable))))
+  (-tag-span [t tag-key tag-value]
+    (cond
+      (string? tag-value) (.setTag t ^String (format-name tag-key) ^String tag-value)
+      (number? tag-value) (.setTag t ^String (format-name tag-key) ^Number tag-value)
+      (instance? Boolean tag-value) (.setTag t ^String (format-name tag-key) ^Boolean tag-value)
+      :else (.setTag t ^String (format-name tag-key) ^String (str tag-value)))
+    t)
+  (-finish-span
+    ([t] (.finish t) t)
+    ([t micros] (.finish t micros) t))
+
+  Scope
+  (-set-operation-name [t operation-name]
+    (-set-operation-name (.span t) operation-name))
+  (-log-span
+    ([t msg]
+     (-log-span (.span t) msg))
+    ([t msg micros]
+     (-log-span (.span t) msg micros)))
+  (-error-span
+    ([t throwable]
+     (-error-span (.span t) throwable))
+    ([t throwable micros]
+     (-error-span (.span t) throwable micros)))
+  (-tag-span [t tag-key tag-value]
+    (-tag-span (.span t) tag-key tag-value))
+  (-finish-span
+    ([t]
+     (.close t)
+     (-finish-span (.span t)))
+    ([t micros]
+     (.close t)
+     (-finish-span (.span t) micros))))
+
+(extend-protocol TraceSpanMap
+  nil
+  (-log-span-map
+    ([t msg-map] nil)
+    ([t msg-map micros] nil))
+
+  Span
+  (-log-span-map
+    ([t msg-map]
+     (.log t ^Map (persistent!
+                    (reduce-kv (fn [acc k v]
+                                 (conj! acc (format-name k) v))
+                               (transient {})
+                               msg-map)))
+     t)
+    ([t msg-map micros]
+     (.log t
+           ^long micros
+           ^Map (persistent!
+                    (reduce-kv (fn [acc k v]
+                                 (conj! acc (format-name k) v))
+                               (transient {})
+                               msg-map)))
+     t))
+
+  Scope
+  (-log-span-map
+    ([t msg-map]
+     (-log-span-map (.span t) msg-map))
+    ([t msg-map micros]
+     (-log-span-map (.span t) msg-map micros))))
+
+(extend-protocol TraceSpanBaggage
+  nil
+  (-set-baggage [t k v] nil)
+  (-get-baggage
+    ([t k] nil)
+    ([t k not-found] not-found))
+  (-get-baggage-map [t] {})
+
+  Span
+  (-set-baggage [t k v]
+    (.setBaggageItem t (format-name k) (str v))
+    t)
+  (-get-baggage
+    ([t k]
+     (.getBaggageItem t (format-name k)))
+    ([t k not-found]
+     (or (.getBaggageItem t (format-name k)) not-found)))
+  (-get-baggage-map [t]
+    (into {} (.baggageItems ^SpanContext (.context t))))
+
+  Scope
+  (-set-baggage [t k v]
+    (-set-baggage (.span t) k v))
+  (-get-baggage
+    ([t k] (-get-baggage (.span t) k))
+    ([t k not-found] (-get-baggage (.span t) k not-found)))
+  (-get-baggage-map [t] (-get-baggage-map (.span t))))
+
+(extend-protocol TraceOrigin
+  nil
+  (-register [t] nil)
+  (-span
+    ([t operation-name] nil)
+    ([t opertaion-name parent] nil))
+  (-activate-span [t span] nil)
+  (-active-span [t] nil)
+
+  Tracer
+  (-register [t]
+    (GlobalTracer/register t))
+  (-span
+    ([t operation-name]
+     (.start ^Tracer$SpanBuilder (.ignoreActiveSpan (.buildSpan t (format-name operation-name)))))
+    ([t operation-name parent]
+     (let [builder (.buildSpan t (format-name operation-name))
+           builder (if (instance? Span parent)
+                     (.asChildOf builder ^Span parent)
+                     (.asChildOf builder ^SpanContext parent))]
+       (.start ^Tracer$SpanBuilder builder)))
+    ([t operation-name parent opts]
+     (let [{:keys [initial-tags]} opts
+           ^Tracer$SpanBuilder builder (.buildSpan t (format-name operation-name))
+           ^Tracer$SpanBuilder builder (cond
+                                         (nil? parent) (.ignoreActiveSpan builder)
+                                         (instance? Span parent) (.asChildOf builder ^Span parent)
+                                         :else (.asChildOf builder ^SpanContext parent))]
+       (reduce (fn [^Tracer$SpanBuilder builder k v]
+                 (cond
+                   (string? v) (.withTag builder ^String (format-name k) ^String v)
+                   (number? v) (.withTag builder ^String (format-name k) ^Number v)
+                   (instance? Boolean v) (.withTag builder ^String (format-name k) ^Boolean v)
+                   :else (.withTag builder ^String (format-name k) ^String (str v))))
+               builder
+               initial-tags)
+       (.start ^Tracer$SpanBuilder builder))))
+  (-activate-span [t span]
+    (.activate (.scopeManager t) ^Span span false)
+    span)
+  (-active-span [t]
+    (.activeSpan t)))
+
+;; Utility/Auxiliary trace functions
+;; ----------------------------------
+
+(def default-tracer
+  "This is the default Tracer, registered as the OpenTracing's GlobalTracer.
+  This value is configured by setting the JVM Property 'io.pedestal.log.defaultTracer'
+  or the environment variable 'PEDESTAL_TRACER'.
+  The value of the setting should be a namespaced symbol
+  that resolves to a 0-arity function or nil.
+  That function should return something that satisfies the TracerOrigin protocol.
+  If no function is found, the GlobalTracer will default to the NoopTracer and `GlobalTracer/isRegistered` will be false."
+  (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultTracer")
+                         (System/getenv "PEDESTAL_TRACER"))]
+    (if (= "nil" ns-fn-str)
+      nil
+      (let [tracer ((resolve (symbol ns-fn-str)))]
+        (when-not (GlobalTracer/isRegistered)
+          (-register tracer))
+        tracer))
+    (GlobalTracer/get)))
+
+;; OpenTracing Logging -- Semantic Fields
+(def span-log-event      io.opentracing.log.Fields/EVENT)
+(def span-log-msg        io.opentracing.log.Fields/MESSAGE)
+(def span-log-error-kind io.opentracing.log.Fields/ERROR_KIND)
+(def span-log-error-obj  io.opentracing.log.Fields/ERROR_OBJECT)
+(def span-log-stack      io.opentracing.log.Fields/STACK)
+
+;; Public Tracing API
+;; -------------------
+
+(defn span
+  "Given an operation name,
+  and optionally a parent Span, and optionally a map of options
+  return a new Span with the operation name set, started, and active.
+
+  Options are Tracer/TraceOrigin specific but all platforms support a minimum of:
+   :initial-tags - a map of initial tags for the span
+
+  If the parent is not set, the span has no parent (ie: current active spans are ignored).
+  If the parent is nil, the behavior is Tracer/TraceOrigin specific -- by default, the span has no parent."
+  ([operation-name]
+   (-activate-span default-tracer
+                   (-span default-tracer operation-name)))
+  ([operation-name parent-span]
+   (-activate-span default-tracer
+                   (-span default-tracer operation-name parent-span)))
+  ([operation-name parent-span opts]
+   (-activate-span default-tracer
+                   (-span default-tracer operation-name parent-span opts))))
+
+(defn active-span
+  "Return the current active span;
+  Returns nil if there isn't an active span."
+  []
+  (-active-span default-tracer))
+
+(defn tag-span
+  "Tag a given span.
+
+  Tags can be expressed as:
+   - a single tag key and tag value
+   - a sequence of tag-key tag-values.
+   - a map of tag-keys -> tag-values"
+  ([span m]
+   (reduce-kv (fn [span' k v]
+                (-tag-span span' k v))
+              span
+              m))
+  ([span k v]
+   (-tag-span span k v))
+  ([span tag-k tag-v & kvs]
+   (assert (even? (count kvs)) (str "You're trying to tag a span with an uneven set of key/value pairs.
+                                    Perhaps this key is missing a value: " (last kvs)
+                                    "\nProblem pair seq: " (pr-str kvs)))
+   (reduce (fn [span' [k v]]
+             (-tag-span span' k v))
+           (-tag-span span tag-k tag-v)
+           (partition 2 kvs))))
+
+(defn log-span
+  "Log to a given span, and return the span.
+
+  If the log message is a string, the message is logged as an info 'message'.
+  If the log message is a keyword, the message is logged as an 'event', without a message.
+  If the log message is a Throwable, the message is logged as an 'error', with info extracted from the Throwable
+  If the log message is a map, the map is logged as a series of fields/values.
+
+  This also supports the same logging style as io.pedestal.log -- with any number of log keys and values.
+
+  You are encouraged to follow the OpenTracing semantics"
+  ([span x]
+   (cond
+     (or (string? x)
+         (keyword? x)) (-log-span span x)
+     (map? x) (-log-span-map span x)
+     (instance? Throwable x) (-error-span span x)
+     :else (-log-span span (format-name x))))
+  ([span k v]
+   (-log-span-map span {k v}))
+  ([span k v & kvs]
+   (assert (even? (count kvs)) (str "You're trying to log to a span with an uneven set of key/value pairs.
+                                    Perhaps this key is missing a value: " (last kvs)
+                                    "\nProblem pair seq: " (pr-str kvs)))
+   (-log-span-map span (assoc (apply hash-map kvs) k v))))
+
+(defn span-baggage
+  ([span]
+   (-get-baggage-map span))
+  ([span k]
+   (-get-baggage span k))
+  ([span k not-found]
+   (-get-baggage span k not-found)))
+
+(defn add-span-baggage!
+  ([span m]
+   (reduce-kv (fn [span' k v]
+                (-set-baggage span' k v))
+              span
+              m))
+  ([span k v]
+   (-set-baggage span k v))
+  ([span bag-k bag-v & kvs]
+   (assert (even? (count kvs)) (str "You're trying to set span baggage with an uneven set of key/value pairs.
+                                    Perhaps this key is missing a value: " (last kvs)
+                                    "\nProblem pair seq: " (pr-str kvs)))
+   (reduce (fn [span' [k v]]
+             (-set-baggage span' k v))
+           (-set-baggage span bag-k bag-v)
+           (partition 2 kvs))))
+
+(defn finish-span
+  "Given a span, finish the span and return it."
+  [span]
+  (-finish-span span))
 
