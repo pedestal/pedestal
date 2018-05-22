@@ -11,20 +11,29 @@
                                         TraceHeader)
            (java.util Map)))
 
+(def trace-header-lower (string/lower-case TraceHeader/HEADER_KEY))
+
 (extend-protocol log/TraceOrigin
 
   AWSXRayRecorder
   (-register [t]
     (AWSXRay/setGlobalRecorder t))
   (-span
-    ;;TODO: Handle `parent` as a string as from the headers
     ([t operation-name]
+     ;; NOTE: this could smash a current running segment; It'll log if it does that
      (.beginSegment t ^String operation-name))
     ([t operation-name parent]
-     (.beginSegment t
-                    ^String operation-name
-                    ^TraceID (.getTraceId ^Entity parent)
-                    ^String (.getId ^Entity parent)))
+     ;; The X-Ray API manages Thread Local segments in the Recorder's Segment Context.
+     ;;   We need to check if there is an active Entity,
+     ;;     If there is, we should to start a subsegment
+     (if-let [current-entity (try
+                               (.getTraceEntity t)
+                               (catch Exception e nil))]
+       (.beginSubsegment t ^String operation-name)
+       (.beginSegment t
+                      ^String operation-name
+                      ^TraceID (.getTraceId ^Entity parent)
+                      ^String (.getId ^Entity parent))))
     ([t operation-name parent opts]
      (let [{:keys [initial-tags]
             :or {initial-tags {}}} opts
@@ -38,7 +47,6 @@
     (.setTraceEntity t ^Entity span)
     span)
   (-active-span [t]
-    ;; TODO: It may be smarter to use .getCurrentSegment here, but that might be overly specific
     (.getTraceEntity t)))
 
 (extend-protocol log/TraceSpan
@@ -57,10 +65,11 @@
       :else (.putAnnotation t ^String (log/format-name tag-key) ^String (str tag-value)))
     t)
   (-finish-span
-    ([t] (.end t) t)
+    ;; We call endSegment on the recorder to also trigger `sendSegment` and other cleanup tasks
+    ([t] (.endSegment ^AWSXRayRecorder log/default-tracer) t)
     ([t micros]
      (.setEndTime t micros)
-     (.end t)
+     (.endSegment ^AWSXRayRecorder log/default-tracer)
      t))
 
   Subsegment
@@ -77,17 +86,16 @@
       :else (.putAnnotation t ^String (log/format-name tag-key) ^String (str tag-value)))
     t)
   (-finish-span
-    ([t] (.end t) (.close t) t)
+    ;; We call endSubsegment on the recorder to also trigger `sendSegment` and other cleanup tasks
+    ([t] (.endSubsegment ^AWSXRayRecorder log/default-tracer) t)
     ([t micros]
      (.setEndTime t micros)
-     (.end t)
-     (.close t)
-     t))
-  )
+     (.endSubsegment ^AWSXRayRecorder log/default-tracer)
+     t)))
 
 (extend-protocol log/TraceSpanLog
 
-  ;;TODO: Log messages should be registered as subsegments?
+  ;;TODO: Maybe Log messages should be registered as subsegments?
   Entity
   (-log-span
     ([t msg]
@@ -177,31 +185,55 @@
   ([context servlet-class]
    (let [servlet-req (and servlet-class (:servlet-request context))
          servlet-request (and servlet-req servlet-class (with-meta servlet-req {:tag servlet-class}))
-         operation-name (:io.pedestal.interceptor.trace/span-operation context "PedestalSpan")]
-     (try
-       ;; OpenTracing can throw errors when an extract fails due to no span being present (according to the docs)
-       ;; Defensively protect against span parse/extract errors,
-       ;;  and on exception, just create a new span without a parent, tagged appropriately
-       (or ;; Is there already a span in the context?
-           (::log/span context)
-           ;; Is there an AWS X-Ray specific span/segment in the servlet request?
-           (when-let [span (and servlet-request
-                                (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
-             (log/span operation-name span))
-           ;; Is there an X-Ray Trace ID in the headers?
-           (when-let [header-str (or (get-in context [:request :headers "x-amzn-trace-id"])
-                                     (get-in context [:request :headers "X-Amzn-Trace-Id"]))]
-             (let [^TraceHeader trace-header (TraceHeader/fromString ^String header-str)
-                   ^TraceID trace-id (.getRootTraceId trace-header)
-                   ^String parent-id (.getParentId trace-header)]
-               (.beginSegment ^AWSXRayRecorder (AWSXRay/getGlobalRecorder)
-                              ^String operation-name
-                              trace-id
-                              ^String parent-id)))
-           ;; Otherwise, create a new span
-           (log/span operation-name))
-       (catch Exception e
-         ;; Something happened during decoding a Span,
-         ;; Create a new span and tag it accordingly
-         (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e)))))))
+         operation-name (:io.pedestal.interceptor.trace/span-operation context "PedestalSpan")
+         ^AWSXRayRecorder recorder log/default-tracer
+         ^Entity ent (try
+                       ;; Defensively protect against span parse/extract errors,
+                       ;;  and on exception, just create a new span without a parent, tagged appropriately
+                       (or ;; Is there already a span in the context?
+                           (::log/span context)
+                           ;; Is there an AWS X-Ray specific span/segment in the servlet request?
+                           (when-let [span (and servlet-request
+                                                (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
+                             (.beginSubsegment recorder ^String operation-name))
+                           ;; Is there an X-Ray Trace ID in the headers?
+                           (when-let [header-str (or (get-in context [:request :headers trace-header-lower])
+                                                     (get-in context [:request :headers TraceHeader/HEADER_KEY]))]
+                             (let [^TraceHeader trace-header (TraceHeader/fromString ^String header-str)
+                                   ^TraceID trace-id (.getRootTraceId trace-header)
+                                   ^String parent-id (.getParentId trace-header)]
+                               ;; Defend against the case where you're cycling back in on yourself,
+                               ;; within the same thread.
+                               (if-let [current-entity (try
+                                                          (.getTraceEntity recorder)
+                                                          (catch Exception e nil))]
+                                 (.beginSubsegment recorder ^String operation-name)
+                                 (.beginSegment recorder
+                                                ^String operation-name
+                                                ^TraceID trace-id
+                                                ^String parent-id))))
+                           ;; Otherwise, create a new span
+                           (log/span operation-name))
+                       (catch Exception e
+                         ;; Something happened during decoding a Span,
+                         ;; Create a new span and tag it accordingly
+                         (log/info :msg "Error occured when trying to resolve an AWS X-Ray Segment"
+                                   :exception e)
+                         (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e))))]
+     ;; X-Ray can remove tags it doesn't recognize (including those common to OpenTracing).
+     ;;  This adds XRay-specific HTTP info to the trace, so it gets included.
+     (.putHttp ent "request" {"method" (name (get-in context [:request :request-method]))
+                              "url"(get-in context [:request :uri])
+                              "user_agent" (get-in context [:request :headers "user-agent"])})
+     ent)))
+
+(defn span-postprocess
+  [context ^Entity span]
+  ;; In case someone is plumbing OpenTracing to X-Ray...
+  (log/tag-span span "http.status_code" (get-in context [:response :status]))
+  ;; X-Ray specific HTTP tagging...
+  (.putHttp span "response" {"status" (get-in context [:response :status])})
+  (log/finish-span span)
+  ;; TODO: We should set the sample decision based on the Span's sample decision
+  (assoc-in context [:response :headers TraceHeader/HEADER_KEY] (str (TraceHeader. (.getTraceId span)))))
 

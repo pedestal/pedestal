@@ -35,8 +35,15 @@
        (catch Exception e
          ;; Something happened during decoding a Span,
          ;; Create a new span and tag it accordingly
+         (log/info :msg "Error occured when trying to resolve an OpenTracing Span"
+                   :exception e)
          (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e)))))))
 
+(defn default-span-postprocess
+  [context span]
+  (log/tag-span span "http.status_code" (get-in context [:response :status]))
+  (log/finish-span span)
+  context)
 
 (defn tracing-interceptor
   "Return an Interceptor for automatically initiating a distributed trace
@@ -63,6 +70,9 @@
    :uri-as-span-operation? - Boolean; True if the request URI should be used as the default span name - defaults to true
    :default-span-operation - A string or keyword to use as the default span name if URI isn't found or :uri-as-span-operation? is false.
                              Defaults to 'PedestalSpan'
+   :span-postprocess - A function given the context and the span,
+                       performs any necessary span cleanup tasks
+                       and returns the context
 
   If the trace-filter or the span-resolver return something falsey, the context is forwarded without
   an active span"
@@ -72,11 +82,13 @@
    (let [{:keys [span-resolver
                  trace-filter
                  uri-as-span-operation?
-                 default-span-operation]
+                 default-span-operation
+                 span-postprocess]
           :or {span-resolver default-span-resolver
                trace-filter (fn [ctx] true)
                uri-as-span-operation? true
-               default-span-operation "PedestalSpan"}} opts
+               default-span-operation "PedestalSpan"
+               span-postprocess default-span-postprocess}} opts
          servlet-class (try (Class/forName "javax.servlet.HttpServletRequest")
                             (catch Exception _ nil))]
      (interceptor/interceptor
@@ -98,10 +110,7 @@
                    context))
         :leave (fn [context]
                  (if-let [span (::log/span context)]
-                   (do
-                     (log/tag-span span "http.status_code" (get-in context [:response :status]))
-                     (log/finish-span span)
-                     context)
+                   (span-postprocess context span)
                    context))
         :error (fn [context throwable]
                  (if-let [span (::log/span context)]

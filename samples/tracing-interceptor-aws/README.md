@@ -24,7 +24,8 @@ You can read about those [in the OpenTracing Docs](http://opentracing.io/documen
 We're going to use Docker to run an instance of the [X-Ray Daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html),
 which provides distributed tracing for us in AWS.
 
-`$ docker run --name aws_xray --rm -d -p 2000:2000/udp \
+`$ docker run --name aws_xray --rm -p 2000:2000/udp \
+--attach STDOUT \
 -e AWS_ACCESS_KEY_ID=aws_access_key \
 -e AWS_SECRET_ACCESS_KEY=aws_secret_key \
 -e AWS_REGION=aws_region \
@@ -39,7 +40,7 @@ namshi/aws_xray --local-mode`
 3. Read your app's source code at src/tracing/service.clj. Explore the routes, functions,
    and tracing interceptor setup.
 4. Go to [your X-Ray UI](https://console.aws.amazon.com/xray/home) and explore the traces
-7. Stop your service and kill your X-Ray Container with `$ docker stop aws_xray`
+7. Stop your service and kill your X-Ray Container with Ctrl-c
 8. Learn more! See the [Links section below](#links).
 
 

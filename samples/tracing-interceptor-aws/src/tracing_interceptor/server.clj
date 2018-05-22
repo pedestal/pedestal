@@ -19,7 +19,9 @@
   ;;  any other Tracer could be registered.  This approach will only fail if
   ;;  the Tracer is set using the JVM property or environment variable.
   (println "Registering local Trace connection")
-  (log/-register (.build (AWSXRayRecorderBuilder/standard)))
+  ;; This isn't needed because we'll set the initialization from the EnvVar
+  ;(log/-register (.build (AWSXRayRecorderBuilder/standard)))
+
   (println "\nCreating your [DEV] server...")
   (-> service/service ;; start with production configuration
       (merge {:env :dev
@@ -47,7 +49,8 @@
   ;;  any other Tracer could be registered.  This approach will only fail if
   ;;  the Tracer is set using the JVM property or environment variable.
   (println "Registering local Trace connection")
-  (log/-register (.build (AWSXRayRecorderBuilder/standard)))
+  ;; This isn't needed because we'll set the initialization from the EnvVar
+  ;(log/-register (.build (AWSXRayRecorderBuilder/standard)))
   (println "\nCreating your server...")
   (server/start runnable-service))
 

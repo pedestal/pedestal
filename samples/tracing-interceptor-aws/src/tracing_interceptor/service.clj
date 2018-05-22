@@ -23,14 +23,18 @@
   [request]
   (let [;; Let's embed a trace back to ourselves, but a different endpoint
         http-client (.build (HttpClientBuilder/create)) ;; This client already makes it's span parent the current active span
-        response (.execute http-client (HttpGet. "http://localhost:8080"))
-        ]
+        response (.execute http-client (HttpGet. "http://localhost:8080"))]
     (ring-resp/response (str "TRACED! Response from our internal request - " (slurp (io/reader (.getContent (.getEntity response))))))))
 
 ;; Defines "/" and "/about" routes with their associated :get handlers.
 ;; The interceptors defined after the verb map (e.g., {:get home-page}
 ;; apply to / and its children (/about).
-(def common-interceptors [(trace/tracing-interceptor {:span-resolver xray/span-resolver}) (body-params/body-params) http/html-body])
+(def common-interceptors [(trace/tracing-interceptor {:span-resolver xray/span-resolver
+                                                      :span-postprocess xray/span-postprocess
+                                                      :uri-as-span-operation? false
+                                                      :default-span-operation "TracingExampleService"})
+                          (body-params/body-params)
+                          http/html-body])
 
 ;; Tabular routes
 (def routes #{["/" :get (conj common-interceptors `home-page)]

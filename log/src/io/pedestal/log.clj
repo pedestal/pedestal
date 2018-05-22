@@ -830,10 +830,10 @@
       (let [tracer (try
                      (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
                        (info :msg "Setting up a new tracer; Requiring necessary namespace"
-                                 :ns ns-str)
+                             :ns ns-str)
                        (require (symbol ns-str))
                        (info :msg "Calling Tracer resolution function..."
-                                 :fn ns-fn-str)
+                             :fn ns-fn-str)
                        ((resolve (symbol ns-fn-str)))))]
         (when-not (GlobalTracer/isRegistered)
           (-register tracer))
