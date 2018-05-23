@@ -245,8 +245,8 @@
          level (:level keyvals-map default-level)
          logger (or (::logger keyvals-map)
                     override-logger
-                    (LoggerFactory/getLogger ^String (or (::logger-name keyvals-map)
-                                                         (name (ns-name *ns*)))))]
+                    (LoggerFactory/getLogger (or ^String (::logger-name keyvals-map)
+                                                 ^String (name (ns-name *ns*)))))]
      (when (io.pedestal.log/-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
              formatter (::formatter keyvals-map pr-str)
