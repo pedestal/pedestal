@@ -146,11 +146,11 @@
 (defn log
   "This function provides basic/core logging functionality as a function.
   You may prefer to use this if you need custom logging functionality beyond
-  what is offered by the standard Pedestal logging marcos (which in turn just call the protocols).
+  what is offered by the standard Pedestal logging macros (which in turn just call the protocols).
 
   Given a map of logging information,
     and optionally a default log-level keyword (if not found in the map) -- default is :info,
-  Determine if the appropriate logger to use,
+  Determine the appropriate logger to use,
    determine if logging-level is enabled,
    format the logging message,
   And return the result of calling the appropriate logging function, dispatched to the logging protocols.
