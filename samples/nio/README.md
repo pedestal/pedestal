@@ -4,7 +4,7 @@ This sample demonstrates using a ByteBuffer as a response body. For large respon
 amidst a high number of concurrent connections, using NIO (via a ByteBuffer or
 ReadableByteChannel) can increase your app's performance.
 
-## For more information, consult the Pedestal 0.3.1 (release notes)[https://github.com/pedestal/pedestal/releases/tag/0.3.1].
+## For more information, consult the Pedestal 0.3.1 [release notes](https://github.com/pedestal/pedestal/releases/tag/0.3.1).
 
 ## Getting Started
 
