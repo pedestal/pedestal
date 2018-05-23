@@ -955,6 +955,25 @@
        "/?:@-._~!$'()*+,;=/?:@-._~!$'()*+,;=="
        {(keyword "/?:@-._~!$'()* ,;") "/?:@-._~!$'()* ,;=="}))
 
+(deftest t-path-params
+  (are [r m] (= m (parse-param-map r))
+    {:message "Hello+World"
+     :name "John+Doe"}
+    {:message "Hello World"
+     :name "John Doe"}
+    {:suits "%E2%99%A0%E2%99%A5%E2%99%A6%E2%99%A3"}
+    {:suits "♠♥♦♣"}
+    {:message "%22Houston%2C+we+have+a+problem!%22"}
+    {:message "\"Houston, we have a problem!\""}
+    {:message "?:@-._~!$'()* ,;=="}
+    {:message "?:@-._~!$'()* ,;=="}
+    {:delimiters ":#[]@"}
+    {:delimiters ":#[]@"}
+    {:sub-delimiters "!$&'()*,;="}
+    {:sub-delimiters "!$&'()*,;="}
+    {:unreserved "abcdefghiklmnopqrstuvwxyz0123456789-._~"}
+    {:unreserved "abcdefghiklmnopqrstuvwxyz0123456789-._~"}))
+
 (defn ring-style
   "A ring style request handler."
   [req]
