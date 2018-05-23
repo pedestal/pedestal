@@ -36,6 +36,7 @@
       :uri path
       ;:query-string query-string
       :query-string-params (get apigw-event "queryStringParameters")
+      :path-params (get apigw-event "pathParameters" {})
       :scheme (get headers "X-Forwarded-Proto" "http")
       :request-method (some-> (get apigw-event "httpMethod")
                               string/lower-case
