@@ -97,6 +97,9 @@
         async-context (atom nil)
         completion (promise)
         meta-data {:completion completion}]
+    (assert (every? some? (vals (:headers options)))
+            (str "You called `response-for` with header values that were nil.
+                 Nil header values don't conform to the Ring spec: " (pr-str (:headers options))))
     (with-meta
       (reify HttpServletRequest
         (getMethod [this] (-> verb
