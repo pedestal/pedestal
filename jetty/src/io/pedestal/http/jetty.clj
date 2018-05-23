@@ -48,8 +48,9 @@
       (let [{:keys [^KeyStore keystore key-password
                     ^KeyStore truststore
                     ^String trust-password
+                    ^String security-provider
                     client-auth]} options
-            context (SslContextFactory.)]
+            ^SslContextFactory context (SslContextFactory.)]
         (when (every? nil? [keystore key-password truststore trust-password client-auth])
           (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
         (if (string? keystore)
@@ -62,6 +63,8 @@
             (.setTrustStore context truststore)))
         (when trust-password
           (.setTrustStorePassword context trust-password))
+        (when security-provider
+          (.setProvider context security-provider))
         (case client-auth
           :need (.setNeedClientAuth context true)
           :want (.setWantClientAuth context true)
@@ -163,7 +166,7 @@
         http2 (when h2? (HTTP2ServerConnectionFactory. http-conf))
         alpn (when h2?
                ;(set! (. ALPN debug) true)
-               (NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable)
+               ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
                (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
                  (.setDefaultProtocol "http/1.1")))
         ssl (when (or ssl? ssl-port h2?)
