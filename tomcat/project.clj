@@ -16,13 +16,14 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.apache.tomcat.embed/tomcat-embed-logging-juli "8.0.35"]
-                 [org.apache.tomcat.embed/tomcat-embed-jasper "8.0.35"]
-                 [org.apache.tomcat.embed/tomcat-embed-core "8.0.35"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.apache.tomcat.embed/tomcat-embed-logging-juli "8.0.52"]
+                 [org.apache.tomcat.embed/tomcat-embed-jasper "9.0.8"]
+                 [org.apache.tomcat.embed/tomcat-embed-core "9.0.8"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
+  :pedantic? :abort
 
   :aliases {"docs" ["with-profile" "docs" "codox"]}
 

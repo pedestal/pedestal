@@ -74,7 +74,8 @@
                     (.setAttribute "socket.soReuseAddress" true))]
     (when (and (:keystore opts) (:key-password opts))
       (.setAttribute connector "keystoreFile" (:keystore opts))
-      (.setAttribute connector "keyPass" (:key-password opts)))
+      (.setAttribute connector "keyPass" (:key-password opts))
+      (.setAttribute connector "keystorePass" (:key-password opts)))
     (apply-ssl-opts connector (dissoc opts :keystore :key-password))
     connector))
 
@@ -98,7 +99,7 @@
         (.setXpoweredBy false)
         (.setAttribute "socket.soReuseAddress" true))
       (Tomcat/addServlet context "default" servlet)
-      (.addServletMapping context "/*" "default")
+      (.addServletMappingDecoded context "/*" "default")
       (when ssl-connector
         (-> tomcat .getService (.addConnector ssl-connector)))
       tomcat)))

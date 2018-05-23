@@ -28,6 +28,7 @@
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
+  :pedantic? :abort
 
   :aliases {"docs" ["with-profile" "docs" "codox"]}
 
