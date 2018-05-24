@@ -207,6 +207,10 @@
     (is (= "Bad Request - URLDecoder: Incomplete trailing escape (%) pattern"
            (:body resp)))))
 
+(deftest response-for-nil-headers
+  (is (thrown? java.lang.AssertionError
+               (response-for app :get "/" :headers {"cookie" nil}))))
+
 (deftest adding-a-binding-to-context-appears-in-user-request
   (is (= ":req was bound to {:a 1}"
          (->> "/with-binding"

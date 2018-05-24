@@ -15,13 +15,14 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [potemkin "0.4.3"]
-                 [org.jboss.logging/jboss-logging "3.2.1.Final"]
-                 [org.immutant/web "2.1.4" :exclusions  [org.jboss.logging/jboss-logging]]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [potemkin "0.4.5"]
+                 [org.jboss.logging/jboss-logging "3.3.2.Final"]
+                 [org.immutant/web "2.1.10" :exclusions  [org.jboss.logging/jboss-logging]]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
+  :pedantic? :abort
 
   :aliases {"docs" ["with-profile" "docs" "codox"]}
 

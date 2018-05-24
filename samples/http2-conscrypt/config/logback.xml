@@ -1,21 +1,21 @@
 <!-- Logback configuration. See http://logback.qos.ch/manual/index.html -->
-<!-- Scanning is currently turned on; This will impact performance! -->
 <configuration scan="true" scanPeriod="10 seconds">
-  <!-- Silence Logback's own status messages about config parsing
-  <statusListener class="ch.qos.logback.core.status.NopStatusListener" /> -->
 
   <!-- Simple file output -->
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} %X{io.pedestal} - %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
 
-    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <!-- rollover daily -->
-      <fileNamePattern>logs/{{name}}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-      <!-- or whenever the file size reaches 64 MB -->
-      <maxFileSize>64 MB</maxFileSize>
+      <fileNamePattern>logs/hp-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <timeBasedFileNamingAndTriggeringPolicy
+          class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+        <!-- or whenever the file size reaches 64 MB -->
+        <maxFileSize>64 MB</maxFileSize>
+      </timeBasedFileNamingAndTriggeringPolicy>
     </rollingPolicy>
 
     <!-- Safely log to the same file from multiple JVMs. Degrades performance! -->
@@ -27,7 +27,7 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
     <encoder>
-      <pattern>%-5level %logger{36} %X{io.pedestal} - %msg%n</pattern>
+      <pattern>%-5level %logger{36} - %msg%n</pattern>
     </encoder>
     <!-- Only log level INFO and above -->
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -38,7 +38,7 @@
 
   <!-- Enable FILE and STDOUT appenders for all log messages.
        By default, only log at level INFO and above. -->
-  <root level="INFO">
+  <root level="DEBUG">
     <appender-ref ref="FILE" />
     <appender-ref ref="STDOUT" />
   </root>

@@ -15,13 +15,14 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/core.async "0.3.442"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/core.async "0.4.474" :exclusions [org.clojure/tools.analyzer.jvm]]
                  [io.pedestal/pedestal.log "0.5.4-SNAPSHOT"]
                  [io.pedestal/pedestal.interceptor "0.5.4-SNAPSHOT"]
                  [org.clojure/core.incubator "0.1.4"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
+  :pedantic? :abort
 
   :aliases {"docs" ["with-profile" "docs" "codox"]}
 
