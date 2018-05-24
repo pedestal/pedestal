@@ -121,14 +121,34 @@
                     key
                     (.append b c)))))))))
 
-(defn parse-param-map [m]
-  (persistent! (reduce-kv (fn [acc k v] (assoc! acc k (decode-query-part v))) (transient {}) m)))
+(defn- parse-query-string-params
+  "Some platforms decode the query string automatically, providing a map of
+  parameters instead.
+  Process that map, returning an immutable map and supporting the same options
+  as parse-query-string"
+  [params & options]
+  (let [{:keys [key-fn value-fn]
+         :or {key-fn keyword
+              value-fn (fn [_ v] v)}} options]
+    (persistent!
+      (reduce-kv
+        (fn [acc k v]
+          (let [newk (key-fn k)]
+            (assoc! acc newk (value-fn newk v))))
+        (transient {})
+        params))))
 
 (defn parse-query-params [request]
   (merge-with merge request
-              (when-let [string (:query-string request)]
-                (let [params (parse-query-string string)]
-                  {:query-params params :params params}))))
+              (if-let [params (:query-string-params request)]
+                (let [parsed-params (parse-query-string-params params)]
+                  {:query-params parsed-params :params parsed-params})
+                (when-let [string (:query-string request)]
+                  (let [params (parse-query-string string)]
+                    {:query-params params :params params})))))
+
+(defn parse-param-map [m]
+  (persistent! (reduce-kv (fn [acc k v] (assoc! acc k (decode-query-part v))) (transient {}) m)))
 
 (defn parse-path-params [request]
   (if-let [m (:path-params request)]
@@ -469,10 +489,10 @@
                     (assoc ctx :response {:status 400
                                           :body (str "Bad Request - " (.getMessage iae))})))))}))
 
-(def path-params
-  "Returns an interceptor which parses path parameters."
+(def path-params-decoder
+  "An Interceptor which URL-decodes path parameters."
   (interceptor/interceptor
-   {:name ::path-params
+   {:name ::path-params-decoder
     :enter (fn [ctx]
              (try
                (update-in ctx [:request] parse-path-params)

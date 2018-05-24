@@ -88,7 +88,7 @@
   (table/table-routes
    {}
    [["/echo"                    :any  echo :route-name :echo]
-    ["/pecho/:user-id"          :get  [route/path-params echo]:route-name :pecho]
+    ["/pecho/:user-id"          :get  [route/path-params-decoder echo]:route-name :pecho]
     ["/fecho"                   :post [(body-params/body-params) params/keyword-params echo] :route-name :echo-form]]))
 
 (defn- test-query
