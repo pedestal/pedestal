@@ -4,6 +4,8 @@
             [io.pedestal.http.body-params :as body-params]
             [ring.util.response :as ring-resp]))
 
+;; Our service returns EDN that is sent as JSON bodies
+
 (defn about-page
   [request]
   (ring-resp/response {:msg (format "Clojure %s - served from %s"
