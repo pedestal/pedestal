@@ -3,7 +3,7 @@
     :main true
     :methods [^:static [handler [Object com.amazonaws.services.lambda.runtime.Context] Object]]) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
-            [io.pedestal.http.lambda.utils :as lambda]
+            [io.pedestal.http.aws.lambda.utils :as lambda]
             [io.pedestal.http.route :as route]
             [pedestallambda.service :as service])
   (:import (com.amazonaws.services.lambda.runtime Context

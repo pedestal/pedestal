@@ -3,18 +3,18 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [io.pedestal/pedestal.service "0.5.2"]
-                 [io.pedestal/pedestal.jetty "0.5.2"]
-                 ;; SNAPSHOTS aren't deployed to clojars, so we're copying the code in this repo
-                 ;[io.pedestal/pedestal.lambda "0.5.3-SNAPSHOT"]
-                 [com.fasterxml.jackson.core/jackson-databind "2.8.9"] ;; matches io.pedestal/pedestal.service
-                 [com.amazonaws/aws-lambda-java-core "1.1.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [io.pedestal/pedestal.service "0.5.4-SNAPSHOT"]
+                 [io.pedestal/pedestal.jetty "0.5.4-SNAPSHOT"]
+                 [io.pedestal/pedestal.aws "0.5.4-SNAPSHOT" :exclusions [joda-time]]
 
-                 [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.22"]
-                 [org.slf4j/jcl-over-slf4j "1.7.22"]
-                 [org.slf4j/log4j-over-slf4j "1.7.22"]]
+                 [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.25"]
+                 [org.slf4j/jcl-over-slf4j "1.7.25"]
+                 [org.slf4j/log4j-over-slf4j "1.7.25"]
+
+                 ;; Deps cleanup
+                 [joda-time "2.8.2"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   ;; If you use HTTP/2 or ALPN, use the java-agent to pull in the correct alpn-boot dependency
