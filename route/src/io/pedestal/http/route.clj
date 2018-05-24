@@ -489,10 +489,10 @@
                     (assoc ctx :response {:status 400
                                           :body (str "Bad Request - " (.getMessage iae))})))))}))
 
-(def path-params
-  "Returns an interceptor which parses path parameters."
+(def path-params-decoder
+  "An Interceptor which URL-decodes path parameters."
   (interceptor/interceptor
-   {:name ::path-params
+   {:name ::path-params-decoder
     :enter (fn [ctx]
              (try
                (update-in ctx [:request] parse-path-params)

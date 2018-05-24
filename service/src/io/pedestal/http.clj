@@ -212,7 +212,8 @@
   * :secure-headers: A settings map for various secure headers.
      Keys are: [:hsts-settings :frame-options-settings :content-type-settings :xss-protection-settings :download-options-settings :cross-domain-policies-settings :content-security-policy-settings]
      If nil, this interceptor is not added.  Default is the default secure-headers settings
-  * :enable-path-param-decoding: Interceptor to decode path params. Default is true."
+  * :path-params-decoder: An Interceptor to decode path params. Default is URL Decoding via `io.pedestal.http.route/path-params-decoder.
+     If nil, this interceptor is not added."
   [service-map]
   (let [{interceptors ::interceptors
          request-logger ::request-logger
@@ -227,7 +228,7 @@
          enable-session ::enable-session
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
-         enable-path-param-decoding ::enable-path-param-decoding
+         path-params-decoder ::path-params-decoder
          :or {file-path nil
               request-logger log-request
               router :map-tree
@@ -238,7 +239,7 @@
               enable-session nil
               enable-csrf nil
               secure-headers {}
-              enable-path-param-decoding true}} service-map
+              path-params-decoder route/path-params-decoder}} service-map
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes
@@ -258,7 +259,7 @@
                                           (csrf/anti-forgery enable-csrf)])
                true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                true (conj route/query-params)
-               enable-path-param-decoding (conj route/path-params)
+               (some? path-params-decoder) (conj path-params-decoder)
                true (conj (route/method-param method-param-name))
                (some? secure-headers) (conj (sec-headers/secure-headers secure-headers))
                ;; TODO: If all platforms support async/NIO responses, we can bring this back
