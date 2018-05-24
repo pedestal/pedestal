@@ -211,7 +211,8 @@
      sessions are enabled. If nil, this interceptor is not added. Default is nil.
   * :secure-headers: A settings map for various secure headers.
      Keys are: [:hsts-settings :frame-options-settings :content-type-settings :xss-protection-settings :download-options-settings :cross-domain-policies-settings :content-security-policy-settings]
-     If nil, this interceptor is not added.  Default is the default secure-headers settings"
+     If nil, this interceptor is not added.  Default is the default secure-headers settings
+  * :enable-path-param-decoding: Interceptor to decode path params. Default is true."
   [service-map]
   (let [{interceptors ::interceptors
          request-logger ::request-logger
@@ -226,6 +227,7 @@
          enable-session ::enable-session
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
+         enable-path-param-decoding ::enable-path-param-decoding
          :or {file-path nil
               request-logger log-request
               router :map-tree
@@ -235,7 +237,8 @@
               ext-mime-types {}
               enable-session nil
               enable-csrf nil
-              secure-headers {}}} service-map
+              secure-headers {}
+              enable-path-param-decoding true}} service-map
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes
@@ -255,6 +258,7 @@
                                           (csrf/anti-forgery enable-csrf)])
                true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                true (conj route/query-params)
+               enable-path-param-decoding (conj route/path-params)
                true (conj (route/method-param method-param-name))
                (some? secure-headers) (conj (sec-headers/secure-headers secure-headers))
                ;; TODO: If all platforms support async/NIO responses, we can bring this back

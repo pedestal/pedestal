@@ -147,6 +147,15 @@
                   (let [params (parse-query-string string)]
                     {:query-params params :params params})))))
 
+(defn parse-param-map [m]
+  (persistent! (reduce-kv (fn [acc k v] (assoc! acc k (decode-query-part v))) (transient {}) m)))
+
+(defn parse-path-params [request]
+  (if-let [m (:path-params request)]
+    (let [res (assoc request :path-params (parse-param-map m))]
+      res)
+    request))
+
 ;;; Combined matcher & request handler
 
 (defn- replace-method
@@ -479,6 +488,18 @@
                   (interceptor.chain/terminate
                     (assoc ctx :response {:status 400
                                           :body (str "Bad Request - " (.getMessage iae))})))))}))
+
+(def path-params
+  "Returns an interceptor which parses path parameters."
+  (interceptor/interceptor
+   {:name ::path-params
+    :enter (fn [ctx]
+             (try
+               (update-in ctx [:request] parse-path-params)
+               (catch IllegalArgumentException iae
+                 (interceptor.chain/terminate
+                  (assoc ctx :response {:status 400
+                                        :body (str "Bad Request - " (.getMessage iae))})))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
