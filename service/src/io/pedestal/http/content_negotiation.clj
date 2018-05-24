@@ -169,7 +169,8 @@
         {:keys [no-match-fn content-param-paths]
          :or {no-match-fn (fn [ctx]
                             (assoc ctx :response {:status 406
-                                                  :body "Not Acceptable"}))
+                                                  :body "Not Acceptable"
+                                                  :headers {}}))
               content-param-paths [[:request :headers "accept"]
                                    [:request :headers :accept]]}} opts-map]
     (interceptor/interceptor

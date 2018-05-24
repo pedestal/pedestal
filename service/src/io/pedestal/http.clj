@@ -336,19 +336,23 @@
   [service-map]
   (let [{type ::type
          :or {type :jetty}} service-map
+        ;; Ensure that if a host arg was supplied, we default to a safe option, "localhost"
+        service-map-with-host (if (:host service-map)
+                                service-map
+                                (assoc service-map ::host "localhost"))
         server-fn (if (fn? type)
                     type
                     (let [server-ns (symbol (str "io.pedestal.http." (name type)))]
                       (require server-ns)
                       (resolve (symbol (name server-ns) "server"))))
-        server-map (server-fn service-map (service-map->server-options service-map))]
+        server-map (server-fn service-map (service-map->server-options service-map-with-host))]
     (when (= type :jetty)
       ;; Load in container optimizations (NIO)
       (require 'io.pedestal.http.jetty.container))
     (when (= type :immutant)
       ;; Load in container optimizations (NIO)
       (require 'io.pedestal.http.immutant.container))
-    (merge service-map (server-map->service-map server-map))))
+    (merge service-map-with-host (server-map->service-map server-map))))
 
 (defn create-server
   ([service-map]

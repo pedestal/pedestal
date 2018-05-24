@@ -19,7 +19,9 @@
   One can override the logger via JVM or ENVAR settings."
   (:require clojure.string)
   (:import (org.slf4j Logger
-                      LoggerFactory)
+                      LoggerFactory
+                      MDC)
+           (org.slf4j.spi MDCAdapter)
            (com.codahale.metrics MetricRegistry
                                  Gauge Counter Histogram Meter
                                  Slf4jReporter)
@@ -64,6 +66,31 @@
           "Log an ERROR message,
           and optionally handle a special Throwable/Exception related to the message.
           The body may be any of Clojure's literal data types, but a map or string is encouraged."))
+
+(defprotocol LoggingMDC
+
+  (-get-mdc [t k]
+            [t k not-found]
+            "Given a String key and optionally a `not-found` value (which should be a String),
+            lookup the key in the MDC and return the value (A String);
+            Returns nil if the key isn't present, or `not-found` if value was supplied.")
+  (-put-mdc [t k v]
+            "Given a String key and a String value,
+            Add an entry to the MDC,
+            and return the MDC instance.
+
+            If k is nil, the original MDC is returned.")
+  (-remove-mdc [t k]
+               "Given a String key,
+               remove the key-value entry in the MDC if the key is present
+               And return the MDC instance.")
+  (-clear-mdc [t]
+              "Remove all entries within the MDC
+              and return the MDC instance.")
+  (-set-mdc [t m]
+            "Given a map (of String keys and String values),
+            Copy all key-values from the map to the MDC
+            and return the MDC instance."))
 
 (extend-protocol LoggerSource
   Logger
@@ -118,6 +145,41 @@
     ([t body] nil)
     ([t body throwable] nil)))
 
+(extend-protocol LoggingMDC
+  MDCAdapter
+  (-get-mdc
+    ([t k]
+     (when k
+       (.get t ^String (str k))))
+    ([t k not-found]
+     (when k
+       (or (.get t ^String (str k))
+           not-found))))
+  (-put-mdc [t k v]
+    (when k
+      (.put t ^String (str k) ^String (str v)))
+    t)
+  (-remove-mdc [t k]
+    (when k
+      (.remove t ^String (str k)))
+    t)
+  (-clear-mdc [t]
+    (.clear t)
+    t)
+  (-set-mdc [t m]
+    (when m
+      (.setContextMap t ^Map t))
+    t)
+
+  nil
+  (-get-mdc
+    ([t k] nil)
+    ([t k not-found] nil))
+  (-put-mdc [t k v] nil)
+  (-remove-mdc [t k] nil)
+  (-clear-mdc [t] nil)
+  (-set-mdc [t m] nil))
+
 ;; Override the logger
 ;; ---------------------
 ;; Pedestal's logging is backed by a protocol, which you are free to extend
@@ -128,7 +190,7 @@
 ;; JVM Property 'io.pedestal.log.overrideLogger' or ENVAR 'PEDESTAL_LOGGER'
 ;; to a symbol that resolves to a single-arity function
 ;; (passed a string logger tag, the NS string of the log call).
-;; This function should return something that satisifes the LoggerSource protocol.
+;; This function should return something that satisfies the LoggerSource protocol.
 ;; The function will be called multiple times (as the logging macros are expanded).
 
 (def override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
@@ -183,8 +245,8 @@
          level (:level keyvals-map default-level)
          logger (or (::logger keyvals-map)
                     override-logger
-                    (LoggerFactory/getLogger ^String (or (::logger-name keyvals-map)
-                                                         (name (ns-name *ns*)))))]
+                    (LoggerFactory/getLogger (or ^String (::logger-name keyvals-map)
+                                                 ^String (name (ns-name *ns*)))))]
      (when (io.pedestal.log/-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
              formatter (::formatter keyvals-map pr-str)
@@ -266,6 +328,71 @@
     (.. ^Class bridge
         (getMethod "install" (make-array Class 0))
         (invoke nil (make-array Object 0)))))
+
+;; SLF4J specific MDC utils
+;; -------------------------
+
+(def ^:dynamic *mdc-context*
+  "This map is copied into the SLF4J MDC.
+  You should interact with this via the `with-context` macro.
+
+  This map also includes all options that were passed into `with-context`"
+  {})
+
+(def mdc-context-key "io.pedestal")
+
+(defmacro with-context
+  "Given a map of keys/values/options and a body,
+  Set the map into the SLF4J MDC via the *mdc-context* binding.
+  All options from the map are removed when setting the MDC.
+
+  By default, the map is formatted into a string value
+  and stored under the 'io.pedestal' key, via `io.pedestal.log/mdc-context-key`
+
+  Options:
+   :io.pedestal.log/formatter - a single-arg function that when given the map, returns a formatted string
+                                Defaults to `pr-str`
+   :io.pedestal.log/mdc - An object that satisfies the LoggingMDC protocol
+                          Defaults to the SLF4J MDC.
+
+  Note:
+  If you mix `with-context` with the more basic `with-context-kv`, you may see undesired keys/values in the log"
+  [ctx-map & body]
+  (let [formatter (::formatter ctx-map pr-str)]
+    (if (empty? ctx-map) ;; Optimize for the code-gen/dynamic case where the map may be empty
+      `(do
+         ~@body)
+      `(let [old-ctx# *mdc-context*
+             mdc# (or ~(::mdc ctx-map) (MDC/getMDCAdapter))]
+         (binding [*mdc-context* (merge *mdc-context* ~ctx-map)]
+           (-put-mdc mdc# mdc-context-key (~formatter (dissoc *mdc-context*
+                                                              :io.pedestal.log/formatter
+                                                              :io.pedestal.log/mdc)))
+           (try
+             ~@body
+             (finally
+               (-put-mdc mdc# mdc-context-key ((:io.pedestal.log/formatter old-ctx# pr-str)
+                                               (dissoc old-ctx#
+                                                       :io.pedestal.log/formatter
+                                                       :io.pedestal.log/mdc))))))))))
+(defmacro with-context-kv
+  "Given a key, value, and body,
+  associates the key-value pair into the *mdc-context* only for the scope/execution of `body`,
+  and sets the *mdc-context* into the SLF4J MDC
+   under the 'io.pedestal' key (via `io.pedestal.log/mdc-context-key`) using `pr-str` on the map for the MDC value.
+
+  Note:
+  No keys are are dissoc'd from *mdc-context* with this simplified version.
+  If you mix `with-context` and `with-context-kv`, you may see undesired keys/values in the log"
+  [k v & body]
+  (when k
+    `(let [old-ctx# *mdc-context*]
+       (binding [*mdc-context* (assoc *mdc-context* ~k ~v)]
+         (org.slf4j.MDC/put mdc-context-key (pr-str *mdc-context*))
+         (try
+           ~@body
+           (finally
+             (org.slf4j.MDC/put mdc-context-key (pr-str old-ctx#))))))))
 
 ;; Metrics
 ;; -----------
