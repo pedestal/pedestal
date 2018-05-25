@@ -346,7 +346,7 @@
 (defmacro with-context
   "Given a map of keys/values/options and a body,
   Set the map into the MDC via the *mdc-context* binding.
-  The MDC used defaults to SLF4J MDC unless the `io.pedestal.log/mdc`
+  The MDC used defaults to SLF4J MDC unless the `:io.pedestal.log/mdc`
   option is specified (see Options).
   All options from the map are removed when setting the MDC.
 
