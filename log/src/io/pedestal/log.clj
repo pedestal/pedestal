@@ -168,7 +168,7 @@
     t)
   (-set-mdc [t m]
     (when m
-      (.setContextMap t ^Map t))
+      (.setContextMap t ^Map m))
     t)
 
   nil
@@ -333,21 +333,36 @@
 ;; -------------------------
 
 (def ^:dynamic *mdc-context*
-  "This map is copied into the SLF4J MDC.
-  You should interact with this via the `with-context` macro.
+  "This map is copied into the SLF4J MDC when the `with-context` or
+  `with-context-kv` macros are used.  You are free to take control of
+  it for MDC-related purposes as it doesn't directly affect Pedestal's
+  logging implementation.
 
-  This map also includes all options that were passed into `with-context`"
+  This map also includes all options that were passed into `with-context`."
   {})
 
 (def mdc-context-key "io.pedestal")
 
 (defmacro with-context
   "Given a map of keys/values/options and a body,
-  Set the map into the SLF4J MDC via the *mdc-context* binding.
+  Set the map into the MDC via the *mdc-context* binding.
+  The MDC used defaults to SLF4J MDC unless the `:io.pedestal.log/mdc`
+  option is specified (see Options).
   All options from the map are removed when setting the MDC.
 
-  By default, the map is formatted into a string value
-  and stored under the 'io.pedestal' key, via `io.pedestal.log/mdc-context-key`
+  By default, the map is formatted into a string value and stored
+  under the 'io.pedestal' key, via `io.pedestal.log/mdc-context-key`
+
+  Caveats:
+  SLF4J MDC, only maintains thread-local bindings, users are encouraged to
+  use app-specific MDC implementations when needed.
+
+  Since SLF4J MDC manages data on a per-thread basis, false
+  information may be contained in the MDC if threads are
+  recycled. Refer to the slf4j
+  [docs](https://logback.qos.ch/manual/mdc.html#autoMDC) for more
+  information.
+
 
   Options:
    :io.pedestal.log/formatter - a single-arg function that when given the map, returns a formatted string
@@ -966,4 +981,3 @@
           (-register tracer))
         tracer))
     (GlobalTracer/get)))
-
