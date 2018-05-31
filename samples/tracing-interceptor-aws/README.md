@@ -24,12 +24,14 @@ You can read about those [in the OpenTracing Docs](http://opentracing.io/documen
 We're going to use Docker to run an instance of the [X-Ray Daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon-local.html),
 which provides distributed tracing for us in AWS.
 
-`$ docker run --name aws_xray --rm -p 2000:2000/udp \
+```
+$ docker run --name aws_xray --rm -p 2000:2000/udp \
 --attach STDOUT \
 -e AWS_ACCESS_KEY_ID=aws_access_key \
 -e AWS_SECRET_ACCESS_KEY=aws_secret_key \
 -e AWS_REGION=aws_region \
-namshi/aws_xray --local-mode`
+namshi/aws-xray --local-mode
+```
 
 
 ## Getting Started
