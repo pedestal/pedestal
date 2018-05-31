@@ -20,29 +20,40 @@
     (AWSXRay/setGlobalRecorder t))
   (-span
     ([t operation-name]
+     (let [^String op-name (if (keyword? operation-name) (name operation-name) operation-name)
+           op-ns (when (keyword? operation-name) (namespace operation-name))
+           ^Segment segment (.beginSegment t op-name)]
      ;; NOTE: this could smash a current running segment; It'll log if it does that
-     (.beginSegment t ^String operation-name))
+     (if op-ns
+       (doto segment
+         (.setNamespace ^String op-ns))
+       segment)))
     ([t operation-name parent]
-     ;; The X-Ray API manages Thread Local segments in the Recorder's Segment Context.
-     ;;   We need to check if there is an active Entity,
-     ;;     If there is, we should to start a subsegment
-     (if-let [current-entity (try
-                               (.getTraceEntity t)
-                               (catch Exception e nil))]
-       (.beginSubsegment t ^String operation-name)
-       (.beginSegment t
-                      ^String operation-name
-                      ^TraceID (.getTraceId ^Entity parent)
-                      ^String (.getId ^Entity parent))))
+     (let [^String op-name (if (keyword? operation-name) (name operation-name) operation-name)
+           op-ns (when (keyword? operation-name) (namespace operation-name))
+           ;; The X-Ray API manages Thread Local segments in the Recorder's Segment Context.
+           ;;   We need to check if there is an active Entity,
+           ;;     If there is, we should to start a subsegment
+           ^Entity entity (if-let [current-entity (try
+                                                    (.getTraceEntity t)
+                                                    (catch Exception e nil))]
+                            (.beginSubsegment t ^String operation-name)
+                            (if parent
+                              (.beginSegment t
+                                             ^String operation-name
+                                             ^TraceID (.getTraceId ^Entity parent)
+                                             ^String (.getId ^Entity parent))
+                              (.beginSegment t op-name)))]
+       (if op-ns
+         (doto entity
+           (.setNamespace ^String op-ns))
+         entity)))
     ([t operation-name parent opts]
      (let [{:keys [initial-tags]
             :or {initial-tags {}}} opts
-           ^Segment segment (.beginSegment t
-                                           ^String operation-name
-                                           ^TraceID (.getTraceId ^Entity parent)
-                                           ^String (.getId ^Entity parent))
-           _ (.setAnnotations segment ^Map initial-tags)]
-       segment)))
+           ^Entity entity (log/-span t operation-name parent)
+           _ (.setAnnotations entity ^Map initial-tags)]
+       entity)))
   (-activate-span [t span]
     (.setTraceEntity t ^Entity span)
     span)
@@ -101,18 +112,20 @@
     ([t msg]
      (let [log-vec (log/span-baggage t :io.pedestal/log [])]
        (if (keyword? msg)
-         (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event msg}))
+         (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event msg
+                                                            "time-musec" (quot ^long (System/nanoTime) 1000)}))
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event "info"
-                                                            log/span-log-msg msg})))
+                                                            log/span-log-msg msg
+                                                            "time-musec" (quot ^long (System/nanoTime) 1000)})))
        t))
     ([t msg micros]
      (let [log-vec (log/span-baggage t :io.pedestal/log [])]
        (if (keyword? msg)
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event msg
-                                                            "time" micros}))
+                                                            "time-musec" micros}))
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event "info"
                                                             log/span-log-msg msg
-                                                            "time" micros})))
+                                                            "time-musec" micros})))
        t)))
   (-error-span
     ([t throwable]
