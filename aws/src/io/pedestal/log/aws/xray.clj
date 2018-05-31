@@ -38,10 +38,12 @@
                                                     (.getTraceEntity t)
                                                     (catch Exception e nil))]
                             (.beginSubsegment t ^String operation-name)
-                            (.beginSegment t
-                                           ^String operation-name
-                                           ^TraceID (.getTraceId ^Entity parent)
-                                           ^String (.getId ^Entity parent)))]
+                            (if parent
+                              (.beginSegment t
+                                             ^String operation-name
+                                             ^TraceID (.getTraceId ^Entity parent)
+                                             ^String (.getId ^Entity parent))
+                              (.beginSegment t op-name)))]
        (if op-ns
          (doto entity
            (.setNamespace ^String op-ns))
