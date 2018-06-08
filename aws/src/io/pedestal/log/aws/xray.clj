@@ -37,10 +37,10 @@
            ^Entity entity (if-let [current-entity (try
                                                     (.getTraceEntity t)
                                                     (catch Exception e nil))]
-                            (.beginSubsegment t ^String operation-name)
+                            (.beginSubsegment t ^String op-name)
                             (if parent
                               (.beginSegment t
-                                             ^String operation-name
+                                             ^String op-name
                                              ^TraceID (.getTraceId ^Entity parent)
                                              ^String (.getId ^Entity parent))
                               (.beginSegment t op-name)))]
