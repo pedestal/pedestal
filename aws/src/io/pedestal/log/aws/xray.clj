@@ -175,8 +175,8 @@
 (defn tracer
   "This function returns an XRay Recorder.
   You can assign this tracer to be the default in Pedestal Log by either:
-   * Setting the JVM property io.pedestal.log.defaultTracer to 'io.pedestal.log.aws.xray.provide-tracer'
-   * Setting the PEDESTAL_TRACER environment variable to 'io.pedestal.log.aws.xray.provide-tracer'
+   * Setting the JVM property io.pedestal.log.defaultTracer to 'io.pedestal.log.aws.xray/tracer'
+   * Setting the PEDESTAL_TRACER environment variable to 'io.pedestal.log.aws.xray/tracer'
 
   If you're using an OpenTracing adaptor for XRay,
   you can register the tracer directly with: `(io.pedestal.log/-register ...)`"
@@ -249,4 +249,3 @@
   (log/finish-span span)
   ;; TODO: We should set the sample decision based on the Span's sample decision
   (assoc-in context [:response :headers TraceHeader/HEADER_KEY] (str (TraceHeader. (.getTraceId span)))))
-
