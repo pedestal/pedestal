@@ -1,13 +1,10 @@
-
 Pedestal on API Gateway and Lambda
 ===================================
 
 This is an example on running a Pedestal Service on AWS Lambda via API Gateway.
-It's designed to be a [CodeStar]() project and ships with CodePipeline and CloudFormation support.
+It's designed to be a [CodeStar](https://aws.amazon.com/codestar/) project and ships with CodePipeline and CloudFormation support.
 
 Even though this project can be deployed on AWS Lambda, it can still run on Jetty.
-
-**NOTES**: For now, this is copying in the pedestal.lambda utilities (since SNAPSHOTS aren't deployed).
 
 ## What's Here
 
@@ -70,13 +67,8 @@ Once the image it built, it's cached.  To delete the image and build a new one:
 
 ## What Do I Do Next Regarding AWS?
 
-If you have checked out a local copy of your AWS CodeCommit repository you can
-start making changes to the sample code.  We suggest making a small change to
-index.py first, so you can see how changes pushed to your project's repository
-in AWS CodeCommit are automatically picked up by your project pipeline and
-deployed to AWS Lambda and Amazon API Gateway.  (You can watch the pipeline
-progress on your AWS CodeStar project dashboard.)  Once you've seen how that
-works, start developing your own code, and have fun!
+Start making changes to the sample code and push to your project's repository.
+Notice how changes to AWS CodeCommit are automatically picked up and deployed.
 
 Learn more about Serverless Application Model (SAM) and how it works here:
 https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md
@@ -85,7 +77,7 @@ AWS Lambda Developer Guide:
 http://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html
 
 Learn more about AWS CodeStar by reading the user guide, and post questions and
-comments about AWS CodeStar on our forum.
+comments about AWS CodeStar on the AWS CodeStar forum.
 
 AWS CodeStar User Guide:
 http://docs.aws.amazon.com/codestar/latest/userguide/welcome.html
@@ -94,4 +86,3 @@ AWS CodeStar Forum: https://forums.aws.amazon.com/forum.jspa?forumID=248
 
 ## Links
 * [Other examples](https://github.com/pedestal/samples)
-
