@@ -511,7 +511,13 @@
                          (System/getenv "PEDESTAL_METRICS_RECORDER"))]
     (if (= "nil" ns-fn-str)
       nil
-      ((resolve (symbol ns-fn-str))))
+      (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
+        (info :msg "Setting up a new metrics recorder; Requiring necessary namespace"
+              :ns ns-str)
+        (require (symbol ns-str))
+        (info :msg "Calling metrics recorder resolution function..."
+              :fn ns-fn-str)
+        ((resolve (symbol ns-fn-str)))))
     (metric-registry jmx-reporter)))
 
 ;; Public Metrics API

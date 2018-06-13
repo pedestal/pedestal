@@ -25,12 +25,14 @@
                  [com.amazonaws/aws-lambda-java-core "1.2.0"]
                  ;[com.amazonaws/aws-lambda-java-events "1.3.0"]
                  [com.amazonaws/aws-xray-recorder-sdk-core "1.3.1" :exclusions [com.amazonaws/aws-java-sdk-core
-                                                                                commons-logging]]
+                                                                                commons-logging
+                                                                                joda-time]]
                  ;; Deps cleanup
                  [commons-logging "1.2"] ;; A clash between AWS and HTTP Libs
                  [com.fasterxml.jackson.core/jackson-core "2.9.0"] ;; Bring AWS libs inline with Pedestal Service
                  [com.fasterxml.jackson.dataformat/jackson-dataformat-cbor "2.9.0"] ;; Bring AWS libs inline with Pedestal Service
                  [commons-codec "1.11"] ;; Bring AWS libs inline with Pedestal Service
+                 [joda-time "2.8.2"] ;; Bring AWS libs inline with Pedestal Service
                  ]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
