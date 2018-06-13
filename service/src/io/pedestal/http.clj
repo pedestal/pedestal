@@ -337,7 +337,7 @@
   (let [{type ::type
          :or {type :jetty}} service-map
         ;; Ensure that if a host arg was supplied, we default to a safe option, "localhost"
-        service-map-with-host (if (:host service-map)
+        service-map-with-host (if (::host service-map)
                                 service-map
                                 (assoc service-map ::host "localhost"))
         server-fn (if (fn? type)
