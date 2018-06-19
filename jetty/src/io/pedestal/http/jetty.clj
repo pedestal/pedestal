@@ -147,13 +147,16 @@
          port :port
          {:keys [ssl? ssl-port
                  h2? h2c? connection-factory-fns
-                 context-configurator configurator max-threads daemon? reuse-addr?]
+                 context-configurator context-path configurator max-threads daemon? reuse-addr?]
           :or {configurator identity
+               context-path "/"
                max-threads (max 50 (needed-pool-size))
                h2c? true
                reuse-addr? true}} :container-options} options
         thread-pool (QueuedThreadPool. ^Integer max-threads)
         server (Server. thread-pool)
+        _ (when-not (clojure.string/starts-with? context-path "/")
+            (throw (IllegalArgumentException. "context-path must begin with a '/'")))
         _ (when (and h2? (not ssl-port))
             (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
         _ (when (and (nil? port) (not (or ssl? ssl-port h2?)))
@@ -186,7 +189,7 @@
                           (.setReuseAddress reuse-addr?)
                           (.setPort ssl-port)
                           (.setHost host)))
-        context (doto (ServletContextHandler. server "/")
+        context (doto (ServletContextHandler. server context-path)
                   (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
     (when daemon?
       (.setDaemon thread-pool true))
@@ -243,4 +246,3 @@
   ;; :trust-password - the password to the truststore
   ;; :client-auth  - SSL client certificate authenticate, may be set to :need,
   ;;                 :want or :none (defaults to :none)"
-
