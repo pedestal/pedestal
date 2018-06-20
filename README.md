@@ -10,18 +10,19 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.5.3"]
-[io.pedestal/pedestal.service-tools "0.5.3"] ;; Only needed for ns-watching; WAR tooling
-[io.pedestal/pedestal.jetty         "0.5.3"]
-[io.pedestal/pedestal.immutant      "0.5.3"]
-[io.pedestal/pedestal.tomcat        "0.5.3"]
+[io.pedestal/pedestal.service       "0.5.4"]
+[io.pedestal/pedestal.service-tools "0.5.4"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.4"]
+[io.pedestal/pedestal.immutant      "0.5.4"]
+[io.pedestal/pedestal.tomcat        "0.5.4"]
+[io.pedestal/pedestal.aws           "0.5.4"] ;; API-Gateway, Lambda, and X-Ray support
 ```
 
 You can also use Pedestal's internal modules standalone
 ```
-[io.pedestal/pedestal.log         "0.5.3"] ;; Logging and runtime metrics
-[io.pedestal/pedestal.interceptor "0.5.3"] ;; The Interceptor chain and the Interceptor API
-[io.pedestal/pedestal.route       "0.5.3"] ;; Efficient routing algorithms and data structures
+[io.pedestal/pedestal.log         "0.5.4"] ;; Logging and runtime metrics
+[io.pedestal/pedestal.interceptor "0.5.4"] ;; The Interceptor chain and the Interceptor API
+[io.pedestal/pedestal.route       "0.5.4"] ;; Efficient routing algorithms and data structures
 ```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
@@ -45,6 +46,7 @@ version details, updates, and necessary migration steps.**
  * Integrated support for content negotiation
  * Integrated linking and testing tools
  * Integrated logging and runtime [metrics](https://github.com/pedestal/pedestal/tree/master/samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
+ * Integrated [tracing](https://github.com/pedestal/pedestal/tree/master/samples/tracing-interceptor) with support for Open-Tracing, Jaeger, AWS X-Ray, and more.
  * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
  * The ability to utilize Ring Middleware as Pedestal Interceptors
