@@ -233,6 +233,7 @@
   docstring for 'url-for'."
   [route opts]
   (let [{:keys [path-params
+                strict-path-params?
                 query-params
                 request
                 fragment
@@ -251,6 +252,16 @@
                          (and context-path-parts (empty? (first path-parts))) (concat context-path-parts (rest path-parts))
                          context-path-parts (concat context-path-parts path-parts)
                          :else path-parts))
+        _ (when (and (true? strict-path-params?)
+                     (not= (keys path-params) ;; Do the params passed in...
+                           (seq (:path-params route)) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
+                           ))
+            (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
+                            Either include all path-params, or if your URL actually contains ':' in the path, set :strict-path-params to false in the options"
+                            {:path-parts path-parts
+                             :path-params path-params
+                             :options opts
+                             :route route})))
         path-chunk (str/join \/ (map #(get path-params % %) path-parts))
         path (if (and (= \/ (last path))
                       (not= \/ (last path-chunk)))
@@ -317,6 +328,9 @@
                     path parameters will be added to the query string
 
      :path-params   A map of path parameters only
+
+     :strict-path-params? A boolean, when true will throw an exception
+                          if all path-params aren't fulfilled for the url
 
      :query-params  A map of query-string parameters only
 

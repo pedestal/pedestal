@@ -39,6 +39,6 @@
       (assoc! :servlet-request servlet-req)
       (assoc! :servlet-response servlet-resp)
       ;(assoc! :servlet-context (.getServletContext ^ServletConfig servlet))
-      ;(assoc! :context-path (.getContextPath servlet-req))
+      (assoc! :context-path (.getContextPath servlet-req)) ;; This is used in some scenarios with multiple-apps on the same server
       ;(assoc! :servlet-path (.getServletPath servlet-req))
       persistent!))
