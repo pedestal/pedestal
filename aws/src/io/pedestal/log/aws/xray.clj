@@ -252,7 +252,7 @@
   (assoc-in context [:response :headers TraceHeader/HEADER_KEY]
             (str (TraceHeader. ^TraceID (.getTraceId span)
                                ^String (.getParentId span)
-                               ^TraceHeader$SampleDecision (if (instance? Segment span)
-                                                             (.isSampled ^Segment span)
+                               ^TraceHeader$SampleDecision (if (and (instance? Segment span) (.isSampled ^Segment span))
+                                                             TraceHeader$SampleDecision/SAMPLED
                                                              TraceHeader$SampleDecision/UNKNOWN)))))
 
