@@ -202,6 +202,7 @@
              ;                                                 :servlet-request servlet-request
              ;                                                 :servlet-response servlet-response})
              :async? servlet-async?)
+      (assoc-in [:request :context-path] (some-> servlet-request (.getContextPath)))
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 
 (defn- leave-stylobate
