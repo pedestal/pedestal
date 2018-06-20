@@ -8,7 +8,8 @@
                                         Segment
                                         Subsegment
                                         TraceID
-                                        TraceHeader)
+                                        TraceHeader
+                                        TraceHeader$SampleDecision)
            (java.util Map)))
 
 (def trace-header-lower (string/lower-case TraceHeader/HEADER_KEY))
@@ -248,4 +249,10 @@
   (.putHttp span "response" {"status" (get-in context [:response :status])})
   (log/finish-span span)
   ;; TODO: We should set the sample decision based on the Span's sample decision
-  (assoc-in context [:response :headers TraceHeader/HEADER_KEY] (str (TraceHeader. (.getTraceId span)))))
+  (assoc-in context [:response :headers TraceHeader/HEADER_KEY]
+            (str (TraceHeader. ^TraceID (.getTraceId span)
+                               ^String (.getParentId span)
+                               ^TraceHeader$SampleDecision (if (instance? Segment span)
+                                                             (.isSampled ^Segment span)
+                                                             TraceHeader$SampleDecision/UNKNOWN)))))
+
