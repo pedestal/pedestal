@@ -1106,6 +1106,36 @@
     (is (= "https://admin.example.com:9999/user/alice/delete" (url-for-admin ::delete-user :path-params {:user-id "alice"})))
     (is (= "//example.com/" (url-for-public ::home-page)))))
 
+(deftest required-path-params-in-url-for-routes
+  (let [url-for-admin (url-for-routes terse-routes :app-name :admin)
+        url-for-public (url-for-routes terse-routes :app-name :public)]
+    (testing "strict path params doesn't affect behavior when all params are present"
+      (is (= "https://admin.example.com:9999/user/alice/delete"
+             (url-for-admin ::delete-user
+                            :strict-path-params? true
+                            :path-params {:user-id "alice"})
+             (url-for-admin ::delete-user
+                            :strict-path-params? false
+                            :path-params {:user-id "alice"})))
+      (is (= "//example.com/"
+             (url-for-public ::home-page
+                             :strict-path-params? true)
+             (url-for-public ::home-page
+                             :strict-path-params? false))))
+    (testing "missing path params works when :strict-path-params isn't set, or set to false"
+      (is (= "https://admin.example.com:9999/user/:user-id/delete"
+             (url-for-admin ::delete-user)))
+      (is (= "https://admin.example.com:9999/user/:user-id/delete"
+             (url-for-admin ::delete-user
+                            :stric-path-params? false))))
+    (testing "missing path params throws an exception when :strict-path-params is true"
+      (is (= [:user-id]
+             (get-in (ex-data (try (url-for-admin ::delete-user
+                                          :strict-path-params? true)
+                           (catch clojure.lang.ExceptionInfo e
+                             e)))
+                     [:route :path-params]))))))
+
 ;; Map-route support
 
 (deftest map-routes->vec-routes-string-key
