@@ -98,13 +98,13 @@
 (extend-protocol WriteableBodyAsync
 
   clojure.core.async.impl.protocols.Channel
-  (write-body-async [body servlet-response resume-chan context]
+  (write-body-async [body ^HttpServletResponse servlet-response resume-chan context]
     (async/go
       (loop []
         (when-let [body-part (async/<! body)]
           (try
             (write-body servlet-response body-part)
-            (.flushBuffer ^HttpServletResponse servlet-response)
+            (.flushBuffer servlet-response)
             (catch Throwable t
               ;; Defend against exhausting core.async thread pool
               ;;  -- ASYNC-169 :: http://dev.clojure.org/jira/browse/ASYNC-169
