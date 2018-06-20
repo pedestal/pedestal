@@ -31,14 +31,15 @@
 
 (defn parse-url
   [url]
-  (->> url
-      (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?")
-      (drop 1)
-      ((fn [[scheme host path query-string]]
-         {:scheme scheme
-          :host host
-          :path path
-          :query-string query-string}))))
+  (let [[all scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
+        [host port] (when raw-host (cstr/split raw-host #":"))]
+    {:scheme scheme
+     :host host
+     :port (if port
+             (Integer/parseInt port)
+             -1)
+     :path path
+     :query-string query-string}))
 
 (defn- enumerator
   [data kw]
@@ -92,7 +93,7 @@
 
 (defn- test-servlet-request
   [verb url & args]
-  (let [{:keys [scheme host path query-string]} (parse-url url)
+  (let [{:keys [scheme host port path query-string]} (parse-url url)
         options (apply array-map args)
         async-context (atom nil)
         completion (promise)
@@ -106,7 +107,7 @@
                             name
                             cstr/upper-case))
         (getRequestURL [this] url)
-        (getServerPort [this] -1)
+        (getServerPort [this] port)
         (getServerName [this] host)
         (getRemoteAddr [this] "127.0.0.1")
         (getRequestURI [this] (str "/" path))
