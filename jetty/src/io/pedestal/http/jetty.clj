@@ -11,7 +11,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
-  (:require [io.pedestal.http.jetty.container])
+  (:require [io.pedestal.http.jetty.container]
+            [clojure.string :as string])
   (:import (org.eclipse.jetty.server Server ServerConnector
                                      Request
                                      HttpConfiguration
@@ -155,7 +156,7 @@
                reuse-addr? true}} :container-options} options
         thread-pool (QueuedThreadPool. ^Integer max-threads)
         server (Server. thread-pool)
-        _ (when-not (clojure.string/starts-with? context-path "/")
+        _ (when-not (string/starts-with? context-path "/")
             (throw (IllegalArgumentException. "context-path must begin with a '/'")))
         _ (when (and h2? (not ssl-port))
             (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
