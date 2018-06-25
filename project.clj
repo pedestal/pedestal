@@ -20,6 +20,7 @@
         "immutant"
         "tomcat"
         "aws"
+        "ions"
         "service-tools"
         "service-template"]
   :aliases {"docs" ["with-profile" "docs" "codox"]}
