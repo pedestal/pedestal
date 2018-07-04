@@ -20,6 +20,9 @@
 ;;
 ;; Here we define an interceptor to coerce `:body` into a JSON string,
 ;; and set both the Content-Type and Content-Length.
+;;
+;; NOTE: You can also tell your container to always set Content-Length,
+;;       which is often a better option.
 (def content-length-json-body
   (interceptor/interceptor
     {:name ::content-length-json-body
@@ -27,13 +30,16 @@
               (let [response (:response context)
                     body (:body response)
                     json-response-body (if body (json/generate-string body) "")
+                    ;; Content-Length is the size of the response in bytes
+                    ;; Let's count the bytes instead of the string, in case there are unicode characters
+                    content-length (count (.getBytes ^String json-response-body))
                     headers (:headers response {})]
                 (assoc context
                        :response {:status (:status response)
                                   :body json-response-body
                                   :headers (merge headers
                                                   {"Content-Type" "application/json;charset=UTF-8"
-                                                   "Content-Length" (str (count json-response-body))})})))}))
+                                                   "Content-Length" (str content-length)})})))}))
 
 (defn about-page
   [request]
