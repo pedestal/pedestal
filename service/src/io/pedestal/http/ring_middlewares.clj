@@ -149,11 +149,11 @@
   This interceptor will return async responses for large files (files larger than the HTTP Buffer)
   If your container doesn't recognize FileChannel response bodies, this interceptor will cause errors
   Supports a map of options:
-  :index? - If path is a directory, will attempt to find an 'index.*' file to serve. Defaults to true
+  :index-files? - If path is a directory, will attempt to find an 'index.*' file to serve. Defaults to true
   :follow-symlinks? - Serve files through symbolic links. Defaults to false
   :loader - A class loader specific for these resource fetches. Default to nil (use the main class loader)"
   ([root-path]
-   (fast-resource root-path {:index? true
+   (fast-resource root-path {:index-files? true
                              :allow-symlinks? false
                              :loader nil}))
   ([root-path opts]
