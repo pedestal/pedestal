@@ -1,0 +1,18 @@
+{:paths     ["src" "resources"]
+ :deps      {com.datomic/ion                 {:mvn/version "0.9.16"}
+             io.pedestal/pedestal.service    {:mvn/version "0.5.4-SNAPSHOT"}
+             io.pedestal/pedestal.ions       {:mvn/version "0.5.4-SNAPSHOT"}
+             org.clojure/clojure             {:mvn/version "1.9.0"}
+             javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}
+
+ :mvn/repos {"datomic-cloud" {:url "s3://datomic-releases-1fc2183a/maven/releases"}}
+
+ :aliases
+ {:cider    {:extra-paths ["dev"]
+             :extra-deps  {cider/cider-nrepl       {:mvn/version "0.17.0"}
+                           org.clojure/tools.nrepl {:mvn/version "0.2.13"}
+                           refactor-nrepl          {:mvn/version "2.4.0-SNAPSHOT"}}
+             :main-opts   ["-m" "dev" "port" "8888" "host" "0.0.0.0"]}
+  :dev      {:extra-deps {io.pedestal/pedestal.service-tools {:mvn/version "0.5.4-SNAPSHOT"}
+                          com.datomic/client-cloud           {:mvn/version "0.8.56"}
+                          com.datomic/ion-dev                {:mvn/version "0.9.175"}}}}}
