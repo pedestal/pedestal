@@ -1,26 +1,51 @@
-{:paths     ["src" "resources"]
- :deps      {com.datomic/ion                 {:mvn/version "0.9.16"}
-             io.pedestal/pedestal.service    {:mvn/version "0.5.4-SNAPSHOT"}
-             io.pedestal/pedestal.ions       {:mvn/version "0.5.4-SNAPSHOT"}
-             io.pedestal/pedestal.log        {:mvn/version "0.5.4-SNAPSHOT"}
-             org.clojure/clojure             {:mvn/version "1.9.0"}
-             javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}
+{:paths ["src" "resources"]
+ :deps  {com.datomic/ion                 {:mvn/version "0.9.16"}
+         io.pedestal/pedestal.service    {:mvn/version "0.5.4-SNAPSHOT"
+                                          :exclusions  [com.cognitect/transit-clj
+                                                        org.clojure/tools.analyzer.jvm
+                                                        org.clojure/core.async]}
+         io.pedestal/pedestal.ions       {:mvn/version "0.5.4-SNAPSHOT"}
+         io.pedestal/pedestal.log        {:mvn/version "0.5.4-SNAPSHOT"
+                                          :exclusions  [org.slf4j/slf4j-api]}
+         org.clojure/clojure             {:mvn/version "1.9.0"}
+         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}
 
  :mvn/repos {"datomic-cloud" {:url "s3://datomic-releases-1fc2183a/maven/releases"}}
 
  :aliases
- {:cider    {:extra-paths ["dev"]
-             :extra-deps  {cider/cider-nrepl       {:mvn/version "0.17.0"}
-                           org.clojure/tools.nrepl {:mvn/version "0.2.13"}
-                           refactor-nrepl          {:mvn/version "2.4.0-SNAPSHOT"}}
-             :main-opts   ["-m" "dev" "port" "8888" "host" "0.0.0.0"]}
-  :log      {:extra-paths ["config"]
-             :extra-deps  {ch.qos.logback/logback-classic {:mvn/version "1.2.3"
-                                                           :exclusions  [org.slf4j/slf4j-api]}
-                           org.slf4j/jul-to-slf4j         {:mvn/version "1.7.25"}
-                           org.slf4j/jcl-over-slf4j       {:mvn/version "1.7.25"}
-                           org.slf4j/log4j-over-slf4j     {:mvn/version "1.7.25"}}}
-  :dev      {:extra-deps {io.pedestal/pedestal.service-tools {:mvn/version "0.5.4-SNAPSHOT"}
-                          com.datomic/client-cloud           {:mvn/version "0.8.56"}
-                          com.datomic/ion-dev                {:mvn/version "0.9.175"
-                                                              :exclusions [org.slf4j/slf4j-nop]}}}}}
+ {:cider {:extra-paths ["dev"]
+          :extra-deps  {;; satisfy datomic-cloud dep conflicts
+                        com.cognitect/transit-java     {:mvn/version "0.8.311"}
+                        com.cognitect/transit-clj      {:mvn/version "0.8.285"}
+                        org.clojure/tools.analyzer.jvm {:mvn/version "0.7.0"}
+                        org.clojure/core.async         {:mvn/version "0.3.442"}
+                        ;; repl stuff
+                        cider/cider-nrepl              {:mvn/version "0.17.0"}
+                        org.clojure/tools.nrepl        {:mvn/version "0.2.13"}
+                        refactor-nrepl                 {:mvn/version "2.4.0-SNAPSHOT"}}
+          :main-opts   ["-m" "dev" "port" "8888" "host" "0.0.0.0"]}
+  :log   {:extra-paths ["config"]
+          :extra-deps  {ch.qos.logback/logback-classic {:mvn/version "1.2.3"
+                                                        :exclusions  [org.slf4j/slf4j-api]}
+                        org.slf4j/slf4j-api            {:mvn/version "1.7.14"}
+                        org.slf4j/jul-to-slf4j         {:mvn/version "1.7.14"}
+                        org.slf4j/jcl-over-slf4j       {:mvn/version "1.7.14"}
+                        org.slf4j/log4j-over-slf4j     {:mvn/version "1.7.14"}}}
+  :dev   {:extra-deps {io.pedestal/pedestal.service-tools {:mvn/version "0.5.4-SNAPSHOT"}
+                       com.datomic/client-cloud           {:mvn/version "0.8.56"}
+                       com.datomic/ion-dev                {:mvn/version "0.9.175"
+                                                           :exclusions  [org.slf4j/slf4j-nop]}}}}}
+
+;; TODO: need to deal with this
+#_{:uname         "test",
+   :deploy-groups (ions-pedestal-Compute-1BP4QXQI6VBMR),
+   :dependency-conflicts
+   {:deps
+    {commons-codec/commons-codec             #:mvn {:version "1.10"},
+     org.clojure/tools.analyzer.jvm          #:mvn {:version "0.7.0"},
+     com.fasterxml.jackson.core/jackson-core #:mvn {:version "2.9.5"},
+     org.clojure/tools.reader                #:mvn {:version "1.0.0-beta4"},
+     org.clojure/core.async                  #:mvn {:version "0.3.442"}},
+    :doc
+    "The :push operation overrode these dependencies to match versions already running in Datomic Cloud. To test locally, add these explicit deps to your deps.edn."}
+   }
