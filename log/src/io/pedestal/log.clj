@@ -752,7 +752,7 @@
     ([t msg-map]
      (.log t ^Map (persistent!
                     (reduce-kv (fn [acc k v]
-                                 (conj! acc (format-name k) v))
+                                 (conj! acc [(format-name k) v)])
                                (transient {})
                                msg-map)))
      t)
@@ -761,7 +761,7 @@
            ^long micros
            ^Map (persistent!
                     (reduce-kv (fn [acc k v]
-                                 (conj! acc (format-name k) v))
+                                 (conj! acc [(format-name k) v)])
                                (transient {})
                                msg-map)))
      t))
