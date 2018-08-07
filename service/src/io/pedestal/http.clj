@@ -355,6 +355,9 @@
     (merge service-map-with-host (server-map->service-map server-map))))
 
 (defn create-server
+  "Creates an http server as specified by the `service-map`. Optionally calls the
+  supplied `init-fn` before creating the server. Returns a complete service-map describing the
+  created server."
   ([service-map]
    (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
@@ -363,11 +366,17 @@
       create-provider ;; Creates/connects a backend to the interceptor chain
       server)))
 
-(defn start [service-map]
+(defn start
+  "Calls the `:start-fn` associated with the http server described by the `service-map`.
+  Returns the service-map."
+  [service-map]
   ((::start-fn service-map))
   service-map)
 
-(defn stop [service-map]
+(defn stop
+  "Calls the `:stop-fn` associated with the http server described by the `service-map`.
+  Returns the service-map."
+  [service-map]
   ((::stop-fn service-map))
   service-map)
 
