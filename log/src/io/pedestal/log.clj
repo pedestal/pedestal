@@ -829,7 +829,7 @@
                                          (nil? parent) (.ignoreActiveSpan builder)
                                          (instance? Span parent) (.asChildOf builder ^Span parent)
                                          :else (.asChildOf builder ^SpanContext parent))]
-       (reduce (fn [^Tracer$SpanBuilder builder k v]
+       (reduce-kv (fn [^Tracer$SpanBuilder builder k v]
                  (cond
                    (string? v) (.withTag builder ^String (format-name k) ^String v)
                    (number? v) (.withTag builder ^String (format-name k) ^Number v)
