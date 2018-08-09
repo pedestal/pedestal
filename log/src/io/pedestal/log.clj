@@ -752,7 +752,7 @@
     ([t msg-map]
      (.log t ^Map (persistent!
                     (reduce-kv (fn [acc k v]
-                                 (conj! acc (format-name k) v))
+                                 (assoc! acc (format-name k) v))
                                (transient {})
                                msg-map)))
      t)
@@ -761,7 +761,7 @@
            ^long micros
            ^Map (persistent!
                     (reduce-kv (fn [acc k v]
-                                 (conj! acc (format-name k) v))
+                                 (assoc! acc (format-name k) v))
                                (transient {})
                                msg-map)))
      t))
@@ -829,7 +829,7 @@
                                          (nil? parent) (.ignoreActiveSpan builder)
                                          (instance? Span parent) (.asChildOf builder ^Span parent)
                                          :else (.asChildOf builder ^SpanContext parent))]
-       (reduce (fn [^Tracer$SpanBuilder builder k v]
+       (reduce-kv (fn [^Tracer$SpanBuilder builder k v]
                  (cond
                    (string? v) (.withTag builder ^String (format-name k) ^String v)
                    (number? v) (.withTag builder ^String (format-name k) ^Number v)
