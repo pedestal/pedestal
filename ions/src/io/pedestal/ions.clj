@@ -91,7 +91,7 @@
 
 (defn ion-provider
   "Given a service map, returns a handler function which consumes ring requests
-  and returns ring responses subtle for Datomic Ion consumption."
+  and returns ring responses suitable for Datomic Ion consumption."
   [service-map]
   (let [interceptors (into [terminator-injector ring-response] (:io.pedestal.http/interceptors service-map))]
     (fn [{:keys [uri] :as request}]
