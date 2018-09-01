@@ -152,7 +152,7 @@
    (process-all-with-binding context :enter))
   ([context interceptor-key]
   (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
-  (loop [context context]
+   (loop [context (check-terminators context)]
     (let [queue (::queue context)
           stack (::stack context)
           execution-id (::execution-id context)]

@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor-test
-  (:require [clojure.test :refer (deftest is)]
+  (:require [clojure.test :refer (deftest is testing)]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
@@ -361,7 +361,17 @@
     (is (= (::trace (execute-only context :enter [(tracer :a)
                                                   (tracer :b)
                                                   (tracer :c)]))
-           [[:enter :a] [:enter :b]]))))
+           [[:enter :a] [:enter :b]]))
+
+    (testing "Async termination"
+      (let [result-chan    (chan)
+            _              (execute (enqueue context
+                                             [(deliverer result-chan)
+                                              (tracer :a)
+                                              (channeler :b)
+                                              (tracer :c)]))
+            result         (<!! result-chan)]
+        (is (=  (::trace result) expected-trace))))))
 
 (defaround around-interceptor
   "An interceptor that does the around pattern."
