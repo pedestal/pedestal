@@ -281,7 +281,8 @@
                                (failed-channeler :c)
                                (tracer :d)]))
         result (<!! result-chan)]
-    (is (= [[:enter :a]
+    (is (= (::trace result)
+           [[:enter :a]
             [:enter :b]
             [:error :b :from nil]
             [:leave :a]]))))
