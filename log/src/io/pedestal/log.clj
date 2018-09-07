@@ -31,7 +31,7 @@
                            SpanContext
                            Tracer
                            Tracer$SpanBuilder)
-           (io.opentracing.log Fields)
+           io.opentracing.log.Fields
            (io.opentracing.util GlobalTracer)
            (java.util Map)
            (java.util.concurrent TimeUnit)
