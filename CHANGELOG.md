@@ -2,6 +2,31 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.4 - June 29, 2018
+
+* `io.pedestal/pedestal.log` now provides a functional logging interface
+* `io.pedestal/pedestal.log` now ships with basic support for MDC
+* Dependencies have been bumped project wide
+* javac-options source/target bumped to JDK 1.8
+* Added support for pre-parsed query params
+* More sample projects
+* Distributed tracing support
+* Pedestal AWS support
+  * AWS XRay
+  * AWS Lambda
+* Dev-mode CSP setting is now correctly quoted.
+* Jetty deps bumped up, fixing the JDK9 issue in the process (#555 #552).
+* Tomcat deps bumped up, fixing an initialization bug that was lingering.
+* SSE metric increment/decrement correctly accounted for in all branches #548.
+* SSE safely runs the handling loop in a try/finally block, to ensure shutdown and cleanup always happens #560.
+* **BREAKING CHANGE**: nil `::host` in service map defaults to localhost now (rather than being container specific) #557.
+* Content-negotiation response map now conforms to Ring spec #540.
+* `response-for` now catches nil header values early, with a helpful exception #554.
+
+For a full list of changes, please see this comparison of [0.5.3...0.5.4](https://github.com/pedestal/pedestal/compare/0.5.3...0.5.4).
+
+For more detailed release notes, refer to the 0.5.4 release [document](https://github.com/pedestal/pedestal/releases/tag/0.5.4).
+
 ## 0.5.3 - October 3, 2017
 
  * CSRF default interceptor now implies `body-params` when turned on
