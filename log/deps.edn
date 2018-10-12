@@ -1,0 +1,11 @@
+{:paths ["src"]
+ :deps  {;; logging
+         org.slf4j/slf4j-api {:mvn/version "1.7.25"}
+
+         ;; metrics
+         io.dropwizard.metrics/metrics-core {:mvn/version "4.0.2"}
+         io.dropwizard.metrics/metrics-jmx  {:mvn/version "4.0.2"}
+
+         ;; tracing
+         io.opentracing/opentracing-api  {:mvn/version "0.31.0"}
+         io.opentracing/opentracing-util {:mvn/version "0.31.0"}}}
