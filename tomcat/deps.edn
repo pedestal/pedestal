@@ -1,0 +1,5 @@
+{:paths ["src"]
+ :deps {org.apache.tomcat.embed/tomcat-embed-logging-juli {:mvn/version "8.0.52"}
+        org.apache.tomcat.embed/tomcat-embed-jasper {:mvn/version "9.0.8"}
+        org.apache.tomcat.embed/tomcat-embed-core {:mvn/version "9.0.8"}
+        javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}

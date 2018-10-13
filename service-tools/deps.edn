@@ -1,0 +1,17 @@
+{:paths ["src"]
+ :deps  {org.clojure/data.xml {:mvn/version "0.2.0-alpha5"}
+
+         ;; Auto-reload changes
+         ns-tracker {:mvn/version "0.3.1"}
+
+         ;; Logging
+         ch.qos.logback/logback-classic {:mvn/version "1.2.3" :exclusions [org.slf4j/slf4j-api]}
+         org.slf4j/jul-to-slf4j         {:mvn/version "1.7.25"}
+         org.slf4j/jcl-over-slf4j       {:mvn/version "1.7.25"}
+         org.slf4j/log4j-over-slf4j     {:mvn/version "1.7.25"}}
+ :aliases {:release  {:extra-deps {io.pedestal/pedestal.service {:mvn/version "0.5.5-SNAPSHOT"}}}
+           :lein-dev {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
+           :dev      {:extra-deps {io.pedestal/pedestal.service     {:local/root "../service"}
+                                   io.pedestal/pedestal.log         {:local/root "../log"}
+                                   io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
+                                   io.pedestal/pedestal.route       {:local/root "../route"}}}}}

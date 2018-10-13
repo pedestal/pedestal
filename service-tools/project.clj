@@ -10,29 +10,37 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service-tools "0.5.5-SNAPSHOT"
-  :description "Pedestal tools for service development"
-  :url "https://github.com/pedestal/pedestal"
-  :scm "https://github.com/pedestal/pedestal"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :min-lein-version "2.0.0"
-  :dependencies [[io.pedestal/pedestal.service "0.5.5-SNAPSHOT"]
-                 [org.clojure/data.xml "0.2.0-alpha5"]
+(let [dir           (clojure.string/join "/"
+                                         (butlast (clojure.string/split *file* #"/")))
+      all-deps      (clojure.edn/read-string (slurp (clojure.java.io/file dir "deps.edn")))
+      dep-formatter (fn [deps]
+                      (reduce (fn [acc [k v]]
+                                (if-let [exclude (:exclusions v)]
+                                  (conj acc [k (:mvn/version v) :exclusions exclude])
+                                  (conj acc [k (:mvn/version v)])))
+                              []
+                              deps))
+      release-deps  (get-in all-deps [:aliases :release :extra-deps])
+      deps-vec-vec  (->> all-deps
+                         :deps
+                         (merge release-deps)
+                         dep-formatter
+                         (into ['[org.clojure/clojure "1.9.0"]]))
+      lein-dev-deps     (get-in all-deps [:aliases :lein-dev :extra-deps])
+      lein-dev-deps-vec-vec (dep-formatter lein-dev-deps)]
+  (defproject io.pedestal/pedestal.service-tools "0.5.5-SNAPSHOT"
+    :description "Pedestal tools for service development"
+    :url "https://github.com/pedestal/pedestal"
+    :scm "https://github.com/pedestal/pedestal"
+    :license {:name "Eclipse Public License"
+              :url  "http://www.eclipse.org/legal/epl-v10.html"}
+    :min-lein-version "2.0.0"
+    :dependencies ~deps-vec-vec
 
-                 ;; Auto-reload changes
-                 [ns-tracker "0.3.1"]
+    :aliases {"docs" ["with-profile" "docs" "codox"]}
 
-                 ;; Logging
-                 [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.25"]
-                 [org.slf4j/jcl-over-slf4j "1.7.25"]
-                 [org.slf4j/log4j-over-slf4j "1.7.25"]
+    :pedantic? :abort
 
-                 [javax.servlet/javax.servlet-api "3.1.0" :scope "test"]]
-
-  :aliases {"docs" ["with-profile" "docs" "codox"]}
-  :pedantic? :abort
-
-  :profiles {:docs {:pedantic? :ranges
-                    :plugins [[lein-codox "0.9.5"]]}})
+    :profiles {:dev {:dependencies ~lein-dev-deps-vec-vec}
+               :docs {:pedantic? :ranges
+                      :plugins   [[lein-codox "0.9.5"]]}}))

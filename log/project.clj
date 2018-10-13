@@ -22,7 +22,6 @@
                                    :deps
                                    dep-formatter
                                    (into ['[org.clojure/clojure "1.9.0"]]))]
-
      (defproject io.pedestal/pedestal.log "0.5.5-SNAPSHOT"
        :description "Pedestal logging and metrics facilities"
        :url "https://github.com/pedestal/pedestal"

@@ -1,0 +1,8 @@
+{:paths ["src"]
+ :deps {org.clojure/core.async {:mvn/version "0.4.474"
+                                :exclusions [org.clojure/tools.analyzer.jvm]}
+        org.clojure/core.incubator {:mvn/version "0.1.4"}}
+ :aliases {:release {:extra-deps {io.pedestal/pedestal.log {:mvn/version "0.5.5-SNAPSHOT"}
+                                  io.pedestal/pedestal.interceptor {:mvn/version "0.5.5-SNAPSHOT"}}}
+           :dev     {:extra-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                                  io.pedestal/pedestal.interceptor {:local/root "../interceptor"}}}}}

@@ -1,0 +1,5 @@
+{:paths ["src"]
+ :deps {potemkin {:mvn/version "0.4.5"}
+        org.jboss.logging/jboss-logging {:mvn/version "3.3.2.Final"}
+        org.immutant/web {:mvn/version "2.1.10" :exclusions [org.jboss.logging/jboss-logging]}
+        javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}

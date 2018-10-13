@@ -1,0 +1,48 @@
+{:paths ["src"]
+ :deps { ;; channels
+        org.clojure/core.async {:mvn/version "0.4.474" :exclusions [org.clojure/tools.analyzer.jvm]}
+
+        ;; interceptors
+        ring/ring-core {:mvn/version "1.6.3" :exclusions [[org.clojure/clojure]
+                                                          [org.clojure/tools.reader]
+                                                          [crypto-random]
+                                                          [crypto-equality]]}
+
+        cheshire {:mvn/version "5.8.0"}
+        org.clojure/tools.reader {:mvn/version "1.2.2"}
+        org.clojure/tools.analyzer.jvm {:mvn/version "0.7.2"}
+        com.cognitect/transit-clj {:mvn/version "0.8.309"}
+        commons-codec {:mvn/version "1.11"}
+        crypto-random {:mvn/version "1.2.0" :exclusions [[commons-codec]]}
+        crypto-equality {:mvn/version "1.0.0"}}
+ :aliases {:release  {:extra-deps {io.pedestal/pedestal.log         {:mvn/version "0.5.5-SNAPSHOT"}
+                                   io.pedestal/pedestal.interceptor {:mvn/version "0.5.5-SNAPSHOT"}
+                                   io.pedestal/pedestal.route       {:mvn/version "0.5.5-SNAPSHOT"}}}
+           :dev-lein {:extra-deps {io.pedestal/pedestal.jetty    {:mvn/version "0.5.5-SNAPSHOT"}
+                                   io.pedestal/pedestal.immutant {:mvn/version "0.5.5-SNAPSHOT"}
+                                   io.pedestal/pedestal.tomcat   {:mvn/version "0.5.5-SNAPSHOT"}}}
+           :provided {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
+           :dev      {:extra-paths ["dev" "bench"]
+                      :extra-deps  {criterium                        {:mvn/version "0.4.4"}
+                                    org.clojure/java.classpath       {:mvn/version "0.2.3"}
+                                    org.clojure/tools.namespace      {:mvn/version "0.2.11"}
+                                    clj-http                         {:mvn/version "2.0.0" :exclusions [[potemkin]
+                                                                                                        [clj-tuple]]}
+                                    com.ning/async-http-client       {:mvn/version "1.8.13"}
+                                    org.eclipse.jetty/jetty-servlets {:mvn/version "9.4.10.v20180503"}
+                                    io.pedestal/pedestal.jetty       {:local/root "../jetty"}
+                                    io.pedestal/pedestal.immutant    {:local/root "../immutant"}
+                                    io.pedestal/pedestal.tomcat      {:local/root "../tomcat"}
+
+                                    ;; Logging:
+                                    ch.qos.logback/logback-classic {:mvn/version "1.2.3" :exclusions [org.slf4j/slf4j-api]}
+                                    org.clojure/tools.logging      {:mvn/version "0.3.1"}
+                                    org.slf4j/jul-to-slf4j         {:mvn/version "1.7.25"}
+                                    org.slf4j/jcl-over-slf4j       {:mvn/version "1.7.25"}
+                                    org.slf4j/log4j-over-slf4j     {:mvn/version "1.7.25"}
+
+                                    ;; only used for route-bench - remove when no longer needed
+                                    incanter/incanter-core   {:mvn/version "1.5.6"}
+                                    incanter/incanter-charts {:mvn/version "1.5.6"}}}
+           :test {:extra-paths ["test"]}}
+ :mvn/repos {"sonatype-oss" {:url "https://oss.sonatype.org/content/groups/public/"}}}

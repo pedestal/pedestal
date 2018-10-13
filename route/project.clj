@@ -9,22 +9,34 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.route "0.5.5-SNAPSHOT"
-  :description "Pedestal route definition and router construction"
-  :url "https://github.com/pedestal/pedestal"
-  :scm "https://github.com/pedestal/pedestal"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.clojure/core.async "0.4.474" :exclusions [org.clojure/tools.analyzer.jvm]]
-                 [io.pedestal/pedestal.log "0.5.5-SNAPSHOT"]
-                 [io.pedestal/pedestal.interceptor "0.5.5-SNAPSHOT"]
-                 [org.clojure/core.incubator "0.1.4"]]
-  :min-lein-version "2.0.0"
-  :global-vars {*warn-on-reflection* true}
-  :pedantic? :abort
+(let [dir           (clojure.string/join "/"
+                                         (butlast (clojure.string/split *file* #"/")))
+      all-deps      (clojure.edn/read-string (slurp (clojure.java.io/file dir "deps.edn")))
+      dep-formatter (fn [deps]
+                      (reduce (fn [acc [k v]]
+                                (if-let [exclude (:exclusions v)]
+                                  (conj acc [k (:mvn/version v) :exclusions exclude])
+                                  (conj acc [k (:mvn/version v)])))
+                              []
+                              deps))
+      release-deps    (get-in all-deps [:aliases :release :extra-deps])
+      deps-vec-vec  (->> all-deps
+                         :deps
+                         (merge release-deps)
+                         dep-formatter
+                         (into ['[org.clojure/clojure "1.9.0"]]))]
+  (defproject io.pedestal/pedestal.route "0.5.5-SNAPSHOT"
+    :description "Pedestal route definition and router construction"
+    :url "https://github.com/pedestal/pedestal"
+    :scm "https://github.com/pedestal/pedestal"
+    :license {:name "Eclipse Public License"
+              :url  "http://www.eclipse.org/legal/epl-v10.html"}
+    :dependencies ~deps-vec-vec
+    :min-lein-version "2.0.0"
+    :global-vars {*warn-on-reflection* true}
+    :pedantic? :abort
 
-  :aliases {"docs" ["with-profile" "docs" "codox"]}
+    :aliases {"docs" ["with-profile" "docs" "codox"]}
 
-  :profiles {:docs {:pedantic? :ranges
-                    :plugins [[lein-codox "0.9.5"]]}})
+    :profiles {:docs {:pedantic? :ranges
+                      :plugins   [[lein-codox "0.9.5"]]}}))

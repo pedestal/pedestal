@@ -9,37 +9,34 @@
 ; the terms of this license.
 ;
 ; You must not remove this notice, or any other, from this software.
+(let [dir           (clojure.string/join "/"
+                                         (butlast (clojure.string/split *file* #"/")))
+      all-deps      (clojure.edn/read-string (slurp (clojure.java.io/file dir "deps.edn")))
+      dep-formatter (fn [deps]
+                      (reduce (fn [acc [k v]]
+                                (if-let [exclude (:exclusions v)]
+                                  (conj acc [k (:mvn/version v) :exclusions exclude])
+                                  (conj acc [k (:mvn/version v)])))
+                              []
+                              deps))
+      release-deps  (get-in all-deps [:aliases :release :extra-deps])
+      deps-vec-vec  (->> all-deps
+                         :deps
+                         (merge release-deps)
+                         dep-formatter
+                         (into ['[org.clojure/clojure "1.9.0"]]))]
+  (defproject io.pedestal/pedestal.aws "0.5.5-SNAPSHOT"
+    :description "AWS utilities for running Pedestal services on AWS"
+    :url "https://github.com/pedestal/pedestal"
+    :scm "https://github.com/pedestal/pedestal"
+    :license {:name "Eclipse Public License"
+              :url  "http://www.eclipse.org/legal/epl-v10.html"}
+    :dependencies ~deps-vec-vec
+    :min-lein-version "2.0.0"
+    :global-vars {*warn-on-reflection* true}
+    :pedantic? :abort
 
-(defproject io.pedestal/pedestal.aws "0.5.5-SNAPSHOT"
-  :description "AWS utilities for running Pedestal services on AWS"
-  :url "https://github.com/pedestal/pedestal"
-  :scm "https://github.com/pedestal/pedestal"
-  :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [io.pedestal/pedestal.interceptor "0.5.5-SNAPSHOT"]
-                 [io.pedestal/pedestal.log "0.5.5-SNAPSHOT"]
-                 ;[com.amazonaws.serverless/aws-serverless-java-container-core "0.5.1" :exclusions [[com.fasterxml.jackson.core/jackson-databind]]]
-                 [javax.servlet/javax.servlet-api "3.1.0"]
-                 [com.amazonaws/aws-java-sdk-core "1.11.331" :exclusions [commons-logging]] ;; Needed for x-ray
-                 [com.amazonaws/aws-lambda-java-core "1.2.0"]
-                 ;[com.amazonaws/aws-lambda-java-events "1.3.0"]
-                 [com.amazonaws/aws-xray-recorder-sdk-core "1.3.1" :exclusions [com.amazonaws/aws-java-sdk-core
-                                                                                commons-logging
-                                                                                joda-time]]
-                 ;; Deps cleanup
-                 [commons-logging "1.2"] ;; A clash between AWS and HTTP Libs
-                 [com.fasterxml.jackson.core/jackson-core "2.9.0"] ;; Bring AWS libs inline with Pedestal Service
-                 [com.fasterxml.jackson.dataformat/jackson-dataformat-cbor "2.9.0"] ;; Bring AWS libs inline with Pedestal Service
-                 [commons-codec "1.11"] ;; Bring AWS libs inline with Pedestal Service
-                 [joda-time "2.8.2"] ;; Bring AWS libs inline with Pedestal Service
-                 ]
-  :min-lein-version "2.0.0"
-  :global-vars {*warn-on-reflection* true}
-  :pedantic? :abort
+    :aliases {"docs" ["with-profile" "docs" "codox"]}
 
-  :aliases {"docs" ["with-profile" "docs" "codox"]}
-
-  :profiles {:docs {:pedantic? :ranges
-                    :plugins [[lein-codox "0.9.5"]]}})
-
+    :profiles {:docs {:pedantic? :ranges
+                      :plugins [[lein-codox "0.9.5"]]}}))
