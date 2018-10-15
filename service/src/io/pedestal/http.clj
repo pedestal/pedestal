@@ -30,7 +30,8 @@
             [cognitect.transit :as transit]
             [io.pedestal.log :as log])
   (:import (java.io OutputStreamWriter
-                    OutputStream)))
+                    OutputStream
+                    ByteArrayOutputStream)))
 
 ;; edn and json response formats
 
@@ -152,8 +153,10 @@
           (-> response
               (ring-response/content-type default-content-type)
               (assoc :body (fn [^OutputStream output-stream]
-                             (transit/write
-                              (transit/writer output-stream transit-format transit-opts) body)
+                             (let [out (ByteArrayOutputStream. 4096)
+                                   writer (transit/writer out transit-format transit-opts)]
+                               (transit/write writer body)
+                               (.writeTo out output-stream))
                              (.flush output-stream))))
           response))))))
 
