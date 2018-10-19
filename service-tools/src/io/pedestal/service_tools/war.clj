@@ -39,10 +39,10 @@
                   servlet-name
                   servlet-class
                   url-pattern]
-           :or [servlet-description "Pedestal HTTP Servlet"
-                servlet-name "PedestalServlet"
-                servlet-class "io.pedestal.servlet.ClojureVarServlet"
-                url-pattern "/*"]} opts]
+           :or {servlet-description "Pedestal HTTP Servlet"
+                servlet-name        "PedestalServlet"
+                servlet-class       "io.pedestal.servlet.ClojureVarServlet"
+                url-pattern         "/*"}} opts]
       (xml/indent-str
         (xml/sexp-as-element
           [:web-app {:xmlns              "http://java.sun.com/xml/ns/javaee"
@@ -168,4 +168,3 @@
      (write-war opts war-path)
      (println "Created" war-path)
      war-path)))
-
