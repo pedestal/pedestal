@@ -36,7 +36,7 @@ check_credentials!
 # Pre-requisites met. Precalculate the pending release and the new development stream.
 
 project_cljs = Dir['**/project.clj']
-
+deps_edns = Dir['**/deps.edn']
 
 release_version = version_number!(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE)
 release_version =~ /(\d+\.\d+\.)(\d+)/
@@ -64,7 +64,7 @@ clean!
 
 # Bump SNAPSHOT versions up to released versions, commit and tag.
 
-bump_version(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE, "#{release_version}-SNAPSHOT", release_version)
+bump_version(project_cljs, Common::WITHOUT_SNAPSHOT_DEFPROJECT_RE, deps_edns, "#{release_version}-SNAPSHOT", release_version)
 
 unless system('git add -u') && system("git commit -m \"Prepare #{release_version} release\"") && system("git tag #{release_version}")
   puts "Failed to create release commit. Aborting."
@@ -75,7 +75,7 @@ end
 deploy!
 
 # Update to pre-release SNAPSHOT version, commit, and push.
-bump_version(project_cljs, release_defproject_re, release_version, pre_release_version)
+bump_version(project_cljs, release_defproject_re, deps_edns, release_version, pre_release_version)
 
 puts "Release #{release_version} pushed to Clojars, tagged and committed.\nRelease #{pre_release_version} set as the latest development stream.\n\nDO NOT FORGET TO 'git push' WHEN YOU ARE READY!"
 
@@ -83,5 +83,3 @@ unless system('git add -u') && system("git commit -m \"Begin #{pre_release_versi
   puts "Failed to create post-release version-bump commit. Aborting."
   exit -1
 end
-
-

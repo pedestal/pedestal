@@ -82,16 +82,30 @@ module Common
     end
   end
 
-  def bump_version(project_cljs, defproject_re, prev_version, new_version)
+  def bump_project_cljs(project_cljs, defproject_re, prev_version, new_version)
     project_cljs.each do |project_clj|
       contents = File.read project_clj
       File.open(project_clj,"w") do |file|
         redefined = contents.gsub(defproject_re, '(defproject \1 "'+ new_version + '"')
-        redepended = redefined.gsub(/\[io.pedestal\/(.+) "#{prev_version}"/,
-                                    '[io.pedestal/\1 "'+new_version+'"')
+        file.puts redefined
+      end
+    end
+  end
+
+  def bump_deps_edns(deps_edns, prev_version, new_version)
+    deps_edns.each do |deps_edn|
+      contents = File.read deps_edn
+      File.open(deps_edn,"w") do |file|
+        redepended = contents.gsub(/io.pedestal\/(.+) "#{prev_version}"/,
+                                   'io.pedestal/\1 "'+new_version+'"')
         file.puts redepended
       end
     end
+  end
+
+  def bump_version(project_cljs, defproject_re, deps_edns, prev_version, new_version)
+    bump_project_cljs(project_cljs, defproject_re, prev_version, new_version)
+    bump_deps_edns(deps_edns, prev_version, new_version)
   end
 
 end
