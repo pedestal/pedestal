@@ -23,7 +23,7 @@
   -- no conversion has taken place on the JSON object other than the original parse.
   -- This ensures parse optimizations can be made without affecting downstream code."
   ([apigw-event]
-   (apigw-request-map true))
+   (apigw-request-map apigw-event true))
   ([apigw-event process-headers?]
    (let [path (get apigw-event "path" "/")
          headers (get apigw-event "headers" {})

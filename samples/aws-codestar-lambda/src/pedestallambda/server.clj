@@ -47,7 +47,7 @@
                         lambda/direct-apigw-provider))
 
 ;; TODO: Use the lambda.utils macros instead of the :gen-class setup here
-(def lambda-service-fn (:io.pedestal.lambda/apigw-handler lambda-service))
+(def lambda-service-fn (:io.pedestal.aws.lambda/apigw-handler lambda-service))
 
 (defn -handler [^Object req ^Context ctx]
   (lambda-service-fn req ctx))
