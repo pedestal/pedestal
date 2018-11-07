@@ -62,7 +62,7 @@
     (dissoc (request/realized this) k))
 
   clojure.lang.Counted
-  (count [this] (unchecked-add (if (= base-request nil) 0 (count request/ring-dispatch))
+  (count [this] (unchecked-add (if (nil? base-request) 0 (count request/ring-dispatch))
                                (count user-data)))
 
   clojure.lang.IPersistentCollection
@@ -99,7 +99,7 @@
   (get [this k]
     (.valAt this k))
   (isEmpty [this]
-    (and (= base-request nil) (empty? user-data)))
+    (and (nil? base-request) (empty? user-data)))
   (keySet [this]
     (.keySet ^Map (request/realized this)))
   (size [this]
