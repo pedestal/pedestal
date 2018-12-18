@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.5.5"
+(defproject io.pedestal/pedestal.service "0.5.6-SNAPSHOT"
   :description "Pedestal Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -18,9 +18,9 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.9.0"]
 
-                 [io.pedestal/pedestal.log "0.5.5"]
-                 [io.pedestal/pedestal.interceptor "0.5.5"]
-                 [io.pedestal/pedestal.route "0.5.5"]
+                 [io.pedestal/pedestal.log "0.5.6-SNAPSHOT"]
+                 [io.pedestal/pedestal.interceptor "0.5.6-SNAPSHOT"]
+                 [io.pedestal/pedestal.route "0.5.6-SNAPSHOT"]
 
                  ;; channels
                  [org.clojure/core.async "0.4.474" :exclusions [org.clojure/tools.analyzer.jvm]]
@@ -60,9 +60,9 @@
                                                                  [clj-tuple]]]
                                   [com.ning/async-http-client "1.8.13"]
                                   [org.eclipse.jetty/jetty-servlets "9.4.10.v20180503"]
-                                  [io.pedestal/pedestal.jetty "0.5.5"]
-                                  [io.pedestal/pedestal.immutant "0.5.5"]
-                                  [io.pedestal/pedestal.tomcat "0.5.5"]
+                                  [io.pedestal/pedestal.jetty "0.5.6-SNAPSHOT"]
+                                  [io.pedestal/pedestal.immutant "0.5.6-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.5.6-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
