@@ -2,6 +2,14 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.5 - December 18, 2018
+
+* Added a json-api sample.
+* Pedestal.log now adheres to recent ns spec changes allowing its use with Clojure 1.10. Addresses issue #603.
+* Fix for pedestal.log's distributed tracing support when passing a map to `log/log-span`.
+* Fix async termination. Addresses issue #581.
+* Fix recursive loop error in API Gateway async utilities.
+
 ## 0.5.4 - June 29, 2018
 
 * `io.pedestal/pedestal.log` now provides a functional logging interface
