@@ -10,19 +10,19 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.5.4"]
-[io.pedestal/pedestal.service-tools "0.5.4"] ;; Only needed for ns-watching; WAR tooling
-[io.pedestal/pedestal.jetty         "0.5.4"]
-[io.pedestal/pedestal.immutant      "0.5.4"]
-[io.pedestal/pedestal.tomcat        "0.5.4"]
-[io.pedestal/pedestal.aws           "0.5.4"] ;; API-Gateway, Lambda, and X-Ray support
+[io.pedestal/pedestal.service       "0.5.5"]
+[io.pedestal/pedestal.service-tools "0.5.5"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.5"]
+[io.pedestal/pedestal.immutant      "0.5.5"]
+[io.pedestal/pedestal.tomcat        "0.5.5"]
+[io.pedestal/pedestal.aws           "0.5.5"] ;; API-Gateway, Lambda, and X-Ray support
 ```
 
 You can also use Pedestal's internal modules standalone
 ```
-[io.pedestal/pedestal.log         "0.5.4"] ;; Logging and runtime metrics
-[io.pedestal/pedestal.interceptor "0.5.4"] ;; The Interceptor chain and the Interceptor API
-[io.pedestal/pedestal.route       "0.5.4"] ;; Efficient routing algorithms and data structures
+[io.pedestal/pedestal.log         "0.5.5"] ;; Logging and runtime metrics
+[io.pedestal/pedestal.interceptor "0.5.5"] ;; The Interceptor chain and the Interceptor API
+[io.pedestal/pedestal.route       "0.5.5"] ;; Efficient routing algorithms and data structures
 ```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
