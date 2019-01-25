@@ -11,13 +11,16 @@ Even though this project can be deployed on AWS Lambda, it can still run on Jett
 This sample includes:
 
 * README.md - this file
+* README.md.orig - the original README that ships with the CodeStar project
 * buildspec.yml - this file is used by AWS CodeBuild to build the web
   service
 * project.clj - managing dependencies
 * src/ - this directory contains your Clojure/Pedestal service source files
-* template.yml - this file contains the Serverless Application Model (SAM) used
-  by AWS Cloudformation to deploy your application to AWS Lambda and Amazon API
+* template.yml - this file contains the AWS Serverless Application Model (AWS SAM) used
+  by AWS CloudFormation to deploy your application to AWS Lambda and Amazon API
   Gateway.
+* template-configuration.json - this file contains the project ARN with placeholders used for tagging resources with the project ID
+
 
 ## Getting Started on Jetty or running locally
 
@@ -35,6 +38,7 @@ This sample includes:
 2. Delete all the files in that project and replace them with these files (including `.gitignore`).
 3. Commit and push the changes up into the repo, kicking off the CodePipeline
 4. Visit your Prod URL (you may need to go to /about to see a result).
+5. Review the [AWS Best Practices for your CodeStar Project](https://docs.aws.amazon.com/codestar/latest/userguide/best-practices.html?icmpid=docs_acs_rm_sec)
 
 
 ## Configuration
@@ -82,7 +86,14 @@ comments about AWS CodeStar on the AWS CodeStar forum.
 AWS CodeStar User Guide:
 http://docs.aws.amazon.com/codestar/latest/userguide/welcome.html
 
-AWS CodeStar Forum: https://forums.aws.amazon.com/forum.jspa?forumID=248
+AWS CodeStar Forum:
+https://forums.aws.amazon.com/forum.jspa?forumID=248
+
+AWS CodeStar Best Practices:
+https://docs.aws.amazon.com/codestar/latest/userguide/best-practices.html?icmpid=docs_acs_rm_sec
+
 
 ## Links
-* [Other examples](https://github.com/pedestal/samples)
+
+* [Other Pedestal examples](https://github.com/pedestal/samples)
+
