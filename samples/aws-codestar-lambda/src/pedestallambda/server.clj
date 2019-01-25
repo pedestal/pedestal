@@ -1,7 +1,7 @@
 (ns pedestallambda.server
   (:gen-class
-    :main true
-    :methods [^:static [handler [Object com.amazonaws.services.lambda.runtime.Context] Object]]) ; for -main method in uberjar
+    :main true ;; for -main method in the Uberjar
+    :methods [^:static [handler [Object com.amazonaws.services.lambda.runtime.Context] Object]]) ; for the AWS Lambda/APIGW hook
   (:require [io.pedestal.http :as server]
             [io.pedestal.http.aws.lambda.utils :as lambda]
             [io.pedestal.http.route :as route]
@@ -46,7 +46,7 @@
                         server/default-interceptors
                         lambda/direct-apigw-provider))
 
-;; TODO: Use the lambda.utils macros instead of the :gen-class setup here
+;; Note: Optionally, use the lambda.utils macros instead of the :gen-class setup here
 (def lambda-service-fn (:io.pedestal.aws.lambda/apigw-handler lambda-service))
 
 (defn -handler [^Object req ^Context ctx]

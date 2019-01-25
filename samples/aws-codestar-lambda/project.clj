@@ -3,10 +3,10 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [io.pedestal/pedestal.service "0.5.4"]
-                 [io.pedestal/pedestal.jetty "0.5.4"]
-                 [io.pedestal/pedestal.aws "0.5.4" :exclusions [joda-time]]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [io.pedestal/pedestal.service "0.5.5"]
+                 [io.pedestal/pedestal.jetty "0.5.5"]
+                 [io.pedestal/pedestal.aws "0.5.5" :exclusions [joda-time]]
 
                  [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.25"]
@@ -27,10 +27,10 @@
                                           "-Dclojure.server.repl={:port 5555 :accept clojure.core.server/repl}"]}
              :dev {:aliases {"crepl" ["trampoline" "run" "-m" "clojure.main/main"]
                              "srepl" ["with-profile" "srepl" "trampoline" "run" "-m" "clojure.main/main"]
-                             "run-dev" ["trampoline" "run" "-m" "pedestal-lambda.server/run-dev"]}
+                             "run-dev" ["trampoline" "run" "-m" "pedestallambda.server/run-dev"]}
                    :resource-paths ["config" "resources" "test/resources"]
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.2"]]}
-             :uberjar {:jvm-opts ["-D\"clojure.compiler.direct-linking=true\""]
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.5"]]}
+             :uberjar {:jvm-opts ["-Dclojure.compiler.direct-linking=true"]
                        :aot [pedestallambda.server]}}
   :main ^{:skip-aot true} pedestallambda.server)
 
