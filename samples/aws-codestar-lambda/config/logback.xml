@@ -14,7 +14,7 @@
 
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
       <!-- rollover daily -->
-      <fileNamePattern>logs/pub-consumer-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>logs/pedestal-lambda-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <!-- or whenever the file size reaches 64 MB -->
       <maxFileSize>64 MB</maxFileSize>
     </rollingPolicy>
