@@ -10,14 +10,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject hpcs "0.5.4"
+(defproject hpcs "0.5.5"
   :description "HTTP2 support"
   :url "http://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [io.pedestal/pedestal.service "0.5.4"]
-                 [io.pedestal/pedestal.jetty "0.5.4"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
+                 [io.pedestal/pedestal.service "0.5.5"]
+                 [io.pedestal/pedestal.jetty "0.5.5"]
 
                  [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.25"]
