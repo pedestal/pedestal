@@ -9,11 +9,7 @@ Interceptor Chain Providers allow Pedestal to be used on top of any HTTP Server 
 2. Go to [localhost:8080](http://localhost:8080/) to see: `Hello World!`
 3. Read your app's source code at src/nio/service.clj. Explore the docs of functions
    that define routes and responses.
-4. Run your app's tests with `lein test`. Read the tests at test/nio/service_test.clj.
-5. Learn more! See the [Links section below](#links).
-
-\* `lein run-dev` automatically detects code changes. Alternatively, you can run in production mode
-with `lein run`.
+4. Learn more! See the [Links section below](#links).
 
 ## Configuration
 
@@ -35,5 +31,3 @@ By using this software in any fashion, you are agreeing to be bound by
 the terms of this license.
 
 You must not remove this notice, or any other, from this software.
-
-
