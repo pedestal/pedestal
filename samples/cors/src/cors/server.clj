@@ -31,7 +31,9 @@
               ;;  we can use this to set the routes to be reloadable
               ::server/routes #(deref #'service/routes)
               ;; all origins are allowed in dev mode
-              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
+              ::server/allowed-origins {:creds true :allowed-origins (constantly true)}
+              ;; Content Security Policy (CSP) is mostly turned off in dev mode
+              ::server/secure-headers {:content-security-policy-settings {:object-src "'none'"}}})
       ;; Wire up interceptor chains
       server/default-interceptors
       server/dev-interceptors
@@ -41,6 +43,11 @@
 (defn -main
   "The entry-point for 'lein run'"
   [& args]
-  (println "\nCreating your server...")
-  (server/start runnable-service))
-
+  (let [port (Long/valueOf (first args))]
+    (println (str "Creating server on port " port "..."))
+    (-> (merge service/service {::server/port port
+                                ::server/allowed-origins {:creds true :allowed-origins ["http://localhost:8080"]}
+                                ;; turn off the Content Security Policy for this demo
+                                ::server/secure-headers {:content-security-policy-settings {:object-src "'none'"}}})
+        server/create-server
+        server/start)))
