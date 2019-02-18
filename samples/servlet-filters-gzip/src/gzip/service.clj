@@ -61,6 +61,11 @@
               ::http/container-options {:context-configurator (fn [c]
                                                                 (let [gzip-handler (GzipHandler.)]
                                                                   (.setGzipHandler c gzip-handler)
+                                                                  ;; by default, "GzipHandler" only operates on "GET" 's.
+                                                                  ;; It is possible to add other methods via:
+                                                                  ;; (.addIncludedMethods gzip-handler (into-array ["GET" "POST"]))
+                                                                  ;; https://www.eclipse.org/jetty/documentation/9.4.14.v20181114/gzip-filter.html
+                                                                  
                                                                   ;; You can also add Servlet Filters...
                                                                   (jetty-util/add-servlet-filter c {:filter DoSFilter})
                                                                   c))}
