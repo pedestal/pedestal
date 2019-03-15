@@ -1131,10 +1131,19 @@
     (testing "missing path params throws an exception when :strict-path-params is true"
       (is (= [:user-id]
              (get-in (ex-data (try (url-for-admin ::delete-user
-                                          :strict-path-params? true)
-                           (catch clojure.lang.ExceptionInfo e
-                             e)))
-                     [:route :path-params]))))))
+                                                  :strict-path-params? true
+                                                  :path-params {:user-id nil})
+                                   (catch clojure.lang.ExceptionInfo e
+                                     e)))
+                     [:route :path-params]))
+          "Should throw when nil.")
+      (is (= [:user-id]
+             (get-in (ex-data (try (url-for-admin ::delete-user
+                                                  :strict-path-params? true)
+                                   (catch clojure.lang.ExceptionInfo e
+                                     e)))
+                     [:route :path-params]))
+          "Should throw when missing."))))
 
 ;; Map-route support
 
@@ -1317,4 +1326,3 @@
           false
           (catch java.lang.AssertionError ae
             true)))))
-

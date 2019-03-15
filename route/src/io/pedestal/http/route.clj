@@ -253,9 +253,12 @@
                          context-path-parts (concat context-path-parts path-parts)
                          :else path-parts))
         _ (when (and (true? strict-path-params?)
-                     (not= (keys path-params) ;; Do the params passed in...
-                           (seq (:path-params route)) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
-                           ))
+                     (or
+                      (not= (set (keys path-params)) ;; Do the params passed in...
+                            (set (seq (:path-params route))) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
+                            )
+                      ;; nils are not allowed.
+                      (some nil? (vals path-params))))
             (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
                             Either include all path-params, or if your URL actually contains ':' in the path, set :strict-path-params to false in the options"
                             {:path-parts path-parts
