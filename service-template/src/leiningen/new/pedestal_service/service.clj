@@ -75,5 +75,8 @@
                                         ;:keystore "test/hp/keystore.jks"
                                         ;:key-password "password"
                                         ;:ssl-port 8443
-                                        :ssl? false}})
-
+                                        :ssl? false
+                                        ;; Alternatively, You can specify you're own Jetty HTTPConfiguration
+                                        ;; via the `:io.pedestal.http.jetty/http-configuration` container option.
+                                        ;:io.pedestal.http.jetty/http-configuration (org.eclipse.jetty.server.HttpConfiguration.)
+                                        }})

@@ -111,18 +111,22 @@
        (.setHost host)))))
 
 (defn- http-configuration
-  "Provides an HttpConfiguration that can be consumed by connection factories"
+  "Provides an HttpConfiguration that can be consumed by connection factories.
+  The `:io.pedestal.http.jetty/http-configuration` option can be used to specify
+  your own HttpConfiguration instance."
   [options]
-  (let [{:keys [ssl? ssl-port h2?]} options
-        http-conf ^HttpConfiguration (HttpConfiguration.)]
-    (when (or ssl? ssl-port h2?)
-      (.setSecurePort http-conf ssl-port)
-      (.setSecureScheme http-conf "https"))
-    (doto http-conf
-      (.setSendDateHeader true)
-      (.setSendXPoweredBy false)
-      (.setSendServerVersion false)
-      (.addCustomizer (SecureRequestCustomizer.)))))
+  (if-let [http-conf-override ^HttpConfiguration (::http-configuration options)]
+    http-conf-override
+    (let [{:keys [ssl? ssl-port h2?]} options
+          http-conf                   ^HttpConfiguration (HttpConfiguration.)]
+      (when (or ssl? ssl-port h2?)
+        (.setSecurePort http-conf ssl-port)
+        (.setSecureScheme http-conf "https"))
+      (doto http-conf
+        (.setSendDateHeader true)
+        (.setSendXPoweredBy false)
+        (.setSendServerVersion false)
+        (.addCustomizer (SecureRequestCustomizer.))))))
 
 (defn- needed-pool-size
   "Jetty 9 calculates a needed number of threads per acceptors and selectors,
