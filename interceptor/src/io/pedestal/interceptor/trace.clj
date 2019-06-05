@@ -58,7 +58,7 @@
   Possible options:
    :span-resolver - a single-arg function that is given the context and
                     returns a started and activated span, resolving any propagated or parent span.
-                    The default resolver is `io.pedestal.interceptor.trace.ot-span-resolver`
+                    The default resolver is `io.pedestal.interceptor.trace.default-span-resolver`
                     which resolves (in order; first resolution wins):
                     1. Pedestal tracing values in the Context
                     2. OpenTracing Servlet values (if the Servlet API class is detected)
@@ -88,9 +88,7 @@
                trace-filter (fn [ctx] true)
                uri-as-span-operation? true
                default-span-operation "PedestalSpan"
-               span-postprocess default-span-postprocess}} opts
-         servlet-class (try (Class/forName "javax.servlet.HttpServletRequest")
-                            (catch Exception _ nil))]
+               span-postprocess default-span-postprocess}} opts]
      (interceptor/interceptor
        {:name ::tracing-interceptor
         :enter (fn [context]
@@ -98,8 +96,7 @@
                                     (span-resolver (assoc context
                                                           ::span-operation (if uri-as-span-operation?
                                                                              (get-in context [:request :uri] default-span-operation)
-                                                                             default-span-operation))
-                                                   servlet-class))]
+                                                                             default-span-operation))))]
                    (assoc context ::log/span (log/tag-span
                                                span
                                                {"http.method" (name (get-in context [:request :request-method]))
@@ -119,4 +116,3 @@
                      (log/finish-span span)
                      (assoc context ::chain/error throwable))
                    (assoc context ::chain/error throwable)))}))))
-
