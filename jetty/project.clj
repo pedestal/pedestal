@@ -16,15 +16,15 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [org.eclipse.jetty/jetty-server "9.4.10.v20180503"]
-                 [org.eclipse.jetty/jetty-servlet "9.4.10.v20180503"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
+                 [org.eclipse.jetty/jetty-server "9.4.18.v20190429"]
+                 [org.eclipse.jetty/jetty-servlet "9.4.18.v20190429"]
                  [org.eclipse.jetty.alpn/alpn-api "1.1.3.v20160715"]
-                 [org.eclipse.jetty/jetty-alpn-server "9.4.10.v20180503"]
-                 [org.eclipse.jetty.http2/http2-server "9.4.10.v20180503"]
-                 [org.eclipse.jetty.websocket/websocket-api "9.4.10.v20180503"]
-                 [org.eclipse.jetty.websocket/websocket-servlet "9.4.10.v20180503"]
-                 [org.eclipse.jetty.websocket/websocket-server "9.4.10.v20180503"]
+                 [org.eclipse.jetty/jetty-alpn-server "9.4.18.v20190429"]
+                 [org.eclipse.jetty.http2/http2-server "9.4.18.v20190429"]
+                 [org.eclipse.jetty.websocket/websocket-api "9.4.18.v20190429"]
+                 [org.eclipse.jetty.websocket/websocket-servlet "9.4.18.v20190429"]
+                 [org.eclipse.jetty.websocket/websocket-server "9.4.18.v20190429"]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}

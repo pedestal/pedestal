@@ -16,26 +16,26 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
 
                  [io.pedestal/pedestal.log "0.5.6-SNAPSHOT"]
                  [io.pedestal/pedestal.interceptor "0.5.6-SNAPSHOT"]
                  [io.pedestal/pedestal.route "0.5.6-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.4.474" :exclusions [org.clojure/tools.analyzer.jvm]]
+                 [org.clojure/core.async "0.4.490" :exclusions [org.clojure/tools.analyzer.jvm]]
 
                  ;; interceptors
-                 [ring/ring-core "1.6.3" :exclusions [[org.clojure/clojure]
+                 [ring/ring-core "1.7.1" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
 
-                 [cheshire "5.8.0"]
-                 [org.clojure/tools.reader "1.2.2"]
+                 [cheshire "5.8.1"]
+                 [org.clojure/tools.reader "1.3.2"]
                  [org.clojure/tools.analyzer.jvm "0.7.2"]
-                 [com.cognitect/transit-clj "0.8.309"]
-                 [commons-codec "1.11"]
+                 [com.cognitect/transit-clj "0.8.313"]
+                 [commons-codec "1.12"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
@@ -52,28 +52,38 @@
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev {:source-paths ["dev" "src" "bench"]
-                   :dependencies [[criterium "0.4.4"]
-                                  [org.clojure/java.classpath "0.2.3"]
+                   :dependencies [[criterium "0.4.5"]
+                                  [org.clojure/java.classpath "0.3.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
-                                  ;[clj-http "0.9.1"]
+                                  ;; TODO: clj-http 3.10.0 is available but
+                                  ;; gzip compression test fails. Even though
+                                  ;; `accept-encoding: gzip, deflate` is set by clj-http
+                                  ;; (in HttpRequest), there is an issue with either
+                                  ;; test setup or response processing (in clj-http).
+                                  ;; This requires further investigation.
                                   [clj-http "2.0.0" :exclusions [[potemkin]
                                                                  [clj-tuple]]]
+                                  ;; TODO: While com.ning/async-http-client 1.9.40 is available,
+                                  ;; an arity error is encountered when running `lein bench-service`.
+                                  ;; Furthermore, the project has been moved to
+                                  ;; https://github.com/AsyncHttpClient/async-http-client
+                                  ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.10.v20180503"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.18.v20190429"]
                                   [io.pedestal/pedestal.jetty "0.5.6-SNAPSHOT"]
                                   [io.pedestal/pedestal.immutant "0.5.6-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.5.6-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
-                                  [org.clojure/tools.logging "0.3.1"]
-                                  [org.slf4j/jul-to-slf4j "1.7.25"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.25"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.25"]
+                                  [org.clojure/tools.logging "0.4.0"]
+                                  [org.slf4j/jul-to-slf4j "1.7.26"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.26"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.26"]
 
                                   ;; only used for route-bench - remove when no longer needed
-                                  [incanter/incanter-core "1.5.6"]
-                                  [incanter/incanter-charts "1.5.6"]]
+                                  [incanter/incanter-core "1.9.3"]
+                                  [incanter/incanter-charts "1.9.3"]]
                    :repositories [["sonatype-oss"
                                    "https://oss.sonatype.org/content/groups/public/"]]}
              :docs {:pedantic? :ranges

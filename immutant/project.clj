@@ -15,9 +15,9 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
                  [potemkin "0.4.5"]
-                 [org.jboss.logging/jboss-logging "3.3.2.Final"]
+                 [org.jboss.logging/jboss-logging "3.4.0.Final"]
                  [org.immutant/web "2.1.10" :exclusions  [org.jboss.logging/jboss-logging]]
                  [javax.servlet/javax.servlet-api "3.1.0"]]
   :min-lein-version "2.0.0"

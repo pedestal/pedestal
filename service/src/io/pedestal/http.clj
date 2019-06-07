@@ -355,6 +355,21 @@
     (merge service-map-with-host (server-map->service-map server-map))))
 
 (defn create-server
+  "Given a service map, creates an returns an initialized service map which is
+  ready to be started via `io.pedestal.http/start`. If init-fn, a zero
+  arg function, is provided, it is invoked first.
+
+  Notes:
+  - The returned, initialized service map contains the `io.pedestal.http/start-fn`
+    and `io.pedestal.http/stop-fn` keys whose values are zero arg functions which
+    are used to start/stop the http service, respectively.
+  - If the service map option `:io.pedestal.http/chain-provider` is present,
+    it is used to create the server, otherwise a servlet provider will be used.
+    In this case, the type of servlet container created is determined by the
+    `:io.pedestal.http/type` option.
+  - For servlet containers, the resulting service-map will contain the
+    `io.pedestal.http/service-fn` key which is useful for testing the service
+    without starting it."
   ([service-map]
    (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
@@ -363,11 +378,21 @@
       create-provider ;; Creates/connects a backend to the interceptor chain
       server)))
 
-(defn start [service-map]
+(defn start
+  "Given service-map, an initialized service map returned by `create-server`,
+  invokes the zero-arg function assoc'd to the service map via `:io.pedestal.http/start-fn.`
+
+  Returns `service-map` on success."
+  [service-map]
   ((::start-fn service-map))
   service-map)
 
-(defn stop [service-map]
+(defn stop
+  "Given service-map, an initialized service map returned by `create-server`,
+  invokes the zero-arg function assoc'd to the service map via `:io.pedestal.http/stop-fn.`
+
+  Returns `service-map` on success."
+  [service-map]
   ((::stop-fn service-map))
   service-map)
 
@@ -384,4 +409,3 @@
 
 (defn servlet-service [service servlet-req servlet-resp]
   (.service ^javax.servlet.Servlet (::servlet service) servlet-req servlet-resp))
-
