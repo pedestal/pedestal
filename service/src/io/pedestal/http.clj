@@ -380,14 +380,18 @@
 
 (defn start
   "Given service-map, an initialized service map returned by `create-server`,
-  invokes the zero-arg function assoc'd to the service map via `:io.pedestal.http/start-fn.`"
+  invokes the zero-arg function assoc'd to the service map via `:io.pedestal.http/start-fn.`
+
+  Returns `service-map` on success."
   [service-map]
   ((::start-fn service-map))
   service-map)
 
 (defn stop
   "Given service-map, an initialized service map returned by `create-server`,
-  invokes the zero-arg function assoc'd to the service map via `:io.pedestal.http/stop-fn.`"
+  invokes the zero-arg function assoc'd to the service map via `:io.pedestal.http/stop-fn.`
+
+  Returns `service-map` on success."
   [service-map]
   ((::stop-fn service-map))
   service-map)
