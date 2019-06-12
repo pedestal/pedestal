@@ -839,7 +839,7 @@
                initial-tags)
        (.start ^Tracer$SpanBuilder builder))))
   (-activate-span [t span]
-    (.activate (.scopeManager t) ^Span span false)
+    (.activate (.scopeManager t) ^Span span)
     span)
   (-active-span [t]
     (.activeSpan t)))
