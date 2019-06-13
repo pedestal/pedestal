@@ -29,7 +29,7 @@
             [ring.util.response :as ring-response])
   (:import (javax.servlet Servlet ServletRequest ServletConfig)
            (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream EOFException)
+           (java.io OutputStreamWriter OutputStream EOFException IOException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -239,10 +239,12 @@
   somehow; application code should probably catch and log exceptions
   in its own interceptors."
   [{:keys [servlet-response] :as context} exception]
-  (log/error :msg "error-stylobate triggered"
-             :exception exception
-             :context context)
-  (leave-stylobate context))
+  (let [cause (stacktrace/root-cause exception)]
+    (when-not (and (instance? IOException cause) (= "Broken pipe" (.getMessage cause)))
+      (log/error :msg "error-stylobate triggered"
+                 :exception exception
+                 :context context))
+    (leave-stylobate context)))
 
 (defn- error-ring-response
   "Makes sure we send an error response on an exception, even in the
