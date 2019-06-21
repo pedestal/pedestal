@@ -2,6 +2,17 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.7 - June 21, 2019
+
+* Fixes the `Template resource 'leiningen/new/pedestal_service/.gitignore' not found.` error
+  encountered when running `lein pedestal-service [app-name]` with the Pedestal `0.5.6` release.
+
+## 0.5.6 - June 21, 2019
+
+* Resolves Pedestal dependencies have CVEs of high/critical severity [#619](https://github.com/pedestal/pedestal/issues/619)
+* It is now possible to override the service configuration's  HttpConfiguration (jetty only) [#615](https://github.com/pedestal/pedestal/issues/615).
+* Bumped dependencies (see PR [#620](https://github.com/pedestal/pedestal/pull/620) for details).
+
 ## 0.5.5 - December 18, 2018
 
 * Added a json-api sample.
