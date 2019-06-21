@@ -18,4 +18,5 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
   :eval-in-leiningen true
-  :test-selectors {:travis (complement :not-travis)})
+  :test-selectors {:travis (complement :not-travis)}
+  :jar-inclusions [#"^leiningen/new/pedestal_service/.gitignore"])
