@@ -17,4 +17,4 @@ There are two ways to try out local changes to this template:
    `~/.lein/profiles.clj`; generate a new app.
 
 <!-- Copyright 2013 Relevance, Inc. -->
-<!-- Copyright 2014 Cognitect, Inc. -->
+<!-- Copyright 2014-2019 Cognitect, Inc. -->

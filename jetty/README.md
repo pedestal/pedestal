@@ -11,5 +11,5 @@ Add this to the `:dependencies` vector of your `project.clj`:
 See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST\_VERSION number.
 
 <!-- Copyright 2013 Relevance, Inc. -->
-<!-- Copyright 2014 Cognitect, Inc. -->
+<!-- Copyright 2014-2019 Cognitect, Inc. -->
 

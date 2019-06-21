@@ -15,4 +15,4 @@ See [our releases](https://github.com/pedestal/pedestal/releases) for the LATEST
 
 All tests for this project live inside pedestal.service.
 
-<!-- Copyright 2016 Cognitect, Inc. -->
+<!-- Copyright 2016-2019 Cognitect, Inc. -->
