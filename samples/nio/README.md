@@ -24,12 +24,12 @@ To configure logging see config/logback.xml. By default, the app logs to stdout 
 To learn more about configuring Logback, read its [documentation](http://logback.qos.ch/documentation.html).
 
 ## Links
-* [Other examples](https://github.com/pedestal/samples)
+* [Other Pedestal examples](http://pedestal.io/samples)
 
 License
 -------
 Copyright 2013 Relevance, Inc.
-Copyright 2014 Cognitect, Inc.
+Copyright 2014-2019 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -39,5 +39,3 @@ By using this software in any fashion, you are agreeing to be bound by
 the terms of this license.
 
 You must not remove this notice, or any other, from this software.
-
-

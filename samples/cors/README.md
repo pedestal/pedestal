@@ -1,15 +1,15 @@
 # cors demo
 
-Here we demonstrate an implementation 
+Here we demonstrate an implementation
 of [cross-origin resource sharing](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing).
 
-In order to fully demonstrate this feature, we must 
+In order to fully demonstrate this feature, we must
 show three things:
 
 1. A server that provides SSE EventSource information <http://localhost:8081/>
-2. A client with a white-listed origin that can reach that 
+2. A client with a white-listed origin that can reach that
    information <http://localhost:8080/listener.html>
-3. A client with a non-white-listed origin that cannot reach 
+3. A client with a non-white-listed origin that cannot reach
    that information <http://localhost:8082/listener.html>
 
 To demonstrate this, begin three running instances of this application on ports 8080, 8081, and
@@ -27,13 +27,12 @@ To configure logging see config/logback.xml. By default, the app logs to stdout 
 To learn more about configuring Logback, read its [documentation](http://logback.qos.ch/documentation.html).
 
 ## Links
-
-* [Other examples](https://github.com/pedestal/samples)
+* [Other Pedestal examples](http://pedestal.io/samples)
 
 License
 -------
 Copyright 2013 Relevance, Inc.
-Copyright 2014 Cognitect, Inc.
+Copyright 2014-2019 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

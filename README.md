@@ -41,19 +41,19 @@ version details, updates, and necessary migration steps.**
  * [Full/true async support](https://groups.google.com/d/msg/clojure/rKqT13Ofy4k/H9xvkZA9Yy4J) (Async Servlet + core.async + NIO),
    resulting in better performance and capacity than a synchronous-only solution
  * Advanced [error handling](https://github.com/pedestal/pedestal/pull/302) for async systems
- * Integrated streaming capabilities like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
- * Integrated support for Cross-origin resource sharing/[CORS](https://github.com/pedestal/pedestal/tree/master/samples/cors)
+ * Integrated streaming capabilities like [Server-sent events](./samples/server-sent-events)
+ * Integrated support for Cross-origin resource sharing/[CORS](./samples/cors)
  * Integrated support for content negotiation
  * Integrated linking and testing tools
- * Integrated logging and runtime [metrics](https://github.com/pedestal/pedestal/tree/master/samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
- * Integrated [tracing](https://github.com/pedestal/pedestal/tree/master/samples/tracing-interceptor) with support for Open-Tracing, Jaeger, AWS X-Ray, and more.
+ * Integrated logging and runtime [metrics](./samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
+ * Integrated [tracing](./samples/tracing-interceptor) with support for Open-Tracing, Jaeger, AWS X-Ray, and more.
  * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
  * The ability to utilize Ring Middleware as Pedestal Interceptors
  * Support to run on Jetty, Immutant/Undertow, and Tomcat
  * The ability to run Pedestal services on non-Servlet containers (Vert.x, nginx, Netty, etc.)
  * HTTP/2, HTTP/2 Cleartext, and ALPN support
- * [WebSocket](https://github.com/pedestal/pedestal/tree/master/samples/jetty-web-sockets) support
+ * [WebSocket](./samples/jetty-web-sockets) support
  * [Docker](https://www.docker.com/) and [OSv](http://osv.io/) support
  * and more!
 

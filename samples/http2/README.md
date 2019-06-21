@@ -27,11 +27,13 @@ directly from the [Servlet Request](http://download.eclipse.org/jetty/9.3.11.v20
 
 You can find more information in the [Jetty docs for configuring HTTP/2 Push](http://www.eclipse.org/jetty/documentation/current/http2-configuring-push.html).
 
+## Links
+* [Other Pedestal examples](http://pedestal.io/samples)
 
 License
 -------
 Copyright 2013 Relevance, Inc.
-Copyright 2015 Cognitect, Inc.
+Copyright 2015-2019 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

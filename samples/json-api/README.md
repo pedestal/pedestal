@@ -1,4 +1,3 @@
-
 # JSON API with custom JSON writing
 
 It's sometimes advantageous to take full control over how response bodies
@@ -46,7 +45,5 @@ Once the image it built, it's cached.  To delete the image and build a new one:
 
 1. `capstan rmi json-api; capstan build`
 
-
 ## Links
-* [Other examples](https://github.com/pedestal/samples)
-
+* [Other Pedestal examples](http://pedestal.io/samples)

@@ -28,3 +28,6 @@ to [localhost:8080/admin](http://localhost:8080/admin) using HTTP
 Basic authentication with the username `gmw` and password `rutabaga`
 (`Authorization` header set to `Basic Z213OnJ1dGFiYWdh`) to see: `Only
 admins can see this!`.
+
+## Links
+* [Other Pedestal examples](http://pedestal.io/samples)

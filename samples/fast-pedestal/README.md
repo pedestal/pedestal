@@ -34,4 +34,4 @@ To configure logging see config/logback.xml. By default, the app logs to stdout 
 To learn more about configuring Logback, read its [documentation](http://logback.qos.ch/documentation.html).
 
 ## Links
-* [Other examples](https://github.com/pedestal/samples)
+* [Other Pedestal examples](http://pedestal.io/samples)

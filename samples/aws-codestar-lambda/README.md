@@ -94,6 +94,4 @@ https://docs.aws.amazon.com/codestar/latest/userguide/best-practices.html?icmpid
 
 
 ## Links
-
-* [Other Pedestal examples](https://github.com/pedestal/samples)
-
+* [Other Pedestal examples](http://pedestal.io/samples)
