@@ -11,6 +11,7 @@
 
 * Resolves Pedestal dependencies have CVEs of high/critical severity [#619](https://github.com/pedestal/pedestal/issues/619)
 * It is now possible to override the service configuration's  HttpConfiguration (jetty only) [#615](https://github.com/pedestal/pedestal/issues/615).
+* The `url-for` `:strict-path-params?` option is now more strict. Nil values are not allowed. Addresses [#602](https://github.com/pedestal/pedestal/issues/602).
 * Bumped dependencies (see PR [#620](https://github.com/pedestal/pedestal/pull/620) for details).
 
 ## 0.5.5 - December 18, 2018
