@@ -25,7 +25,7 @@
            (when-let [span-context (and servlet-request
                                         (.getAttribute servlet-request "TracingFilter.activeSpanContext"))]
              (log/span operation-name ^SpanContext span-context))
-           ;; Is there an OpenTracing span in the headers? (header key is "uber-id")
+           ;; Is there an OpenTracing span in the headers? (header key is "uber-trace-id")
            (when-let [span-context (.extract ^Tracer log/default-tracer
                                              Format$Builtin/HTTP_HEADERS
                                              (TextMapExtractAdapter. (get-in context [:request :headers] {})))]
@@ -50,7 +50,7 @@
   span on every request, which is finished on `leave`.
 
   Spans are automatically populated with relevant
-  tags: http.method, http.status_code, http.uril, span.kind
+  tags: http.method, http.status_code, http.uri, span.kind
 
   If on `leave` there is an `:error` in the context, this interceptor with
   log the error with the span.
