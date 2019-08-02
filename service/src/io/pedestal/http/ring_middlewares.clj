@@ -97,7 +97,7 @@
 
 (defn head
   "Interceptor to handle head requests. If used with defroutes, it will not work
-  if specified in an interceptors meta-key."
+  if specified in an interceptor's meta-key."
   []
   (interceptor {:name ::head
                 :enter (fn [ctx]
