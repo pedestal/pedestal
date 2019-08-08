@@ -281,7 +281,10 @@
         port-mismatch   (not= port   request-port)]
     (str
      (when (or absolute? scheme-mismatch host-mismatch port-mismatch)
-       (str (when (or absolute? scheme-mismatch) (str (name scheme) \:))
+       (str (when (or absolute? scheme-mismatch)
+              (if scheme
+                (str (name scheme) \:)
+                (throw (ex-info "Attempted to create a URL with `url-for`, but could not infer scheme from request and/or overrides" opts))))
             "//"
             host
             (when (non-standard-port? scheme port) (str \: port))))
