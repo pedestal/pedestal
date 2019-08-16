@@ -5,7 +5,7 @@ branches:
   only:
     - master
 jdk:
-  - oraclejdk8
+  - openjdk8
 notifications:
   email:
     - pedestal@thinkrelevance.com
