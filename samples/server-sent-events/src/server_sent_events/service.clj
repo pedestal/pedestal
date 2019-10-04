@@ -111,6 +111,7 @@
               ;; dev-mode. If you do, many other keys for configuring
               ;; default interceptors will be ignored.
               ;; :http/interceptors []
+              ::http/secure-headers {:content-security-policy-settings {:default-src "'self' localhost"}}
               ::http/routes routes
               ;; Root for resource interceptor that is available by default.
               ::http/resource-path "/public"

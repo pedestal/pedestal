@@ -10,33 +10,29 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject server-sent-events "0.5.1"
+(defproject server-sent-events "0.5.7"
   :description "a sample to demonstrate server sent events"
   :url "https://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [io.pedestal/pedestal.service "0.5.1"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
+                 [io.pedestal/pedestal.service "0.5.7"]
 
                  ;; Remove this line and uncomment the next line to
                  ;; use Tomcat instead of Jetty:
-                 [io.pedestal/pedestal.jetty "0.5.1"]
-                 ;; [io.pedestal/pedestal.tomcat "0.5.1"]
-
+                 [io.pedestal/pedestal.jetty "0.5.7"]
+                 ;; [io.pedestal/pedestal.tomcat "0.5.7"]
+                 
                  ;; Logging
-                 [ch.qos.logback/logback-classic "1.1.7" :exclusions [[org.slf4j/slf4j-api]]]
-                 [org.slf4j/jul-to-slf4j "1.7.21"]
-                 [org.slf4j/jcl-over-slf4j "1.7.21"]
-                 [org.slf4j/log4j-over-slf4j "1.7.21"]
-
-                 ;; Deps cleanup
-                 [org.clojure/tools.analyzer.jvm "0.6.10"]
-                 [org.clojure/tools.reader "1.0.0-beta2"]
+                 [ch.qos.logback/logback-classic "1.2.3" :exclusions [[org.slf4j/slf4j-api]]]
+                 [org.slf4j/jul-to-slf4j "1.7.26"]
+                 [org.slf4j/jcl-over-slf4j "1.7.26"]
+                 [org.slf4j/log4j-over-slf4j "1.7.26"]
 
                  ;; Example CLJS client
-                 [org.clojure/core.async "0.2.391"]
-                 [org.clojure/clojurescript "1.9.229" :exclusions [org.clojure/tools.reader]]]
-  :plugins [[lein-cljsbuild "1.1.3"]]
+                 [org.clojure/core.async "0.4.500"]
+                 [org.clojure/clojurescript "1.10.520" :exclusions [com.google.errorprone/error_prone_annotations com.google.code.findbugs/jsr305 org.clojure/tools.reader]]]
+  :plugins [[lein-cljsbuild "1.1.7"]]
   :min-lein-version "2.0.0"
   :pedantic? :abort
   :resource-paths ["resources" "config"]
