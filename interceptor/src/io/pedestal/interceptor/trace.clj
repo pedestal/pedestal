@@ -5,7 +5,12 @@
   (:import (io.opentracing Tracer
                            SpanContext)
            (io.opentracing.propagation Format$Builtin
-                                       TextMapExtractAdapter)))
+                                       TextMapAdapter)))
+
+(defn headers->span-context [^Tracer tracer headers]
+  (.extract tracer
+            Format$Builtin/HTTP_HEADERS
+            (TextMapAdapter. headers)))
 
 (defn default-span-resolver
   ([context]
@@ -26,9 +31,8 @@
                                         (.getAttribute servlet-request "TracingFilter.activeSpanContext"))]
              (log/span operation-name ^SpanContext span-context))
            ;; Is there an OpenTracing span in the headers? (header key is "uber-trace-id")
-           (when-let [span-context (.extract ^Tracer log/default-tracer
-                                             Format$Builtin/HTTP_HEADERS
-                                             (TextMapExtractAdapter. (get-in context [:request :headers] {})))]
+           (when-let [span-context (headers->span-context log/default-tracer
+                                                          (get-in context [:request :headers] {}))]
              (log/span operation-name ^SpanContext span-context))
            ;; Otherwise, create a new span
            (log/span operation-name))

@@ -83,7 +83,10 @@
 
                                   ;; only used for route-bench - remove when no longer needed
                                   [incanter/incanter-core "1.9.3"]
-                                  [incanter/incanter-charts "1.9.3"]]
+                                  [incanter/incanter-charts "1.9.3"]
+
+                                  ;; only used for tracing test
+                                  [io.jaegertracing/jaeger-client "1.0.0"]]
                    :repositories [["sonatype-oss"
                                    "https://oss.sonatype.org/content/groups/public/"]]}
              :docs {:pedantic? :ranges
