@@ -970,7 +970,12 @@
   The value of the setting should be a namespaced symbol
   that resolves to a 0-arity function or nil.
   That function should return something that satisfies the TracerOrigin protocol.
-  If no function is found, the GlobalTracer will default to the NoopTracer and `GlobalTracer/isRegistered` will be false."
+
+  If no function is found, the GlobalTracer will default to the NoopTracer
+  and `GlobalTracer/isRegistered` will be false.
+
+  If creation of the tracer fails, a warning will be logged including the exception,
+  the GlobalTracer will default to the NoopTracer and `GlobalTracer/isRegistered` will be false."
   (if-let [ns-fn-str (or (System/getProperty "io.pedestal.log.defaultTracer")
                          (System/getenv "PEDESTAL_TRACER"))]
     (if (= "nil" ns-fn-str)
@@ -982,7 +987,10 @@
                        (require (symbol ns-str))
                        (info :msg "Calling Tracer resolution function..."
                              :fn ns-fn-str)
-                       ((resolve (symbol ns-fn-str)))))]
+                       ((resolve (symbol ns-fn-str))))
+                     (catch Exception ex
+                       (warn :msg (format "Could create tracer for '%s'. The default tracer will be used." ns-fn-str)
+                             :exception ex)))]
         (when-not (GlobalTracer/isRegistered)
           (-register tracer))
         tracer))
