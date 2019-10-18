@@ -6,11 +6,26 @@
             [tracing.service :as service])
   (:import (io.jaegertracing Configuration
                              Configuration$SamplerConfiguration
-                             Configuration$ReporterConfiguration)))
+                             Configuration$ReporterConfiguration
+                             Configuration$SenderConfiguration)))
 
 ;; This is an adapted service map, that can be started and stopped
 ;; From the REPL you can call server/start and server/stop on this service
 (defonce runnable-service (server/create-server service/service))
+
+(defn- jaeger-tracer [service-name]
+  (.getTracer
+    (-> (Configuration/fromEnv service-name)
+        (.withSampler (-> (Configuration$SamplerConfiguration/fromEnv)
+                          (.withType "const")
+                          (.withParam 1)))
+        (.withReporter (-> (Configuration$ReporterConfiguration/fromEnv)
+                           (.withLogSpans false)
+                           (.withFlushInterval (int 1000))
+                           (.withMaxQueueSize (int 10000))
+                           (.withSender (-> (Configuration$SenderConfiguration.)
+                                            (.withAgentHost "localhost")
+                                            (.withAgentPort (int 5775)))))))))
 
 (defn run-dev
   "The entry-point for 'lein run-dev'"
@@ -21,14 +36,7 @@
   ;;  any other Tracer could be registered.  This approach will only fail if
   ;;  the Tracer is set using the JVM property or environment variable.
   (println "Registering local Trace connection")
-  (log/-register (.getTracer
-                   (Configuration. "TracingExample-DEV" ;; Our Service Name
-                                   (Configuration$SamplerConfiguration. "const" 1)
-                                   (Configuration$ReporterConfiguration. false       ;; log spans?
-                                                                         "localhost" ;; agent host
-                                                                         (int 5775)  ;; agent port
-                                                                         (int 1000)        ;; flush interval ms
-                                                                         (int 10000)))))   ;; max queue size
+  (log/-register (jaeger-tracer "TracingExample-DEV")) ;; Our Service Name
   (println "\nCreating your [DEV] server...")
   (-> service/service ;; start with production configuration
       (merge {:env :dev
@@ -56,14 +64,7 @@
   ;;  any other Tracer could be registered.  This approach will only fail if
   ;;  the Tracer is set using the JVM property or environment variable.
   (println "Registering local Trace connection")
-  (log/-register (.getTracer
-                   (Configuration. "TracingExample" ;; Our Service Name
-                                   (Configuration$SamplerConfiguration. "const" 1)
-                                   (Configuration$ReporterConfiguration. false       ;; log spans?
-                                                                         "localhost" ;; agent host
-                                                                         (int 5775)  ;; agent port
-                                                                         (int 1000)        ;; flush interval ms
-                                                                         (int 10000)))))   ;; max queue size
+  (log/-register (jaeger-tracer "TracingExample"))   ;; Our Service Name
   (println "\nCreating your server...")
   (server/start runnable-service))
 
