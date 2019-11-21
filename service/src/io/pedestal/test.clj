@@ -181,6 +181,11 @@
                  (setContentLengthLong [this content-length] (swap! headers-map assoc :content-length content-length))
                  (flushBuffer [this] (reset! committed true))
                  (isCommitted [this] @committed)
+                 (sendError [this sc]
+                   (.sendError this sc "Server Error"))
+                 (sendError [this sc msg]
+                   (reset! status-val sc)
+                   (io/copy msg output-stream))
 
                  ;; Force all async NIO behaviors to be sync
                  container/WriteNIOByteBody

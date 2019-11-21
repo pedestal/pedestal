@@ -43,3 +43,14 @@
     (is (= {:scheme "http", :host "localhost", :port 8080, :path "foo", :query-string "param=value"}
            (parse-url "http://localhost:8080/foo?param=value")))))
 
+(deftest response-senderror-test
+  (testing "sendError with status only"
+    (let [resp (test-servlet-response)]
+      (.sendError resp 500)
+      (is (= 500 (test-servlet-response-status resp)))
+      (is (= "Server Error" (.toString (test-servlet-response-body resp))))))
+  (testing "sendError with status and message"
+    (let [resp (test-servlet-response)]
+      (.sendError resp 500 "Boom!")
+      (is (= 500 (test-servlet-response-status resp)))
+      (is (= "Boom!" (.toString (test-servlet-response-body resp)))))))
