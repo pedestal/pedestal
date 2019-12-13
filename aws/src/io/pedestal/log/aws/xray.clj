@@ -53,7 +53,7 @@
      (let [{:keys [initial-tags]
             :or {initial-tags {}}} opts
            ^Entity entity (log/-span t operation-name parent)
-           _ (.setAnnotations entity ^Map initial-tags)]
+           _ (log/tag-span entity initial-tags)]
        entity)))
   (-activate-span [t span]
     (.setTraceEntity t ^Entity span)
