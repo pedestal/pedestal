@@ -106,7 +106,7 @@
         (getMethod [this] (-> verb
                             name
                             cstr/upper-case))
-        (getRequestURL [this] url)
+        (getRequestURL [this] (StringBuffer. url))
         (getServerPort [this] port)
         (getServerName [this] host)
         (getRemoteAddr [this] "127.0.0.1")
