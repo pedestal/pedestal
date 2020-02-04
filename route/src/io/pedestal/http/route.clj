@@ -383,8 +383,10 @@
 (defn url-for
   "Invokes currently bound contextual linker to generate url based on
 
-    - The routing table in use.
-    - The incoming request being routed."
+     - The routing table in use.
+     - The incoming request being routed.
+
+   where `options` are as described for `url-for-routes`. "
   [route-name & options]
   (if *url-for*
     (apply (if (delay? *url-for*) (deref *url-for*) *url-for*)
