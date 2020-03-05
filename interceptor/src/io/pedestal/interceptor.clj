@@ -44,7 +44,7 @@
                                  (if (channel? resp)
                                    (async/go
                                      (assoc context :response (async/<! resp)))
-                                   (assoc context :response ))))}))))
+                                   (assoc context :response resp))))}))))
 
   clojure.lang.IPersistentList
   (-interceptor [t] (interceptor (eval t)))
