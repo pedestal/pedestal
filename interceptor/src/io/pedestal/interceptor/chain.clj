@@ -17,13 +17,11 @@
   (:refer-clojure :exclude (name))
   (:require [clojure.core.async :as async :refer [<! go]]
             [io.pedestal.log :as log]
-            [io.pedestal.interceptor :as interceptor])
+            [io.pedestal.interceptor :as interceptor :refer [channel?]])
   (:import java.util.concurrent.atomic.AtomicLong))
 
 (declare execute)
 (declare execute-only)
-
-(defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
 
 ;; This is used for printing out interceptors within debug messages
 (defn- name [interceptor]

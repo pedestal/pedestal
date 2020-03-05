@@ -12,7 +12,8 @@
 
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
-  common interceptor creation patterns.")
+  common interceptor creation patterns."
+  (:require [clojure.core.async :as async]))
 
 (defrecord Interceptor [name enter leave error])
 
@@ -24,6 +25,7 @@
   (-interceptor [t] "Given a value, produce an Interceptor Record."))
 
 (declare interceptor)
+(declare channel?)
 (extend-protocol IntoInterceptor
 
   clojure.lang.IPersistentMap
@@ -38,7 +40,11 @@
               (:interceptorfn int-meta))
         (interceptor (t))
         (interceptor {:enter (fn [context]
-                               (assoc context :response (t (:request context))))}))))
+                               (let [resp (t (:request context))]
+                                 (if (channel? resp)
+                                   (async/go
+                                     (assoc context :response (async/<! resp)))
+                                   (assoc context :response ))))}))))
 
   clojure.lang.IPersistentList
   (-interceptor [t] (interceptor (eval t)))
@@ -85,3 +91,5 @@
            true)]
    :post [(valid-interceptor? %)]}
   (-interceptor t))
+
+(defn channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
