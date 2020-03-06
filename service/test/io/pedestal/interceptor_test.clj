@@ -411,3 +411,44 @@
                     ((:leave middleware-interceptor))
                     :response
                     :middleware))))
+
+;; error suppression test
+
+(def failing-interceptor
+  (interceptor/interceptor
+   {:name  ::failing-interceptor
+    :enter (fn [ctx]
+             (/ 1 0))}))
+
+(def rethrowing-error-handling-interceptor
+  (interceptor/interceptor
+   {:name  ::rethrowing-error-handling-interceptor
+    :error (fn [ctx ex]
+             (throw (:exception (ex-data ex))))}))
+
+(def throwing-error-handling-interceptor
+  (interceptor/interceptor
+   {:name  ::throwing-error-handling-interceptor
+    :error (fn [ctx ex]
+             (throw (Exception. "Just testing the error-handler, this is not a real exception")))}))
+
+(def error-handling-interceptor
+  (interceptor/interceptor
+   {:name  ::error-handling-interceptor
+    :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
+
+(deftest chain-execution-error-suppression-test
+  (is (nil? (::chain/surpressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
+      "The `io.pedestal.interceptor.chain/surpressed` key should not be set when an exception is handled.")
+  (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor rethrowing-error-handling-interceptor failing-interceptor])))
+      "The `io.pedestal.interceptor.chain/surpressed` key should not be set when the same exception type is rethrown.")
+  (let [ctx (chain/execute {} [error-handling-interceptor throwing-error-handling-interceptor failing-interceptor])]
+    (is (= 1 (count (::chain/suppressed ctx)))
+        "There should be a suppressed error when a different exception type is thrown.")
+    (is (= :java.lang.ArithmeticException (-> ctx ::chain/suppressed first ex-data :exception-type))
+        "The suppressed exception should be the original exception.")
+    (testing "The caught exception is the new exception."
+      (let [{:keys [exception-type exception]} (-> ctx :caught-exception ex-data)]
+        (is (= :java.lang.Exception exception-type))
+        (is (= "Just testing the error-handler, this is not a real exception"
+               (ex-message exception)))))))
