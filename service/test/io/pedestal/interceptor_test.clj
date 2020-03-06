@@ -438,10 +438,10 @@
     :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
 
 (deftest chain-execution-error-suppression-test
-  (is (nil? (::chain/surpressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
-      "The `io.pedestal.interceptor.chain/surpressed` key should not be set when an exception is handled.")
+  (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
+      "The `io.pedestal.interceptor.chain/suppressed` key should not be set when an exception is handled.")
   (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor rethrowing-error-handling-interceptor failing-interceptor])))
-      "The `io.pedestal.interceptor.chain/surpressed` key should not be set when the same exception type is rethrown.")
+      "The `io.pedestal.interceptor.chain/suppressed` key should not be set when the same exception type is rethrown.")
   (let [ctx (chain/execute {} [error-handling-interceptor throwing-error-handling-interceptor failing-interceptor])]
     (is (= 1 (count (::chain/suppressed ctx)))
         "There should be a suppressed error when a different exception type is thrown.")
