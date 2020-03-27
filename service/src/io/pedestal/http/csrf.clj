@@ -50,13 +50,11 @@
           (assoc-in [:session anti-forgery-token-str] token)))))
 
 ;; This must be run after the session token setting
-(defn- assoc-double-submit-cookie [response cookie-attrs]
+(defn- assoc-double-submit-cookie [response token cookie-attrs]
   ;; The token should also be in a cookie for JS (proper double submit)
-  (if-let [token (get-in response [:session anti-forgery-token-str])]
-    (assoc-in response
-              [:cookies anti-forgery-token-str]
-              (merge cookie-attrs {:value token}))
-    response))
+  (assoc-in response
+            [:cookies anti-forgery-token-str]
+            (merge cookie-attrs {:value token})))
 
 (defn- form-params [request]
   (merge (:form-params request)
@@ -152,5 +150,5 @@
          (let [token (get-or-recreate-token req response)]
            (assoc context
                   :response (cond-> (assoc-session-token response req token)
-                              cookie-token? (assoc-double-submit-cookie cookie-attrs)))))))))
+                              cookie-token? (assoc-double-submit-cookie token cookie-attrs)))))))))
 

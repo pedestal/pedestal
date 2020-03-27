@@ -172,7 +172,7 @@
         request {:request {:headers {"x-csrf-token" "foo"}
                            :session {"__anti-forgery-token" "foo"}}}]
     (testing "custom read token is respected"
-     (is (= "foo"
+     (is (= {:value "foo"}
             (get-in (i request) [:response :cookies "__anti-forgery-token"]))))))
 
 (deftest sessionless-cookie-token
