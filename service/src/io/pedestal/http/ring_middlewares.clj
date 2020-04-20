@@ -33,7 +33,8 @@
             [ring.util.codec :as codec]
             [ring.util.response :as ring-resp])
   (:import (java.nio.channels FileChannel)
-           (java.nio.file StandardOpenOption)
+           (java.nio.file OpenOption
+                          StandardOpenOption)
            (java.io File)))
 
 (defn response-fn-adapter
@@ -186,7 +187,7 @@
                                            file-resp
                                            (assoc file-resp
                                                   :body (FileChannel/open (.toPath ^File (:body file-resp))
-                                                                          StandardOpenOption/READ))))]
+                                                                          (into-array OpenOption [StandardOpenOption/READ])))))]
                        (if response
                          (assoc ctx :response response)
                          ctx)))))}))))
