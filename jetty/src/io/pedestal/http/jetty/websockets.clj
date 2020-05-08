@@ -1,20 +1,22 @@
 (ns io.pedestal.http.jetty.websockets
-  (:require [clojure.core.async :as async :refer [go-loop]])
+  (:require [clojure.core.async :as async :refer [go-loop]]
+            [io.pedestal.log :as log])
   (:import (java.nio ByteBuffer)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.websocket.servlet WebSocketCreator
-                                                WebSocketServlet
-                                                WebSocketServletFactory)
+                                                WebSocketServlet)
            (org.eclipse.jetty.websocket.api Session
                                             WebSocketListener
                                             WebSocketConnectionListener
-                                            RemoteEndpoint)))
+                                            RemoteEndpoint
+                                            WriteCallback)))
 
 
 ;; This is a protocol used to extend the capabilities on messages are
 ;; marshalled on send
 (defprotocol WebSocketSend
-  (ws-send [msg remote-endpoint]))
+  (ws-send [msg remote-endpoint]
+    "Sends `msg` to `remote-endpoint`. May block."))
 
 (extend-protocol WebSocketSend
 
@@ -25,7 +27,6 @@
   ByteBuffer
   (ws-send [msg ^RemoteEndpoint remote-endpoint]
     (.sendBytes remote-endpoint msg)))
-
 
 (defn start-ws-connection
   "Given a function of two arguments
@@ -42,14 +43,84 @@
   ([on-connect-fn send-buffer-or-n]
    (fn [^Session ws-session]
      (let [send-ch (async/chan send-buffer-or-n)
-           remote ^RemoteEndpoint (.getRemote ws-session)]
+           remote  ^RemoteEndpoint (.getRemote ws-session)]
        ;; Let's process sends...
        (go-loop []
-                (if-let [out-msg (and (.isOpen ws-session)
-                                      (async/<! send-ch))]
-                  (do (ws-send out-msg remote)
-                      (recur))
-                  (.close ws-session)))
+         (if-let [out-msg (and (.isOpen ws-session)
+                               (async/<! send-ch))]
+           (do (try (ws-send out-msg remote)
+                    (catch Exception ex
+                      (log/error :msg "Failed on ws-send"
+                                 :exception ex)))
+               (recur))
+           (.close ws-session)))
+       (on-connect-fn ws-session send-ch)))))
+
+;; Support non-blocking transmission with optional flow control
+(defprotocol WebSocketSendAsync
+  (ws-send-async [msg remote-endpoint]
+    "Sends `msg` to `remote-endpoint`. Returns a
+     promise channel from which the result can be taken."))
+
+(extend-protocol WebSocketSendAsync
+  String
+  (ws-send-async [msg ^RemoteEndpoint remote-endpoint]
+    (let [p-chan (async/promise-chan)]
+      (.sendString remote-endpoint msg (reify WriteCallback
+                                         (writeFailed [_ ex]
+                                           (async/put! p-chan ex))
+                                         (writeSuccess [_]
+                                           (async/put! p-chan :success))))
+      p-chan))
+
+  ByteBuffer
+  (ws-send-async [msg ^RemoteEndpoint remote-endpoint]
+    (let [p-chan (async/promise-chan)]
+      (.sendBytes remote-endpoint msg (reify WriteCallback
+                                        (writeFailed [_ ex]
+                                          (async/put! p-chan ex))
+                                        (writeSuccess [_]
+                                          (async/put! p-chan :success))))
+      p-chan)))
+
+(defn start-ws-connection-with-fc-support
+  "Like `start-ws-connection` but transmission is non-blocking and supports
+  conveying transmission results. This allows services to implement flow
+  control.
+
+  Notes:
+  
+  Putting a sequential value on the `send` channel signals that a
+  transmission response is desired. In this case the value is expected to
+  be a 2-tuple of [`msg` `resp-ch`] where `msg` is the message to be sent
+  and `resp-ch` is the channel in which the transmission result will be
+  put.
+  "
+  ([on-connect-fn]
+   (start-ws-connection-with-fc-support on-connect-fn 10))
+  ([on-connect-fn send-buffer-or-n]
+   (fn [^Session ws-session]
+     (let [send-ch (async/chan send-buffer-or-n)
+           remote  ^RemoteEndpoint (.getRemote ws-session)]
+       (go-loop []
+         (if-let [payload (and (.isOpen ws-session)
+                               (async/<! send-ch))]
+           (let [[out-msg resp-ch] (if (sequential? payload)
+                                     payload
+                                     [payload nil])
+                 result (try (async/<! (ws-send-async out-msg remote))
+                             (catch Exception ex
+                               (log/error :msg "Failed on ws-send-async"
+                                          :exception ex)
+                               ex))]
+             (when resp-ch
+               (try
+                 (async/put! resp-ch result)
+                 (catch Exception ex
+                   (log/error :msg "Invalid response channel"
+                              :exception ex))))
+             (recur))
+           (.close ws-session)))
        (on-connect-fn ws-session send-ch)))))
 
 (defn make-ws-listener
