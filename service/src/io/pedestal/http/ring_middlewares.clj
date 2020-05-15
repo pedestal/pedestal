@@ -190,7 +190,8 @@
                                                                           (into-array OpenOption [StandardOpenOption/READ])))))]
                        (if response
                          (assoc ctx :response response)
-                         ctx)))))}))))
+                         ctx))
+                     ctx)))}))))
 
 (defn session
   "Interceptor for session ring middleware. Be sure to persist :session and
