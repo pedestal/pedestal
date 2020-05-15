@@ -144,6 +144,16 @@
   ([connectors acceptors selectors]
    (* (Math/round ^Double (+ acceptors selectors)) connectors)))
 
+(defn- thread-pool
+  "Returns a thread pool for the Jetty server. Can be overridden
+  with [:container-options :thread-pool] in options. max-threads is
+  ignored if the pool is overridden."
+  [{{:keys [max-threads thread-pool]
+     :or {max-threads (max 50 (needed-pool-size))}}
+    :container-options}]
+  (or thread-pool
+      (QueuedThreadPool. ^Integer max-threads)))
+
 ;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
 (defn- create-server
   "Construct a Jetty Server instance."
@@ -152,13 +162,12 @@
          port :port
          {:keys [ssl? ssl-port
                  h2? h2c? connection-factory-fns
-                 context-configurator context-path configurator max-threads daemon? reuse-addr?]
+                 context-configurator context-path configurator daemon? reuse-addr?]
           :or {configurator identity
                context-path "/"
-               max-threads (max 50 (needed-pool-size))
                h2c? true
                reuse-addr? true}} :container-options} options
-        thread-pool (QueuedThreadPool. ^Integer max-threads)
+        thread-pool (thread-pool options)
         server (Server. thread-pool)
         _ (when-not (string/starts-with? context-path "/")
             (throw (IllegalArgumentException. "context-path must begin with a '/'")))
@@ -234,6 +243,7 @@
   ;; -- Container Options --
   ;; :daemon?      - use daemon threads (defaults to false)
   ;; :max-threads  - the maximum number of threads to use (default 50)
+  ;; :thread-pool  - override the Jetty thread pool (ignores max-threads)
   ;; :reuse-addr?  - reuse the socket address (defaults to true)
   ;; :configurator - a function called with the Jetty Server instance
   ;; :context-configurator - a function called with the Jetty ServletContextHandler
