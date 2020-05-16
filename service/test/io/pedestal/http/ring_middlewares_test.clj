@@ -178,6 +178,10 @@
           (get-in [:response :body])
           slurp))))
 
+(deftest fast-resource-passes-on-post
+  (let [ctx (context {:uri "/index.html" :request-method :post})]
+    (is (= ctx ((:enter (fast-resource "/io/pedestal/public")) ctx)))))
+
 (defn- make-store [reader writer deleter]
   (reify SessionStore
     (read-session [_ k] (reader k))
