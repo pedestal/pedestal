@@ -2,6 +2,20 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.8 - May 22, 2020
+
+* The `fast-resource` interceptor now passes on context correctly. Resolves [#658](https://github.com/pedestal/pedestal/issues/658)
+* Pedestal now supports overriding the Jetty thread pool. [#655](https://github.com/pedestal/pedestal/issues/655).
+* Fix FileChannel/open usage in `fast-resource`. Resolves [#651](https://github.com/pedestal/pedestal/issues/651).
+* Clearer error messaging when the AWS XRay tracer is not registered. [#617](https://github.com/pedestal/pedestal/issues/617).
+* Fix error suppression bug. See PR [#645](https://github.com/pedestal/pedestal/pull/645).
+* Use openjdk Docker image in service template. Resolves [#642](https://github.com/pedestal/pedestal/issues/642).
+* The test ServletHttpRequest now returns a StringBuffer on getRequestURL.
+* Fix override-logger usage in `log` function. Resolves [#638](https://github.com/pedestal/pedestal/issues/651).
+* Fix setting initial tags in X-Ray segment/subsegment. Resolves [#626](https://github.com/pedestal/pedestal/issues/651).
+* Add test support for HttpServletResponse SendError.
+* Fix tracing examples and updates some samples.
+
 ## 0.5.7 - June 21, 2019
 
 * Fixes the `Template resource 'leiningen/new/pedestal_service/.gitignore' not found.` error
