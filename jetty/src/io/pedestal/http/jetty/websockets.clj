@@ -56,6 +56,13 @@
            (.close ws-session)))
        (on-connect-fn ws-session send-ch)))))
 
+(deftype ChannelWriteCallback [resp-chan]
+  WriteCallback
+  (writeFailed [_ ex]
+    (async/put! resp-chan ex))
+  (writeSuccess [_]
+    (async/put! resp-chan :success)))
+
 ;; Support non-blocking transmission with optional flow control
 (defprotocol WebSocketSendAsync
   (ws-send-async [msg remote-endpoint]
@@ -66,21 +73,13 @@
   String
   (ws-send-async [msg ^RemoteEndpoint remote-endpoint]
     (let [p-chan (async/promise-chan)]
-      (.sendString remote-endpoint msg (reify WriteCallback
-                                         (writeFailed [_ ex]
-                                           (async/put! p-chan ex))
-                                         (writeSuccess [_]
-                                           (async/put! p-chan :success))))
+      (.sendString remote-endpoint msg (->ChannelWriteCallback p-chan))
       p-chan))
 
   ByteBuffer
   (ws-send-async [msg ^RemoteEndpoint remote-endpoint]
     (let [p-chan (async/promise-chan)]
-      (.sendBytes remote-endpoint msg (reify WriteCallback
-                                        (writeFailed [_ ex]
-                                          (async/put! p-chan ex))
-                                        (writeSuccess [_]
-                                          (async/put! p-chan :success))))
+      (.sendBytes remote-endpoint msg (->ChannelWriteCallback p-chan))
       p-chan)))
 
 (defn start-ws-connection-with-fc-support
