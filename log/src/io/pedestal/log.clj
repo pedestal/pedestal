@@ -246,7 +246,7 @@
          logger-name (or ^String (::logger-name keyvals-map)
                          ^String (name (ns-name *ns*)))
          logger (or (::logger keyvals-map)
-                    (override-logger logger-name)
+                    (and override-logger (override-logger logger-name))
                     (LoggerFactory/getLogger logger-name))]
      (when (io.pedestal.log/-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
