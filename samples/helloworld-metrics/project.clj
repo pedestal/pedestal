@@ -29,7 +29,7 @@
                  [org.slf4j/jcl-over-slf4j "1.7.25"]
                  [org.slf4j/log4j-over-slf4j "1.7.25"]
                  [com.readytalk/metrics3-statsd "4.1.2"]]
-  :repositories [["jcenter" "http://jcenter.bintray.com"]]
+  :repositories [["jcenter" "https://jcenter.bintray.com"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "helloworld-metrics.server/run-dev"]}}
