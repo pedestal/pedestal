@@ -1,4 +1,4 @@
-# Pedestal [![Build Status](https://travis-ci.com/pedestal/pedestal.svg?branch=master)](https://travis-ci.com/pedestal/pedestal)
+# Pedestal ![CI](https://github.com/pedestal/pedestal/workflows/CI/badge.svg)
 
 Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
