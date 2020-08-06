@@ -23,9 +23,10 @@
         "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"})))
 
 (deftest about-page-test
-  (is (.contains
-       (:body (response-for service :get "/about"))
-       "Clojure 1.9"))
+  (is
+   (re-find #"Clojure \d+\.\d+(\.\d+)?"
+            (:body (response-for service :get "/about"))))
+  
   (is (=
        (:headers (response-for service :get "/about"))
        {"Content-Type" "text/html;charset=UTF-8"
