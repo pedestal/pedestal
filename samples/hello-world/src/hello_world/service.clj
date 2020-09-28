@@ -12,21 +12,17 @@
 
 (ns hello-world.service
   (:require [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
-            [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]))
+            [io.pedestal.http.route :as route]))
 
-(defn hello-world
+(defn respond-hello
   [request]
   (let [name (get-in request [:params :name] "World")]
     {:status 200 :body (str "Hello " name "!\n")}))
 
-(defroutes routes
-  [[["/"
-      ["/hello" {:get hello-world}]]]])
+(def routes
+  (route/expand-routes                                   ;; <1>
+   #{["/greet" :get respond-hello :route-name :greet]})) ;; <2>
 
-(def service {:env                 :prod
-              ::http/routes        routes
-              ::http/resource-path "/public"
+(def service {::http/routes        routes
               ::http/type          :jetty
-              ::http/port          8080})
+              ::http/port          8090})
