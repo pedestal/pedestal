@@ -69,7 +69,7 @@
                                   ;; https://github.com/AsyncHttpClient/async-http-client
                                   ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.18.v20190429"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.35.v20201120"]
                                   [io.pedestal/pedestal.jetty "0.5.9-SNAPSHOT"]
                                   [io.pedestal/pedestal.immutant "0.5.9-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.5.9-SNAPSHOT"]
