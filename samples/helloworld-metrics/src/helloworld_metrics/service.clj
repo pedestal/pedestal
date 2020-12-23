@@ -2,7 +2,6 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.log :as log]
             [ring.util.response :as ring-resp])
   (:import [com.codahale.metrics MetricRegistry]
@@ -48,13 +47,13 @@
   (log/meter ::homepage-reqs-rate (rand-int Integer/MAX_VALUE))
   (ring-resp/response "Hello World!"))
 
-(defroutes routes
+(def routes
   ;; Defines "/" and "/about" routes with their associated :get handlers.
   ;; The interceptors defined after the verb map (e.g., {:get home-page}
   ;; apply to / and its children (/about).
-  [[["/" {:get home-page}
-     ^:interceptors [(body-params/body-params) http/html-body]
-     ["/statsd" {:get statsd-page}]]]])
+  `[[["/" {:get home-page}
+      ^:interceptors [(body-params/body-params) http/html-body]
+      ["/statsd" {:get statsd-page}]]]])
 
 ;; Consumed by my-sample.server/create-server
 ;; See http/default-interceptors for additional options you can configure

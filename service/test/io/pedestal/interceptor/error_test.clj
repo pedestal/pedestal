@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [io.pedestal.interceptor.error :as error-int]))
 
@@ -23,12 +22,12 @@
   [request]
   (throw (Exception. "Just testing the error-handler, this is not a real exception")))
 
-(defroutes request-handling-routes
-  [[:request-handling "error-dispatch.pedestal"
-    ["/" ^:interceptors [service-error-handler]
-     ["/div" {:any bad-page}]
-     ["/div2" {:any [::another-bad-one bad-page]}]
-     ["/drop" {:any drop-through}]]]])
+(def request-handling-routes
+  `[[:request-handling "error-dispatch.pedestal"
+     ["/" ^:interceptors [service-error-handler]
+      ["/div" {:any bad-page}]
+      ["/div2" {:any [::another-bad-one bad-page]}]
+      ["/drop" {:any drop-through}]]]])
 
 (defn make-app [options]
   (-> options

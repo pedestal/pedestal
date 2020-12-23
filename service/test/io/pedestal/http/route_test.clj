@@ -22,7 +22,6 @@
              :refer [defhandler defon-request defbefore definterceptor handler]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.route :as route :refer [expand-routes]]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
             [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
@@ -150,49 +149,51 @@
                                  :handler request-inspection
                                  :interceptors [interceptor-1 interceptor-2]}}}]}]))
 
-(defroutes terse-routes ;; the terse hierarchical data structure
-  [[:public "example.com"
-       ["/" {:get home-page}
-        ["/child-path" {:get trailing-slash}]]
-       ["/user" {:get list-users
-                 :post add-user}
-        ["/:user-id"
-         ^:constraints {:user-id #"[0-9]+"}
-         {:put update-user}
-         [^:constraints {:view #"long|short"}
-          {:get view-user}]]]]
-      [:admin :https "admin.example.com" 9999
-       ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
-       ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
-       ["/user/:user-id/delete" {:delete delete-user}]]
-      [["/logout" {:any logout}]
-       ["/search" {:get search-form}
-        [^:constraints {:id #"[0-9]+"} {:get search-id}]
-        [^:constraints {:q #".+"} {:get search-query}]]
-       ["/intercepted" {:get [:intercepted request-inspection]}
-        ^:interceptors [interceptor-1 interceptor-2]]
-       ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
-        ^:interceptors [interceptor-3]]
-       ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
-        ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
-       ["/trailing-slash/"
-        ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
-       ["/hierarchical" ^:interceptors [interceptor-1]
-        ["/intercepted" ^:interceptors [interceptor-2]
-         {:get [:hierarchical-intercepted request-inspection]}]]
-       ["/terminal/intercepted"
-        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+(def terse-routes ;; the terse hierarchical data structure
+  (expand-routes
+   `[[:public "example.com"
+      ["/" {:get home-page}
+       ["/child-path" {:get trailing-slash}]]
+      ["/user" {:get list-users
+                :post add-user}
+       ["/:user-id"
+        ^:constraints {:user-id #"[0-9]+"}
+        {:put update-user}
+        [^:constraints {:view #"long|short"}
+         {:get view-user}]]]]
+     [:admin :https "admin.example.com" 9999
+      ["/demo/site-one/*site-path" {:get [:site-one-demo (site-demo "one")]}]
+      ["/demo/site-two/*site-path" {:get [:site-two-demo (site-demo "two")]}]
+      ["/user/:user-id/delete" {:delete delete-user}]]
+     [["/logout" {:any logout}]
+      ["/search" {:get search-form}
+       [^:constraints {:id #"[0-9]+"} {:get search-id}]
+       [^:constraints {:q #".+"} {:get search-query}]]
+      ["/intercepted" {:get [:intercepted request-inspection]}
+       ^:interceptors [interceptor-1 interceptor-2]]
+      ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+       ^:interceptors [interceptor-3]]
+      ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
+       ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
+      ["/trailing-slash/"
+       ["/child-path" {:get [:admin-trailing-slash trailing-slash]}]]
+      ["/hierarchical" ^:interceptors [interceptor-1]
+       ["/intercepted" ^:interceptors [interceptor-2]
+        {:get [:hierarchical-intercepted request-inspection]}]]
+      ["/terminal/intercepted"
+       {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]]))
 
-(defroutes map-routes
+(def map-routes
   ;; One limitation is you can't control hostname or protocol
-  {"/" {:get home-page
-        "/child-path" {:get trailing-slash}
-        "/user" {:get list-users
-                 :post add-user
-                 "/:user-id" {:constraints {:user-id #"[0-9]+"}
-                              :put update-user
-                              ;; Note another limitation of map-routes is the inability to do per-verb constraints
-                              :get view-user}}}})
+  (expand-routes
+   `{"/" {:get home-page
+          "/child-path" {:get trailing-slash}
+          "/user" {:get list-users
+                   :post add-user
+                   "/:user-id" {:constraints {:user-id #"[0-9]+"}
+                                :put update-user
+                                ;; Note another limitation of map-routes is the inability to do per-verb constraints
+                                :get view-user}}}}))
 
 (def data-map-routes
   (expand-routes
@@ -992,11 +993,12 @@
   ;; This new ring-adpated needs a unique name when it is added into the routes
   [::another-ring-adapted ring-adapted])
 
-(defroutes ring-adaptation-routes ;; When the handler for a verb is a ring style middleware, automagically treat it as an interceptor
-  [[:ring-adaptation "ring-adapt.pedestal"
-    ["/adapted" {:get ring-style}]
-    ["/verbatim" {:get ring-adapted}]
-    ["/returned" {:get (make-ring-adapted)}]]])
+(def ring-adaptation-routes ;; When the handler for a verb is a ring style middleware, automagically treat it as an interceptor
+  (expand-routes
+   `[[:ring-adaptation "ring-adapt.pedestal"
+      ["/adapted" {:get ring-style}]
+      ["/verbatim" {:get ring-adapted}]
+      ["/returned" {:get (make-ring-adapted)}]]]))
 
 (defn test-ring-adapting [router-impl-key]
   (are [path] (= "Oppa Ring Style!" (-> ring-adaptation-routes
@@ -1030,13 +1032,15 @@
    :body "Overriding"
    :headers {}})
 
-(defroutes overridden-routes
-  [[:overridden-routes "overridden.pedestal"
-    ["/resource" {:get overridden-handler}]]])
+(def overridden-routes
+  (expand-routes
+   `[[:overridden-routes "overridden.pedestal"
+      ["/resource" {:get overridden-handler}]]]))
 
-(defroutes overriding-routes
-  [[:overridden-routes "overridden.pedestal"
-    ["/resource" {:get overriding-handler}]]])
+(def overriding-routes
+  (expand-routes
+   `[[:overridden-routes "overridden.pedestal"
+      ["/resource" {:get overriding-handler}]]]))
 
 (defn test-overriding-routes [router-impl-key]
   (let [router (app-router #(deref #'overridden-routes) router-impl-key)
@@ -1225,8 +1229,9 @@
    :body (pr-str request)
    :headers {}})
 
-(defroutes routes-with-params
-  [[["/a/:a/b/:b" {:any echo-request}]]])
+(def routes-with-params
+  (expand-routes
+   `[[["/a/:a/b/:b" {:any echo-request}]]]))
 
 (deftest non-matching-routes-should-404
   (are [path]

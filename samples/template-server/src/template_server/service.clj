@@ -13,7 +13,6 @@
 (ns template-server.service
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [clojure.java.io :as io]
             [hiccup.page :as hiccup]
@@ -110,8 +109,8 @@
                                 :date  (current-date)})))
 
 ;; Define the routes that pull everything together.
-(defroutes routes
-  [[["/" {:get home-page} ^:interceptors [http/html-body]
+(def routes
+  `[[["/" {:get home-page} ^:interceptors [http/html-body]
       ["/hiccup" {:get hiccup-page}]
       ["/enlive" {:get enlive-page}]
       ["/clostache" {:get clostache-page}]

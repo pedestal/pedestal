@@ -4,7 +4,6 @@
             [io.pedestal.http :as service]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.interceptor.helpers :refer [defafter]]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]))
 
 
@@ -12,8 +11,8 @@
 (defn hello-page
   [request] (ring-resp/response "HELLO"))
 
-(defroutes app-routes
-  [[["/hello" {:get hello-page}]]])
+(def app-routes
+  `[[["/hello" {:get hello-page}]]])
 
 (defn make-app [options]
   (-> (merge {::service/routes app-routes} options)
@@ -51,8 +50,8 @@
              merge
              {(sec-headers/header-names :xss-protection) (sec-headers/xss-protection-header "1")}))
 
-(defroutes new-app-routes
-  [[["/hello" {:get [^:interceptors [custom-sec-headers] hello-page]}]]])
+(def new-app-routes
+  `[[["/hello" {:get [^:interceptors [custom-sec-headers] hello-page]}]]])
 
 (deftest custom-secure-headers
   (let [app (make-app {::service/routes new-app-routes

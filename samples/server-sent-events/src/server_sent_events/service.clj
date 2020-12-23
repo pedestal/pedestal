@@ -14,7 +14,6 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.sse :as sse]
             [io.pedestal.http.route :as route]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [clojure.core.async :as async]))
 
@@ -95,11 +94,11 @@
 
 ;; Wire root URL to sse event stream
 ;; Wire /custom URL to sse event stream with custom event-id setting
-(defroutes routes
-  [[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}
-     ["/with-id" {:get [::send-counter-with-id
-                       (sse/start-event-stream sse-stream-ready-with-id)]}]
-     ["/about" {:get about-page}]]]])
+(def routes
+  `[[["/" {:get [::send-counter (sse/start-event-stream sse-stream-ready)]}
+      ["/with-id" {:get [::send-counter-with-id
+                         (sse/start-event-stream sse-stream-ready-with-id)]}]
+      ["/about" {:get about-page}]]]])
 
 ;; You can use this fn or a per-request fn via io.pedestal.service.http.route/url-for
 (def url-for (route/url-for-routes routes))

@@ -3,7 +3,6 @@
             [io.pedestal.log :as log]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp]
             [clojure.core.async :as async]
             [io.pedestal.http.jetty.websockets :as ws])
@@ -19,13 +18,13 @@
   [request]
   (ring-resp/response "Hello World!"))
 
-(defroutes routes
+(def routes
   ;; Defines "/" and "/about" routes with their associated :get handlers.
   ;; The interceptors defined after the verb map (e.g., {:get home-page}
   ;; apply to / and its children (/about).
-  [[["/" {:get home-page}
-     ^:interceptors [(body-params/body-params) http/html-body]
-     ["/about" {:get about-page}]]]])
+  `[[["/" {:get home-page}
+      ^:interceptors [(body-params/body-params) http/html-body]
+      ["/about" {:get about-page}]]]])
 
 (def ws-clients (atom {}))
 
