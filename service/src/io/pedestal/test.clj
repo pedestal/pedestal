@@ -66,8 +66,7 @@
 
   nil
   (->servlet-input-stream [_]
-    (proxy [ServletInputStream]
-           []
+    (proxy [ServletInputStream] []
       (read ([] -1)
         ([^bytes b] -1)
         ([^bytes b ^Integer off ^Integer len] -1))
@@ -79,8 +78,7 @@
 
   InputStream
   (->servlet-input-stream [wrapped-stream]
-    (proxy [ServletInputStream]
-           []
+    (proxy [ServletInputStream] []
       (available ([] (.available wrapped-stream)))
       (read ([] (.read wrapped-stream))
         ([^bytes b] (.read wrapped-stream b))
@@ -147,8 +145,7 @@
 (defn- test-servlet-output-stream
   []
   (let [output-stream (ByteArrayOutputStream.)]
-    (proxy [ServletOutputStream IMeta]
-           []
+    (proxy [ServletOutputStream IMeta] []
       (write
         ([arg] (if (= java.lang.Integer (type arg))
                  (.write output-stream (int arg))
