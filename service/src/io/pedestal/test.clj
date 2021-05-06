@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
-  io.pedestal.test
+ io.pedestal.test
   (:require [io.pedestal.http.servlet :as servlets]
             [io.pedestal.log :as log]
             [clojure.string :as cstr]
@@ -59,7 +59,6 @@
           (swap! data rest)
           result)))))
 
-
 (defprotocol TestRequestBody
   (->servlet-input-stream [input]))
 
@@ -68,7 +67,7 @@
   nil
   (->servlet-input-stream [_]
     (proxy [ServletInputStream]
-        []
+           []
       (read ([] -1)
         ([^bytes b] -1)
         ([^bytes b ^Integer off ^Integer len] -1))
@@ -81,11 +80,11 @@
   InputStream
   (->servlet-input-stream [wrapped-stream]
     (proxy [ServletInputStream]
-      []
+           []
       (available ([] (.available wrapped-stream)))
       (read ([] (.read wrapped-stream))
         ([^bytes b] (.read wrapped-stream b))
-        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len)))) ))
+        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len))))))
 
 (defn- test-servlet-input-stream
   ([] (test-servlet-input-stream nil))
@@ -104,12 +103,13 @@
     (with-meta
       (reify HttpServletRequest
         (getMethod [this] (-> verb
-                            name
-                            cstr/upper-case))
+                              name
+                              cstr/upper-case))
         (getRequestURL [this] (StringBuffer. url))
         (getServerPort [this] port)
         (getServerName [this] host)
         (getRemoteAddr [this] "127.0.0.1")
+        (getRemotePort [this] 0)
         (getRequestURI [this] (str "/" path))
         (getServletPath [this] (.getRequestURI this))
         (getContextPath [this] "")
@@ -148,7 +148,7 @@
   []
   (let [output-stream (ByteArrayOutputStream.)]
     (proxy [ServletOutputStream IMeta]
-        []
+           []
       (write
         ([arg] (if (= java.lang.Integer (type arg))
                  (.write output-stream (int arg))
@@ -282,4 +282,3 @@
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
       (update-in [:body] #(.toString ^ByteArrayOutputStream % "UTF-8"))))
-
