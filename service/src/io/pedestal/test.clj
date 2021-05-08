@@ -84,7 +84,7 @@
       (available ([] (.available wrapped-stream)))
       (read ([] (.read wrapped-stream))
         ([^bytes b] (.read wrapped-stream b))
-        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len))))))
+        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len)))) ))
 
 (defn- test-servlet-input-stream
   ([] (test-servlet-input-stream nil))
