@@ -59,7 +59,6 @@
           (swap! data rest)
           result)))))
 
-
 (defprotocol TestRequestBody
   (->servlet-input-stream [input]))
 
@@ -110,6 +109,7 @@
         (getServerPort [this] port)
         (getServerName [this] host)
         (getRemoteAddr [this] "127.0.0.1")
+        (getRemotePort [this] 0)
         (getRequestURI [this] (str "/" path))
         (getServletPath [this] (.getRequestURI this))
         (getContextPath [this] "")
@@ -282,4 +282,3 @@
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
       (update-in [:body] #(.toString ^ByteArrayOutputStream % "UTF-8"))))
-
