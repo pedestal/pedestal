@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
- io.pedestal.test
+  io.pedestal.test
   (:require [io.pedestal.http.servlet :as servlets]
             [io.pedestal.log :as log]
             [clojure.string :as cstr]
@@ -66,7 +66,8 @@
 
   nil
   (->servlet-input-stream [_]
-    (proxy [ServletInputStream] []
+    (proxy [ServletInputStream]
+        []
       (read ([] -1)
         ([^bytes b] -1)
         ([^bytes b ^Integer off ^Integer len] -1))
@@ -78,7 +79,8 @@
 
   InputStream
   (->servlet-input-stream [wrapped-stream]
-    (proxy [ServletInputStream] []
+    (proxy [ServletInputStream]
+        []
       (available ([] (.available wrapped-stream)))
       (read ([] (.read wrapped-stream))
         ([^bytes b] (.read wrapped-stream b))
@@ -101,8 +103,8 @@
     (with-meta
       (reify HttpServletRequest
         (getMethod [this] (-> verb
-                              name
-                              cstr/upper-case))
+                            name
+                            cstr/upper-case))
         (getRequestURL [this] (StringBuffer. url))
         (getServerPort [this] port)
         (getServerName [this] host)
@@ -145,7 +147,8 @@
 (defn- test-servlet-output-stream
   []
   (let [output-stream (ByteArrayOutputStream.)]
-    (proxy [ServletOutputStream IMeta] []
+    (proxy [ServletOutputStream IMeta]
+        []
       (write
         ([arg] (if (= java.lang.Integer (type arg))
                  (.write output-stream (int arg))
