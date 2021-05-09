@@ -10,14 +10,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.jetty "0.5.9-SNAPSHOT"
+(defproject io.pedestal/pedestal.jetty "0.5.9"
   :description "Embedded Jetty adapter for Pedestal HTTP Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [io.pedestal/pedestal.log "0.5.9-SNAPSHOT"]
+                 [io.pedestal/pedestal.log "0.5.9"]
                  [org.eclipse.jetty/jetty-server "9.4.35.v20201120"]
                  [org.eclipse.jetty/jetty-servlet "9.4.35.v20201120"]
                  [org.eclipse.jetty.alpn/alpn-api "1.1.3.v20160715"]

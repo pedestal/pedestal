@@ -10,14 +10,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service-tools "0.5.9-SNAPSHOT"
+(defproject io.pedestal/pedestal.service-tools "0.5.9"
   :description "Pedestal tools for service development"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
-  :dependencies [[io.pedestal/pedestal.service "0.5.9-SNAPSHOT"]
+  :dependencies [[io.pedestal/pedestal.service "0.5.9"]
                  [org.clojure/data.xml "0.2.0-alpha5"]
 
                  ;; Auto-reload changes
