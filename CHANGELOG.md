@@ -2,6 +2,13 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.9 - May 9, 2021
+* Websocket handlers were added to handle flow control/backpressure asynchronously [#497](https://github.com/pedestal/pedestal/issues/497) 
+* Fix override logger optionality when using io.pedestal.log/log [#662](https://github.com/pedestal/pedestal/issues/662) 
+* Fix Critical Vulnerability in Eclipse Jetty 9.4.18.v20190429 (CVE-2020-27216) [#672](https://github.com/pedestal/pedestal/issues/672) 
+* Fix print-method generates invalid edn when printing interceptors without name [#678](https://github.com/pedestal/pedestal/issues/678) 
+* Fix incorrect arity 5 for io.pedestal.http.route.definition.table/syntax-error [#683](https://github.com/pedestal/pedestal/issues/683) 
+
 ## 0.5.8 - May 22, 2020
 
 * The `fast-resource` interceptor now passes on context correctly. Resolves [#658](https://github.com/pedestal/pedestal/issues/658)
