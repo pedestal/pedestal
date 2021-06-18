@@ -24,7 +24,7 @@
            (org.eclipse.jetty.server.handler AbstractHandler)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
-           (org.eclipse.jetty.util.ssl SslContextFactory)
+           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
            (org.eclipse.jetty.alpn ALPN)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
@@ -51,7 +51,7 @@
                     ^String trust-password
                     ^String security-provider
                     client-auth]} options
-            ^SslContextFactory context (SslContextFactory.)]
+            ^SslContextFactory context (SslContextFactory$Server.)]
         (when (every? nil? [keystore key-password truststore trust-password client-auth])
           (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
         (if (string? keystore)
