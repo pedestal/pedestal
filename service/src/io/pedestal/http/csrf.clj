@@ -28,14 +28,18 @@
 
 ;; this is both the marker and the function (to use with the context)
 (def anti-forgery-token ::anti-forgery-token)
+(def anti-forgery-rotate-token ::anti-forgery-rotate-token)
 (def anti-forgery-token-str "__anti-forgery-token")
 
 (defn existing-token [request]
   (get-in request [:session anti-forgery-token-str]))
 
+(defn new-token []
+  (random/base64 60))
+
 (defn- session-token [request]
   (or (existing-token request)
-      (random/base64 60)))
+      (new-token)))
 
 (defn- assoc-session-token [response request token]
   (let [old-token (existing-token request)]
@@ -46,13 +50,11 @@
           (assoc-in [:session anti-forgery-token-str] token)))))
 
 ;; This must be run after the session token setting
-(defn- assoc-double-submit-cookie [request response]
+(defn- assoc-double-submit-cookie [response token cookie-attrs]
   ;; The token should also be in a cookie for JS (proper double submit)
-  (if-let [token (or (existing-token request)
-                       (get-in response [:session anti-forgery-token-str]))]
-    (assoc-in response
-              [:cookies anti-forgery-token-str] token)
-    response))
+  (assoc-in response
+            [:cookies anti-forgery-token-str]
+            (merge cookie-attrs {:value token})))
 
 (defn- form-params [request]
   (merge (:form-params request)
@@ -67,6 +69,16 @@
       (get params anti-forgery-token-str)
       (get-in request [:headers "x-csrf-token"])
       (get-in request [:headers "x-xsrf-token"]))))
+
+(defn rotate-token
+  "Rotate the csrf token, e.g. after login succeeds."
+  [response]
+  (assoc response anti-forgery-rotate-token true))
+
+(defn- get-or-recreate-token [request response]
+  (if (anti-forgery-rotate-token response)
+    (new-token)
+    (anti-forgery-token request)))
 
 (defn- valid-request? [request read-token]
   (let [user-token   (read-token request)
@@ -113,6 +125,8 @@
     :body-params
       a body-params parser map to use; If none is supplied, the default parsers
       will be used (standard body-params behavior)
+    :cookie-attrs
+      a map of attributes to associate with the csrf cookie.
 
   Only one of :error-response, :error-handler may be specified."
   ([] (anti-forgery {}))
@@ -121,6 +135,7 @@
                     (:error-handler options)))]}
    (let [token-reader (:read-token options default-request-token)
          cookie-token? (:cookie-token options)
+         cookie-attrs (:cookie-attrs options)
          error-response (:error-response options default-error-response)
          error-handler (:error-handler options (fn [context]
                                                  (assoc-in context [:response] error-response)))]
@@ -132,8 +147,8 @@
              (error-handler context)
              (assoc-in context [:request anti-forgery-token] token))))
        (fn [{response :response req :request :as context}]
-         (let [token (anti-forgery-token req)]
+         (let [token (get-or-recreate-token req response)]
            (assoc context
                   :response (cond-> (assoc-session-token response req token)
-                              cookie-token? (#(assoc-double-submit-cookie req %))))))))))
+                              cookie-token? (assoc-double-submit-cookie token cookie-attrs)))))))))
 
