@@ -807,7 +807,7 @@
   (-register [t] nil)
   (-span
     ([t operation-name] nil)
-    ([t opertaion-name parent] nil))
+    ([t operation-name parent] nil))
   (-activate-span [t span] nil)
   (-active-span [t] nil)
 
