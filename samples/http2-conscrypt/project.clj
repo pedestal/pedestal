@@ -19,15 +19,15 @@
                  [io.pedestal/pedestal.service "0.5.5"]
                  [io.pedestal/pedestal.jetty "0.5.5"]
 
-                 [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.25"]
-                 [org.slf4j/jcl-over-slf4j "1.7.25"]
-                 [org.slf4j/log4j-over-slf4j "1.7.25"]
+                 [ch.qos.logback/logback-classic "1.2.6" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.32"]
+                 [org.slf4j/jcl-over-slf4j "1.7.32"]
+                 [org.slf4j/log4j-over-slf4j "1.7.32"]
 
                  ;; Get the Conscrypt Security Provider
                  ;;   Normally, you'd only take the version based on your OS,
                  ;;   but the Uberjar has all shared libs bundled up, which is nice for this example
-                 [org.conscrypt/conscrypt-openjdk-uber "1.1.2"]
+                 [org.conscrypt/conscrypt-openjdk-uber "2.5.2"]
                  [org.eclipse.jetty/jetty-alpn-conscrypt-server "9.4.10.v20180503"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
