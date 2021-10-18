@@ -49,7 +49,7 @@ To learn more about configuring Logback, read its [documentation](http://logback
 
 ## How we set our service up to use Jaeger
 
-With our additional dependency, `[io.jaegertracing/jaeger-core "0.27.0"]`,
+With our additional dependency, `[io.jaegertracing/jaeger-core "1.6.0"]`,
 we can configure our access to our Jaeger server.
 
 The default tracer in Pedestal can be set with a JVM property setting or
