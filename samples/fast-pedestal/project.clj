@@ -37,14 +37,28 @@
                        "-D\"clojure.compiler.direct-linking=true\""
                        ;; Turn off Pedestal's Metrics
                        "-D\"io.pedestal.defaultMetricsRecorder=nil\""
-                       "-d64" "-server"
-                       "-Xms1g"                             ;"-Xmx1g"
-                       "-XX:+UnlockCommercialFeatures"      ;"-XX:+FlightRecorder"
-                       ;"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8030"
+
+                       ;; This option is unrecognized by Zulu JVM 17
+                       ;;"-d64"
+                       "-server"
+                       ;; Force the JVM to allocate 1 Gb of heap to avoid new allocations
+                       "-Xms1g"
+                       ;; Maximum 1 gb of heap
+                       ;;"-Xmx1g"
+
+                       ;; Only availiable on Oracle JDKs?
+                       ;;"-XX:+UnlockCommercialFeatures"
+                       ;; This was deprecated in JDK 13 (says 17.0.0-oracle)
+                       ;;"-XX:+FlightRecorder"
+
+                       ;;"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8030"
+
                        "-XX:+UseG1GC"
-                       ;"-XX:+UseConcMarkSweepGC" "-XX:+UseParNewGC" "-XX:+CMSParallelRemarkEnabled"
-                       ;"-XX:+ExplicitGCInvokesConcurrent"
-                       "-XX:+AggressiveOpts"
-                       ;-XX:+UseLargePages
+                       ;;"-XX:+UseConcMarkSweepGC" "-XX:+UseParNewGC" "-XX:+CMSParallelRemarkEnabled"
+                       ;;"-XX:+ExplicitGCInvokesConcurrent"
+                       ;; Unrecognized VM option 'AggressiveOpts' is unrecognized by 17.0.0-oracle and others
+                       ;;"-XX:+AggressiveOpts"
+                       ;; -XX:+UseLargePages not supported in this VM /17.0.0-oracle
+                       ;;"-XX:+UseLargePages"
                        "-XX:+UseCompressedOops"]
   )
