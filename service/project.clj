@@ -26,16 +26,16 @@
                  [org.clojure/core.async "0.4.490" :exclusions [org.clojure/tools.analyzer.jvm]]
 
                  ;; interceptors
-                 [ring/ring-core "1.7.1" :exclusions [[org.clojure/clojure]
+                 [ring/ring-core "1.9.4" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
 
-                 [cheshire "5.8.1"]
+                 [cheshire "5.9.0"]
                  [org.clojure/tools.reader "1.3.2"]
                  [org.clojure/tools.analyzer.jvm "0.7.2"]
                  [com.cognitect/transit-clj "0.8.313"]
-                 [commons-codec "1.12"]
+                 [commons-codec "1.15"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
@@ -69,7 +69,7 @@
                                   ;; https://github.com/AsyncHttpClient/async-http-client
                                   ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.35.v20201120"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.44.v20210927"]
                                   [io.pedestal/pedestal.jetty "0.5.10-SNAPSHOT"]
                                   [io.pedestal/pedestal.immutant "0.5.10-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.5.10-SNAPSHOT"]
