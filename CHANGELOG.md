@@ -2,6 +2,10 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.10 - January 12, 2022
+* Address critical dependency vulnerabilities (i.e., Jetty) and update to the latest core.async version. Resolves [#695](https://github.com/pedestal/pedestal/issues/695)
+* **BREAKING CHANGE**: Update Pedestal's OpenTracing-related protocol implementations by removing the extension of TraceSpan, TraceSpanLog, TraceSpanLogMap and TraceSpanBaggage to Scope. This aligns Pedestal's OpenTracing support with OpenTracing version 0.33. Affected implementations should be changed to interact with spans directly, as per the Pedestal Tracing sample, as opposed to going through the Scope instance. Resolves [#693](https://github.com/pedestal/pedestal/issues/693)
+
 ## 0.5.9 - May 9, 2021
 * Websocket handlers were added to handle flow control/backpressure asynchronously [#497](https://github.com/pedestal/pedestal/issues/497) 
 * Fix override logger optionality when using io.pedestal.log/log [#662](https://github.com/pedestal/pedestal/issues/662) 
