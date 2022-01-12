@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.tomcat "0.5.10"
+(defproject io.pedestal/pedestal.tomcat "0.5.11-SNAPSHOT"
   :description "Embedded Tomcat adapter for Pedestal HTTP Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
