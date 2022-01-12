@@ -680,20 +680,7 @@
     t)
   (-finish-span
     ([t] (.finish t) t)
-    ([t micros] (.finish t micros) t))
-
-  Scope
-  (-set-operation-name [t operation-name]
-    (-set-operation-name (.span t) operation-name))
-  (-tag-span [t tag-key tag-value]
-    (-tag-span (.span t) tag-key tag-value))
-  (-finish-span
-    ([t]
-     (.close t)
-     (-finish-span (.span t)))
-    ([t micros]
-     (.close t)
-     (-finish-span (.span t) micros))))
+    ([t micros] (.finish t micros) t)))
 
 (extend-protocol TraceSpanLog
   nil
@@ -728,19 +715,7 @@
            ^Map (array-map io.opentracing.log.Fields/EVENT "error"
                            io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
                            io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
-                           io.opentracing.log.Fields/ERROR_OBJECT throwable))))
-
-  Scope
-  (-log-span
-    ([t msg]
-     (-log-span (.span t) msg))
-    ([t msg micros]
-     (-log-span (.span t) msg micros)))
-  (-error-span
-    ([t throwable]
-     (-error-span (.span t) throwable))
-    ([t throwable micros]
-     (-error-span (.span t) throwable micros))))
+                           io.opentracing.log.Fields/ERROR_OBJECT throwable)))))
 
 (extend-protocol TraceSpanLogMap
   nil
@@ -765,14 +740,7 @@
                                  (assoc! acc (format-name k) v))
                                (transient {})
                                msg-map)))
-     t))
-
-  Scope
-  (-log-span-map
-    ([t msg-map]
-     (-log-span-map (.span t) msg-map))
-    ([t msg-map micros]
-     (-log-span-map (.span t) msg-map micros))))
+     t)))
 
 (extend-protocol TraceSpanBaggage
   nil
@@ -792,15 +760,7 @@
     ([t k not-found]
      (or (.getBaggageItem t (format-name k)) not-found)))
   (-get-baggage-map [t]
-    (into {} (.baggageItems ^SpanContext (.context t))))
-
-  Scope
-  (-set-baggage [t k v]
-    (-set-baggage (.span t) k v))
-  (-get-baggage
-    ([t k] (-get-baggage (.span t) k))
-    ([t k not-found] (-get-baggage (.span t) k not-found)))
-  (-get-baggage-map [t] (-get-baggage-map (.span t))))
+    (into {} (.baggageItems ^SpanContext (.context t)))))
 
 (extend-protocol TraceOrigin
   nil
