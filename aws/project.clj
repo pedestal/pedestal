@@ -10,15 +10,15 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.aws "0.5.10-SNAPSHOT"
+(defproject io.pedestal/pedestal.aws "0.5.10"
   :description "AWS utilities for running Pedestal services on AWS"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [io.pedestal/pedestal.interceptor "0.5.10-SNAPSHOT"]
-                 [io.pedestal/pedestal.log "0.5.10-SNAPSHOT"]
+                 [io.pedestal/pedestal.interceptor "0.5.10"]
+                 [io.pedestal/pedestal.log "0.5.10"]
                  ;[com.amazonaws.serverless/aws-serverless-java-container-core "0.5.1" :exclusions [[com.fasterxml.jackson.core/jackson-databind]]]
                  [javax.servlet/javax.servlet-api "3.1.0"]
                  [com.amazonaws/aws-java-sdk-core "1.11.567" :exclusions [commons-logging]] ;; Needed for x-ray

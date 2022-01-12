@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal "0.5.10-SNAPSHOT"
+(defproject io.pedestal/pedestal "0.5.10"
   :plugins [[lein-sub "0.2.3"]]
   :sub ["log"
         "interceptor"
@@ -24,15 +24,15 @@
         "service-template"]
   :aliases {"docs" ["with-profile" "docs" "codox"]}
   :profiles {:docs {:plugins [[lein-codox "0.9.5"]]
-                    :dependencies [[io.pedestal/pedestal.log "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.interceptor "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.route "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.service "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.jetty "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.immutant "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.tomcat "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.aws "0.5.10-SNAPSHOT"]
-                                   [io.pedestal/pedestal.service-tools "0.5.10-SNAPSHOT"]]
+                    :dependencies [[io.pedestal/pedestal.log "0.5.10"]
+                                   [io.pedestal/pedestal.interceptor "0.5.10"]
+                                   [io.pedestal/pedestal.route "0.5.10"]
+                                   [io.pedestal/pedestal.service "0.5.10"]
+                                   [io.pedestal/pedestal.jetty "0.5.10"]
+                                   [io.pedestal/pedestal.immutant "0.5.10"]
+                                   [io.pedestal/pedestal.tomcat "0.5.10"]
+                                   [io.pedestal/pedestal.aws "0.5.10"]
+                                   [io.pedestal/pedestal.service-tools "0.5.10"]]
                     :codox {:output-path "codox"
                             :source-uri "http://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"
                             :source-paths ["log/src"

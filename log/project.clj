@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.log "0.5.10-SNAPSHOT"
+(defproject io.pedestal/pedestal.log "0.5.10"
   :description "Pedestal logging and metrics facilities"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
