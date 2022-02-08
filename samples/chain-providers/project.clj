@@ -25,9 +25,9 @@
                  ;; [io.pedestal/pedestal.tomcat "0.5.1"]
 
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.26"]
-                 [org.slf4j/jcl-over-slf4j "1.7.26"]
-                 [org.slf4j/log4j-over-slf4j "1.7.26"]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "chain-providers.server/run-dev"]}
