@@ -19,10 +19,10 @@
                  [io.pedestal/pedestal.service "0.5.5"]
                  [io.pedestal/pedestal.jetty "0.5.5"]
 
-                 [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.25"]
-                 [org.slf4j/jcl-over-slf4j "1.7.25"]
-                 [org.slf4j/log4j-over-slf4j "1.7.25"]
+                 [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]
 
                  ;; Get the Conscrypt Security Provider
                  ;;   Normally, you'd only take the version based on your OS,
