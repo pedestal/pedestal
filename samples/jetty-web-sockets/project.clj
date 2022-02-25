@@ -15,15 +15,13 @@
   :url "http://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.0"]
-                 [io.pedestal/pedestal.service "0.5.5"]
-                 [org.clojure/core.async "0.4.474"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
+                 [io.pedestal/pedestal.service "0.5.10" :exclusions [org.clojure/core.async
+                                                                     org.clojure/tools.reader
+                                                                     org.clojure/tools.analyzer.jvm]]
+                 [org.clojure/core.async "1.5.648"]
 
-                 ;; Remove this line and uncomment one of the next lines to
-                 ;; use Immutant or Tomcat instead of Jetty:
-                 [io.pedestal/pedestal.jetty "0.5.5"]
-                 ;; [io.pedestal/pedestal.immutant "0.5.5"]
-                 ;; [io.pedestal/pedestal.tomcat "0.5.5"]
+                 [io.pedestal/pedestal.jetty "0.5.10"]
 
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.35"]
