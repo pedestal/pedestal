@@ -60,7 +60,7 @@ To learn more about configuring Logback, read its [documentation](http://logback
 2. Build a Docker image: `sudo docker build -t pedestal-lambda .`
 3. Run your Docker image: `docker run -p 8080:8080 pedestal-lambda`
 
-### [OSv](http://osv.io/) unikernel support with [Capstan](http://osv.io/capstan/)
+### [OSv](http://osv.io/) unikernel support with [Capstan](http://osv.io/capstan)
 
 1. Build and run your image: `capstan run -f "8080:8080"`
 
