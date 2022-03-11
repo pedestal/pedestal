@@ -1,6 +1,7 @@
 (ns hp.server
   (:gen-class) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
+            [io.pedestal.http.route :as route]
             [hp.service :as service])
   (:import (java.security Security)
            (org.conscrypt OpenSSLProvider)))
@@ -22,7 +23,7 @@
               ::server/join? false
               ;; Routes can be a function that resolve routes,
               ;;  we can use this to set the routes to be reloadable
-              ::server/routes #(deref #'service/routes)
+              ::server/routes #(route/expand-routes (deref #'service/routes))
               ;; all origins are allowed in dev mode
               ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
       ;; Wire up interceptor chains

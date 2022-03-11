@@ -13,6 +13,7 @@
 (ns server-with-links.server
   (:gen-class) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
+            [io.pedestal.http.route :as route]
             [server-with-links.service :as service]))
 
 ;; This is an adapted service map, that can be started and stopped
@@ -29,7 +30,7 @@
               ::server/join? false
               ;; Routes can be a function that resolve routes,
               ;;  we can use this to set the routes to be reloadable
-              ::server/routes #(deref #'service/routes)
+              ::server/routes #(route/expand-routes (deref #'service/routes))
               ;; all origins are allowed in dev mode
               ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
       ;; Wire up interceptor chains
