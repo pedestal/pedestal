@@ -1,8 +1,7 @@
 (ns override-logging.server-impl
   "Houses the server `-main` implementation."
   (:gen-class) ; Provides the `-main` method for local dev.
-  (:require [override-logging.log] ;; Must be required first or you will get a 'java.lang.ClassNotFoundException: override-logging.log' error.
-            [io.pedestal.http :as server]
+  (:require [io.pedestal.http :as server]
             [io.pedestal.http.route :as route]
             [override-logging.service :as service]))
 

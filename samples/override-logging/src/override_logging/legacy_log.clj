@@ -1,10 +1,23 @@
-(ns override-logging.log
+(ns override-logging.legacy-log
   "Houses the override logger implementation to be used
   by `io.pedestal.log`.
 
+  Since the `io.pedestal.log/LoggerSource` protocol and override
+  logger resolution is done in the same namespace, you can't `require`
+  the `io.pedestal.log` namespace in the `override-logging.log``ns` form.
+  You must do three things, in order:
+  1. `declare` the logger factory function
+  2. `require` the `io.pedestal.log` namespace
+  3. Define an `io.pedestal.log/LoggerSource` implementation.
+
   Refer to the docstring of `io.pedestal.log/override-logger` for
-  guidance on how to configure the override logger."
-  (:require [io.pedestal.log :as log]))
+  guidance on how to configure the override logger.")
+
+;; 1. `declare` the logger factory fn.
+(declare make-logger)
+
+;; 2. `require` `io.pedestal.log`
+(require 'io.pedestal.log)
 
 ;; The log implementation below is purely for demonstration
 ;; purposes.
@@ -34,7 +47,7 @@
 
 ;; 3. Define the override logger
 (defrecord OverrideLogger [ns-str]
-  log/LoggerSource
+  io.pedestal.log/LoggerSource
   (-level-enabled? [_ l] (isa? levels l level))
   (-trace [t body] (log-msg :trace ns-str body))
   (-debug [t body] (log-msg :debug ns-str  body))

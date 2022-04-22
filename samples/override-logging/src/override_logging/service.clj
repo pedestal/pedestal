@@ -16,6 +16,17 @@
   (log/info :msg "Serving home-page")
   (ring-resp/response "Hello World!"))
 
+
+(comment
+ (add-tap println)
+
+ (log/log {:level :info :msg "foo"})
+ (log/info :msg "foo")
+
+ (macroexpand-1 `(log/info :msg "foo"))
+
+ )
+
 ;; Defines "/" and "/about" routes with their associated :get handlers.
 ;; The interceptors defined after the verb map (e.g., {:get home-page}
 ;; apply to / and its children (/about).
