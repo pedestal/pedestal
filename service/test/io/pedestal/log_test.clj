@@ -4,9 +4,10 @@
 
 (deftest mdc-context-set-correctly
   (let [inner-value (atom nil)
-        unwrapped-value (atom nil)]
+        unwrapped-value (atom nil)
+        some-map {:b 2}]
     (log/with-context {:a 1}
-      (log/with-context {:b 2}
+      (log/with-context some-map
         (log/info :msg "See the MDC in action")
         (reset! inner-value log/*mdc-context*))
       (log/info :msg "More MDC goodness")

@@ -375,7 +375,7 @@
   If you mix `with-context` with the more basic `with-context-kv`, you may see undesired keys/values in the log"
   [ctx-map & body]
   (let [formatter (::formatter ctx-map pr-str)]
-    (if (empty? ctx-map) ;; Optimize for the code-gen/dynamic case where the map may be empty
+    (if (and (map? ctx-map) (empty? ctx-map)) ;; Optimize for the code-gen/dynamic case where the map may be empty
       `(do
          ~@body)
       `(let [old-ctx# *mdc-context*
