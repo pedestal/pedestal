@@ -16,7 +16,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/core.async "0.4.490" :exclusions [org.clojure/tools.analyzer.jvm]]
+                 [org.clojure/core.async "1.5.648" :exclusions [org.clojure/tools.analyzer.jvm]]
                  [io.pedestal/pedestal.log "0.5.11-SNAPSHOT"]
                  [io.pedestal/pedestal.interceptor "0.5.11-SNAPSHOT"]
                  [org.clojure/core.incubator "0.1.4"]]
