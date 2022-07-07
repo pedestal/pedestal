@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -110,6 +110,7 @@
               ;; dev-mode. If you do, many other keys for configuring
               ;; default interceptors will be ignored.
               ;; :http/interceptors []
+              ::http/secure-headers {:content-security-policy-settings {:default-src "'self' localhost"}}
               ::http/routes routes
               ;; Root for resource interceptor that is available by default.
               ::http/resource-path "/public"

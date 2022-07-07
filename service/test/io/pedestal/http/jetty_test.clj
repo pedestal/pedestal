@@ -9,9 +9,12 @@
         io.pedestal.http.jetty)
   (:require [clj-http.client :as http]
             [clojure.edn]
+            [io.pedestal.http]
+            [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.helpers :refer [defhandler handler]]
             [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor])
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.http.jetty :as jetty])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
@@ -59,7 +62,7 @@
 
 (defn jetty-server
   [app options]
-  (server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))}
+  (jetty/server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))}
           (assoc options :join? false)))
 
 (defmacro with-server [app options & body]
@@ -68,6 +71,25 @@
        ((:start-fn server#))
        ~@body
        (finally ((:stop-fn server#))))))
+
+;; -----------------
+;; !!! CAUTION !!!
+;;
+;; Using this macro creates a full service which introduces many interceptors
+;; into the interceptor chain.
+;; This doesn't isolate the service as well as `with-server`.
+;;
+;; Prefer `with-server` unless you're testing something that
+;; requires routes/service-map/etc.
+;; -----------------------------
+(defmacro with-service-server [service-map & body]
+  `(let [server# (io.pedestal.http/create-server (merge {:io.pedestal.http/type :jetty
+                                                         :io.pedestal.http/join? false}
+                                                        ~service-map))]
+     (try
+       (io.pedestal.http/start server#)
+       ~@body
+       (finally (io.pedestal.http/stop server#)))))
 
 (deftest test-run-jetty
   (testing "HTTP server"
@@ -180,4 +202,61 @@
       (let [response (http/get "http://localhost:4347")]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World"))))))
+
+;; Servlet Context Path tests
+;; --------------------------
+
+(def routes
+  (route/expand-routes
+   #{["/hello" :get `hello-world :route-name :hello]}))
+
+(def service-map
+  {:io.pedestal.http/type :jetty
+   :io.pedestal.http/routes routes
+   :io.pedestal.http/port 4347})
+
+(deftest test-run-jetty-context-path
+  (testing "default context-path"
+    (with-service-server service-map
+      (let [response (http/get "http://localhost:4347/hello")
+            url-for (route/url-for-routes routes)]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World"))
+        (is (= (url-for :hello) "/hello")))))
+  (testing "custom context-path"
+    (with-service-server (merge service-map
+                                {:io.pedestal.http/container-options {:context-path "/context"}})
+      (let [response (http/get "http://localhost:4347/context/hello")
+            url-for (route/url-for-routes routes :context "/context")]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "Hello World"))
+        (is (= (url-for :hello) "/context/hello"))))))
+
+(defn hello-page2 [request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    (route/url-for :hello)})
+
+(def routes2
+  (route/expand-routes
+   #{["/hello" :get `hello-page2 :route-name :hello]}))
+
+(def service-map2
+  {:io.pedestal.http/type :jetty
+   :io.pedestal.http/routes routes2
+   :io.pedestal.http/port 4347})
+
+(deftest test-run-jetty-custom-context-with-servletcontext
+  (testing "custom context-path via servlet context"
+    (with-service-server (merge service-map2
+                                {:io.pedestal.http/container-options {:context-path "/context2"}})
+      (let [response (http/get "http://localhost:4347/context2/hello")]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= (:body response) "/context2/hello"))))))
 

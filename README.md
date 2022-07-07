@@ -1,4 +1,4 @@
-# Pedestal [![Build Status](https://travis-ci.org/pedestal/pedestal.png)](https://travis-ci.org/pedestal/pedestal)
+# Pedestal ![CI](https://github.com/pedestal/pedestal/workflows/CI/badge.svg)
 
 Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
@@ -10,18 +10,19 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.5.2"]
-[io.pedestal/pedestal.service-tools "0.5.2"] ;; Only needed for ns-watching; WAR tooling
-[io.pedestal/pedestal.jetty         "0.5.2"]
-[io.pedestal/pedestal.immutant      "0.5.2"]
-[io.pedestal/pedestal.tomcat        "0.5.2"]
+[io.pedestal/pedestal.service       "0.5.10"]
+[io.pedestal/pedestal.service-tools "0.5.10"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.10"]
+[io.pedestal/pedestal.immutant      "0.5.10"]
+[io.pedestal/pedestal.tomcat        "0.5.10"]
+[io.pedestal/pedestal.aws           "0.5.10"] ;; API-Gateway, Lambda, and X-Ray support
 ```
 
 You can also use Pedestal's internal modules standalone
 ```
-[io.pedestal/pedestal.log         "0.5.2"] ;; Logging and runtime metrics
-[io.pedestal/pedestal.interceptor "0.5.2"] ;; The Interceptor chain and the Interceptor API
-[io.pedestal/pedestal.route       "0.5.2"] ;; Efficient routing algorithms and data structures
+[io.pedestal/pedestal.log         "0.5.10"] ;; Logging and runtime metrics
+[io.pedestal/pedestal.interceptor "0.5.10"] ;; The Interceptor chain and the Interceptor API
+[io.pedestal/pedestal.route       "0.5.10"] ;; Efficient routing algorithms and data structures
 ```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
@@ -40,18 +41,19 @@ version details, updates, and necessary migration steps.**
  * [Full/true async support](https://groups.google.com/d/msg/clojure/rKqT13Ofy4k/H9xvkZA9Yy4J) (Async Servlet + core.async + NIO),
    resulting in better performance and capacity than a synchronous-only solution
  * Advanced [error handling](https://github.com/pedestal/pedestal/pull/302) for async systems
- * Integrated streaming capabilities like [Server-sent events](https://github.com/pedestal/pedestal/tree/master/samples/server-sent-events)
- * Integrated support for Cross-origin resource sharing/[CORS](https://github.com/pedestal/pedestal/tree/master/samples/cors)
+ * Integrated streaming capabilities like [Server-sent events](./samples/server-sent-events)
+ * Integrated support for Cross-origin resource sharing/[CORS](./samples/cors)
  * Integrated support for content negotiation
  * Integrated linking and testing tools
- * Integrated logging and runtime [metrics](https://github.com/pedestal/pedestal/tree/master/samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
+ * Integrated logging and runtime [metrics](./samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
+ * Integrated [tracing](./samples/tracing-interceptor) with support for Open-Tracing, Jaeger, AWS X-Ray, and more.
  * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
  * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
  * The ability to utilize Ring Middleware as Pedestal Interceptors
  * Support to run on Jetty, Immutant/Undertow, and Tomcat
  * The ability to run Pedestal services on non-Servlet containers (Vert.x, nginx, Netty, etc.)
  * HTTP/2, HTTP/2 Cleartext, and ALPN support
- * [WebSocket](https://github.com/pedestal/pedestal/tree/master/samples/jetty-web-sockets) support
+ * [WebSocket](./samples/jetty-web-sockets) support
  * [Docker](https://www.docker.com/) and [OSv](http://osv.io/) support
  * and more!
 
@@ -137,7 +139,7 @@ tests are in the [service directory](./service/test/io/pedestal)
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2017 Cognitect, Inc.
+Copyright 2014-2020 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

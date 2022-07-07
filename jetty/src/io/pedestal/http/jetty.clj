@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -11,7 +11,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
-  (:require [io.pedestal.http.jetty.container])
+  (:require [io.pedestal.http.jetty.container]
+            [clojure.string :as string])
   (:import (org.eclipse.jetty.server Server ServerConnector
                                      Request
                                      HttpConfiguration
@@ -23,7 +24,7 @@
            (org.eclipse.jetty.server.handler AbstractHandler)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
-           (org.eclipse.jetty.util.ssl SslContextFactory)
+           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
            (org.eclipse.jetty.alpn ALPN)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
@@ -48,8 +49,9 @@
       (let [{:keys [^KeyStore keystore key-password
                     ^KeyStore truststore
                     ^String trust-password
+                    ^String security-provider
                     client-auth]} options
-            context (SslContextFactory.)]
+            ^SslContextFactory context (SslContextFactory$Server.)]
         (when (every? nil? [keystore key-password truststore trust-password client-auth])
           (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
         (if (string? keystore)
@@ -62,6 +64,8 @@
             (.setTrustStore context truststore)))
         (when trust-password
           (.setTrustStorePassword context trust-password))
+        (when security-provider
+          (.setProvider context security-provider))
         (case client-auth
           :need (.setNeedClientAuth context true)
           :want (.setWantClientAuth context true)
@@ -107,18 +111,22 @@
        (.setHost host)))))
 
 (defn- http-configuration
-  "Provides an HttpConfiguration that can be consumed by connection factories"
+  "Provides an HttpConfiguration that can be consumed by connection factories.
+  The `:io.pedestal.http.jetty/http-configuration` option can be used to specify
+  your own HttpConfiguration instance."
   [options]
-  (let [{:keys [ssl? ssl-port h2?]} options
-        http-conf ^HttpConfiguration (HttpConfiguration.)]
-    (when (or ssl? ssl-port h2?)
-      (.setSecurePort http-conf ssl-port)
-      (.setSecureScheme http-conf "https"))
-    (doto http-conf
-      (.setSendDateHeader true)
-      (.setSendXPoweredBy false)
-      (.setSendServerVersion false)
-      (.addCustomizer (SecureRequestCustomizer.)))))
+  (if-let [http-conf-override ^HttpConfiguration (::http-configuration options)]
+    http-conf-override
+    (let [{:keys [ssl? ssl-port h2?]} options
+          http-conf                   ^HttpConfiguration (HttpConfiguration.)]
+      (when (or ssl? ssl-port h2?)
+        (.setSecurePort http-conf ssl-port)
+        (.setSecureScheme http-conf "https"))
+      (doto http-conf
+        (.setSendDateHeader true)
+        (.setSendXPoweredBy false)
+        (.setSendServerVersion false)
+        (.addCustomizer (SecureRequestCustomizer.))))))
 
 (defn- needed-pool-size
   "Jetty 9 calculates a needed number of threads per acceptors and selectors,
@@ -136,6 +144,16 @@
   ([connectors acceptors selectors]
    (* (Math/round ^Double (+ acceptors selectors)) connectors)))
 
+(defn- thread-pool
+  "Returns a thread pool for the Jetty server. Can be overridden
+  with [:container-options :thread-pool] in options. max-threads is
+  ignored if the pool is overridden."
+  [{{:keys [max-threads thread-pool]
+     :or {max-threads (max 50 (needed-pool-size))}}
+    :container-options}]
+  (or thread-pool
+      (QueuedThreadPool. ^Integer max-threads)))
+
 ;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
 (defn- create-server
   "Construct a Jetty Server instance."
@@ -144,13 +162,15 @@
          port :port
          {:keys [ssl? ssl-port
                  h2? h2c? connection-factory-fns
-                 context-configurator configurator max-threads daemon? reuse-addr?]
+                 context-configurator context-path configurator daemon? reuse-addr?]
           :or {configurator identity
-               max-threads (max 50 (needed-pool-size))
+               context-path "/"
                h2c? true
                reuse-addr? true}} :container-options} options
-        thread-pool (QueuedThreadPool. ^Integer max-threads)
+        thread-pool (thread-pool options)
         server (Server. thread-pool)
+        _ (when-not (string/starts-with? context-path "/")
+            (throw (IllegalArgumentException. "context-path must begin with a '/'")))
         _ (when (and h2? (not ssl-port))
             (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
         _ (when (and (nil? port) (not (or ssl? ssl-port h2?)))
@@ -163,7 +183,7 @@
         http2 (when h2? (HTTP2ServerConnectionFactory. http-conf))
         alpn (when h2?
                ;(set! (. ALPN debug) true)
-               (NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable)
+               ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
                (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
                  (.setDefaultProtocol "http/1.1")))
         ssl (when (or ssl? ssl-port h2?)
@@ -183,7 +203,7 @@
                           (.setReuseAddress reuse-addr?)
                           (.setPort ssl-port)
                           (.setHost host)))
-        context (doto (ServletContextHandler. server "/")
+        context (doto (ServletContextHandler. server context-path)
                   (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
     (when daemon?
       (.setDaemon thread-pool true))
@@ -223,6 +243,7 @@
   ;; -- Container Options --
   ;; :daemon?      - use daemon threads (defaults to false)
   ;; :max-threads  - the maximum number of threads to use (default 50)
+  ;; :thread-pool  - override the Jetty thread pool (ignores max-threads)
   ;; :reuse-addr?  - reuse the socket address (defaults to true)
   ;; :configurator - a function called with the Jetty Server instance
   ;; :context-configurator - a function called with the Jetty ServletContextHandler
@@ -240,4 +261,3 @@
   ;; :trust-password - the password to the truststore
   ;; :client-auth  - SSL client certificate authenticate, may be set to :need,
   ;;                 :want or :none (defaults to :none)"
-

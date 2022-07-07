@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -132,34 +132,35 @@
   [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
   (async/go
     (log/counter ::active-streams 1)
-    (loop []
-      (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
-           [event port] (async/alts! [event-channel hb-timeout])]
-       (cond
-         (= port hb-timeout)
-         (if (async/>! response-channel CRLF)
-           (recur)
-           (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
+    (try
+      (loop []
+        (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
+              [event port] (async/alts! [event-channel hb-timeout])]
+          (cond
+            (= port hb-timeout)
+            (if (async/>! response-channel CRLF)
+              (recur)
+              (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
-         (and (some? event) (= port event-channel))
-         ;; You can name your events using the maps
-         ;; {:name "my-event" :data "some message data here"}
-         ;; .. and optionally supply IDs (strings) that make sense to your application
-         ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
-         (let [event-name (if (map? event) (str (:name event)) nil)
-               event-data (if (map? event) (str (:data event)) (str event))
-               event-id (if (map? event) (str (:id event)) nil)]
-           (if (send-event response-channel event-name event-data event-id async/put!)
-             (recur)
-             (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+            (and (some? event) (= port event-channel))
+            ;; You can name your events using the maps
+            ;; {:name "my-event" :data "some message data here"}
+            ;; .. and optionally supply IDs (strings) that make sense to your application
+            ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
+            (let [event-name (if (map? event) (str (:name event)) nil)
+                  event-data (if (map? event) (str (:data event)) (str event))
+                  event-id (if (map? event) (str (:id event)) nil)]
+              (if (send-event response-channel event-name event-data event-id async/put!)
+                (recur)
+                (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 
-         :else
-         (do
-           (log/counter ::active-streams -1)
-           (log/info :msg "Event channel has closed. Shutting down SSE stream.")))))
-    (async/close! event-channel)
-    (async/close! response-channel)
-    (when on-client-disconnect (on-client-disconnect))))
+            :else
+            (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
+      (finally
+        (async/close! event-channel)
+        (async/close! response-channel)
+        (log/counter ::active-streams -1)
+        (when on-client-disconnect (on-client-disconnect))))))
 
 (defn start-stream
   "Starts an SSE event stream and initiates a heartbeat to keep the

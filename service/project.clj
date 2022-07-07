@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,36 +10,37 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.5.3-SNAPSHOT"
+(defproject io.pedestal/pedestal.service "0.5.11-SNAPSHOT"
   :description "Pedestal Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
 
-                 [io.pedestal/pedestal.log "0.5.3-SNAPSHOT"]
-                 [io.pedestal/pedestal.interceptor "0.5.3-SNAPSHOT"]
-                 [io.pedestal/pedestal.route "0.5.3-SNAPSHOT"]
+                 [io.pedestal/pedestal.log "0.5.11-SNAPSHOT"]
+                 [io.pedestal/pedestal.interceptor "0.5.11-SNAPSHOT"]
+                 [io.pedestal/pedestal.route "0.5.11-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.3.442"]
+                 [org.clojure/core.async "1.5.648" :exclusions [org.clojure/tools.analyzer.jvm]]
 
                  ;; interceptors
-                 [ring/ring-core "1.5.1" :exclusions [[org.clojure/clojure]
+                 [ring/ring-core "1.9.4" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
 
-                 ;[com.fasterxml.jackson.core/jackson-core "2.3.2"]
-                 [cheshire "5.7.0" :exclusions [[com.fasterxml.jackson.core/jackson-core]]]
-                 [com.cognitect/transit-clj "0.8.300"]
-                 [commons-codec "1.10"]
+                 [cheshire "5.9.0"]
+                 [org.clojure/tools.reader "1.3.2"]
+                 [org.clojure/tools.analyzer.jvm "0.7.2"]
+                 [com.cognitect/transit-clj "0.8.313"]
+                 [commons-codec "1.15"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
   :java-source-paths ["java"]
-  :javac-options ["-target" "1.7" "-source" "1.7"]
+  :javac-options ["-target" "1.8" "-source" "1.8"]
   :jvm-opts ["-D\"clojure.compiler.direct-linking=true\""]
   :global-vars {*warn-on-reflection* true}
   :pedantic? :abort
@@ -51,29 +52,41 @@
   :profiles {:default [:dev :provided :user :base]
              :provided {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
              :dev {:source-paths ["dev" "src" "bench"]
-                   :dependencies [[codox "0.9.5" :exclusions [[org.clojure/tools.reader]]]
-                                  [criterium "0.4.4"]
-                                  [org.clojure/java.classpath "0.2.3"]
+                   :dependencies [[criterium "0.4.5"]
+                                  [org.clojure/java.classpath "0.3.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
-                                  ;[clj-http "0.9.1"]
+                                  ;; TODO: clj-http 3.10.0 is available but
+                                  ;; gzip compression test fails. Even though
+                                  ;; `accept-encoding: gzip, deflate` is set by clj-http
+                                  ;; (in HttpRequest), there is an issue with either
+                                  ;; test setup or response processing (in clj-http).
+                                  ;; This requires further investigation.
                                   [clj-http "2.0.0" :exclusions [[potemkin]
                                                                  [clj-tuple]]]
+                                  ;; TODO: While com.ning/async-http-client 1.9.40 is available,
+                                  ;; an arity error is encountered when running `lein bench-service`.
+                                  ;; Furthermore, the project has been moved to
+                                  ;; https://github.com/AsyncHttpClient/async-http-client
+                                  ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.0.v20161208"]
-                                  [io.pedestal/pedestal.jetty "0.5.3-SNAPSHOT"]
-                                  [io.pedestal/pedestal.immutant "0.5.3-SNAPSHOT"]
-                                  [io.pedestal/pedestal.tomcat "0.5.3-SNAPSHOT"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.44.v20210927"]
+                                  [io.pedestal/pedestal.jetty "0.5.11-SNAPSHOT"]
+                                  [io.pedestal/pedestal.immutant "0.5.11-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.5.11-SNAPSHOT"]
                                   [javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
-                                  [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]
-                                  [org.clojure/tools.logging "0.3.1"]
-                                  [org.slf4j/jul-to-slf4j "1.7.22"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.22"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.22"]
+                                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
+                                  [org.clojure/tools.logging "0.4.0"]
+                                  [org.slf4j/jul-to-slf4j "1.7.35"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.35"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.35"]
 
                                   ;; only used for route-bench - remove when no longer needed
-                                  [incanter/incanter-core "1.5.6"]
-                                  [incanter/incanter-charts "1.5.6"]]
+                                  [incanter/incanter-core "1.9.3"]
+                                  [incanter/incanter-charts "1.9.3"]
+
+                                  ;; only used for tracing test
+                                  [io.jaegertracing/jaeger-client "1.0.0"]]
                    :repositories [["sonatype-oss"
                                    "https://oss.sonatype.org/content/groups/public/"]]}
              :docs {:pedantic? :ranges

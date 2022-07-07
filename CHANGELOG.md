@@ -2,6 +2,91 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.10 - January 12, 2022
+* Address critical dependency vulnerabilities (i.e., Jetty) and update to the latest core.async version. Resolves [#695](https://github.com/pedestal/pedestal/issues/695)
+* **BREAKING CHANGE**: Update Pedestal's OpenTracing-related protocol implementations by removing the extension of TraceSpan, TraceSpanLog, TraceSpanLogMap and TraceSpanBaggage to Scope. This aligns Pedestal's OpenTracing support with OpenTracing version 0.33. Affected implementations should be changed to interact with spans directly, as per the Pedestal Tracing sample, as opposed to going through the Scope instance. Resolves [#693](https://github.com/pedestal/pedestal/issues/693)
+* Adds a missing arity to TraceOrigin/-span for nils. [#686](https://github.com/pedestal/pedestal/pull/686)
+*  Updates the SSLContextFactory used for configuring Jetty. This context factory supports more complicated SSL setups. [#684](https://github.com/pedestal/pedestal/pull/684)
+
+## 0.5.9 - May 9, 2021
+* Websocket handlers were added to handle flow control/backpressure asynchronously [#497](https://github.com/pedestal/pedestal/issues/497) 
+* Fix override logger optionality when using io.pedestal.log/log [#662](https://github.com/pedestal/pedestal/issues/662) 
+* Fix Critical Vulnerability in Eclipse Jetty 9.4.18.v20190429 (CVE-2020-27216) [#672](https://github.com/pedestal/pedestal/issues/672) 
+* Fix print-method generates invalid edn when printing interceptors without name [#678](https://github.com/pedestal/pedestal/issues/678) 
+* Fix incorrect arity 5 for io.pedestal.http.route.definition.table/syntax-error [#683](https://github.com/pedestal/pedestal/issues/683) 
+
+## 0.5.8 - May 22, 2020
+
+* The `fast-resource` interceptor now passes on context correctly. Resolves [#658](https://github.com/pedestal/pedestal/issues/658)
+* Pedestal now supports overriding the Jetty thread pool. [#655](https://github.com/pedestal/pedestal/issues/655).
+* Fix FileChannel/open usage in `fast-resource`. Resolves [#651](https://github.com/pedestal/pedestal/issues/651).
+* Clearer error messaging when the AWS XRay tracer is not registered. [#617](https://github.com/pedestal/pedestal/issues/617).
+* Fix error suppression bug. See PR [#645](https://github.com/pedestal/pedestal/pull/645).
+* Use openjdk Docker image in service template. Resolves [#642](https://github.com/pedestal/pedestal/issues/642).
+* The test ServletHttpRequest now returns a StringBuffer on getRequestURL.
+* Fix override-logger usage in `log` function. Resolves [#638](https://github.com/pedestal/pedestal/issues/651).
+* Fix setting initial tags in X-Ray segment/subsegment. Resolves [#626](https://github.com/pedestal/pedestal/issues/651).
+* Add test support for HttpServletResponse SendError.
+* Fix tracing examples and updates some samples.
+
+## 0.5.7 - June 21, 2019
+
+* Fixes the `Template resource 'leiningen/new/pedestal_service/.gitignore' not found.` error
+  encountered when running `lein pedestal-service [app-name]` with the Pedestal `0.5.6` release.
+
+## 0.5.6 - June 21, 2019
+
+* Resolves Pedestal dependencies have CVEs of high/critical severity [#619](https://github.com/pedestal/pedestal/issues/619)
+* It is now possible to override the service configuration's  HttpConfiguration (jetty only) [#615](https://github.com/pedestal/pedestal/issues/615).
+* The `url-for` `:strict-path-params?` option is now more strict. Nil values are not allowed. Addresses [#602](https://github.com/pedestal/pedestal/issues/602).
+* Bumped dependencies (see PR [#620](https://github.com/pedestal/pedestal/pull/620) for details).
+
+## 0.5.5 - December 18, 2018
+
+* Added a json-api sample.
+* Pedestal.log now adheres to recent ns spec changes allowing its use with Clojure 1.10. Addresses issue #603.
+* Fix for pedestal.log's distributed tracing support when passing a map to `log/log-span`.
+* Fix async termination. Addresses issue #581.
+* Fix recursive loop error in API Gateway async utilities.
+
+## 0.5.4 - June 29, 2018
+
+* `io.pedestal/pedestal.log` now provides a functional logging interface
+* `io.pedestal/pedestal.log` now ships with basic support for MDC
+* Dependencies have been bumped project wide
+* javac-options source/target bumped to JDK 1.8
+* Added support for pre-parsed query params
+* More sample projects
+* Distributed tracing support
+* Pedestal AWS support
+  * AWS XRay
+  * AWS Lambda
+* Dev-mode CSP setting is now correctly quoted.
+* Jetty deps bumped up, fixing the JDK9 issue in the process (#555 #552).
+* Tomcat deps bumped up, fixing an initialization bug that was lingering.
+* SSE metric increment/decrement correctly accounted for in all branches #548.
+* SSE safely runs the handling loop in a try/finally block, to ensure shutdown and cleanup always happens #560.
+* **BREAKING CHANGE**: nil `::host` in service map defaults to localhost now (rather than being container specific) #557.
+* Content-negotiation response map now conforms to Ring spec #540.
+* `response-for` now catches nil header values early, with a helpful exception #554.
+
+For a full list of changes, please see this comparison of [0.5.3...0.5.4](https://github.com/pedestal/pedestal/compare/0.5.3...0.5.4).
+
+For more detailed release notes, refer to the 0.5.4 release [document](https://github.com/pedestal/pedestal/releases/tag/0.5.4).
+
+## 0.5.3 - October 3, 2017
+
+ * CSRF default interceptor now implies `body-params` when turned on
+ * The internal linker map within `url-for` is now delayed, while upholding the existing API
+ * `not-found` and `request-logging` default interceptors are now optional and can be toggled in the Service Map
+ * All Routers are verb-neutral.  Table Routes is the only verb-neutral data definition currently
+ * Service Template improves the developer experience around CSP (mostly turned off in dev-mode)
+ * `url-for` correctly handles trailing slashes
+ * Clojure 1.9.0 and core.async spec bugs all addressed by bumping dependencies
+ * Servlet Chain Provider correctly handles multi-valued header entries
+
+For a full list of changes, please see this comparison of [0.5.2...0.5.3](https://github.com/pedestal/pedestal/compare/0.5.2...0.5.3).
+
 ## 0.5.2 - January 12, 2017
 
  * Immutant WebSocket support added

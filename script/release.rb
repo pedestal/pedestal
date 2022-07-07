@@ -7,7 +7,7 @@
 #
 # 1. Without changing any other source files, it removes the -SNAPSHOT
 # from the versions of every project.clj. It creates a git commit with
-# this new state, and an associated git tag. 
+# this new state, and an associated git tag.
 #
 # 2. Tracking the release checkpoint in git, it pushes a release of
 # the software in its present state to Clojars. It pushes releases in

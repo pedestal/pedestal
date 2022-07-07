@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -31,14 +31,15 @@
 
 (defn parse-url
   [url]
-  (->> url
-      (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?")
-      (drop 1)
-      ((fn [[scheme host path query-string]]
-         {:scheme scheme
-          :host host
-          :path path
-          :query-string query-string}))))
+  (let [[all scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
+        [host port] (when raw-host (cstr/split raw-host #":"))]
+    {:scheme scheme
+     :host host
+     :port (if port
+             (Integer/parseInt port)
+             -1)
+     :path path
+     :query-string query-string}))
 
 (defn- enumerator
   [data kw]
@@ -57,7 +58,6 @@
              (NoSuchElementException. (str "Attempt to fetch element from " kw))))
           (swap! data rest)
           result)))))
-
 
 (defprotocol TestRequestBody
   (->servlet-input-stream [input]))
@@ -92,20 +92,24 @@
 
 (defn- test-servlet-request
   [verb url & args]
-  (let [{:keys [scheme host path query-string]} (parse-url url)
+  (let [{:keys [scheme host port path query-string]} (parse-url url)
         options (apply array-map args)
         async-context (atom nil)
         completion (promise)
         meta-data {:completion completion}]
+    (assert (every? some? (vals (:headers options)))
+            (str "You called `response-for` with header values that were nil.
+                 Nil header values don't conform to the Ring spec: " (pr-str (:headers options))))
     (with-meta
       (reify HttpServletRequest
         (getMethod [this] (-> verb
                             name
                             cstr/upper-case))
-        (getRequestURL [this] url)
-        (getServerPort [this] -1)
+        (getRequestURL [this] (StringBuffer. url))
+        (getServerPort [this] port)
         (getServerName [this] host)
         (getRemoteAddr [this] "127.0.0.1")
+        (getRemotePort [this] 0)
         (getRequestURI [this] (str "/" path))
         (getServletPath [this] (.getRequestURI this))
         (getContextPath [this] "")
@@ -177,6 +181,11 @@
                  (setContentLengthLong [this content-length] (swap! headers-map assoc :content-length content-length))
                  (flushBuffer [this] (reset! committed true))
                  (isCommitted [this] @committed)
+                 (sendError [this sc]
+                   (.sendError this sc "Server Error"))
+                 (sendError [this sc msg]
+                   (reset! status-val sc)
+                   (io/copy msg output-stream))
 
                  ;; Force all async NIO behaviors to be sync
                  container/WriteNIOByteBody
@@ -273,4 +282,3 @@
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
       (update-in [:body] #(.toString ^ByteArrayOutputStream % "UTF-8"))))
-

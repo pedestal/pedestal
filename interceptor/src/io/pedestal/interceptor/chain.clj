@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -74,7 +74,7 @@
                    :execution-id execution-id)
         (try (error-fn (dissoc context ::error) ex)
              (catch Throwable t
-               (if (identical? (type t) (type (:exception ex)))
+               (if (identical? (type t) (-> ex ex-data :exception type))
                  (do (log/debug :rethrow t :execution-id execution-id)
                      context)
                  (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
@@ -152,7 +152,7 @@
    (process-all-with-binding context :enter))
   ([context interceptor-key]
   (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
-  (loop [context context]
+   (loop [context (check-terminators context)]
     (let [queue (::queue context)
           stack (::stack context)
           execution-id (::execution-id context)]
@@ -274,7 +274,7 @@
   "Adds interceptors to the end of context's execution queue. Creates
   the queue if necessary. Returns updated context."
   [context interceptors]
-  {:pre (every? interceptor/interceptor? interceptors)}
+  {:pre [(every? interceptor/interceptor? interceptors)]}
   (log/trace :enqueue (map name interceptors) :context context)
   (update-in context [::queue]
              (fnil into clojure.lang.PersistentQueue/EMPTY)

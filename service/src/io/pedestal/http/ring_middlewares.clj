@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -14,6 +14,7 @@
   "This namespace creates interceptors for ring-core middlewares."
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
+            [io.pedestal.http.request :as request]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.helpers :as interceptor]
             [ring.middleware.cookies :as cookies]
@@ -31,9 +32,9 @@
             [ring.util.mime-type :as mime]
             [ring.util.codec :as codec]
             [ring.util.response :as ring-resp])
-  (:import (javax.servlet.http HttpServletResponse)
-           (java.nio.channels FileChannel)
-           (java.nio.file StandardOpenOption)
+  (:import (java.nio.channels FileChannel)
+           (java.nio.file OpenOption
+                          StandardOpenOption)
            (java.io File)))
 
 (defn response-fn-adapter
@@ -97,7 +98,7 @@
 
 (defn head
   "Interceptor to handle head requests. If used with defroutes, it will not work
-  if specified in an interceptors meta-key."
+  if specified in an interceptor's meta-key."
   []
   (interceptor {:name ::head
                 :enter (fn [ctx]
@@ -165,7 +166,7 @@
                        {:keys [servlet-response uri path-info request-method]} request]
                    (if (#{:head :get} request-method)
                      (let [buffer-size-bytes (if servlet-response
-                                               (.getBufferSize ^HttpServletResponse servlet-response)
+                                               (request/response-buffer-size servlet-response)
                                                ;; let's play it safe and assume 1500 MTU
                                                1460)
                            uri-path (subs (codec/url-decode (or path-info uri)) 1)
@@ -186,10 +187,11 @@
                                            file-resp
                                            (assoc file-resp
                                                   :body (FileChannel/open (.toPath ^File (:body file-resp))
-                                                                          StandardOpenOption/READ))))]
+                                                                          (into-array OpenOption [StandardOpenOption/READ])))))]
                        (if response
                          (assoc ctx :response response)
-                         ctx)))))}))))
+                         ctx))
+                     ctx)))}))))
 
 (defn session
   "Interceptor for session ring middleware. Be sure to persist :session and
@@ -200,4 +202,3 @@
        (interceptor {:name ::session
                      :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
                      :leave (response-fn-adapter session/session-response options)}))))
-

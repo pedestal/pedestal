@@ -1,4 +1,4 @@
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -9,8 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.request
-  (:import (javax.servlet.http HttpServletRequest)))
+(ns io.pedestal.http.request)
 
 (defprotocol ProxyDatastructure
   (realized [this] "Return fully-realized version of underlying data structure."))
@@ -18,23 +17,6 @@
 (extend-protocol ProxyDatastructure
   nil
   (realized [t] nil))
-
-(defn servlet-request-headers [^HttpServletRequest servlet-req]
-  (loop [out (transient {})
-         names (enumeration-seq (.getHeaderNames servlet-req))]
-    (if (seq names)
-      (let [^String key (first names)
-            hdrstr (java.lang.String/join "," ^clojure.lang.EnumerationSeq (enumeration-seq (.getHeaders servlet-req key)))]
-        (recur (assoc! out (.toLowerCase key) hdrstr)
-               (rest names)))
-      (persistent! out))))
-
-(defn servlet-path-info [^HttpServletRequest request]
-  (let [path-info (.substring (.getRequestURI request)
-                              (.length (.getContextPath request)))]
-    (if (.isEmpty path-info)
-      "/"
-      path-info)))
 
 (defprotocol ContainerRequest
   (server-port [x])
@@ -69,39 +51,38 @@
   (body [x] nil)
   (path-info [x] nil)
   (async-supported? [x] false)
-  (async-started? [x] false)
+  (async-started? [x] false))
 
-  HttpServletRequest
-  (server-port [req] (.getServerPort req))
-  (server-name [req] (.getServerName req))
-  (remote-addr [req] (.getRemoteAddr req))
-  (uri [req] (.getRequestURI req))
-  (query-string [req] (.getQueryString req))
-  (scheme [req] (keyword (.getScheme req)))
-  (request-method [req] (keyword (.toLowerCase (.getMethod req))))
-  (protocol [req] (.getProtocol req))
-  (headers [req] (servlet-request-headers req))
-  (header [req header-string] (.getHeader req header-string))
-  (ssl-client-cert [req] (.getAttribute req "javax.servlet.request.X509Certificate"))
-  (body [req] (.getInputStream req))
-  (path-info [req] (servlet-path-info req))
-  (async-supported? [req] (.isAsyncSupported req))
-  (async-started? [req] (.isAsyncStarted req)))
+(defprotocol ResponseBuffer
+  (response-buffer-size [x]))
 
 (def ring-dispatch
-  {:server-port server-port
-   :server-name server-name
-   :remote-addr remote-addr
-   :uri uri
-   :query-string query-string
-   :scheme scheme
-   :request-method request-method
-   :headers headers
-   :ssl-client-cert ssl-client-cert
-   :body body
-   :path-info path-info
-   :protocol protocol
+  {:server-port      server-port
+   :server-name      server-name
+   :remote-addr      remote-addr
+   :uri              uri
+   :query-string     query-string
+   :scheme           scheme
+   :request-method   request-method
+   :headers          headers
+   :ssl-client-cert  ssl-client-cert
+   :body             body
+   :path-info        path-info
+   :protocol         protocol
    :async-supported? async-supported?})
 
 (def nil-fn (constantly nil))
 
+(defn base-request-map [req]
+  {:server-port      (server-port req)
+   :server-name      (server-name req)
+   :remote-addr      (remote-addr req)
+   :uri              (uri req)
+   :query-string     (query-string req)
+   :scheme           (scheme req)
+   :request-method   (request-method req)
+   :headers          (headers req)
+   :body             (body req)
+   :path-info        (path-info req)
+   :protocol         (protocol req)
+   :async-supported? (async-supported? req)})

@@ -17,7 +17,7 @@ In general:
   * Everything in Pedestal is an interceptor :)
  * Consider writing a custom Chain Provider - choose the best platform/container for your application
  * If you're proxying the call, go async (return a channel), and use an NIO body (go async down to the wire)
- * Avoid NIO bodies for small, static, intant responses.  Stay synchronous
+ * Avoid NIO bodies for small, static, instant responses.  Stay synchronous
  * Use the entire stack
   * If you're on an application container, consider other Java web technologies (for example, ServletFilters)
  * If you need a `resources` interceptor, use `io.pedestal.http.ring-middlewares.fast-resource`,
@@ -34,4 +34,4 @@ To configure logging see config/logback.xml. By default, the app logs to stdout 
 To learn more about configuring Logback, read its [documentation](http://logback.qos.ch/documentation.html).
 
 ## Links
-* [Other examples](https://github.com/pedestal/samples)
+* [Other Pedestal examples](http://pedestal.io/samples)

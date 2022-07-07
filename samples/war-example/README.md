@@ -76,6 +76,5 @@ Once the image it built, it's cached.  To delete the image and build a new one:
 
 1. `capstan rmi war-example; capstan build`
 
-
 ## Links
-* [Other examples](https://github.com/pedestal/samples)
+* [Other Pedestal examples](http://pedestal.io/samples)

@@ -1,4 +1,4 @@
-; Copyright 2016 Cognitect, Inc.
+; Copyright 2016-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -9,19 +9,24 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.log "0.5.3-SNAPSHOT"
+(defproject io.pedestal/pedestal.log "0.5.11-SNAPSHOT"
   :description "Pedestal logging and metrics facilities"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
                  ;; logging
-                 [org.slf4j/slf4j-api "1.7.22"]
+                 [org.slf4j/slf4j-api "1.7.35"]
                  ;; metrics
-                 [io.dropwizard.metrics/metrics-core "3.1.2"]]
+                 [io.dropwizard.metrics/metrics-core "4.1.0"]
+                 [io.dropwizard.metrics/metrics-jmx "4.1.0"]
+                 ;; tracing
+                 [io.opentracing/opentracing-api "0.33.0"]
+                 [io.opentracing/opentracing-util "0.33.0"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
+  :pedantic? :abort
 
   :aliases {"docs" ["with-profile" "docs" "codox"]}
 

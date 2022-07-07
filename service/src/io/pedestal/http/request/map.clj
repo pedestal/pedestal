@@ -3,20 +3,6 @@
   (:import (javax.servlet Servlet ServletConfig ServletRequest)
            (javax.servlet.http HttpServletRequest HttpServletResponse)))
 
-(defn base-request-map [req]
-  {:server-port       (request/server-port req)
-   :server-name       (request/server-name req)
-   :remote-addr       (request/remote-addr req)
-   :uri               (request/uri req)
-   :query-string      (request/query-string req)
-   :scheme            (request/scheme req)
-   :request-method    (request/request-method req)
-   :headers           (request/headers req)
-   :body              (request/body req)
-   :path-info         (request/path-info req)
-   :protocol         (request/protocol req)
-   :async-supported? (request/async-supported? req)})
-
 (defn add-content-type [req-map ^HttpServletRequest servlet-req]
   (if-let [ctype (.getContentType servlet-req)]
     (let [headers (:headers req-map)]
@@ -43,8 +29,7 @@
     req-map))
 
 (defn servlet-request-map [^Servlet servlet ^HttpServletRequest servlet-req servlet-resp]
-  (-> ;(base-request-map servlet servlet-req servlet-resp)
-      (base-request-map servlet-req)
+  (-> (request/base-request-map servlet-req)
       transient
       (add-content-length servlet-req)
       (add-content-type servlet-req)
@@ -54,7 +39,6 @@
       (assoc! :servlet-request servlet-req)
       (assoc! :servlet-response servlet-resp)
       ;(assoc! :servlet-context (.getServletContext ^ServletConfig servlet))
-      ;(assoc! :context-path (.getContextPath servlet-req))
+      (assoc! :context-path (.getContextPath servlet-req)) ;; This is used in some scenarios with multiple-apps on the same server
       ;(assoc! :servlet-path (.getServletPath servlet-req))
       persistent!))
-

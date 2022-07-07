@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor-test
-  (:require [clojure.test :refer (deftest is)]
+  (:require [clojure.test :refer (deftest is testing)]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
@@ -196,6 +196,34 @@
                                  (catcher :h)])
                        :leave))))
 
+(deftest t-enqueue
+  (is (thrown? AssertionError
+               (enqueue {} [nil]))
+      "nil is not an interceptor")
+  (is (thrown? AssertionError
+               (enqueue {} [(fn [_])]))
+      "function is not an interceptor")
+  (is (::chain/queue (enqueue {} [(tracer :a)]))
+      "enqueue interceptor to empty queue")
+  (is (thrown? AssertionError
+               (enqueue {} [(tracer :a) nil]))
+      "enqueue one invalid interceptor to empty queue")
+  (is (thrown? AssertionError
+               (enqueue {} [(fn[_]) (tracer :b)]))
+      "enqueue one invalid interceptor to empty queue")
+  (is (::chain/queue (enqueue {} [(tracer :a) (tracer :b)]))
+      "enqueue multiple interceptors to empty queue")
+  (is (::chain/queue (-> {}
+                         (enqueue [(tracer :a)])
+                         (enqueue [(tracer :b)])))
+      "enqueue to non-empty queue")
+  (is (thrown? AssertionError
+               (-> {}
+                   (enqueue [(tracer :a)])
+                   (enqueue [nil])))
+      "enqueue invalid to non-empty queue"))
+
+
 (deftest t-two-channels
   (let [result-chan (chan)
         res (execute (enqueue {}
@@ -253,7 +281,8 @@
                                (failed-channeler :c)
                                (tracer :d)]))
         result (<!! result-chan)]
-    (is (= [[:enter :a]
+    (is (= (::trace result)
+           [[:enter :a]
             [:enter :b]
             [:error :b :from nil]
             [:leave :a]]))))
@@ -332,7 +361,17 @@
     (is (= (::trace (execute-only context :enter [(tracer :a)
                                                   (tracer :b)
                                                   (tracer :c)]))
-           [[:enter :a] [:enter :b]]))))
+           [[:enter :a] [:enter :b]]))
+
+    (testing "Async termination"
+      (let [result-chan    (chan)
+            _              (execute (enqueue context
+                                             [(deliverer result-chan)
+                                              (tracer :a)
+                                              (channeler :b)
+                                              (tracer :c)]))
+            result         (<!! result-chan)]
+        (is (=  (::trace result) expected-trace))))))
 
 (defaround around-interceptor
   "An interceptor that does the around pattern."
@@ -372,3 +411,44 @@
                     ((:leave middleware-interceptor))
                     :response
                     :middleware))))
+
+;; error suppression test
+
+(def failing-interceptor
+  (interceptor/interceptor
+   {:name  ::failing-interceptor
+    :enter (fn [ctx]
+             (/ 1 0))}))
+
+(def rethrowing-error-handling-interceptor
+  (interceptor/interceptor
+   {:name  ::rethrowing-error-handling-interceptor
+    :error (fn [ctx ex]
+             (throw (:exception (ex-data ex))))}))
+
+(def throwing-error-handling-interceptor
+  (interceptor/interceptor
+   {:name  ::throwing-error-handling-interceptor
+    :error (fn [ctx ex]
+             (throw (Exception. "Just testing the error-handler, this is not a real exception")))}))
+
+(def error-handling-interceptor
+  (interceptor/interceptor
+   {:name  ::error-handling-interceptor
+    :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
+
+(deftest chain-execution-error-suppression-test
+  (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
+      "The `io.pedestal.interceptor.chain/suppressed` key should not be set when an exception is handled.")
+  (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor rethrowing-error-handling-interceptor failing-interceptor])))
+      "The `io.pedestal.interceptor.chain/suppressed` key should not be set when the same exception type is rethrown.")
+  (let [ctx (chain/execute {} [error-handling-interceptor throwing-error-handling-interceptor failing-interceptor])]
+    (is (= 1 (count (::chain/suppressed ctx)))
+        "There should be a suppressed error when a different exception type is thrown.")
+    (is (= :java.lang.ArithmeticException (-> ctx ::chain/suppressed first ex-data :exception-type))
+        "The suppressed exception should be the original exception.")
+    (testing "The caught exception is the new exception."
+      (let [{:keys [exception-type exception]} (-> ctx :caught-exception ex-data)]
+        (is (= :java.lang.Exception exception-type))
+        (is (= "Just testing the error-handler, this is not a real exception"
+               (ex-message exception)))))))

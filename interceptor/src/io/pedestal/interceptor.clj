@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -18,7 +18,9 @@
 
 (defmethod print-method Interceptor
   [^Interceptor i ^java.io.Writer w]
-  (.write w (str "#Interceptor{:name " (.name i) "}")))
+  (.write w (if-let [n (.name i)]
+              (str "#Interceptor{:name " (pr-str n) "}")
+              "#Interceptor{}")))
 
 (defprotocol IntoInterceptor
   (-interceptor [t] "Given a value, produce an Interceptor Record."))

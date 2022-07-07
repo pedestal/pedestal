@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -205,6 +205,10 @@
     (is (= 400 (:status resp)))
     (is (= "Bad Request - URLDecoder: Incomplete trailing escape (%) pattern"
            (:body resp)))))
+
+(deftest response-for-nil-headers
+  (is (thrown? java.lang.AssertionError
+               (response-for app :get "/" :headers {"cookie" nil}))))
 
 (deftest adding-a-binding-to-context-appears-in-user-request
   (is (= ":req was bound to {:a 1}"

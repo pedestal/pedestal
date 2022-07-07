@@ -1,4 +1,4 @@
-; Copyright 2016 Cognitect, Inc.
+; Copyright 2016-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -169,7 +169,8 @@
         {:keys [no-match-fn content-param-paths]
          :or {no-match-fn (fn [ctx]
                             (assoc ctx :response {:status 406
-                                                  :body "Not Acceptable"}))
+                                                  :body "Not Acceptable"
+                                                  :headers {}}))
               content-param-paths [[:request :headers "accept"]
                                    [:request :headers :accept]]}} opts-map]
     (interceptor/interceptor

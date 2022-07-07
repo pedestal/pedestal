@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -14,7 +14,8 @@
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as http]
-            [nio.service :as service]))
+            [nio.service :as service]
+            [clojure.set]))
 
 (def service
   (::http/service-fn (http/create-servlet service/service)))
@@ -25,21 +26,27 @@
        "Hello World!"))
   (is (=
        (:headers (response-for service :get "/"))
-       {"Content-Type" "text/plain;charset=UTF-8"
-        "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
-        "X-Frame-Options" "DENY"
-        "X-Content-Type-Options" "nosniff"
-        "X-XSS-Protection" "1; mode=block"})))
+       {"Content-Type"                      "text/plain;charset=UTF-8"
+        "Strict-Transport-Security"         "max-age=31536000; includeSubdomains"
+        "X-Frame-Options"                   "DENY"
+        "X-Content-Type-Options"            "nosniff"
+        "X-XSS-Protection"                  "1; mode=block"
+        "X-Download-Options"                "noopen"
+        "X-Permitted-Cross-Domain-Policies" "none"
+        "Content-Security-Policy"           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"})))
 
 
 (deftest about-page-test
   (is (.contains
        (:body (response-for service :get "/about"))
-       "Clojure 1.8"))
+       "Clojure 1.10"))
   (is (=
-       (:headers (response-for service :get "/about"))
-       {"Content-Type" "text/html;charset=UTF-8"
-        "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
-        "X-Frame-Options" "DENY"
-        "X-Content-Type-Options" "nosniff"
-        "X-XSS-Protection" "1; mode=block"})))
+       (:headers (response-for service :get "/"))
+       {"Content-Type"                      "text/plain;charset=UTF-8"
+        "Strict-Transport-Security"         "max-age=31536000; includeSubdomains"
+        "X-Frame-Options"                   "DENY"
+        "X-Content-Type-Options"            "nosniff"
+        "X-XSS-Protection"                  "1; mode=block"
+        "X-Download-Options"                "noopen"
+        "X-Permitted-Cross-Domain-Policies" "none"
+        "Content-Security-Policy"           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"})))

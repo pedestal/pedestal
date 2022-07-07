@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -177,6 +177,10 @@
           app
           (get-in [:response :body])
           slurp))))
+
+(deftest fast-resource-passes-on-post
+  (let [ctx (context {:uri "/index.html" :request-method :post})]
+    (is (= ctx ((:enter (fast-resource "/io/pedestal/public")) ctx)))))
 
 (defn- make-store [reader writer deleter]
   (reify SessionStore

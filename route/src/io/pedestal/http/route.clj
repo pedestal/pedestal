@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -121,11 +121,40 @@
                     key
                     (.append b c)))))))))
 
+(defn- parse-query-string-params
+  "Some platforms decode the query string automatically, providing a map of
+  parameters instead.
+  Process that map, returning an immutable map and supporting the same options
+  as parse-query-string"
+  [params & options]
+  (let [{:keys [key-fn value-fn]
+         :or {key-fn keyword
+              value-fn (fn [_ v] v)}} options]
+    (persistent!
+      (reduce-kv
+        (fn [acc k v]
+          (let [newk (key-fn k)]
+            (assoc! acc newk (value-fn newk v))))
+        (transient {})
+        params))))
+
 (defn parse-query-params [request]
   (merge-with merge request
-              (when-let [string (:query-string request)]
-                (let [params (parse-query-string string)]
-                  {:query-params params :params params}))))
+              (if-let [params (:query-string-params request)]
+                (let [parsed-params (parse-query-string-params params)]
+                  {:query-params parsed-params :params parsed-params})
+                (when-let [string (:query-string request)]
+                  (let [params (parse-query-string string)]
+                    {:query-params params :params params})))))
+
+(defn parse-param-map [m]
+  (persistent! (reduce-kv (fn [acc k v] (assoc! acc k (decode-query-part v))) (transient {}) m)))
+
+(defn parse-path-params [request]
+  (if-let [m (:path-params request)]
+    (let [res (assoc request :path-params (parse-param-map m))]
+      res)
+    request))
 
 ;;; Combined matcher & request handler
 
@@ -204,6 +233,7 @@
   docstring for 'url-for'."
   [route opts]
   (let [{:keys [path-params
+                strict-path-params?
                 query-params
                 request
                 fragment
@@ -217,9 +247,24 @@
         path-parts (do (log/debug :in :link-str
                                   :path-parts path-parts
                                   :context-path-parts context-path-parts)
-                       (if (and context-path-parts (empty? (first path-parts)))
-                         (concat context-path-parts (rest path-parts))
-                         path-parts))
+                       ;;(concat context-path-parts path-parts)
+                       (cond
+                         (and context-path-parts (empty? (first path-parts))) (concat context-path-parts (rest path-parts))
+                         context-path-parts (concat context-path-parts path-parts)
+                         :else path-parts))
+        _ (when (and (true? strict-path-params?)
+                     (or
+                      (not= (set (keys path-params)) ;; Do the params passed in...
+                            (set (seq (:path-params route))) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
+                            )
+                      ;; nils are not allowed.
+                      (reduce-kv #(if (nil? %3) (reduced true)  false) nil path-params)))
+            (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
+                            Either include all path-params (`nil` is not allowed), or if your URL actually contains ':' in the path, set :strict-path-params to false in the options"
+                            {:path-parts path-parts
+                             :path-params path-params
+                             :options opts
+                             :route route})))
         path-chunk (str/join \/ (map #(get path-params % %) path-parts))
         path (if (and (= \/ (last path))
                       (not= \/ (last path-chunk)))
@@ -287,6 +332,9 @@
 
      :path-params   A map of path parameters only
 
+     :strict-path-params? A boolean, when true will throw an exception
+                          if all path-params aren't fulfilled for the url
+
      :query-params  A map of query-string parameters only
 
      :method-param  Keyword naming the query-string parameter in which
@@ -336,7 +384,9 @@
   "Invokes currently bound contextual linker to generate url based on
 
     - The routing table in use.
-    - The incoming request being routed."
+    - The incoming request being routed.
+
+  where `options` are as described in `url-for-routes`."
   [route-name & options]
   (if *url-for*
     (apply (if (delay? *url-for*) (deref *url-for*) *url-for*)
@@ -459,6 +509,18 @@
                   (interceptor.chain/terminate
                     (assoc ctx :response {:status 400
                                           :body (str "Bad Request - " (.getMessage iae))})))))}))
+
+(def path-params-decoder
+  "An Interceptor which URL-decodes path parameters."
+  (interceptor/interceptor
+   {:name ::path-params-decoder
+    :enter (fn [ctx]
+             (try
+               (update-in ctx [:request] parse-path-params)
+               (catch IllegalArgumentException iae
+                 (interceptor.chain/terminate
+                  (assoc ctx :response {:status 400
+                                        :body (str "Bad Request - " (.getMessage iae))})))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in

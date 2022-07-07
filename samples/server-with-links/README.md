@@ -11,10 +11,13 @@ based on your application's routing table.
 2. Go to [localhost:8080](http://localhost:8080/) to see a body with a link.
 3. Follow that link to the second page.
 
+## Links
+* [Other Pedestal examples](http://pedestal.io/samples)
+
 License
 -------
 Copyright 2013 Relevance, Inc.
-Copyright 2014 Cognitect, Inc.
+Copyright 2014-2019 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

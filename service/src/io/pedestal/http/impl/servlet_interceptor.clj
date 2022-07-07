@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2016 Cognitect, Inc.
+; Copyright 2014-2019 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -23,6 +23,7 @@
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request :as request]
+            [io.pedestal.http.request.servlet-support :as servlet-support]
             [io.pedestal.http.request.map :as request-map]
             [io.pedestal.http.request.zerocopy :as request-zerocopy]
             [ring.util.response :as ring-response])
@@ -97,13 +98,13 @@
 (extend-protocol WriteableBodyAsync
 
   clojure.core.async.impl.protocols.Channel
-  (write-body-async [body servlet-response resume-chan context]
+  (write-body-async [body ^HttpServletResponse servlet-response resume-chan context]
     (async/go
       (loop []
         (when-let [body-part (async/<! body)]
           (try
             (write-body servlet-response body-part)
-            (.flushBuffer ^HttpServletResponse servlet-response)
+            (.flushBuffer servlet-response)
             (catch Throwable t
               ;; Defend against exhausting core.async thread pool
               ;;  -- ASYNC-169 :: http://dev.clojure.org/jira/browse/ASYNC-169
@@ -375,4 +376,3 @@
                 ring-response]
                interceptors)
        default-context)))
-
