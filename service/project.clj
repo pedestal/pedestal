@@ -69,11 +69,11 @@
                                   ;; https://github.com/AsyncHttpClient/async-http-client
                                   ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.44.v20210927"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.48.v20220622"]
                                   [io.pedestal/pedestal.jetty "0.5.11-SNAPSHOT"]
                                   [io.pedestal/pedestal.immutant "0.5.11-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.5.11-SNAPSHOT"]
-                                  [javax.servlet/javax.servlet-api "3.1.0"]
+                                  ;;[javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                                   [org.clojure/tools.logging "0.4.0"]
