@@ -16,23 +16,25 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
                  [io.pedestal/pedestal.interceptor "0.5.11-SNAPSHOT"]
                  [io.pedestal/pedestal.log "0.5.11-SNAPSHOT"]
                  ;[com.amazonaws.serverless/aws-serverless-java-container-core "0.5.1" :exclusions [[com.fasterxml.jackson.core/jackson-databind]]]
-                 [javax.servlet/javax.servlet-api "3.1.0"]
-                 [com.amazonaws/aws-java-sdk-core "1.11.567" :exclusions [commons-logging]] ;; Needed for x-ray
-                 [com.amazonaws/aws-lambda-java-core "1.2.0"]
+                 [javax.servlet/javax.servlet-api "4.0.1"]
+                 [com.amazonaws/aws-java-sdk-core "1.12.276" :exclusions [commons-logging]] ;; Needed for x-ray
+                 [com.amazonaws/aws-lambda-java-core "1.2.1"]
                  ;[com.amazonaws/aws-lambda-java-events "1.3.0"]
-                 [com.amazonaws/aws-xray-recorder-sdk-core "2.2.1" :exclusions [com.amazonaws/aws-java-sdk-core
+                 [com.amazonaws/aws-xray-recorder-sdk-core "2.11.2" :exclusions [com.amazonaws/aws-java-sdk-core
                                                                                 commons-logging
                                                                                 joda-time]]
                  ;; Deps cleanup
                  [commons-logging "1.2"] ;; A clash between AWS and HTTP Libs
-                 [com.fasterxml.jackson.core/jackson-core "2.9.9"] ;; Bring AWS libs inline with Pedestal Service
-                 [com.fasterxml.jackson.dataformat/jackson-dataformat-cbor "2.9.9"] ;; Bring AWS libs inline with Pedestal Service
-                 [commons-codec "1.12"] ;; Bring AWS libs inline with Pedestal Service
-                 [joda-time "2.10.2"] ;; Bring AWS libs inline with Pedestal Service
+                 [com.fasterxml.jackson.core/jackson-core "2.13.3"] ;; Bring AWS libs inline with Pedestal Service
+                 [com.fasterxml.jackson.dataformat/jackson-dataformat-cbor "2.13.3" ;; Bring AWS libs inline with Pedestal Service
+                  :exclusions [[com.fasterxml.jackson.core/jackson-annotations]
+                               [com.fasterxml.jackson.core/jackson-databind]]] 
+                 [commons-codec "1.15"] ;; Bring AWS libs inline with Pedestal Service
+                 [joda-time "2.10.14"] ;; Bring AWS libs inline with Pedestal Service
                  ]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}

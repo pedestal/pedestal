@@ -15,12 +15,12 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
                  ;; logging
-                 [org.slf4j/slf4j-api "1.7.35"]
+                 [org.slf4j/slf4j-api "1.7.36"]
                  ;; metrics
-                 [io.dropwizard.metrics/metrics-core "4.1.0"]
-                 [io.dropwizard.metrics/metrics-jmx "4.1.0"]
+                 [io.dropwizard.metrics/metrics-core "4.2.11"]
+                 [io.dropwizard.metrics/metrics-jmx "4.2.11"]
                  ;; tracing
                  [io.opentracing/opentracing-api "0.33.0"]
                  [io.opentracing/opentracing-util "0.33.0"]]

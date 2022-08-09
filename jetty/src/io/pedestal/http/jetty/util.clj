@@ -11,12 +11,8 @@
 
 (ns io.pedestal.http.jetty.util
   (:import (java.util EnumSet)
-           (javax.servlet Servlet Filter DispatcherType)
-           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)
-           (org.eclipse.jetty.server HttpConfiguration
-                                     SecureRequestCustomizer
-                                     ConnectionFactory
-                                     HttpConnectionFactory)))
+           (javax.servlet Filter DispatcherType)
+           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)))
 
 (def dispatch-types {:forward DispatcherType/FORWARD
                      :include DispatcherType/INCLUDE
@@ -44,7 +40,7 @@
               {:accepted-keywords (keys dispatch-types)
                :attempted dispatches}))))
 
-(defn ^FilterHolder filter-holder [servlet-filter init-params]
+(defn ^FilterHolder filter-holder [^Filter servlet-filter init-params]
   (let [holder (FilterHolder. servlet-filter)]
     (doseq [[k v] init-params]
       (.setInitParameter holder k v))
@@ -68,8 +64,7 @@
     (cond
       (class? servlet-filter) (.addFilter context ^Class servlet-filter ^String path ^EnumSet dispatch-set)
       (instance? FilterHolder servlet-filter) (.addFilter context ^FilterHolder servlet-filter ^String path ^EnumSet dispatch-set)
-      (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set)
-      :else (.addFilter context servlet-filter path dispatch-set))
+      (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set))
     context))
 
 (defn ^ServletContextHandler add-server-filters

@@ -109,6 +109,14 @@
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))
 
+  (testing "HTTPS server with SNI validation"
+    (with-server hello-world {:port 4347
+                              :container-options {:ssl-port 4348
+                                                  :sni-hostcheck? true
+                                                  :keystore "test/io/pedestal/http/keystore.jks"
+                                                  :key-password "password"}}
+                 (is (thrown? Exception (http/get "https://localhost:4348" {:insecure? true})))))
+
   (testing "HTTPS server with different options"
     (with-server hello-world {:port 4347
                               :container-options {:ssl? true

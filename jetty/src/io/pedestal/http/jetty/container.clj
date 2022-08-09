@@ -13,8 +13,7 @@
   (:require [io.pedestal.http.container :as container]
             [clojure.core.async :as async])
   (:import (java.nio.channels ReadableByteChannel)
-           (java.nio ByteBuffer)
-           (org.eclipse.jetty.server Response)))
+           (java.nio ByteBuffer)))
 
 (extend-protocol container/WriteNIOByteBody
   org.eclipse.jetty.server.Response

@@ -15,9 +15,9 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
                  [potemkin "0.4.5"]
-                 [org.jboss.logging/jboss-logging "3.4.1.Final"]
+                 [org.jboss.logging/jboss-logging "3.5.0.Final"]
                  [org.immutant/web "2.1.10" :exclusions  [org.jboss.logging/jboss-logging]]
                  ;; immutant is using outdated wunderboss version which have security issues
                  [org.projectodd.wunderboss/wunderboss-core "0.13.1" :exclusions [io.undertow/undertow-servlet
@@ -25,13 +25,13 @@
                                                                                   ch.qos.logback/logback-classic]]
                  [org.projectodd.wunderboss/wunderboss-clojure "0.13.1"]
                  [org.projectodd.wunderboss/wunderboss-web-undertow "0.13.1"]
-                 [io.undertow/undertow-core "2.2.14.Final"]
-                 [io.undertow/undertow-servlet "2.2.14.Final"]
-                 [io.undertow/undertow-websockets-jsr "2.2.14.Final"]
+                 [io.undertow/undertow-core "2.2.18.Final"]
+                 [io.undertow/undertow-servlet "2.2.18.Final"]
+                 [io.undertow/undertow-websockets-jsr "2.2.18.Final"]
                  ;; immutant is pulling libs with security issues, bump these
-                 [commons-fileupload "1.3.3"]
-                 [commons-io "2.7"]
-                 [javax.servlet/javax.servlet-api "3.1.0"]]
+                 [commons-fileupload "1.4"]
+                 [commons-io "2.11.0"]
+                 [javax.servlet/javax.servlet-api "4.0.1"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
   :pedantic? :abort

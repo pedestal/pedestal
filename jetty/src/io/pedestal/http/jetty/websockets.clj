@@ -3,8 +3,9 @@
             [io.pedestal.log :as log])
   (:import (java.nio ByteBuffer)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
-           (org.eclipse.jetty.websocket.servlet WebSocketCreator
-                                                WebSocketServlet)
+           (org.eclipse.jetty.websocket.server JettyWebSocketCreator
+                                                JettyWebSocketServlet)
+           (org.eclipse.jetty.websocket.server.config JettyWebSocketServletContainerInitializer)
            (org.eclipse.jetty.websocket.api Session
                                             WebSocketListener
                                             WebSocketConnectionListener
@@ -152,12 +153,12 @@
 (defn ws-servlet
   "Given a function
   (that takes a ServletUpgradeRequest and ServletUpgradeResponse and returns a WebSocketListener),
-  return a WebSocketServlet that uses the function to create new WebSockets (via a factory)."
-  [creation-fn]
-  (let [creator (reify WebSocketCreator
+  return a JettyWebSocketServlet that uses the function to create new WebSockets (via a factory)."
+  ^JettyWebSocketServlet [creation-fn]
+  (let [creator (reify JettyWebSocketCreator
                   (createWebSocket [this req response]
                     (creation-fn req response)))]
-    (proxy [WebSocketServlet] []
+    (proxy [JettyWebSocketServlet] []
       (configure [factory]
         (.setCreator factory creator)))))
 
@@ -178,9 +179,10 @@
    (let [{:keys [listener-fn]
           :or {listener-fn (fn [req response ws-map]
                              (make-ws-listener ws-map))}} opts]
-     (doseq [[path ws-map] ws-paths]
+     (doseq [[^String path ws-map] ws-paths]
        (let [servlet (ws-servlet (fn [req response]
                                    (listener-fn req response ws-map)))]
          (.addServlet ctx (ServletHolder. ^javax.servlet.Servlet servlet) path)))
+     (JettyWebSocketServletContainerInitializer/configure ctx nil)
      ctx)))
 

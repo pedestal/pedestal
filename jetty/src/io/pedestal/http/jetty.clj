@@ -14,25 +14,19 @@
   (:require [io.pedestal.http.jetty.container]
             [clojure.string :as string])
   (:import (org.eclipse.jetty.server Server ServerConnector
-                                     Request
                                      HttpConfiguration
                                      SecureRequestCustomizer
                                      ConnectionFactory
                                      HttpConnectionFactory
-                                     SslConnectionFactory
-                                     NegotiatingServerConnectionFactory)
-           (org.eclipse.jetty.server.handler AbstractHandler)
+                                     SslConnectionFactory)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
-           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
-           (org.eclipse.jetty.alpn ALPN)
+           (org.eclipse.jetty.util.ssl SslContextFactory$Server)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.server HTTP2ServerConnectionFactory
                                            HTTP2CServerConnectionFactory)
-           (javax.servlet Servlet)
-           (java.security KeyStore)
-           (javax.servlet.http HttpServletRequest HttpServletResponse)))
+           (java.security KeyStore)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
@@ -42,7 +36,7 @@
 ;; The Jetty9 updates are based on http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
 ;; and http://download.eclipse.org/jetty/stable-9/xref/org/eclipse/jetty/embedded/ManyConnectors.html
 
-(defn- ^SslContextFactory ssl-context-factory
+(defn- ^SslContextFactory$Server ssl-context-factory
   "Creates a new SslContextFactory instance from a map of options."
   [options]
   (or (:ssl-context-factory options)
@@ -51,7 +45,7 @@
                     ^String trust-password
                     ^String security-provider
                     client-auth]} options
-            ^SslContextFactory context (SslContextFactory$Server.)]
+            ^SslContextFactory$Server context (SslContextFactory$Server.)]
         (when (every? nil? [keystore key-password truststore trust-password client-auth])
           (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
         (if (string? keystore)
@@ -95,7 +89,7 @@
            :or {ssl-port 443
                 reuse-addr? true}
            :as container-options} :container-options} options
-         ssl-factories (when alpn
+          ssl-factories (when alpn
                          (into-array ConnectionFactory
                                      (remove nil?
                                              (into [(SslConnectionFactory.
@@ -103,7 +97,7 @@
                                                       (.getProtocol ^ALPNServerConnectionFactory alpn))]
                                                    connection-factories))))
          connector (if ssl-factories
-                     (ServerConnector. server ssl-factories)
+                     (ServerConnector. server #^"[Lorg.eclipse.jetty.server.ConnectionFactory;" ssl-factories)
                      (ServerConnector. server (ssl-context-factory container-options)))]
      (doto connector
        (.setReuseAddress reuse-addr?)
@@ -117,16 +111,18 @@
   [options]
   (if-let [http-conf-override ^HttpConfiguration (::http-configuration options)]
     http-conf-override
-    (let [{:keys [ssl? ssl-port h2?]} options
-          http-conf                   ^HttpConfiguration (HttpConfiguration.)]
+    (let [{:keys [ssl? ssl-port h2? sni-hostcheck?] :or {sni-hostcheck? false}} options
+          http-conf                   ^HttpConfiguration (HttpConfiguration.)
+          customizer (SecureRequestCustomizer.)]
       (when (or ssl? ssl-port h2?)
         (.setSecurePort http-conf ssl-port)
         (.setSecureScheme http-conf "https"))
+      (.setSniHostCheck customizer sni-hostcheck?)
       (doto http-conf
         (.setSendDateHeader true)
         (.setSendXPoweredBy false)
         (.setSendServerVersion false)
-        (.addCustomizer (SecureRequestCustomizer.))))))
+        (.addCustomizer customizer)))))
 
 (defn- needed-pool-size
   "Jetty 9 calculates a needed number of threads per acceptors and selectors,
@@ -148,8 +144,8 @@
   "Returns a thread pool for the Jetty server. Can be overridden
   with [:container-options :thread-pool] in options. max-threads is
   ignored if the pool is overridden."
-  [{{:keys [max-threads thread-pool]
-     :or {max-threads (max 50 (needed-pool-size))}}
+  ^QueuedThreadPool [{{:keys [max-threads thread-pool]
+     :or               {max-threads (max 50 (needed-pool-size))}}
     :container-options}]
   (or thread-pool
       (QueuedThreadPool. ^Integer max-threads)))
@@ -189,13 +185,16 @@
         ssl (when (or ssl? ssl-port h2?)
               (ssl-conn-factory (assoc options :alpn alpn)))
         http-connector (when port
-                         (doto (ServerConnector. server (into-array ConnectionFactory
+                         (doto (ServerConnector. server
+                                                 #^"[Lorg.eclipse.jetty.server.ConnectionFactory;"
+                                                 (into-array ConnectionFactory
                                                                     (remove nil? [http http2c])))
                            (.setReuseAddress reuse-addr?)
                            (.setPort port)
                            (.setHost host)))
         ssl-connector (when ssl
                         (doto (ServerConnector. server
+                                                #^"[Lorg.eclipse.jetty.server.ConnectionFactory;"
                                                 (into-array ConnectionFactory
                                                             (remove nil?
                                                                     (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]

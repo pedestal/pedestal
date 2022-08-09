@@ -16,17 +16,19 @@
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
-                 [io.pedestal/pedestal.log "0.5.11-SNAPSHOT"]
-                 [org.eclipse.jetty/jetty-server "9.4.48.v20220622"]
-                 [org.eclipse.jetty/jetty-servlet "9.4.48.v20220622"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
+                 [org.clojure/core.async "1.5.648"]
+                 [org.slf4j/slf4j-api "1.7.36"]
+                 [io.pedestal/pedestal.log "0.5.10"]
+                 [org.ow2.asm/asm "9.3"]
+                 [org.eclipse.jetty/jetty-server "10.0.11" :exclusions [org.slf4j/slf4j-api]]
+                 [org.eclipse.jetty/jetty-servlet "10.0.11" :exclusions [org.slf4j/slf4j-api]]
                  [org.eclipse.jetty.alpn/alpn-api "1.1.3.v20160715"]
-                 [org.eclipse.jetty/jetty-alpn-server "9.4.48.v20220622"]
-                 [org.eclipse.jetty.http2/http2-server "9.4.48.v20220622"]
-                 [org.eclipse.jetty.websocket/websocket-api "9.4.48.v20220622"]
-                 [org.eclipse.jetty.websocket/websocket-servlet "9.4.48.v20220622"]
-                 [org.eclipse.jetty.websocket/websocket-server "9.4.48.v20220622"]
-                 [javax.servlet/javax.servlet-api "3.1.0"]]
+                 [org.eclipse.jetty/jetty-alpn-server "10.0.11" :exclusions [org.slf4j/slf4j-api]]
+                 [org.eclipse.jetty.http2/http2-server "10.0.11" :exclusions [org.slf4j/slf4j-api]]
+                 [org.eclipse.jetty.websocket/websocket-servlet "10.0.11" :exclusions [org.slf4j/slf4j-api]]
+                 [org.eclipse.jetty.websocket/websocket-jetty-server "10.0.11" :exclusions [org.slf4j/slf4j-api]]
+                 [javax.servlet/javax.servlet-api "4.0.1"]]
   :min-lein-version "2.0.0"
   :global-vars {*warn-on-reflection* true}
   :pedantic? :abort
