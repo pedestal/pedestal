@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
