@@ -1,4 +1,5 @@
-
+// Note: This doesn't appear to be used; it is not compiled or packaged in the 0.5.10 JAR and it doesn't compile cleanly either.
+// It was added 5/17/18 by DeGrandis and never changed, and can probably be deleted.
 package io.pedestal.aws.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
