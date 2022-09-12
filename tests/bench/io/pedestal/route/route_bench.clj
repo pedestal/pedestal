@@ -154,3 +154,7 @@
                 :silent true})
     (println "Starting benchmark...")
     (run-bench {:max-routes max-routes})))
+
+(defn run-benchmarks
+  [_]
+  (-main))
