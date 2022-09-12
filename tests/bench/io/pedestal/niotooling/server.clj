@@ -32,3 +32,6 @@
   (println "\nCreating your server...")
   (server/start runnable-service))
 
+(defn run-benchmarks
+  [_]
+  (-main))

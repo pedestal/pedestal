@@ -138,3 +138,7 @@ clojure.tools.logging
 SLF4J with pr-str
 ")
   (bench-slf4j-pr))
+
+(defn run-benchmarks
+  [_]
+  (-main))
