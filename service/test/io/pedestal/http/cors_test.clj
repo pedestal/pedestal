@@ -13,7 +13,6 @@
 (ns ^{:doc "Integration tests of CORS processing."}
   io.pedestal.http.cors-test
   (:require [io.pedestal.http.route :as route]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.cors :as cors]
             [io.pedestal.interceptor.helpers :refer [defhandler]]
             [io.pedestal.http :as service]
@@ -25,9 +24,9 @@
 (defhandler hello-world
   [request] (ring-resp/response "Hello World!"))
 
-(defroutes routes
-  [[["/hello-world" {:get hello-world
-                     :patch [:another-hello hello-world]}]]])
+(def routes
+  `[[["/hello-world" {:get hello-world
+                      :patch [:another-hello hello-world]}]]])
 
 (def app
   (::service/service-fn (-> {::service/routes routes
