@@ -4,22 +4,20 @@
             [net.lewisship.build :refer [requiring-invoke]]
             [clojure.tools.build.api :as b]))
 
-;; Testing source links
+(def project-name 'io.pedestal)
+
+;; While esting source links:
 (def version "0.5.10" #_ "0.5.11-SNAPSHOT")
-
-(defn echo
-  [_]
-  (println "Echo!"))
-
 
 (def module-dirs
   (str/split "aws immutant interceptor jetty log route service service-tools tomcat" #" "))
 
 ;; Working around this problem (bug)?
 ;; Manifest type not detected when finding deps for io.pedestal/pedestal.log in coordinate #:local{:root "../log"}
-;; Basically, not recognizing relative paths correctly (I think they are being evaluated at the top level, so ".." is the
+;; Basically, not recognizing relative paths correctly; I think they are being evaluated at the top level, so ".." is the
 ;; directory about the pedestal workspace.
-;;
+;; See https://clojure.atlassian.net/browse/TDEPS-106
+
 (defn- classpath-for
   [dir overrides]
   (binding [b/*project-root* dir]
@@ -53,7 +51,7 @@
                             distinct
                             sort)
         codox-config {:metadata {:doc/format :markdown}
-                      :name "io.pedestal"
+                      :name (str (name project-name) " libraries")
                       :version version
                       :source-paths (mapv #(str % "/src") module-dirs)
                       :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
@@ -68,33 +66,3 @@
     (when-not (zero? exit)
       (println "Codox process exitted with status:" exit)
       (System/exit exit))))
-
-#_(defn generate
-    "Generates Codox documentation.
-
-     The caller must pass :version (e.g., \"0.1.0\") and :project-name (e.g. 'io.github.hlship/build-tools).
-
-     The :codox/config key in deps.edn provides defaults passed to codox; typically contains keys :description and :source-uri."
-    [params]
-    (let [{:keys [aliases codox-version codox-config version project-name exclusions]
-           :or {codox-version "0.10.8"}} params
-          _ (do
-              (assert version "no :version specified")
-              (assert project-name "no :project-name specified"))
-          basis (b/create-basis {:extra {:deps {'codox/codox
-                                                {:mvn/version codox-version
-                                                 :exclusions exclusions}}}
-                                 :aliases aliases})
-          codox-config' (merge
-                          {:metadata {:doc/format :markdown}}
-                          (:codox/config basis)
-                          codox-config
-                          {:version version
-                           :name (str project-name)})
-          expression `(do ((requiring-resolve 'codox.main/generate-docs) ~codox-config') nil)
-          process-params (b/java-command
-                           {:basis basis
-                            :main "clojure.main"
-                            :main-args ["--eval" (pr-str expression)]})]
-      (b/process process-params)
-      nil))
