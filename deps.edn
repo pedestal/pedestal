@@ -5,4 +5,5 @@
    :deps {io.github.hlship/build-tools {:local/root "/Users/howard.lewisship/workspaces/github/build-tools"}}}
 
   :codox
-  {:deps {codox/codox {:mvn/version "0.10.8"}}}}}
+  {:deps {codox/codox {:mvn/version "0.10.8"}}
+   :paths ["codox-resources"]}}}
