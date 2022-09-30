@@ -11,9 +11,10 @@
 
 {:aliases
  {:build
-  {:paths ["build"]
-   :ns-default build
-   :deps {io.github.hlship/build-tools {:local/root "/Users/howard.lewisship/workspaces/github/build-tools"}}}
+  {:ns-default build
+   :paths ["build"]
+   :deps {io.github.hlship/build-tools {:local/root "/Users/howard.lewisship/workspaces/github/build-tools"}
+          borkdude/rewrite-edn {:mvn/version "0.3.4"}}}
 
   :codox
   {:deps {codox/codox {:mvn/version "0.10.8"}}

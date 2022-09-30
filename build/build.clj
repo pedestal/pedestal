@@ -15,9 +15,9 @@
             [net.lewisship.build :refer [requiring-invoke]]
             [clojure.tools.build.api :as b]))
 
+(def version-file "VERSION.txt")
 (def project-name 'io.pedestal)
-
-(def version "0.5.10" "0.5.11-SNAPSHOT")
+(def version (-> version-file slurp str/trim))
 
 (def module-dirs
   ;; Keep these in dependency order
@@ -88,6 +88,7 @@
 
   :dry-run - install to local Maven repository, but do not deploy to remote."
   [{:keys [dry-run]}]
+  (println "Deploying version" version "...")
   (doseq [dir module-dirs]
     (println dir "...")
     (binding [b/*project-root* dir]
@@ -120,4 +121,29 @@
                     :class-dir class-dir})
         (when-not dry-run
           ;; Deploy part goes here
-          )))))
+          ))))
+  ;; TODO: That leiningen service-template
+  )
+
+
+(defn update-version
+  "Updates the version of the library.
+
+  This changes the root VERSION.txt file and edits all deps.edn files to reflect the new version as well.
+
+  It does not commit the change."
+  [{:keys [version snapshot]}]
+  (let [version' (if snapshot
+                   (str version "-SNAPSHOT")
+                   version)]
+    (doseq [dir module-dirs]
+      (println "Updating" dir "...")
+      (requiring-invoke io.pedestal.build/update-version-in-deps dir version'))
+
+    ;; TODO: Do something for the lein service-template
+    ;; Maybe update some of the docs as well?
+
+    (b/write-file {:path version-file
+                   :string version'})
+
+    (println "Updated to version:" version')))
