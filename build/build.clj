@@ -1,3 +1,14 @@
+; Copyright 2022 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns build
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
@@ -6,11 +17,12 @@
 
 (def project-name 'io.pedestal)
 
-;; While testing source links:
-(def version "0.5.10" #_ "0.5.11-SNAPSHOT")
+(def version "0.5.10" "0.5.11-SNAPSHOT")
 
 (def module-dirs
-  (str/split "aws immutant interceptor jetty log route service service-tools tomcat" #" "))
+  ;; Keep these in dependency order
+  (str/split "log interceptor route service aws immutant jetty service-tools tomcat"
+             #" "))
 
 ;; Working around this problem (bug)?
 ;; Manifest type not detected when finding deps for io.pedestal/pedestal.log in coordinate #:local{:root "../log"}
@@ -40,8 +52,8 @@
         project-dir (canonical dir-name)]
     (assoc coll project-name {:local/root project-dir})))
 
-;; TODO: This *might* be accomplished easier by adding :local/root deps to the :codox alias.
 (defn codox
+  "Generates combined Codox documentation for all sub-projects."
   [_]
   (let [overrides (reduce as-override {} module-dirs)
         project-classpath (mapcat #(classpath-for % overrides) module-dirs)
@@ -70,3 +82,42 @@
     (when-not (zero? exit)
       (println "Codox process exited with status:" exit)
       (System/exit exit))))
+
+(defn deploy-all
+  "Builds and deploys all sub-modules.
+
+  :dry-run - install to local Maven repository, but do not deploy to remote."
+  [{:keys [dry-run]}]
+  (doseq [dir module-dirs]
+    (println dir "...")
+    (binding [b/*project-root* dir]
+      (let [basis (b/create-basis)
+            project-name (symbol "io.pedestal" (str "pedestal." dir))
+            class-dir "target/classes"
+            output-file (format "target/pedestal.%s-%s.jar" dir version)]
+        (b/delete {:path "target"})
+        (when (= "service" dir)
+          ;; service is the only module that has Java compilation.
+          (let [{:keys [exit]} (b/process {:command-args ["clojure" "-T:build" "compile-java"]})]
+            (when-not (zero? exit)
+              (println "Compilation failed with status:" exit)
+              (System/exit exit))))
+        (b/write-pom {:class-dir class-dir
+                      :lib project-name
+                      :version version
+                      :basis basis
+                      :scm {:url (str "https://github.com/pedestal/" dir)}})
+        (b/copy-dir {:src-dirs ["src" "resources"]
+                     :target-dir class-dir})
+        (b/jar {:class-dir class-dir
+                :jar-file output-file})
+        ;; Install it locally, so later dirs can find it. This ensures that the
+        ;; intra-project dependencies are correct in the generated POM files.
+        (b/install {:basis basis
+                    :lib project-name
+                    :version version
+                    :jar-file output-file
+                    :class-dir class-dir})
+        (when-not dry-run
+          ;; Deploy part goes here
+          )))))
