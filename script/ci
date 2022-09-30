@@ -1,9 +1,4 @@
 #!/bin/bash
+set -euo pipefail
 
-THIS_DIR=`dirname $0`
-
-# Needed for samples tests
-cd "$THIS_DIR/.."
-lein sub install
-
-lein sub test
+cd tests && clojure -J-Dclojure.main.report=stderr -X:test
