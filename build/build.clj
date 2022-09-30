@@ -6,7 +6,7 @@
 
 (def project-name 'io.pedestal)
 
-;; While esting source links:
+;; While testing source links:
 (def version "0.5.10" #_ "0.5.11-SNAPSHOT")
 
 (def module-dirs
@@ -55,7 +55,11 @@
                       :version version
                       :source-paths (mapv #(str % "/src") module-dirs)
                       :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
-        expression `(do ((requiring-resolve 'codox.main/generate-docs) ~codox-config) nil)
+        expression `(do
+                      ((requiring-resolve 'codox.main/generate-docs) ~codox-config)
+                      ;; Above returns the output directory name, "target/doc", which gets printed
+                      ;; by clojure.main, so override that to nil on success here.
+                      nil)
         ;; The API version mistakenly requires :basis, so bypass it.
         process-params (requiring-invoke clojure.tools.build.tasks.process/java-command
                                          {:cp full-classpath
@@ -64,5 +68,5 @@
         _ (println "Starting codox ...")
         {:keys [exit]} (b/process process-params)]
     (when-not (zero? exit)
-      (println "Codox process exitted with status:" exit)
+      (println "Codox process exited with status:" exit)
       (System/exit exit))))
