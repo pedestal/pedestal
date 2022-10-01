@@ -147,3 +147,65 @@
                    :string version'})
 
     (println "Updated to version:" version')))
+
+(defn- parse-version
+  [version]
+  (let [[_ major minor patch snapshot :as match] (re-matches #"(?ix)
+                                                    (\d+)     # major
+                                                    \. (\d+)  # minor
+                                                    \. (\d+)  # patch
+                                                    (\-SNAPSHOT)?"
+                                                             version)]
+    (when-not match
+      (throw (RuntimeException. (format "Version '%s' is not parsable" version))))
+    {:major (parse-long major)
+     :minor (parse-long minor)
+     :patch (parse-long patch)
+     :snapshot? (some? snapshot)}))
+
+(defn- advance
+  [version-data kind]
+  (case kind
+    :major (-> version-data
+               (update :major inc)
+               (assoc :minor 0 :patch 0))
+    :minor (-> version-data
+               (update :minor inc)
+               (assoc :patch 0))
+    :patch (update version-data :patch inc)))
+
+(defn- validate
+  [x f msg]
+  (when (and (some? x)
+             (not (f x)))
+    (throw (IllegalArgumentException. msg))))
+
+(defn- unparse-version
+  [version-data]
+  (let [{:keys [major minor patch snapshot?]} version-data]
+    (str major
+         "."
+         minor
+         "."
+         patch
+         (when snapshot?
+           "-SNAPSHOT"))))
+
+(defn advance-version
+  "Advances the version number and (by default) updates VERSION.txt and deps.edn files.
+
+  :kind - :major, :minor, or :patch, defaults to :patch
+  :snapshot - true to add snapshot suffix, false to remove it, nil to leave it as-is
+  :dry-run - print new version number, but don't update"
+  [options]
+  (let [{:keys [kind snapshot dry-run]} options
+        _ (validate snapshot boolean? ":snapshot must be true or false")
+        _ (validate kind #{:major :minor :patch} ":kind must be :major, :minor, or :patch")
+        kind' (or kind :patch)
+        version-data (parse-version version)
+        version-data' (cond-> (advance version-data kind')
+                        (some? snapshot) (assoc :snapshot? snapshot))
+        new-version (unparse-version version-data')]
+    (if dry-run
+      (println "New version:" new-version)
+      (update-version {:version new-version}))))
