@@ -151,13 +151,15 @@
   This changes the root VERSION.txt file and edits all deps.edn files to reflect the new version as well.
 
   :version (string, required) - new version number, possibly with a \"-SNAPSHOT\" suffix
-  :commit (boolean), if true (the default), then the workspace will be committed after changes; the workspace
-  must also start clean"
-  [{:keys [version commit]
-    :or {commit true}}]
+  :commit (boolean) - if true (the default), then the workspace will be committed after changes; the workspace
+  must also start clean
+  :tag (boolean) if true (the default), tag with the version number, after commit"
+  [{:keys [version commit tag]
+    :or {commit true
+         tag true}}]
   (when (and commit
              (workspace-dirty?))
-    (println "Error: workspace contains changes, those must be committed first.")
+    (println "Error: workspace contains changes, those must be committed first")
     (System/exit 1))
   ;; Ensure the version number is parsable
   (parse-version version)
@@ -174,9 +176,11 @@
   (println "Updated to version:" version)
 
   (when commit
-    (b/git-process {:git-args ["commit" "-a" "-m" (str "Advance to version " version)]
-                    :out :inherit
-                    :err :inherit})))
+    (b/git-process {:git-args ["commit" "-a" "-m" (str "Advance to version " version)]})
+    (println "Committed version change")
+    (when tag
+      (b/git-process {:git-args ["tag" version]})
+      (println "Tagged commit"))))
 
 (defn- advance
   [version-data kind]
@@ -213,7 +217,8 @@
   :snapshot - true to add snapshot suffix, false to remove it, nil to leave it as-is
   :dry-run - print new version number, but don't update
 
-  :commit - if true, then the workspace will be committed after advancing"
+  :commit - if true, then the workspace will be committed after advancing
+  :tag - if true, then add a version tag after the commit"
   [options]
   (let [{:keys [kind snapshot dry-run]} options
         _ (validate snapshot boolean? ":snapshot must be true or false")
