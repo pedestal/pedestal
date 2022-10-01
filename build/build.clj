@@ -126,27 +126,9 @@
   )
 
 
-(defn update-version
-  "Updates the version of the library.
-
-  This changes the root VERSION.txt file and edits all deps.edn files to reflect the new version as well.
-
-  It does not commit the change."
-  [{:keys [version snapshot]}]
-  (let [version' (if snapshot
-                   (str version "-SNAPSHOT")
-                   version)]
-    (doseq [dir module-dirs]
-      (println "Updating" dir "...")
-      (requiring-invoke io.pedestal.build/update-version-in-deps dir version'))
-
-    ;; TODO: Do something for the lein service-template
-    ;; Maybe update some of the docs as well?
-
-    (b/write-file {:path version-file
-                   :string version'})
-
-    (println "Updated to version:" version')))
+(defn- workspace-dirty?
+  []
+  (not (str/blank? (b/git-process {:git-args "status -s"}))))
 
 (defn- parse-version
   [version]
@@ -162,6 +144,39 @@
      :minor (parse-long minor)
      :patch (parse-long patch)
      :snapshot? (some? snapshot)}))
+
+(defn update-version
+  "Updates the version of the library.
+
+  This changes the root VERSION.txt file and edits all deps.edn files to reflect the new version as well.
+
+  :version (string, required) - new version number, possibly with a \"-SNAPSHOT\" suffix
+  :commit (boolean), if true (the default), then the workspace will be committed after changes; the workspace
+  must also start clean"
+  [{:keys [version commit]
+    :or {commit true}}]
+  (when (and commit
+             (workspace-dirty?))
+    (println "Error: workspace contains changes, those must be committed first.")
+    (System/exit 1))
+  ;; Ensure the version number is parsable
+  (parse-version version)
+  (doseq [dir module-dirs]
+    (println "Updating" dir "...")
+    (requiring-invoke io.pedestal.build/update-version-in-deps dir version))
+
+  ;; TODO: Do something for the lein service-template
+  ;; Maybe update some of the docs as well?
+
+  (b/write-file {:path version-file
+                 :string version})
+
+  (println "Updated to version:" version)
+
+  (when commit
+    (b/git-process {:git-args ["commit" "-a" "-m" (str "Advance to version " version)]
+                    :out :inherit
+                    :err :inherit})))
 
 (defn- advance
   [version-data kind]
@@ -196,7 +211,9 @@
 
   :kind - :major, :minor, or :patch, defaults to :patch
   :snapshot - true to add snapshot suffix, false to remove it, nil to leave it as-is
-  :dry-run - print new version number, but don't update"
+  :dry-run - print new version number, but don't update
+
+  :commit - if true, then the workspace will be committed after advancing"
   [options]
   (let [{:keys [kind snapshot dry-run]} options
         _ (validate snapshot boolean? ":snapshot must be true or false")
@@ -208,4 +225,6 @@
         new-version (unparse-version version-data')]
     (if dry-run
       (println "New version:" new-version)
-      (update-version {:version new-version}))))
+      (update-version (-> options
+                          (dissoc :kind :snapshot :dry-run)
+                          (assoc :version new-version))))))
