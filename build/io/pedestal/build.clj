@@ -30,8 +30,8 @@
         nodes (-> deps-path
                   slurp
                   r/parse-string)
-        ;; Since this is specific to io.pedestal, we don't have to worry as much about
-        ;; other aliases or dependency types, just the main :deps.
+        ;; Since this is specific to io.pedestal, we don't have to worry about
+        ;; other aliases or dependency types (:extra-deps, :override-deps, etc.), just the main :deps.
         fix-deps (fn [node]
                    (reduce (fn [n k]
                              (r/assoc-in n [k :mvn/version] version))

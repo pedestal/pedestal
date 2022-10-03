@@ -21,8 +21,16 @@
 
 (def module-dirs
   ;; Keep these in dependency order
-  (str/split "log interceptor route service aws immutant jetty service-tools tomcat"
-             #" "))
+  ["log"
+   "interceptor"
+   "route"
+   "service"
+   ;; And then the others:
+   "aws"
+   "immutant"
+   "jetty"
+   "service-tools"
+   "tomcat"])
 
 ;; Working around this problem (bug)?
 ;; Manifest type not detected when finding deps for io.pedestal/pedestal.log in coordinate #:local{:root "../log"}
@@ -183,8 +191,8 @@
       (println "Tagged commit"))))
 
 (defn- advance
-  [version-data kind]
-  (case kind
+  [version-data level]
+  (case level
     :major (-> version-data
                (update :major inc)
                (assoc :minor 0 :patch 0))
@@ -213,23 +221,22 @@
 (defn advance-version
   "Advances the version number and (by default) updates VERSION.txt and deps.edn files.
 
-  :kind - :major, :minor, or :patch, defaults to :patch
+  :level - :major, :minor, or :patch, defaults to :patch
   :snapshot - true to add snapshot suffix, false to remove it, nil to leave it as-is
   :dry-run - print new version number, but don't update
 
-  :commit - if true, then the workspace will be committed after advancing
-  :tag - if true, then add a version tag after the commit"
+  :commit - if true (the default), then the workspace will be committed after advancing
+  :tag - if true (the default), then add a version tag after the commit"
   [options]
-  (let [{:keys [kind snapshot dry-run]} options
+  (let [{:keys [level snapshot dry-run]} options
         _ (validate snapshot boolean? ":snapshot must be true or false")
-        _ (validate kind #{:major :minor :patch} ":kind must be :major, :minor, or :patch")
-        kind' (or kind :patch)
-        version-data (parse-version version)
-        version-data' (cond-> (advance version-data kind')
-                        (some? snapshot) (assoc :snapshot? snapshot))
-        new-version (unparse-version version-data')]
+        _ (validate level #{:major :minor :patch} ":level must be :major, :minor, or :patch")
+        version-data (cond-> (parse-version version)
+                       true (advance (or level :patch))
+                       (some? snapshot) (assoc :snapshot? snapshot))
+        new-version (unparse-version version-data)]
     (if dry-run
       (println "New version:" new-version)
       (update-version (-> options
-                          (dissoc :kind :snapshot :dry-run)
+                          (dissoc :level :snapshot :dry-run)
                           (assoc :version new-version))))))
