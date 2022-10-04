@@ -1,1 +1,1 @@
-0.5.11-SNAPSHOT
+0.5.11-snapshot-1

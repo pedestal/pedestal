@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
-        io.pedestal/pedestal.service {:mvn/version "0.5.11-SNAPSHOT"}
+        io.pedestal/pedestal.service {:mvn/version "0.5.11-snapshot-1"}
 
         potemkin/potemkin {:mvn/version "0.4.5"}
         org.jboss.logging/jboss-logging {:mvn/version "3.4.1.Final"}
