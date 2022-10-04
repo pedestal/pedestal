@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
-        io.pedestal/pedestal.service {:mvn/version "0.5.11-SNAPSHOT"}
+        io.pedestal/pedestal.service {:mvn/version "0.5.11-snapshot-1"}
 
         org.clojure/data.xml {:mvn/version "0.2.0-alpha5"}
 
