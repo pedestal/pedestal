@@ -13,10 +13,12 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [net.lewisship.build :refer [requiring-invoke]]
-            [clojure.tools.build.api :as b]))
+            [clojure.tools.build.api :as b]
+            [io.pedestal.versions :as v]
+            [deps-deploy.deps-deploy :as d]))
 
 (def version-file "VERSION.txt")
-(def project-name 'io.pedestal)
+(def group-name 'io.pedestal)
 (def version (-> version-file slurp str/trim))
 
 (def module-dirs
@@ -52,11 +54,12 @@
 (defn- canonical
   "Expands a relative path to a full path."
   [path]
-  (.getAbsolutePath (io/file path)))
+  (-> path io/file .getAbsolutePath))
 
 (defn- as-override
   [coll dir-name]
-  (let [project-name (symbol "io.pedestal" (str "pedestal." dir-name))
+  (let [project-name (symbol (name group-name)
+                             (str "pedestal." dir-name))
         project-dir (canonical dir-name)]
     (assoc coll project-name {:local/root project-dir})))
 
@@ -71,7 +74,7 @@
                             distinct
                             sort)
         codox-config {:metadata {:doc/format :markdown}
-                      :name (str (name project-name) " libraries")
+                      :name (str (name group-name) " libraries")
                       :version version
                       :source-paths (mapv #(str % "/src") module-dirs)
                       :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
@@ -96,40 +99,49 @@
 
   :dry-run - install to local Maven repository, but do not deploy to remote."
   [{:keys [dry-run]}]
-  (println "Deploying version" version "...")
-  (doseq [dir module-dirs]
-    (println dir "...")
-    (binding [b/*project-root* dir]
-      (let [basis (b/create-basis)
-            project-name (symbol "io.pedestal" (str "pedestal." dir))
-            class-dir "target/classes"
-            output-file (format "target/pedestal.%s-%s.jar" dir version)]
-        (b/delete {:path "target"})
-        (when (= "service" dir)
-          ;; service is the only module that has Java compilation.
-          (let [{:keys [exit]} (b/process {:command-args ["clojure" "-T:build" "compile-java"]})]
-            (when-not (zero? exit)
-              (println "Compilation failed with status:" exit)
-              (System/exit exit))))
-        (b/write-pom {:class-dir class-dir
+  (println "Deploying version" version (when dry-run "(dry run)") "...")
+  (let [deploy? (not dry-run)
+        sign-key-id (when deploy?
+                      (or (System/getenv "CLOJARS_GPG_ID")
+                          (throw (RuntimeException. "CLOJARS_GPG_ID environment variable not set"))))]
+    (doseq [dir module-dirs]
+      (println dir "...")
+      (binding [b/*project-root* dir]
+        (let [basis (b/create-basis)
+              project-name (symbol "io.pedestal" (str "pedestal." dir))
+              class-dir "target/classes"
+              output-file (format "target/pedestal.%s-%s.jar" dir version)]
+          (b/delete {:path "target"})
+          (when (= "service" dir)
+            ;; service is the only module that has Java compilation.
+            (let [{:keys [exit]} (b/process {:command-args ["clojure" "-T:build" "compile-java"]})]
+              (when-not (zero? exit)
+                (println "Compilation failed with status:" exit)
+                (System/exit exit))))
+          (b/write-pom {:class-dir class-dir
+                        :lib project-name
+                        :version version
+                        :basis basis
+                        ;; pedestal the GitHub organization, then pedestal the multi-module project, then the sub-dir
+                        :scm {:url (str "https://github.com/pedestal/pedestal/" dir)}})
+          (b/copy-dir {:src-dirs ["src" "resources"]
+                       :target-dir class-dir})
+          (b/jar {:class-dir class-dir
+                  :jar-file output-file})
+          ;; Install it locally, so later modules can find it. This ensures that the
+          ;; intra-project dependencies are correct in the generated POM files.
+          (b/install {:basis basis
                       :lib project-name
                       :version version
-                      :basis basis
-                      :scm {:url (str "https://github.com/pedestal/" dir)}})
-        (b/copy-dir {:src-dirs ["src" "resources"]
-                     :target-dir class-dir})
-        (b/jar {:class-dir class-dir
-                :jar-file output-file})
-        ;; Install it locally, so later dirs can find it. This ensures that the
-        ;; intra-project dependencies are correct in the generated POM files.
-        (b/install {:basis basis
-                    :lib project-name
-                    :version version
-                    :jar-file output-file
-                    :class-dir class-dir})
-        (when-not dry-run
-          ;; Deploy part goes here
-          ))))
+                      :jar-file output-file
+                      :class-dir class-dir})
+          (when deploy?
+            (d/deploy {:installer :remote
+                       :artifact output-file
+                       :pom-file (b/pom-path {:lib project-name
+                                              :class-dir class-dir})
+                       :sign-releases? true
+                       :sign-key-id sign-key-id}))))))
   ;; TODO: That leiningen service-template
   )
 
@@ -138,30 +150,15 @@
   []
   (not (str/blank? (b/git-process {:git-args "status -s"}))))
 
-(defn- parse-version
-  [version]
-  (let [[_ major minor patch snapshot :as match] (re-matches #"(?ix)
-                                                    (\d+)     # major
-                                                    \. (\d+)  # minor
-                                                    \. (\d+)  # patch
-                                                    (\-SNAPSHOT)?"
-                                                             version)]
-    (when-not match
-      (throw (RuntimeException. (format "Version '%s' is not parsable" version))))
-    {:major (parse-long major)
-     :minor (parse-long minor)
-     :patch (parse-long patch)
-     :snapshot? (some? snapshot)}))
-
 (defn update-version
   "Updates the version of the library.
 
   This changes the root VERSION.txt file and edits all deps.edn files to reflect the new version as well.
 
-  :version (string, required) - new version number, possibly with a \"-SNAPSHOT\" suffix
-  :commit (boolean) - if true (the default), then the workspace will be committed after changes; the workspace
+  :version (string, required) - new version number
+  :commit (boolean, default true) - if true, then the workspace will be committed after changes; the workspace
   must also start clean
-  :tag (boolean) if true (the default), tag with the version number, after commit"
+  :tag (boolean, default false) if true, then tag with the version number, after commit"
   [{:keys [version commit tag]
     :or {commit true
          tag true}}]
@@ -170,7 +167,7 @@
     (println "Error: workspace contains changes, those must be committed first")
     (System/exit 1))
   ;; Ensure the version number is parsable
-  (parse-version version)
+  (v/parse-version version)
   (doseq [dir module-dirs]
     (println "Updating" dir "...")
     (requiring-invoke io.pedestal.build/update-version-in-deps dir version))
@@ -190,53 +187,49 @@
       (b/git-process {:git-args ["tag" version]})
       (println "Tagged commit"))))
 
-(defn- advance
-  [version-data level]
-  (case level
-    :major (-> version-data
-               (update :major inc)
-               (assoc :minor 0 :patch 0))
-    :minor (-> version-data
-               (update :minor inc)
-               (assoc :patch 0))
-    :patch (update version-data :patch inc)))
-
 (defn- validate
   [x f msg]
   (when (and (some? x)
              (not (f x)))
     (throw (IllegalArgumentException. msg))))
 
-(defn- unparse-version
-  [version-data]
-  (let [{:keys [major minor patch snapshot?]} version-data]
-    (str major
-         "."
-         minor
-         "."
-         patch
-         (when snapshot?
-           "-SNAPSHOT"))))
-
 (defn advance-version
-  "Advances the version number and (by default) updates VERSION.txt and deps.edn files.
+  "Advances the version number and updates VERSION.txt and deps.edn files. By default,
+   the file changes are committed and tagged.
 
-  :level - :major, :minor, or :patch, defaults to :patch
-  :snapshot - true to add snapshot suffix, false to remove it, nil to leave it as-is
+  Version numbers are of the form <major>.<minor>.<version>(-<stability>-<index>);
+  the stability suffix is optional; the stability can be \"snapshot\", \"beta\", or \"rc\" (for release candidate).
+  Version numbers without a stability suffix have a stability of :release.
+
+  :level - :major, :minor, :patch, :snapshot, :beta, :rc, :release
   :dry-run - print new version number, but don't update
+  :commit - see update-version
+  :tag - see update-version
 
-  :commit - if true (the default), then the workspace will be committed after advancing
-  :tag - if true (the default), then add a version tag after the commit"
+  :major, :minor, :patch increment their numbers and discard the stability suffix.
+  So \"1.3.4-snapshot-2\" with level :minor would advance to \"1.4.0\".
+
+  :release strips off the stability suffix so \"1.3.4-rc-3\" with level :release
+  would advance to \"1.3.4\".  It's not valid to use level :release with a release version (one with
+  not stability suffix).
+
+  :snapshot, :beta, or :rc: If the existing stability matches, then the index number at the end is incremented,
+  otherwise the stability is set to the level and the index is set to 1.
+
+  \"1.3.4\" with level :snapshot becomes \"1.3.4-snapshot-1\".  \"1.3.4-beta-2\" with level :beta becomes
+  \"1.3.4-beta-3\".
+
+
+  Following a release, the pattern is `clj -T:build advance-version :level :patch :commit false` followed
+  by `clj -T:build advance-version :level :snapshot`."
   [options]
-  (let [{:keys [level snapshot dry-run]} options
-        _ (validate snapshot boolean? ":snapshot must be true or false")
-        _ (validate level #{:major :minor :patch} ":level must be :major, :minor, or :patch")
-        version-data (cond-> (parse-version version)
-                       true (advance (or level :patch))
-                       (some? snapshot) (assoc :snapshot? snapshot))
-        new-version (unparse-version version-data)]
+  (let [{:keys [level dry-run]} options
+        _ (validate level (set v/advance-levels)
+                    (str ":level must be one of: "
+                         (->> v/advance-levels (map name) (str/join ", "))))
+        new-version (-> version v/parse-version (v/advance (or level :patch)) v/unparse-version)]
     (if dry-run
       (println "New version:" new-version)
       (update-version (-> options
-                          (dissoc :level :snapshot :dry-run)
+                          (dissoc :level :dry-run)
                           (assoc :version new-version))))))
