@@ -18,6 +18,8 @@ jobs:
           java-version: '1.8'
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
       - name: Run tests
 
         run: |
