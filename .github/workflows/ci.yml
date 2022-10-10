@@ -23,8 +23,5 @@ jobs:
       - name: Run tests
 
         run: |
-          pwd
           cd service && clojure -T:build compile-java
-          pwd
-          ls -lgh
-          cd tests && clojure -T:build test
+          cd ../tests && clojure -T:build test

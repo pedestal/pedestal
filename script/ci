@@ -1,4 +1,0 @@
-#!/bin/bash
-set -euo pipefail
-
-cd tests && clojure -J-Dclojure.main.report=stderr -X:test
