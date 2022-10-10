@@ -43,6 +43,9 @@
   :alias :build
   :fn compile-java}
 
+ :io.pedestal/build
+ {:compile-command ["clojure" "-T:build" "compile-java"]}
+
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}

@@ -128,8 +128,8 @@
                            (throw (RuntimeException. "CLOJARS_GPG_ID environment variable not set"))))
         build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
         deploy-artifact (requiring-resolve 'io.pedestal.deploy/deploy-artifact)
-        artifacts-data (mapv #(build-and-install % version) module-dirs)]
-    ;; TODO: That leiningen service-template
+        module-dirs' (cons "service-template" module-dirs)
+        artifacts-data (mapv #(build-and-install % version) module-dirs')]
     (when-not dry-run
       (println "Deploying ...")
       (run! #(deploy-artifact % sign-key-id') artifacts-data)))

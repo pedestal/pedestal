@@ -23,14 +23,13 @@
   (println dir "...")
   (binding [b/*project-root* dir]
     (let [basis (b/create-basis)
-          project-name (symbol "io.pedestal" (str "pedestal." dir))
+          project-name (or (get-in basis [:io.pedestal/build :project-name])
+                           (symbol "io.pedestal" (str "pedestal." dir)))
           class-dir "target/classes"
           output-file (format "target/pedestal.%s-%s.jar" dir version)]
       (b/delete {:path "target"})
-      (when (= "service" dir)
-        ;; service is the only module that has Java compilation.
-        ;; This could be converted to a flag stored in the deps.edn, to keep it clean.
-        (let [{:keys [exit]} (b/process {:command-args ["clojure" "-T:build" "compile-java"]})]
+      (when-let [command (get-in basis [:io.pedestal/build :compile-command])]
+        (let [{:keys [exit]} (b/process {:command-args command})]
           (when-not (zero? exit)
             (println "Compilation failed with status:" exit)
             (System/exit exit))))
