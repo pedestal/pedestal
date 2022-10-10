@@ -78,14 +78,6 @@
     ;; Return the name of the created file
     (str path ".asc")))
 
-(comment
-  (sign-path "7CC19136"
-             "log/target/pedestal.log-0.5.11-snapshot-1.jar")
-
-  )
-
-
-
 (defn deploy-artifact
   [artifact-data sign-key-id]
   (let [{:keys [artifact-id version jar-path pom-path]} artifact-data

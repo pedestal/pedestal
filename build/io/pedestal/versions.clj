@@ -1,6 +1,5 @@
 (ns io.pedestal.versions
-  (:require [net.lewisship.trace :refer [trace]]
-            [clojure.string :as str]))
+  (:require [clojure.string :as str]))
 
 (defn parse-version
   [version]
@@ -26,13 +25,6 @@
              :patch (parse-long patch)
              :stability stability'}
       index (assoc :index (parse-long index)))))
-
-
-(comment
-  (parse-version "1.3.2")
-  (parse-version "1.3.2-snapshot")
-  (parse-version "1.3.2-rc-3")
-  )
 
 (def ^:private stability->label
   {:snapshot "SNAPSHOT"
@@ -80,16 +72,3 @@
     (:beta :rc) (if (= stability level)
                   (update version-data :index inc)
                   (assoc version-data :stability level :index 1))))
-
-(comment
-  (defn t [version level] (-> version parse-version (advance level) unparse-version))
-
-  (t "1.2.3" :snapshot)
-  (t "1.2.3-snapshot" :snapshot)
-  (t "1.2.3-snapshot" :release)
-  (t "1.2.3" :release)
-  (t "1.2.3" :patch)
-  (t "1.2.3" :beta)
-  (t "1.2.3-snapshot" :patch)
-
-  )

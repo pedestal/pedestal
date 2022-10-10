@@ -12,7 +12,8 @@
 (ns io.pedestal.build
   "Seperated out to avoid unnecessary code loading."
   (:require [borkdude.rewrite-edn :as r]
-            [clojure.tools.build.api :as b]))
+            [clojure.tools.build.api :as b]
+            [clojure.string :as str]))
 
 (defn- affected-keys
   [map-node]
@@ -40,3 +41,47 @@
         nodes' (r/update nodes :deps fix-deps)]
     (b/write-file {:path deps-path
                    :string (str nodes')})))
+
+(defn- fixup-version
+  "Reads lines from path; each line is passed to f.  If f returns a non-nil result
+  then that is a replacement of the original line, otherwise the original line is passed through unchanged."
+  [path f]
+  (let [lines (-> path
+                  slurp
+                  str/split-lines)
+        lines' (map #(if-let [replacement (f %)]
+                       replacement
+                       %)
+                    lines)]
+    (b/write-file {:path path
+                   :string (str/join "\n" lines')})))
+
+(defn update-service-template
+  "Clumsily updates the dependencies in a project.clj file in the given directory."
+  [version]
+  (fixup-version "service-template/project.clj"
+                 (fn [line]
+                   (when-let [[_ prefix suffix] (re-matches #"(?x)
+                   (\s*
+                    \(defproject \s+
+                    .+?  # project name
+                    \s+ \" # quote before version
+                   )       # end of prefix
+                   .+?
+                   (\"     # start of suffix
+                    .*)"
+                                                                      line)]
+                     (str prefix version suffix))))
+  (fixup-version "service-template/src/leiningen/new/pedestal_service/project.clj"
+                 (fn [line]
+                   (when-let [[_ prefix suffix] (re-matches #"(?x)
+
+                   (.*?
+                    io\.pedestal/.+?
+                    \s+
+                    \")
+                   .+?
+                   (\" .*)
+                   "
+                                                            line)]
+                     (str prefix version suffix)))))

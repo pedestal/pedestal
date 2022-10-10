@@ -156,6 +156,10 @@
     (println "Updating" dir "...")
     (requiring-invoke io.pedestal.build/update-version-in-deps dir version))
 
+  (println "Updating service-template (Leiningen template project) ...")
+
+  (requiring-invoke io.pedestal.build/update-service-template version)
+
   ;; TODO: Do something for the lein service-template
   ;; Maybe update some of the docs as well?
 
@@ -218,3 +222,9 @@
       (update-version (-> options
                           (dissoc :level :dry-run)
                           (assoc :version new-version))))))
+
+(comment
+  (update-version {:version "0.5.11-SNAPSHOT"})
+
+
+  )
