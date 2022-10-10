@@ -23,5 +23,8 @@ jobs:
       - name: Run tests
 
         run: |
-          cd service && clojure -T:build compile-java
-          cd ../tests && clojure -T:build test
+          pushd service
+          clojure -T:build compile-java
+          popd
+          pushd tests
+          clojure -X:test
