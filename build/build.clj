@@ -14,8 +14,10 @@
             [clojure.java.io :as io]
             [net.lewisship.build :refer [requiring-invoke]]
             [clojure.tools.build.api :as b]
-            [io.pedestal.versions :as v]
-            [deps-deploy.deps-deploy :as d]))
+            [io.pedestal.versions :as v]))
+
+;; General notes: have to do a *lot* of fighting with executing particular build commands from the root
+;; rather than in each module's sub-directory.
 
 (def version-file "VERSION.txt")
 (def group-name 'io.pedestal)
@@ -94,61 +96,44 @@
       (println "Codox process exited with status:" exit)
       (System/exit exit))))
 
-(defn deploy-all
-  "Builds and deploys all sub-modules.
-
-  :dry-run - install to local Maven repository, but do not deploy to remote."
-  [{:keys [dry-run]}]
-  (println "Deploying version" version (when dry-run "(dry run)") "...")
-  (let [deploy? (not dry-run)
-        sign-key-id (when deploy?
-                      (or (System/getenv "CLOJARS_GPG_ID")
-                          (throw (RuntimeException. "CLOJARS_GPG_ID environment variable not set"))))]
-    (doseq [dir module-dirs]
-      (println dir "...")
-      (binding [b/*project-root* dir]
-        (let [basis (b/create-basis)
-              project-name (symbol "io.pedestal" (str "pedestal." dir))
-              class-dir "target/classes"
-              output-file (format "target/pedestal.%s-%s.jar" dir version)]
-          (b/delete {:path "target"})
-          (when (= "service" dir)
-            ;; service is the only module that has Java compilation.
-            (let [{:keys [exit]} (b/process {:command-args ["clojure" "-T:build" "compile-java"]})]
-              (when-not (zero? exit)
-                (println "Compilation failed with status:" exit)
-                (System/exit exit))))
-          (b/write-pom {:class-dir class-dir
-                        :lib project-name
-                        :version version
-                        :basis basis
-                        ;; pedestal the GitHub organization, then pedestal the multi-module project, then the sub-dir
-                        :scm {:url (str "https://github.com/pedestal/pedestal/" dir)}})
-          (b/copy-dir {:src-dirs ["src" "resources"]
-                       :target-dir class-dir})
-          (b/jar {:class-dir class-dir
-                  :jar-file output-file})
-          ;; Install it locally, so later modules can find it. This ensures that the
-          ;; intra-project dependencies are correct in the generated POM files.
-          (b/install {:basis basis
-                      :lib project-name
-                      :version version
-                      :jar-file output-file
-                      :class-dir class-dir})
-          (when deploy?
-            (d/deploy {:installer :remote
-                       :artifact output-file
-                       :pom-file (b/pom-path {:lib project-name
-                                              :class-dir class-dir})
-                       :sign-releases? true
-                       :sign-key-id sign-key-id}))))))
-  ;; TODO: That leiningen service-template
-  )
-
 
 (defn- workspace-dirty?
   []
   (not (str/blank? (b/git-process {:git-args "status -s"}))))
+
+
+(defn- ensure-workspace-clean
+  []
+  (when (workspace-dirty?)
+    (println "Error: workspace contains changes, those must be committed first")
+    (System/exit 1)))
+
+(defn deploy-all
+  "Builds and deploys all sub-modules.
+
+  The workspace must be clean (no uncommitted changes).
+
+  :dry-run - install to local Maven repository, but do not deploy to remote
+  :force - deactivate the dirty workspace check
+  :sign-key-id - key id to sign with, if not provided, defaults to environment variable CLOJARS_GPG_ID"
+  [{:keys [dry-run sign-key-id force]}]
+  (when-not force
+    (ensure-workspace-clean))
+
+  (println (str "Building version " version (when dry-run " (dry run)") " ..."))
+
+  (let [sign-key-id' (when (not dry-run)
+                       (or sign-key-id
+                           (System/getenv "CLOJARS_GPG_ID")
+                           (throw (RuntimeException. "CLOJARS_GPG_ID environment variable not set"))))
+        build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
+        deploy-artifact (requiring-resolve 'io.pedestal.deploy/deploy-artifact)
+        artifacts-data (mapv #(build-and-install % version) module-dirs)]
+    ;; TODO: That leiningen service-template
+    (when-not dry-run
+      (println "Deploying ...")
+      (run! #(deploy-artifact % sign-key-id') artifacts-data)))
+  (println "done"))
 
 (defn update-version
   "Updates the version of the library.
@@ -156,15 +141,15 @@
   This changes the root VERSION.txt file and edits all deps.edn files to reflect the new version as well.
 
   :version (string, required) - new version number
-  :commit (boolean, default true) - if true, then the workspace will be committed after changes; the workspace
+  :commit (boolean, default false) - if true, then the workspace will be committed after changes; the workspace
   must also start clean
   :tag (boolean, default false) if true, then tag with the version number, after commit"
-  [{:keys [version commit tag]
-    :or {commit true}}]
+  [{:keys [version commit tag force]
+    :or {commit false}}]
   (when (and commit
-             (workspace-dirty?))
-    (println "Error: workspace contains changes, those must be committed first")
-    (System/exit 1))
+             (not force))
+    (ensure-workspace-clean))
+
   ;; Ensure the version number is parsable
   (v/parse-version version)
   (doseq [dir module-dirs]
@@ -219,8 +204,8 @@
   \"1.3.4-beta-3\".
 
 
-  Following a release, the pattern is `clj -T:build advance-version :level :patch :commit false` followed
-  by `clj -T:build advance-version :level :snapshot`."
+  Following a release, the pattern is `clj -T:build advance-version :level :patch` followed
+  by `clj -T:build advance-version :level :snapshot :commit true`."
   [options]
   (let [{:keys [level dry-run]} options
         _ (validate level (set v/advance-levels)

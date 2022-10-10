@@ -14,11 +14,13 @@
   {:ns-default build
    :paths ["build"]
    :deps {io.github.hlship/build-tools {:local/root "/Users/howard.lewisship/workspaces/github/build-tools"}
+          io.github.hlship/trace {:mvn/version "v1.0"}
           borkdude/rewrite-edn {:mvn/version "0.3.4"}}}
 
   :dev
   {:extra-paths ["build"]
    :extra-deps {io.github.hlship/build-tools {:local/root "/Users/howard.lewisship/workspaces/github/build-tools"}
+                io.github.hlship/trace {:mvn/version "v1.0"}
                 borkdude/rewrite-edn {:mvn/version "0.3.4"}}}
 
   :codox

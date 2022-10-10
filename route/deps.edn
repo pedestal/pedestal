@@ -13,8 +13,8 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
         org.clojure/core.async {:mvn/version "0.4.490"
                                 :exclusions [org.clojure/tools.analyzer.jvm]}
-        io.pedestal/pedestal.log {:mvn/version "0.5.11-snapshot-1"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-snapshot-1"}
+        io.pedestal/pedestal.log {:mvn/version "0.5.11-SNAPSHOT"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-SNAPSHOT"}
         org.clojure/core.incubator {:mvn/version "0.1.4"}}
  :aliases
  {:local
