@@ -58,7 +58,6 @@
 
         ;; only used for tracing test
         io.jaegertracing/jaeger-client {:mvn/version "1.0.0"}}
- ;; TODO: Hangs after tests complete
  :aliases
  {
   ;; clj -X:test
