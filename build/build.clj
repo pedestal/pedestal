@@ -179,7 +179,7 @@
 
 (defn advance-version
   "Advances the version number and updates VERSION.txt and deps.edn files. By default,
-   the file changes are committed and tagged.
+  the file changes are committed and tagged.
 
   Version numbers are of the form <major>.<minor>.<version>(-<stability>-<index>);
   the stability suffix is optional; the stability can be \"snapshot\", \"beta\", or \"rc\" (for release candidate).
@@ -191,18 +191,19 @@
   :tag - see update-version
 
   :major, :minor, :patch increment their numbers and discard the stability suffix.
-  So \"1.3.4-snapshot-2\" with level :minor would advance to \"1.4.0\".
+  So \"1.3.4-rc-2\" with level :minor would advance to \"1.4.0\".
 
   :release strips off the stability suffix so \"1.3.4-rc-3\" with level :release
   would advance to \"1.3.4\".  It's not valid to use level :release with a release version (one with
-  not stability suffix).
+  no stability suffix).
 
   :snapshot, :beta, or :rc: If the existing stability matches, then the index number at the end is incremented,
-  otherwise the stability is set to the level and the index is set to 1.
+  otherwise the stability is set to the level and the index is set to 1 (except for :snapshot, which has no
+  index).
 
-  \"1.3.4\" with level :snapshot becomes \"1.3.4-snapshot-1\".  \"1.3.4-beta-2\" with level :beta becomes
-  \"1.3.4-beta-3\".
-
+  \"1.3.4\" with level :snapshot becomes \"1.3.4-SNAPSHOT\".
+  \"1.3.4-SNAPSHOT\" with level :beta becomes \"1.3.4-beta-1\".
+  \"1.3.4-beta-2\" with level :beta becomes \"1.3.4-beta-3\".
 
   Following a release, the pattern is `clj -T:build advance-version :level :patch` followed
   by `clj -T:build advance-version :level :snapshot :commit true`."
