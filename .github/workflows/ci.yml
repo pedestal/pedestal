@@ -18,9 +18,8 @@ jobs:
           java-version: '1.8'
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@master
-        with:
-          lein: 2.9.1
       - name: Run tests
+
         run: |
-          lein sub install
-          lein sub test :travis
+          cd service && clojure -T:build compile-java
+          cd tests && clojure -T:build test

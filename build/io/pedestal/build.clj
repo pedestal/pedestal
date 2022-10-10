@@ -26,6 +26,8 @@
                      k'))))))
 
 (defn update-version-in-deps
+  "Updates intra-module dependencies to use the provided version; this uses rewrite-edn to do so without losing
+  formatting or comments."
   [module-dir version]
   (let [deps-path (str module-dir "/deps.edn")
         nodes (-> deps-path
@@ -54,7 +56,8 @@
                        %)
                     lines)]
     (b/write-file {:path path
-                   :string (str/join "\n" lines')})))
+                   ;; Ensure a blank line at the end.
+                   :string (str/join "\n" (conj lines' ""))})))
 
 (defn update-service-template
   "Clumsily updates the dependencies in a project.clj file in the given directory."
@@ -70,7 +73,7 @@
                    .+?
                    (\"     # start of suffix
                     .*)"
-                                                                      line)]
+                                                            line)]
                      (str prefix version suffix))))
   (fixup-version "service-template/src/leiningen/new/pedestal_service/project.clj"
                  (fn [line]

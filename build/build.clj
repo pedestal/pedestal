@@ -39,7 +39,7 @@
 ;; Working around this problem (bug)?
 ;; Manifest type not detected when finding deps for io.pedestal/pedestal.log in coordinate #:local{:root "../log"}
 ;; Basically, not recognizing relative paths correctly; I think they are being evaluated at the top level, so ".." is the
-;; directory about the pedestal workspace.
+;; directory above the pedestal workspace.
 ;; See https://clojure.atlassian.net/browse/TDEPS-106
 
 (defn- classpath-for
@@ -128,7 +128,9 @@
                            (throw (RuntimeException. "CLOJARS_GPG_ID environment variable not set"))))
         build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
         deploy-artifact (requiring-resolve 'io.pedestal.deploy/deploy-artifact)
-        module-dirs' (cons "service-template" module-dirs)
+        ;; We only care about the Leiningen service-template when either deploying, or
+        ;; when changing the version number.
+        module-dirs' (conj module-dirs "service-template")
         artifacts-data (mapv #(build-and-install % version) module-dirs')]
     (when-not dry-run
       (println "Deploying ...")
@@ -222,9 +224,3 @@
       (update-version (-> options
                           (dissoc :level :dry-run)
                           (assoc :version new-version))))))
-
-(comment
-  (update-version {:version "0.5.11-SNAPSHOT"})
-
-
-  )

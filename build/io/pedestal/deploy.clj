@@ -12,7 +12,6 @@
 (ns io.pedestal.deploy
   (:require [deps-deploy.deps-deploy :as d]
             [deps-deploy.gpg :as gpg]
-            [net.lewisship.trace :refer [trace trace>]]
             [clojure.tools.build.api :as b]
             [cemerick.pomegranate.aether :as aether]))
 
@@ -63,8 +62,7 @@
               "--default-key" sign-key-id
               "--detach-sign"
               path]
-        {:keys [success? exit-code out err]} (trace> (gpg/gpg {:args args})
-                                                     :result %)]
+        {:keys [success? exit-code out err]} (gpg/gpg {:args args})]
     (when-not success?
       (binding [*out* *err*]
         (println (format "Error %d executing GPG" exit-code))
@@ -89,8 +87,6 @@
                            (map #(sign-path sign-key-id %) paths))
         upload-artifacts (d/artifacts version upload-paths)
         aether-coordinates [(symbol artifact-id) version]]
-    (trace :upload-artifacts upload-artifacts
-           :coords aether-coordinates)
     (aether/deploy :artifact-map upload-artifacts
                    ;; Clojars is the default repository for uploads
                    :repository d/default-repo-settings

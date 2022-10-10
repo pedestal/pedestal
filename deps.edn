@@ -17,6 +17,9 @@
           io.github.hlship/trace {:mvn/version "v1.0"}
           borkdude/rewrite-edn {:mvn/version "0.3.4"}}}
 
+  ;; Duplicated here to allow REPL development of the tools;
+  ;; this may actually be a Cursive bug that you can't properly launch
+  ;; with the build alias.
   :dev
   {:extra-paths ["build"]
    :extra-deps {io.github.hlship/build-tools {:git/tag "0.6" :git/sha "3eb272"}

@@ -1,4 +1,6 @@
 (ns io.pedestal.versions
+  "Utilities to parse strings to version data, advance at a level, and unparse
+  versions."
   (:require [clojure.string :as str]))
 
 (defn parse-version
