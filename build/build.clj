@@ -46,7 +46,8 @@
   [dir overrides]
   (binding [b/*project-root* dir]
     (println "Reading" dir "...")
-    (let [basis (b/create-basis {:override-deps overrides}) roots (:classpath-roots basis)]
+    (let [basis (b/create-basis {:override-deps overrides})
+          roots (:classpath-roots basis)]
       (map (fn [path]
              (if (str/starts-with? path "/")
                path
@@ -162,9 +163,6 @@
 
   (requiring-invoke io.pedestal.build/update-service-template version)
 
-  ;; TODO: Do something for the lein service-template
-  ;; Maybe update some of the docs as well?
-
   (b/write-file {:path version-file
                  :string version})
 
@@ -187,9 +185,9 @@
   "Advances the version number and updates VERSION.txt and deps.edn files. By default,
   the file changes are committed and tagged.
 
-  Version numbers are of the form <major>.<minor>.<version>(-<stability>-<index>);
-  the stability suffix is optional; the stability can be \"snapshot\", \"beta\", or \"rc\" (for release candidate).
-  Version numbers without a stability suffix have a stability of :release.
+  Version numbers are of the form <major>.<minor>.<version>(-<stability>(-<index>));
+  the stability suffix is for non-release versions; it can be \"-SNAPSHOT\" or
+  \"-beta-<index>\" or \"-rc-<index>\".
 
   :level - :major, :minor, :patch, :snapshot, :beta, :rc, :release
   :dry-run - print new version number, but don't update
