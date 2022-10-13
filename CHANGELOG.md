@@ -2,6 +2,33 @@
 
 **NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
 
+## 0.5.10 - January 12, 2022
+* Address critical dependency vulnerabilities (i.e., Jetty) and update to the latest core.async version. Resolves [#695](https://github.com/pedestal/pedestal/issues/695)
+* **BREAKING CHANGE**: Update Pedestal's OpenTracing-related protocol implementations by removing the extension of TraceSpan, TraceSpanLog, TraceSpanLogMap and TraceSpanBaggage to Scope. This aligns Pedestal's OpenTracing support with OpenTracing version 0.33. Affected implementations should be changed to interact with spans directly, as per the Pedestal Tracing sample, as opposed to going through the Scope instance. Resolves [#693](https://github.com/pedestal/pedestal/issues/693)
+* Adds a missing arity to TraceOrigin/-span for nils. [#686](https://github.com/pedestal/pedestal/pull/686)
+*  Updates the SSLContextFactory used for configuring Jetty. This context factory supports more complicated SSL setups. [#684](https://github.com/pedestal/pedestal/pull/684)
+
+## 0.5.9 - May 9, 2021
+* Websocket handlers were added to handle flow control/backpressure asynchronously [#497](https://github.com/pedestal/pedestal/issues/497) 
+* Fix override logger optionality when using io.pedestal.log/log [#662](https://github.com/pedestal/pedestal/issues/662) 
+* Fix Critical Vulnerability in Eclipse Jetty 9.4.18.v20190429 (CVE-2020-27216) [#672](https://github.com/pedestal/pedestal/issues/672) 
+* Fix print-method generates invalid edn when printing interceptors without name [#678](https://github.com/pedestal/pedestal/issues/678) 
+* Fix incorrect arity 5 for io.pedestal.http.route.definition.table/syntax-error [#683](https://github.com/pedestal/pedestal/issues/683) 
+
+## 0.5.8 - May 22, 2020
+
+* The `fast-resource` interceptor now passes on context correctly. Resolves [#658](https://github.com/pedestal/pedestal/issues/658)
+* Pedestal now supports overriding the Jetty thread pool. [#655](https://github.com/pedestal/pedestal/issues/655).
+* Fix FileChannel/open usage in `fast-resource`. Resolves [#651](https://github.com/pedestal/pedestal/issues/651).
+* Clearer error messaging when the AWS XRay tracer is not registered. [#617](https://github.com/pedestal/pedestal/issues/617).
+* Fix error suppression bug. See PR [#645](https://github.com/pedestal/pedestal/pull/645).
+* Use openjdk Docker image in service template. Resolves [#642](https://github.com/pedestal/pedestal/issues/642).
+* The test ServletHttpRequest now returns a StringBuffer on getRequestURL.
+* Fix override-logger usage in `log` function. Resolves [#638](https://github.com/pedestal/pedestal/issues/651).
+* Fix setting initial tags in X-Ray segment/subsegment. Resolves [#626](https://github.com/pedestal/pedestal/issues/651).
+* Add test support for HttpServletResponse SendError.
+* Fix tracing examples and updates some samples.
+
 ## 0.5.7 - June 21, 2019
 
 * Fixes the `Template resource 'leiningen/new/pedestal_service/.gitignore' not found.` error

@@ -1,4 +1,4 @@
-# Pedestal [![Build Status](https://travis-ci.com/pedestal/pedestal.svg?branch=master)](https://travis-ci.com/pedestal/pedestal)
+# Pedestal ![CI](https://github.com/pedestal/pedestal/workflows/CI/badge.svg)
 
 Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
@@ -10,19 +10,19 @@ server-side development.
 
 Leiningen dependencies:
 ```
-[io.pedestal/pedestal.service       "0.5.7"]
-[io.pedestal/pedestal.service-tools "0.5.7"] ;; Only needed for ns-watching; WAR tooling
-[io.pedestal/pedestal.jetty         "0.5.7"]
-[io.pedestal/pedestal.immutant      "0.5.7"]
-[io.pedestal/pedestal.tomcat        "0.5.7"]
-[io.pedestal/pedestal.aws           "0.5.7"] ;; API-Gateway, Lambda, and X-Ray support
+[io.pedestal/pedestal.service       "0.5.10"]
+[io.pedestal/pedestal.service-tools "0.5.10"] ;; Only needed for ns-watching; WAR tooling
+[io.pedestal/pedestal.jetty         "0.5.10"]
+[io.pedestal/pedestal.immutant      "0.5.10"]
+[io.pedestal/pedestal.tomcat        "0.5.10"]
+[io.pedestal/pedestal.aws           "0.5.10"] ;; API-Gateway, Lambda, and X-Ray support
 ```
 
 You can also use Pedestal's internal modules standalone
 ```
-[io.pedestal/pedestal.log         "0.5.7"] ;; Logging and runtime metrics
-[io.pedestal/pedestal.interceptor "0.5.7"] ;; The Interceptor chain and the Interceptor API
-[io.pedestal/pedestal.route       "0.5.7"] ;; Efficient routing algorithms and data structures
+[io.pedestal/pedestal.log         "0.5.10"] ;; Logging and runtime metrics
+[io.pedestal/pedestal.interceptor "0.5.10"] ;; The Interceptor chain and the Interceptor API
+[io.pedestal/pedestal.route       "0.5.10"] ;; Efficient routing algorithms and data structures
 ```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
@@ -139,7 +139,7 @@ tests are in the [service directory](./service/test/io/pedestal)
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2019 Cognitect, Inc.
+Copyright 2014-2020 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)

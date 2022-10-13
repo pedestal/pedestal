@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service "0.5.8-SNAPSHOT"
+(defproject io.pedestal/pedestal.service "0.5.11-SNAPSHOT"
   :description "Pedestal Service"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -18,24 +18,24 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.1"]
 
-                 [io.pedestal/pedestal.log "0.5.8-SNAPSHOT"]
-                 [io.pedestal/pedestal.interceptor "0.5.8-SNAPSHOT"]
-                 [io.pedestal/pedestal.route "0.5.8-SNAPSHOT"]
+                 [io.pedestal/pedestal.log "0.5.11-SNAPSHOT"]
+                 [io.pedestal/pedestal.interceptor "0.5.11-SNAPSHOT"]
+                 [io.pedestal/pedestal.route "0.5.11-SNAPSHOT"]
 
                  ;; channels
-                 [org.clojure/core.async "0.4.490" :exclusions [org.clojure/tools.analyzer.jvm]]
+                 [org.clojure/core.async "1.5.648" :exclusions [org.clojure/tools.analyzer.jvm]]
 
                  ;; interceptors
-                 [ring/ring-core "1.7.1" :exclusions [[org.clojure/clojure]
+                 [ring/ring-core "1.9.4" :exclusions [[org.clojure/clojure]
                                                       [org.clojure/tools.reader]
                                                       [crypto-random]
                                                       [crypto-equality]]]
 
-                 [cheshire "5.8.1"]
+                 [cheshire "5.9.0"]
                  [org.clojure/tools.reader "1.3.2"]
                  [org.clojure/tools.analyzer.jvm "0.7.2"]
                  [com.cognitect/transit-clj "0.8.313"]
-                 [commons-codec "1.12"]
+                 [commons-codec "1.15"]
                  [crypto-random "1.2.0" :exclusions [[commons-codec]]]
                  [crypto-equality "1.0.0"]]
   :min-lein-version "2.0.0"
@@ -69,17 +69,17 @@
                                   ;; https://github.com/AsyncHttpClient/async-http-client
                                   ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.18.v20190429"]
-                                  [io.pedestal/pedestal.jetty "0.5.8-SNAPSHOT"]
-                                  [io.pedestal/pedestal.immutant "0.5.8-SNAPSHOT"]
-                                  [io.pedestal/pedestal.tomcat "0.5.8-SNAPSHOT"]
-                                  [javax.servlet/javax.servlet-api "3.1.0"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.48.v20220622"]
+                                  [io.pedestal/pedestal.jetty "0.5.11-SNAPSHOT"]
+                                  [io.pedestal/pedestal.immutant "0.5.11-SNAPSHOT"]
+                                  [io.pedestal/pedestal.tomcat "0.5.11-SNAPSHOT"]
+                                  ;;[javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
-                                  [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
+                                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                                   [org.clojure/tools.logging "0.4.0"]
-                                  [org.slf4j/jul-to-slf4j "1.7.26"]
-                                  [org.slf4j/jcl-over-slf4j "1.7.26"]
-                                  [org.slf4j/log4j-over-slf4j "1.7.26"]
+                                  [org.slf4j/jul-to-slf4j "1.7.35"]
+                                  [org.slf4j/jcl-over-slf4j "1.7.35"]
+                                  [org.slf4j/log4j-over-slf4j "1.7.35"]
 
                                   ;; only used for route-bench - remove when no longer needed
                                   [incanter/incanter-core "1.9.3"]

@@ -10,24 +10,24 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.service-tools "0.5.8-SNAPSHOT"
+(defproject io.pedestal/pedestal.service-tools "0.5.11-SNAPSHOT"
   :description "Pedestal tools for service development"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :min-lein-version "2.0.0"
-  :dependencies [[io.pedestal/pedestal.service "0.5.8-SNAPSHOT"]
+  :dependencies [[io.pedestal/pedestal.service "0.5.11-SNAPSHOT"]
                  [org.clojure/data.xml "0.2.0-alpha5"]
 
                  ;; Auto-reload changes
                  [ns-tracker "0.4.0"]
 
                  ;; Logging
-                 [ch.qos.logback/logback-classic "1.2.3" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.26"]
-                 [org.slf4j/jcl-over-slf4j "1.7.26"]
-                 [org.slf4j/log4j-over-slf4j "1.7.26"]
+                 [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]
 
                  [javax.servlet/javax.servlet-api "3.1.0" :scope "test"]]
 

@@ -193,10 +193,29 @@
 ;; This function should return something that satisfies the LoggerSource protocol.
 ;; The function will be called multiple times (as the logging macros are expanded).
 
-(def override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                 (System/getenv "PEDESTAL_LOGGER"))
-                             symbol
-                             resolve))
+(def override-logger (try
+                       (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                     (System/getenv "PEDESTAL_LOGGER"))
+                                 symbol
+                                 resolve)
+                       (catch java.lang.RuntimeException e
+                         nil)))
+
+(def ^:private override-logger-delay
+  "Improves the ergonomics of overriding logging by delaying
+  override logger resolution while maintaining backwards compatibility."
+  (delay (or override-logger
+             (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                         (System/getenv "PEDESTAL_LOGGER"))
+                     symbol
+                     requiring-resolve))))
+
+(defn make-logger
+  "Returns a logger which satisfies the LoggerSource protocol."
+  [^String logger-name]
+  (or (let [override-logger @override-logger-delay]
+        (and override-logger (override-logger logger-name)))
+        (LoggerFactory/getLogger logger-name)))
 
 (def log-level-dispatch
   {:trace -trace
@@ -246,8 +265,7 @@
          logger-name (or ^String (::logger-name keyvals-map)
                          ^String (name (ns-name *ns*)))
          logger (or (::logger keyvals-map)
-                    (override-logger logger-name)
-                    (LoggerFactory/getLogger logger-name))]
+                    (make-logger logger-name))]
      (when (io.pedestal.log/-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
              formatter (::formatter keyvals-map pr-str)
@@ -268,13 +286,9 @@
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
         log-method' (symbol (str "io.pedestal.log/-" (name level)))
-        formatter (::formatter keyvals-map pr-str)
-        override-logger-sym (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                        (System/getenv "PEDESTAL_LOGGER"))
-                                    symbol)]
+        formatter (::formatter keyvals-map pr-str)]
     `(let [~logger' ~(or (::logger keyvals-map)
-                         (and override-logger-sym `(~override-logger-sym ~(name (ns-name *ns*))))
-                         `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
+                         `(make-logger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
                           (~formatter ~(assoc (dissoc keyvals-map
@@ -680,20 +694,7 @@
     t)
   (-finish-span
     ([t] (.finish t) t)
-    ([t micros] (.finish t micros) t))
-
-  Scope
-  (-set-operation-name [t operation-name]
-    (-set-operation-name (.span t) operation-name))
-  (-tag-span [t tag-key tag-value]
-    (-tag-span (.span t) tag-key tag-value))
-  (-finish-span
-    ([t]
-     (.close t)
-     (-finish-span (.span t)))
-    ([t micros]
-     (.close t)
-     (-finish-span (.span t) micros))))
+    ([t micros] (.finish t micros) t)))
 
 (extend-protocol TraceSpanLog
   nil
@@ -728,19 +729,7 @@
            ^Map (array-map io.opentracing.log.Fields/EVENT "error"
                            io.opentracing.log.Fields/MESSAGE (.getMessage ^Throwable throwable)
                            io.opentracing.log.Fields/ERROR_KIND (str (type throwable))
-                           io.opentracing.log.Fields/ERROR_OBJECT throwable))))
-
-  Scope
-  (-log-span
-    ([t msg]
-     (-log-span (.span t) msg))
-    ([t msg micros]
-     (-log-span (.span t) msg micros)))
-  (-error-span
-    ([t throwable]
-     (-error-span (.span t) throwable))
-    ([t throwable micros]
-     (-error-span (.span t) throwable micros))))
+                           io.opentracing.log.Fields/ERROR_OBJECT throwable)))))
 
 (extend-protocol TraceSpanLogMap
   nil
@@ -765,14 +754,7 @@
                                  (assoc! acc (format-name k) v))
                                (transient {})
                                msg-map)))
-     t))
-
-  Scope
-  (-log-span-map
-    ([t msg-map]
-     (-log-span-map (.span t) msg-map))
-    ([t msg-map micros]
-     (-log-span-map (.span t) msg-map micros))))
+     t)))
 
 (extend-protocol TraceSpanBaggage
   nil
@@ -792,22 +774,15 @@
     ([t k not-found]
      (or (.getBaggageItem t (format-name k)) not-found)))
   (-get-baggage-map [t]
-    (into {} (.baggageItems ^SpanContext (.context t))))
-
-  Scope
-  (-set-baggage [t k v]
-    (-set-baggage (.span t) k v))
-  (-get-baggage
-    ([t k] (-get-baggage (.span t) k))
-    ([t k not-found] (-get-baggage (.span t) k not-found)))
-  (-get-baggage-map [t] (-get-baggage-map (.span t))))
+    (into {} (.baggageItems ^SpanContext (.context t)))))
 
 (extend-protocol TraceOrigin
   nil
   (-register [t] nil)
   (-span
     ([t operation-name] nil)
-    ([t opertaion-name parent] nil))
+    ([t operation-name parent] nil)
+    ([t operation-name parent opts] nil))
   (-activate-span [t span] nil)
   (-active-span [t] nil)
 

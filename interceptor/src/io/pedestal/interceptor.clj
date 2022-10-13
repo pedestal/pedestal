@@ -18,7 +18,9 @@
 
 (defmethod print-method Interceptor
   [^Interceptor i ^java.io.Writer w]
-  (.write w (str "#Interceptor{:name " (.name i) "}")))
+  (.write w (if-let [n (.name i)]
+              (str "#Interceptor{:name " (pr-str n) "}")
+              "#Interceptor{}")))
 
 (defprotocol IntoInterceptor
   (-interceptor [t] "Given a value, produce an Interceptor Record."))

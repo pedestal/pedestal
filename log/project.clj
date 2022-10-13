@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/pedestal.log "0.5.8-SNAPSHOT"
+(defproject io.pedestal/pedestal.log "0.5.11-SNAPSHOT"
   :description "Pedestal logging and metrics facilities"
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
@@ -17,7 +17,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  ;; logging
-                 [org.slf4j/slf4j-api "1.7.26"]
+                 [org.slf4j/slf4j-api "1.7.35"]
                  ;; metrics
                  [io.dropwizard.metrics/metrics-core "4.1.0"]
                  [io.dropwizard.metrics/metrics-jmx "4.1.0"]

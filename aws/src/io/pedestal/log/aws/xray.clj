@@ -197,49 +197,52 @@
    (span-resolver context (try (Class/forName "javax.servlet.HttpServletRequest")
                                    (catch Exception _ nil))))
   ([context servlet-class]
-   (let [servlet-req (and servlet-class (:servlet-request context))
-         servlet-request (and servlet-req servlet-class (with-meta servlet-req {:tag servlet-class}))
-         operation-name (:io.pedestal.interceptor.trace/span-operation context "PedestalSpan")
-         ^AWSXRayRecorder recorder log/default-tracer
-         ^Entity ent (try
-                       ;; Defensively protect against span parse/extract errors,
-                       ;;  and on exception, just create a new span without a parent, tagged appropriately
-                       (or ;; Is there already a span in the context?
-                           (::log/span context)
-                           ;; Is there an AWS X-Ray specific span/segment in the servlet request?
-                           (when-let [span (and servlet-request
-                                                (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
-                             (.beginSubsegment recorder ^String operation-name))
-                           ;; Is there an X-Ray Trace ID in the headers?
-                           (when-let [header-str (or (get-in context [:request :headers trace-header-lower])
-                                                     (get-in context [:request :headers TraceHeader/HEADER_KEY]))]
-                             (let [^TraceHeader trace-header (TraceHeader/fromString ^String header-str)
-                                   ^TraceID trace-id (.getRootTraceId trace-header)
-                                   ^String parent-id (.getParentId trace-header)]
-                               ;; Defend against the case where you're cycling back in on yourself,
-                               ;; within the same thread.
-                               (if-let [current-entity (try
-                                                          (.getTraceEntity recorder)
-                                                          (catch Exception e nil))]
-                                 (.beginSubsegment recorder ^String operation-name)
-                                 (.beginSegment recorder
-                                                ^String operation-name
-                                                ^TraceID trace-id
-                                                ^String parent-id))))
-                           ;; Otherwise, create a new span
-                           (log/span operation-name))
-                       (catch Exception e
-                         ;; Something happened during decoding a Span,
-                         ;; Create a new span and tag it accordingly
-                         (log/info :msg "Error occured when trying to resolve an AWS X-Ray Segment"
-                                   :exception e)
-                         (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e))))]
-     ;; X-Ray can remove tags it doesn't recognize (including those common to OpenTracing).
-     ;;  This adds XRay-specific HTTP info to the trace, so it gets included.
-     (.putHttp ent "request" {"method" (name (get-in context [:request :request-method]))
-                              "url"(get-in context [:request :uri])
-                              "user_agent" (get-in context [:request :headers "user-agent"])})
-     ent)))
+   (try
+     (let [servlet-req               (and servlet-class (:servlet-request context))
+           servlet-request           (and servlet-req servlet-class (with-meta servlet-req {:tag servlet-class}))
+           operation-name            (:io.pedestal.interceptor.trace/span-operation context "PedestalSpan")
+           ^AWSXRayRecorder recorder log/default-tracer
+           ^Entity ent               (try
+                                       ;; Defensively protect against span parse/extract errors,
+                                       ;;  and on exception, just create a new span without a parent, tagged appropriately
+                                       (or ;; Is there already a span in the context?
+                                        (::log/span context)
+                                        ;; Is there an AWS X-Ray specific span/segment in the servlet request?
+                                        (when-let [span (and servlet-request
+                                                             (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
+                                          (.beginSubsegment recorder ^String operation-name))
+                                        ;; Is there an X-Ray Trace ID in the headers?
+                                        (when-let [header-str (or (get-in context [:request :headers trace-header-lower])
+                                                                  (get-in context [:request :headers TraceHeader/HEADER_KEY]))]
+                                          (let [^TraceHeader trace-header (TraceHeader/fromString ^String header-str)
+                                                ^TraceID trace-id         (.getRootTraceId trace-header)
+                                                ^String parent-id         (.getParentId trace-header)]
+                                            ;; Defend against the case where you're cycling back in on yourself,
+                                            ;; within the same thread.
+                                            (if-let [current-entity (try
+                                                                      (.getTraceEntity recorder)
+                                                                      (catch Exception e nil))]
+                                              (.beginSubsegment recorder ^String operation-name)
+                                              (.beginSegment recorder
+                                                             ^String operation-name
+                                                             ^TraceID trace-id
+                                                             ^String parent-id))))
+                                        ;; Otherwise, create a new span
+                                        (log/span operation-name))
+                                       (catch Exception e
+                                         ;; Something happened during decoding a Span,
+                                         ;; Create a new span and tag it accordingly
+                                         (log/info :msg "Error occured when trying to resolve an AWS X-Ray Segment"
+                                                   :exception e)
+                                         (log/tag-span (log/span operation-name) :revolver-exception (.getMessage e))))]
+       ;; X-Ray can remove tags it doesn't recognize (including those common to OpenTracing).
+       ;;  This adds XRay-specific HTTP info to the trace, so it gets included.
+       (.putHttp ent "request" {"method"     (name (get-in context [:request :request-method]))
+                                "url"        (get-in context [:request :uri])
+                                "user_agent" (get-in context [:request :headers "user-agent"])})
+       ent)
+     (catch ClassCastException ex
+       (throw (ex-info "Unable to resolve span. Ensure that the X-Ray tracer is registered." {} ex))))))
 
 (defn span-postprocess
   [context ^Entity span]
