@@ -28,8 +28,8 @@
         headers (merge {} (when token {"csrf-token" token}))]
     (assoc-in context [:response :headers] headers)))
 
-(defroutes request-handling-routes
-  [[:request-handling "csrf-test.pedestal"
+(def request-handling-routes
+  `[[:request-handling "csrf-test.pedestal"
     ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (anti-forgery)]
      ["/leaf" {:any [:leaf terminator]}]
      ["/rotate-token" {:any [:rotate-token rotate-token-handler]}]]]])
