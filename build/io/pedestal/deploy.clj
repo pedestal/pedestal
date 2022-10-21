@@ -10,12 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.deploy
-  (:require [deps-deploy.deps-deploy :as d]
-            [deps-deploy.gpg :as gpg]
-            [clojure.tools.build.api :as b]
-            [cemerick.pomegranate.aether :as aether]))
-
-(System/setProperty "aether.checksums.forSignature" "true")
+  (:require [clojure.tools.build.api :as b]))
 
 (defn build-and-install
   [dir version]
@@ -54,41 +49,3 @@
        :jar-path (str dir "/" output-file)
        :pom-path (b/pom-path {:lib project-name
                               :class-dir class-dir})})))
-
-(defn- sign-path
-  [sign-key-id path]
-  (let [args ["--yes"
-              "--armour"
-              "--default-key" sign-key-id
-              "--detach-sign"
-              path]
-        {:keys [success? exit-code out err]} (gpg/gpg {:args args})]
-    (when-not success?
-      (binding [*out* *err*]
-        (println (format "Error %d executing GPG" exit-code))
-        (println out)
-        (println err))
-      (throw (ex-info "GPG Failure"
-                      {:exit-code exit-code
-                       :path path
-                       :sign-key-id sign-key-id})))
-    ;; Return the name of the created file
-    (str path ".asc")))
-
-(defn deploy-artifact
-  [artifact-data sign-key-id]
-  (let [{:keys [artifact-id version jar-path pom-path]} artifact-data
-        _ (println (format "Deploying %s %s ..." artifact-id version))
-        versioned-pom-path (str "target/" (name artifact-id) "-" version ".pom")
-        _ (b/copy-file {:src pom-path
-                        :target versioned-pom-path})
-        paths [jar-path versioned-pom-path]
-        upload-paths (into paths
-                           (map #(sign-path sign-key-id %) paths))
-        upload-artifacts (d/artifacts version upload-paths)
-        aether-coordinates [(symbol artifact-id) version]]
-    (aether/deploy :artifact-map upload-artifacts
-                   ;; Clojars is the default repository for uploads
-                   :repository d/default-repo-settings
-                   :transfer-listener :stdout
-                   :coordinates aether-coordinates)))
