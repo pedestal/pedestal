@@ -19,7 +19,7 @@ jobs:
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@master
         with:
-          cli: latest
+          cli: 1.11.1.1165
       - name: Clojure Version
         run: |
           clojure -version
