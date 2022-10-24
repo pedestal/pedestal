@@ -15,12 +15,21 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v1
         with:
-          java-version: '1.8'
+          java-version: '1.9'
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@master
         with:
-          lein: 2.9.1
-      - name: Run tests
+          cli: 1.11.1.1165
+      - name: Clojure Version
         run: |
-          lein sub install
-          lein sub test :travis
+          clojure -version
+          clojure -e '*clojure-version*'
+      - name: Dependencies and Prep
+        working-directory: service
+        run: clojure -X:deps:local prep
+      - name: Compile services
+        working-directory: service
+        run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
+      - name: Execute tests
+        working-directory: tests
+        run: clojure -X:test

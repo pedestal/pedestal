@@ -1,0 +1,32 @@
+; Copyright 2022 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+        io.pedestal/pedestal.log {:mvn/version "0.5.11-SNAPSHOT"}
+        io.pedestal/pedestal.service {:mvn/version "0.5.11-SNAPSHOT"}
+        org.eclipse.jetty/jetty-server {:mvn/version "9.4.48.v20220622"}
+        org.eclipse.jetty/jetty-servlet {:mvn/version "9.4.48.v20220622"}
+        org.eclipse.jetty.alpn/alpn-api {:mvn/version "1.1.3.v20160715"}
+        org.eclipse.jetty/jetty-alpn-server {:mvn/version "9.4.48.v20220622"}
+        org.eclipse.jetty.http2/http2-server {:mvn/version "9.4.48.v20220622"}
+        org.eclipse.jetty.websocket/websocket-api {:mvn/version "9.4.48.v20220622"}
+        org.eclipse.jetty.websocket/websocket-servlet {:mvn/version "9.4.48.v20220622"}
+        org.eclipse.jetty.websocket/websocket-server {:mvn/version "9.4.48.v20220622"}
+        javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}
+ :aliases
+ {:local
+  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.service {:local/root "../service"}
+                   ;; Recapitulate transitive dependencies of pedestal.service since the
+                   ;; :local alias isn't carried through when resolving the local dependencies.
+                   io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
+                   io.pedestal/pedestal.route {:local/root "../route"}}}}}
