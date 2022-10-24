@@ -24,6 +24,7 @@ jobs:
 
         run: |
           pushd service
+          clojure -X:deps prep
           clojure -T:build compile-java
           popd
           pushd tests
