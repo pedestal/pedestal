@@ -23,7 +23,7 @@ jobs:
       - name: Clojure Version
         run: |
           clojure -version
-          clojure -e '*clojure-version*'
+          clojure -M -e '*clojure-version*'
       - name: Dependencies and Prep
         working-directory: service
         run: clojure -X:deps:local prep
