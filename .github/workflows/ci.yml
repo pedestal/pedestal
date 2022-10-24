@@ -20,12 +20,12 @@ jobs:
         uses: DeLaGuardo/setup-clojure@master
         with:
           cli: latest
-      - name: Run tests
-
-        run: |
-          pushd service
-          clojure -X:deps prep
-          clojure -T:build compile-java
-          popd
-          pushd tests
-          clojure -X:test
+      - name: Dependencies and Prep
+        working-directory: service
+        run: clojure -X:deps prep
+      - name: Compile services
+        working-directory: service
+        run: clojure -T:build compile-java
+      - name: Execute tests
+        working-directory: tests
+        run: clojure -X:test
