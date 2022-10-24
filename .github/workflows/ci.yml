@@ -21,7 +21,9 @@ jobs:
         with:
           cli: latest
       - name: Clojure Version
-        run: clojure -e '*clojure-version*'
+        run: |
+          clojure -version
+          clojure -e '*clojure-version*'
       - name: Dependencies and Prep
         working-directory: service
         run: clojure -X:deps:local prep
