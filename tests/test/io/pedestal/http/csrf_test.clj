@@ -16,6 +16,10 @@
   [request]
   {:status 200 :body success-msg :headers {}})
 
+(defhandler rotate-token-handler
+  [request]
+  (rotate-token {:status 200 :body success-msg :headers {}}))
+
 (defafter token-sniffer
   "Relay the token to the requester behind the scenes to mimic the
    use of a conventional form with a hidden field."
@@ -26,8 +30,9 @@
 
 (def request-handling-routes
   `[[:request-handling "csrf-test.pedestal"
-     ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (anti-forgery)]
-      ["/leaf" {:any [:leaf terminator]}]]]])
+    ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (anti-forgery)]
+     ["/leaf" {:any [:leaf terminator]}]
+     ["/rotate-token" {:any [:rotate-token rotate-token-handler]}]]]])
 
 (defn make-app [options]
   (-> options
@@ -56,11 +61,14 @@
   (is (= denied-msg
          (->> url (response-for app :post) :body))))
 
-(defn header-data-from-initial-request []
-  (let [headers (:headers (response-for app :get url))
-        cookie  (-> headers (get "Set-Cookie") first (s/split #";") first)
-        token   (-> headers (get "csrf-token"))]
+(defn response->cookie&token [{:keys [headers]}]
+  (let [cookie (some-> headers (get "Set-Cookie") first (s/split #";") first)
+        token  (some-> headers (get "csrf-token"))]
     [cookie token]))
+
+(defn header-data-from-initial-request []
+  (-> (response-for app :get url)
+      response->cookie&token))
 
 (deftest good-token-is-respected
   (let [[cookie token] (header-data-from-initial-request)
@@ -171,7 +179,17 @@
         request {:request {:headers {"x-csrf-token" "foo"}
                            :session {"__anti-forgery-token" "foo"}}}]
     (testing "custom read token is respected"
-     (is (= "foo"
+     (is (= {:value "foo"}
+            (get-in (i request) [:response :cookies "__anti-forgery-token"]))))))
+
+(deftest custom-cookie-attrs
+  (let [cookie-attrs {:path "/sub" :max-age 1234}
+        i            (standalone-anti-forgery-interceptor {:cookie-token true
+                                                           :cookie-attrs cookie-attrs})
+        request      {:request {:headers {"x-csrf-token" "foo"}
+                                :session {"__anti-forgery-token" "foo"}}}]
+    (testing "custom cookie attrs  is respected"
+      (is (= (merge cookie-attrs {:value "foo"})
             (get-in (i request) [:response :cookies "__anti-forgery-token"]))))))
 
 (deftest sessionless-cookie-token
@@ -180,3 +198,13 @@
     (testing "get 403 if missing both session and cookie"
      (is (= 403
             (get-in (i request) [:response :status]))))))
+
+(def rotate-token-url "http://csrf-test.pedestal/anti-forgery/rotate-token")
+
+(deftest rotate-token-is-respected
+  (let [[cookie token]   (header-data-from-initial-request)
+        headers          {"cookie" cookie "x-csrf-token" token}
+        resp             (response-for app :post rotate-token-url :headers headers)
+        [cookie2 token2] (response->cookie&token (:headers resp))]
+    (is (nil? cookie2))
+    (is (not= token token2))))
