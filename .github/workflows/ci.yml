@@ -20,12 +20,14 @@ jobs:
         uses: DeLaGuardo/setup-clojure@master
         with:
           cli: latest
+      - name: Clojure Version
+        run: clojure -e '*clojure-version*'
       - name: Dependencies and Prep
         working-directory: service
-        run: clojure -X:deps prep
+        run: clojure -X:deps:local prep
       - name: Compile services
         working-directory: service
-        run: clojure -T:build compile-java
+        run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
       - name: Execute tests
         working-directory: tests
         run: clojure -X:test

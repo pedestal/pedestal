@@ -3,8 +3,9 @@
 
 (defn compile-java
   "Compiles Java sources, with the Servlet API on the classpath."
-  [_]
-  (let [basis (b/create-basis {:aliases [:servlet-api]})]
+  [{:keys [aliases]
+    :or {aliases [:servlet-api]}}]
+  (let [basis (b/create-basis {:aliases aliases})]
     (b/javac {:src-dirs ["java"]
               :class-dir "target/classes"
               :basis basis
