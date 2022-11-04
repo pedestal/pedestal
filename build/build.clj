@@ -68,19 +68,21 @@
 
 (defn codox
   "Generates combined Codox documentation for all sub-projects."
-  [_]
-  (let [overrides (reduce as-override {} module-dirs)
+  [options]
+  (let [{:keys [output-path]} options
+        overrides (reduce as-override {} module-dirs)
         project-classpath (mapcat #(classpath-for % overrides) module-dirs)
         codox-classpath (:classpath-roots (b/create-basis {:aliases [:codox]}))
         full-classpath (->> project-classpath
                             (concat codox-classpath)
                             distinct
                             sort)
-        codox-config {:metadata {:doc/format :markdown}
-                      :name (str (name group-name) " libraries")
-                      :version version
-                      :source-paths (mapv #(str % "/src") module-dirs)
-                      :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
+        codox-config (cond-> {:metadata {:doc/format :markdown}
+                              :name (str (name group-name) " libraries")
+                              :version version
+                              :source-paths (mapv #(str % "/src") module-dirs)
+                              :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
+                       output-path (assoc :output-path output-path))
         expression `(do
                       ((requiring-resolve 'codox.main/generate-docs) ~codox-config)
                       ;; Above returns the output directory name, "target/doc", which gets printed
