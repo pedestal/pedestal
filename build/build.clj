@@ -12,9 +12,9 @@
 (ns build
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
-            [net.lewisship.build :refer [requiring-invoke]]
+            [net.lewisship.build :refer [requiring-invoke deploy-jar]]
             [clojure.tools.build.api :as b]
-            [io.pedestal.versions :as v]))
+            [net.lewisship.build.versions :as v]))
 
 ;; General notes: have to do a *lot* of fighting with executing particular build commands from the root
 ;; rather than in each module's sub-directory.
@@ -68,19 +68,21 @@
 
 (defn codox
   "Generates combined Codox documentation for all sub-projects."
-  [_]
-  (let [overrides (reduce as-override {} module-dirs)
+  [options]
+  (let [{:keys [output-path]} options
+        overrides (reduce as-override {} module-dirs)
         project-classpath (mapcat #(classpath-for % overrides) module-dirs)
         codox-classpath (:classpath-roots (b/create-basis {:aliases [:codox]}))
         full-classpath (->> project-classpath
                             (concat codox-classpath)
                             distinct
                             sort)
-        codox-config {:metadata {:doc/format :markdown}
-                      :name (str (name group-name) " libraries")
-                      :version version
-                      :source-paths (mapv #(str % "/src") module-dirs)
-                      :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
+        codox-config (cond-> {:metadata {:doc/format :markdown}
+                              :name (str (name group-name) " libraries")
+                              :version version
+                              :source-paths (mapv #(str % "/src") module-dirs)
+                              :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
+                       output-path (assoc :output-path output-path))
         expression `(do
                       ((requiring-resolve 'codox.main/generate-docs) ~codox-config)
                       ;; Above returns the output directory name, "target/doc", which gets printed
@@ -123,19 +125,14 @@
 
   (println (str "Building version " version (when dry-run " (dry run)") " ..."))
 
-  (let [sign-key-id' (when (not dry-run)
-                       (or sign-key-id
-                           (System/getenv "CLOJARS_GPG_ID")
-                           (throw (RuntimeException. "CLOJARS_GPG_ID environment variable not set"))))
-        build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
-        deploy-artifact (requiring-resolve 'io.pedestal.deploy/deploy-artifact)
+  (let [build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
         ;; We only care about the Leiningen service-template when either deploying, or
         ;; when changing the version number.
         module-dirs' (conj module-dirs "service-template")
         artifacts-data (mapv #(build-and-install % version) module-dirs')]
     (when-not dry-run
       (println "Deploying ...")
-      (run! #(deploy-artifact % sign-key-id') artifacts-data)))
+      (run! #(deploy-jar (assoc % :sign-key-id sign-key-id)) artifacts-data)))
   (println "done"))
 
 (defn update-version
