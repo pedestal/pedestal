@@ -39,10 +39,10 @@
                   servlet-name
                   servlet-class
                   url-pattern]
-           :or [servlet-description "Pedestal HTTP Servlet"
+           :or {servlet-description "Pedestal HTTP Servlet"
                 servlet-name "PedestalServlet"
                 servlet-class "io.pedestal.servlet.ClojureVarServlet"
-                url-pattern "/*"]} opts]
+                url-pattern "/*"}} opts]
       (xml/indent-str
         (xml/sexp-as-element
           [:web-app {:xmlns              "http://java.sun.com/xml/ns/javaee"
@@ -143,7 +143,7 @@
     (doto war-stream
       (write-entry "WEB-INF/web.xml" (string-input-stream (make-web-xml opts)))
       (and (:compile-path opts)
-           (dir-entry opts "WEB-INF/classes/" (:compile-path opts))))
+           (dir-entry war-stream opts "WEB-INF/classes/" (:compile-path opts))))
     (doseq [path (distinct (:resource-paths opts))
             :when path]
       (dir-entry war-stream opts "WEB-INF/classes/" path))
@@ -168,4 +168,3 @@
      (write-war opts war-path)
      (println "Created" war-path)
      war-path)))
-

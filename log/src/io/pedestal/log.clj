@@ -193,10 +193,29 @@
 ;; This function should return something that satisfies the LoggerSource protocol.
 ;; The function will be called multiple times (as the logging macros are expanded).
 
-(def override-logger (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                 (System/getenv "PEDESTAL_LOGGER"))
-                             symbol
-                             resolve))
+(def override-logger (try
+                       (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                                     (System/getenv "PEDESTAL_LOGGER"))
+                                 symbol
+                                 resolve)
+                       (catch java.lang.RuntimeException e
+                         nil)))
+
+(def ^:private override-logger-delay
+  "Improves the ergonomics of overriding logging by delaying
+  override logger resolution while maintaining backwards compatibility."
+  (delay (or override-logger
+             (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
+                         (System/getenv "PEDESTAL_LOGGER"))
+                     symbol
+                     requiring-resolve))))
+
+(defn make-logger
+  "Returns a logger which satisfies the LoggerSource protocol."
+  [^String logger-name]
+  (or (let [override-logger @override-logger-delay]
+        (and override-logger (override-logger logger-name)))
+        (LoggerFactory/getLogger logger-name)))
 
 (def log-level-dispatch
   {:trace -trace
@@ -246,8 +265,7 @@
          logger-name (or ^String (::logger-name keyvals-map)
                          ^String (name (ns-name *ns*)))
          logger (or (::logger keyvals-map)
-                    (and override-logger (override-logger logger-name))
-                    (LoggerFactory/getLogger logger-name))]
+                    (make-logger logger-name))]
      (when (io.pedestal.log/-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
              formatter (::formatter keyvals-map pr-str)
@@ -268,13 +286,9 @@
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
         log-method' (symbol (str "io.pedestal.log/-" (name level)))
-        formatter (::formatter keyvals-map pr-str)
-        override-logger-sym (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                        (System/getenv "PEDESTAL_LOGGER"))
-                                    symbol)]
+        formatter (::formatter keyvals-map pr-str)]
     `(let [~logger' ~(or (::logger keyvals-map)
-                         (and override-logger-sym `(~override-logger-sym ~(name (ns-name *ns*))))
-                         `(LoggerFactory/getLogger ~(name (ns-name *ns*))))]
+                         `(make-logger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
          (let [~string' (binding [*print-length* 80]
                           (~formatter ~(assoc (dissoc keyvals-map

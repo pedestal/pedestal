@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -28,7 +28,7 @@
                  ;;   Normally, you'd only take the version based on your OS,
                  ;;   but the Uberjar has all shared libs bundled up, which is nice for this example
                  [org.conscrypt/conscrypt-openjdk-uber "1.1.2"]
-                 [org.eclipse.jetty/jetty-alpn-conscrypt-server "9.4.10.v20180503"]]
+                 [org.eclipse.jetty/jetty-alpn-conscrypt-server "9.4.48.v20220622"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "hp.server/run-dev"]}}

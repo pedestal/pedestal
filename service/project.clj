@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -43,7 +43,7 @@
   :javac-options ["-target" "1.8" "-source" "1.8"]
   :jvm-opts ["-D\"clojure.compiler.direct-linking=true\""]
   :global-vars {*warn-on-reflection* true}
-  :pedantic? :abort
+  ;:pedantic? :abort
   :aliases {"bench-log" ["trampoline" "run" "-m" "io.pedestal.log-bench"]
             "bench-service" ["trampoline" "run" "-m" "io.pedestal.niotooling.server"]
             "bench-route" ["trampoline" "run" "-m" "io.pedestal.route.route-bench"]
@@ -55,7 +55,7 @@
                    :dependencies [[criterium "0.4.5"]
                                   [org.clojure/java.classpath "0.3.0"]
                                   [org.clojure/tools.namespace "0.2.11"]
-                                  ;; TODO: clj-http 3.10.0 is available but
+                                  ;; TODO: clj-httpp 3.10.0 is available but
                                   ;; gzip compression test fails. Even though
                                   ;; `accept-encoding: gzip, deflate` is set by clj-http
                                   ;; (in HttpRequest), there is an issue with either
@@ -69,11 +69,11 @@
                                   ;; https://github.com/AsyncHttpClient/async-http-client
                                   ;; So benchmarking should be updated to use that.
                                   [com.ning/async-http-client "1.8.13"]
-                                  [org.eclipse.jetty/jetty-servlets "9.4.44.v20210927"]
+                                  [org.eclipse.jetty/jetty-servlets "9.4.48.v20220622"]
                                   [io.pedestal/pedestal.jetty "0.5.11-SNAPSHOT"]
                                   [io.pedestal/pedestal.immutant "0.5.11-SNAPSHOT"]
                                   [io.pedestal/pedestal.tomcat "0.5.11-SNAPSHOT"]
-                                  [javax.servlet/javax.servlet-api "3.1.0"]
+                                  ;;[javax.servlet/javax.servlet-api "3.1.0"]
                                   ;; Logging:
                                   [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                                   [org.clojure/tools.logging "0.4.0"]

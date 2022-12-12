@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -14,7 +14,6 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [ring.util.response :as ring-resp])
   (:import [java.nio ByteBuffer]))
 
@@ -33,11 +32,11 @@
    ;; A ReadableByteChannel would also work out of the box.
    :body (ByteBuffer/wrap (.getBytes "Hello World!" "UTF-8"))})
 
-(defroutes routes
-  [[["/" {:get nio-home}
-     ;; Set default interceptors for /about and any other paths under /
-     ^:interceptors [(body-params/body-params) http/html-body]
-     ["/about" {:get about-page}]]]])
+(def routes
+  `[[["/" {:get nio-home}
+      ;; Set default interceptors for /about and any other paths under /
+      ^:interceptors [(body-params/body-params) http/html-body]
+      ["/about" {:get about-page}]]]])
 
 ;; Consumed by nio.server/create-server
 ;; See http/default-interceptors for additional options you can configure

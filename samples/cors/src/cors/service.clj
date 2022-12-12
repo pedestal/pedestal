@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -17,7 +17,6 @@
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.http.route.definition :refer [defroutes]]
             [io.pedestal.http.sse :as sse]
             [ring.util.response :as ring-resp]
             [ring.middleware.cors :as cors]))
@@ -49,8 +48,8 @@
 
 ;; Where are the html and javascript files?
 ;; They are served statically from resources/public/
-(defroutes routes
-  [[["/"   {:get [::send-stuff (sse/start-event-stream sse-stream-ready)]}]]])
+(def routes
+  `[[["/"   {:get [::send-stuff (sse/start-event-stream sse-stream-ready)]}]]])
 
 (def service {:env :prod
               ::http/routes routes
