@@ -388,23 +388,25 @@
   Note:
   If you mix `with-context` with the more basic `with-context-kv`, you may see undesired keys/values in the log"
   [ctx-map & body]
-  (let [formatter (::formatter ctx-map pr-str)]
-    (if (and (map? ctx-map) (empty? ctx-map)) ;; Optimize for the code-gen/dynamic case where the map may be empty
-      `(do
-         ~@body)
-      `(let [old-ctx# *mdc-context*
-             mdc# (or ~(::mdc ctx-map) (MDC/getMDCAdapter))]
-         (binding [*mdc-context* (merge *mdc-context* ~ctx-map)]
-           (-put-mdc mdc# mdc-context-key (~formatter (dissoc *mdc-context*
-                                                              :io.pedestal.log/formatter
-                                                              :io.pedestal.log/mdc)))
-           (try
-             ~@body
-             (finally
-               (-put-mdc mdc# mdc-context-key ((:io.pedestal.log/formatter old-ctx# pr-str)
-                                               (dissoc old-ctx#
-                                                       :io.pedestal.log/formatter
-                                                       :io.pedestal.log/mdc))))))))))
+  (if (or (symbol? ctx-map)
+          (and (map? ctx-map) (seq ctx-map)))
+    ;; ctx-map is a symbol to be resolved at runtime or non-empty
+    `(let [old-ctx# *mdc-context*
+           formatter# ~(::formatter ctx-map pr-str)
+           mdc# (or ~(::mdc ctx-map) (MDC/getMDCAdapter))]
+       (binding [*mdc-context* (merge *mdc-context* ~ctx-map)]
+         (-put-mdc mdc# mdc-context-key (formatter# (dissoc *mdc-context*
+                                                            :io.pedestal.log/formatter
+                                                            :io.pedestal.log/mdc)))
+         (try
+           ~@body
+           (finally
+             (-put-mdc mdc# mdc-context-key ((:io.pedestal.log/formatter old-ctx# pr-str)
+                                             (dissoc old-ctx#
+                                                     :io.pedestal.log/formatter
+                                                     :io.pedestal.log/mdc)))))))
+    ;; Optimize for the code-gen/dynamic case where the ctx-map is empty
+    `(do ~@body)))
 (defmacro with-context-kv
   "Given a key, value, and body,
   associates the key-value pair into the *mdc-context* only for the scope/execution of `body`,

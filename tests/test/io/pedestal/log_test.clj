@@ -17,6 +17,20 @@
     (is (= {:a 1}
            @unwrapped-value))))
 
+(deftest with-context-expansion
+  (let [body ["some" "random" "body"]]
+    (testing "a nil context map in with-context doesn't incur macro code-gen overhead"
+      (is (= `(do ~@body)
+             (macroexpand `(log/with-context nil ~@body)))))
+
+    (testing "providing a variable to with-context generates context-manipulating code"
+      (is (not (= `(do ~@body)
+                  (macroexpand `(log/with-context some-ctx-map-var ~@body))))))
+
+    (testing "providing a non-empty map to with-context generates context-manipulating code"
+      (is (not (= `(do ~@body)
+                  (macroexpand `(log/with-context {:extra 'context} ~@body))))))))
+
 (deftest nil-trace-origin
   (is (nil? (log/-span nil "operation-name")))
   (is (nil? (log/-span nil "operation-name" nil)))
