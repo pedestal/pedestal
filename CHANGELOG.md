@@ -1,6 +1,17 @@
 # Pedestal Changelog
 
-**NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
+**NOTE:** Whenever upgrading versions of pedestal, please be sure to clean your project's `out` directory.
+
+## 0.5.11 - UNRELEASED
+
+* Pedestal is now built using deps (`deps.edn`) rather than Leiningen (`project.clj`)
+* **BREAKING CHANGE**: Path parameters (extracted during routing) are now, by default, URL decoded (via
+  `io.pedestal.http.route/path-params-decoder`), when using `io.pedestal.http/default-interceptors`; previously
+  this was the application's responsibility, usually in individual routes' interceptor lists.
+  The prior behavior can be restored by passing `:io.pedestal.http/path-params-decoder` as nil in the service map 
+  provided to `io.pedestal.http/create-server`.
+* Updated many dependencies, particularly to address CVEs in dependencies
+* Improvements to documentation and examples
 
 ## 0.5.10 - January 12, 2022
 * Address critical dependency vulnerabilities (i.e., Jetty) and update to the latest core.async version. Resolves [#695](https://github.com/pedestal/pedestal/issues/695)
