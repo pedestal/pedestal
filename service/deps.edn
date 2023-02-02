@@ -11,9 +11,9 @@
 
 {:paths ["src" "target/classes"]
  :deps {org.clojure/clojure {:mvn/version "1.10.1"}
-        io.pedestal/pedestal.log {:mvn/version "0.5.11-SNAPSHOT"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-SNAPSHOT"}
-        io.pedestal/pedestal.route {:mvn/version "0.5.11-SNAPSHOT"}
+        io.pedestal/pedestal.log {:mvn/version "0.5.11-beta-1"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-beta-1"}
+        io.pedestal/pedestal.route {:mvn/version "0.5.11-beta-1"}
 
         ;; channels
 
