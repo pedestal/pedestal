@@ -6,7 +6,7 @@ server-side development.
 
 **Pedestal requires Java 1.8+ and Servlet 3.1**
 
-## Getting the Latest Release
+## Getting the Latest Stable Release
 
 Leiningen dependencies:
 ```
@@ -18,7 +18,8 @@ Leiningen dependencies:
 [io.pedestal/pedestal.aws           "0.5.10"] ;; API-Gateway, Lambda, and X-Ray support
 ```
 
-You can also use Pedestal's internal modules standalone
+You can also use Pedestal's internal modules standalone:
+
 ```
 [io.pedestal/pedestal.log         "0.5.10"] ;; Logging and runtime metrics
 [io.pedestal/pedestal.interceptor "0.5.10"] ;; The Interceptor chain and the Interceptor API
@@ -28,35 +29,36 @@ You can also use Pedestal's internal modules standalone
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
 version details, updates, and necessary migration steps.**
 
-### Notable capabilities
+## Notable capabilities
 
- * Fast and secure by default (automatically uses secure headers, CSRF-protection, and other best practices)
- * A guiding principle of "data > functions > macros" - the core pieces of Pedestal
-   are data-driven and programmed against protocols.  The entire platform is extensible.
- * A high-performance [prefix-tree router](https://github.com/pedestal/pedestal/pull/330)
-   that is significantly faster and more space efficient than other Clojure web routers
-   * When avoiding wildcard and param-routes, the router will be O(log32 N), otherwise O(log N), for the number of routes
- * The ability to plug-in any router, including one you write
- * The ability to express routes in any format you like
- * [Full/true async support](https://groups.google.com/d/msg/clojure/rKqT13Ofy4k/H9xvkZA9Yy4J) (Async Servlet + core.async + NIO),
-   resulting in better performance and capacity than a synchronous-only solution
- * Advanced [error handling](https://github.com/pedestal/pedestal/pull/302) for async systems
- * Integrated streaming capabilities like [Server-sent events](./samples/server-sent-events)
- * Integrated support for Cross-origin resource sharing/[CORS](./samples/cors)
- * Integrated support for content negotiation
- * Integrated linking and testing tools
- * Integrated logging and runtime [metrics](./samples/helloworld-metrics) (which can be published to JMX, StatsD, Cloudwatch, and more)
- * Integrated [tracing](./samples/tracing-interceptor) with support for Open-Tracing, Jaeger, AWS X-Ray, and more.
- * A fundamentally simple system (absolutely everything is an interceptor; interceptors compose)
- * The ability to utilize Java Web technology directly in your service (Pedestal can integrate ServletFilters)
- * The ability to utilize Ring Middleware as Pedestal Interceptors
- * Support to run on Jetty, Immutant/Undertow, and Tomcat
- * The ability to run Pedestal services on non-Servlet containers (Vert.x, nginx, Netty, etc.)
- * HTTP/2, HTTP/2 Cleartext, and ALPN support
- * [WebSocket](./samples/jetty-web-sockets) support
- * [Docker](https://www.docker.com/) and [OSv](http://osv.io/) support
- * and more!
+  * Secure by default: automatic use of secure headers, CSRF (cross-site request forgery) protection, and other
+    essential security practices right out of the box
+  * Flexible: 
+    * Pedestal builds on top of your choice of several servlet containers, including Jetty and Tomcat
+    * Pedestal can work with non-servlet containers such as nginx or Netty
+    * Everything from servlet container integration, to routing table notation is easily overridden or extended
+    * Metrics can be published to JMX, StatsD, Cloudwatch, and more 
+    * Behavior is defined by small [interceptors](http://pedestal.io/reference/interceptors) that can be easily combined and extended
+  * Fast:
+    * High-performance [prefix-tree router](http://pedestal.io/reference/prefix-tree-router) to dispatch incoming requests
+    * Full support for asynchronous request processing on top of Clojure's [core.async](https://github.com/clojure/core.async)
+  * Mature:
+    * Integrated linking and testing tools
+    * Integrated logging, [tracing](./samples/tracing-interceptor), and [runtime metrics](./samples/helloworld-metrics)
+    * Advanced error handling, even for for async systems
+    * Support for [WebSockets](./samples/jetty-web-sockets) and for [server-sent events]()
+    * Support for Cross-origin resource sharing (CORS)
+    * HTTP/2, HTTP/2 Cleartext, and ALPN support
 
+
+## Principles
+
+We prefer _data_ over _functions_, and functions over _macros_.
+
+Open subsystems, such as routing, are defined in terms of a well-defined protocol so that applications can seamlessly
+integrate their own solutions when necessary.
+
+We feel that [interceptors](http://pedestal.io/reference/interceptors) are the ideal way to implement these ideals.
 
 ## Getting started
 
@@ -67,7 +69,6 @@ Pedestal service. This will automatically pull templates from
 <http://clojars.org>
 
 ```bash
-# To create a new service:
 lein new pedestal-service the-next-big-server-side-thing
 ```
 
@@ -114,32 +115,20 @@ diagnosing or correcting Windows issues.
 * Subscribe to [pedestal-users](https://groups.google.com/d/forum/pedestal-users)
   and [pedestal-dev](https://groups.google.com/d/forum/pedestal-dev)
 
-### Looking for Pedestal App?
-
- * Pedestal App now lives in [its own github repo](https://github.com/pedestal/pedestal-app).
- * Please see the [community announcement discontinuing "App"](https://groups.google.com/forum/#!topic/pedestal-users/jODwmJUIUcg) for more details.
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
 
-### Installing Libraries
-
-To install Pedestal library components in your local Maven repository run
-`lein sub install` from a local checkout of this repository.
-
 ### Running the tests
 
-After installing all the library components, you can run the tests with
-`lein sub test` from a local checkout of this repository.  The majority of the
-tests are in the [service directory](./service/test/io/pedestal)
+From the `tests` subdirectory, execute 'clj -X:test`.
 
 ---
 
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2020 Cognitect, Inc.
+Copyright 2014-2023 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
