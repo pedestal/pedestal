@@ -63,13 +63,13 @@
 (defn decode-query-part
   "Decodes one key or value of URL-encoded UTF-8 characters in a URL
   query string."
-  [string]
+  [^String string]
   (URLDecoder/decode string "UTF-8"))
 
 (defn encode-query-part
   "Encodes one key or value for a UTF-8 URL-encoded query string.
   Encodes space as +."
-  [string]
+  [^String string]
   (URLEncoder/encode string "UTF-8"))
 
 (defn- add!
