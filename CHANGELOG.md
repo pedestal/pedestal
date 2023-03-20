@@ -5,13 +5,16 @@
 ## 0.5.11 - UNRELEASED
 
 * Pedestal is now built using deps (`deps.edn`) rather than Leiningen (`project.clj`)
+* Pedestal now requires **JDK 11 or later**
 * **BREAKING CHANGE**: Path parameters (extracted during routing) are now, by default, URL decoded (via
   `io.pedestal.http.route/path-params-decoder`), when using `io.pedestal.http/default-interceptors`; previously
   this was the application's responsibility, usually in individual routes' interceptor lists.
   The prior behavior can be restored by passing `:io.pedestal.http/path-params-decoder` as nil in the service map 
   provided to `io.pedestal.http/create-server`.
-* Updated many dependencies, particularly to address CVEs in dependencies
+* Updated many third-party dependencies, particularly to address CVEs in some dependencies
 * Improvements to documentation and examples
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/11?closed=1)
 
 ## 0.5.10 - January 12, 2022
 * Address critical dependency vulnerabilities (i.e., Jetty) and update to the latest core.async version. Resolves [#695](https://github.com/pedestal/pedestal/issues/695)
