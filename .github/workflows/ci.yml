@@ -31,7 +31,6 @@ jobs:
             ~/.deps.clj
           # List all files containing dependencies:
           key: cljdeps-${{ hashFiles('deps.edn') }}
-          restore-keys: cljdeps-${{hashFiles ('deps.edn') }}
 
       - name: Clojure Version
         run: |
