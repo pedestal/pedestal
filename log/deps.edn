@@ -10,12 +10,12 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.10.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         ;; logging
         org.slf4j/slf4j-api {:mvn/version "1.7.35"}
         ;; metrics
-        io.dropwizard.metrics/metrics-core {:mvn/version "4.1.0"}
-        io.dropwizard.metrics/metrics-jmx {:mvn/version "4.1.0"}
+        io.dropwizard.metrics/metrics-core {:mvn/version "4.2.18"}
+        io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.18"}
         ;; tracing
         io.opentracing/opentracing-api {:mvn/version "0.33.0"}
         io.opentracing/opentracing-util {:mvn/version "0.33.0"}}}
