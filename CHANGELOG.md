@@ -1,17 +1,20 @@
 # Pedestal Changelog
 
-**NOTE:** Whenever upgrading versions of pedestal, please be sure to clean your project's `out` directory.
+**NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
-## 0.5.11 - UNRELEASED
+## 0.6.0 - UNRELEASED
 
-* Pedestal is now built using deps (`deps.edn`) rather than Leiningen (`project.clj`)
-* Pedestal now requires **JDK 11 or later**
-* **BREAKING CHANGE**: Path parameters (extracted during routing) are now, by default, URL decoded (via
+**BREAKING CHANGES:**
+* Path parameters (extracted during routing) are now, by default, URL decoded (via
   `io.pedestal.http.route/path-params-decoder`), when using `io.pedestal.http/default-interceptors`; previously
   this was the application's responsibility, usually in individual routes' interceptor lists.
-  The prior behavior can be restored by passing `:io.pedestal.http/path-params-decoder` as nil in the service map 
+  The prior behavior can be restored by passing `:io.pedestal.http/path-params-decoder` as nil in the service map
   provided to `io.pedestal.http/create-server`.
-* Updated many third-party dependencies, particularly to address CVEs in some dependencies
+* Pedestal now requires JDK 11 or later
+
+Other changes:
+* Pedestal is now built using deps (`deps.edn`) rather than Leiningen (`project.clj`)
+* Updated many dependencies, particularly to address CVEs in dependencies
 * Improvements to documentation and examples
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/11?closed=1)
