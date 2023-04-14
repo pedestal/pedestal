@@ -10,5 +10,5 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.10.1"}}
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}}
  :io.pedestal/build {:project-name pedestal-service/lein-template}}

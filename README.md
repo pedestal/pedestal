@@ -4,7 +4,7 @@ Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
 server-side development.
 
-**Pedestal requires Java 1.8+ and Servlet 3.1**
+**Pedestal requires Java 1.11+ and Servlet 3.1**
 
 ## Getting the Latest Stable Release
 

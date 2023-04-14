@@ -13,9 +13,9 @@
          "dev"
          "bench"]
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
- :deps {criterium/criterium {:mvn/version "0.4.5"}
-        org.clojure/java.classpath {:mvn/version "0.3.0"}
-        org.clojure/tools.namespace {:mvn/version "0.2.11"}
+ :deps {criterium/criterium {:mvn/version "0.4.6"}
+        org.clojure/java.classpath {:mvn/version "1.0.0"}
+        org.clojure/tools.namespace {:mvn/version "1.4.4"}
         ;; TODO: clj-http 3.10.0 is available but
         ;; gzip compression test fails. Even though
         ;; `accept-encoding: gzip, deflate` is set by clj-http
@@ -45,7 +45,7 @@
         io.pedestal/pedestal.tomcat {:local/root "../tomcat"}
 
         ;; Logging:
-        ch.qos.logback/logback-classic {:mvn/version "1.2.10"
+        ch.qos.logback/logback-classic {:mvn/version "1.4.6"
                                         :exclusions [org.slf4j/slf4j-api]}
         org.clojure/tools.logging {:mvn/version "0.4.0"}
         org.slf4j/jul-to-slf4j {:mvn/version "1.7.35"}
@@ -68,11 +68,20 @@
    :exec-fn io.pedestal.test-runner/test}
 
   ;; clj -X:bench-log
+  ;; Runs a benchmark of io.pedestal.log (~ 44ns), then clojure.tools.logging (~ 57 ns),
+  ;; then SL4J with pr-str (~ 28 ns) -- this takes several minutes.
   :bench-log
   {:exec-fn io.pedestal.log-bench/run-benchmarks}
 
+  ;; clj -X:bench-service
+  ;; AFAIK this starts a service that can then be benchmarked using
+  ;; an external tool, such as ab (Apache Benchmark Tool).  This starts and joins
+  ;; the service, so the JVM doesn't exit so that the server can handler requests.
   :bench-service
   {:exec-fn io.pedestal.niotooling.server/run-benchmarks}
 
+  ;; clj -X:bench-route
+  ;; Runs a series of routing requests to compare linear vs. prefix tree,
+  ;; updates the nanoseconds-per-request.png file with the results.
   :bench-route
   {:exec-fn io.pedestal.route.route-bench/run-benchmarks}}}
