@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2022 Cognitect, Inc.
+; Copyright 2014-2023 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,7 +10,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.interceptor.helpers
+(ns ^{:deprecated "0.6.0"}
+  io.pedestal.interceptor.helpers
   "A collection of interceptor helpers.
 
   The usage of the Interceptor API is preferred over the macros
@@ -23,7 +24,11 @@
   compatibility. Refer to
   https://github.com/pedestal/pedestal/issues/308 and
   https://github.com/pedestal/pedestal/pull/301 for more details about
-  macro helper issues and the rationale for the Interceptor API."
+  macro helper issues and the rationale for the Interceptor API.
+
+  This namespace has been effectively deprecated since 2016, and is fully
+  deprecated in release 0.6.0.
+  "
   (:require [io.pedestal.interceptor :as interceptor :refer [interceptor
                                                              interceptor-name]]))
 
@@ -41,6 +46,7 @@
     (def encode-response
       \"An interceptor that encodes the response as json\"
       (on-response encode-json)"
+  {:deprecated "0.6.0"}
   [name & body]
   (let [init (if (string? (first body))
                (second body)
