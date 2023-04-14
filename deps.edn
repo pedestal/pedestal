@@ -13,7 +13,7 @@
  {:build
   {:ns-default build
    :paths ["build"]
-   :deps {io.github.hlship/build-tools{:git/tag "0.8" :git/sha "0a0c26a"}
+   :deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}
           io.github.hlship/trace {:mvn/version "v1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.6"}}}
 
@@ -22,7 +22,7 @@
   ;; with the build alias.
   :dev
   {:extra-paths ["build"]
-   :extra-deps {io.github.hlship/build-tools{:git/tag "0.8" :git/sha "0a0c26a"}
+   :extra-deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}
                 io.github.hlship/trace {:mvn/version "v1.0"}
                 borkdude/rewrite-edn {:mvn/version "0.4.6"}}}
 

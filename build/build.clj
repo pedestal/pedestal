@@ -13,8 +13,11 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [net.lewisship.build :refer [requiring-invoke deploy-jar]]
+            [net.lewisship.trace :as trace :refer [trace]]
             [clojure.tools.build.api :as b]
             [net.lewisship.build.versions :as v]))
+
+(trace/setup-default)
 
 ;; General notes: have to do a *lot* of fighting with executing particular build commands from the root
 ;; rather than in each module's sub-directory.
@@ -66,31 +69,40 @@
         project-dir (canonical dir-name)]
     (assoc coll project-name {:local/root project-dir})))
 
+(defn- build-project-classpath
+  []
+  (let [overrides (reduce as-override {} module-dirs)]
+    (mapcat #(classpath-for % overrides) module-dirs)))
+
+(defn- build-full-classpath
+  [& paths]
+  (let [all-paths (-> (reduce into [] paths)
+                      distinct
+                      sort)
+        [absolute-paths relative-paths] (split-with #(str/starts-with? % "/") all-paths)]
+    (concat relative-paths absolute-paths)))
+
 (defn codox
   "Generates combined Codox documentation for all sub-projects."
   [options]
   (let [{:keys [output-path]} options
-        overrides (reduce as-override {} module-dirs)
-        project-classpath (mapcat #(classpath-for % overrides) module-dirs)
-        codox-classpath (:classpath-roots (b/create-basis {:aliases [:codox]}))
-        full-classpath (->> project-classpath
-                            (concat codox-classpath)
-                            distinct
-                            sort)
-        codox-config (cond-> {:metadata {:doc/format :markdown}
+        classpath (build-full-classpath
+                    (build-project-classpath)
+                    (:classpath-roots (b/create-basis {:aliases [:codox]})))
+        codox-config (cond-> {metadata {:doc/format :markdown}
                               :name (str (name group-name) " libraries")
                               :version version
                               :source-paths (mapv #(str % "/src") module-dirs)
                               :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
-                       output-path (assoc :output-path output-path))
+                             output-path (assoc :output-path output-path))
         expression `(do
                       ((requiring-resolve 'codox.main/generate-docs) ~codox-config)
                       ;; Above returns the output directory name, "target/doc", which gets printed
                       ;; by clojure.main, so override that to nil on success here.
                       nil)
-        ;; The API version mistakenly requires :basis, so bypass it.
+        ;;  The API version mistakenly requires :basis, so bypass it.
         process-params (requiring-invoke clojure.tools.build.tasks.process/java-command
-                                         {:cp full-classpath
+                                         {:cp classpath
                                           :main "clojure.main"
                                           :main-args ["--eval" (pr-str expression)]})
         _ (println "Starting codox ...")
@@ -210,9 +222,10 @@
   by `clj -T:build advance-version :level :snapshot :commit true`."
   [options]
   (let [{:keys [level dry-run]} options
-        _ (validate level (set v/advance-levels)
+        advance-levels #{:major :minor :patch :release :snapshot :beta :rc}
+        _ (validate level advance-levels
                     (str ":level must be one of: "
-                         (->> v/advance-levels (map name) (str/join ", "))))
+                         (->> advance-levels (map name) (str/join ", "))))
         new-version (-> version v/parse-version (v/advance (or level :patch)) v/unparse-version)]
     (if dry-run
       (println "New version:" new-version)
