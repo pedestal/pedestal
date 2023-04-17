@@ -1,4 +1,9 @@
-# Pedestal ![CI](https://github.com/pedestal/pedestal/workflows/CI/badge.svg)
+# Pedestal
+
+![CI](https://github.com/pedestal/pedestal/workflows/CI/badge.svg)
+[![Clojars Project](https://img.shields.io/clojars/v/io.pedestal/pedestal.service.svg)](https://clojars.org/io.pedestal/pedestal.service)
+[![Home Page](https://img.shields.io/badge/Docs-Documentation-blue)](http://pedestal.io)
+
 
 Pedestal is a set of libraries written in Clojure that aims to bring
 both the language and its principles (Simplicity, Power and Focus) to
@@ -7,24 +12,6 @@ server-side development.
 **Pedestal requires Java 1.11+ and Servlet 3.1**
 
 ## Getting the Latest Stable Release
-
-Leiningen dependencies:
-```
-[io.pedestal/pedestal.service       "0.5.10"]
-[io.pedestal/pedestal.service-tools "0.5.10"] ;; Only needed for ns-watching; WAR tooling
-[io.pedestal/pedestal.jetty         "0.5.10"]
-[io.pedestal/pedestal.immutant      "0.5.10"]
-[io.pedestal/pedestal.tomcat        "0.5.10"]
-[io.pedestal/pedestal.aws           "0.5.10"] ;; API-Gateway, Lambda, and X-Ray support
-```
-
-You can also use Pedestal's internal modules standalone:
-
-```
-[io.pedestal/pedestal.log         "0.5.10"] ;; Logging and runtime metrics
-[io.pedestal/pedestal.interceptor "0.5.10"] ;; The Interceptor chain and the Interceptor API
-[io.pedestal/pedestal.route       "0.5.10"] ;; Efficient routing algorithms and data structures
-```
 
 **Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
 version details, updates, and necessary migration steps.**
@@ -49,7 +36,6 @@ version details, updates, and necessary migration steps.**
     * Support for [WebSockets](./samples/jetty-web-sockets) and for [server-sent events]()
     * Support for Cross-origin resource sharing (CORS)
     * HTTP/2, HTTP/2 Cleartext, and ALPN support
-
 
 ## Principles
 
