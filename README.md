@@ -13,7 +13,7 @@ server-side development.
 
 ## Getting the Latest Stable Release
 
-**Please see our [Releases](https://github.com/pedestal/pedestal/releases) for
+**Please see [Releases](https://github.com/pedestal/pedestal/releases) for
 version details, updates, and necessary migration steps.**
 
 ## Notable capabilities
@@ -33,7 +33,7 @@ version details, updates, and necessary migration steps.**
     * Integrated linking and testing tools
     * Integrated logging, [tracing](./samples/tracing-interceptor), and [runtime metrics](./samples/helloworld-metrics)
     * Advanced error handling, even for for async systems
-    * Support for [WebSockets](./samples/jetty-web-sockets) and for [server-sent events]()
+    * Support for [WebSockets](./samples/jetty-web-sockets) and for [server-sent events](./samples/server-sent-events)
     * Support for Cross-origin resource sharing (CORS)
     * HTTP/2, HTTP/2 Cleartext, and ALPN support
 
@@ -76,13 +76,10 @@ applications and improving general ease of use.
 
 Pedestal's roadmap gets captured [within the GitHub issues](https://github.com/pedestal/pedestal/issues).
 
-
 ### Documentation
 
  * [Pedestal documentation](http://pedestal.io/)
-   * Older [docs](./guides/documentation) are coupled within this repository - some may be outdated.
- * The latest [API Docs](http://pedestal.io/api/index).
- * Build your own API docs with `lein sub install; lein docs`
+ * The latest [API Docs](http://pedestal.io/api/index.html).
 
 ### Supported Platforms
 
