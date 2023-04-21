@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -259,14 +259,14 @@
                                           (csrf/anti-forgery enable-csrf)])
                true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                true (conj route/query-params)
-               (some? path-params-decoder) (conj path-params-decoder)
                true (conj (route/method-param method-param-name))
                (some? secure-headers) (conj (sec-headers/secure-headers secure-headers))
                ;; TODO: If all platforms support async/NIO responses, we can bring this back
                ;(not (nil? resource-path)) (conj (middlewares/fast-resource resource-path))
                (some? resource-path) (conj (middlewares/resource resource-path))
                (some? file-path) (conj (middlewares/file file-path))
-               true (conj (route/router processed-routes router))))
+               true (conj (route/router processed-routes router))
+               (some? path-params-decoder) (conj path-params-decoder)))
       service-map)))
 
 (defn dev-interceptors

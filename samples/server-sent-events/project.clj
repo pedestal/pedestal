@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -27,10 +27,10 @@
                  ;; [io.pedestal/pedestal.tomcat "0.5.7"]
 
                  ;; Logging
-                 [ch.qos.logback/logback-classic "1.2.6" :exclusions [[org.slf4j/slf4j-api]]]
-                 [org.slf4j/jul-to-slf4j "1.7.32"]
-                 [org.slf4j/jcl-over-slf4j "1.7.32"]
-                 [org.slf4j/log4j-over-slf4j "1.7.32"]
+                 [ch.qos.logback/logback-classic "1.2.10" :exclusions [[org.slf4j/slf4j-api]]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]
 
                  ;; Example CLJS client
                  [org.clojure/core.async "1.3.618"]

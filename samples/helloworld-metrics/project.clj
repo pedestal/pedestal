@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -24,11 +24,11 @@
                  ;; [io.pedestal/pedestal.immutant "0.5.9"]
                  ;; [io.pedestal/pedestal.tomcat "0.5.9"]
 
-                 [ch.qos.logback/logback-classic "1.2.6" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.32"]
-                 [org.slf4j/jcl-over-slf4j "1.7.32"]
-                 [org.slf4j/log4j-over-slf4j "1.7.32"]
-                 [com.readytalk/metrics3-statsd "4.2.0"]]
+                 [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]
+                 [com.readytalk/metrics3-statsd "4.1.2"]]
   :repositories [["jcenter" "https://jcenter.bintray.com"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]

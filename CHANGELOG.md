@@ -1,6 +1,29 @@
 # Pedestal Changelog
 
-**NOTE:** Whenever upgrading versions of pedestal-app, please be sure to clean your project's `out` directory by running `lein clean`.
+**NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
+
+## 0.6.0 - UNRELEASED
+
+**BREAKING CHANGES:**
+* Path parameters (extracted during routing) are now, by default, URL decoded (via
+  `io.pedestal.http.route/path-params-decoder`), when using `io.pedestal.http/default-interceptors`; previously
+  this was the application's responsibility, usually in individual routes' interceptor lists.
+  The prior behavior can be restored by passing `:io.pedestal.http/path-params-decoder` as nil in the service map
+  provided to `io.pedestal.http/create-server`.
+* Pedestal now requires JDK 11 or later
+
+Other changes:
+* Pedestal is now built using deps (`deps.edn`) rather than Leiningen (`project.clj`)
+* Updated many dependencies, particularly to address CVEs in dependencies
+* Improvements to documentation and examples
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/11?closed=1)
+
+## 0.5.10 - January 12, 2022
+* Address critical dependency vulnerabilities (i.e., Jetty) and update to the latest core.async version. Resolves [#695](https://github.com/pedestal/pedestal/issues/695)
+* **BREAKING CHANGE**: Update Pedestal's OpenTracing-related protocol implementations by removing the extension of TraceSpan, TraceSpanLog, TraceSpanLogMap and TraceSpanBaggage to Scope. This aligns Pedestal's OpenTracing support with OpenTracing version 0.33. Affected implementations should be changed to interact with spans directly, as per the Pedestal Tracing sample, as opposed to going through the Scope instance. Resolves [#693](https://github.com/pedestal/pedestal/issues/693)
+* Adds a missing arity to TraceOrigin/-span for nils. [#686](https://github.com/pedestal/pedestal/pull/686)
+*  Updates the SSLContextFactory used for configuring Jetty. This context factory supports more complicated SSL setups. [#684](https://github.com/pedestal/pedestal/pull/684)
 
 ## 0.5.9 - May 9, 2021
 * Websocket handlers were added to handle flow control/backpressure asynchronously [#497](https://github.com/pedestal/pedestal/issues/497) 

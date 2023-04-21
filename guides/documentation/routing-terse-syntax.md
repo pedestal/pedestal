@@ -451,10 +451,10 @@ input and returns an interceptor that handles routing.
 ```clojure
 (defn hello-world [req] {:status 200 :body "Hello World!"})
 
-(defroutes master-routes
-    [[["/hello-world" {:get hello-world}]]])
+(def routes
+    `[[["/hello-world" {:get hello-world}]]])
 
-(def router (router master-routes))
+(def router (router routes))
 ```
 
 When a routing interceptor's enter function is invoked, it attempts to
@@ -475,7 +475,7 @@ called every time the routing interceptor is used. This allows your
 Web server to use the latest compiled routes without restarting.
 
 ```clojure
-(def router (router #(deref #'master-routes)))
+(def router (router #(route/expand-routes (deref #'routes))))
 ```
 
 If you are using the Pedestal service template for lein, it provides a

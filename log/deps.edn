@@ -1,0 +1,21 @@
+; Copyright 2022 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        ;; logging
+        org.slf4j/slf4j-api {:mvn/version "1.7.35"}
+        ;; metrics
+        io.dropwizard.metrics/metrics-core {:mvn/version "4.2.18"}
+        io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.18"}
+        ;; tracing
+        io.opentracing/opentracing-api {:mvn/version "0.33.0"}
+        io.opentracing/opentracing-util {:mvn/version "0.33.0"}}}

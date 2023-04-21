@@ -1,0 +1,38 @@
+; Copyright 2022 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        io.pedestal/pedestal.log {:mvn/version "0.5.11-beta-1"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-beta-1"}
+
+        javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}
+        com.amazonaws/aws-java-sdk-core {:mvn/version "1.11.567"
+                                         :exclusions [commons-logging/commons-logging]} ;; Needed for x-ray
+        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.0"}
+        com.amazonaws/aws-xray-recorder-sdk-core {:mvn/version "2.2.1"
+                                                  :exclusions [com.amazonaws/aws-java-sdk-core
+                                                               commons-logging/commons-logging
+                                                               joda-time/joda-time]}
+
+        ;; A clash between AWS and HTTP Libs
+        commons-logging/commons-logging {:mvn/version "1.2"}
+
+        ;; Bring AWS libs inline with Pedestal Service
+        com.fasterxml.jackson.core/jackson-core {:mvn/version "2.9.9"}
+        com.fasterxml.jackson.dataformat/jackson-dataformat-cbor {:mvn/version "2.9.9"}
+        commons-codec/commons-codec {:mvn/version "1.12"}
+        joda-time/joda-time {:mvn/version "2.10.2"}}
+
+ :aliases
+ {:local
+  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.interceptor {:local/root "../interceptor"}}}}}

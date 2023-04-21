@@ -9,10 +9,10 @@
                  [io.pedestal/pedestal.jetty "0.5.9"]
                  [io.pedestal/pedestal.aws "0.5.9" :exclusions [joda-time]]
 
-                 [ch.qos.logback/logback-classic "1.2.6" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.32"]
-                 [org.slf4j/jcl-over-slf4j "1.7.32"]
-                 [org.slf4j/log4j-over-slf4j "1.7.32"]
+                 [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]
 
                  ;; Deps cleanup
                  [joda-time "2.10.12"]]

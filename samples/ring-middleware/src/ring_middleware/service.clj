@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -65,7 +65,7 @@
 ;; through the service for the data to be readable and writable. Also,
 ;; the session data will become unrecoverable when the server process
 ;; ends. While the browser retains the cookie, the interceptor will
-;; treat the unrecoverable ciphertext as non-existant.
+;; treat the unrecoverable ciphertext as non-existent.
 
 ;; Set up routes to get all the above handlers accessible.
 (def routes

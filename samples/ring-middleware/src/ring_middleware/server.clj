@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -13,7 +13,8 @@
 (ns ring-middleware.server
   (:gen-class) ; for -main method in uberjar
   (:require [io.pedestal.http :as server]
-            [ring-middleware.service :as service]))
+            [ring-middleware.service :as service]
+            [io.pedestal.http.route :as route]))
 
 ;; This is an adapted service map, that can be started and stopped
 ;; From the REPL you can call server/start and server/stop on this service

@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -63,13 +63,13 @@
 (defn decode-query-part
   "Decodes one key or value of URL-encoded UTF-8 characters in a URL
   query string."
-  [string]
+  [^String string]
   (URLDecoder/decode string "UTF-8"))
 
 (defn encode-query-part
   "Encodes one key or value for a UTF-8 URL-encoded query string.
   Encodes space as +."
-  [string]
+  [^String string]
   (URLEncoder/encode string "UTF-8"))
 
 (defn- add!
@@ -384,7 +384,9 @@
   "Invokes currently bound contextual linker to generate url based on
 
     - The routing table in use.
-    - The incoming request being routed."
+    - The incoming request being routed.
+
+  where `options` are as described in `url-for-routes`."
   [route-name & options]
   (if *url-for*
     (apply (if (delay? *url-for*) (deref *url-for*) *url-for*)

@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2019 Cognitect, Inc.
+; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -21,11 +21,11 @@
                  ;; This samples is specific to jetty, so
                  ;; other options don't appear here.
                  [io.pedestal/pedestal.jetty "0.5.9"]
-                 [org.eclipse.jetty/jetty-servlets "9.4.35.v20201120"] ;;same as jetty in 0.5.9
-                 [ch.qos.logback/logback-classic "1.2.6" :exclusions [org.slf4j/slf4j-api]]
-                 [org.slf4j/jul-to-slf4j "1.7.32"]
-                 [org.slf4j/jcl-over-slf4j "1.7.32"]
-                 [org.slf4j/log4j-over-slf4j "1.7.32"]
+                 [org.eclipse.jetty/jetty-servlets "9.4.48.v20220622"]
+                 [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.35"]
+                 [org.slf4j/jcl-over-slf4j "1.7.35"]
+                 [org.slf4j/log4j-over-slf4j "1.7.35"]
                  [clj-http "3.12.3"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]

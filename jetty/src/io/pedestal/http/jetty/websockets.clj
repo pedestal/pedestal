@@ -28,34 +28,6 @@
   (ws-send [msg ^RemoteEndpoint remote-endpoint]
     (.sendBytes remote-endpoint msg)))
 
-(defn start-ws-connection
-  "Given a function of two arguments
-  (the Jetty WebSocket Session and its paired core.async 'send' channel),
-  and optionall a buffer-or-n for the 'send' channel,
-  return a function that can be used as an OnConnect handler.
-
-  Notes:
-   - You can control the entire WebSocket Session per client with the
-  session object.
-   - If you close the `send` channel, Pedestal will close the WS connection."
-  ([on-connect-fn]
-   (start-ws-connection on-connect-fn 10))
-  ([on-connect-fn send-buffer-or-n]
-   (fn [^Session ws-session]
-     (let [send-ch (async/chan send-buffer-or-n)
-           remote  ^RemoteEndpoint (.getRemote ws-session)]
-       ;; Let's process sends...
-       (go-loop []
-         (if-let [out-msg (and (.isOpen ws-session)
-                               (async/<! send-ch))]
-           (do (try (ws-send out-msg remote)
-                    (catch Exception ex
-                      (log/error :msg "Failed on ws-send"
-                                 :exception ex)))
-               (recur))
-           (.close ws-session)))
-       (on-connect-fn ws-session send-ch)))))
-
 (deftype ChannelWriteCallback [resp-chan]
   WriteCallback
   (writeFailed [_ ex]
@@ -82,13 +54,42 @@
       (.sendBytes remote-endpoint msg (->ChannelWriteCallback p-chan))
       p-chan)))
 
+(defn start-ws-connection
+  "Given a function of two arguments
+  (the Jetty WebSocket Session and its paired core.async 'send' channel),
+  and optionall a buffer-or-n for the 'send' channel,
+  return a function that can be used as an OnConnect handler.
+
+  Notes:
+   - You can control the entire WebSocket Session per client with the
+  session object.
+   - If you close the `send` channel, Pedestal will close the WS connection."
+  ([on-connect-fn]
+   (start-ws-connection on-connect-fn 10))
+  ([on-connect-fn send-buffer-or-n]
+   (fn [^Session ws-session]
+     (let [send-ch (async/chan send-buffer-or-n)
+           remote  ^RemoteEndpoint (.getRemote ws-session)]
+       ;; Let's process sends...
+       (go-loop []
+         (if-let [out-msg (and (.isOpen ws-session)
+                               (async/<! send-ch))]
+           (let [ws-send-ch (ws-send-async out-msg remote)
+                 result (async/<! ws-send-ch)]
+             (when-not (= :success result)
+               (log/error :msg "Failed on ws-send-async"
+                          :exception result))
+             (recur))
+           (.close ws-session)))
+       (on-connect-fn ws-session send-ch)))))
+
 (defn start-ws-connection-with-fc-support
   "Like `start-ws-connection` but transmission is non-blocking and supports
   conveying transmission results. This allows services to implement flow
   control.
 
   Notes:
-  
+
   Putting a sequential value on the `send` channel signals that a
   transmission response is desired. In this case the value is expected to
   be a 2-tuple of [`msg` `resp-ch`] where `msg` is the message to be sent

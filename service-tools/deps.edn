@@ -1,0 +1,35 @@
+; Copyright 2022 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        io.pedestal/pedestal.service {:mvn/version "0.5.11-beta-1"}
+
+        org.clojure/data.xml {:mvn/version "0.2.0-alpha5"}
+
+        ;; Auto-reload changes
+        ns-tracker/ns-tracker {:mvn/version "0.4.0"}
+
+        ;; Logging
+        ch.qos.logback/logback-classic {:mvn/version "1.4.6"
+                                        :exclusions [org.slf4j/slf4j-api]}
+        org.slf4j/jul-to-slf4j {:mvn/version "1.7.35"}
+        org.slf4j/jcl-over-slf4j {:mvn/version "1.7.35"}
+        org.slf4j/log4j-over-slf4j {:mvn/version "1.7.35"}}
+
+ :aliases
+ {:dev
+  {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
+
+  :local
+  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
+                   io.pedestal/pedestal.service {:local/root "../service"}}}}}
