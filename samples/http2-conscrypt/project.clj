@@ -27,7 +27,7 @@
                  ;; Get the Conscrypt Security Provider
                  ;;   Normally, you'd only take the version based on your OS,
                  ;;   but the Uberjar has all shared libs bundled up, which is nice for this example
-                 [org.conscrypt/conscrypt-openjdk-uber "1.1.2"]
+                 [org.conscrypt/conscrypt-openjdk-uber "2.5.2"]
                  [org.eclipse.jetty/jetty-alpn-conscrypt-server "9.4.48.v20220622"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]

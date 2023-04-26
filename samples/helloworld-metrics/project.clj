@@ -10,19 +10,19 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject helloworld-metrics "0.5.1"
+(defproject helloworld-metrics "0.5.9"
   :description "Demonstration of metrics support"
   :url "http://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.0"]
-                 [io.pedestal/pedestal.service "0.5.5"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
+                 [io.pedestal/pedestal.service "0.5.9"]
 
                  ;; Remove this line and uncomment one of the next lines to
                  ;; use Immutant or Tomcat instead of Jetty:
-                 [io.pedestal/pedestal.jetty "0.5.5"]
-                 ;; [io.pedestal/pedestal.immutant "0.5.1"]
-                 ;; [io.pedestal/pedestal.tomcat "0.5.1"]
+                 [io.pedestal/pedestal.jetty "0.5.9"]
+                 ;; [io.pedestal/pedestal.immutant "0.5.9"]
+                 ;; [io.pedestal/pedestal.tomcat "0.5.9"]
 
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.35"]

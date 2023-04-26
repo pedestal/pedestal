@@ -10,23 +10,24 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject gzip "0.5.5"
+(defproject gzip "0.5.9"
   :description "a sample demonstrating container-specific configuration"
   :url "https://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.0"]
-                 [io.pedestal/pedestal.service "0.5.5"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
+                 [io.pedestal/pedestal.service "0.5.9"]
 
                  ;; This samples is specific to jetty, so
                  ;; other options don't appear here.
-                 [io.pedestal/pedestal.jetty "0.5.5"]
+                 [io.pedestal/pedestal.jetty "0.5.9"]
                  [org.eclipse.jetty/jetty-servlets "9.4.48.v20220622"]
+                 [org.eclipse.jetty/jetty-servlet "9.4.48.v20220622"]
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.35"]
                  [org.slf4j/jcl-over-slf4j "1.7.35"]
                  [org.slf4j/log4j-over-slf4j "1.7.35"]
-                 [clj-http "2.0.0"]]
+                 [clj-http "3.12.3"]]
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "gzip.server/run-dev"]}}}

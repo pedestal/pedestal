@@ -10,8 +10,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject io.pedestal/samples "0.5.4"
-  :plugins [[lein-sub "0.2.3"]]
+(defproject io.pedestal/samples "0.5.9"
+  :plugins [[lein-sub "0.3.0"]]
   :sub ["hello-world"
         "server-sent-events"
         "template-server"

@@ -10,14 +10,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject server-with-links "0.5.5"
+(defproject server-with-links "0.5.9"
   :description "Demonstrates generating a link from the routes."
   :url "https://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.0"]
-                 [io.pedestal/pedestal.service "0.5.5"]
-                 [io.pedestal/pedestal.jetty "0.5.5"]
+                 [io.pedestal/pedestal.service "0.5.9"]
+                 [io.pedestal/pedestal.jetty "0.5.9"]
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.35"]
                  [org.slf4j/jcl-over-slf4j "1.7.35"]
@@ -25,5 +25,5 @@
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "server-with-links.server/run-dev"]}
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.5"]]}}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.9"]]}}
   :main server-with-links.server)

@@ -10,12 +10,12 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject jetty-web-sockets "0.5.5"
+(defproject jetty-web-sockets "0.5.9"
   :description "Sample of web sockets with Jetty"
   :url "http://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
                  [io.pedestal/pedestal.service "0.5.10" :exclusions [org.clojure/core.async
                                                                      org.clojure/tools.reader
                                                                      org.clojure/tools.analyzer.jvm]]

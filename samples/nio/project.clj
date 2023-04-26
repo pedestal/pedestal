@@ -10,17 +10,17 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject nio "0.5.5"
+(defproject nio "0.5.9"
   :description "a pedestal sample taking advantage of NIO with ByteBuffer"
   :url "https://pedestal.io/samples/index"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.10.1"]
-                 [io.pedestal/pedestal.service "0.5.7"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
+                 [io.pedestal/pedestal.service "0.5.9"]
 
                  ;; Remove this line and uncomment one of the next lines to
                  ;; use Immutant instead of Jetty:
-                 [io.pedestal/pedestal.jetty "0.5.7"]
+                 [io.pedestal/pedestal.jetty "0.5.9"]
                  ;; [io.pedestal/pedestal.immutant "0.5.7"]
 
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
@@ -30,5 +30,5 @@
   :min-lein-version "2.0.0"
   :resource-paths ["config", "resources"]
   :profiles {:dev {:aliases {"run-dev" ["trampoline" "run" "-m" "nio.server/run-dev"]}
-                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.7"]]}}
+                   :dependencies [[io.pedestal/pedestal.service-tools "0.5.9"]]}}
   :main ^{:skip-aot true} nio.server)
