@@ -389,12 +389,14 @@
   If you mix `with-context` with the more basic `with-context-kv`, you may see undesired keys/values in the log"
   [ctx-map & body]
   (if (or (symbol? ctx-map)
+          (seq? ctx-map)
           (and (map? ctx-map) (seq ctx-map)))
     ;; ctx-map is a symbol to be resolved at runtime or non-empty
     `(let [old-ctx# *mdc-context*
-           formatter# ~(::formatter ctx-map pr-str)
-           mdc# (or ~(::mdc ctx-map) (MDC/getMDCAdapter))]
-       (binding [*mdc-context* (merge *mdc-context* ~ctx-map)]
+           ctx-map# ~ctx-map
+           formatter# (::formatter ctx-map# pr-str)
+           mdc# (or (::mdc ctx-map#) (MDC/getMDCAdapter))]
+       (binding [*mdc-context* (merge *mdc-context* ctx-map#)]
          (-put-mdc mdc# mdc-context-key (formatter# (dissoc *mdc-context*
                                                             :io.pedestal.log/formatter
                                                             :io.pedestal.log/mdc)))
