@@ -249,7 +249,7 @@
                                   :context-path-parts context-path-parts)
                        ;;(concat context-path-parts path-parts)
                        (cond
-                         (and context-path-parts (empty? (first path-parts))) (concat context-path-parts (rest path-parts))
+                         (and context-path-parts (= "" (first path-parts))) (concat context-path-parts (rest path-parts))
                          context-path-parts (concat context-path-parts path-parts)
                          :else path-parts))
         _ (when (and (true? strict-path-params?)

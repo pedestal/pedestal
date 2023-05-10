@@ -1331,3 +1331,12 @@
           false
           (catch java.lang.AssertionError ae
             true)))))
+
+(deftest url-for-concatenates-context-path-and-route-path-test
+  ;; Also tests a fix for Pedestal Issue 610 where routes whose first segment is a path parameter
+  ;; throw an exception when a context path is supplied.
+  ;; see https://github.com/pedestal/pedestal/issues/610
+
+  (let [routes (route/expand-routes #{["/:a-parameter" :get `home-page]})]
+    (is (= "/some/context/a-value"
+           ((route/url-for-routes routes) ::home-page :params {:a-parameter "a-value"} :context "some/context")))))
