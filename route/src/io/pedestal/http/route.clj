@@ -247,7 +247,6 @@
         path-parts (do (log/debug :in :link-str
                                   :path-parts path-parts
                                   :context-path-parts context-path-parts)
-                       ;;(concat context-path-parts path-parts)
                        (cond
                          (and context-path-parts (= "" (first path-parts))) (concat context-path-parts (rest path-parts))
                          context-path-parts (concat context-path-parts path-parts)
