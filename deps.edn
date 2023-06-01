@@ -12,18 +12,20 @@
 {:aliases
  {:build
   {:ns-default build
-   :paths ["build"]
+   :paths ["build" "tests/resources"]
    :deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}
           io.github.hlship/trace {:mvn/version "v1.0"}
+          io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.6"}}}
 
   ;; Duplicated here to allow REPL development of the tools;
   ;; this may actually be a Cursive bug that you can't properly launch
   ;; with the build alias.
   :dev
-  {:extra-paths ["build"]
+  {:extra-paths ["build" "tests/resources"]
    :extra-deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}
                 io.github.hlship/trace {:mvn/version "v1.0"}
+                io.aviso/logging {:mvn/version "1.0"}
                 borkdude/rewrite-edn {:mvn/version "0.4.6"}}}
 
   :codox

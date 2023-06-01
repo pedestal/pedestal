@@ -11,9 +11,13 @@
 
 {:paths ["test"
          "dev"
-         "bench"]
+         "bench"
+         "resources"]
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
  :deps {criterium/criterium {:mvn/version "0.4.6"}
+
+        nubank/matcher-combinators {:mvn/version "3.7.2"}
+
         org.clojure/java.classpath {:mvn/version "1.0.0"}
         org.clojure/tools.namespace {:mvn/version "1.4.4"}
         ;; TODO: clj-http 3.10.0 is available but
@@ -45,12 +49,7 @@
         io.pedestal/pedestal.tomcat {:local/root "../tomcat"}
 
         ;; Logging:
-        ch.qos.logback/logback-classic {:mvn/version "1.4.6"
-                                        :exclusions [org.slf4j/slf4j-api]}
-        org.clojure/tools.logging {:mvn/version "0.4.0"}
-        org.slf4j/jul-to-slf4j {:mvn/version "1.7.35"}
-        org.slf4j/jcl-over-slf4j {:mvn/version "1.7.35"}
-        org.slf4j/log4j-over-slf4j {:mvn/version "1.7.35"}
+        io.aviso/logging {:mvn/version "1.0"}
 
         ;; only used for route-bench - remove when no longer needed
         incanter/incanter-core {:mvn/version "1.9.3"}
