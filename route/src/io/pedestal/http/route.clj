@@ -393,8 +393,13 @@
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol ExpandableRoutes
+  "A Protocol extended onto types that can be used to convert particular types into a seq of verbose route maps,
+  the verbose routing table.
+
+  Built-in implementations map vectors to [[terse-routes]],
+  sets to [[table-routes]], and maps to [[map-routes->vec-routes]]."
   (-expand-routes [expandable-route-spec]
-                  "Generate and return the routing table from a given expandable
+                  "Generate and return the verbose routing table from a given expandable
                   form of routing data."))
 
 (extend-protocol ExpandableRoutes
@@ -414,9 +419,13 @@
   "Given a value (the route specification), produce and return a sequence of
   route-maps -- the expanded routes from the specification.
 
-  Ensure the integrity of the sequence of route maps (even if they've already been checked).
-    - Constraints are correctly ordered (most specific to least specific)
-    - Route names are unique"
+  A route specification is any type that implements or extends [[ExpandableRoutes]];
+  this includes vector, map, and set (for terse, table, and verbose routes).
+
+  Ensures the integrity of expanded routes (even if they've already been checked):
+
+  - Constraints are correctly ordered (most specific to least specific)
+  - Route names are unique"
   [route-spec]
   {:pre [(if-not (satisfies? ExpandableRoutes route-spec)
            (throw (ex-info "You're trying to use something as a route specification that isn't supported by the protocol; Perhaps you need to extend it?"
@@ -452,36 +461,43 @@
     (assoc context :route nil)))
 
 (extend-protocol RouterSpecification
+  ;; Normally, we start with a verbose routing table (a sequence of verbose maps) and create a router from that
+  ;; so RouterSpecification is extended on Sequential
   clojure.lang.Sequential
-  (router-spec [seq router-ctor]
-    (let [router (router-ctor seq)]
+  (router-spec [expanded-routes router-ctor]
+    (let [router (router-ctor expanded-routes)]
       (interceptor/interceptor
         {:name ::router
-         :enter #(route-context % router seq)})))
+         :enter #(route-context % router expanded-routes)})))
 
+  ;; The alternative is to pass in a non-arguments function that returns the expanded routes.
+  ;; That is only used in development, as it can allow for significant changes to routing and handling
+  ;; without restarting the running application, but it is slow.
   clojure.lang.Fn
   (router-spec [f router-ctor]
-    ;; Caution: This could be very slow becuase it has to build the routing data
-    ;; structure every time it routes a request.
-    ;; This is only intended if you wanted to dynamically dispatch in a dynamic router
-    ;; or completely control all routing aspects.
     (interceptor/interceptor
       {:name ::router
        :enter (fn [context]
-                (let [routes (f)
-                      router (router-ctor routes)]
-                  (route-context context router routes)))})))
+                (let [expanded-routes (f)
+                      router (router-ctor expanded-routes)]
+                  (route-context context router expanded-routes)))})))
 
 (def router-implementations
+  "Maps from the common router implemenations (:map-tree, :prefix-tree, or :linear-search) to a router
+  constructor function (which accepts expanded routes, and returns a Router instance)."
   {:map-tree map-tree/router
    :prefix-tree prefix-tree/router
    :linear-search linear-search/router})
 
 (defn router
-  "Delegating fn for router-specification."
-  ([spec]
-   (router spec :map-tree))
-  ([spec router-impl-key-or-fn]
+  "Given a the expanded routes and, optionally, what kind of router to construct, returns
+  a RouterSpecification instance, from which a routing interceptor can be obtained.
+
+  router-impl-key-or-fn may be a keyword of a known [[router-implementation]] or function
+  that accepts an expanded routes, and returns a Router."
+  ([expanded-routes]
+   (router expanded-routes :map-tree))
+  ([expanded-routes router-impl-key-or-fn]
    (assert (or (contains? router-implementations router-impl-key-or-fn)
                (fn? router-impl-key-or-fn))
            (format "No router implementation exists for key %s. Please use one of %s."
@@ -490,7 +506,7 @@
    (let [router-ctor (if (fn? router-impl-key-or-fn)
                        router-impl-key-or-fn
                        (router-impl-key-or-fn router-implementations))]
-     (router-spec spec router-ctor))))
+     (router-spec expanded-routes router-ctor))))
 
 (def query-params
   "Returns an interceptor which parses query-string parameters from an
