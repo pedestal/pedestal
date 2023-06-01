@@ -15,7 +15,9 @@
         clojure.pprint
         clojure.test
         clojure.repl)
-  (:require [clojure.set]
+  (:require clojure.set
+            matcher-combinators.clj-test
+            [io.pedestal.http.route.router :as router]
             [ring.middleware.resource]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.helpers :as interceptor
@@ -24,7 +26,8 @@
             [io.pedestal.http.route :as route :refer [expand-routes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
-            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
+            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]))
 
 (defhandler home-page
   [request]
@@ -1340,3 +1343,35 @@
   (let [routes (route/expand-routes #{["/:a-parameter" :get `home-page]})]
     (is (= "/some/context/a-value"
            ((route/url-for-routes routes) ::home-page :params {:a-parameter "a-value"} :context "some/context")))))
+
+
+(defn- attempt-route
+  [routes kind request]
+  (let [ctor (get route/router-implementations kind)
+        router (ctor (expand-routes routes))
+        request' (merge {:request-method :get} request)]
+    (router/find-route router request')))
+
+(deftest wildcard-trumps-static-under-prefix-tree
+  (let [routes #{["/users/:id" :get [`view-user] :route-name ::view-user :constraints {:id #"\d+"}]
+                 ["/users/logout" :get [`logout] :route-name ::logout]}]
+    (is (= nil
+           (attempt-route routes :prefix-tree {:path-info "/users/abc"})))
+
+    (is (match? {:route-name ::view-user
+                 :path-params {:id "123"}}
+                (attempt-route routes :prefix-tree {:path-info "/users/123"})))
+
+    ;; This is the cause of pain, as one would think that a constraint failure on the wildcard match would
+    ;; drop down to match the static path.
+    (is (= nil
+           (attempt-route routes :prefix-tree {:path-info "/users/logout"})))
+
+    ;; Have to use :linear-search to get the desired behavior:
+
+    (is (match? {:route-name ::view-user
+                 :path-params {:id "123"}}
+                (attempt-route routes :linear-search {:path-info "/users/123"})))
+
+    (is (match? {:route-name ::logout}
+           (attempt-route routes :linear-search {:path-info "/users/logout"})))))
