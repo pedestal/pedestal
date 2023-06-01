@@ -30,7 +30,7 @@ jobs:
             ~/.gitlibs
             ~/.deps.clj
           # List all files containing dependencies:
-          key: cljdeps-${{ hashFiles('deps.edn') }}
+          key: cljdeps-${{ hashFiles('deps.edn', '**/deps.edn') }}
 
       - name: Clojure Version
         run: |
@@ -47,4 +47,4 @@ jobs:
         run: clojure -X:test
       - name: Vulnerabilities Check
         working-directory: jetty
-        run: clojure -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Spath)\""
+        run: clojure -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
