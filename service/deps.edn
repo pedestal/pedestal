@@ -21,7 +21,7 @@
 
         ;; interceptors
 
-        ring/ring-core {:mvn/version "1.9.6"
+        ring/ring-core {:mvn/version "1.10.0"
                         :exclusions [org.clojure/clojure
                                      org.clojure/tools.reader
                                      crypto-random/crypto-random

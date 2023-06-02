@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <!-- This is an automatically generated config file by nvd-clojure. -->
+  <!-- Feel free to tweak it, version-control it and remove any comment. -->
+  <!-- You can find suppression examples in https://jeremylong.github.io/DependencyCheck/general/suppression.html -->
+</suppressions>
