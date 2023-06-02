@@ -12,7 +12,6 @@
 
 (ns io.pedestal.http.route
   (:require [clojure.string :as str]
-            [clojure.core.incubator :refer [dissoc-in]]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.log :as log]
@@ -155,6 +154,22 @@
     (let [res (assoc request :path-params (parse-param-map m))]
       res)
     request))
+
+;; Code copied from https://github.com/clojure/core.incubator
+
+(defn- dissoc-in
+  "Dissociates an entry from a nested associative structure returning a new
+  nested structure. keys is a sequence of keys. Any empty maps that result
+  will not be present in the new structure."
+  [m [k & ks :as keys]]
+  (if ks
+    (if-let [nextmap (get m k)]
+      (let [newmap (dissoc-in nextmap ks)]
+        (if (seq newmap)
+          (assoc m k newmap)
+          (dissoc m k)))
+      m)
+    (dissoc m k)))
 
 ;;; Combined matcher & request handler
 
@@ -393,8 +408,8 @@
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol ExpandableRoutes
-  "A Protocol extended onto types that can be used to convert particular types into a seq of verbose route maps,
-  the verbose routing table.
+  "A protocol extended onto types that can be used to convert instances into a seq of verbose route maps,
+  the expanded routes.
 
   Built-in implementations map vectors to [[terse-routes]],
   sets to [[table-routes]], and maps to [[map-routes->vec-routes]]."
@@ -470,7 +485,7 @@
         {:name ::router
          :enter #(route-context % router expanded-routes)})))
 
-  ;; The alternative is to pass in a non-arguments function that returns the expanded routes.
+  ;; The alternative is to pass in a no-arguments function that returns the expanded routes.
   ;; That is only used in development, as it can allow for significant changes to routing and handling
   ;; without restarting the running application, but it is slow.
   clojure.lang.Fn
@@ -494,7 +509,7 @@
   a RouterSpecification instance, from which a routing interceptor can be obtained.
 
   router-impl-key-or-fn may be a keyword of a known [[router-implementation]] or function
-  that accepts an expanded routes, and returns a Router."
+  that accepts expanded routes, and returns a Router."
   ([expanded-routes]
    (router expanded-routes :map-tree))
   ([expanded-routes router-impl-key-or-fn]
@@ -583,14 +598,17 @@
 
 ;;; Help for debugging
 (defn print-routes
-  "Prints route table `routes` in easier to read format."
-  [routes]
-  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) routes)]
+  "Prints route table `expanded-routes` in easier to read format."
+  [expanded-routes]
+  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) expanded-routes)]
     (println r)))
 
-(defn try-routing-for [spec router-type query-string verb]
-  (let [router  (router spec router-type)
-        context {:request {:path-info query-string
+(defn try-routing-for
+  "Used for testing; constructs a router from the expanded-routes and router-type and perform routing, returning the matched
+  route (from the expanded routes), or nil if routing was unsuccessful."
+  [expanded-routes router-type path verb]
+  (let [router  (router expanded-routes router-type)
+        context {:request {:path-info path
                            :request-method verb}}
         context ((:enter router) context)]
     (:route context)))

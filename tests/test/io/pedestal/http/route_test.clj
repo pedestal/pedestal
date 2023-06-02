@@ -1346,34 +1346,32 @@
 
 
 (defn- attempt-route
-  [routes kind request]
-  (let [ctor (get route/router-implementations kind)
-        router (ctor (expand-routes routes))
-        request' (merge {:request-method :get} request)]
-    (router/find-route router request')))
+  [routes kind verb path]
+  (route/try-routing-for (expand-routes routes)
+                         kind
+                         path
+                         verb))
 
 (deftest wildcard-trumps-static-under-prefix-tree
   (let [routes #{["/users/:id" :get [`view-user] :route-name ::view-user :constraints {:id #"\d+"}]
                  ["/users/logout" :post [`logout] :route-name ::logout]}]
     (is (= nil
-           (attempt-route routes :prefix-tree {:path-info "/users/abc"})))
+           (attempt-route routes :prefix-tree :get "/users/abc")))
 
     (is (match? {:route-name ::view-user
                  :path-params {:id "123"}}
-                (attempt-route routes :prefix-tree {:path-info "/users/123"})))
+                (attempt-route routes :prefix-tree :get "/users/123")))
 
     ;; This is the cause of pain, as one would think that a constraint failure on the wildcard match would
     ;; drop down to match the static path, or that routing would take :request-method into account.
     (is (= nil
-           (attempt-route routes :prefix-tree {:request-method :post
-                                               :path-info "/users/logout"})))
+           (attempt-route routes :prefix-tree  :post "/users/logout")))
 
     ;; Have to use :linear-search to get the desired behavior:
 
     (is (match? {:route-name ::view-user
                  :path-params {:id "123"}}
-                (attempt-route routes :linear-search {:path-info "/users/123"})))
+                (attempt-route routes :linear-search :get "/users/123")))
 
     (is (match? {:route-name ::logout}
-           (attempt-route routes :linear-search {:request-method :post
-                                                 :path-info "/users/logout"})))))
+           (attempt-route routes :linear-search :post  "/users/logout")))))
