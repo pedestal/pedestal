@@ -17,4 +17,4 @@
   Each implementation of Router represents a different strategy for dispatching incoming requests,
   balancing a number of tradeoffs."
   (find-route [this req]
-    "Given an incoming request, find the matching route (one entry from the verbose routes)."))
+    "Given an incoming request, find the matching route (one route map from the routing routes)."))
