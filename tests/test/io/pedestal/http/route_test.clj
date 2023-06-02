@@ -1354,7 +1354,7 @@
 
 (deftest wildcard-trumps-static-under-prefix-tree
   (let [routes #{["/users/:id" :get [`view-user] :route-name ::view-user :constraints {:id #"\d+"}]
-                 ["/users/logout" :get [`logout] :route-name ::logout]}]
+                 ["/users/logout" :post [`logout] :route-name ::logout]}]
     (is (= nil
            (attempt-route routes :prefix-tree {:path-info "/users/abc"})))
 
@@ -1363,9 +1363,10 @@
                 (attempt-route routes :prefix-tree {:path-info "/users/123"})))
 
     ;; This is the cause of pain, as one would think that a constraint failure on the wildcard match would
-    ;; drop down to match the static path.
+    ;; drop down to match the static path, or that routing would take :request-method into account.
     (is (= nil
-           (attempt-route routes :prefix-tree {:path-info "/users/logout"})))
+           (attempt-route routes :prefix-tree {:request-method :post
+                                               :path-info "/users/logout"})))
 
     ;; Have to use :linear-search to get the desired behavior:
 
@@ -1374,4 +1375,5 @@
                 (attempt-route routes :linear-search {:path-info "/users/123"})))
 
     (is (match? {:route-name ::logout}
-           (attempt-route routes :linear-search {:path-info "/users/logout"})))))
+           (attempt-route routes :linear-search {:request-method :post
+                                                 :path-info "/users/logout"})))))
