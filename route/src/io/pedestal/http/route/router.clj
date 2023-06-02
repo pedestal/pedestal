@@ -13,7 +13,7 @@
 (ns io.pedestal.http.route.router)
 
 (defprotocol Router
-  "A Router is created from a verbose routing table (see [[expand-routes]]).
+  "A Router is created from a routing table (see [[expand-routes]]).
   Each implementation of Router represents a different strategy for dispatching incoming requests,
   balancing a number of tradeoffs."
   (find-route [this req]

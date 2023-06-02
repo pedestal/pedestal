@@ -409,12 +409,12 @@
 
 (defprotocol ExpandableRoutes
   "A protocol extended onto types that can be used to convert instances into a seq of verbose route maps,
-  the expanded routes.
+  the routing table.
 
   Built-in implementations map vectors to [[terse-routes]],
   sets to [[table-routes]], and maps to [[map-routes->vec-routes]]."
   (-expand-routes [expandable-route-spec]
-                  "Generate and return the verbose routing table from a given expandable
+                  "Generate and return the routing table from a given expandable
                   form of routing data."))
 
 (extend-protocol ExpandableRoutes
@@ -431,11 +431,11 @@
     (table/table-routes route-spec)))
 
 (defn expand-routes
-  "Given a value (the route specification), produce and return a sequence of
-  route-maps -- the expanded routes from the specification.
+  "Given a value (the route specification), produce and return a routing table,
+  a seq of verbose routing maps.
 
-  A route specification is any type that implements or extends [[ExpandableRoutes]];
-  this includes vector, map, and set (for terse, table, and verbose routes).
+  A route specification is any type that satisfies [[ExpandableRoutes]];
+  this includes Clojure vectors, maps, and sets (for terse, table, and verbose routes).
 
   Ensures the integrity of expanded routes (even if they've already been checked):
 
@@ -452,7 +452,7 @@
   (definition/ensure-routes-integrity (-expand-routes route-spec)))
 
 (defprotocol RouterSpecification
-  (router-spec [specification router-ctor]
+  (router-spec [routing-table router-ctor]
     "Returns an interceptor which attempts to match each route against
     a :request in context. For the first route that matches, it will:
 
@@ -476,14 +476,14 @@
     (assoc context :route nil)))
 
 (extend-protocol RouterSpecification
-  ;; Normally, we start with a verbose routing table (a sequence of verbose maps) and create a router from that
+  ;; Normally, we start with a verbose routing table and create a router from that
   ;; so RouterSpecification is extended on Sequential
   clojure.lang.Sequential
-  (router-spec [expanded-routes router-ctor]
-    (let [router (router-ctor expanded-routes)]
+  (router-spec [routing-table router-ctor]
+    (let [router (router-ctor routing-table)]
       (interceptor/interceptor
         {:name ::router
-         :enter #(route-context % router expanded-routes)})))
+         :enter #(route-context % router routing-table)})))
 
   ;; The alternative is to pass in a no-arguments function that returns the expanded routes.
   ;; That is only used in development, as it can allow for significant changes to routing and handling
@@ -493,9 +493,9 @@
     (interceptor/interceptor
       {:name ::router
        :enter (fn [context]
-                (let [expanded-routes (f)
-                      router (router-ctor expanded-routes)]
-                  (route-context context router expanded-routes)))})))
+                (let [routing-table (f)
+                      router (router-ctor routing-table)]
+                  (route-context context router routing-table)))})))
 
 (def router-implementations
   "Maps from the common router implemenations (:map-tree, :prefix-tree, or :linear-search) to a router
@@ -505,23 +505,27 @@
    :linear-search linear-search/router})
 
 (defn router
-  "Given a the expanded routes and, optionally, what kind of router to construct, returns
+  "Given the routing table and, optionally, what kind of router to construct, returns
   a RouterSpecification instance, from which a routing interceptor can be obtained.
 
-  router-impl-key-or-fn may be a keyword of a known [[router-implementation]] or function
-  that accepts expanded routes, and returns a Router."
-  ([expanded-routes]
-   (router expanded-routes :map-tree))
-  ([expanded-routes router-impl-key-or-fn]
-   (assert (or (contains? router-implementations router-impl-key-or-fn)
-               (fn? router-impl-key-or-fn))
+  router-type may be a keyword identifying a known [[router-implementation]], or function
+  that accepts a routing table, and returns a [[Router]].
+
+  The default router type is :map-tree, which is the fastest built-in router;
+  however, if the expanded routes contain path paramters or wildcards,
+  the result is equivalent to the slower :prefix-tree implementation."
+  ([routing-table]
+   (router routing-table :map-tree))
+  ([routing-table router-type]
+   (assert (or (contains? router-implementations router-type)
+               (fn? router-type))
            (format "No router implementation exists for key %s. Please use one of %s."
-                   router-impl-key-or-fn
+                   router-type
                    (keys router-implementations)))
-   (let [router-ctor (if (fn? router-impl-key-or-fn)
-                       router-impl-key-or-fn
-                       (router-impl-key-or-fn router-implementations))]
-     (router-spec expanded-routes router-ctor))))
+   (let [router-ctor (if (fn? router-type)
+                       router-type
+                       (router-type router-implementations))]
+     (router-spec routing-table router-ctor))))
 
 (def query-params
   "Returns an interceptor which parses query-string parameters from an
@@ -598,16 +602,16 @@
 
 ;;; Help for debugging
 (defn print-routes
-  "Prints route table `expanded-routes` in easier to read format."
-  [expanded-routes]
-  (doseq [r (map (fn [{:keys [method path route-name]}] [method path route-name]) expanded-routes)]
+  "Prints a route table (from [[expand-routes]]) in an easier to read format."
+  [routing-table]
+  (doseq [r (map (juxt :method :path :route-name) routing-table)]
     (println r)))
 
 (defn try-routing-for
-  "Used for testing; constructs a router from the expanded-routes and router-type and perform routing, returning the matched
+  "Used for testing; constructs a router from the routing-table and router-type and perform routing, returning the matched
   route (from the expanded routes), or nil if routing was unsuccessful."
-  [expanded-routes router-type path verb]
-  (let [router  (router expanded-routes router-type)
+  [routing-table router-type path verb]
+  (let [router  (router routing-table router-type)
         context {:request {:path-info path
                            :request-method verb}}
         context ((:enter router) context)]
