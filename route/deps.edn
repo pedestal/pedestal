@@ -13,8 +13,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         org.clojure/core.async {:mvn/version "1.6.673"}
         io.pedestal/pedestal.log {:mvn/version "0.5.11-beta-1"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-beta-1"}
-        org.clojure/core.incubator {:mvn/version "0.1.4"}}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.5.11-beta-1"}}
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}

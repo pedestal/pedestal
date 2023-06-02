@@ -89,7 +89,7 @@
         classpath (build-full-classpath
                     (build-project-classpath)
                     (:classpath-roots (b/create-basis {:aliases [:codox]})))
-        codox-config (cond-> {metadata {:doc/format :markdown}
+        codox-config (cond-> {:metadata {:doc/format :markdown}
                               :name (str (name group-name) " libraries")
                               :version version
                               :source-paths (mapv #(str % "/src") module-dirs)

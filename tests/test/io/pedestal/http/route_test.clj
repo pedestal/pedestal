@@ -15,7 +15,9 @@
         clojure.pprint
         clojure.test
         clojure.repl)
-  (:require [clojure.set]
+  (:require clojure.set
+            matcher-combinators.clj-test
+            [io.pedestal.http.route.router :as router]
             [ring.middleware.resource]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.helpers :as interceptor
@@ -24,7 +26,8 @@
             [io.pedestal.http.route :as route :refer [expand-routes]]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
-            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
+            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]))
 
 (defhandler home-page
   [request]
@@ -1340,3 +1343,38 @@
   (let [routes (route/expand-routes #{["/:a-parameter" :get `home-page]})]
     (is (= "/some/context/a-value"
            ((route/url-for-routes routes) ::home-page :params {:a-parameter "a-value"} :context "some/context")))))
+
+
+(defn- attempt-route
+  [routes router-type verb path]
+  (route/try-routing-for (expand-routes routes)
+                         router-type
+                         path
+                         verb))
+
+(deftest wildcard-trumps-static-under-prefix-tree
+  (let [routes #{["/users/:id" :get [`view-user] :route-name ::view-user :constraints {:id #"\d+"}]
+                 ["/users/logout" :post [`logout] :route-name ::logout]}]
+    (is (= nil
+           (attempt-route routes :prefix-tree :get "/users/abc")))
+
+    (is (match? {:route-name ::view-user
+                 :path-params {:id "123"}}
+                (attempt-route routes :prefix-tree :get "/users/123")))
+
+    ;; This is the cause of pain, as one would think that a constraint failure on the wildcard match would
+    ;; drop down to match the static path, or that routing would take :request-method into account.
+    (is (= nil
+           (attempt-route routes :prefix-tree :post "/users/logout")))
+
+    ;; Have to use :linear-search to get the desired behavior:
+
+    (is (match? {:route-name ::view-user
+                 :path-params {:id "123"}}
+                (attempt-route routes :linear-search :get "/users/123")))
+
+    (is (= nil
+           (attempt-route routes :linear-search :get "/users/abc")))
+
+    (is (match? {:route-name ::logout}
+                (attempt-route routes :linear-search :post "/users/logout")))))
