@@ -1346,9 +1346,9 @@
 
 
 (defn- attempt-route
-  [routes kind verb path]
+  [routes router-type verb path]
   (route/try-routing-for (expand-routes routes)
-                         kind
+                         router-type
                          path
                          verb))
 
@@ -1365,7 +1365,7 @@
     ;; This is the cause of pain, as one would think that a constraint failure on the wildcard match would
     ;; drop down to match the static path, or that routing would take :request-method into account.
     (is (= nil
-           (attempt-route routes :prefix-tree  :post "/users/logout")))
+           (attempt-route routes :prefix-tree :post "/users/logout")))
 
     ;; Have to use :linear-search to get the desired behavior:
 
@@ -1373,5 +1373,8 @@
                  :path-params {:id "123"}}
                 (attempt-route routes :linear-search :get "/users/123")))
 
+    (is (= nil
+           (attempt-route routes :linear-search :get "/users/abc")))
+
     (is (match? {:route-name ::logout}
-           (attempt-route routes :linear-search :post  "/users/logout")))))
+                (attempt-route routes :linear-search :post "/users/logout")))))
