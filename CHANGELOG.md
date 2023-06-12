@@ -2,7 +2,7 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
-## 0.6.0 - UNRELEASED
+## 0.6.0 - 12 Jun 2023
 
 **BREAKING CHANGES:**
 * Path parameters (extracted during routing) are now, by default, URL decoded (via
