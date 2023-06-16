@@ -16,7 +16,7 @@
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
  :deps {criterium/criterium {:mvn/version "0.4.6"}
 
-        nubank/matcher-combinators {:mvn/version "3.7.2"}
+        nubank/matcher-combinators {:mvn/version "3.8.5"}
 
         org.clojure/java.classpath {:mvn/version "1.0.0"}
         org.clojure/tools.namespace {:mvn/version "1.4.4"}

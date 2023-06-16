@@ -28,7 +28,7 @@
                                      crypto-random/crypto-equality]}
         cheshire/cheshire {:mvn/version "5.11.0"}
         org.clojure/tools.reader {:mvn/version "1.3.6"}
-        com.cognitect/transit-clj {:mvn/version "1.0.329"}
+        com.cognitect/transit-clj {:mvn/version "1.0.333"}
         commons-codec/commons-codec {:mvn/version "1.15"}
         crypto-random/crypto-random {:mvn/version "1.2.1"
                                      :exclusions [commons-code/commons-codec]}
@@ -54,5 +54,5 @@
   :servlet-api
   {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
   ;; clj -T:build <command>
-  :build {:deps {io.github.hlship/build-tools {:git/tag "0.8" :git/sha "0a0c26a"}}
+  :build {:deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}}
           :ns-default build}}}
