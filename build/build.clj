@@ -34,7 +34,6 @@
    "service"
    ;; And then the others:
    "aws"
-   "immutant"
    "jetty"
    "service-tools"
    "tomcat"])

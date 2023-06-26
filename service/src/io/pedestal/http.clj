@@ -349,9 +349,6 @@
     (when (= type :jetty)
       ;; Load in container optimizations (NIO)
       (require 'io.pedestal.http.jetty.container))
-    (when (= type :immutant)
-      ;; Load in container optimizations (NIO)
-      (require 'io.pedestal.http.immutant.container))
     (merge service-map-with-host (server-map->service-map server-map))))
 
 (defn create-server

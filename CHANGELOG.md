@@ -4,6 +4,17 @@
 
 ## 0.7.0 - UNRELEASED
 
+**BREAKING CHANGES:**
+
+- pedestal.immutant has been removed
+
+Changes:
+
+- pedestal.logging: SLF4J dependency changed to 2.0.7 
+- pedestal.tomcat: Tomcat dependency change to 9.0.76
+- Pedestal is compatible with Clojure 1.10.1 and above
+
+
 ## 0.6.0 - 12 Jun 2023
 
 **BREAKING CHANGES:**

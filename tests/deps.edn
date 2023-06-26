@@ -26,9 +26,7 @@
         ;; (in HttpRequest), there is an issue with either
         ;; test setup or response processing (in clj-http).
         ;; This requires further investigation.
-        clj-http/clj-http {:mvn/version "2.0.0"
-                           :exclusions [potemkin/potemkin
-                                        clj-tuple/clj-tuple]}
+        clj-http/clj-http {:mvn/version "2.0.0"}
         ;; TODO: While com.ning/async-http-client 1.9.40 is available,
         ;; an arity error is encountered when running `lein bench-service`.
         ;; Furthermore, the project has been moved to
@@ -45,11 +43,10 @@
         io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
         io.pedestal/pedestal.route {:local/root "../route"}
         io.pedestal/pedestal.jetty {:local/root "../jetty"}
-        io.pedestal/pedestal.immutant {:local/root "../immutant"}
         io.pedestal/pedestal.tomcat {:local/root "../tomcat"}
 
-        ;; Logging:
-        io.aviso/logging {:mvn/version "1.0"}
+        ;; This is primarily to pick up the logging dependencies it provides.
+        io.pedestal/pedestal.service-tools {:local/root "../service-tools"}
 
         ;; only used for route-bench - remove when no longer needed
         incanter/incanter-core {:mvn/version "1.9.3"}
@@ -57,8 +54,12 @@
 
         ;; only used for tracing test
         io.jaegertracing/jaeger-client {:mvn/version "1.0.0"}}
+
  :aliases
  {
+  :1.10
+  {:override-deps {org.clojure/clojure {:mvn/version "1.10.1"}}}
+
   ;; clj -X:test
   :test
   {:extra-deps {io.github.cognitect-labs/test-runner

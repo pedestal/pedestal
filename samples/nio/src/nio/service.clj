@@ -59,7 +59,7 @@
               ;; Root for resource interceptor that is available by default.
               ::http/resource-path "/public"
 
-              ;; Either :jetty or :immutant (see comments in project.clj)
+              ;; Either :jetty or :tomcat (see comments in project.clj)
               ::http/type :jetty
               ;;::http/host "localhost"
               ::http/port 8080})
