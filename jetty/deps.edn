@@ -28,7 +28,7 @@
 
   ;; clj -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
   :nvd
-  {:deps {nvd-clojure/nvd-clojure {:mvn/version "3.2.0"}}
+  {:deps {nvd-clojure/nvd-clojure {:mvn/version "3.3.0"}}
    :exec-fn nvd.task/check}
 
   :local
