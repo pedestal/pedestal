@@ -49,7 +49,7 @@ jobs:
         working-directory: tests
         run: clojure -X:test:1.10
       - name: CVE Vulnerabilities Check
-        run: clojure cve-check
+        run: clojure -T:build cve-check
       - name: Upload cve-check-results.html
         uses: actions/upload-artifact@v3
         with:
