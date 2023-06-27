@@ -48,6 +48,10 @@ jobs:
       - name: Execute tests (Clojure 1.10)
         working-directory: tests
         run: clojure -X:test:1.10
-      - name: Vulnerabilities Check
-        working-directory: jetty
-        run: clojure -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
+      - name: CVE Vulnerabilities Check
+        run: clojure cve-check
+      - name: Upload cve-check-results.html
+        uses: actions/upload-artifact@v3
+        with:
+          name: cve-check-results.html
+          path: target/nvd/dependency-check-report.html

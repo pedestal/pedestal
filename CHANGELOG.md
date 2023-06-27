@@ -13,6 +13,7 @@ Changes:
 - pedestal.logging: SLF4J dependency changed to 2.0.7 
 - pedestal.tomcat: Tomcat dependency change to 9.0.76
 - Pedestal is compatible with Clojure 1.10.1 and above
+- CVE check now covers Tomcat as well as Jetty
 
 
 ## 0.6.0 - 12 Jun 2023
