@@ -52,7 +52,7 @@ jobs:
         id: cve-check
         run: clojure -T:build cve-check
       - name: Upload cve-check-results.html
-        if: ${{ failure() && steps.cve-check.conclusion == 'failure' }}
+        if: ${{ !cancelled() && steps.cve-check.conclusion != undefined }}
         uses: actions/upload-artifact@v3
         with:
           name: cve-check-results.html

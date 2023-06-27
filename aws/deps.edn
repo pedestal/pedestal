@@ -15,14 +15,14 @@
         io.pedestal/pedestal.interceptor {:mvn/version "0.6.0"}
 
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}
-        com.amazonaws/aws-java-sdk-core {:mvn/version "1.11.567"} ;; Needed for x-ray
-        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.0"}
-        com.amazonaws/aws-xray-recorder-sdk-core {:mvn/version "2.2.1"}
+        com.amazonaws/aws-java-sdk-core {:mvn/version "1.12.497"}
+        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.2"}
+        com.amazonaws/aws-xray-recorder-sdk-core {:mvn/version "2.14.0"}
 
         ;; Bring AWS libs inline with Pedestal Service
         com.fasterxml.jackson.core/jackson-core {:mvn/version "2.15.2"}
         com.fasterxml.jackson.dataformat/jackson-dataformat-cbor {:mvn/version "2.15.2"}
-        commons-codec/commons-codec {:mvn/version "1.15"}
+        commons-codec/commons-codec {:mvn/version "1.16.0"}
         joda-time/joda-time {:mvn/version "2.12.5"}}
 
  :aliases
