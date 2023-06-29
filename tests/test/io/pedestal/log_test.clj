@@ -20,6 +20,3 @@
   (is (nil? (log/-span nil "operation-name")))
   (is (nil? (log/-span nil "operation-name" nil)))
   (is (nil? (log/-span nil "operation-name" nil nil))))
-
-(deftest always-fail
-  (is (= :truth :beauty)))
