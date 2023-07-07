@@ -11,7 +11,7 @@
 
 (ns io.pedestal.http.jetty.util
   (:import (java.util EnumSet)
-           (javax.servlet Servlet Filter DispatcherType)
+           (jakarta.servlet Servlet Filter DispatcherType)
            (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)
            (org.eclipse.jetty.server HttpConfiguration
                                      SecureRequestCustomizer

@@ -3,7 +3,7 @@
             [io.pedestal.log :as log])
   (:import (java.nio ByteBuffer)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
-           (org.eclipse.jetty.websocket.servlet WebSocketCreator
+           (org.eclipse.jetty.websocket.core.server WebSocketCreator
                                                 WebSocketServlet)
            (org.eclipse.jetty.websocket.api Session
                                             WebSocketListener

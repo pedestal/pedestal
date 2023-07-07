@@ -25,14 +25,13 @@
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
-           (org.eclipse.jetty.alpn ALPN)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.server HTTP2ServerConnectionFactory
                                            HTTP2CServerConnectionFactory)
-           (javax.servlet Servlet)
+           (jakarta.servlet Servlet)
            (java.security KeyStore)
-           (javax.servlet.http HttpServletRequest HttpServletResponse)))
+           (jakarta.servlet.http HttpServletRequest HttpServletResponse)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
@@ -182,7 +181,6 @@
         http2c (when h2c? (HTTP2CServerConnectionFactory. http-conf))
         http2 (when h2? (HTTP2ServerConnectionFactory. http-conf))
         alpn (when h2?
-               ;(set! (. ALPN debug) true)
                ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
                (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
                  (.setDefaultProtocol "http/1.1")))
@@ -204,7 +202,7 @@
                           (.setPort ssl-port)
                           (.setHost host)))
         context (doto (ServletContextHandler. server context-path)
-                  (.addServlet (ServletHolder. ^javax.servlet.Servlet servlet) "/*"))]
+                  (.addServlet (ServletHolder. ^jakarta.servlet.Servlet servlet) "/*"))]
     (when daemon?
       (.setDaemon thread-pool true))
     (when http-connector
