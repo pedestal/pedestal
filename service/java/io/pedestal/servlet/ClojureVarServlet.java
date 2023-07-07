@@ -14,18 +14,18 @@ package io.pedestal.servlet;
 
 import clojure.lang.IFn;
 import clojure.java.api.Clojure;
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.GenericServlet;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.GenericServlet;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 
 /**
  * Java Servlets implementation that dispatches via Clojure Vars (that map to IFn's).
  *
  * <p>ClojureVarServlet is a completely generic implementation of the
- * javax.servlet.Servlet and ServletConfig interfaces. Its behavior is
+ * jakarta.servlet.Servlet and ServletConfig interfaces. Its behavior is
  * specified via Servlet initialization parameters.
  *
  * <p>The three parameters are 'init', 'service', and 'destroy'. Only

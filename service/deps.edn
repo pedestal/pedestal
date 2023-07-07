@@ -22,7 +22,7 @@
         ;; interceptors
 
         ring/ring-core {:mvn/version "1.10.0"
-                        :exclusions [org.clojure/clojure
+                        :exclusions [org.clojure/clojurejava
                                      org.clojure/tools.reader
                                      crypto-random/crypto-random
                                      crypto-random/crypto-equality]}
@@ -36,6 +36,7 @@
 
  ;; Requires `clj -X:deps prep`  when downloaded as a git checkout (if via Maven repo, the class will
  ;; already be compiled into the artifact).
+ ;; Note: compile-java adds the :servlet-api alias to the classpath during compilation.
  :deps/prep-lib
  {:ensure "target/classes"
   :alias :build
@@ -52,7 +53,7 @@
   ;; Normally javax.servlet-api comes from the runtime container (e.g., Jetty) but we need it here
   ;; to compile our servlet.
   :servlet-api
-  {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
+  {:extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}}}
   ;; clj -T:build <command>
   :build {:deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}}
           :ns-default build}}}
