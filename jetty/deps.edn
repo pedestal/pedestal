@@ -23,15 +23,7 @@
         org.eclipse.jetty.websocket/websocket-server {:mvn/version "9.4.51.v20230217"}
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}
  :aliases
- {:clj11
-  {:override-deps {org.clojure/clojure {:mvn/version "1.11.1"}}}
-
-  ;; clj -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
-  :nvd
-  {:deps {nvd-clojure/nvd-clojure {:mvn/version "3.2.0"}}
-   :exec-fn nvd.task/check}
-
-  :local
+ {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
                    io.pedestal/pedestal.service {:local/root "../service"}
                    ;; Recapitulate transitive dependencies of pedestal.service since the

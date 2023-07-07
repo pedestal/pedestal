@@ -12,10 +12,10 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         ;; logging
-        org.slf4j/slf4j-api {:mvn/version "1.7.35"}
+        org.slf4j/slf4j-api {:mvn/version "2.0.7"}
         ;; metrics
-        io.dropwizard.metrics/metrics-core {:mvn/version "4.2.18"}
-        io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.18"}
+        io.dropwizard.metrics/metrics-core {:mvn/version "4.2.19"}
+        io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.19"}
         ;; tracing
         io.opentracing/opentracing-api {:mvn/version "0.33.0"}
         io.opentracing/opentracing-util {:mvn/version "0.33.0"}}}

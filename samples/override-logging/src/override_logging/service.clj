@@ -66,7 +66,7 @@
               ;; Root for resource interceptor that is available by default.
               ::http/resource-path "/public"
 
-              ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
+              ;; Either :jetty or :tomcat (see comments in project.clj)
               ;;  This can also be your own chain provider/server-fn -- http://pedestal.io/reference/architecture-overview#_chain_provider
               ::http/type :jetty
               ;;::http/host "localhost"

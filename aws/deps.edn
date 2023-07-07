@@ -15,22 +15,15 @@
         io.pedestal/pedestal.interceptor {:mvn/version "0.6.0"}
 
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}
-        com.amazonaws/aws-java-sdk-core {:mvn/version "1.11.567"
-                                         :exclusions [commons-logging/commons-logging]} ;; Needed for x-ray
-        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.0"}
-        com.amazonaws/aws-xray-recorder-sdk-core {:mvn/version "2.2.1"
-                                                  :exclusions [com.amazonaws/aws-java-sdk-core
-                                                               commons-logging/commons-logging
-                                                               joda-time/joda-time]}
-
-        ;; A clash between AWS and HTTP Libs
-        commons-logging/commons-logging {:mvn/version "1.2"}
+        com.amazonaws/aws-java-sdk-core {:mvn/version "1.12.499"}
+        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.2"}
+        com.amazonaws/aws-xray-recorder-sdk-core {:mvn/version "2.14.0"}
 
         ;; Bring AWS libs inline with Pedestal Service
-        com.fasterxml.jackson.core/jackson-core {:mvn/version "2.9.9"}
-        com.fasterxml.jackson.dataformat/jackson-dataformat-cbor {:mvn/version "2.9.9"}
-        commons-codec/commons-codec {:mvn/version "1.12"}
-        joda-time/joda-time {:mvn/version "2.10.2"}}
+        com.fasterxml.jackson.core/jackson-core {:mvn/version "2.15.2"}
+        com.fasterxml.jackson.dataformat/jackson-dataformat-cbor {:mvn/version "2.15.2"}
+        commons-codec/commons-codec {:mvn/version "1.16.0"}
+        joda-time/joda-time {:mvn/version "2.12.5"}}
 
  :aliases
  {:local

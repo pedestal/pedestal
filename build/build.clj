@@ -34,7 +34,6 @@
    "service"
    ;; And then the others:
    "aws"
-   "immutant"
    "jetty"
    "service-tools"
    "tomcat"])
@@ -232,3 +231,16 @@
       (update-version (-> options
                           (dissoc :level :dry-run)
                           (assoc :version new-version))))))
+
+
+(defn cve-check
+  [_]
+  (let [cp (->> (build-full-classpath (build-project-classpath))
+                (filter #(str/ends-with? % ".jar"))
+                (str/join ":"))
+        {:keys [exit]} (do
+                         (println "Running CVE check")
+                         (b/process {:command-args ["clojure"
+                                                    "-T:nvd" ":classpath"
+                                                    (str \" cp \")]}))]
+    (System/exit exit)))

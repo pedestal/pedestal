@@ -11,9 +11,8 @@
                  [io.pedestal/pedestal.service "0.6.0"]
 
                  ;; Remove this line and uncomment one of the next lines to
-                 ;; use Immutant or Tomcat instead of Jetty:
+                 ;; use Tomcat or Tomcat instead of Jetty:
                  [io.pedestal/pedestal.jetty "0.6.0"]
-                 ;; [io.pedestal/pedestal.immutant "0.6.0"]
                  ;; [io.pedestal/pedestal.tomcat "0.6.0"]
 
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
