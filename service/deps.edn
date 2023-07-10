@@ -51,9 +51,12 @@
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
                    io.pedestal/pedestal.route {:local/root "../route"}}}
   ;; Normally javax.servlet-api comes from the runtime container (e.g., Jetty) but we need it here
-  ;; to compile our servlet.
+  ;; to compile our servlet and other classes.
+  ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
   :servlet-api
-  {:extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}}}
+  {:extra-paths ["java" "target/classes"]
+   :extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}
+                org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}}
   ;; clj -T:build <command>
   :build {:deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}}
           :ns-default build}}}
