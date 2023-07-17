@@ -1,45 +1,66 @@
 (ns io.pedestal.http.websocket-test
   (:require
-   [clojure.test :refer :all]
-   [hato.websocket :as ws]
-   [io.pedestal.http]
-   [io.pedestal.http.jetty.websockets :as websockets])
-  (:import (org.eclipse.jetty.servlet ServletContextHandler)))
+    [clojure.test :refer :all]
+    [hato.websocket :as ws]
+    [io.pedestal.http :as http]
+    [clojure.core.async :refer [chan put!] :as async]
+    [io.pedestal.http.jetty.websockets :as websockets]))
 
-(def status (atom nil))
+(def server-status-chan nil)
 
-(defn server-fixture [f]
-  (reset! status nil)
-  (let [ws-map  {"/ws" {:on-connect #(swap! status assoc :session %)
-                        :on-close #(swap! status merge {:status-code %1
-                                                        :reason %2})
-                        :on-error #(swap! status assoc :cause %)
-                        :on-text #(swap! status assoc :string %)
-                        :on-binary #(swap! status merge {:payload %1
-                                                         :offset %2
-                                                         :len %3})}}
-        options {:context-configurator (fn [^ServletContextHandler h]
-                                         (websockets/add-ws-endpoints h
-                                                                      ws-map))}
-        server  (io.pedestal.http/create-server (merge {:io.pedestal.http/type :jetty
-                                                        :io.pedestal.http/join? false
-                                                        :io.pedestal.http/port 8080
-                                                        :io.pedestal.http/routes []
-                                                        :io.pedestal.http/container-options options}))]
+(defn server-status-chan-fixture [f]
+  (with-redefs [server-status-chan (chan 10)]
+    (f)))
+
+(defn <status!!
+  []
+  (async/alt!!
+    server-status-chan ([status-value] status-value)
+
+    (async/timeout 3000) [::timed-out]))
+
+(defn simple-server-fixture [f]
+  (let [ws-map {"/ws" {:on-connect #(put! server-status-chan [:connect %])
+                       :on-close (fn [status-code reason]
+                                   (put! server-status-chan [:close status-code reason]))
+                       :on-error #(put! server-status-chan [:error %])
+                       :on-text #(put! server-status-chan [:text %])
+                       :on-binary (fn [payload offset length]
+                                    (put! server-status-chan [:binary payload offset length]))}}
+        server (http/create-server {::http/type :jetty
+                                    ::http/join? false
+                                    ::http/port 8080
+                                    ::http/routes []
+                                    ::http/container-options
+                                    {:context-configurator #(websockets/add-ws-endpoints % ws-map)}})]
     (try
-      (io.pedestal.http/start server)
+      (http/start server)
       (f)
-      (finally (io.pedestal.http/stop server)))))
+      (finally
+        (http/stop server)))))
 
-(use-fixtures :each server-fixture)
+(use-fixtures :each
+              server-status-chan-fixture
+              simple-server-fixture)
 
 ;; TODO: test text round-trip
 (deftest client-sends-text-test
   (let [session @(ws/websocket "ws://localhost:8080/ws" {})]
-    @(ws/send! session "hello")
-    (Thread/sleep 300)
-    (is (= (:string @status) "hello"))))
+    (is (= :connect
+           (first (<status!!))))
+    (ws/send! session "hello")
+
+    (is (= [:text "hello"]
+           (<status!!)))
+
+    ;; Note: the status code value is tricky, must be one of a few preset values, or in the
+    ;; range 3000 to 4999.
+    @(ws/close! session 4000 "A valid reason")
+
+    (is (=[:close 4000 "A valid reason"]
+           (<status!!)))))
 
 ;; TODO: test binary round-trip
 ;; TODO: test when server closes, client sees it
 ;; TODO: test when client closes, server sees it
+
