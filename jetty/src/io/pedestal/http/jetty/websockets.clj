@@ -178,7 +178,7 @@
    (let [{:keys [listener-fn]
           :or {listener-fn (fn [req response ws-map]
                              (make-ws-listener ws-map))}} opts]
-     (doseq [[path ws-map] ws-paths]
+     (doseq [[^String path ws-map] ws-paths]
        (let [servlet (ws-servlet (fn [req response]
                                    (listener-fn req response ws-map)))]
          (.addServlet ctx (ServletHolder. ^javax.servlet.Servlet servlet) path)))
