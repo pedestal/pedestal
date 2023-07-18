@@ -46,7 +46,7 @@
              (report {:type :fail
                       :message "Expected server status was not delivered"
                       :expected expected-kind#
-                      :actual skipped#})
+                      :actual (conj skipped# status-value#)})
              nil)
 
            :else
