@@ -3,9 +3,10 @@
     [clojure.test :refer [deftest is use-fixtures report]]
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
-    [clojure.core.async :refer [chan put!] :as async]
+    [clojure.core.async :refer [chan put! close!] :as async]
     [io.pedestal.http.jetty.websockets :as websockets])
-  (:import (java.nio ByteBuffer)))
+  (:import (com.ning.http.client.websocket WebSocket)
+           (java.nio ByteBuffer)))
 
 (def ws-uri "ws://localhost:8080/ws")
 
@@ -157,7 +158,30 @@
           (is (= response-buffer data))
           (is (true? last)))))))
 
-;; TODO: test when server closes, client sees it
+(deftest closing-send-channel-shuts-down-connection
+  (with-server {"/ws" (conversation-actions {:on-text (fn [send-ch text]
+                                                        (put! events-chan [:text text])
+                                                        (when (= "DIE" text)
+                                                          (close! send-ch)))
+                                             :on-close (fn [status-code reason]
+                                                         (put! events-chan [:close status-code reason]))})}
+    (let [session @(ws/websocket ws-uri {:on-message (fn [ws data last?]
+                                                       (put! events-chan [:client-message data last?]))
+                                         :on-close (fn [ws status-code reason]
+                                                     ;; Client on-close handler does not appear to be
+                                                     ;; invoked.
+                                                     (put! events-chan [:client-close status-code reason]))})]
+      (ws/send! session "Bob")
+      (is (= [:text "Bob"]
+             (expect-event :text)))
+
+      (ws/send! session "DIE")
+
+      (is (= [:close java.net.http.WebSocket/NORMAL_CLOSURE nil] (expect-event :close)))
+
+      #_
+      (is (= [:close java.net.http.WebSocket/NORMAL_CLOSURE nil] (expect-event :client-close))))))
+
 ;; TODO: test error callback
 
 
