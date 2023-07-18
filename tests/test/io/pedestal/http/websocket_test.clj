@@ -9,58 +9,58 @@
 
 (def ws-uri "ws://localhost:8080/ws")
 
-(def server-status-chan nil)
+(def events-chan nil)
 
-(defn server-status-chan-fixture [f]
-  (with-redefs [server-status-chan (chan 10)]
+(defn events-chan-fixture [f]
+  (with-redefs [events-chan (chan 10)]
     (f)))
 
 (use-fixtures :each
-              server-status-chan-fixture)
+              events-chan-fixture)
 
-(defn <status!!
+(defn <event!!
   []
   (async/alt!!
-    server-status-chan ([status-value] status-value)
+    events-chan ([status-value] status-value)
 
     (async/timeout 75) [::timed-out]))
 
-(defmacro expect-status
-  "Expects a particular kind of status value (:connect, :close, :text, etc.).
+(defmacro expect-event
+  "Expects a particular kind of event value (:connect, :close, :text, etc.).
   Ignores other statuses until a match is found, or a timeout occurs.
   Reports a failure on timeout.
 
-  Returns the status value on success, or nil on failure."
+  Returns the event value on success, or nil on failure."
   [expected-kind]
   `(let [expected-kind# ~expected-kind]
      (loop [skipped# []]
-       (let [[kind# :as status-value#] (<status!!)]
+       (let [[kind# :as event#] (<event!!)]
          (cond
            (= kind# expected-kind#)
            (do
              (report {:type :pass})
-             status-value#)
+             event#)
 
            (= ::timed-out kind#)
            (do
              (report {:type :fail
-                      :message "Expected server status was not delivered"
+                      :message "Expected event was not delivered"
                       :expected expected-kind#
-                      :actual (conj skipped# status-value#)})
+                      :actual (conj skipped# event#)})
              nil)
 
            :else
-           (recur (conj skipped# status-value#)))))))
+           (recur (conj skipped# event#)))))))
 
 (def default-ws-handlers
   ;; Also called an "action map"
-  {:on-connect #(put! server-status-chan [:connect %])
+  {:on-connect #(put! events-chan [:connect %])
    :on-close (fn [status-code reason]
-               (put! server-status-chan [:close status-code reason]))
-   :on-error #(put! server-status-chan [:error %])
-   :on-text #(put! server-status-chan [:text %])
+               (put! events-chan [:close status-code reason]))
+   :on-error #(put! events-chan [:error %])
+   :on-text #(put! events-chan [:text %])
    :on-binary (fn [payload offset length]
-                (put! server-status-chan [:binary payload offset length]))})
+                (put! events-chan [:binary payload offset length]))})
 
 (def default-ws-map {"/ws" default-ws-handlers})
 
@@ -85,18 +85,18 @@
 (deftest client-sends-text
   (with-server default-ws-map
     (let [session @(ws/websocket ws-uri {})]
-      (expect-status :connect)
+      (expect-event :connect)
       (ws/send! session "hello")
 
       (is (= [:text "hello"]
-             (<status!!)))
+             (<event!!)))
 
       ;; Note: the status code value is tricky, must be one of a few preset values, or in the
       ;; range 3000 to 4999.
       @(ws/close! session 4000 "A valid reason")
 
       (is (= [:close 4000 "A valid reason"]
-             (<status!!))))))
+             (<event!!))))))
 
 (deftest client-sends-binary
   (with-server default-ws-map
@@ -107,29 +107,55 @@
       (ws/send! session buffer)
       (.rewind buffer)
 
-      (when-let [[_ b o l] (expect-status :binary)]
+      (when-let [[_ b o l] (expect-event :binary)]
         (let [buffer' (ByteBuffer/wrap b o l)]
           (is (= buffer buffer')))))))
 
-(deftest text-conversation
-  (let [socket-channel (atom nil)
-        on-connect (websockets/start-ws-connection #(reset! socket-channel %2))]
-    (with-server {"/ws" {:on-connect on-connect
-                         :on-close (fn [status-code reason]
-                                     (put! server-status-chan [:close status-code reason]))
-                         :on-error #(put! server-status-chan [:error %])
-                         :on-text (fn [text]
-                                    (put! server-status-chan [:text text])
-                                    (put! @socket-channel (str "Hello, " text)))}}
-                 (let [session      @(ws/websocket ws-uri {:on-message (fn [ws data last?]
-                                                                         (put! server-status-chan [:client-message data last?]))})]
-                   (ws/send! session "Bob")
-                   (is (= [:text "Bob"]
-                          (expect-status :text)))
+(defn- conversation-actions
+  [action-map]
+  (let [*send-ch (atom nil)
+        on-connect (websockets/start-ws-connection
+                     (fn [_ send-ch]
+                       (reset! *send-ch send-ch)))
+        {:keys [on-text on-binary]} action-map]
+    (cond-> (assoc action-map :on-connect on-connect)
+            on-text (assoc :on-text (fn [text]
+                                      (on-text @*send-ch text)))
+            on-binary (assoc :on-binary (fn [byte-array offset length]
+                                          (on-binary @*send-ch (ByteBuffer/wrap byte-array offset length)))))))
 
-                   (when-let [[_ data last] (expect-status :client-message)]
-                     (is (= "Hello, Bob" (str data)))
-                     (is (true? last)))))))
+(deftest text-conversation
+  (with-server {"/ws" (conversation-actions {:on-text (fn [send-ch text]
+                                                        (put! events-chan [:text text])
+                                                        (put! send-ch (str "Hello, " text)))})}
+    (let [session @(ws/websocket ws-uri {:on-message (fn [ws data last?]
+                                                       (put! events-chan [:client-message data last?]))})]
+      (ws/send! session "Bob")
+      (is (= [:text "Bob"]
+             (expect-event :text)))
+
+      (when-let [[_ data last] (expect-event :client-message)]
+        (is (= "Hello, Bob" (str data)))
+        (is (true? last))))))
+
+(deftest text-conversation
+  (let [response-buffer (ByteBuffer/wrap (.getBytes "We Agree" "utf-8"))]
+    (with-server {"/ws" (conversation-actions {:on-binary (fn [send-ch data]
+                                                            (put! events-chan [:binary data])
+                                                            (put! send-ch response-buffer))})}
+      (let [buffer (ByteBuffer/wrap (.getBytes "WebSockets are nifty" "utf-8"))
+            session @(ws/websocket ws-uri {:on-message (fn [ws data last?]
+                                                         (put! events-chan [:client-message data last?]))})]
+        (ws/send! session buffer)
+        (.rewind buffer)
+
+        (when-let [[_ received-buffer] (expect-event :binary)]
+          (is (= buffer received-buffer)))
+
+        (when-let [[_ data last] (expect-event :client-message)]
+          (.rewind response-buffer)
+          (is (= response-buffer data))
+          (is (true? last)))))))
 
 ;; TODO: test when server closes, client sees it
 ;; TODO: test error callback
