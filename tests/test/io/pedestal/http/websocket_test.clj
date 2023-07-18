@@ -1,6 +1,6 @@
 (ns io.pedestal.http.websocket-test
   (:require
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is use-fixtures report]]
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
     [clojure.core.async :refer [chan put!] :as async]
@@ -24,6 +24,33 @@
     server-status-chan ([status-value] status-value)
 
     (async/timeout 75) [::timed-out]))
+
+(defmacro expect-status
+  "Expects a particular kind of status value (:connect, :close, :text, etc.).
+  Ignores other statuses until a match is found, or a timeout occurs.
+  Reports a failure on timeout.
+
+  Returns the status value on success, or nil on failure."
+  [expected-kind]
+  `(let [expected-kind# ~expected-kind]
+     (loop [skipped# []]
+       (let [[kind# :as status-value#] (<status!!)]
+         (cond
+           (= kind# expected-kind#)
+           (do
+             (report {:type :pass})
+             status-value#)
+
+           (= ::timed-out kind#)
+           (do
+             (report {:type :fail
+                      :message "Expected server status was not delivered"
+                      :expected expected-kind#
+                      :actual skipped#})
+             nil)
+
+           :else
+           (recur (conj skipped# status-value#)))))))
 
 (def default-ws-handlers
   ;; Also called an "action map"
@@ -58,8 +85,7 @@
 (deftest client-sends-text
   (with-server default-ws-map
     (let [session @(ws/websocket ws-uri {})]
-      (is (= :connect
-             (first (<status!!))))
+      (expect-status :connect)
       (ws/send! session "hello")
 
       (is (= [:text "hello"]
@@ -78,20 +104,17 @@
           buffer-bytes (.getBytes "A mind forever voyaging" "utf-8")
           buffer (ByteBuffer/wrap buffer-bytes)]
 
-      (<status!!)                                           ; consume :connect
-
       (ws/send! session buffer)
+      (.rewind buffer)
 
-      (let [[kind b o l] (<status!!)
-            buffer' (when b
-                      (ByteBuffer/wrap b o l))]
-        (is (= :binary kind))
-        (.rewind buffer)                                    ; contents were consumed by send!
-        (is (= buffer buffer'))))))
+      (when-let [[_ b o l] (expect-status :binary)]
+        (let [buffer' (ByteBuffer/wrap b o l)]
+          (is (= buffer buffer')))))))
 
 ;; TODO: test text round-trip
 ;; TODO: test binary round-trip
 ;; TODO: test when server closes, client sees it
-;; TODO: test when client closes, server sees it
+;; TODO: test error callback
+
 
 
