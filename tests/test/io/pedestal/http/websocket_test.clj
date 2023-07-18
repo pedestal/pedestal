@@ -111,8 +111,26 @@
         (let [buffer' (ByteBuffer/wrap b o l)]
           (is (= buffer buffer')))))))
 
-;; TODO: test text round-trip
-;; TODO: test binary round-trip
+(deftest text-conversation
+  (let [socket-channel (atom nil)
+        on-connect (websockets/start-ws-connection #(reset! socket-channel %2))]
+    (with-server {"/ws" {:on-connect on-connect
+                         :on-close (fn [status-code reason]
+                                     (put! server-status-chan [:close status-code reason]))
+                         :on-error #(put! server-status-chan [:error %])
+                         :on-text (fn [text]
+                                    (put! server-status-chan [:text text])
+                                    (put! @socket-channel (str "Hello, " text)))}}
+                 (let [session      @(ws/websocket ws-uri {:on-message (fn [ws data last?]
+                                                                         (put! server-status-chan [:client-message data last?]))})]
+                   (ws/send! session "Bob")
+                   (is (= [:text "Bob"]
+                          (expect-status :text)))
+
+                   (when-let [[_ data last] (expect-status :client-message)]
+                     (is (= "Hello, Bob" (str data)))
+                     (is (true? last)))))))
+
 ;; TODO: test when server closes, client sees it
 ;; TODO: test error callback
 
