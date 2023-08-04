@@ -14,7 +14,7 @@
   (:require [clojure.java.io :as io])
   (:import (org.apache.catalina.startup Tomcat)
            (org.apache.catalina.connector Connector)
-           (javax.servlet Servlet)))
+           (jakarta.servlet Servlet)))
 
 ;; These SSL configs are fixed to static values:
 ;; setSecure - true

@@ -11,7 +11,7 @@
 
 (ns io.pedestal.http.request.servlet-support
   (:require [io.pedestal.http.request :as request])
-  (:import (javax.servlet.http HttpServletRequest HttpServletResponse)))
+  (:import (jakarta.servlet.http HttpServletRequest HttpServletResponse)))
 
 (defn servlet-request-headers [^HttpServletRequest servlet-req]
   (loop [out   (transient {})
@@ -42,7 +42,7 @@
   (protocol [req] (.getProtocol req))
   (headers [req] (servlet-request-headers req))
   (header [req header-string] (.getHeader req header-string))
-  (ssl-client-cert [req] (.getAttribute req "javax.servlet.request.X509Certificate"))
+  (ssl-client-cert [req] (.getAttribute req "jakarta.servlet.request.X509Certificate"))
   (body [req] (.getInputStream req))
   (path-info [req] (servlet-path-info req))
   (async-supported? [req] (.isAsyncSupported req))

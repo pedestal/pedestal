@@ -71,7 +71,7 @@
 ;; something implemented for Jetty.
 
 (defn add-ws-endpoints
-  "Add WebSocket endpoints to the handler.
+  "Jetty-specific API to add WebSocket endpoints to the handler.
 
   Endpoints are defined in terms of a map of path to endpoint map.
 
@@ -79,24 +79,22 @@
   which (if present) is a callback function.
 
   :on-open (jakarta.websocket.Session,  jakarta.websocket.EndpointConfig)
-  : Invoked when client first opens a connection.
+  : Invoked when client first opens a connection.  The returned value is retained
+    and passed as the first argument of the remaining callbacks.
 
-  :on-close (jakarta.websocket.Session, jakarta.websocket.CloseReason)
+  :on-close (Object, jakarta.websocket.Session, jakarta.websocket.CloseReason)
   : Invoked when the socket is closed, allowing any resources to be freed.
 
-  :on-error (jakarta.websocket.Session, Throwable)
+  :on-error (Object, jakarta.websocket.Session, Throwable)
   : Passed any unexpected exceptions.
 
-  :on-text (String)
+  :on-text (Object String)
   : Passed a text message as a single String.
 
-  :on-binary (java.nio.ByteBuffer)
+  :on-binary (Object, java.nio.ByteBuffer)
   : Passed a binary message as a single ByteBuffer.
 
-
-  Commonly,:on-open is provided by a call to [[on-open-start-ws-connection]] or
-  [[on-open-start-ws-fc-connection]].
-  "
+  Commonly,:on-open is provided by a call to [[on-open-start-ws-connection]]."
   [^ServletContextHandler handler ws-paths]
   (JakartaWebSocketServletContainerInitializer/configure
     handler

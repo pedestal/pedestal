@@ -5,11 +5,9 @@
 ;; https://github.com/ring-clojure/ring/blob/master/ring-jetty-adapter/test/ring/adapter/test/jetty.clj
 
 (ns io.pedestal.http.jetty-test
-  (:use clojure.test
-        io.pedestal.http.jetty)
-  (:require [clj-http.client :as http]
-            [clojure.edn]
-            [io.pedestal.http]
+  (:require [clojure.test :refer [deftest is testing]]
+            [io.pedestal.http :as bootstrap]
+            [clj-http.client :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.helpers :refer [defhandler handler]]
             [io.pedestal.http.servlet :as servlet]
@@ -83,13 +81,13 @@
 ;; requires routes/service-map/etc.
 ;; -----------------------------
 (defmacro with-service-server [service-map & body]
-  `(let [server# (io.pedestal.http/create-server (merge {:io.pedestal.http/type :jetty
-                                                         :io.pedestal.http/join? false}
-                                                        ~service-map))]
+  `(let [server# (bootstrap/create-server (merge {::bootstrap/type :jetty
+                                                  ::bootstrap/join? false}
+                                                 ~service-map))]
      (try
-       (io.pedestal.http/start server#)
+       (bootstrap/start server#)
        ~@body
-       (finally (io.pedestal.http/stop server#)))))
+       (finally (bootstrap/stop server#)))))
 
 (deftest test-run-jetty
   (testing "HTTP server"
@@ -103,8 +101,10 @@
   (testing "HTTPS server"
     (with-server hello-world {:port 4347
                               :container-options {:ssl-port 4348
+                                                  ;; Disable the SLI check that rejects "localhost"
                                                   :keystore "test/io/pedestal/http/keystore.jks"
                                                   :key-password "password"}}
+                 ;; Aug 4: Failing with an error related to SLI, probably because the host name is "localhost"
       (let [response (http/get "https://localhost:4348" {:insecure? true})]
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))))

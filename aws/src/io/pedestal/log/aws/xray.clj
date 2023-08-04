@@ -194,7 +194,7 @@
    3. AWS X-Ray Headers
    4. Nothing found - a new span/segment is created. "
   ([context]
-   (span-resolver context (try (Class/forName "javax.servlet.HttpServletRequest")
+   (span-resolver context (try (Class/forName "jakarta.servlet.HttpServletRequest")
                                    (catch Exception _ nil))))
   ([context servlet-class]
    (try

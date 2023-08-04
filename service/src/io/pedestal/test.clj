@@ -18,9 +18,9 @@
             [clojure.java.io :as io]
             [clojure.core.async :as async]
             [io.pedestal.http.container :as container])
-  (:import (javax.servlet.http HttpServlet HttpServletRequest HttpServletResponse)
-           (javax.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
-           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream OutputStream)
+  (:import (jakarta.servlet.http  HttpServletRequest HttpServletResponse)
+           (jakarta.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
+           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream )
            (clojure.lang IMeta)
            (java.util Enumeration NoSuchElementException)
            (java.nio.channels Channels ReadableByteChannel)))

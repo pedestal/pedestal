@@ -23,7 +23,7 @@
                                      NegotiatingServerConnectionFactory)
            (org.eclipse.jetty.server.handler AbstractHandler)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
-           (org.eclipse.jetty.util.thread QueuedThreadPool)
+           (org.eclipse.jetty.util.thread ExecutorThreadPool QueuedThreadPool ThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
@@ -50,7 +50,7 @@
                     ^String trust-password
                     ^String security-provider
                     client-auth]} options
-            ^SslContextFactory context (SslContextFactory$Server.)]
+            ^SslContextFactory$Server context (SslContextFactory$Server.)]
         (when (every? nil? [keystore key-password truststore trust-password client-auth])
           (throw (IllegalArgumentException. "You are attempting to use SSL, but you did not supply any certificate management (KeyStore/TrustStore/etc.)")))
         (if (string? keystore)
@@ -128,12 +128,13 @@
         (.addCustomizer (SecureRequestCustomizer.))))))
 
 (defn- needed-pool-size
-  "Jetty 9 calculates a needed number of threads per acceptors and selectors,
+  "Jetty calculates a needed number of threads per acceptors and selectors,
   based on the available cores on a given machine.
   This performs that calculation.  This is used to ensure an appropriate
   number of threads are created for the server."
   ([]
    (let [cores (.availableProcessors (Runtime/getRuntime))
+         ;; TODO: Is this still accurate for Jetty 11?
          ;; The Jetty docs claim acceptors is 1.5 the number of cores available,
          ;; but the code says:  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
         acceptors (int (* 1.5 cores)) ;(inc (/ cores 16))
@@ -166,7 +167,7 @@
                context-path "/"
                h2c? true
                reuse-addr? true}} :container-options} options
-        thread-pool (thread-pool options)
+        ^ThreadPool thread-pool (thread-pool options)
         server (Server. thread-pool)
         _ (when-not (string/starts-with? context-path "/")
             (throw (IllegalArgumentException. "context-path must begin with a '/'")))
@@ -202,8 +203,10 @@
                           (.setPort ssl-port)
                           (.setHost host)))
         context (doto (ServletContextHandler. server context-path)
-                  (.addServlet (ServletHolder. ^jakarta.servlet.Servlet servlet) "/*"))]
+                  (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when daemon?
+      ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
+      ;; :daemon? flag is true.
       (.setDaemon thread-pool true))
     (when http-connector
       (.addConnector server http-connector))
@@ -225,6 +228,7 @@
   server)
 
 (defn server
+  "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
   ([service-map] (server service-map {}))
   ([service-map options]
    (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
