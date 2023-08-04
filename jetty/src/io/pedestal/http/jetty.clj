@@ -13,25 +13,21 @@
 (ns io.pedestal.http.jetty
   (:require [io.pedestal.http.jetty.container]
             [clojure.string :as string])
-  (:import (org.eclipse.jetty.server Server ServerConnector
-                                     Request
+  (:import (org.eclipse.jetty.server Server
                                      HttpConfiguration
                                      SecureRequestCustomizer
                                      ConnectionFactory
                                      HttpConnectionFactory
-                                     SslConnectionFactory
-                                     NegotiatingServerConnectionFactory)
-           (org.eclipse.jetty.server.handler AbstractHandler)
+                                     SslConnectionFactory)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
-           (org.eclipse.jetty.util.thread ExecutorThreadPool QueuedThreadPool ThreadPool)
+           (org.eclipse.jetty.util.thread QueuedThreadPool ThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.server HTTP2ServerConnectionFactory
                                            HTTP2CServerConnectionFactory)
            (jakarta.servlet Servlet)
-           (java.security KeyStore)
-           (jakarta.servlet.http HttpServletRequest HttpServletResponse)))
+           (java.security KeyStore)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 

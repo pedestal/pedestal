@@ -56,6 +56,7 @@
        ~@body
        (finally ((:stop-fn server#))))))
 
+;; TODO: As of Aug 4, these tests are failing, because of Tomcat version (javax.* vs. jakarta.* packages).
 (deftest test-run-tomcat
   (testing "HTTP server"
     (with-server hello-world {:port 14340}
