@@ -18,7 +18,7 @@
                                      SecureRequestCustomizer
                                      ConnectionFactory
                                      HttpConnectionFactory
-                                     SslConnectionFactory)
+                                     ServerConnector SslConnectionFactory)
            (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool ThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
