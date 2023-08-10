@@ -50,6 +50,7 @@
         io.pedestal/pedestal.tomcat {:local/root "../tomcat"}
 
         org.clj-commons/pretty {:mvn/version "2.0.1"}
+        io.github.hlship/trace {:mvn/version "v1.0"}
 
         ;; Pick up the jakarta.* classes:
         org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}

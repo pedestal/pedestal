@@ -70,6 +70,7 @@
 ;; TODO: fiddle this so that it goes in io.pedestal.websocket with a protocol or
 ;; something implemented for Jetty.
 
+#_
 (defn add-ws-endpoints
   "Jetty-specific API to add WebSocket endpoints to the handler.
 

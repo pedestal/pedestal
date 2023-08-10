@@ -34,7 +34,9 @@
             [clojure.string :as string]
             [cheshire.core :as json]
             [cognitect.transit :as transit]
-            [io.pedestal.log :as log])
+            [io.pedestal.log :as log]
+            [io.pedestal.websocket :as ws]
+            [clojure.spec.alpha :as s])
   (:import (jakarta.servlet Servlet)
            (java.io OutputStreamWriter
                     OutputStream)))
@@ -286,16 +288,19 @@
 
 ;; TODO: Make the next three functions a provider
 (defn service-fn
+  "Converts the interceptors for the service into a service function, which is a function
+  that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
   [{interceptors ::interceptors
     :as service-map}]
   (assoc service-map ::service-fn
-         (servlet-interceptor/http-interceptor-service-fn interceptors)))
+                     (servlet-interceptor/http-interceptor-service-fn interceptors)))
 
 (defn servlet
+  "Converts the service-fn in the service map to a servlet instance."
   [{service-fn ::service-fn
     :as service-map}]
   (assoc service-map ::servlet
-         (servlet/servlet :service service-fn)))
+                     (servlet/servlet :service service-fn)))
 
 (defn create-servlet
   "Creates a servlet given an options map with keyword keys prefixed by namespace e.g.
@@ -315,13 +320,16 @@
 ;;TODO: Make this a multimethod
 (defn interceptor-chain-provider
   [service-map]
-  (let [provider (cond
-                   (fn? (::chain-provider service-map)) (::chain-provider service-map)
-                   (keyword? (::type service-map)) (comp servlet service-fn)
-                   :else (throw (IllegalArgumentException. "There was no provider or server type specified.
-                                                           Unable to create/connect interceptor chain foundation.
-                                                           Try setting :type to :jetty in your service map.")))]
-    (provider service-map)))
+  (let [{::keys [chain-provider type]} service-map]
+    (cond
+      (fn? chain-provider) (chain-provider service-map)
+      (or (keyword? type)
+          (fn? type))
+      (-> service-map service-fn servlet)
+      :else (throw (IllegalArgumentException.
+                     (str "There was no provider or server type specified. "
+                          "Unable to create/connect interceptor chain foundation. "
+                          "Try setting :type to :jetty in your service map."))))))
 
 (defn create-provider
   "Creates the base Interceptor Chain provider, connecting a backend to the interceptor
@@ -336,7 +344,7 @@
   ;; without having to use name-spaced keys.  Perhaps this should be changed?  There's no
   ;; particular reason for it.  Also ::host will be defaulted to "localhost".
   [service-map]
-  (let [server-keys [::host ::port ::join? ::container-options]]
+  (let [server-keys [::host ::port ::join? ::container-options ::websockets]]
     (into {} (map (fn [[k v]] [(keyword (name k)) v]) (select-keys service-map server-keys)))))
 
 (defn- server-map->service-map
@@ -345,6 +353,64 @@
   server map)."
   [server-map]
   (into {} (map (fn [[k v]] [(keyword "io.pedestal.http" (name k)) v]) server-map)))
+
+(s/def ::service-map
+  (s/keys :req [::port]
+          :opt [::type
+                ::host
+                ::join?
+                ::container-options
+                ::websockets
+                ::interceptors
+                ::request-logger
+                ::routes
+                ::router
+                ::file-path
+                ::resource-path
+                ::method-param-name
+                ::allowed-origins
+                ::not-found-interceptor
+                ::mime-types
+                ::enable-session
+                ::enable-csrf
+                ::secure-headers
+                ::path-params-decoder]))
+
+(s/def ::port pos-int?)
+(s/def ::type (s/or :fn fn?
+                    :kw simple-keyword?))
+(s/def ::host string?)
+(s/def ::join? boolean?)
+;; Each container will define it own container-options schema:
+(s/def ::container-options map?)
+(s/def ::websockets ::ws/path-map)
+(s/def ::interceptors (s/coll-of ::interceptor))
+
+;; TODO: Move this def to the interceptor library
+
+(s/def ::interceptor #(satisfies? pedestal.interceptor/IntoInterceptor %))
+
+(s/def ::request-logger ::interceptor)
+(s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
+                      :fn fn?
+                      :nil nil?
+                      :maps (s/coll-of map?)))
+(s/def ::resource-path string?)
+(s/def ::method-param-name string?)
+(s/def ::allowed-origins (s/or :strings (s/coll-of string?)
+                               :fn fn?
+                               ;; io.pedestal.http.cors/allow-origin has more details
+                               :map map?))
+(s/def ::not-found-interceptor ::interceptor)
+(s/def ::mime-types (s/map-of string? string?))
+;; See io.pedestal.http.ring-middlewares/session for more details
+(s/def ::enable-session map?)
+;; See io.pedestal.http.body-params/body-params for more details
+(s/def ::enable-csrf map?)
+;; See io.pedestal.http.secure-headers/secure-headers for more details
+(s/def ::secure-headers map?)
+(s/def ::path-params-decoder ::interceptor)
+
 
 (defn server
   "Converts a service map to a server map.
@@ -362,11 +428,11 @@
    namespace).
 
    The function is passed the service map and options; these options are
-   a subset of the keys from the service map (::host, ::port, ::join?, ::container-options);
+   a subset of the keys from the service map (::host, ::port, ::join?, ::container-options, and ::websockets);
    they are extracted from the service map and passed as the options map, after stripping out
    the namespaces (::host becomes :host).
 
-   Returns a server map, which merges the incoming service map with additional keys from
+   Returns a server map, which merges the provided service map with additional keys from
    the server-fn. The server map may be passed to [[start]] and [[stop]]."
   [service-map]
   (let [{type ::type
@@ -381,9 +447,6 @@
                       (require server-ns)
                       (resolve (symbol (name server-ns) "server"))))
         server-map (server-fn service-map (service-map->server-options service-map-with-host))]
-    (when (= type :jetty)
-      ;; Load in container optimizations (NIO)
-      (require 'io.pedestal.http.jetty.container))
     (merge service-map-with-host (server-map->service-map server-map))))
 
 (defn create-server
@@ -407,8 +470,8 @@
   ([service-map init-fn]
    (init-fn)
    (-> service-map
-      create-provider ;; Creates/connects a backend to the interceptor chain
-      server)))
+       create-provider                                      ;; Creates/connects a backend to the interceptor chain
+       server)))
 
 (defn start
   "Given service map returned by  [[server]] (usually via [[create-server]]),

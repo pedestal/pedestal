@@ -12,8 +12,10 @@
 
 (ns io.pedestal.http.jetty
   (:require [io.pedestal.http.jetty.container]
-            [clojure.string :as string])
-  (:import (org.eclipse.jetty.server Server
+            [clojure.string :as string]
+            [io.pedestal.websocket :as ws])
+  (:import (jakarta.websocket.server ServerContainer)
+           (org.eclipse.jetty.server Server
                                      HttpConfiguration
                                      SecureRequestCustomizer
                                      ConnectionFactory
@@ -26,8 +28,9 @@
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.server HTTP2ServerConnectionFactory
                                            HTTP2CServerConnectionFactory)
-           (jakarta.servlet Servlet)
-           (java.security KeyStore)))
+           (jakarta.servlet Servlet ServletContext)
+           (java.security KeyStore)
+           (org.eclipse.jetty.websocket.jakarta.server.config JakartaWebSocketServletContainerInitializer JakartaWebSocketServletContainerInitializer$Configurator)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
@@ -79,44 +82,15 @@
         (.getProtocol ^ALPNServerConnectionFactory alpn)
         "http/1.1"))))
 
-(defn- ssl-connector
-  "Creates a SslSelectChannelConnector instance."
-  ([^Server server options]
-   (ssl-connector server options nil))
-  ([^Server server options connection-factories]
-   (let [{host :host
-          alpn :alpn
-          {:keys [ssl-port reuse-addr?]
-           :or {ssl-port 443
-                reuse-addr? true}
-           :as container-options} :container-options} options
-         ssl-factories (when alpn
-                         (into-array ConnectionFactory
-                                     (remove nil?
-                                             (into [(SslConnectionFactory.
-                                                      (ssl-context-factory container-options)
-                                                      (.getProtocol ^ALPNServerConnectionFactory alpn))]
-                                                   connection-factories))))
-         connector (if ssl-factories
-                     (ServerConnector. server ssl-factories)
-                     (ServerConnector. server (ssl-context-factory container-options)))]
-     (doto connector
-       (.setReuseAddress reuse-addr?)
-       (.setPort ssl-port)
-       (.setHost host)))))
-
 (defn- http-configuration
   "Provides an HttpConfiguration that can be consumed by connection factories.
   The `:io.pedestal.http.jetty/http-configuration` option can be used to specify
   your own HttpConfiguration instance."
-  [options]
+  ^HttpConfiguration [options]
   (if-let [http-conf-override ^HttpConfiguration (::http-configuration options)]
     http-conf-override
-    (let [{:keys [ssl? ssl-port h2? insecure-ssl?]} options
+    (let [{:keys [insecure-ssl?]} options
           http-conf ^HttpConfiguration (HttpConfiguration.)]
-      (when (or ssl? ssl-port h2?)
-        (.setSecurePort http-conf ssl-port)
-        (.setSecureScheme http-conf "https"))
       (doto http-conf
         (.setSendDateHeader true)
         (.setSendXPoweredBy false)
@@ -156,15 +130,14 @@
 (defn- create-server
   "Construct a Jetty Server instance."
   [servlet options]
-  (let [{host :host
-         port :port
-         {:keys [ssl? ssl-port
-                 h2? h2c? connection-factory-fns
-                 context-configurator context-path configurator daemon? reuse-addr?]
-          :or {configurator identity
-               context-path "/"
-               h2c? true
-               reuse-addr? true}} :container-options} options
+  (let [{:keys [host port websockets container-options]} options
+        {:keys [ssl? ssl-port
+                h2? h2c? connection-factory-fns
+                context-configurator context-path configurator daemon? reuse-addr?]
+         :or {configurator identity
+              context-path "/"
+              h2c? true
+              reuse-addr? true}} container-options
         ^ThreadPool thread-pool (thread-pool options)
         server (Server. thread-pool)
         _ (when-not (string/starts-with? context-path "/")
@@ -175,7 +148,7 @@
             (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but no SSL config was supplied.  Please set an HTTP port or configure SSL")))
         _ (when (and (nil? port) (true? h2c?))
             (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but you attempted to turn on HTTP2-Cleartext.  Please set an HTTP port or set `h2c?` to false in your service config")))
-        http-conf (http-configuration (:container-options options))
+        http-conf (http-configuration container-options)
         http (HttpConnectionFactory. http-conf)
         http2c (when h2c? (HTTP2CServerConnectionFactory. http-conf))
         http2 (when h2? (HTTP2ServerConnectionFactory. http-conf))
@@ -187,10 +160,12 @@
               (ssl-conn-factory (assoc options :alpn alpn)))
         http-connector (when port
                          (doto (ServerConnector. server (into-array ConnectionFactory
+
                                                                     (remove nil? [http http2c])))
                            (.setReuseAddress reuse-addr?)
                            (.setPort port)
                            (.setHost host)))
+        ;; TODO: This is looking to be _very_ different in Jetty 11!
         ssl-connector (when ssl
                         (doto (ServerConnector. server
                                                 (into-array ConnectionFactory
@@ -200,8 +175,15 @@
                           (.setReuseAddress reuse-addr?)
                           (.setPort ssl-port)
                           (.setHost host)))
-        context (doto (ServletContextHandler. server context-path)
-                  (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
+        service-context-handler (doto (ServletContextHandler. server context-path)
+                                  (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
+    (when websockets
+      (JakartaWebSocketServletContainerInitializer/configure service-context-handler
+                                                             (reify JakartaWebSocketServletContainerInitializer$Configurator
+
+                                                             (^void accept [_this ^ServletContext _context
+                                                                        ^ServerContainer container]
+                                                                 (ws/add-endpoints container websockets)))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.
@@ -211,7 +193,7 @@
     (when ssl-connector
       (.addConnector server ssl-connector))
     (when context-configurator
-      (context-configurator context))
+      (context-configurator service-context-handler))
     (configurator server)))
 
 (defn start
@@ -234,6 +216,8 @@
       :start-fn #(start server options)
       :stop-fn #(stop server)})))
 
+
+;; TODO: spec all this
 
 ;; :port         - the http/h2c port to listen on (defaults to 80);
 ;;                     If nil and SSL Config is set, HTTP is disabled.

@@ -30,7 +30,9 @@
     config)
   (getServletInfo [this]
     (str "FnServlet dispatching to " service-fn))
+
   ServletConfig
+
   (getInitParameter [this name]
     (when-not (nil? config)
       (.getInitParameter ^ServletConfig config name)))
@@ -59,6 +61,8 @@
 
   The :init, :service, and :destroy options correspond to the Servlet
   interface methods of the same names.
+
+  The returned servlet instance also implements the ServletConfig interface.
 
   Note: this function returns an instance, not a class. If you need a
   class with a static name (for example, to deploy to a Servlet

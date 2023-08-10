@@ -1,5 +1,6 @@
 (ns io.pedestal.websocket
   (:require [clojure.core.async :as async :refer [go-loop put!]]
+            [clojure.spec.alpha :as s]
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
            (jakarta.websocket EndpointConfig SendHandler Session MessageHandler$Whole RemoteEndpoint$Async)
@@ -23,30 +24,40 @@
                 on-error
                 on-text                                     ;; TODO: rename to `on-string`?
                 on-binary]} ws-map
-        maybe-invoke-callback (fn [f ^Session session & args]
+        maybe-invoke-callback (fn [f ^Session session event-value]
                                 (when f
                                   (let [session-object (-> session
                                                            .getUserProperties
                                                            (.get session-object-key))]
-                                    (apply f session-object args))))
+                                    (f session-object session event-value))))
         full-on-open (fn [^Session session ^EndpointConfig config]
                        (let [session-object (when on-open
                                               (on-open session config))]
                          ;; Store this for on-close, on-error
-                         (-> session .getUserProperties (.put session-object-key session-object-key))
+                         (-> session .getUserProperties (.put session-object-key session-object))
 
                          (when on-text
                            (.addMessageHandler session String (message-handler session-object on-text)))
 
                          (when on-binary
-                           (.addMessageHandler session ByteBuffer (message-handler session-object on-binary))))
-
-                       (maybe-invoke-callback on-open session config))]
+                           (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
     (fn [event-type ^Session session event-value]
-             (case event-type
-               :on-open (full-on-open session event-value)
-               :on-error (maybe-invoke-callback on-error session event-value)
-               :on-close (maybe-invoke-callback on-close session event-value)))))
+      (case event-type
+        :on-open (full-on-open session event-value)
+        :on-error (maybe-invoke-callback on-error session event-value)
+        :on-close (maybe-invoke-callback on-close session event-value)))))
+
+(s/def ::endpoint
+  (s/keys :opt-un [::on-open ::on-close ::on-error ::on-text ::on-binary]))
+
+(s/def ::on-open fn?)
+(s/def ::on-close fn?)
+(s/def ::on-error fn?)
+(s/def ::on-text fn?)
+(s/def ::on-binary fn?)
+
+(s/def ::path-map
+  (s/map-of string? ::endpoint))
 
 (defn add-endpoint
   "Adds a WebSocket endpoint to a ServerContainer.
@@ -85,6 +96,11 @@
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
     (.addEndpoint container config)))
 
+(defn add-endpoints
+  [^ServerContainer container path-map]
+  (doseq [[path endpoint] path-map]
+    (add-endpoint container path endpoint)))
+
 (defprotocol WebSocketSendAsync
   (ws-send-async [msg remote-endpoint]
     "Sends `msg` to `remote-endpoint`. Returns a
@@ -111,35 +127,34 @@
       (.sendBinary remote-endpoint msg (send-handler p-chan))
       p-chan)))
 
-#_
-(defn on-open-start-ws-connection
-  "Given a function of two arguments
-  (the Jetty WebSocket Session and its paired core.async 'send' channel),
-  and optionally a buffer-or-n for the 'send' channel,
-  return a function that can be used as an OnConnect handler.
+#_(defn on-open-start-ws-connection
+    "Given a function of two arguments
+    (the Jetty WebSocket Session and its paired core.async 'send' channel),
+    and optionally a buffer-or-n for the 'send' channel,
+    return a function that can be used as an OnConnect handler.
 
-  Notes:
-   - You can control the entire WebSocket Session per client with the
-  session object.
-   - If you close the `send` channel, Pedestal will close the WS connection."
-  ([on-open-fn]
-   (on-open-start-ws-connection on-open-fn 10))
-  ([on-open-fn send-buffer-or-n]
-   (fn [^Session session ^EndpointConfig config]
-     (let [send-ch (async/chan send-buffer-or-n)
-           async-remote (.getAsyncRemote session)]
-       ;; Let's process sends...
-       (go-loop []
-         (if-let [out-msg (and (.isOpen session)
-                               (async/<! send-ch))]
-           (let [ws-send-ch (ws-send-async out-msg async-remote)
-                 result (async/<! ws-send-ch)]
-             (when-not (= :success result)
-               (log/error :msg "Failed on ws-send-async"
-                          :exception result))
-             (recur))
-           (.close session)))
-       (on-open-fn session config send-ch)))))
+    Notes:
+     - You can control the entire WebSocket Session per client with the
+    session object.
+     - If you close the `send` channel, Pedestal will close the WS connection."
+    ([on-open-fn]
+     (on-open-start-ws-connection on-open-fn 10))
+    ([on-open-fn send-buffer-or-n]
+     (fn [^Session session ^EndpointConfig config]
+       (let [send-ch (async/chan send-buffer-or-n)
+             async-remote (.getAsyncRemote session)]
+         ;; Let's process sends...
+         (go-loop []
+           (if-let [out-msg (and (.isOpen session)
+                                 (async/<! send-ch))]
+             (let [ws-send-ch (ws-send-async out-msg async-remote)
+                   result (async/<! ws-send-ch)]
+               (when-not (= :success result)
+                 (log/error :msg "Failed on ws-send-async"
+                            :exception result))
+               (recur))
+             (.close session)))
+         (on-open-fn session config send-ch)))))
 
 (defn on-open-start-ws-connection
   "Returns an :on-open callback for [[add-endpoint]] that starts
