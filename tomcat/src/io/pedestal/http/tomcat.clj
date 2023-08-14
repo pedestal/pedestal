@@ -11,7 +11,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.tomcat
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [io.pedestal.websocket :as websocket])
   (:import (org.apache.catalina.startup Tomcat)
            (org.apache.catalina.connector Connector)
            (jakarta.servlet Servlet)))
@@ -56,7 +57,7 @@
   (let [opt-map (reduce-kv (fn [m k v] (assoc m (keyword k) v)) {} opts)
         clean-opts (filter #(ssl-opt-keys (key %)) opt-map)]
     (doseq [[opt v] clean-opts]
-      (.setAttribute connector (name opt) v))
+      (.setProperty connector (name opt) (str v)))
     connector))
 
 (defn ssl-conn-factory
@@ -68,40 +69,41 @@
                     (.setPort (:ssl-port opts))
                     (.setSecure true)
                     (.setScheme "https")
-                    (.setAttribute "SSLEnabled" true)
-                    (.setAttribute "sslProtocol" "TLS")
-                    (.setAttribute "clientAuth" (not= :none (:client-auth opts)))
-                    (.setAttribute "socket.soReuseAddress" true))]
+                    (.setProperty "SSLEnabled" "true")
+                    (.setProperty "sslProtocol" "TLS")
+                    (.setProperty "clientAuth" (str (not= :none (:client-auth opts))))
+                    (.setProperty "socket.soReuseAddress" "true"))]
     (when (and (:keystore opts) (:key-password opts))
-      (.setAttribute connector "keystoreFile" (:keystore opts))
-      (.setAttribute connector "keyPass" (:key-password opts))
-      (.setAttribute connector "keystorePass" (:key-password opts)))
+      (.setProperty connector "keystoreFile" (:keystore opts))
+      (.setProperty connector "keyPass" (:key-password opts))
+      (.setProperty connector "keystorePass" (:key-password opts)))
     (apply-ssl-opts connector (dissoc opts :keystore :key-password))
     connector))
 
 (defn- create-server
   "Constructs a Tomcat Server instance."
   [^Servlet servlet options]
-  (let [{:keys [port] :or {port 8080}} options
-        basedir                 (str "tmp/tomcat." port)
-        public                  (io/file basedir "public")
+  (let [{:keys [port websockets] :or {port 8080}} options
+        basedir (str "tmp/tomcat." port)
+        public (io/file basedir "public")
         {:keys [ssl? ssl-port]} (:container-options options)
-        ssl-connector           (when (or ssl? ssl-port)
-                                  (ssl-conn-factory (:container-options options)))]
+        ssl-connector (when (or ssl? ssl-port)
+                        (ssl-conn-factory (:container-options options)))]
     (.mkdirs (io/file basedir "webapps"))
     (.mkdirs public)
     (let [tomcat (doto (Tomcat.)
                    (.setPort port)
                    (.setBaseDir basedir))
-          context (.addContext tomcat "/" (.getAbsolutePath public))]
-      ;; Configure the core HTTP connector
-      (doto (.getConnector tomcat)
-        (.setXpoweredBy false)
-        (.setAttribute "socket.soReuseAddress" true))
+          context (.addContext tomcat "" (.getAbsolutePath public))]
       (Tomcat/addServlet context "default" servlet)
       (.addServletMappingDecoded context "/*" "default")
       (when ssl-connector
         (-> tomcat .getService (.addConnector ssl-connector)))
+      (when websockets
+        (websocket/add-endpoints context websockets))
+      ;; Force the creation of the default connector; this ensures the port is tranferred from
+      ;; the server instance to the connector.
+      (.getConnector tomcat)
       tomcat)))
 
 (defn start

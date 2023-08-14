@@ -381,9 +381,9 @@
                     :kw simple-keyword?))
 (s/def ::host string?)
 (s/def ::join? boolean?)
-;; Each container will define it own container-options schema:
+;; Each container will define its own container-options schema:
 (s/def ::container-options map?)
-(s/def ::websockets ::ws/path-map)
+(s/def ::websockets ::ws/websockets-map)
 (s/def ::interceptors (s/coll-of ::interceptor))
 
 ;; TODO: Move this def to the interceptor library
@@ -394,6 +394,7 @@
 (s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
                       :fn fn?
                       :nil nil?
+                      ;; TODO: Shouldn't this be caught by the ExpandableRoutes check?
                       :maps (s/coll-of map?)))
 (s/def ::resource-path string?)
 (s/def ::method-param-name string?)

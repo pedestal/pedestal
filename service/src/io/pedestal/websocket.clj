@@ -47,18 +47,6 @@
         :on-error (maybe-invoke-callback on-error session event-value)
         :on-close (maybe-invoke-callback on-close session event-value)))))
 
-(s/def ::endpoint
-  (s/keys :opt-un [::on-open ::on-close ::on-error ::on-text ::on-binary]))
-
-(s/def ::on-open fn?)
-(s/def ::on-close fn?)
-(s/def ::on-error fn?)
-(s/def ::on-text fn?)
-(s/def ::on-binary fn?)
-
-(s/def ::path-map
-  (s/map-of string? ::endpoint))
-
 (defn add-endpoint
   "Adds a WebSocket endpoint to a ServerContainer.
 
@@ -96,9 +84,26 @@
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
     (.addEndpoint container config)))
 
+(s/def ::endpoint-map (s/keys :opt-un [::on-open
+                                       ::on-close
+                                       ::on-error
+                                       ::on-text
+                                       ::on-binary]))
+
+;; TODO: Expand these as fspec's
+(s/def ::on-open fn?)
+(s/def ::on-close fn?)
+(s/def ::on-error fn?)
+(s/def ::on-text fn?)
+(s/def ::on-binary fn?)
+
+(s/def ::websockets-map
+  (s/map-of string? ::endpoint-map))
+
 (defn add-endpoints
-  [^ServerContainer container path-map]
-  (doseq [[path endpoint] path-map]
+  "Adds all websocket endpoints in the path-map."
+  [^ServerContainer container websockets-map]
+  (doseq [[path endpoint] websockets-map]
     (add-endpoint container path endpoint)))
 
 (defprotocol WebSocketSendAsync
