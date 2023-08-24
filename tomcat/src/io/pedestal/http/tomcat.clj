@@ -114,7 +114,10 @@
   (when join? (.await (.getServer server))))
 
 (defn stop [^Tomcat server]
-  (.stop server))
+  (.stop server)
+  ;; Stopping is not enough because the default is for the connector to bindOnInit, in which case it does not
+  ;; unbind until destroy.
+  (.destroy server))
 
 (defn server
   ([service-map]
