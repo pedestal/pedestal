@@ -49,7 +49,7 @@
 
         io.pedestal/pedestal.tomcat {:local/root "../tomcat"}
 
-        org.clj-commons/pretty {:mvn/version "2.1.1"}
+        org.clj-commons/pretty {:mvn/version "2.2"}
         io.github.hlship/trace {:mvn/version "v1.0"}
 
         ;; Pick up the jakarta.* classes:
