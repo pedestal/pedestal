@@ -2,6 +2,14 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
+## 0.6.1 - 03 Oct 2023
+
+Upgrade dependencies to fix CVEs:
+
+ * aws-java-sdk-xray
+ * jetty (various)
+ * tomcat-embed-jasper & tomcat-embed-core
+
 ## 0.6.0 - 12 Jun 2023
 
 **BREAKING CHANGES:**
