@@ -21,8 +21,8 @@
                  ;; This samples is specific to jetty, so
                  ;; other options don't appear here.
                  [io.pedestal/pedestal.jetty "0.5.9"]
-                 [org.eclipse.jetty/jetty-servlets "9.4.51.v20230217"]
-                 [org.eclipse.jetty/jetty-servlet "9.4.51.v20230217"]
+                 [org.eclipse.jetty/jetty-servlets "9.4.10.v20180503"]
+                 [org.eclipse.jetty/jetty-servlet "9.4.52.v20230823"]
                  [ch.qos.logback/logback-classic "1.2.10" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.35"]
                  [org.slf4j/jcl-over-slf4j "1.7.35"]
