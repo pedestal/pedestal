@@ -11,8 +11,8 @@
 
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        io.pedestal/pedestal.log {:mvn/version "0.6.0"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.6.0"}
+        io.pedestal/pedestal.log {:mvn/version "0.6.1"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.6.1"}
 
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}
         com.amazonaws/aws-java-sdk-core {:mvn/version "1.12.499"
