@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <!-- This is an automatically generated config file by nvd-clojure. -->
+  <!-- Feel free to tweak it, version-control it and remove any comment. -->
+  <!-- You can find suppression examples in https://jeremylong.github.io/DependencyCheck/general/suppression.html -->
+  <!-- We're suppressing these as there are no replacements.  It's a ticking time bomb that will eventually fail builds. -->
+    <suppress until="2024-01-01">
+        <notes><![CDATA[
+   file name: jackson-databind-2.15.2.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+        <cve>CVE-2023-35116</cve>
+    </suppress>
+</suppressions>
+
