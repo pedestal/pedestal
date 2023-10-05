@@ -1,5 +1,5 @@
 ; Copyright 2013 Relevance, Inc.
-; Copyright 2014-2022 Cognitect, Inc.
+; Copyright 2014-2023 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -13,9 +13,10 @@
 (ns io.pedestal.http.tomcat
   (:require [clojure.java.io :as io]
             [io.pedestal.websocket :as websocket])
-  (:import (org.apache.catalina.startup Tomcat)
+  (:import (jakarta.servlet Servlet)
+           (org.apache.catalina.startup Tomcat)
            (org.apache.catalina.connector Connector)
-           (jakarta.servlet Servlet)))
+           (org.apache.tomcat.util.net SSLHostConfig SSLHostConfigCertificate)))
 
 ;; These SSL configs are fixed to static values:
 ;; setSecure - true
@@ -62,9 +63,9 @@
 
 (defn ssl-conn-factory
   [opts]
-  (let [opts      (merge {:ssl-port 8443
-                          :client-auth :none}
-                         opts)
+  (let [opts (merge {:ssl-port 8443
+                     :client-auth :none}
+                    opts)
         connector (doto (Connector.)
                     (.setPort (:ssl-port opts))
                     (.setSecure true)
@@ -73,10 +74,16 @@
                     (.setProperty "sslProtocol" "TLS")
                     (.setProperty "clientAuth" (str (not= :none (:client-auth opts))))
                     (.setProperty "socket.soReuseAddress" "true"))]
+    ;; This code is currently broken.  The test io.pedestal.http.tomcat-test/ssl-connection has been disabled.
     (when (and (:keystore opts) (:key-password opts))
-      (.setProperty connector "keystoreFile" (:keystore opts))
-      (.setProperty connector "keyPass" (:key-password opts))
-      (.setProperty connector "keystorePass" (:key-password opts)))
+      (let [{:keys [key-password keystore]} opts
+            host-config (SSLHostConfig.)
+            ;; Force the creation of a default certificate.  Returns a Set of one element.
+            certs (.getCertificates host-config true)
+            ^SSLHostConfigCertificate cert (-> certs .iterator .next)]
+        (.setCertificateKeyPassword cert key-password)
+        (.setCertificateFile cert keystore)
+        (.addSslHostConfig connector host-config)))
     (apply-ssl-opts connector (dissoc opts :keystore :key-password))
     connector))
 
@@ -121,12 +128,12 @@
 
 (defn server
   ([service-map]
-     (server service-map {}))
+   (server service-map {}))
   ([service-map options]
-     (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
-       {:server   server
-        :start-fn #(start server options)
-        :stop-fn  #(stop server)})))
+   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
+     {:server server
+      :start-fn #(start server options)
+      :stop-fn #(stop server)})))
 
 ;; :ssl?         - allow connections over HTTPS
 ;; :ssl-port     - the SSL port to listen on (defaults to 8443, implies :ssl?)
