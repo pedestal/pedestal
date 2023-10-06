@@ -15,11 +15,11 @@
             [clojure.core.async :as async]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
-            [io.pedestal.interceptor.helpers :as interceptor :refer [defon-response defbefore defafter]]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.interceptor.helpers :refer [defon-response defbefore defafter]]
+            [io.pedestal.http.impl.servlet-interceptor]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
-  (:import (java.io ByteArrayOutputStream FileInputStream File)
+  (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
@@ -48,9 +48,9 @@
         sink (.sink p)]
     (.write sink b)
     (.close sink)
-    {:status  200
+    {:status 200
      :headers {"Content-Type" "text/plain"}
-     :body    (.source p)}))
+     :body (.source p)}))
 
 (defn hello-plaintext-no-content-type-page [request]
   (hello-page request))
@@ -76,14 +76,14 @@
   (-> request get-edn (ring-resp/content-type "text/plain")))
 
 (defon-response clobberware
-  [response]
-  (assoc response :body
-         (format "You must go to %s!"
-                 (io.pedestal.http.route/url-for :about))))
+                [response]
+                (assoc response :body
+                       (format "You must go to %s!"
+                               (io.pedestal.http.route/url-for :about))))
 
 (defbefore add-binding
-  [context]
-  (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
+           [context]
+           (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
 
 (def app-routes
   `[[["/about" {:get [:about about-page]}]
@@ -243,10 +243,10 @@
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
-                (-> obj
-                    service/edn-response
-                    :body)
-                output-stream)
+                 (-> obj
+                     service/edn-response
+                     :body)
+                 output-stream)
                (slurp-output-stream output-stream))))))
 
 (deftest transit-response-test
@@ -254,10 +254,10 @@
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
-                (-> obj
-                    service/edn-response
-                    :body)
-                output-stream)
+                 (-> obj
+                     service/edn-response
+                     :body)
+                 output-stream)
                (slurp-output-stream output-stream))))))
 
 (deftest default-edn-output-test
@@ -265,27 +265,27 @@
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
-                (-> obj
-                    ring-resp/response
-                    :body)
-                output-stream)
+                 (-> obj
+                     ring-resp/response
+                     :body)
+                 output-stream)
                (slurp-output-stream output-stream))))))
 
 (deftest default-edn-response-test
   (let [edn-resp (response-for app :get "/edn")]
     (is (= "{:a 1}" (:body edn-resp))
         #_(= "application/edn"
-           (headers "Content-Type")))))
+             (headers "Content-Type")))))
 
 (deftest json-response-test
   (let [obj {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (cheshire.core/generate-string obj)
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
-                (-> obj
-                    service/json-response
-                    :body)
-                output-stream)
+                 (-> obj
+                     service/json-response
+                     :body)
+                 output-stream)
                (slurp-output-stream output-stream))))))
 
 (defn- create-temp-file [content]
@@ -303,7 +303,7 @@
     (is (= body-content
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-stream output-stream)
                (slurp-output-stream output-stream))))
-    (is (thrown? java.io.IOException
+    (is (thrown? IOException
                  ;; This is JVM implementation specific;
                  ;;   If it breaks down, we'll needed a decorated body-stream
                  (.available body-stream)))))
@@ -333,21 +333,21 @@
 ;;; Async request handlers
 
 (defbefore hello-async [context]
-  (let [ch (async/chan 1)]
-    (async/go
-      (async/>! ch (assoc context
-                    :response
-                    {:status 200
-                     :body "Hello async"})))
-    ch))
+           (let [ch (async/chan 1)]
+             (async/go
+               (async/>! ch (assoc context
+                                   :response
+                                   {:status 200
+                                    :body "Hello async"})))
+             ch))
 
 (def async-hello-routes
   `[[["/hello-async" {:get hello-async}]]])
 
 (deftest channel-returning-request-handler
-  (let [app      (-> {::service/routes async-hello-routes}
-                   service/default-interceptors
-                   service/service-fn
-                   ::service/service-fn)
+  (let [app (-> {::service/routes async-hello-routes}
+                service/default-interceptors
+                service/service-fn
+                ::service/service-fn)
         response (response-for app :get "/hello-async")]
     (is (= "Hello async" (:body response)))))

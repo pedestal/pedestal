@@ -1,3 +1,14 @@
+; Copyright 2023 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.websocket
   (:require [clojure.core.async :as async :refer [go-loop put!]]
             [clojure.spec.alpha :as s]
@@ -132,35 +143,6 @@
       (.sendBinary remote-endpoint msg (send-handler p-chan))
       p-chan)))
 
-#_(defn on-open-start-ws-connection
-    "Given a function of two arguments
-    (the Jetty WebSocket Session and its paired core.async 'send' channel),
-    and optionally a buffer-or-n for the 'send' channel,
-    return a function that can be used as an OnConnect handler.
-
-    Notes:
-     - You can control the entire WebSocket Session per client with the
-    session object.
-     - If you close the `send` channel, Pedestal will close the WS connection."
-    ([on-open-fn]
-     (on-open-start-ws-connection on-open-fn 10))
-    ([on-open-fn send-buffer-or-n]
-     (fn [^Session session ^EndpointConfig config]
-       (let [send-ch (async/chan send-buffer-or-n)
-             async-remote (.getAsyncRemote session)]
-         ;; Let's process sends...
-         (go-loop []
-           (if-let [out-msg (and (.isOpen session)
-                                 (async/<! send-ch))]
-             (let [ws-send-ch (ws-send-async out-msg async-remote)
-                   result (async/<! ws-send-ch)]
-               (when-not (= :success result)
-                 (log/error :msg "Failed on ws-send-async"
-                            :exception result))
-               (recur))
-             (.close session)))
-         (on-open-fn session config send-ch)))))
-
 (defn on-open-start-ws-connection
   "Returns an :on-open callback for [[add-endpoint]] that starts
    an asynchronous connection loop. The returned function itself
@@ -188,6 +170,8 @@
         (go-loop []
           (if-let [payload (and (.isOpen ws-session)
                                 (async/<! send-ch))]
+            ;; The payload is a message and an optional response channel; a message is either
+            ;; a String or a ByteBuffer (or something that implement WebSocketSendAsync).
             (let [[out-msg resp-ch] (if (sequential? payload)
                                       payload
                                       [payload nil])
@@ -197,6 +181,8 @@
                                 (log/error :msg "Failed on ws-send-async"
                                            :exception ex)
                                 ex))]
+              ;; If a resp-ch was provided, then convey the result (e.g., notify the caller
+              ;; that the payload was sent).  This result is either :success or an exception.
               (when resp-ch
                 (try
                   (async/put! resp-ch result)

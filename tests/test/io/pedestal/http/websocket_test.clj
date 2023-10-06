@@ -1,3 +1,14 @@
+; Copyright 2023 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.websocket-test
   (:require
     [clojure.test :refer [deftest is use-fixtures report]]
@@ -60,8 +71,7 @@
            :else
            (recur (conj skipped# event#)))))))
 
-(def default-ws-handlers
-  ;; Also called an "action map" or "endpoint map"
+(def default-endpoint-map
   {:on-open (fn [session _config]
               (trace :in :on-open :session session :config _config)
               (put! events-chan [:open session])
@@ -78,7 +88,7 @@
    :on-binary (fn [_ buffer]
                 (put! events-chan [:binary buffer]))})
 
-(def default-ws-map {"/ws" default-ws-handlers})
+(def default-websockets-map {"/ws" default-endpoint-map})
 
 (defn ws-server
   [websockets]
@@ -98,7 +108,7 @@
          (http/stop server#)))))
 
 (deftest client-sends-text
-  (with-server default-ws-map
+  (with-server default-websockets-map
     (let [session @(ws/websocket ws-uri {})]
       (expect-event :open)
       (ws/send! session "hello")
@@ -114,7 +124,7 @@
              (<event!!))))))
 
 (deftest client-sends-binary
-  (with-server default-ws-map
+  (with-server default-websockets-map
     (let [session @(ws/websocket ws-uri {})
           buffer-bytes (.getBytes "A mind forever voyaging" "utf-8")
           buffer (ByteBuffer/wrap buffer-bytes)]

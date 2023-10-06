@@ -17,7 +17,8 @@
         org.eclipse.jetty/jetty-servlet {:mvn/version "11.0.15"}
         org.eclipse.jetty/jetty-alpn-server {:mvn/version "11.0.15"}
         org.eclipse.jetty.http2/http2-server {:mvn/version "11.0.15"}
-        ;; TODO - move these to additional dependencies for a local alias & document need to include as container dependencies
+        ;; These dependencies are necessary to run Jetty embedded, but need to be excluded
+        ;; if packaging as a WAR for deployment to a standalone Jetty instance.
         org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}
         org.eclipse.jetty.websocket/websocket-jakarta-server {:mvn/version "11.0.15"}}
 
