@@ -1,9 +1,10 @@
 (ns io.pedestal.http.websocket-test
   (:require
-    [clojure.test :refer [deftest is use-fixtures report]]
+    [clojure.test :refer [deftest is use-fixtures report] :as test]
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
     [io.pedestal.http.jetty :as jetty]
+    [io.pedestal.http.tomcat :as tomcat]
     [clojure.core.async :refer [chan put! close!] :as async]
     [net.lewisship.trace :refer [trace]]
     [io.pedestal.websocket :as websocket])
@@ -81,8 +82,8 @@
 (def default-ws-map {"/ws" default-ws-handlers})
 
 (defn ws-server
-  [websockets]
-  (http/create-server {::http/type jetty/server
+  [server-var websockets]
+  (http/create-server {::http/type @server-var
                        ::http/join? false
                        ::http/port 8080
                        ::http/routes []
@@ -90,12 +91,15 @@
 
 (defmacro with-server
   [ws-map & body]
-  `(let [server# (ws-server ~ws-map)]
-     (try
-       (http/start server#)
-       (do ~@body)
-       (finally
-         (http/stop server#)))))
+  `(doseq [impl-var# [#'tomcat/server #'jetty/server]]
+     (trace :impl impl-var# :vars test/*testing-vars*)
+     (test/testing (str "type " impl-var#))
+     (let [server# (ws-server impl-var# ~ws-map)]
+       (try
+         (http/start server#)
+         (do ~@body)
+         (finally
+           (http/stop server#))))))
 
 (deftest client-sends-text
   (with-server default-ws-map
@@ -109,7 +113,7 @@
       ;; Note: the status code value is tricky, must be one of a few preset values, or in the
       ;; range 3000 to 4999.
       @(ws/close! session 4000 "A valid reason")
-      
+
       (is (= [:close 4000 "A valid reason"]
              (<event!!))))))
 
@@ -183,8 +187,7 @@
 
       (is (= [CloseReason$CloseCodes/NORMAL_CLOSURE] (expect-event :close)))
 
-      #_
-      (is (= [WebSocket/NORMAL_CLOSURE nil] (expect-event :client-close))))))
+      #_(is (= [WebSocket/NORMAL_CLOSURE nil] (expect-event :client-close))))))
 
 (deftest exception-during-open-is-identified
   (let [e (RuntimeException. "on-open exception")]
@@ -223,14 +226,13 @@
                (expect-event :text)))
 
         (let [[message] (expect-event :error)]
-          (is (= "Endpoint notification error" message )))
+          (is (= "Endpoint notification error" message)))
 
         (is (= [1003
                 "Endpoint notification error"]
                (expect-event :close)))
 
         ;; Looks like Jetty 11 doesn't pass this down
-        #_
-        (is (= [1011 "on-text exception"]
-               (expect-event :client-close)))
+        #_(is (= [1011 "on-text exception"]
+                 (expect-event :client-close)))
         ))))

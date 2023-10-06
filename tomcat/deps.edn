@@ -2,7 +2,9 @@
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         io.pedestal/pedestal.service {:mvn/version "0.6.0"}
         org.apache.tomcat.embed/tomcat-embed-jasper {:mvn/version "10.1.11"}
-        org.apache.tomcat.embed/tomcat-embed-core {:mvn/version "10.1.11"}}
+        org.apache.tomcat.embed/tomcat-embed-core {:mvn/version "10.1.11"}
+        ;; This is going to cause conflicts with Jetty for sure
+        org.apache.tomcat.embed/tomcat-embed-websocket {:mvn/version "10.1.11"}}
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.service {:local/root "../service"}

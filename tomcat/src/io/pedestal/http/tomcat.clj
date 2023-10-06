@@ -12,11 +12,14 @@
 
 (ns io.pedestal.http.tomcat
   (:require [clojure.java.io :as io]
+            [net.lewisship.trace :refer [trace]]
             [io.pedestal.websocket :as websocket])
-  (:import (jakarta.servlet Servlet)
+  (:import (jakarta.servlet Servlet ServletContainerInitializer ServletContextListener)
+           (org.apache.catalina Lifecycle LifecycleListener)
            (org.apache.catalina.startup Tomcat)
            (org.apache.catalina.connector Connector)
-           (org.apache.tomcat.util.net SSLHostConfig SSLHostConfigCertificate)))
+           (org.apache.tomcat.util.net SSLHostConfig SSLHostConfigCertificate)
+           (org.apache.tomcat.websocket.server Constants WsContextListener WsFilter)))
 
 ;; These SSL configs are fixed to static values:
 ;; setSecure - true
@@ -101,15 +104,37 @@
     (let [tomcat (doto (Tomcat.)
                    (.setPort port)
                    (.setBaseDir basedir))
-          context (.addContext tomcat "" (.getAbsolutePath public))]
-      (Tomcat/addServlet context "default" servlet)
-      (.addServletMappingDecoded context "/*" "default")
+          tomcat-context (.addContext tomcat "" (.getAbsolutePath public))]
+      (Tomcat/addServlet tomcat-context "default" servlet)
       (when ssl-connector
         (-> tomcat .getService (.addConnector ssl-connector)))
       (when websockets
-        (websocket/add-endpoints context websockets))
-      ;; Force the creation of the default connector; this ensures the port is tranferred from
+        (let [initializer (reify ServletContainerInitializer
+
+                            (onStartup [_ _ servlet-context]
+                              (trace :event :onStartup :servlet-context servlet-context)
+                              (let [endpoints-listener (reify ServletContextListener
+
+                                                         (contextInitialized [_ _sce]
+                                                           (let [ws-server-container (.getAttribute servlet-context Constants/SERVER_CONTAINER_SERVLET_CONTEXT_ATTRIBUTE)]
+                                                             (trace :ws-server-container ws-server-container)
+                                                             (websocket/add-endpoints ws-server-container websockets)))
+
+                                                         (contextDestroyed [_ _] nil))]
+                                ;; The first takes care of setup, including storing the ws-server-container as a context attribute
+                                (.addListener servlet-context (WsContextListener.))
+                                ;; Our code works after, to register the websocket endpoints
+                                (.addListener servlet-context endpoints-listener))))
+
+              lifecycle-listener (reify LifecycleListener
+                                   (lifecycleEvent [_ event]
+                                     (when (-> event .getType (= Lifecycle/BEFORE_START_EVENT))
+                                       (-> tomcat-context .getServletContext (.addFilter "ws" (WsFilter.)))
+                                       (.addServletContainerInitializer tomcat-context initializer nil))))]
+          (.addLifecycleListener tomcat-context lifecycle-listener)))
+      ;; Force the creation of the default connector; this ensures the port is transferred from
       ;; the server instance to the connector.
+      (.addServletMappingDecoded tomcat-context "/*" "default")
       (.getConnector tomcat)
       tomcat)))
 
@@ -127,6 +152,7 @@
   (.destroy server))
 
 (defn server
+
   ([service-map]
    (server service-map {}))
   ([service-map options]
