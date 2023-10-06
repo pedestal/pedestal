@@ -36,7 +36,7 @@
         ;; https://github.com/AsyncHttpClient/async-http-client
         ;; So benchmarking should be updated to use that.
         com.ning/async-http-client {:mvn/version "1.8.13"}
-        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.15"}
+        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.16"}
 
         ;; Include *all* the other modules
         io.pedestal/pedestal.log {:local/root "../log"}

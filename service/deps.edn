@@ -33,7 +33,7 @@
         ;                             org.clojure/tools.reader
         ;                             crypto-random/crypto-random
         ;                             crypto-random/crypto-equality]}
-        cheshire/cheshire {:mvn/version "5.11.0"}
+        cheshire/cheshire {:mvn/version "5.12.0"}
         org.clojure/tools.reader {:mvn/version "1.3.6"}
         com.cognitect/transit-clj {:mvn/version "1.0.333"}
         commons-codec/commons-codec {:mvn/version "1.15"}
