@@ -1,10 +1,9 @@
 (ns io.pedestal.http.websocket-test
   (:require
-    [clojure.test :refer [deftest is use-fixtures report] :as test]
+    [clojure.test :refer [deftest is use-fixtures report]]
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
     [io.pedestal.http.jetty :as jetty]
-    [io.pedestal.http.tomcat :as tomcat]
     [clojure.core.async :refer [chan put! close!] :as async]
     [net.lewisship.trace :refer [trace]]
     [io.pedestal.websocket :as websocket])
@@ -82,8 +81,8 @@
 (def default-ws-map {"/ws" default-ws-handlers})
 
 (defn ws-server
-  [server-var websockets]
-  (http/create-server {::http/type @server-var
+  [websockets]
+  (http/create-server {::http/type jetty/server
                        ::http/join? false
                        ::http/port 8080
                        ::http/routes []
@@ -91,15 +90,12 @@
 
 (defmacro with-server
   [ws-map & body]
-  `(doseq [impl-var# [#'tomcat/server #'jetty/server]]
-     (trace :impl impl-var# :vars test/*testing-vars*)
-     (test/testing (str "type " impl-var#))
-     (let [server# (ws-server impl-var# ~ws-map)]
-       (try
-         (http/start server#)
-         (do ~@body)
-         (finally
-           (http/stop server#))))))
+  `(let [server# (ws-server ~ws-map)]
+     (try
+       (http/start server#)
+       (do ~@body)
+       (finally
+         (http/stop server#)))))
 
 (deftest client-sends-text
   (with-server default-ws-map
