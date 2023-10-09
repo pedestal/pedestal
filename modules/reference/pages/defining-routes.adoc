@@ -1,0 +1,14 @@
+= Defining Routes
+
+== Placeholder
+
+**Pull requests welcomed!**
+
+
+Notes: This needs to address all of the following:
+
+* everything from the old terse format guide
+* everything from the old table format guide
+* verbose format & expansion to same
+* path parameters and wildcards.
+* catchall routes (old guides may be silent on this?)

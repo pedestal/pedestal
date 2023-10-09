@@ -1,0 +1,35 @@
+= Handlers
+
+A _handler_ is a function that receives a link:request-map[Request
+Map] and returns a link:response-map[Response Map].
+
+== Example
+
+[source,clojure]
+----
+(defn reply-hello [request]
+  {:status 200 :body (str "Hello, " (get-in request [:params :name]))})
+----
+
+== Additional Information
+
+Because the handler exchanges a request for a response, it will be the
+last interceptor to execute.
+
+Handler functions are wrapped into Interceptors when expanding
+routes. This happens because the
+link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`IntoInterceptor`]
+protocol is extended to functions. The handler function is wrapped
+into the interceptor's `:enter` function.
+
+Handlers do not have access to the full execution context (the xref:context-map.adoc[context map]), so they
+cannot terminate execution or enqueue additional interceptors.
+A handler must return a map, not a channel, so handlers cannot be asynchronous the way proper
+interceptors can be.
+
+If a handler throws an exception, Pedestal catches it and begins error
+handling. See xref:error-handling.adoc[] for details.
+
+== See Also
+
+* link:interceptors[Interceptors]

@@ -1,0 +1,33 @@
+= Prefix Tree Router
+
+== Motivation
+
+Provide a performant router which is efficient in time and
+space.
+
+The implementation is modeled after link:https://github.com/julienschmidt/httprouter[httprouter], a library for Go.
+
+== Why use it?
+
+Most performant builtin router implementation when dynamic routes (those using path
+parameters and wildcards) are required. The prefix tree router operates in logarithmic time.
+
+== How to use it?
+
+Add the key `:io.pedestal.http/router` to the service map with the
+value `:prefix-tree`.
+
+== Caveats
+
+Provides less control over routing. For example, Wild card routes
+always win. The path `/foo/:bar` will always match over `/foo/baz`.
+
+== Additional Notes
+
+Like the xref:map-tree-router.adoc[], query and path
+constraints are not used in routing decisions. They are only used to
+invalidate a route match.
+
+== References
+
+- link:https://github.com/pedestal/pedestal/pull/330[Pedestal PR #310]

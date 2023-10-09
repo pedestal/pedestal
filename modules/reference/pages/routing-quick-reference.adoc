@@ -1,0 +1,346 @@
+= Routing Quick Reference
+
+== Library
+
+The library link:../api/io.pedestal.http.route[`pedestal.route`]
+provides the core components to express routes and construct
+routers. It can be used independently of the pedestal-service library.
+
+== Route Specifications vs. Routers vs. Routing Interceptor
+
+Routing is the process of recognizing an incoming request, and matching it to a particular behavior.
+A route identifies a particular request path and request method (such as :get or :post) and identifies
+corresponding behavior in terms of a handler function, or a list of interceptors to execute.
+
+"Route specifications" are the data values that spell out the possible routes.
+
+"Routers" are built from route specifications, and apply a specific strategy to match incoming requests
+to the provided routes; there are a few different built-in Router implementations, with different limitations
+and other trade-offs.
+
+The routing interceptor builds on a router to dispatch incoming requests to routes
+defined by the route specification. It identifies the route matching the incoming request
+and queues up route-specific interceptors to handle the request.
+
+Generally, all of this is automatic; an application provides a route specification in the :io.pedestal.http/route key
+of the link:service-map[service map] (and perhaps a value for :io.pedestal.http/router) and a routing
+interceptor is automatically created.
+
+== Route Specifications
+
+Route specifications go through a series of transformations that results in a routing table;
+a routing table is a sequence of verbose routing maps.
+
+The
+link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+function converts any kind of specification into a routing table:
+
+|===
+| Argument to `expand-routes` | Syntax used
+
+| Vector
+| Terse - improvement on Verbose format with an emphasis on avoid redundancy
+
+| Set
+| Table - most recent and straight forward; trades some redundancy for simplicity
+
+| Map
+| Verbose - oldest format
+|===
+
+This mapping from type to specification type is the responsibility of the
+link:../api/io.pedestal.http.route.html#var-ExpandableRoutes[ExpandableRoutes] protocol, which is
+extended on Map, Set, and Vector.
+
+To support a new syntax, come up with a syntax that resolves to new record type that implements the
+`ExpandableRoutes` protocol.
+
+=== Routing Table
+
+The expanded routing table is a list of maps, with the following structure:
+
+[source,clojure]
+----
+  {:route-name :org.example.app/new-user
+   :app-name   :example-app        ; optional
+   :path       "/user/:id/*blah"   ; like Ruby on Rails
+                                   ; (catch-all route is "/*path")
+   :method     :post               ; or :any, :get, :put, ...
+   :scheme     :https              ; optional
+   :host       "example.com"       ; optional
+   :port       "8080"              ; optional
+   :interceptors [...]             ; vector of interceptors to be enqueued on the context
+
+   ;; Generated for path-matching:
+   :path-re           #"/\Quser\E/([^/]+)/(.+)"
+   :path-parts        ["user" :id :blah]
+   :path-params       [:id :blah]
+   :path-constraints  {:id "([^/]+)"
+                       :blah "(.+)"}
+   :query-constraints {:name #".+"
+                       :search #"[0-9]+"}
+   }
+----
+
+`:route-name` must be unique; typically it is a qualified keyword to ensure uniqueness.
+
+The keys `:path-re`, `:path-parts`, `:path-params`, and
+`:path-constraints` are derived from the `:path`.  This is part of what the
+link:../api/io.pedestal.http.route.html#var-expand-routes[expand-routes] function is responsible for.
+
+Users will not generally write routes directly in verbose format.
+
+=== Table Syntax
+
+Table syntax was introduced in release 0.5.0.
+
+Table syntax is expanded by
+link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+into the full (verbose) syntax shown above.
+
+When the argument to `expand-routes` is a *set*, it will be expanded using the table syntax.
+
+In table syntax, each route is a vector of:
+
+1. Path string
+2. Verb. One of `:any`, `:get`, `:put`, `:post`, `:delete`, `:patch`, `:options`, or `:head`
+3. A single handler, or a vector of interceptors
+4. Optional route name clause
+5. Optional constraint clause
+
+[source,clojure]
+.example.clj
+----
+  ["/user/:id/*blah"  :post  [...] :route-name :new-user :constraints {:id #"[0-9]+"}]
+----
+
+The `:host`, `:port`, `:app-name`, and `:scheme` are provided in a map that applies to all routes in the list.
+
+[source,clojure]
+.example.clj
+----
+(route/expand-routes
+  #{{:host "example.com" :scheme :https}
+    ["/user/:id/*blah"  :post  [...] :route-name :new-user :constraints {:id #"[0-9]+"}]})
+----
+
+When multiple routes use the same path, they must differ by both verb and route name.
+
+[source,clojure]
+.example.clj
+----
+(route/expand-routes
+  #{["/user/:id"  :post `new-user  ; <1>
+     :route-name :new-user  :constraints {:id #"[0-9]+"}]
+    ["/user/:id"  :get  `view-user
+     :route-name :view-user :constraints {:id #"[0-9]+"}]})
+----
+<1> Note the use of a backtick; this ensures that the `new-user` symbol is expanded to a namespace qualified symbol,
+not the value of `new-user`.  This namespace qualified symbol will be used to derive the route name as a namespace qualified
+keyword, and the actual interceptor or handler will be the resolved value of the symbol.  In many cases, it makes sense
+to wrap the entire route specification (here, the outer set) with a back-tick.
+
+Every route must have a unique name, but it may be possible to omit it.
+
+A default route name will come from the `:name` of the last interceptor in the chain.
+
+Alternately, if a handler function is provided, or the last interceptor is a qualified symbol
+to a function, the route name will be derived from the function.
+
+[source,clojure]
+.example.clj
+----
+    ;; Route names will be taken from the symbols
+    (defn new-user [request] ,,,)
+    (defn view-user [request] ,,,)
+
+    (route/expand-routes
+      #{["/user/:id"  :post [,,, `new-user]  :constraints {:id #"[0-9]+"}]
+        ["/user/:id"  :get  [,,, `view-user] :constraints {:id #"[0-9]+"}]})
+
+    ;; Route names will be taken from the interceptors
+    (def new-user-intc {:name ::new-user :enter (fn [context] ,,,)})
+    (def view-user-intc {:name ::view-user :enter (fn [context] ,,,)})
+
+    (route/expand-routes
+      #{["/user/:id"  :post [,,, `new-user-intc]  :constraints {:id #"[0-9]+"}]
+        ["/user/:id"  :get  [,,, `view-user-intc] :constraints {:id #"[0-9]+"}]})
+----
+
+=== Terse Syntax
+
+The terse syntax is designed to remove a fair amount of repetition in the table syntax;
+it exploits the structure of the request path to allow for multiple routes at the same
+path (but with different HTTP methods), and nested paths.  This pattern is very common
+when building a REST-style interface.
+
+Terse syntax is expanded by
+link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+into the full (verbose) syntax shown above.
+
+When the argument to `expand-routes` is a *vector*, it will be expanded using the terse syntax.
+
+In the terse format, a route table is a vector of nested vectors. Each
+top-level vector describes an "application". The application vector
+contains the following elements:
+
+- (Optional) A keyword identifying the application by name
+- (Optional) A URL scheme
+- (Optional) A host name
+- (Optional) A port
+- One or more nested vectors specifying routes
+
+[source,clojure]
+.example.clj
+----
+;; Application vector with one route vector (which has one route)
+[[:hello-world :http "example.com" 8080
+ ["/hello-world" {:get `hello-world}]]]
+----
+
+Route vectors can be nested arbitrarily deep. Each vector adds a path
+segment. The nesting structure of the route vectors maps to the
+hierarchical tree structure of the routes.
+
+Each route vector contains the following:
+
+1. A path segment. This must begin with a slash.
+2. A verb map
+3. (Optional) An interceptor vector with `^:interceptors` metadata
+4. (Optional) A constraints map with `^:constraints` metadata
+5. Zero or more child route vectors
+
+The interceptors and constraints specified above apply to the current
+route and any child route vectors. Interceptors and constraints can be
+defined before the verb map as well.
+
+The allowed keys in a verb map are:
+
+- :get
+- :put
+- :post
+- :delete
+- :any
+
+The value of each key is one of:
+
+* A namespace qualified symbol for a handler function
+* An interceptor
+* A vector containing (in the following order):
+** A keyword representing the unique route name
+** An optional interceptor vector with `^:interceptors` metadata
+** An interceptor or namespace qualified symbol for a handler function
+
+Each verb in the verb map defines a route on the path. This example
+defines four routes.
+
+[source,clojure]
+.example.clj
+----
+[[:hello-world :http "example.com"
+ ["/order" {:get `list-orders
+            :post `create-order}
+   ["/:id" {:get `view-order
+            :put `update-order}]]]]
+----
+
+Interceptors and constraints apply to every route in the verb map. In
+this example `load-order-from-db` and the numeric constraint `:id`
+apply to both the `:get` and `:put` routes for the path "/order/:id".
+
+[source,clojure]
+.example.clj
+----
+[[:hello-world :http
+    ["/order" {:get  `list-orders
+               :post `create-order}
+     ["/:id"
+      ^:interceptors [`load-order-from-db]
+      ^:constraints  {:id #"[0-9]+"}
+      {:get `view-order
+       :put `update-order}]]]]
+----
+
+(Recall that metadata is attached to the _next_ data structure
+read. The metadata `{:interceptors true}` will be attached to the interceptors vector.
+The metadata `{:constaints true}` will be attached to the constraints map. Refer to the link:https://clojure.org/reference/metadata[Metadata] documentation to learn more about metadata.)
+
+If multiple routes have the same handler, you will need to distinguish
+them by providing route names. (This is necessary so URL generation
+knows which route to use.) A route name is a keyword that goes in the
+first position of an interceptor vector in the verb map. In the
+following example, both POST routes have the same handler. We provide
+the keywords `:post-without-id` and `:post-by-id` to distinguish the
+routes.
+
+[source,clojure]
+.example.clj
+----
+[[:hello-world :http "example.com"
+ ["/order" {:get  `list-orders
+            :post [:post-without-id `create-order]}
+   ["/:id" {:get  `query-order
+            :post [:post-by-id `create-order]}]]]
+----
+
+== Builtin Routers
+
+Pedestal includes several Routers; this reflects not only the evolution of the Pedestal library,
+but also allows for different trade-offs in the algorithm used by each Router.  In rare cases, an application
+can provide its own Router rather than use one of Pedestal's.
+
+When your application starts a Pedestal service with
+link:../api/io.pedestal.http.html#var-create-servlet[`create-servlet`] or
+link:../api/io.pedestal.http.html#var-create-server[`create-server`],
+Pedestal creates a router, using the following keys from the service map:
+
+|===
+| Key | Meaning
+
+| `:io.pedestal.http/routes` | A route specification
+| `:io.pedestal.http/router` | Key to select a router, or a function that constructs a router from a routing table
+|===
+
+When the value of `:io.pedestal.http/router` is a keyword, it selects
+one of the built-in algorithms:
+
+- `:map-tree`
+- `:prefix-tree`
+- `:linear-search`
+
+include::partial$router-table.adoc[]
+
+== Custom Router
+
+When the value of `:io.pedestal.http/router` is a function, that
+function is used to construct a router. The function must take one
+argument: the routing table. The constructor must a value that satisfies the
+link:../api/io.pedestal.http.route.router.html#var-Router[`Router`]
+protocol.
+
+So the function is passed the routing table and returns a `Router` for those routes.
+The `Router` is supplied with the incoming request, and returns the matching route map
+(a verbose route map extended with extracted parameters from the path).
+
+== Routing Interceptor
+
+The function link:../api/io.pedestal.http.route.html#var-router[router] is where it all comes together;
+this function is passed the route specification and, optionally, the router type; from that it creates
+the routing table, and passes that through the correct constructor, obtaining at the end an interceptor
+that performs routing, which it returns.
+
+
+During request execution, on a successful routing, the following keys are added or updated in the context map:
+
+|===
+| Key / Key Path | Value
+
+| :route | The verbose route map
+
+| :io.pedestal.interceptor.chain/queue | route-specific interceptors are queued
+
+| [:request :path-parameters] | Path parameters extracted from the request path
+
+|===
+
+On failure, when the router does not match any route, the context key `:route` is set to nil.

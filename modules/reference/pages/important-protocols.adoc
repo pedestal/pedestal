@@ -1,0 +1,127 @@
+= Important Protocols
+
+The major parts of Pedestal are isolated via Clojure protocols. The
+protocols are for internal structure and external extension. This
+reference identifies the most important protocols in Pedestal's
+structure and how you might use them in an application.
+
+== Interceptor Protocols
+
+=== link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`IntoInterceptor`]
+
+`IntoInterceptor` allows pretty much anything to become an interceptor
+when needed.
+
+Routers use this when building routes: anything that satisfies
+`IntoInterceptor` is legal to use in the interceptor vector of a
+route.
+
+This protocol also comes into play when
+link:interceptors#_manipulating_the_interceptor_queue[appending new interceptors to the queue].
+
+Pedestal extends `IntoInterceptor` onto a variety of Clojure and Java
+types. See the link:interceptors#_intointerceptor[interceptors
+reference] for details of their behaviors.
+
+== Routing Protocols
+
+These protocols break up the lifecycle of routes and allow both
+extension points and alternative strategies in several places.
+
+Over time, Pedestal has evolved several data structures for representing routing of HTTP requests;
+each of these data structures is a kind of _routing specification_.
+The routing specification ultimately expresses which details of an incoming request,
+such as HTTP method or URI path, are used to find a specific route (and the interceptors
+and handler for that route).
+
+In parallel to the data structures, Pedestal has several algorithms for using the routing specification to dispatch
+an incoming request; some algorithms may be most efficient for small services with very few routes, others
+are better for large services with more (and more complex) routes.
+
+The protocols described here are what allow the individual pieces to cooperate; this also means
+that it is possible to define an application-specific routing specification format and use it with a Pedestal-supplied
+algorithm, or use any of the built-in routing specifications combined with an application-specific algorithm.
+
+=== link:../api/io.pedestal.http.route.router.html#var-Router[`Router`]
+
+The combination of routing specification with a routing algorithm results in an instance of the `Router` interface.
+
+The `Router` protocol defines just one function: `find-route`. `find-route` is passed the `Router`
+itself and a link:request-map[request map], and must return the route map for the route that it matched.
+The route map not only identifies the interceptors and handler to add to the interceptor queue, but further
+captures path variables that may be part of the matched URL (further details TBD).
+
+An instance of `Router` is returned by the router constructor
+identified in the application's link:service-map[service map] by the key `:io.pedestal.http/router`.
+
+|===
+| ::http/router Value  | Constructor
+| :linear-search | link:../api/io.pedestal.http.route.linear-search.html#var-router[`linear-search/router`]
+| :prefix-tree   | link:../api/io.pedestal.http.route.prefix-tree.html#var-router[`prefix-tree/router`]
+| :map-tree      | link:../api/io.pedestal.http.route.map-tree.html#var-map-tree[`map-tree/router`]
+| application-supplied function | The function itself, called with sequence of routes as returned by from the `RouterSpecification` instance
+|===
+
+Whether built-in, or supplied by the application, the constructor is just a function that is passed an expanded route specification,
+and returns an instance of `Router`.
+
+=== link:../api/io.pedestal.http.route.html#var-RouterSpecification[`RouterSpecification`]
+
+The `RouterSpecification` protocol is used to create a routing interceptor from some
+definition of routes, and a single `Router`. This is the final step in the
+process of turning a routing specification into a routing interceptor.
+
+Whatever is returned from the
+link:../api/io.pedestal.http.route.html#var-router-spec[`router-spec`]
+function of the protocol must be an interceptor. The returned interceptor will include an `:enter` function that
+must accept a link:context-map[context map] and enqueue
+link:interceptors[interceptors] based on whatever criteria it chooses.
+
+=== link:../api/io.pedestal.http.route.html#var-ExpandableRoutes[`ExpandableRoutes`]
+
+`ExpandableRoutes` can convert all kinds of data structures representing a routing specification into a single
+canonical format that can be used to construct a `Router`. This occurs inside the
+link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+function.
+
+Pedestal provides implementations of `ExpandableRoutes` for several types:
+
+|===
+| Type | Behavior
+| `clojure.lang.APersistentVector` | Interpret the vector as link:terse-syntax[terse routing syntax].
+| `clojure.lang.APersistentMap`    | Interpret the map as link:verbose-syntax[verbose routing syntax].
+| `clojure.lang.APersistentSet`    | Interpret the set as link:table-syntax[table routing syntax].
+|===
+
+Since the call to `expand-routes` comes from application code, it
+would be rare for an application to need to extend `ExpandableRoutes`.
+
+The result of `expand-routes` is a link:routing-quick-reference#_verbose_syntax[seq of maps] that will
+be passed to the `Router`.
+
+== Servlet Protocols
+
+These protocols only apply when using the link:servlet-interceptor[`servlet interceptor`].
+
+=== link:../api/io.pedestal.http.impl.servlet-interceptor.html#var-WritableBody[`WritableBody`]
+
+This protocol applies to anything that can be in the `:body` key of a
+link:response-map[response map]. The two functions in the protocol
+tell Pedestal what content type the body implies, and how to serialize
+the body to an output stream.
+
+Pedestal extends this protocol to several Java and Clojure types to produce the behavior detailed in link:response-bodies[Response Bodies].
+
+Applications should not assume any output stream type more specific
+than `java.io.OutputStream`.
+
+=== link:../api/io.pedestal.http.impl.servlet-interceptor.html#var-WritableBodyAsync[`WritableBodyAsync`]
+
+This protocol is a more specific version of `WritableBody`. If the
+value in the `:body` key of a link:response-map[response map]
+satisfies `WritableBodyAsync`, then Pedestal treats it as a streaming
+result. See link:streaming[Streaming] for full details.
+
+It would be rare for an application to extend this protocol. Most of
+the time, an application would be better off providing an NIO channel
+or a core.async channel in the response body.

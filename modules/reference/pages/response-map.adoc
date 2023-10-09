@@ -1,0 +1,39 @@
+= Response Map
+
+The response map is attached to the xref:context-map.adoc by any
+interceptor in the interceptor chain. The response map describes the outgoing
+HTTP response. If no response map is attached to the context by the time
+processing is done or if the attached response map is not valid Pedestal generates a 404 response.
+
+[cols="s,d,d,d", options="header", grid="rows"]
+|===
+| Key | Always Present? | Type | Description
+| `:status`
+| Y
+| integer
+| The HTTP status code
+
+| `:headers`
+| N
+| map of String -> String
+| Response headers sent to the client. Header names are all converted to lower case.
+
+| `:body`
+| N
+| String, ISeq, File, InputStream
+| The body of the response sent to the client.
+|===
+
+
+Note that code that returns a header should use the proper case version of the header, for example,
+`Content-Type` (not `content-type`); although incoming link:request-map[request headers] are converted
+to lower case, outgoing response headers are left as-is, and some standard interceptors expects
+certain headers to be present with the correct name (such as `Content-Type`).
+
+## Response Validity
+
+Response validity has different semantics depending on the Pedestal layer in question.
+Pedestal's core HTTP processing layer only requires the `:status` key for a response to be considered valid.
+This is the semantic used by the default `not-found` interceptor.
+Meanwhile, Pedestal's lower-level servlet-specific termination check abides by the Ring response specification,
+requiring  `:status` and `:headers` keys with valid values.

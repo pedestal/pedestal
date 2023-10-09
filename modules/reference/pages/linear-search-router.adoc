@@ -1,0 +1,27 @@
+= Linear Search Router
+
+== Motivation
+
+Provides the user with the most control over routing outside of
+implementing a custom router.
+
+== Why use it?
+
+You require precise control over routing and the routing performance
+tradeoff is acceptable to your service.
+
+== How to use it?
+
+Add the key `:io.pedestal.http/router` to the service map with the
+value `:linear-search`.
+
+== Caveats
+
+This implementation routes requests in linear time, so it's the simplest and slowest of Pedestal's router implementations.
+
+== Additional Notes
+
+Pedestal's first router implementation. 
+
+Query and path constraints are used in routing decisions unlike the
+link:prefix-tree-router[Prefix Tree Router] or link:map-tree-router[Map Tree Router].

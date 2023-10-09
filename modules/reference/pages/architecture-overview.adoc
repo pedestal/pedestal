@@ -1,0 +1,158 @@
+= Architecture Overview
+
+== Motivation
+
+We created Pedestal as a web framework. At the base, every web
+framework must solve certain common problems:
+
+1. Interpret incoming requests
+2. Dispatch to application code
+3. Produce a well-formed response
+
+There is an unstated requirement that these all work in a variety of
+deployment environments:
+
+- Local development of a workspace
+- Packaged into a Jar file
+- An exploded version of a packaged Jar file
+- Packaged into a Docker container
+
+Further, different teams prefer a variety of different request handling frameworks:
+
+- Tomcat
+- Jetty
+- Undertow
+- Netty
+- Vert.x
+- etc.
+
+One more dimension of complexity arises from the relevant styles of
+application we want to support:
+
+- Traditional server-rendered pages
+- An API supporting a SPA (Single Page Application)
+- Streaming events
+
+Importantly, supporting streaming events and web sockets are explicitly asynchronous.
+
+Addressing all of these requirements led us to an architecture that is based on
+_interceptors_, the context map, and an adaptor to the HTTP network connector (for the underlying
+request handling framework).
+
+image::pedestal-fundament.png[]
+
+Here, the network occurs at the bottom of the diagram; the interceptor chain provider
+is initialized with the incoming request, and a series of Pedestal and application-specific
+interceptors perform the bulk of the work, resulting in a response that flows back to the
+network connector to be conveyed to the originating client.
+
+=== Interceptors
+
+Pedestal is far from the first web framework for Clojure, and attempts to expand on ideas
+piloted elsewhere.
+https://github.com/ring-clojure/ring[Ring] is likely the most popular and influential.
+In Ring, each _route_ (a combination of an HTTP method and a path pattern) is mapped to a handler:
+the handler is just a simple function which accepts a request map as its input, and
+returns a response map.
+
+Because a server is more than a single route, and because many routes will share a lot of behavior such as logging,
+authentication, response rendering, and parameter parsing, each individual Ring route is wrapped in _middleware_,
+a function that wraps an existing handler and returns a new handler.
+Middleware can inspect and modify the incoming request map or the outgoing response map.
+
+For example, perhaps your Ring application needs to respond specially to HEAD requests;
+
+[source,clojure]
+----
+include::example$org/example/middleware.clj[]
+----
+<1> This is the returned handler, wrapping around the original handler
+<2> Ring specifies at set of keys for the request map; Pedestal follows the same rules
+<3> Ring specifies another set of keys for the response map
+<4> Here's where we delegate down to the next handler
+
+This is good, functional design, but is limited in at least one way: it's all on the stack of a single request processing thread.
+Given how great Clojure is at multithreaded programming, that can be a limitation.
+Several of the central features of Pedestal (such as streaming events and web socket connections) are at odds with this:
+in these cases a long-running server-side process only _occasionally_ needs a request processing thread to send an event,
+or web socket message, to the client.
+
+So, in Pedestal we want something as easily reused and composable as Ring middleware functions, without
+the limitations of the stack-of-function-calls invocation model.
+That's interceptors.
+
+An interceptor is a bundle of up-to three functions, named `:enter`, `:leave`, and `:error`.
+`:enter` corresponds to the logic before delegating to the next interceptor; the request can be inspected or modified.
+Likewise, `:leave` corresponds to logic that occurs _after_ a response map has been created.
+The `:error` function is used when an interceptor throws an exception; it's the interceptor version of a `(try ... catch ...)`.
+
+Now, there's a bit more going on.  First, these `:enter` and `:leave` functions are passed a _context_ map which
+contains a `:request` key.
+Any interceptor can modify the context map: some may modify the `:request` map inside the context, others may
+attach a `:response` map to the context.
+
+Inside the context is a queue of interceptors.
+Pedestal works its way through the queue, calling `:enter` functions, until some interceptor attaches a
+`:response` map to the context;
+then it works its way backwards, calling `:leave` functions.
+
+In practice, an interceptor looks like a normal Clojure map with keys `:enter`, `:leave`, or `:error` (usually just `:enter` and/or `:leave`).
+So, unlike a deeply wrapped function, a chain of interceptors is a data structure that can be inspected by a developer, or manipulated in code.
+
+Importantly, any interceptor can _add_ new interceptors to the queue (because the interceptor queue itself is stored
+in the context, alongside the `:request` map).  Because of this,
+link:routing-quick-reference[request routing] boils down to an interceptor
+that peeks at the request and makes decisions about what additional interceptors to add to the queue.
+
+Pedestal includes general purpose interceptors for all sorts of typical HTTP request functionality:
+
+- Content negotiation
+- Request body parsing
+- Routing
+- Parsing query parameters
+- Assigning content type to the response
+
+Application logic is also implemented as interceptors, though there's some simple helpers that allow you to write
+these as Ring-style handlers, if you like.
+
+But Pedestal has one more big trick up its sleeve: any interceptor may, instead of returning a context map,
+instead return a https://github.com/clojure/core.async[core.async] channel that conveys the context map at some point
+in the future; this is what allows for asynchronous request processing.
+
+Further details are in the link:interceptors[interceptors reference].
+
+=== Chain Provider
+
+Along with moving core logic into interceptors, we have moved the HTTP
+connection handling out of interceptor processing to create an
+interface for the _chain provider_.
+
+The chain provider sets up the initial context and queue of
+interceptors. It starts execution.
+
+Pedestal includes a servlet chain provider out of the box. It connects
+any servlet container to an interceptor chain. The
+link:../api/io.pedestal.http.html#var-create-servlet[`create-servlet`]
+function orchestrates this work. This is strictly a convenience
+function that takes a link:service-map[service map] of everything
+needed to run an HTTP service.
+
+It is possible to create other chain providers. The
+https://github.com/pedestal/pedestal/tree/master/samples/fast-pedestal[fast-pedestal
+sample] shows how to do this with Jetty.
+
+See the following namespaces for the HTTP chain provider:
+
+- link:../api/io.pedestal.http.html[`io.pedestal.http`]
+
+=== Network Connectors
+
+The servlet chain provider immediately works with every HTTP server
+that works with servlets. This allows many deployment scenarios.
+
+Sometimes it is advantageous to work directly with a server by
+implementing a custom chain provider.
+
+The servlet chain provider (and main interface to network connectors) is in:
+
+- link:../api/io.pedestal.http.impl.servlet-interceptor.html[`io.pedestal.http.impl.servlet-interceptor`]

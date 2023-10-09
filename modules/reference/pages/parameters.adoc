@@ -1,0 +1,192 @@
+= Parameters
+
+
+HTTP allows clients to provide per-request information through several
+mechanisms:
+
+* The request URL
+* Query parameters appended to the URL
+* Body content
+
+Various xref:interceptors.adoc[interceptors] in Pedestal parse this
+information and attach it to the
+link:request-map[request map]. Some
+of these interceptors are xref:default-interceptors.adoc[provided
+automatically] by the
+xref:servlet-interceptor.adoc[]. Others require
+application-specific information and must be created by application
+code.
+
+== Query Parameters
+
+The built-in routers all know how to extract query parameters from
+URLs in requests. Any kind of request (i.e., any HTTP verb) can supply
+query parameters.
+
+Query parameters will be attached to the link:request-map[request map]
+under the key `:query-params`. The value will be a map, constructed as follows:
+
+* Each query parameter name becomes a key in the map.
+* The query parameter name is URL-decoded.
+* If the resulting string could be a Clojure keyword, it is converted to a keyword.
+* Otherwise, the string itself becomes the key.
+* The query parameter value is URL-decoded and attached as the value of that key.
+
+For example, a request string like this:
+
+----
+/path/to/resource?after=123123%2099
+----
+
+Becomes the map:
+
+[source,clojure]
+----
+{:after "123123 99"}
+----
+
+Whereas, the request string:
+
+----
+/path/to/resource?after:page=12&after:storyid=abc123XYZ&user%20id=99
+----
+
+Becomes the somewhat weird map:
+
+[source,clojure]
+----
+{:after:page    "12"
+ :after:storyid "abc123XYZ"
+ :user id       "99"}
+----
+
+The odd-looking keywords `:after:page` and `:after:storyid` are legal
+Clojure keywords, but definitely not an idiomatic usage. The keyword
+`:user id` is even more unusual. Clojure keywords can include spaces,
+but the Clojure reader cannot parse a keyword literal with spaces in
+it.
+
+Query parameters are also merged into the `:params` map inside the
+link:request-map[request map].
+
+Query parameters are a feature of the built in
+link:routing-quick-reference#_routers[routers]. If you supply your own
+router, it may or may not support query parameters.
+
+== Path Parameters
+
+URL templating is popular with resource-oriented APIs. These use
+segments of the URL, in lieu of query parameters, to supply
+identifiers.
+
+Pedestal calls these "path parameters". They are parsed from the URL
+and bound to the `:path-params` map in the link:request-map[request
+map].
+
+Path parameters are always named by a keyword, which is taken from the URL fragment in the route. For example:
+
+|===
+| URL | Path param keys
+| `/users`                 | none
+| `/users/:id`             | `:id`
+| `/users/:id/posts/:post` | `:id`, `:post`
+|===
+
+In every case, the value of the parameter is a string, taken from the
+corresponding segment of the URL.
+
+Path parameters are a feature of the built in
+link:routing-quick-reference#_routers[routers]. If you supply your own
+router, it may or may not support path parameters.
+
+== Body Parameters
+
+Pedestal can parse form data, JSON, EDN, and Transit data from request
+bodies. The parsed information is called "body parameters."
+
+Applications can also provider their own parsers for body parameter
+data.
+
+Different routes may use different body parameter formats.
+
+For these reasons, Pedestal does _not_ automatically provide an
+interceptor for body parameters. Instead, your application must add an
+interceptor to routes.
+
+The interceptor is created by the
+link:../api/io.pedestal.http.body-params.html#var-body-params[`body-params`]
+function. Without any arguments, it returns an interceptor that parses
+according to the request's `Content-Type` header:
+
+|===
+| Content type | Parsed as | Coerce keys to keywords? | Bound to in request | Merged into `:params`
+
+| application/x-www-form-urlencoded
+| HTML form
+| Yes
+| :form-params footnote:[`:form-params` keys are automatically converted to keywords.]
+| Yes footnote:[Form parameter keys are not automatically converted to keywords when merged into the `:params` map.
+                      Use the link:../api/io.pedestal.http.params.html#keywordize-params[`keywordize-params`] interceptor
+                      to convert `:params` keys to keywords.]
+
+| application/json
+| JSON
+| Yes
+| :json-params
+| No
+
+| application/transit+json
+| Transit JSON encoding
+| No
+| :transit-params
+| No
+
+| application/transit+msgpack
+| Transit Msgpack encoding
+| No
+| :transit-params
+| No
+
+| application/edn
+| EDN data
+| No
+| :edn-params
+| No
+
+|===
+
+If the request has any other content type, the body will not be
+altered and the request map will not be changed. That includes a `nil`
+content type if the request just doesn't have a `Content-Type` header.
+
+If you need to customize the way `body-params` handles content types,
+or provide options to the built-in parsers, call it with a parser-map
+as an argument. You can get a good starting point by calling
+link:../api/io.pedestal.http.body-params.html#var-default-parser-map[`default-parser-map`].
+
+=== File Upload
+
+File upload is a special case of a request body. The request will have
+a multipart body with separate encoding for each.
+
+In this case, use an interceptor returned by the
+link:../api/io.pedestal.http.ring-middlewares.html#var-multipart-params[`multipart-params`]
+function. Use the `:store` option to persist the parts.
+
+== The Method Parameter
+
+Browsers (especially older ones) do not have easy ways to handle
+DELETE and PUT requests. Pedestal allows requests to "smuggle" a verb
+through a query parameter.
+
+If the magic query parameter `_method` is present, then its value will
+be used as the HTTP verb for this request.
+
+This substitution is handled by the default interceptor
+link:../api/io.pedestal.http.route.html#var-method-param[`method-param`]. It
+occurs before routing, so you can use the correct verbs in your
+routes.
+
+Application code can generate links with verb smuggling via the
+`:method-param` option to
+link:../api/io.pedestal.http.route.html#var-url-for-routes[`url-for-routes`].
