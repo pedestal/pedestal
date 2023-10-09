@@ -1,0 +1,14 @@
+// This needs to be manually updated when new pages are added, or pages are renamed or deleted.
+* Reference
+** xref:architecture-overview.adoc[]
+** xref:chain-providers.adoc[]
+** xref:servlet-interceptor.adoc[]
+** xref:context-map.adoc[]
+** xref:default-interceptors.adoc[]
+** xref:defining-routes.adoc[]
+** xref:error-handling.adoc[]
+** xref:handlers.adoc[]
+** xref:immutant.adoc[]
+** xref:important-protocols.adoc[]
+
+// TODO: Set order same as with jBake
