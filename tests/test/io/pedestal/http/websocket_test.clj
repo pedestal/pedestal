@@ -178,10 +178,18 @@
                                                         (when (= "DIE" text)
                                                           (close! send-ch)))
                                              :on-close (fn [_ _ ^CloseReason reason]
+                                                         (trace :event :on-close
+                                                                :reason reason)
                                                          (put! events-chan [:close (.getCloseCode reason)]))})}
     (let [session @(ws/websocket ws-uri {:on-message (fn [ws data last?]
                                                        (put! events-chan [:client-message data last?]))
+                                         :on-error (fn [ws err]
+                                                     ;; Doesn't get called when socket closed by server
+                                                     (trace :event :client-error
+                                                            :error err))
                                          :on-close (fn [ws status-code reason]
+                                                     (trace :event :client-on-close
+                                                            :reason reason)
                                                      ;; Client on-close handler does not appear to be
                                                      ;; invoked.
                                                      (put! events-chan [:client-close status-code reason]))})]
@@ -193,6 +201,7 @@
 
       (is (= [CloseReason$CloseCodes/NORMAL_CLOSURE] (expect-event :close)))
 
+      ;; It appears that Hato fails to notify us when the web socket is closed by the server.
       #_(is (= [WebSocket/NORMAL_CLOSURE nil] (expect-event :client-close))))))
 
 (deftest exception-during-open-is-identified
