@@ -165,7 +165,6 @@
                            (.setReuseAddress reuse-addr?)
                            (.setPort port)
                            (.setHost host)))
-        ;; TODO: This is looking to be _very_ different in Jetty 11!
         ssl-connector (when ssl
                         (doto (ServerConnector. server
                                                 (into-array ConnectionFactory
