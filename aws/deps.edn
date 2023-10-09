@@ -15,11 +15,13 @@
         io.pedestal/pedestal.interceptor {:mvn/version "0.6.0"}
 
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}
-        com.amazonaws/aws-java-sdk-core {:mvn/version "1.12.499"}
-        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.2"}
+        com.amazonaws/aws-java-sdk-core {:mvn/version "1.12.565"}
+        com.amazonaws/aws-lambda-java-core {:mvn/version "1.2.3"}
         com.amazonaws/aws-xray-recorder-sdk-core {:mvn/version "2.14.0"}
+        com.amazonaws/aws-java-sdk-xray {:mvn/version "1.12.564"}
 
         ;; Bring AWS libs inline with Pedestal Service
+        ;; NOTE: CVE-2023-35116 (which is disputed), no more recent version is available
         com.fasterxml.jackson.core/jackson-core {:mvn/version "2.15.2"}
         com.fasterxml.jackson.dataformat/jackson-dataformat-cbor {:mvn/version "2.15.2"}
         commons-codec/commons-codec {:mvn/version "1.16.0"}

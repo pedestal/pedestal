@@ -14,18 +14,18 @@ package io.pedestal.servlet;
 
 import clojure.lang.IFn;
 import clojure.java.api.Clojure;
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.GenericServlet;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.GenericServlet;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 
 /**
  * Java Servlets implementation that dispatches via Clojure Vars (that map to IFn's).
  *
  * <p>ClojureVarServlet is a completely generic implementation of the
- * javax.servlet.Servlet and ServletConfig interfaces. Its behavior is
+ * jakarta.servlet.Servlet and ServletConfig interfaces. Its behavior is
  * specified via Servlet initialization parameters.
  *
  * <p>The three parameters are 'init', 'service', and 'destroy'. Only
@@ -43,17 +43,17 @@ import javax.servlet.ServletResponse;
  * destroy(Servlet)
  * </pre>
  *
- * <p>The return value of any of these functions is ignored.
+ * <p>The return value from any of these functions is ignored.
  *
- * <p>The Vars will be resolved and dereferenced only once, when the
+ * <p>The Vars will be resolved and de-referenced only once, when the
  * Servlet is initialized. Changing the root binding of a Var after
  * the Servlet has been initialized will have no effect.
  */
 public class ClojureVarServlet extends GenericServlet {
     private IFn serviceFn;
     private IFn destroyFn;
-    private static IFn REQUIRE = Clojure.var("clojure.core", "require");
-    private static IFn SYMBOL = Clojure.var("clojure.core", "symbol");
+    private static final IFn REQUIRE = Clojure.var("clojure.core", "require");
+    private static final IFn SYMBOL = Clojure.var("clojure.core", "symbol");
 
     /** Does nothing. Initialization happens in the init method. */
     public ClojureVarServlet() {;}
@@ -83,7 +83,7 @@ public class ClojureVarServlet extends GenericServlet {
     }
 
     /** If a destroy function was provided when this Servlet was
-     * initialized, invokes it. */
+     * initialized, invoke it. */
     @Override
     public void destroy() {
         if (destroyFn != null) {

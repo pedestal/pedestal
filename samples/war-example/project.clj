@@ -33,7 +33,7 @@
                               :servlet-display-name "Pedestal WAR Example"
                               :servlet-description "An example of how to build WARs of Pedestal services"
                               :server-ns "war-example.server"}}
-             :test {:dependencies [[javax.servlet/javax.servlet-api "3.1.0"]]}
+             :test {:dependencies [[jakarta.servlet/jakarta.servlet-api "3.1.0"]]}
              :jetty {:dependencies [[io.pedestal/pedestal.jetty "0.5.9"]]}
              :uberjar {:aot [war-example.server]}}
   :main ^{:skip-aot true} war-example.server)

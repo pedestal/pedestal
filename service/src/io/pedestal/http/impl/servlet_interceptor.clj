@@ -19,17 +19,19 @@
             [io.pedestal.log :as log]
             [io.pedestal.interceptor]
             [io.pedestal.interceptor.helpers :as interceptor]
-            [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request :as request]
-            [io.pedestal.http.request.servlet-support :as servlet-support]
             [io.pedestal.http.request.map :as request-map]
-            [io.pedestal.http.request.zerocopy :as request-zerocopy]
-            [ring.util.response :as ring-response])
-  (:import (javax.servlet Servlet ServletRequest ServletConfig)
-           (javax.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io OutputStreamWriter OutputStream EOFException)
+            [ring.util.response :as ring-response]
+    ;; for side effects:
+            io.pedestal.http.route
+            io.pedestal.http.request.servlet-support
+            io.pedestal.http.request.zerocopy)
+  (:import (clojure.lang Fn IPersistentCollection)
+           (jakarta.servlet Servlet ServletRequest)
+           (jakarta.servlet.http HttpServletRequest HttpServletResponse)
+           (java.io File InputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -53,7 +55,7 @@
       (.write writer string)
       (.flush writer)))
 
-  clojure.lang.IPersistentCollection
+  IPersistentCollection
   (default-content-type [_] "application/edn")
   (write-body-to-stream [o output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
@@ -61,32 +63,32 @@
         (pr o))
       (.flush writer)))
 
-  clojure.lang.Fn
+  Fn
   (default-content-type [_] nil)
   (write-body-to-stream [f output-stream]
     (f output-stream))
 
-  java.io.File
+  File
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [file output-stream]
     (io/copy file output-stream))
 
-  java.io.InputStream
+  InputStream
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [input-stream output-stream]
     (try
       (io/copy input-stream output-stream)
       (finally (.close input-stream))))
 
-  java.nio.channels.ReadableByteChannel
+  ReadableByteChannel
   (default-content-type [_] "application/octet-stream")
 
-  java.nio.ByteBuffer
+  ByteBuffer
   (default-content-type [_] "application/octet-stream")
 
   nil
   (default-content-type [_] nil)
-  (write-body-to-stream [_ _] ()))
+  (write-body-to-stream [_ _]))
 
 (defn- write-body [^HttpServletResponse servlet-resp body]
   (let [output-stream (.getOutputStream servlet-resp)]
@@ -124,12 +126,12 @@
       (async/>! resume-chan context)
       (async/close! resume-chan)))
 
-  java.nio.channels.ReadableByteChannel
+  ReadableByteChannel
   (write-body-async [body servlet-response resume-chan context]
     ;; Writing NIO is container specific, based on the implementation details of Response
     (container/write-byte-channel-body servlet-response body resume-chan context))
 
-  java.nio.ByteBuffer
+  ByteBuffer
   (write-body-async [body servlet-response resume-chan context]
     ;; Writing NIO is container specific, based on the implementation details of Response
     (container/write-byte-buffer-body servlet-response body resume-chan context)))

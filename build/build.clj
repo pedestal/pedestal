@@ -35,8 +35,7 @@
    ;; And then the others:
    "aws"
    "jetty"
-   "service-tools"
-   "tomcat"])
+   "service-tools"])
 
 ;; Working around this problem (bug)?
 ;; Manifest type not detected when finding deps for io.pedestal/pedestal.log in coordinate #:local{:root "../log"}

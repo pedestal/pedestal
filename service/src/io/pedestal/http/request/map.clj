@@ -1,7 +1,7 @@
 (ns io.pedestal.http.request.map
   (:require [io.pedestal.http.request :as request])
-  (:import (javax.servlet Servlet ServletConfig ServletRequest)
-           (javax.servlet.http HttpServletRequest HttpServletResponse)))
+  (:import (jakarta.servlet Servlet ServletConfig ServletRequest)
+           (jakarta.servlet.http HttpServletRequest HttpServletResponse)))
 
 (defn add-content-type [req-map ^HttpServletRequest servlet-req]
   (if-let [ctype (.getContentType servlet-req)]
@@ -24,7 +24,7 @@
     req-map))
 
 (defn add-ssl-client-cert [req-map ^HttpServletRequest servlet-req]
-  (if-let [c (.getAttribute servlet-req "javax.servlet.request.X509Certificate")]
+  (if-let [c (.getAttribute servlet-req "jakarta.servlet.request.X509Certificate")]
     (assoc! req-map :ssl-client-cert c)
     req-map))
 

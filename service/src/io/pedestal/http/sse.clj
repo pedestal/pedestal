@@ -22,7 +22,7 @@
   (:import [java.nio.charset Charset]
            [java.io BufferedReader StringReader OutputStream]
            [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
-           [javax.servlet ServletResponse]
+           [jakarta.servlet ServletResponse]
            [com.fasterxml.jackson.core.util ByteArrayBuilder]))
 
 (set! *warn-on-reflection* true)

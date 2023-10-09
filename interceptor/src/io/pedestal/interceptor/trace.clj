@@ -14,7 +14,7 @@
 
 (defn default-span-resolver
   ([context]
-   (default-span-resolver context (try (Class/forName "javax.servlet.HttpServletRequest")
+   (default-span-resolver context (try (Class/forName "jakarta.servlet.HttpServletRequest")
                                        (catch Exception _ nil))))
   ([context servlet-class]
    (let [servlet-req (and servlet-class (:servlet-request context))

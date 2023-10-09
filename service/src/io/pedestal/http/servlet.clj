@@ -13,7 +13,7 @@
 (ns io.pedestal.http.servlet
   "Generic Servlet adapter that closes over its implementation
   functions."
-  (:import (javax.servlet Servlet ServletConfig)))
+  (:import (jakarta.servlet Servlet ServletConfig)))
 
 ;; Do not construct instances directly; use the 'servlet' function.
 (deftype FnServlet [init-fn service-fn destroy-fn
@@ -30,7 +30,9 @@
     config)
   (getServletInfo [this]
     (str "FnServlet dispatching to " service-fn))
+
   ServletConfig
+
   (getInitParameter [this name]
     (when-not (nil? config)
       (.getInitParameter ^ServletConfig config name)))
@@ -45,7 +47,7 @@
       (.getServletName ^ServletConfig config))))
 
 (defn servlet
-  "Returns an instance of javax.servlet.Servlet using provided
+  "Returns an instance of jakarta.servlet.Servlet using provided
   functions for its implementation. Arguments are key-value pairs of:
 
     :init      optional, initialization function taking two arguments:
@@ -59,6 +61,8 @@
 
   The :init, :service, and :destroy options correspond to the Servlet
   interface methods of the same names.
+
+  The returned servlet instance also implements the ServletConfig interface.
 
   Note: this function returns an instance, not a class. If you need a
   class with a static name (for example, to deploy to a Servlet

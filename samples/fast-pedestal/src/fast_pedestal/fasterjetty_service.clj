@@ -10,7 +10,7 @@
            (org.eclipse.jetty.server Request
                                      Server)
            (org.eclipse.jetty.server.handler AbstractHandler)
-           (javax.servlet.http HttpServletRequest
+           (jakarta.servlet.http HttpServletRequest
                                HttpServletResponse)))
 
 ;; Usually we'd use the request/ContainerRequest protocol,

@@ -11,7 +11,7 @@
 
 (ns io.pedestal.http.jetty.util
   (:import (java.util EnumSet)
-           (javax.servlet Servlet Filter DispatcherType)
+           (jakarta.servlet Servlet Filter DispatcherType)
            (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)
            (org.eclipse.jetty.server HttpConfiguration
                                      SecureRequestCustomizer
@@ -44,7 +44,7 @@
               {:accepted-keywords (keys dispatch-types)
                :attempted dispatches}))))
 
-(defn ^FilterHolder filter-holder [servlet-filter init-params]
+(defn ^FilterHolder filter-holder [^Filter servlet-filter init-params]
   (let [holder (FilterHolder. servlet-filter)]
     (doseq [[k v] init-params]
       (.setInitParameter holder k v))
