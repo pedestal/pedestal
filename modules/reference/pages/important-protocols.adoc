@@ -17,11 +17,10 @@ Routers use this when building routes: anything that satisfies
 route.
 
 This protocol also comes into play when
-link:interceptors#_manipulating_the_interceptor_queue[appending new interceptors to the queue].
+xref:interceptors.adoc#_manipulating_the_interceptor_queue[appending new interceptors to the queue].
 
 Pedestal extends `IntoInterceptor` onto a variety of Clojure and Java
-types. See the link:interceptors#_intointerceptor[interceptors
-reference] for details of their behaviors.
+types. See the xref:interceptors.adoc[interceptors reference] for details of their behaviors.
 
 == Routing Protocols
 
@@ -47,18 +46,18 @@ algorithm, or use any of the built-in routing specifications combined with an ap
 The combination of routing specification with a routing algorithm results in an instance of the `Router` interface.
 
 The `Router` protocol defines just one function: `find-route`. `find-route` is passed the `Router`
-itself and a link:request-map[request map], and must return the route map for the route that it matched.
+itself and a xref:request-map.adoc[], and must return the route map for the route that it matched.
 The route map not only identifies the interceptors and handler to add to the interceptor queue, but further
 captures path variables that may be part of the matched URL (further details TBD).
 
 An instance of `Router` is returned by the router constructor
-identified in the application's link:service-map[service map] by the key `:io.pedestal.http/router`.
+identified in the application's xref:service-map.adoc[] by the key `:io.pedestal.http/router`.
 
 |===
 | ::http/router Value  | Constructor
-| :linear-search | link:../api/io.pedestal.http.route.linear-search.html#var-router[`linear-search/router`]
-| :prefix-tree   | link:../api/io.pedestal.http.route.prefix-tree.html#var-router[`prefix-tree/router`]
-| :map-tree      | link:../api/io.pedestal.http.route.map-tree.html#var-map-tree[`map-tree/router`]
+| :linear-search | xref:linear-search-router.adoc[]
+| :prefix-tree   | xref:prefix-tree-router.adoc[]
+| :map-tree      | xref:map-tree-router.adoc[]
 | application-supplied function | The function itself, called with sequence of routes as returned by from the `RouterSpecification` instance
 |===
 
@@ -74,8 +73,8 @@ process of turning a routing specification into a routing interceptor.
 Whatever is returned from the
 link:../api/io.pedestal.http.route.html#var-router-spec[`router-spec`]
 function of the protocol must be an interceptor. The returned interceptor will include an `:enter` function that
-must accept a link:context-map[context map] and enqueue
-link:interceptors[interceptors] based on whatever criteria it chooses.
+must accept a xref:context-map.adoc[] and enqueue
+xref:interceptors.adoc[interceptors] based on whatever criteria it chooses.
 
 === link:../api/io.pedestal.http.route.html#var-ExpandableRoutes[`ExpandableRoutes`]
 
@@ -87,30 +86,31 @@ function.
 Pedestal provides implementations of `ExpandableRoutes` for several types:
 
 |===
-| Type | Behavior
-| `clojure.lang.APersistentVector` | Interpret the vector as link:terse-syntax[terse routing syntax].
-| `clojure.lang.APersistentMap`    | Interpret the map as link:verbose-syntax[verbose routing syntax].
-| `clojure.lang.APersistentSet`    | Interpret the set as link:table-syntax[table routing syntax].
+| Type | Interpretation
+| `clojure.lang.APersistentVector` | xref:terse-syntax.adoc[]
+| `clojure.lang.APersistentMap`    | xref:verbose-syntax.adoc[]
+| `clojure.lang.APersistentSet`    | xref:table-syntax.adoc[]
 |===
 
 Since the call to `expand-routes` comes from application code, it
 would be rare for an application to need to extend `ExpandableRoutes`.
 
-The result of `expand-routes` is a link:routing-quick-reference#_verbose_syntax[seq of maps] that will
-be passed to the `Router`.
+The result of `expand-routes` is a
+xref:routing-quick-reference.adoc#_routing_table[seq of maps]
+that will be passed to the `Router`.
 
 == Servlet Protocols
 
-These protocols only apply when using the link:servlet-interceptor[`servlet interceptor`].
+These protocols only apply when using the xref:servlet-interceptor.adoc[].
 
 === link:../api/io.pedestal.http.impl.servlet-interceptor.html#var-WritableBody[`WritableBody`]
 
 This protocol applies to anything that can be in the `:body` key of a
-link:response-map[response map]. The two functions in the protocol
-tell Pedestal what content type the body implies, and how to serialize
+xref:response-map.adoc[].
+The two functions in the protocol tell Pedestal what content type the body implies, and how to serialize
 the body to an output stream.
 
-Pedestal extends this protocol to several Java and Clojure types to produce the behavior detailed in link:response-bodies[Response Bodies].
+Pedestal extends this protocol to several Java and Clojure types to produce the behavior detailed in xref:response-bodies.adoc[].
 
 Applications should not assume any output stream type more specific
 than `java.io.OutputStream`.
@@ -118,9 +118,9 @@ than `java.io.OutputStream`.
 === link:../api/io.pedestal.http.impl.servlet-interceptor.html#var-WritableBodyAsync[`WritableBodyAsync`]
 
 This protocol is a more specific version of `WritableBody`. If the
-value in the `:body` key of a link:response-map[response map]
+value in the `:body` key of a xref:response-map.adoc[]
 satisfies `WritableBodyAsync`, then Pedestal treats it as a streaming
-result. See link:streaming[Streaming] for full details.
+result. See xref:streaming.adoc[] for full details.
 
 It would be rare for an application to extend this protocol. Most of
 the time, an application would be better off providing an NIO channel

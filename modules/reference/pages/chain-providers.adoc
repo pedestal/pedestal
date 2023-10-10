@@ -1,6 +1,6 @@
 = Chain Providers
 
-Pedestal uses a chain of link:interceptors[interceptors] to process incoming HTTP requests and provide outgoing HTTP responses.
+Pedestal uses a chain of xref:interceptors.adoc[] to process incoming HTTP requests and provide outgoing HTTP responses.
 However, the underlying code - the interceptors and the interceptor chain that executes them - is more general.
 
 Interceptor chains can be used for a variety of operations, such as:
@@ -10,7 +10,7 @@ Interceptor chains can be used for a variety of operations, such as:
 - Processing outgoing requests and incoming responses from a back-end service
 
 A _chain provider_ is responsible for accepting an incoming stimuli (such as an incoming HTTP request)
-and setting up a link:context-map [context map] and initial interceptors to process that stimuli.
+and setting up a xref:context-map.adoc[] and initial interceptors to process that stimuli.
 The service map is processed via the
 link:../api/io.pedestal.interceptor.chain.html#var-execute[`execute`] function.
 
@@ -18,4 +18,4 @@ Part of a chain provider's responsibility is to identify when a request has been
 HTTP requests, this is when a handler or some other interceptor attaches a `:response` map to the context map.
 
 Pedestal itself only provides a chain provider implementation for incoming HTTP request processing,
-in the form of the xref:servlet-interceptor.adoc[servlet interceptor].
+in the form of the xref:servlet-interceptor.adoc[].

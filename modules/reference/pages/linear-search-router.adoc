@@ -24,4 +24,4 @@ This implementation routes requests in linear time, so it's the simplest and slo
 Pedestal's first router implementation. 
 
 Query and path constraints are used in routing decisions unlike the
-link:prefix-tree-router[Prefix Tree Router] or link:map-tree-router[Map Tree Router].
+xref:prefix-tree-router.adoc[] or xref:map-tree-router.adoc[].

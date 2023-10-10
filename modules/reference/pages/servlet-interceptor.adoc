@@ -5,22 +5,19 @@ interceptor. It is created when an application calls
 `io.pedestal.http/create-server` or `io.pedestal.http/create-servlet`.
 
 When created, the servlet interceptor creates the global interceptor queue,
-which includes a number of interceptors private to the servlet interceptor and then
+which includes a number of interceptors private to the servlet interceptor, and
 additional interceptors provided by the application; importantly, the final interceptor will
 perform routing, which will add route-matched interceptors to the queue.
 
-The servlet interceptor is a link:chain-providers[chain provider] that
+The servlet interceptor is a xref:chain-providers.adoc[chain provider] that
 invokes interceptors when an HTTP request arrives.
 
 The servlet interceptor performs the following tasks:
 
-   1. Sets up the link:context-map[context map] and the
-   link:request-map[request map].
+   1. Sets up the xref:context-map.adoc[] and xref:request-map.adoc[]
    2. Executes the interceptor queue (`:enter`, then `:leave`)
-   3. Catches any exceptions that aren't handled by
-   link:error-handling[error handling] within the interceptors.
-   4. Writes the final link:response-map[response map] to the servlet
-   response.
+   3. Catches any exceptions that aren't handled by xref:error-handling.adoc[] within the interceptors
+   4. Writes the final response, using the xref:response-map.adoc[]
 
 There are a couple of special cases to note.
 
@@ -35,7 +32,7 @@ link:../api/io.pedestal.interceptor.chain.html#var-terminate[`terminate`].
 --
 Interceptors may also change the interceptor queue by directly changing the values
 of the `:io.pedestal.interceptor.chain/stack` and
-`:io.pedestal.interceptor.chain/queue` in the link:context-map[context map].
+`:io.pedestal.interceptor.chain/queue` in the xref:context-map.adoc[].
 This should be avoided when possible, as manipulating the stack and queue improperly
 may have unintended consequences.
 --

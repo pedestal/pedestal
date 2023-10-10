@@ -25,8 +25,8 @@ processing is done or if the attached response map is not valid Pedestal generat
 |===
 
 
-Note that code that returns a header should use the proper case version of the header, for example,
-`Content-Type` (not `content-type`); although incoming link:request-map[request headers] are converted
+WARNING: Application code that returns a header should use the proper case version of the header, for example,
+`Content-Type` (not `content-type`); although incoming xref:request-map.adoc[request headers] are converted
 to lower case, outgoing response headers are left as-is, and some standard interceptors expects
 certain headers to be present with the correct name (such as `Content-Type`).
 

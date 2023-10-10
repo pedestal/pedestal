@@ -1,10 +1,6 @@
-= Jetty Configuration and Deployment
+= Jetty 11
 
-link:https://eclipse.dev/jetty/[Jetty] is the default container used with Pedestal.
-
-[NOTE]
-Prior to Pedestal 0.7, there was also support for Tomcat and Immutant, but the Pedestal team has decided to focus efforts
-on Jetty, as it is used by the vast majority of Pedestal applications.
+link:https://eclipse.dev/jetty/[Jetty 11] is the default container used with Pedestal.
 
 == Container Options
 
@@ -28,7 +24,7 @@ The following table lists the container options supported by Jetty.
 
 | :thread-pool
 | A link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/thread/ThreadPool.html[ThreadPool] instance.
-| override the Jetty thread pool (ignores max-threads)
+| Override the Jetty thread pool (ignores max-threads)
 
 | :configurator
 | Function

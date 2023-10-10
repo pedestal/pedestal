@@ -86,19 +86,19 @@ specifically modify.
 | Key | Type | Description
 
 | :request
-| Request map
-| See link:request-map[Request Map]
+| xref:request-map.adoc[]
+| Provided by the xref:chain-providers.adoc[HTTP chain provider].
 
 | :response
-| Response map
-| Only present if an interceptor has attached this. See link:response-map[Response Map]
+| xref:response-map.adoc[]
+| Added by an interceptor or handler, as which point the :enter phase of request processing is completed.
 
 |===
 
 == Servlet Keys
 
 The following context keys are only present when using the
-link:servlet-interceptor[Servlet Interceptor].
+xref:servlet-interceptor.adoc[]:
 
 [cols="s,d,d", options="header", grid="rows"]
 |===
@@ -106,18 +106,18 @@ link:servlet-interceptor[Servlet Interceptor].
 
 | :servlet-request
 | HttpServletRequest
-| The request that was sent by the client. You should use the link:request-map[Request Map] rather than directly accessing this.
+| The request that was sent by the client. You should use the xref:request-map.adoc[] rather than directly accessing this.
 
 | :servlet-response
 | HttpServletResponse
-| The response object in which the HTTP server wants its response. You should use the link:response-map[Response Map] rather than directly accessing this.
+| The response object in which the HTTP server wants its response. You should construct and attach a xref:response-map.adoc[] rather than directly accessing this.
 
 | :servlet-config
-| javax.servlet.ServletConfig
+| jakarta.servlet.ServletConfig
 | The servlet configuration object.
 
 | :servlet
-| javax.servlet.Servlet
+| jakarta.servlet.Servlet
 | The servlet itself.
 
 |===

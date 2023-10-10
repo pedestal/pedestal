@@ -1,9 +1,9 @@
 = Response Bodies
 
-This reference describes how the link:servlet-interceptor[servlet interceptor] handles
+This reference describes how the xref:servlet-interceptor.adoc[] handles
 response bodies of various types. Much of this behavior depends on the
 protocols `WritableBody` and `WritableBodyAsync`. See
-link:important-protocols[Important Protocols] for details about those.
+xref:important-protocols.adoc[] for details about those.
 
 The exact handling of the response body depends on the Java or Clojure
 type of the value in the `:body` key of the link:response-map[response

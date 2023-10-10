@@ -101,7 +101,7 @@ So, unlike a deeply wrapped function, a chain of interceptors is a data structur
 
 Importantly, any interceptor can _add_ new interceptors to the queue (because the interceptor queue itself is stored
 in the context, alongside the `:request` map).  Because of this,
-link:routing-quick-reference[request routing] boils down to an interceptor
+xref:routing-quick-reference.adoc[routing] boils down to an interceptor
 that peeks at the request and makes decisions about what additional interceptors to add to the queue.
 
 Pedestal includes general purpose interceptors for all sorts of typical HTTP request functionality:
@@ -119,7 +119,7 @@ But Pedestal has one more big trick up its sleeve: any interceptor may, instead 
 instead return a https://github.com/clojure/core.async[core.async] channel that conveys the context map at some point
 in the future; this is what allows for asynchronous request processing.
 
-Further details are in the link:interceptors[interceptors reference].
+Further details are in the xref:interceptors.adoc[interceptors reference].
 
 === Chain Provider
 

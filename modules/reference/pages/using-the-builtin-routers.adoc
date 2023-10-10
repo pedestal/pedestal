@@ -1,0 +1,17 @@
+= Using the Built-in Routers
+
+As documented in the
+xref:routing-quick-reference.adoc[],
+the built-in routers are xref:linear-search-router.adoc[], xref:prefix-tree-router.adoc[], and
+xref:map-tree-router.adoc[] (which is the default).
+
+
+An alternate router can be specified as the
+`:io.pedestal.http/router` key in the xref:service-map.adoc[],
+using one of the following keyword values:
+
+- `:map-tree`
+- `:prefix-tree`
+- `:linear-search`
+
+include::partial$router-table.adoc[]

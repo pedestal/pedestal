@@ -236,9 +236,9 @@ purposes.
 == Manipulating the interceptor queue
 
 The queue of interceptors remaining to execute is held in the
-link:context-map[context map]. This means that an interceptor can
-enqueue other interceptors to be executed. In fact, this is how
-routing works. The router is an interceptor that matches requests and
+xref:context-map.adoc[]. This means that an interceptor can
+enqueue other interceptors to be executed. In fact, this is exactly how
+xref:defining-routes.adoc[routing] works, the router is an interceptor that matches requests and
 enqueues the desired interceptors when a route matches.
 
 Use
@@ -274,11 +274,11 @@ common interceptors will run before any route-specific interceptors.
 == Handlers
 
 A handler function is a special case of an interceptor.
-Pedestal treats the handler as a function that takes a link:request-map[request map]
-and returns a link:response-map[response map].
+Pedestal treats the handler as a function that takes a xref:request-map.adoc[]
+and returns a xref:response-map.adoc[].
 
-A handler does _not_ have access to the full execution
-context. Therefore, it cannot manipulate the interceptor queue or stack.
+A handler does _not_ have access to the full xref:context-map.adoc[execution context],
+therefore, it cannot manipulate the interceptor queue.
 
 Because a handler takes one kind of thing (request) and returns a
 different kind of thing (response), it can only be used in the last
@@ -290,7 +290,7 @@ a response map.
 == Error Handling
 
 Pedestal supports defining interceptor-specific error handlers via the
-`:error` key. Refer to the link:error-handling[Error Handling] reference for more details.
+`:error` key. Refer to the xref:error-handling.adoc[] reference for more details.
 
 == Pedestal Interceptors
 

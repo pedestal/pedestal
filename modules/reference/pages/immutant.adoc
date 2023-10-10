@@ -1,3 +1,4 @@
-= Immutant Support
+= Immutant
 
-Support for the link:https://github.com/immutant/immutant[Immutant] web server was removed in Pedestal 0.7; Immutant itself has not been updated since 2018.
+Support for the link:https://github.com/immutant/immutant[Immutant] web server was removed in Pedestal 0.7;
+Immutant itself has not been updated since 2018.

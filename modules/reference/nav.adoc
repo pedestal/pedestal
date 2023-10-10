@@ -1,14 +1,43 @@
 // This needs to be manually updated when new pages are added, or pages are renamed or deleted.
 * Reference
-** xref:architecture-overview.adoc[]
-** xref:chain-providers.adoc[]
-** xref:servlet-interceptor.adoc[]
-** xref:context-map.adoc[]
-** xref:default-interceptors.adoc[]
-** xref:defining-routes.adoc[]
-** xref:error-handling.adoc[]
-** xref:handlers.adoc[]
-** xref:immutant.adoc[]
-** xref:important-protocols.adoc[]
+** Pedestal Architecture
+*** xref:architecture-overview.adoc[]
+*** xref:interceptors.adoc[]
+*** xref:chain-providers.adoc[]
+*** xref:important-protocols.adoc[]
+*** xref:handlers.adoc[]
+*** xref:error-handling.adoc[]
 
-// TODO: Set order same as with jBake
+** HTTP Handling
+*** xref:servlet-interceptor.adoc[]
+*** xref:service-map.adoc[]
+*** xref:context-map.adoc[]
+*** xref:request-map.adoc[]
+*** xref:response-map.adoc[]
+*** xref:response-bodies.adoc[]
+*** xref:parameters.adoc[]
+*** xref:default-interceptors.adoc[]
+*** xref:streaming.adoc[]
+*** xref:server-sent-events.adoc[]
+
+** Routing and Linking
+*** xref:defining-routes.adoc[]
+*** xref:routing-quick-reference.adoc[]
+** xref:using-the-builtin-routers.adoc[]
+*** Routing Syntaxes
+**** xref:table-syntax.adoc[]
+**** xref:terse-syntax.adoc[]
+**** xref:verbose-syntax.adoc[]
+** Routers
+**** xref:map-tree-router.adoc[]
+**** xref:linear-search-router.adoc[]
+**** xref:prefix-tree-router.adoc[]
+
+** Deployment and Operations
+*** Containers
+**** xref:jetty.adoc[]
+**** xref:immutant.adoc[]
+**** xref:tomcat.adoc[]
+*** xref:logging.adoc[]
+*** xref:unit-testing.adoc[]
+

@@ -1,14 +1,17 @@
 = Handlers
 
-A _handler_ is a function that receives a link:request-map[Request
-Map] and returns a link:response-map[Response Map].
+A _handler_ is a function that receives a xref:request-map.adoc[]
+and returns a xref:response-map.adoc[].
+Handlers will be familiar to developers coming from link:https://github.com/ring-clojure/ring[Ring];
+they are simpler but more limited than xref:interceptors.adoc[interceptors].
 
 == Example
 
 [source,clojure]
 ----
 (defn reply-hello [request]
-  {:status 200 :body (str "Hello, " (get-in request [:params :name]))})
+  {:status 200
+   :body (str "Hello, " (get-in request [:params :name]))})
 ----
 
 == Additional Information
@@ -32,4 +35,4 @@ handling. See xref:error-handling.adoc[] for details.
 
 == See Also
 
-* link:interceptors[Interceptors]
+* xref:interceptors.adoc[]

@@ -63,7 +63,7 @@ may depend on getting stored values back out of the request map.
 | :params
 | N
 | Map of Keyword or String -> String or Keyword -> String
-| See the Parameters link:parameters[reference].
+| More info: xref:parameters.adoc[].
 
 | :path-info
 | Y

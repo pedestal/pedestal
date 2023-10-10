@@ -23,7 +23,7 @@ defined by the route specification. It identifies the route matching the incomin
 and queues up route-specific interceptors to handle the request.
 
 Generally, all of this is automatic; an application provides a route specification in the :io.pedestal.http/route key
-of the link:service-map[service map] (and perhaps a value for :io.pedestal.http/router) and a routing
+of the xref:service-map.adoc[] (and perhaps a value for :io.pedestal.http/router) and a routing
 interceptor is automatically created.
 
 == Route Specifications
@@ -57,7 +57,7 @@ To support a new syntax, come up with a syntax that resolves to new record type 
 
 === Routing Table
 
-The expanded routing table is a list of maps, with the following structure:
+The expanded routing table is a list of maps, each with the following structure:
 
 [source,clojure]
 ----

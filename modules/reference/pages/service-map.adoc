@@ -41,12 +41,12 @@ NOTE: In the details below, `::http` is an alias to `:io.pedestal.http`.
 | `::http/chain-provider`
 | N
 | Function
-| Only assigned when replacing the link:servlet-interceptor[servlet interceptor]. Receives the service-map, returns a service-map with whatever additional pieces the server function expects. (See `::http/type`, below.)
+| Only assigned when replacing the xref:servlet-interceptor.adoc[]. Receives the xref:service-map.adoc[], returns an updated with whatever additional pieces the server function expects. (See `::http/type`, below.)
 
 | `::http/container-options`
 | N
 | Map
-| Map of options to pass to the container. See link:index#_deployment_and_operations[Deployment and Operations] for container-specific options.
+| Map of options to pass to the container. Each container, such as xref:jetty.adoc[], defines it own container-specific options.
 
 | `::http/enable-csrf`
 | N

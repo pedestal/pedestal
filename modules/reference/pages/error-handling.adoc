@@ -25,7 +25,7 @@ attached to it.
 This error handling proceeds the same way regardless of whether
 interceptors in the chain returned a xref:context-map.adoc[context map] or
 async channel. (See
-link:interceptors#_interceptor_return_values[Interceptor Return
+xref:interceptors.adoc#_interceptor_return_values[Interceptor Return
 Values] for details on async return.) As a result, Pedestal unifies
 error handling for synchronous interceptors and asynchronous
 interceptors.
@@ -133,10 +133,13 @@ Pattern matching is a concise way to express conditions for handling an error.
 
 == Error handling and logging
 
-For HTTP, the link:servlet-interceptor[servlet interceptor] provides the "last
+For HTTP, the xref:servlet-interceptor.adoc[] provides the "last
 ditch" error handlers that log the error and return an _error_ response. In
 development mode, they emit a stack trace as the response body; you will see
-the error logged from the `:io.pedestal.http.impl.servlet-interceptor/stylobate` interceptor.
+the error logged from the `:io.pedestal.http.impl.servlet-interceptor/stylobate`
+footnote:[link:https://en.wikipedia.org/wiki/Stylobate[Stylobate] is the term for a supporter of columns in
+classic Greek and Roman architecture; here the interceptor is providing support to the rest of Pedestal.]
+interceptor.
 
 WARNING: The error logged by the "last ditch" error handler includes the context
 map. This is often quite large and may contain data you do not wish to log.

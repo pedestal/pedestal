@@ -1,0 +1,4 @@
+= Tomcat
+
+link:https://tomcat.apache.org/download-90.cgi[Tomcat 9] was previously supported in Pedestal 0.6; this support
+was removed in Pedestal 0.7.
