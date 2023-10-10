@@ -24,9 +24,9 @@ There are a couple of special cases to note.
 ## Manipulating the Queue and Stack
 
 Interceptors may rewrite the interceptor queue by calling functions
-link:../api/io.pedestal.interceptor.chain.html#var-enqueue[`enqueue`]
+api:enqueue[ns=io.pedestal.interceptor.chain]
 and
-link:../api/io.pedestal.interceptor.chain.html#var-terminate[`terminate`].
+api:terminate[ns=io.pedestal.interceptor.chain].
 
 [WARNING]
 --
@@ -64,7 +64,7 @@ be sent to the client, bypassing any later interceptors.
 In addition, it is possible to have more than one termination predicate; if any predicate returns
 a truthy value, then the `:enter` execution will terminate.
 New predicates can be appended using
-link:../api/io.pedestal.interceptor.chain.html#var-terminate-when[terminate-when].
+api:terminate-when[ns=io.pedestal.interceptor.chain].
 
 ## Partial Responses
 

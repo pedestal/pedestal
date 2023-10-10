@@ -14,7 +14,7 @@ The _service_ runs the show: it's the server plus everything else: chain provide
 --
 
 An application creates the service map and passes it to
-link:../api/io.pedestal.http.html#var-create-server[`create-server`].
+api:create-server[ns=io.pedestal.http].
 The result is a _server_ map that is ready to be started.
 
 Keep in mind, however, that this is strictly a convenience function
@@ -36,7 +36,7 @@ NOTE: In the details below, `::http` is an alias to `:io.pedestal.http`.
 | `::http/allowed-origins`
 | N
 | Function, map, or sequence of strings
-| Determines which origins are allowed for the link:../api/io.pedestal.http.cors.html#var-allow-origin[`cors/allow-origin`] interceptor. See "CORS" below.
+| Determines which origins are allowed for the api:cors/allow-origin[ns=io.pedestal.http.cors] interceptor. See "CORS" below.
 
 | `::http/chain-provider`
 | N
@@ -51,17 +51,17 @@ NOTE: In the details below, `::http` is an alias to `:io.pedestal.http`.
 | `::http/enable-csrf`
 | N
 | Map
-| A settings map to pass to the link:../api/io.pedestal.http.csrf.html#var-anti-forgery[`csrf/anti-forgery`] interceptor. See CSRF below.
+| A settings map to pass to the api:csrf/anti-forgery[ns=io.pedestal.http.csrf] interceptor. See CSRF below.
 
 | `::http/enable-session`
 | N
 | Map
-| A settings map to pass to the link:../api/io.pedestal.http.ring-middlewares.html#var-session[`ring-middlewares/session`] interceptor. Settings are session-store specific. If non-`nil`, this interceptor is added. Default is `nil`.
+| A settings map to pass to the api:ring-middlewares/session[ns=io.pedestal.http.ring-middlewares] interceptor. Settings are session-store specific. If non-`nil`, this interceptor is added. Default is `nil`.
 
 | `::http/file-path`
 | N
 | String
-| File path used as root by the link:../api/io.pedestal.http.ring-middlewares.html#var-file[`ring-middlewares/file`] interceptor. If non-`nil`, this interceptor is added. Default is `nil`.
+| File path used as root by the api:ring-middlewares/file[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, this interceptor is added. Default is `nil`.
 
 | `::http/host`
 | N
@@ -77,7 +77,7 @@ from another container on the same host) will be network, not localhost, connect
 | `::http/interceptors`
 | N
 | Vector
-| Vector of items that satisfy link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`interceptor/IntoInterceptor`]. No additional interceptors are added if this key is non-`nil`. The default interceptors are defined by the service map options and link:../api/io.pedestal.http.html#var-default-interceptors[`http/default-interceptors`].
+| Vector of items that satisfy api:http/default-interceptors[ns=io.pedestal.http].
 
 | `::http/join?`
 | N
@@ -92,12 +92,12 @@ from another container on the same host) will be network, not localhost, connect
 | `::http/mime-types`
 | N
 | Map of String -> String
-| Mime-types map used by the link:../api/io.pedestal.http.ring-middlewares.html#var-content-type[`ring-middlewares/content-type`] interceptor. Default is `{}`.
+| Mime-types map used by the api:ring-middlewares/content-type[ns=io.pedestal.http.ring-middlewares] interceptor. Default is `{}`.
 
 | `::http/not-found-interceptor`
 | N
 | Interceptor
-| Interceptor to use when returning a 404 Not Found response. Default is the link:../api/io.pedestal.http.html#var-not-found[`http/not-found`] interceptor.
+| Interceptor to use when returning a 404 Not Found response. Default is the api:http/not-found[ns=io.pedestal.http] interceptor.
 
 
 | `::http/port`
@@ -108,17 +108,17 @@ from another container on the same host) will be network, not localhost, connect
 | `::http/resource-path`
 | N
 | string
-| File path used as root by the link:../api/io.pedestal.http.ring-middlewares.html#var-resource[`ring-middlewares/resource`] interceptor. If non-`nil`, the interceptor is added. Default is `nil`.
+| File path used as root by the api:ring-middlewares/resource[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, the interceptor is added. Default is `nil`.
 
 | `::http/router`
 | N
 | Keyword or route constructor
-| The router implementation to use. Can be `:linear-search`, `:map-tree` `:prefix-tree`, or a custom link:../api/io.pedestal.http.route.router.html#var-Router[`router/Router`] constructor function. Defaults to `:map-tree`, which falls back to `:prefix-tree`.
+| The router implementation to use. Can be `:linear-search`, `:map-tree` `:prefix-tree`, or a custom api:router/Router[ns=io.pedestal.http.route.router] constructor function. Defaults to `:map-tree`, which falls back to `:prefix-tree`.
 
 | `::http/routes`
 | Y
 | Function, `ExpandableRoutes`, or sequence of maps
-| Something that satisfies the link:../api/io.pedestal.http.route.html#var-ExpandableRoutes[`route/ExpandableRoutes`] protocol, a function that returns routes when called, or a seq of route maps that defines a service's routes. If passing in a seq of route maps, it's recommended to use link:../api/io.pedestal.http.route.html#var-expand-routes[`route/expand-routes`] as the full route map contains some redundancies to make processing easier which `expand-routes` adds automatically.
+| Something that satisfies the api:route/expand-routes[ns=io.pedestal.http.route] as the full route map contains some redundancies to make processing easier which `expand-routes` adds automatically.
 
 | `::http/secure-headers`
 | N
@@ -128,7 +128,7 @@ from another container on the same host) will be network, not localhost, connect
 | `::http/service-fn`
 | N
 | function
-| A function which can be used as an implementation of the `jakarta.servlet.Servlet.service` method. The function is defined by link:../api/io.pedestal.http.html#var-create-server[`http/create-server`].
+| A function which can be used as an implementation of the `jakarta.servlet.Servlet.service` method. The function is defined by api:http/create-server[ns=io.pedestal.http].
 
 | `::http/servlet`
 | N
@@ -156,7 +156,7 @@ As a function, acts as the server function.
 == Cross-Origin Resource Sharing (CORS)
 
 If the `::http/allowed-origins` key is non-`nil`, the
-link:../api/io.pedestal.http.cors.html#var-allow-origin[allow-origin]
+api:allow-origin[ns=io.pedestal.http.cors]
 interceptor is added. The default is `nil`.
 
 The allowed values are:
@@ -168,7 +168,7 @@ The allowed values are:
 == Cross-Site Request Forgery (CSRF)
 
 When a value for `::http/enable-csrf` is present, the
-link:../api/io.pedestal.http.csrf.html#var-anti-forgery[anti-forgery]
+api:anti-forgery[ns=io.pedestal.http.csrf]
 interceptor is added to the queue. This implies that support for HTTP sessions are enabled (Pedestal will add the
 necessary interceptor automatically).
 
@@ -199,7 +199,7 @@ Only one of `:error-response` or `:error-handler` may be specified.
 
 === Secure Headers
 
-When the `::http/secure-headers` value is present and non-`nil`, the link:../api/io.pedestal.http.secure-headers.html#var-secure-headers[`secure-headers/secure-headers`] interceptor is added.
+When the `::http/secure-headers` value is present and non-`nil`, the api:secure-headers/secure-headers[ns=io.pedestal.http.secure-headers] interceptor is added.
 
 If the key is simply not present in the service map, then a set of default secure headers will be provided:
 

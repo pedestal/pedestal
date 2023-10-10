@@ -95,9 +95,9 @@ map; this will trigger normal response processing by invoking any remaining inte
 As a convenience, Pedestal offers a macro to build error-handling
 interceptors that use pattern-matching to dispatch.
 
-link:../api/io.pedestal.interceptor.error.html#var-error-dispatch[`error-dispatch`]
+api:error-dispatch[ns=io.pedestal.interceptor.error]
 builds interceptors that use
-https://github.com/clojure/core.match[core.match] to select a clause.
+link:https://github.com/clojure/core.match[core.match] to select a clause.
 
 Here is an example from the test suite:
 
@@ -131,7 +131,7 @@ Here is an example from the test suite:
 
 Pattern matching is a concise way to express conditions for handling an error.
 
-== Error handling and logging
+== Error Handling and Logging
 
 For HTTP, the xref:servlet-interceptor.adoc[] provides the "last
 ditch" error handlers that log the error and return an _error_ response. In

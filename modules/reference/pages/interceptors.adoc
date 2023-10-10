@@ -124,7 +124,7 @@ only this interceptor will have access to the `database` atom to make changes.
 Although interceptors are values, they are not required to be compile-time
 values. Functions can close over state and return interceptors. Some
 frequently-used built-ins work this way. (E.g.,
-link:../api/io.pedestal.http.body-params.html#var-body-params[`body-params`].)
+api:body-params[ns=io.pedestal.http.body-params].)
 
 Here is an interceptor that accepts a connection string and attaches
 the database connection to every request:
@@ -199,7 +199,7 @@ This may allow another pending request to be processed while the initial request
 == IntoInterceptor
 
 The protocol
-link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`IntoInterceptor`]
+api:IntoInterceptor[ns=io.pedestal.interceptor]
 represents anything that can be used as an interceptor. Pedestal extends that protocol to the following:
 
 [cols="1,3"]
@@ -242,13 +242,13 @@ xref:defining-routes.adoc[routing] works, the router is an interceptor that matc
 enqueues the desired interceptors when a route matches.
 
 Use
-link:../api/io.pedestal.interceptor.chain.html#var-enqueue[`enqueue`]
+api:enqueue[ns=io.pedestal.interceptor.chain]
 to push more interceptors onto the queue.
 
 Use
-link:../api/io.pedestal.interceptor.chain.html#var-terminate[`terminate`]
+api:terminate[ns=io.pedestal.interceptor.chain]
 if processing should not continue - though normally, this is accomplished
-by attaching a :response map to the link:context-map[context map].
+by attaching a :response map to the xref:context-map.adoc[].
 
 [IMPORTANT]
 .*Interceptor Records*
@@ -294,18 +294,18 @@ Pedestal supports defining interceptor-specific error handlers via the
 
 == Pedestal Interceptors
 
-The link:../api/pedestal.service/index.html[`pedestal-service`] library includes a large set of interceptors
+The api:pedestal-service[ns=pedestal.service/index] library includes a large set of interceptors
 that are specialized for HTTP request handling.
 
 See the following namespaces for stock interceptors:
 
-- link:../api/pedestal.service/io.pedestal.http.body-params.html[`io.pedestal.http.body-params`]
-- link:../api/pedestal.service/io.pedestal.http.content-negotiation.html[`io.pedestal.http.content-negotiation`]
-- link:../api/pedestal.service/io.pedestal.http.cors.html[`io.pedestal.http.cors`]
-- link:../api/pedestal.service/io.pedestal.http.csrf.html[`io.pedestal.http.csrf`]
-- link:../api/pedestal.service/io.pedestal.http.ring-middlewares.html[`io.pedestal.http.ring-middlewares`]
+- api:io.pedestal.http.body-params[ns=pedestal.service/io.pedestal.http.body-params]
+- api:io.pedestal.http.content-negotiation[ns=pedestal.service/io.pedestal.http.content-negotiation]
+- api:io.pedestal.http.cors[ns=pedestal.service/io.pedestal.http.cors]
+- api:io.pedestal.http.csrf[ns=pedestal.service/io.pedestal.http.csrf]
+- api:io.pedestal.http.ring-middlewares[ns=pedestal.service/io.pedestal.http.ring-middlewares]
 
 See the following namespaces for routing interceptors:
 
-- link:../api/pedestal.route/io.pedestal.http.route.html[`io.pedestal.http.route`]
-- link:../api/pedestal.route/io.pedestal.http.route.router.html[`io.pedestal.http.route.router`]
+- api:io.pedestal.http.route[ns=pedestal.route/io.pedestal.http.route]
+- api:io.pedestal.http.route.router[ns=pedestal.route/io.pedestal.http.route.router]

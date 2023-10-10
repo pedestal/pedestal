@@ -6,9 +6,8 @@ response larger than the service's memory. It also allows a client to
 start consuming data as quickly as possible.
 
 Streaming responses are a feature of the
-link:servlet-interceptor[Servlet Interceptor]. It is entirely a
-function of the type of the body of the link:response-map[response
-map] (inside the link:context-map[context map]). I.e., `(-> context :response :body type)`.
+xref:servlet-interceptor.adoc[].
+It is entirely a function of the type of the body of the xref:response-map.adoc[], i.e., `(-> context :response :body type)`.
 
 |===
 | Type | Streamed? | Async?

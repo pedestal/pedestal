@@ -2,7 +2,7 @@
 
 == Library
 
-The library link:../api/io.pedestal.http.route[`pedestal.route`]
+The library api:*[ns=io.pedestal.http.route] namespace
 provides the core components to express routes and construct
 routers. It can be used independently of the pedestal-service library.
 
@@ -32,7 +32,7 @@ Route specifications go through a series of transformations that results in a ro
 a routing table is a sequence of verbose routing maps.
 
 The
-link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+api:expand-routes[ns=io.pedestal.http.route]
 function converts any kind of specification into a routing table:
 
 |===
@@ -49,7 +49,7 @@ function converts any kind of specification into a routing table:
 |===
 
 This mapping from type to specification type is the responsibility of the
-link:../api/io.pedestal.http.route.html#var-ExpandableRoutes[ExpandableRoutes] protocol, which is
+api:ExpandableRoutes[ns=io.pedestal.http.route] protocol, which is
 extended on Map, Set, and Vector.
 
 To support a new syntax, come up with a syntax that resolves to new record type that implements the
@@ -86,7 +86,7 @@ The expanded routing table is a list of maps, each with the following structure:
 
 The keys `:path-re`, `:path-parts`, `:path-params`, and
 `:path-constraints` are derived from the `:path`.  This is part of what the
-link:../api/io.pedestal.http.route.html#var-expand-routes[expand-routes] function is responsible for.
+api:expand-routes[ns=io.pedestal.http.route] function is responsible for.
 
 Users will not generally write routes directly in verbose format.
 
@@ -95,7 +95,7 @@ Users will not generally write routes directly in verbose format.
 Table syntax was introduced in release 0.5.0.
 
 Table syntax is expanded by
-link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+api:expand-routes[ns=io.pedestal.http.route]
 into the full (verbose) syntax shown above.
 
 When the argument to `expand-routes` is a *set*, it will be expanded using the table syntax.
@@ -175,7 +175,7 @@ path (but with different HTTP methods), and nested paths.  This pattern is very 
 when building a REST-style interface.
 
 Terse syntax is expanded by
-link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+api:expand-routes[ns=io.pedestal.http.route]
 into the full (verbose) syntax shown above.
 
 When the argument to `expand-routes` is a *vector*, it will be expanded using the terse syntax.
@@ -290,8 +290,8 @@ but also allows for different trade-offs in the algorithm used by each Router.  
 can provide its own Router rather than use one of Pedestal's.
 
 When your application starts a Pedestal service with
-link:../api/io.pedestal.http.html#var-create-servlet[`create-servlet`] or
-link:../api/io.pedestal.http.html#var-create-server[`create-server`],
+api:create-servlet[ns=io.pedestal.http] or
+api:create-server[ns=io.pedestal.http],
 Pedestal creates a router, using the following keys from the service map:
 
 |===
@@ -315,7 +315,7 @@ include::partial$router-table.adoc[]
 When the value of `:io.pedestal.http/router` is a function, that
 function is used to construct a router. The function must take one
 argument: the routing table. The constructor must a value that satisfies the
-link:../api/io.pedestal.http.route.router.html#var-Router[`Router`]
+api:Router[ns=io.pedestal.http.route.router]
 protocol.
 
 So the function is passed the routing table and returns a `Router` for those routes.
@@ -324,7 +324,7 @@ The `Router` is supplied with the incoming request, and returns the matching rou
 
 == Routing Interceptor
 
-The function link:../api/io.pedestal.http.route.html#var-router[router] is where it all comes together;
+The function api:router[ns=io.pedestal.http.route] is where it all comes together;
 this function is passed the route specification and, optionally, the router type; from that it creates
 the routing table, and passes that through the correct constructor, obtaining at the end an interceptor
 that performs routing, which it returns.

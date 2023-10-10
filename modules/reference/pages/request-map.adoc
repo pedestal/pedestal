@@ -28,7 +28,7 @@ may depend on getting stored values back out of the request map.
 | :content-type
 | N
 | String
-| Present if sent by client footnote:[May not be set automatically by some chain providers (i.e., such as the AWS API Gateway link:../api/io.pedestal.http.aws.lambda.utils.html#direct-apigw-provider[provider]).]. Content type of the request body.
+| Present if sent by client footnote:[May not be set automatically by some chain providers (i.e., such as the AWS API Gateway api:provider[ns=io.pedestal.http.aws.lambda.utils]).]. Content type of the request body.
 
 | :content-length
 | N
@@ -43,12 +43,12 @@ may depend on getting stored values back out of the request map.
 | :edn-params
 | N
 | Any
-| Present if the link:../api/io.pedestal.http.body-params.html#var-body-params[body-params] interceptor is used _and_ the client sent content type "application/edn"
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/edn"
 
 | :form-params
 | N
 | Map of Keyword -> String
-| Present if the link:../api/io.pedestal.http.body-params.html#var-body-params[body-params] interceptor is used _and_ the client sent content type "application/x-www-form-urlencoded". Some keys may be left as strings, if they contain characters that would make them invalid as Clojure keywords.
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/x-www-form-urlencoded". Some keys may be left as strings, if they contain characters that would make them invalid as Clojure keywords.
 
 | :headers
 | Y
@@ -58,7 +58,7 @@ may depend on getting stored values back out of the request map.
 | :json-params
 | N
 | Map of Keyword -> Any footnote:[Based on the coercion of any link:https://www.w3schools.com/js/js_json_objects.asp[valid] JSON data type]
-| Present if the  link:../api/io.pedestal.http.body-params.html#var-body-params[body-params] interceptor is used _and_ the client sent content type "application/json"
+| Present if the  api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/json"
 
 | :params
 | N
@@ -83,7 +83,7 @@ may depend on getting stored values back out of the request map.
 | :query-params
 | N
 | Map of Keyword -> String
-| Present if the link:../api/io.pedestal.http.route.html#var-query-params[query-params] interceptor is used. (It is one of the link:default-interceptors[default interceptors].)
+| Present if the api:default interceptors[ns=io.pedestal.http.route].)
 
 | :query-string
 | Y
@@ -98,7 +98,7 @@ may depend on getting stored values back out of the request map.
 | :request-method
 | Y
 | Keyword
-| The HTTP verb used to make this request, lowercased and in keyword form. For example, :get or :post. For :put and :delete request methods, this may be "smuggled" in via a query parameter :_method. (Performed by the link:../api/io.pedestal.http.route.html#var-method-param[method-param] interceptor.
+| The HTTP verb used to make this request, lowercased and in keyword form. For example, :get or :post. For :put and :delete request methods, this may be "smuggled" in via a query parameter :_method. (Performed by the api:method-param[ns=io.pedestal.http.route] interceptor.
 
 | :server-name
 | Y
@@ -123,7 +123,7 @@ may depend on getting stored values back out of the request map.
 | :transit-params
 | N
 | Any
-| Present if the link:../api/io.pedestal.http.body-params.html#var-body-params[body-params] interceptor is used _and_ the client sent content type "application/transit+json" or "application/transit+msgpack"
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/transit+json" or "application/transit+msgpack"
 
 | :uri
 | Y

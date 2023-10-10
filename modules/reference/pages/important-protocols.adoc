@@ -7,7 +7,7 @@ structure and how you might use them in an application.
 
 == Interceptor Protocols
 
-=== link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`IntoInterceptor`]
+=== api:IntoInterceptor[ns=io.pedestal.interceptor]
 
 `IntoInterceptor` allows pretty much anything to become an interceptor
 when needed.
@@ -41,7 +41,7 @@ The protocols described here are what allow the individual pieces to cooperate; 
 that it is possible to define an application-specific routing specification format and use it with a Pedestal-supplied
 algorithm, or use any of the built-in routing specifications combined with an application-specific algorithm.
 
-=== link:../api/io.pedestal.http.route.router.html#var-Router[`Router`]
+=== api:Router[ns=io.pedestal.http.route.router]
 
 The combination of routing specification with a routing algorithm results in an instance of the `Router` interface.
 
@@ -64,23 +64,23 @@ identified in the application's xref:service-map.adoc[] by the key `:io.pedestal
 Whether built-in, or supplied by the application, the constructor is just a function that is passed an expanded route specification,
 and returns an instance of `Router`.
 
-=== link:../api/io.pedestal.http.route.html#var-RouterSpecification[`RouterSpecification`]
+=== api:RouterSpecification[ns=io.pedestal.http.route]
 
 The `RouterSpecification` protocol is used to create a routing interceptor from some
 definition of routes, and a single `Router`. This is the final step in the
 process of turning a routing specification into a routing interceptor.
 
 Whatever is returned from the
-link:../api/io.pedestal.http.route.html#var-router-spec[`router-spec`]
+api:router-spec[ns=io.pedestal.http.route]
 function of the protocol must be an interceptor. The returned interceptor will include an `:enter` function that
 must accept a xref:context-map.adoc[] and enqueue
 xref:interceptors.adoc[interceptors] based on whatever criteria it chooses.
 
-=== link:../api/io.pedestal.http.route.html#var-ExpandableRoutes[`ExpandableRoutes`]
+=== api:ExpandableRoutes[ns=io.pedestal.http.route]
 
 `ExpandableRoutes` can convert all kinds of data structures representing a routing specification into a single
 canonical format that can be used to construct a `Router`. This occurs inside the
-link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+api:expand-routes[ns=io.pedestal.http.route]
 function.
 
 Pedestal provides implementations of `ExpandableRoutes` for several types:
@@ -103,7 +103,7 @@ that will be passed to the `Router`.
 
 These protocols only apply when using the xref:servlet-interceptor.adoc[].
 
-=== link:../api/io.pedestal.http.impl.servlet-interceptor.html#var-WritableBody[`WritableBody`]
+=== api:WritableBody[ns=io.pedestal.http.impl.servlet-interceptor]
 
 This protocol applies to anything that can be in the `:body` key of a
 xref:response-map.adoc[].
@@ -115,7 +115,7 @@ Pedestal extends this protocol to several Java and Clojure types to produce the 
 Applications should not assume any output stream type more specific
 than `java.io.OutputStream`.
 
-=== link:../api/io.pedestal.http.impl.servlet-interceptor.html#var-WritableBodyAsync[`WritableBodyAsync`]
+=== api:WritableBodyAsync[ns=io.pedestal.http.impl.servlet-interceptor]
 
 This protocol is a more specific version of `WritableBody`. If the
 value in the `:body` key of a xref:response-map.adoc[]

@@ -2,7 +2,7 @@
 
 As its name implies, the terse syntax provides a compact approach for
 describing routes. When the argument to
-link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+api:expand-routes[ns=io.pedestal.http.route]
 is a *vector*, it will be expanded using the terse syntax.
 
 Unlike the Table or Verbose syntax, it allows for the nesting
@@ -34,7 +34,7 @@ footnote:current-and-child[Applies to the current route and any child routes.]
 4. (Optional) A constraints map with `^:constraints` metadata footnote:before-verb[], footnote:current-and-child[]
 5. Zero or more child route vectors
 
-=== Syntax for link:../api/io.pedestal.http.route.html#var-expand-routes[`expand-routes`]
+=== Syntax for api:expand-routes[ns=io.pedestal.http.route]
 
 [source,clojure]
 ----
@@ -109,7 +109,7 @@ all requests.
 
 === Handler or Interceptors
 
-The "handler position" be anything that satisfies the link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`IntoInterceptor`] protocol. This includes:
+The "handler position" be anything that satisfies the api:IntoInterceptor[ns=io.pedestal.interceptor] protocol. This includes:
 
 - Function value
 - Symbol

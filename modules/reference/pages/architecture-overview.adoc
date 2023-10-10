@@ -132,9 +132,9 @@ interceptors. It starts execution.
 
 Pedestal includes a servlet chain provider out of the box. It connects
 any servlet container to an interceptor chain. The
-link:../api/io.pedestal.http.html#var-create-servlet[`create-servlet`]
+api:create-servlet[]
 function orchestrates this work. This is strictly a convenience
-function that takes a link:service-map[service map] of everything
+function that takes a xref:service-map.adoc[] of everything
 needed to run an HTTP service.
 
 It is possible to create other chain providers. The
@@ -143,7 +143,8 @@ sample] shows how to do this with Jetty.
 
 See the following namespaces for the HTTP chain provider:
 
-- link:../api/io.pedestal.http.html[`io.pedestal.http`]
+- api:*[]
+
 
 === Network Connectors
 
@@ -155,4 +156,4 @@ implementing a custom chain provider.
 
 The servlet chain provider (and main interface to network connectors) is in:
 
-- link:../api/io.pedestal.http.impl.servlet-interceptor.html[`io.pedestal.http.impl.servlet-interceptor`]
+- api:*[ns=io.pedestal.http.impl.servlet-interceptor]

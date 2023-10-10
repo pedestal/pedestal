@@ -18,7 +18,7 @@ link:https://developer.mozilla.org/en-US/docs/Web/API/EventSource[EventSource AP
 
 To define an endpoint that will send SSE, make a route with an
 interceptor created by
-link:../api/io.pedestal.http.sse.html#var-start-event-stream[`start-event-stream`]. Note
+api:start-event-stream[ns=io.pedestal.http.sse]. Note
 that `start-event-stream` is not itself an interceptor, but rather a
 function that returns an interceptor.
 

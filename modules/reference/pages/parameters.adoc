@@ -22,7 +22,7 @@ The built-in routers all know how to extract query parameters from
 URLs in requests. Any kind of request (i.e., any HTTP verb) can supply
 query parameters.
 
-Query parameters will be attached to the link:request-map[request map]
+Query parameters will be attached to the xref:request-map.adoc[]
 under the key `:query-params`. The value will be a map, constructed as follows:
 
 * Each query parameter name becomes a key in the map.
@@ -112,7 +112,7 @@ interceptor for body parameters. Instead, your application must add an
 interceptor to routes.
 
 The interceptor is created by the
-link:../api/io.pedestal.http.body-params.html#var-body-params[`body-params`]
+api:body-params[ns=io.pedestal.http.body-params]
 function. Without any arguments, it returns an interceptor that parses
 according to the request's `Content-Type` header:
 
@@ -124,7 +124,7 @@ according to the request's `Content-Type` header:
 | Yes
 | :form-params footnote:[`:form-params` keys are automatically converted to keywords.]
 | Yes footnote:[Form parameter keys are not automatically converted to keywords when merged into the `:params` map.
-                      Use the link:../api/io.pedestal.http.params.html#keywordize-params[`keywordize-params`] interceptor
+                      Use the api:keywordize-params[ns=io.pedestal.http.params] interceptor
                       to convert `:params` keys to keywords.]
 
 | application/json
@@ -160,7 +160,7 @@ content type if the request just doesn't have a `Content-Type` header.
 If you need to customize the way `body-params` handles content types,
 or provide options to the built-in parsers, call it with a parser-map
 as an argument. You can get a good starting point by calling
-link:../api/io.pedestal.http.body-params.html#var-default-parser-map[`default-parser-map`].
+api:default-parser-map[ns=io.pedestal.http.body-params].
 
 === File Upload
 
@@ -168,7 +168,7 @@ File upload is a special case of a request body. The request will have
 a multipart body with separate encoding for each.
 
 In this case, use an interceptor returned by the
-link:../api/io.pedestal.http.ring-middlewares.html#var-multipart-params[`multipart-params`]
+api:multipart-params[ns=io.pedestal.http.ring-middlewares]
 function. Use the `:store` option to persist the parts.
 
 == The Method Parameter
@@ -181,10 +181,10 @@ If the magic query parameter `_method` is present, then its value will
 be used as the HTTP verb for this request.
 
 This substitution is handled by the default interceptor
-link:../api/io.pedestal.http.route.html#var-method-param[`method-param`]. It
+api:method-param[ns=io.pedestal.http.route]. It
 occurs before routing, so you can use the correct verbs in your
 routes.
 
 Application code can generate links with verb smuggling via the
 `:method-param` option to
-link:../api/io.pedestal.http.route.html#var-url-for-routes[`url-for-routes`].
+api:url-for-routes[ns=io.pedestal.http.route].

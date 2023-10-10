@@ -21,7 +21,7 @@ last interceptor to execute.
 
 Handler functions are wrapped into Interceptors when expanding
 routes. This happens because the
-link:../api/io.pedestal.interceptor.html#var-IntoInterceptor[`IntoInterceptor`]
+api:IntoInterceptor[ns=io.pedestal.interceptor]
 protocol is extended to functions. The handler function is wrapped
 into the interceptor's `:enter` function.
 

@@ -12,7 +12,7 @@ Interceptor chains can be used for a variety of operations, such as:
 A _chain provider_ is responsible for accepting an incoming stimuli (such as an incoming HTTP request)
 and setting up a xref:context-map.adoc[] and initial interceptors to process that stimuli.
 The service map is processed via the
-link:../api/io.pedestal.interceptor.chain.html#var-execute[`execute`] function.
+api:execute[ns=io.pedestal.interceptor.chain] function.
 
 Part of a chain provider's responsibility is to identify when a request has been processed; for
 HTTP requests, this is when a handler or some other interceptor attaches a `:response` map to the context map.

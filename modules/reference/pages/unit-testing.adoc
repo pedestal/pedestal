@@ -10,7 +10,7 @@ chain and end-to-end response generation levels.
 Interceptors can be tested in isolation by either directly invoking the
 `:enter`, `:leave` or `:error` functions with a mock context map in your test
 or by using the interceptor chain
-link:../api/io.pedestal.interceptor.chain.html#execute[`execute`]
+api:execute[ns=io.pedestal.interceptor.chain]
 function. Both approaches are demonstrated below.
 
 Given the following interceptor:
@@ -31,7 +31,7 @@ We can test it either directly:
   (is (= {:id 1 :title "foobar"} (:widget (test-fn {})))))
 ----
 
-Or using the interceptor chain link:../api/io.pedestal.interceptor.chain.html#execute[`execute`]
+Or using the interceptor chain api:execute[ns=io.pedestal.interceptor.chain]
 function:
 
 [source,clojure]
@@ -64,7 +64,7 @@ We can extend this approach to test coordination across multiple interceptors as
 The value in exercising the end-to-end operation of your service endpoints is
 that it provides quick feedback that you've wired things up correctly. Pedestal
 provides the test helper
-link:../api/io.pedestal.test.html#var-response-for[`response-for`]
+api:response-for[ns=io.pedestal.test]
 utility function to facilitate testing of services without having to spin up an
 http server.
 
@@ -129,7 +129,7 @@ this:
 POST'ing to a service endpoint can be tested by using the `:post` verb
 and specifying a request `:body`. The route under test typically
 includes the
-link:../api/io.pedestal.http.body-params.html#var-body-params[`body-params`]
+api:body-params[ns=io.pedestal.http.body-params]
 interceptor to support request payload parsing. Therefore, you will
 need to set the `Content-Type` header of the test request to the
 appropriate value based on the payload format of the request body.
@@ -154,7 +154,7 @@ Notice how `Content-Type` is a string.
 ==== Constructing route URLs
 
 Pedestal provides a utility,
-link:../api/io.pedestal.http.route.html#var-url-for-routes[url-for-routes].
+api:url-for-routes[ns=io.pedestal.http.route].
 This is passed the _expanded_ routes for your application, and returns a function that will generate
 a URL for a specific route; primarily by specifying the route name, but also other factors.
 

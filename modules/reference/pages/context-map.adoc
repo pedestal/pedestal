@@ -27,13 +27,18 @@ are considered an implementation detail subject to change at any time.
 
 | :io.pedestal.interceptor.chain/queue
 | Stack of interceptors
-| These are the interceptors left to execute. You can inspect this for debugging purposes, but to manipulate it you should call link:../api/io.pedestal.interceptor.chain.html#var-enqueue[`enqueue`], link:../api/io.pedestal.interceptor.chain.html#var-terminate[`terminate`], or link:../api/io.pedestal.interceptor.chain.html#var-terminate-when[`terminate-when`]. *Note*: This key is removed from the context map once an interceptor chain begins processing the `:leave` stage.
+| These are the interceptors left to execute. You can inspect this for debugging purposes, but to manipulate it you should call api:enqueue[ns=io.pedestal.interceptor.chain],
+api:terminate[ns=io.pedestal.interceptor.chain], or
+api:terminate-when[ns=io.pedestal.interceptor.chain].
 
 | :io.pedestal.interceptor.chain/terminators
 | Collection of predicates
 | After executing each `:enter` function, Pedestal checks every predicate in this collection, passing the context map to each one. If any of them returns true-ish, Pedestal begins executing the `:leave` stack.
 
 |===
+
+NOTE: The io.pedestal.interceptor.chain/queue key is removed from the context map once an interceptor chain begins processing the `:leave` stage.
+
 
 == :bindings
 
