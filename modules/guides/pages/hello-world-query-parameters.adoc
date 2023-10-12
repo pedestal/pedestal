@@ -290,7 +290,7 @@ Here's what we are left with.
 }
 ----
 
-This is a xref:reference:request-map.adoc[_request map_].
+This is a xref:reference:request-map.adoc[].
 It really is just a Clojure map.
 You access its values with `get` and `get-in`.
 For now, we'll look at three interesting keys.

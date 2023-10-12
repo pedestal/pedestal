@@ -1,4 +1,6 @@
 = Service Map
+:reftext: service map
+:navtitle: Service Map
 
 The service map is a blueprint that Pedestal uses to create all the necessary
 parts to begin processing requests: a service function, server function, chain provider, router, routes, and

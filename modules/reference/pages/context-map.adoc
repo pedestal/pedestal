@@ -1,4 +1,6 @@
 = Context Map
+:reftext: context map
+:navtitle: Context Map
 
 == Description
 

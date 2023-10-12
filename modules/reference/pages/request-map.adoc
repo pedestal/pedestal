@@ -1,4 +1,6 @@
 = Request Map
+:reftext: request map
+:navtitle: Request Map
 
 The request map is attached to the xref:context-map.adoc[]
 before the first interceptor is invoked. The request map describes the

@@ -4,3 +4,4 @@
 ** xref:developing-at-the-repl.adoc[]
 ** xref:hello-world.adoc[]
 ** xref:hello-world-query-parameters.adoc[]
+** xref:hello-world-content-types.adoc[]

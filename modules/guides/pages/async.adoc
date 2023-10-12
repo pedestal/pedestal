@@ -69,8 +69,9 @@ and returns the same, or a modified context map (perhaps containing a :response 
 And, for async processing, the interceptor can instead return a _channel_ that conveys the
 modified context map, _when it is ready_.
 
-NOTE: A core.async channel is somewhat akin to a promise ... it represents a computation that
-will occur eventually.
+NOTE: A core.async channel is somewhat akin to a
+link:https://en.wikipedia.org/wiki/Futures_and_promises[promise]... it represents a computation that
+will operate concurrently and complete at some point in the future.
 
 A core.async `go` block represents a deferred computation; a `go` block immediately returns
 a channel; when the body of the `go` block completes its execution, the result will be

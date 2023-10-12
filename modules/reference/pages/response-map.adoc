@@ -1,4 +1,6 @@
 = Response Map
+:reftext: response map
+:navtitle: Response Map
 
 The response map is attached to the xref:context-map.adoc by any
 interceptor in the interceptor chain. The response map describes the outgoing
