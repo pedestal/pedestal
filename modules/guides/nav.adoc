@@ -3,3 +3,4 @@
 ** xref:defining-routes.adoc[]
 ** xref:developing-at-the-repl.adoc[]
 ** xref:hello-world.adoc[]
+** xref:hello-world-query-parameters.adoc[]

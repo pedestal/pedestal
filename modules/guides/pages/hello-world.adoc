@@ -39,11 +39,8 @@ for installation instructions and details.
 
 == Getting Help If You're Stuck
 
-We'll take this in small steps. If you get stuck at any point in this
-guide, please submit an https://github.com/pedestal/docs/issues[issue]
-about this guide or hop over to the
-https://groups.google.com/forum/#!forum/pedestal-users[mailing list]
-and raise your hand there.
+include::partial$getting-help.adoc[]
+
 
 This guide shows fragments of code as we add them. Sometimes it helps
 to see the whole thing at once, so you can always check out
