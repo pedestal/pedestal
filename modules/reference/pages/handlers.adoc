@@ -23,7 +23,7 @@ Handler functions are wrapped into Interceptors when expanding
 routes. This happens because the
 api:IntoInterceptor[ns=io.pedestal.interceptor]
 protocol is extended to functions. The handler function is wrapped
-into the interceptor's `:enter` function.
+into the interceptor's :enter function.
 
 Handlers do not have access to the full execution context (the xref:context-map.adoc[context map]), so they
 cannot terminate execution or enqueue additional interceptors.

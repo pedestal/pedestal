@@ -3,4 +3,6 @@ label: Pedestal
 version: 0.7-pre
 nav:
   - modules/ROOT/nav.adoc
+  - modules/guides/nav.adoc
   - modules/reference/nav.adoc
+

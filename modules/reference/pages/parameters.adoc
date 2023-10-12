@@ -65,7 +65,7 @@ Clojure keywords, but definitely not an idiomatic usage. The keyword
 but the Clojure reader cannot parse a keyword literal with spaces in
 it.
 
-Query parameters are also merged into the `:params` map inside the
+Query parameters are also merged into the :params map inside the
 xref:request-map.adoc[].
 
 Query parameters are a feature of the
@@ -86,8 +86,8 @@ Path parameters are always named by a keyword, which is taken from the URL fragm
 |===
 | URL | Path param keys
 | `/users`                 | none
-| `/users/:id`             | `:id`
-| `/users/:id/posts/:post` | `:id`, `:post`
+| `/users/:id`             | :id
+| `/users/:id/posts/:post` | :id, :post
 |===
 
 In every case, the value of the parameter is a string, taken from the
@@ -117,15 +117,15 @@ function. Without any arguments, it returns an interceptor that parses
 according to the request's `Content-Type` header:
 
 |===
-| Content type | Parsed as | Coerce keys to keywords? | Bound to in request | Merged into `:params`
+| Content type | Parsed as | Coerce keys to keywords? | Bound to in request | Merged into :params
 
 | application/x-www-form-urlencoded
 | HTML form
 | Yes
 | :form-params footnote:[`:form-params` keys are automatically converted to keywords.]
-| Yes footnote:[Form parameter keys are not automatically converted to keywords when merged into the `:params` map.
+| Yes footnote:[Form parameter keys are not automatically converted to keywords when merged into the :params map.
                       Use the api:keywordize-params[ns=io.pedestal.http.params] interceptor
-                      to convert `:params` keys to keywords.]
+                      to convert :params keys to keywords.]
 
 | application/json
 | JSON
@@ -169,7 +169,7 @@ a multipart body with separate encoding for each.
 
 In this case, use an interceptor returned by the
 api:multipart-params[ns=io.pedestal.http.ring-middlewares]
-function. Use the `:store` option to persist the parts.
+function. Use the :store option to persist the parts.
 
 == The Method Parameter
 

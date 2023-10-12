@@ -40,7 +40,7 @@ After that, it will call the ready function with two arguments: a core.async
 == Ready Function
 
 The ready function may put events into the channel to send them to the
-client. Events are maps with keys `:name` and `:data`. Both take
+client. Events are maps with keys :name and :data. Both take
 string values.
 
 When the ready function has finished sending events, it should close

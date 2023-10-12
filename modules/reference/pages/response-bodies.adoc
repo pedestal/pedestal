@@ -6,7 +6,7 @@ protocols `WritableBody` and `WritableBodyAsync`. See
 xref:important-protocols.adoc[] for details about those.
 
 The exact handling of the response body depends on the Java or Clojure
-type of the value in the `:body` key of the xref:response-map.adoc[].
+type of the value in the :body key of the xref:response-map.adoc[].
 
 [cols="1,3,3,1"]
 |===

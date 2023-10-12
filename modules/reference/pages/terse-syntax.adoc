@@ -104,7 +104,7 @@ must be specified. The route name is a keyword which occurs in the first
 position of an interceptor vector in the verb map.
 
 Unlike the Table Route syntax, custom verbs do not need to be white listed.
-However, `:any` is a wildcard verb. During request routing, `:any` will match
+However, :any is a wildcard verb. During request routing, :any will match
 all requests.
 
 === Handler or Interceptors

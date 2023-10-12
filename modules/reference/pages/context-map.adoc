@@ -2,8 +2,8 @@
 
 == Description
 
-The _context map_ is passed to each interceptor's `:enter` and
-`:leave` functions, and is one of two arguments passed to an interceptor's `:error` function.
+The _context map_ is passed to each interceptor's :enter and
+:leave functions, and is one of two arguments passed to an interceptor's :error function.
 
 Pedestal makes use of a number of keys in the context map described below as part
 of its public API. Further keys may also be present and are officially undefined and
@@ -33,11 +33,11 @@ api:terminate-when[ns=io.pedestal.interceptor.chain].
 
 | :io.pedestal.interceptor.chain/terminators
 | Collection of predicates
-| After executing each `:enter` function, Pedestal checks every predicate in this collection, passing the context map to each one. If any of them returns true-ish, Pedestal begins executing the `:leave` stack.
+| After executing each :enter function, Pedestal checks every predicate in this collection, passing the context map to each one. If any of them returns true-ish, Pedestal begins executing the :leave stack.
 
 |===
 
-NOTE: The io.pedestal.interceptor.chain/queue key is removed from the context map once an interceptor chain begins processing the `:leave` stage.
+NOTE: The io.pedestal.interceptor.chain/queue key is removed from the context map once an interceptor chain begins processing the :leave stage.
 
 
 == :bindings
@@ -47,13 +47,13 @@ dynamic Vars; this is not possible with interceptors, as the interceptor functio
 the next interceptor is executed.
 
 Instead, an interceptor that needs to override or communicate a value via a dynamic binding will instead
-modify the `:bindings` key of the context.
+modify the :bindings key of the context.
 
-Any bindings associated this way will stay present until they are `dissoc`-ed from the `:bindings` map; a binding
-added by one interceptor during the `:enter` phase will still be present during the `:leave` phase.
+Any bindings associated this way will stay present until they are `dissoc`-ed from the :bindings map; a binding
+added by one interceptor during the :enter phase will still be present during the :leave phase.
 
-It is not uncommon for an interceptor to provide an `:enter` function to bind a var, and a
-corresponding `:leave` function to remove the binding:
+It is not uncommon for an interceptor to provide an :enter function to bind a var, and a
+corresponding :leave function to remove the binding:
 
 [source,clojure]
 ----
@@ -77,7 +77,7 @@ When used with Pedestal's HTTP handling, there are additional keys of
 interest.  The context map is created before the first interceptor is
 invoked. It describes the context of the interceptor execution
 itself. When the execution chain is connected to an HTTP server, the
-`:request` and `:response` keys have a special purpose.
+:request and :response keys have a special purpose.
 
 Pedestal does not attach metadata to the request map.
 

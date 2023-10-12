@@ -13,29 +13,29 @@ creating HTTP web services. Applications augment those with their own
 logic to handle.
 
 An interceptor is a pair of unary functions footnote:[An optional third function is used for error handling.]
-An interceptor must provide at least one of `:enter`, `:leave` and `:error`.
+An interceptor must provide at least one of :enter, :leave and :error.
 Each function is called with a xref:context-map.adoc and must return either a context
 map or a core.async channel that will deliver a context map; the latter case triggers
 link:../guides/async[asynchronous request processing].
 
-Pedestal calls the `:enter` function on the way "in" to handling a
-request. It calls the `:leave` function on the way back "out". This is
+Pedestal calls the :enter function on the way "in" to handling a
+request. It calls the :leave function on the way back "out". This is
 shown here for a single interceptor:
 
 image::guides:interceptors.png[]
 
-Either the `:enter` or `:leave` function may be omitted without harm.
+Either the :enter or :leave function may be omitted without harm.
 
 Logically speaking, interceptors form a queue.
-During the `:enter` phase, the next interceptor is popped off the queue,
-pushed onto the leave stack, and it's `:enter` function, if any, is executed.
+During the :enter phase, the next interceptor is popped off the queue,
+pushed onto the leave stack, and it's :enter function, if any, is executed.
 
-Once the handler (or other interceptor) adds a `:response` to the context,
-the chain logic switches to `:leave` mode: it pops interceptors off
-the leave stack and invokes the `:leave` function, if any.
+Once the handler (or other interceptor) adds a :response to the context,
+the chain logic switches to :leave mode: it pops interceptors off
+the leave stack and invokes the :leave function, if any.
 
-Because it's the leave _stack_ the `:leave` functions are invoked
-in the opposite order from the `:enter` functions.
+Because it's the leave _stack_ the :leave functions are invoked
+in the opposite order from the :enter functions.
 
 image::guides:interceptor-stack.png[]
 
@@ -45,8 +45,8 @@ the plan of execution for the rest of the request! Interceptors are
 allowed to enqueue more interceptors to be called, or they can
 terminate the request.
 
-This process, of running all the interceptor `:enter` functions, then running
-the interceptor `:leave` functions, is called _executing the interceptor chain_.
+This process, of running all the interceptor :enter functions, then running
+the interceptor :leave functions, is called _executing the interceptor chain_.
 
 This isn't implemented as a regular Clojure or Java call stack. That
 would not allow interceptors to return asynchronously. Pedestal
@@ -66,7 +66,7 @@ A basic interceptor is shown here.
 <1> An interceptor may optionally have a :name key, which is usually a namespace qualified keyword. This
 may be used in some debug logging during interceptor chain execution.
 
-This interceptor has only the `:enter` function. Interceptors
+This interceptor has only the :enter function. Interceptors
 executing after this one would be able to access the `::guid` key on the
 context map.
 
@@ -138,7 +138,7 @@ the database connection to every request:
 ----
 
 In addition to closing over the argument `uri`, we're using an
-anonymous function for the `:enter` function here.
+anonymous function for the :enter function here.
 
 == Context Bindings
 
@@ -146,7 +146,7 @@ Interceptors expect certain keys to be present in the context
 map. These _context bindings_ are part of the contract between
 provider and interceptors.
 
-The most common context key is `:request`, which holds the
+The most common context key is :request, which holds the
 https://github.com/ring-clojure/ring/blob/master/SPEC[Ring-specified request map].
 
 Further, an interceptor terminates the processing chain by attaching
@@ -157,7 +157,7 @@ a `:response map` (also specified by Ring) to the context.
 Interceptor functions must return values. Returning `nil` will cause
 an internal server error.
 
-An `:enter` or `:leave` function may return a context map directly. In
+An :enter or :leave function may return a context map directly. In
 this case, processing continues with the next interceptor.
 
 If the interceptor is expected to take a long time to return a result, it may
@@ -207,7 +207,7 @@ represents anything that can be used as an interceptor. Pedestal extends that pr
 | Type | Interpretation
 
 | Map
-| The `:enter`, `:leave`, and `:name` keys are used directly.
+| The :enter, :leave, and :name keys are used directly.
 
 | Function
 | The function is interpreted as a "handler". See below.
@@ -290,7 +290,7 @@ a response map.
 == Error Handling
 
 Pedestal supports defining interceptor-specific error handlers via the
-`:error` key. Refer to the xref:error-handling.adoc[] reference for more details.
+:error key. Refer to the xref:error-handling.adoc[] reference for more details.
 
 == Pedestal Interceptors
 

@@ -87,7 +87,7 @@ from another container on the same host) will be network, not localhost, connect
 | `::http/method-param-name`
 | N
 | Keyword
-| Query string parameter used to set the current HTTP verb. Default is `:_method`.
+| Query string parameter used to set the current HTTP verb. Default is :_method.
 
 | `::http/mime-types`
 | N
@@ -162,7 +162,7 @@ interceptor is added. The default is `nil`.
 The allowed values are:
 
 - a function of one argument that returns a truthy value when an origin is allowed;
-- a map containing the following keys and values `:allowed-origins` sequence of strings or a function, `:creds` boolean indicating whether the client is allowed to send credentials, `:max-age` a long indicating the number of seconds a client should cache the response, and :methods, indicating the accepted HTTP methods, defaulting to "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS";
+- a map containing the following keys and values `:allowed-origins` sequence of strings or a function, :creds boolean indicating whether the client is allowed to send credentials, `:max-age` a long indicating the number of seconds a client should cache the response, and :methods, indicating the accepted HTTP methods, defaulting to "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS";
 - a sequence of strings matching the the scheme, host and port (`scheme://host:port`) of allowed origins.
 
 == Cross-Site Request Forgery (CSRF)

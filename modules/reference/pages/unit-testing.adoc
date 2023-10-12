@@ -8,7 +8,7 @@ chain and end-to-end response generation levels.
 == Testing interceptors in isolation
 
 Interceptors can be tested in isolation by either directly invoking the
-`:enter`, `:leave` or `:error` functions with a mock context map in your test
+:enter, :leave or :error functions with a mock context map in your test
 or by using the interceptor chain
 api:execute[ns=io.pedestal.interceptor.chain]
 function. Both approaches are demonstrated below.
@@ -83,13 +83,13 @@ optional. Let us examine those parameters in more detail.
 The _service function_ refers to the `:io.pedestal.http/service-fn` key
 value in the service map during service initialization.
 
-The _verb_ is an HTTP method represented as a keyword (i.e., `:get`,
-`:post`, `:delete`, etc...).
+The _verb_ is an HTTP method represented as a keyword (i.e., :get,
+:post, :delete, etc...).
 
 The _url_ is a relative url represented as a string.
 
 The _headers_ and request _body_ inputs are optional and specified with the
-`:headers` and `:body` keys, respectively.
+:headers and :body keys, respectively.
 
 === Usage
 
@@ -113,8 +113,8 @@ within a test:
 (is (= "Hello!" (:body (response-for service :get "/hello"))))
 ----
 
-The response returned by `response-for` contains `:status`, `:body`
-and `:header` keys. The value of the `:headers` key is a map with
+The response returned by `response-for` contains :status, :body
+and :header keys. The value of the :headers key is a map with
 stringified keys. Testing header values would look something like
 this:
 
@@ -126,8 +126,8 @@ this:
 
 ==== Testing POST
 
-POST'ing to a service endpoint can be tested by using the `:post` verb
-and specifying a request `:body`. The route under test typically
+POST'ing to a service endpoint can be tested by using the :post verb
+and specifying a request :body. The route under test typically
 includes the
 api:body-params[ns=io.pedestal.http.body-params]
 interceptor to support request payload parsing. Therefore, you will

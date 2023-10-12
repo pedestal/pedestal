@@ -81,26 +81,26 @@ So, in Pedestal we want something as easily reused and composable as Ring middle
 the limitations of the stack-of-function-calls invocation model.
 That's interceptors.
 
-An interceptor is a bundle of up-to three functions, named `:enter`, `:leave`, and `:error`.
-`:enter` corresponds to the logic before delegating to the next interceptor; the request can be inspected or modified.
-Likewise, `:leave` corresponds to logic that occurs _after_ a response map has been created.
-The `:error` function is used when an interceptor throws an exception; it's the interceptor version of a `(try ... catch ...)`.
+An interceptor is a bundle of up-to three functions, named :enter, :leave, and :error.
+:enter corresponds to the logic before delegating to the next interceptor; the request can be inspected or modified.
+Likewise, :leave corresponds to logic that occurs _after_ a response map has been created.
+The :error function is used when an interceptor throws an exception; it's the interceptor version of a `(try ... catch ...)`.
 
-Now, there's a bit more going on.  First, these `:enter` and `:leave` functions are passed a _context_ map which
-contains a `:request` key.
-Any interceptor can modify the context map: some may modify the `:request` map inside the context, others may
-attach a `:response` map to the context.
+Now, there's a bit more going on.  First, these :enter and :leave functions are passed a _context_ map which
+contains a :request key.
+Any interceptor can modify the context map: some may modify the :request map inside the context, others may
+attach a :response map to the context.
 
 Inside the context is a queue of interceptors.
-Pedestal works its way through the queue, calling `:enter` functions, until some interceptor attaches a
-`:response` map to the context;
-then it works its way backwards, calling `:leave` functions.
+Pedestal works its way through the queue, calling :enter functions, until some interceptor attaches a
+:response map to the context;
+then it works its way backwards, calling :leave functions.
 
-In practice, an interceptor looks like a normal Clojure map with keys `:enter`, `:leave`, or `:error` (usually just `:enter` and/or `:leave`).
+In practice, an interceptor looks like a normal Clojure map with keys :enter, :leave, or :error (usually just :enter and/or :leave).
 So, unlike a deeply wrapped function, a chain of interceptors is a data structure that can be inspected by a developer, or manipulated in code.
 
 Importantly, any interceptor can _add_ new interceptors to the queue (because the interceptor queue itself is stored
-in the context, alongside the `:request` map).  Because of this,
+in the context, alongside the :request map).  Because of this,
 xref:routing-quick-reference.adoc[routing] boils down to an interceptor
 that peeks at the request and makes decisions about what additional interceptors to add to the queue.
 

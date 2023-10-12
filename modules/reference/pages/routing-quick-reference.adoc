@@ -85,7 +85,7 @@ The expanded routing table is a list of maps, each with the following structure:
 `:route-name` must be unique; typically it is a qualified keyword to ensure uniqueness.
 
 The keys `:path-re`, `:path-parts`, `:path-params`, and
-`:path-constraints` are derived from the `:path`.  This is part of what the
+`:path-constraints` are derived from the :path.  This is part of what the
 api:expand-routes[ns=io.pedestal.http.route] function is responsible for.
 
 Users will not generally write routes directly in verbose format.
@@ -103,7 +103,7 @@ When the argument to `expand-routes` is a *set*, it will be expanded using the t
 In table syntax, each route is a vector of:
 
 1. Path string
-2. Verb. One of `:any`, `:get`, `:put`, `:post`, `:delete`, `:patch`, `:options`, or `:head`
+2. Verb. One of :any, :get, :put, :post, :delete, :patch, :options, or :head
 3. A single handler, or a vector of interceptors
 4. Optional route name clause
 5. Optional constraint clause
@@ -114,7 +114,7 @@ In table syntax, each route is a vector of:
   ["/user/:id/*blah"  :post  [...] :route-name :new-user :constraints {:id #"[0-9]+"}]
 ----
 
-The `:host`, `:port`, `:app-name`, and `:scheme` are provided in a map that applies to all routes in the list.
+The :host, :port, `:app-name`, and :scheme are provided in a map that applies to all routes in the list.
 
 [source,clojure]
 .example.clj
@@ -142,7 +142,7 @@ to wrap the entire route specification (here, the outer set) with a back-tick.
 
 Every route must have a unique name, but it may be possible to omit it.
 
-A default route name will come from the `:name` of the last interceptor in the chain.
+A default route name will come from the :name of the last interceptor in the chain.
 
 Alternately, if a handler function is provided, or the last interceptor is a qualified symbol
 to a function, the route name will be derived from the function.
@@ -245,8 +245,8 @@ defines four routes.
 ----
 
 Interceptors and constraints apply to every route in the verb map. In
-this example `load-order-from-db` and the numeric constraint `:id`
-apply to both the `:get` and `:put` routes for the path "/order/:id".
+this example `load-order-from-db` and the numeric constraint :id
+apply to both the :get and :put routes for the path "/order/:id".
 
 [source,clojure]
 .example.clj
@@ -343,4 +343,4 @@ During request execution, on a successful routing, the following keys are added 
 
 |===
 
-On failure, when the router does not match any route, the context key `:route` is set to nil.
+On failure, when the router does not match any route, the context key :route is set to nil.

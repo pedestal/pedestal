@@ -1,2 +1,1 @@
-* Pedestal
-** xref:index.adoc[Introduction]
+* xref:index.adoc[]

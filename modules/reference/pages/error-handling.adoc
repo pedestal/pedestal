@@ -18,8 +18,8 @@ which is then bound to the `:io.pedestal.interceptor.chain/error` key
 in the xref:context-map.adoc[context map].
 
 As long as there is an error attached to that key, Pedestal will not
-invoke the usual `:enter` and `:leave` functions. Instead, it looks
-for the next interceptor in the chain that has an `:error` function
+invoke the usual :enter and :leave functions. Instead, it looks
+for the next interceptor in the chain that has an :error function
 attached to it.
 
 This error handling proceeds the same way regardless of whether
@@ -30,11 +30,11 @@ Values] for details on async return.) As a result, Pedestal unifies
 error handling for synchronous interceptors and asynchronous
 interceptors.
 
-You can supply your own `:error` handling interceptor anywhere in the interceptor queue.
+You can supply your own :error handling interceptor anywhere in the interceptor queue.
 
 == Error Function
 
-Pedestal will call the function bound to `:error` on an interceptor with two arguments:
+Pedestal will call the function bound to :error on an interceptor with two arguments:
 
 - The xref:context-map.adoc[context map]
 - An `ExceptionInfo` instance
@@ -49,32 +49,32 @@ defined in its exception data map:
 | long
 | Unique value that identifies one "run" through the interceptors.
 
-| `:stage`
+| :stage
 | Keyword
-| Either `:enter` or `:leave` depending on which direction the
+| Either :enter or :leave depending on which direction the
   execution was going.
 
-| `:interceptor`
+| :interceptor
 | Keyword
-| The `:name` from the interceptor that threw the exception
+| The :name from the interceptor that threw the exception
 
 | `:exception-type`
 | Keyword
 | Keywordized form of the exception's Java class name
 
-| `:exception`
+| :exception
 | Throwable
 | The caught exception.
 
 |===
 
 The context map does _not_ contain the
-`:io.pedestal.interceptor.chain/error` key. The `:error` function can do
+`:io.pedestal.interceptor.chain/error` key. The :error function can do
 one of the following things:
 
 1. Return the context map. This is "catching" the error. Because the
 context map has no error bound to it, Pedestal will exit error
-handling and execute any remaining `:leave` handlers.
+handling and execute any remaining :leave handlers.
 2. Return the context map with the exception re-attached at
 `:io.pedestal.interceptor.chain/error`. This indicates that the
 handler doesn't recognize that exception and declines to handle
@@ -87,8 +87,8 @@ In that last case, Pedestal keeps track of the exceptions that were
 overridden. These are in a seq bound to
 `:io.pedestal.interceptor.chain/suppressed` in the context map.
 
-Most commonly, the interceptor will return the context map with a `:response`
-map; this will trigger normal response processing by invoking any remaining interceptors' `:leave` functions.
+Most commonly, the interceptor will return the context map with a :response
+map; this will trigger normal response processing by invoking any remaining interceptors' :leave functions.
 
 == Error Dispatch Interceptor
 
@@ -126,7 +126,7 @@ Here is an example from the test suite:
 <1> This macro returns code that evaluates to an interceptor. Binding it to a var is the normal use.
 <2> This is a pattern match that looks for an `ArithmeticException`, but only thrown by a particular interceptor. If the pattern matches, this expression gets evaluated. The error is handled and a response attached.
 <3> Another pattern match expression, matching any `ArithmeticException` s that weren't matched before. We return a different response body in these cases.
-<4> `:else` always matches because it is a truthy value. Reattaching the error tells Pedestal to keep looking for a handler.
+<4> :else always matches because it is a truthy value. Reattaching the error tells Pedestal to keep looking for a handler.
 <5> We use the resulting interceptor like any other.
 
 Pattern matching is a concise way to express conditions for handling an error.

@@ -1,0 +1,4 @@
+{:deps                                                ;; <1>
+ {io.pedestal/pedestal.jetty   {:mvn/version "0.6.1"}
+  org.slf4j/slf4j-simple       {:mvn/version "1.7.28"}}
+ :paths ["src"]}                                      ;; <2>

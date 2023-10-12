@@ -45,7 +45,7 @@ instance. Expected to return the Server instance. Use when advanced customizatio
 
 | :h2c?
 | Boolean
-| HTTP/2 cleartext support. Allows upgrading connections from HTTP/1.1 to the Http/2 protocol. Defaults to `true`. When `true`, `:port` must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
+| HTTP/2 cleartext support. Allows upgrading connections from HTTP/1.1 to the Http/2 protocol. Defaults to `true`. When `true`, :port must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
 
 | :h2?
 | Boolean
@@ -61,7 +61,7 @@ the SSL connection.
 | :ssl-context-factory
 | An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
 | The `SSLContextFactory` instance to use when creating the server. If
-specified, `:key-password`, `:keystore`, `:truststore`,
+specified, `:key-password`, :keystore, :truststore,
 `:trust-password`, `:security-provider`, `:client-auth` are ignored.
 
 | :keystore
@@ -83,7 +83,7 @@ specified, `:key-password`, `:keystore`, `:truststore`,
 | :client-auth
 | String
 | SSL client certificate authenticate, may be set to :need,
-`:want` or `:none`. Defaults to `:none`.
+:want or :none. Defaults to :none.
 
 | :security-provider
 | String

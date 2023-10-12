@@ -15,7 +15,7 @@ invokes interceptors when an HTTP request arrives.
 The servlet interceptor performs the following tasks:
 
    1. Sets up the xref:context-map.adoc[] and xref:request-map.adoc[]
-   2. Executes the interceptor queue (`:enter`, then `:leave`)
+   2. Executes the interceptor queue (:enter, then :leave)
    3. Catches any exceptions that aren't handled by xref:error-handling.adoc[] within the interceptors
    4. Writes the final response, using the xref:response-map.adoc[]
 
@@ -39,30 +39,30 @@ may have unintended consequences.
 
 The queue contains the interceptors to be executed next. The first
 item in the queue will be the next interceptor considered.
-When an interceptor's `:enter` function is executed, it is removed from the queue and added to the stack.
+When an interceptor's :enter function is executed, it is removed from the queue and added to the stack.
 
-The stack contains the previously executed interceptors that need their `:leave` functions
+The stack contains the previously executed interceptors that need their :leave functions
 called. The top of the stack will be considered first.
 
 ## Early Termination
 
-Before invoking the `:enter` functions, the servlet interceptor sets
+Before invoking the :enter functions, the servlet interceptor sets
 up a _terminator_ predicate on the context.
 This predicate is passed the context map and returns a truthy value
-if execution should transition from `:enter` to `:leave`.
+if execution should transition from :enter to :leave.
 
-The default predicate checks to see if the `:response` context key is present and, if so, is
-a valid Ring response map; that is, does it have a `:status` key of type integer, and a `:headers` key
+The default predicate checks to see if the :response context key is present and, if so, is
+a valid Ring response map; that is, does it have a :status key of type integer, and a :headers key
 containing a map?
 
 The end result is that in some cases, interceptors (including handlers) will not get executed for
 a particular request.  For example, an application that has a concept of authentication
-may include an interceptor that checks for valid credentials in the request, and adds a `:response` map
+may include an interceptor that checks for valid credentials in the request, and adds a :response map
 to the context when the credentials are missing or invalid. That will cause the response to immediately
 be sent to the client, bypassing any later interceptors.
 
 In addition, it is possible to have more than one termination predicate; if any predicate returns
-a truthy value, then the `:enter` execution will terminate.
+a truthy value, then the :enter execution will terminate.
 New predicates can be appended using
 api:terminate-when[ns=io.pedestal.interceptor.chain].
 
@@ -70,12 +70,12 @@ api:terminate-when[ns=io.pedestal.interceptor.chain].
 
 In very rare cases, different interceptors may provide different parts of response.
 Ultimately, the response must be a valid Ring response, but different interceptors may
-provide different parts of the response (the `:body` or certain values in the `:headers` map).
+provide different parts of the response (the :body or certain values in the :headers map).
 
 If your application requires this, be very careful about early termination.
 
-   1. Put the initial value into the response map in the last `:enter`
-   function, then use the `:leave` functions to refine that value.
+   1. Put the initial value into the response map in the last :enter
+   function, then use the :leave functions to refine that value.
    2. Put the initial value into the context under a different key and
-   refine that value in either `:enter` or `:leave` functions. When
-   the response is complete, transfer the response map to the `:response` key.
+   refine that value in either :enter or :leave functions. When
+   the response is complete, transfer the response map to the :response key.

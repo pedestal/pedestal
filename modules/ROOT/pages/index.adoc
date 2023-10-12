@@ -1,3 +1,9 @@
-= Pedestal
+= Overview
 
 This is the start of the revised, Antora-based, documentation tree.
+
+TODO: Capture the core design considerations here:
+
+* Data first
+* Open to extensions
+* Built from re-usable pieces

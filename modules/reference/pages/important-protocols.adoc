@@ -72,7 +72,7 @@ process of turning a routing specification into a routing interceptor.
 
 Whatever is returned from the
 api:router-spec[ns=io.pedestal.http.route]
-function of the protocol must be an interceptor. The returned interceptor will include an `:enter` function that
+function of the protocol must be an interceptor. The returned interceptor will include an :enter function that
 must accept a xref:context-map.adoc[] and enqueue
 xref:interceptors.adoc[interceptors] based on whatever criteria it chooses.
 
@@ -105,7 +105,7 @@ These protocols only apply when using the xref:servlet-interceptor.adoc[].
 
 === api:WritableBody[ns=io.pedestal.http.impl.servlet-interceptor]
 
-This protocol applies to anything that can be in the `:body` key of a
+This protocol applies to anything that can be in the :body key of a
 xref:response-map.adoc[].
 The two functions in the protocol tell Pedestal what content type the body implies, and how to serialize
 the body to an output stream.
@@ -118,7 +118,7 @@ than `java.io.OutputStream`.
 === api:WritableBodyAsync[ns=io.pedestal.http.impl.servlet-interceptor]
 
 This protocol is a more specific version of `WritableBody`. If the
-value in the `:body` key of a xref:response-map.adoc[]
+value in the :body key of a xref:response-map.adoc[]
 satisfies `WritableBodyAsync`, then Pedestal treats it as a streaming
 result. See xref:streaming.adoc[] for full details.
 

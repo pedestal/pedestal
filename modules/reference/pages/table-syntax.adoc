@@ -96,8 +96,8 @@ increase the complexity of handler logic.
 
 By default, The verb must be one of the keywords in `#{:any, :get, :put, :post,
 :delete, :patch, :options, :head}`. However, you can override the verbs by
-including an options map with the keyword `:verb` in your route definition. The
-value of `:verb` is the `set` of verb keywords you wish to support. It is
+including an options map with the keyword :verb in your route definition. The
+value of :verb is the `set` of verb keywords you wish to support. It is
 through this facility that you can specify custom verbs.
 
 ==== Syntax for specifying verbs
@@ -110,7 +110,7 @@ through this facility that you can specify custom verbs.
               ["/" :version (conj common-interceptors `version)]})
 ----
 
-NOTE: `:any` is a wildcard verb. During request routing, `:any` will match
+NOTE: :any is a wildcard verb. During request routing, :any will match
 all requests.
 
 === Handler or Interceptors
@@ -129,4 +129,4 @@ A route name clause is the keyword `:route-name` followed by a keyword. Route na
 
 === Constraint Clause
 
-A constraint clause is the keyword `:constraints` followed by a map.
+A constraint clause is the keyword :constraints followed by a map.
