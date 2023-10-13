@@ -1,0 +1,273 @@
+= Reloading at the REPL
+
+As Clojure developers, we prefer to link:developing-at-the-repl[live at the REPL], loading and reloading code
+into the REPL for a lightning fast feedback loop.
+
+It's common to reload a namespace, and use the REPL (possibly via IDE support) to re-evaluate expressions in our
+code and see the immediate change. This is true for Pedestal apps as well ... we _should_ be able to make changes
+and see the effects of those changes immediately.
+But as we'll see, in practice, accomplishing that takes a little extra structure.
+
+We're going to show examples of the live reloading failures, then show simple solutions.
+
+== Starting Point
+
+Let's start with yet another basic, "Hello World" application.
+
+[source,clojure]
+----
+(ns org.example.hello
+  (:require [io.pedestal.http :as http]))
+
+(defn hello-handler [_request] <1>
+  {:status 200
+   :body "Hello, World!"})
+
+(def routes
+  #{["/hello" :get hello-handler :route-name ::hello]}) <2>
+
+(defn start []
+  (-> {::http/port 9999
+       ::http/routes routes
+       ::http/type :jetty
+       ::http/join? false} <3>
+      http/create-server
+      http/start))
+
+(defonce server (atom nil)) <4>
+----
+<1> The request map isn't used here, so we follow the convention of adding a leading underscore; this may also prevent
+    warnings in your IDE.
+<2> Every route must have a unique `:route-name` and since we are providing a function, `hello-handler`, it must
+    be explicitly specified.
+<3> Normally, the call to `io.pedestal.http/start` doesn't return (until something else shuts down the server); adding
+    `::http/join? false` is necessary for REPL-oriented development.
+<4> To survive reloading of this namespace, the running server is stored in an Atom.
+
+With that in place, evaluate `(reset! server (start))`; this will create the server and start it, storing the running system map
+back into the `server` atom.
+
+You can now use your favorite HTTP client (such as
+link:https://httpie.io/cli[HTTPIe]) to access the `/hello` route:
+
+[source,bash]
+----
+> http :9999/hello
+HTTP/1.1 200 OK
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: text/plain
+Date: Fri, 18 Nov 2022 23:41:49 GMT
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+Transfer-Encoding: chunked
+X-Content-Type-Options: nosniff
+X-Download-Options: noopen
+X-Frame-Options: DENY
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 1; mode=block
+
+Hello, World!
+
+----
+
+So far, so good.  You can also see that Pedestal's default set of interceptors has added a number of security-related
+headers to the response.
+
+Now we're ready to make a change.  Let's change the response body to be `Hello, Clojure World!`.
+We can change the `hello-handler` function, reload the namespace, and:
+
+[source,bash]]
+----
+> http -pb :9999/hello <1>
+Hello, World!
+----
+<1> The `-pb` option prints just the response body, omitting the response headers.
+
+That's strange.  It's as if the code change wasn't picked up.  We can verify that the code
+change is, in fact, live by evaluating `(hello-handler nil)` at the REPL:
+
+[source.clojure]
+----
+(hello-handler nil)
+=> {:status 200, :body "Hello, Clojure World!"}
+----
+
+What's happened here is that the value of the `org.example.hello/hello-handler` Var has changed; it now holds a new
+Clojure function, one that says "Hello, Clojure World!".  However, the `routes` and `start` functions _captured_ the value of `hello-handler` at the time
+they executed.
+
+We could say *ugh, fine* and just adapt to a cycle where you reload your REPL code and then restart the server object, but
+that's slow and error-prone.
+We want a fast feedback cycle where that is not necessary, and that goal is _entirely_ achievable.
+
+The first step is to stop the service by evaluating `(swap! server http/stop)`.
+
+Next, change the `routes` function:
+
+[source.clojure]
+----
+
+(def routes
+  #{["/hello" :get `hello-handler]})
+----
+
+Notice that backtick character before `hello-handler`.  That's Clojure's _syntax quote_; like a single quote,
+it keeps `hello-handler` from being evaluated, but unlike single quote, the symbol is namespace qualified.  It's the
+equivalent of `'org.example.hello/hello-handler`.
+
+To understand what's going on here, we must consider a key stage in Pedestal: _route expansion_.
+Route expansion is a step during service startup where the provided routes are converted
+from one of a number of specifications (such as the table format used here) into an executable format.
+Part of expansion is a rule that says that a handler that's a symbol is replaced with the evaluation of that symbol.
+That's when `org.example.hello/hello-handler` is converted from a symbol to function.
+
+Notice that we also no longer have to specify a `:route-name`; with a handler symbol, a default route name is generated
+that's a keyword version of the symbol.
+
+Now, change the function to return `"Hello, Programming World!"`, reload the namespace, and get the `/hello` URL again:
+
+[source,bash]
+----
+> http -pb :9999/hello
+Hello, Clojure World!
+----
+
+What gives?  Where's our reloading?
+
+Because of the back-ticked symbol, the evaluation of `hello-handler` occurred later than in the original  code,
+not inside the `routes` definition, but somewhere inside the call to
+api:create-server[]
+... but that evaluation and expansion still only happens once, and so there's still a capture.
+
+We need the route to always reflect the live version of the `hello-handler` function, and that means we have
+to avoid capture, not just of the `hello-handler` function, but of the entire route specification.
+
+== Deferred Route Function
+
+Fortunately, Pedestal supports this use case - a route is normally a data structure, but it can also be a zero-arguments function
+that returns an _expanded_ route.
+
+Stop the service and make these changes:
+
+[source.clojure]
+----
+(ns org.example.hello
+  (:require [io.pedestal.http :as http]
+            [io.pedestal.http.route :as route])) <1>
+
+(defn hello-handler
+  [_request]
+  {:status 200
+   :body "Hello, Clojure World!"}) <2>
+
+(def routes
+  #{["/hello" :get `hello-handler]})
+
+(defn start
+  []
+  (-> {::http/port 9999
+       ::http/routes #(route/expand-routes routes) <3>
+       ::http/type :jetty
+       ::http/join? false}
+      http/create-server
+      http/start))
+----
+<1> We need this additional namespace, `route`.
+<2> Change the message back.
+<3> This new route function returns the expanded routes.
+
+Reload and restart the server, and check that we are getting the original behavior:
+
+```
+> http -pb :9999/hello
+Hello, Clojure World!
+
+```
+
+Now, change the message to `Hello, JVM World!`, reload the namespace, then reload the URL:
+
+```
+> http -pb :9999/hello
+Hello, JVM World!
+
+```
+
+*Success!* The route function is being evaluated *on every incoming request*.
+
+[WARNING]
+.*Not For Production*
+--
+Using a function, as we do here, is *absolutely not for production*.  Even a trivial route takes a chunk of time
+to expand, so doing it on every single request will absolutely trash your production server's throughput.
+--
+
+Still, we're not quite done.  Let's say we want to be less formal, and respond on the path `/hi` instead of `/hello`.
+We can change the routes:
+
+```
+(def routes
+  #{["/hi" :get `hello-handler]})
+```
+
+But this doesn't yet work:
+
+```
+> http :9999/hi
+HTTP/1.1 404 Not Found
+Content-Type: text/plain
+Date: Sat, 19 Nov 2022 00:28:29 GMT
+Transfer-Encoding: chunked
+
+Not Found
+
+```
+
+There's still one more capture: the anonymous function is capturing the value of the `routes` set.
+The anonymous function has a lifecycle that starts when the `start` function is executed, and the
+`routes` set's value is captured at that point in time.
+In order for route changes to load, we have to ensure that the anonymous route function
+always returns the current value of `routes`.
+
+== Delaying Route Evaluation
+
+Change the route back to `/hello` and modify the `start` function:
+
+```
+(defn start
+  []
+  (-> {::http/port 9999
+       ::http/routes #(route/expand-routes (deref (var routes)))
+       ::http/type :jetty
+       ::http/join? false}
+      http/create-server
+      http/start))
+```
+
+Stop and restart the server, and verify that `/hello` still works.
+
+Now, update the route back to `/hi`, reload the namespace, and check:
+
+```
+> http -pb :9999/hi
+Hello, JVM World!
+
+```
+
+Done!  You can now add, remove, or otherwise change your routes, update interceptors, add constraints ...
+wherever your development takes you, and those changes will be re-evaluated and re-loaded on each request.
+
+[NOTE]
+.*How does this work?*
+--
+The `(var routes)` captures the Var named `routes` (rather than the value stored inside the Var), and the `deref` pulls
+the current route specification out of the Var, This happens on every invocation of the
+function - on every request.  If you like, you can abbreviate `(deref (var routes))` to `@#'routes`.
+--
+
+## Wrap Up
+
+Running code with a long-lived and stateful service creates its own challenges when coding live at the REPL;
+in this guide we've explained how capturing interferes with live reloading, and provided the necessary steps
+to keep your REPL flowing as you develop your application.
+
+Just remember ... you want to make sure your production application doesn't use these reloading techniques if you want
+to meet your SLAs (service level agreements)!

@@ -20,10 +20,10 @@ type of the value in the :body key of the xref:response-map.adoc[].
 | InputStream        | application/octet-stream | bytes of the input stream copied to the output stream | no
 | ReadableByteChannel (NIO) | application/octet-stream | bytes of the channel copied to the output stream | yes
 | ByteBuffer (NIO) | application/octet-stream | bytes of the buffer copied to the output stream | yes
-| core.async channel | nil | see below | yes
+| {core_async} channel | nil | see below | yes
 |===
 
 When a core.async channel delivers a message, that message is written
 to the stream, using any of the synchronous dispatches above. The
-message from the channel must not be another channel. That's like
-wishing for more wishes.
+message from the channel must not be another channel, it must be a value that
+can be immediately acted upon.

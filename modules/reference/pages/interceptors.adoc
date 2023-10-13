@@ -15,7 +15,7 @@ logic to handle.
 An interceptor is a pair of unary functions footnote:[An optional third function is used for error handling.]
 An interceptor must provide at least one of :enter, :leave and :error.
 Each function is called with a xref:context-map.adoc and must return either a context
-map or a core.async channel that will deliver a context map; the latter case triggers
+map or a {core_async} channel that will deliver a context map; the latter case triggers
 link:../guides/async[asynchronous request processing].
 
 Pedestal calls the :enter function on the way "in" to handling a
@@ -161,7 +161,7 @@ An :enter or :leave function may return a context map directly. In
 this case, processing continues with the next interceptor.
 
 If the interceptor is expected to take a long time to return a result, it may
-instead return a core.async channel. Pedestal will yield the request processing thread and
+instead return a {core_async} channel. Pedestal will yield the request processing thread and
 wait for a value to be produced.
 
 Only one value will be consumed from the returned channel, and the value must be a context map.
@@ -184,7 +184,8 @@ expect an asynchronous response.
 [IMPORTANT]
 .*Chaining With Async Interceptors*
 --
-Any interceptor downstream of an asynchronous interceptor will be executed in the `core.async` thread pool.
+Any interceptor downstream of an asynchronous interceptor will be executed in the
+{core_async} dispatch thread pool.
 This can be problematic if any later interceptor or handler performs any blocking I/O, as the thread pool is a fixed
 size. Generally speaking, if any interceptor is asynchronous, all following non-trivial interceptors should also be asynchronous.
 

@@ -1,8 +1,12 @@
 name: pedestal
-label: Pedestal
+title: Pedestal
 version: 0.7-pre
 nav:
   - modules/ROOT/nav.adoc
   - modules/guides/nav.adoc
   - modules/reference/nav.adoc
+  - modules/ROOT/nav-tail.adoc
 
+asciidoc:
+  attributes:
+    core_async: "link:https://github.com/clojure/core.async/[Clojure core.async]"

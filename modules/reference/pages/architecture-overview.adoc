@@ -32,8 +32,10 @@ application we want to support:
 - Traditional server-rendered pages
 - An API supporting a SPA (Single Page Application)
 - Streaming events
+- Bi-directional WebSockets
+- A mix of all of the above
 
-Importantly, supporting streaming events and web sockets are explicitly asynchronous.
+Importantly, supporting streaming events and WebSockets are explicitly asynchronous.
 
 Addressing all of these requirements led us to an architecture that is based on
 _interceptors_, the context map, and an adaptor to the HTTP network connector (for the underlying
@@ -116,7 +118,7 @@ Application logic is also implemented as interceptors, though there's some simpl
 these as Ring-style handlers, if you like.
 
 But Pedestal has one more big trick up its sleeve: any interceptor may, instead of returning a context map,
-instead return a https://github.com/clojure/core.async[core.async] channel that conveys the context map at some point
+instead return a {core_async} channel that conveys the context map at some point
 in the future; this is what allows for asynchronous request processing.
 
 Further details are in the xref:interceptors.adoc[interceptors reference].

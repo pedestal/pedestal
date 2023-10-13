@@ -34,7 +34,7 @@ When a request reaches the SSE interceptor, it will:
 - Send HTTP response headers to tell the client that an event stream is starting
 - Initiate a timed heartbeat to keep the connection alive
 
-After that, it will call the ready function with two arguments: a core.async
+After that, it will call the ready function with two arguments: a {core_async}
   channel for the events and the current interceptor context.
 
 == Ready Function

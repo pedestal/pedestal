@@ -44,7 +44,7 @@ It is entirely a function of the type of the body of the xref:response-map.adoc[
 | Yes
 | Yes
 
-| Core.async channel
+| {core_async} channel
 | Yes
 | Yes
 
@@ -66,7 +66,7 @@ The function should close the stream when it is done.
 The function's return value is ignored.
 
 The function may run as long as it needs. This will occupy a thread,
-so consider using a core.async `go` or `thread` block.
+so consider using a {core_async} `go` or `thread` block.
 
 == Using a Collection as the Response
 
@@ -79,7 +79,7 @@ be fully realized.
 Rendering collections is subject to `\*print-length*`, `\*print-level*`,
 and all other variables that affect `clojure.core/pr`.
 
-== Using a Core.async Channel as the Response
+== Using a {core_async} Channel as the Response
 
 When the response body is a channel, every message read from the
 channel will be sent to the client as it is produced.

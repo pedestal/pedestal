@@ -1,0 +1,36 @@
+# Documentation Work Queue
+
+Moving from jBake to Antora has been an opportunity to go over each individual page of documentation, and each example.
+
+[IMPORTANT]
+Incorrect documentation is worse than no documentation.
+
+Not everything can be done in a single pass, so this space is being used to track
+work that still needs to be done.
+
+## General
+
+- Make the reference docs more concise; hand holding is for the guides
+- Dial back the "if you don't know Clojure" parts of some guides
+- Add an intro with all the key terms
+- Put the Guides and Reference into a reasonable order
+- Make better use of xref: linking between pages
+
+## Antora Technical Stuff
+
+- Maybe add another macro for linking to Clojure documentation, much like the api: macro
+- Create a custom UI theme
+- Add a configurable attribute for the documentation root URL (for api: macro)
+
+## xref:index.adoc[]
+
+- Currently just a placeholder
+- Philosophy of Pedestal
+- Key terms and concepts quickly
+- Overview of the documentation
+
+## xref:reference:server-sent-events.adoc[]
+
+- Discuss options
+- Map vs. string events
+

@@ -39,7 +39,7 @@ With asynchronous request processing, a request can be unbound from a specific r
 While some background work is happening (the disk or network I/O), the request processing thread can be used for some entirely
 different request. When the background work completes, the processing of the request resumes from where it left off.
 
-The support for all of this is based on Clojure's https://github.com/clojure/core.async[core.async] library.
+The support for all of this is based on Clojure's {core_async} library.
 
 
 [source,clojure]
@@ -66,10 +66,10 @@ By contrast, an interceptor is more involved; an interceptor is passed a
 xref:reference:context-map.adoc[] (that itself contains a :request map),
 and returns the same, or a modified context map (perhaps containing a :response map).
 
-And, for async processing, the interceptor can instead return a _channel_ that conveys the
+And, for async processing, the interceptor can instead return a {core_async} _channel_ that conveys the
 modified context map, _when it is ready_.
 
-NOTE: A core.async channel is somewhat akin to a
+NOTE: A channel is somewhat akin to a
 link:https://en.wikipedia.org/wiki/Futures_and_promises[promise]... it represents a computation that
 will operate concurrently and complete at some point in the future.
 

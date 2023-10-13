@@ -124,4 +124,4 @@ result. See xref:streaming.adoc[] for full details.
 
 It would be rare for an application to extend this protocol. Most of
 the time, an application would be better off providing an NIO channel
-or a core.async channel in the response body.
+or a {core_async} channel in the response body.

@@ -5,3 +5,5 @@
 ** xref:hello-world.adoc[]
 ** xref:hello-world-query-parameters.adoc[]
 ** xref:hello-world-content-types.adoc[]
+** xref:live-repl.adoc[]
+** xref:sse.adoc[]

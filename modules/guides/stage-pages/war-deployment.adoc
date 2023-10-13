@@ -1,0 +1,159 @@
+= WAR Deployment
+Paul deGrandis
+2014-01-30
+:jbake-type: page
+:toc: macro
+:icons: font
+:section: guides
+
+toc::[]
+
+_by {author}_, _{revdate}_
+
+Java web applications are commonly deployed to *web containers*, also
+called Servlet containers or application servers. Web containers
+manage the runtime environment and lifecycle of an application.
+Popular web containers include http://www.eclipse.org/jetty/[Jetty],
+http://tomcat.apache.org/[Tomcat], and
+http://www.jboss.org/[JBoss].
+Some hosting services such as http://aws.amazon.com/elasticbeanstalk/[AWS Elastic Beanstalk] also function as web
+containers.
+
+To deploy an application to a web container, you must package it as a
+http://docs.oracle.com/javaee/6/tutorial/doc/bnaby.html[Web Archive]
+(WAR) file. A WAR file is just a Java [JAR] file with
+a particular internal layout and a `.war` extension.
+
+## Step One: Prepare Your Project
+
+When running your application locally link:live-repl[at the REPL], you will want to
+have your choice of servlet container running inside your JVM, and so the
+servlet container, and the Pedestal adaptor for the container, will be a dependency
+of your project.
+
+In this mode, you are running the servlet container ~embedded~ within your application; you application
+starts and, as part of that, starts the servlet container.
+
+For example, if you are using Jetty, then you'll want the `io.pedestal/pedestal.jetty` library.
+
+This is a perfectly fine way to run your applications in production, but since you are reading
+this page, you are interested in deploying as a WAR instead, and the rules are slightly different.
+
+By contrast, a WAR file should **not** contain dependencies on the servlet container.
+At runtime, the servlet container starts up, then creates a new class loader to load your WAR.
+Having the servlet container's classes present in the WAR will create deployment conflicts.
+
+A WAR file contains all the dependencies of your application, but it
+should **not** contain any dependencies which would conflict with the
+web container itself.
+
+You should ensure that your application only depends on the `io.pedestal/pedestal.service`
+library; the dependency on a container (such as `pedestal.jetty`) should be in a dev-only or test-only path.
+
+## Step Two: Configure Your Servlets
+
+A WAR file must contain a special file called `web.xml` which tells
+the web container how to configure the application.
+
+In the root directory of your project, create a file called `web.xml`
+like the following example:
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <web-app xmlns="http://java.sun.com/xml/ns/javaee"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+             version="3.0"
+             metadata-complete="true">
+      <description>Pedestal HTTP Servlet</description>
+      <display-name>Pedestal HTTP Servlet</display-name>
+      <servlet>
+        <servlet-name>PedestalServlet</servlet-name>
+        <servlet-class>io.pedestal.servlet.ClojureVarServlet</servlet-class>
+        <init-param>
+          <param-name>init</param-name>
+          <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-init</param-value>
+        </init-param>
+        <init-param>
+          <param-name>service</param-name>
+          <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-service</param-value>
+        </init-param>
+        <init-param>
+          <param-name>destroy</param-name>
+          <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-destroy</param-value>
+        </init-param>
+      </servlet>
+      <servlet-mapping>
+        <servlet-name>PedestalServlet</servlet-name>
+        <url-pattern>/*</url-pattern>
+      </servlet-mapping>
+    </web-app>
+
+Replace `YOUR_APP_SERVER_NAMESPACE` with the "server" namespace
+generated for your application by the Pedestal template. If your app
+is called "myapp" then this would be the namespace `myapp.server`.
+
+The template-generated source file at `src/myapp/server.clj` should contain
+functions named `servlet-init`, `servlet-destroy`, and
+`servlet-service`.
+
+**Note:** The `url-pattern` in the XML above must match the routes
+your Pedestal application is expected to handle **and** must match the
+conventions of your web container. For example, if you are deploying
+an application in the file `myapp.war`, a typical web container will
+expect it to have `<url-pattern>/myapp/*</url-pattern>`. Therefore, your
+application should have routes that begin with `/myapp/`.
+
+If your application will be deployed as the "root" web application in
+the container, then you should leave `<url-pattern>/*</url-pattern>` as
+shown in the example above. Consult the documentation of your web
+container for more details on Servlet mappings.
+
+## Step Three: Build the WAR (leinigen)
+
+NOTE: These instruction are out of date, surely there are Leiningen plugins to do this all?
+
+Working from a standard Unix shell (or Cygwin on Windows), run the
+following commands in your project directory.
+
+You will need both [Leiningen] and [Maven] installed to run these
+commands.
+
+[Leiningen]: https://github.com/technomancy/leiningen
+[Maven]: http://maven.apache.org/
+
+Getting dependencies:
+
+    lein clean
+    lein pom
+    mvn dependency:copy-dependencies -DoutputDirectory=target/war/WEB-INF/lib
+
+Copying your application files:
+
+    mkdir -p target/war/WEB-INF/classes
+    cp -R src/* config/* resources/* target/war/WEB-INF/classes
+
+Copying `web.xml`:
+
+    cp web.xml target/war/WEB-INF
+
+Creating the WAR file:
+
+    jar cvf target/YOUR_APPLICATION.war -C target/war WEB-INF
+
+Replace `YOUR_APPLICATION` with the name of your application.
+
+## Step Three: Build the WAR (deps.edn)
+
+[NOTE]
+====
+Forthcoming; but the essentials are the same: package your resources, Clojure sources,
+and (rarely present) compiled Java classes to `target/war/WEB-INF/classes`, and your
+dependencies to `target/war/WEB-INF/lib`, then zip everything up.
+====
+
+## Step Four: Deploy
+
+Consult the documentation of your web container to find out how to
+deploy an application from a WAR file. For many web containers, it may
+be a simple matter of copying the `.war` file into a "webapps"
+directory.
