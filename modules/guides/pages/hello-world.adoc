@@ -255,7 +255,7 @@ back and we'll continue.
 Now we can make a `deps.edn` that tells the `clj` tool what libraries our
 service needs. This goes in the main directory `hello`:
 
-[[app-listing]]
+
 [source,clojure]
 .deps.edn
 ----

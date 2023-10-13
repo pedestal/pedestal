@@ -15,6 +15,7 @@ work that still needs to be done.
 - Add an intro with all the key terms
 - Put the Guides and Reference into a reasonable order
 - Make better use of xref: linking between pages
+- Lots of broken links (currently in Howard's IntelliJ bookmarks)
 
 ## Antora Technical Stuff
 
