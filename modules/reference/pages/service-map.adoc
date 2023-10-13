@@ -23,7 +23,6 @@ Keep in mind, however, that this is strictly a convenience function
 that assembles the parts for you. There are use cases where you would
 not call `create-server`, but instead assemble a service function,
 chain provider, and so forth, directly.
-See the chain provider link:../samples/index[sample].
 
 Pedestal may add other keys to this map for its own use. Other applications
 should treat any such keys and their values as implementation details

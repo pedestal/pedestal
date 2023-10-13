@@ -16,7 +16,7 @@ An interceptor is a pair of unary functions footnote:[An optional third function
 An interceptor must provide at least one of :enter, :leave and :error.
 Each function is called with a xref:context-map.adoc and must return either a context
 map or a {core_async} channel that will deliver a context map; the latter case triggers
-link:../guides/async[asynchronous request processing].
+xref:guides:async.adoc[asynchronous request processing].
 
 Pedestal calls the :enter function on the way "in" to handling a
 request. It calls the :leave function on the way back "out". This is

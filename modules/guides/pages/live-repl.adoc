@@ -1,6 +1,7 @@
 = Reloading at the REPL
 
-As Clojure developers, we prefer to link:developing-at-the-repl[live at the REPL], loading and reloading code
+As Clojure developers, we prefer to
+xref:developing-at-the-repl.adoc[live at the REPL], loading and reloading code
 into the REPL for a lightning fast feedback loop.
 
 It's common to reload a namespace, and use the REPL (possibly via IDE support) to re-evaluate expressions in our

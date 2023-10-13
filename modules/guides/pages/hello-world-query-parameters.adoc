@@ -26,7 +26,7 @@ familiar with the basics of HTTP: URLs, response codes, and content
 types.
 
 If you've already done some of those other things, you might want to
-skip ahead to link:your-first-api[Your First API] to start building
+skip ahead to xref:your-first-api.adoc[] to start building
 some logic and multiple routes.
 
 If you like to jump straight in to the deep end, you might be
@@ -528,6 +528,6 @@ returned the request map in the body, the content type was actually
 
 Plain text is ugly, so we want to be able to return HTML. Rich clients
 don't like HTML so much, so we also want to return JSON sometimes. The
-link:hello-world-content-types[next stop] on this trail looks at how
+xref:hello-world-content-types.adoc[next stop] on this trail looks at how
 Pedestal handles content types and response bodies. This will also be our
 first taste of interceptors, Pedestal's core unit of work.

@@ -44,7 +44,7 @@ and raise your hand there.
 
 == Where We Are Going
 
-In link:your-first-api[Your First API], we defined a handful of routes
+In xref:your-first-api.adoc[], we defined a handful of routes
 for a basic REST style API. It's time to dig deeper and understand
 what we can do with this flexible and powerful part of Pedestal.
 
@@ -567,7 +567,7 @@ include::example$myapp/src/myapp/service.clj[tags=original-routes]
 ----
 
 We will make this look more like the route table from
-link:your-first-api[Your First API].
+xref:your-first-api.adoc[].
 
 
 [source,clojure]

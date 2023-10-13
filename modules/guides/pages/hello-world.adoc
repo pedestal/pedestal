@@ -23,7 +23,7 @@ other Clojure-based web framework. You should be familiar with the
 basics of HTTP: URLs, response codes, and content types.
 
 If you've already done some of those other things, you might want to
-skip ahead to link:your-first-api[Your First API] to start building
+skip ahead to xref:your-first-api.adoc[] to start building
 some logic and multiple routes.
 
 This guide also assumes that you are in a Unix-like development
@@ -214,9 +214,12 @@ The map has two keys and their values:
 
 That's the whole thing. When our function returns that map, Pedestal
 will translate that into a full HTTP response complete with content
-type header and everything. (Later on, we'll see how to take control
-of the link:hello-world-content-types[whole response]. For now we're
-just taking the easy road.)
+type header and everything.
+
+[sidebar]
+Later on, we'll see how to take control
+of the xref:hello-world-content-types.adoc[whole response]. For now we're
+just taking the easy road.
 
 There's absolutely nothing special about this map. It's a plain old
 Clojure map - this is how Clojure operates, we don't use classes, we
@@ -454,7 +457,7 @@ you get tired of poking it, just hit Control-C in the terminal that is
 running the server to kill it.
 
 Later on, we'll see how to make Jetty
-link:your-first-api#_interactive_development[run on its own thread] so
+xref:hello-world-query-parameters.adoc#_interactive_development[run on its own thread] so
 you can get your REPL prompt back.
 
 == The Whole Shebang
@@ -494,6 +497,6 @@ tricks.
 
 == Where to Next?
 
-The link:hello-world-query-parameters[next part] in this trail adds
+The xref:hello-world-query-parameters.adoc[next part] in this tutorial adds
 the ability to receive a query parameter, apply logic to it, and
 return a different response for an error.

@@ -107,7 +107,7 @@ changing the routes, you will need to restart your service.
 This is purely a result of the way we've built things for this guide. There
 are techniques that let you automatically reload routes during
 development. We'll get to those in
-link:developing-at-the-repl[Developing at the REPL].
+xref:developing-at-the-repl.adoc[].
 
 When you restarted your service, you probably got a nasty message from Clojure like:
 
@@ -507,7 +507,6 @@ understand how and when each line of code gets invoked.
 include::example$hello-content/src/hello.clj[tags=ns;continuo;coerce_refactored_comm;coerce_body_2;routes_refactored;server]
 ----
 
-
 == The Path So Far
 
 In this guide, we built upon link:hello-world-query-parameters[Hello World, With Parameters] to add:
@@ -521,5 +520,5 @@ We also learned about interceptors and created a few.
 
 The truth is that server-side applications don't vend out HTML nearly
 as much as they once did. APIs are where it's at. In the
-link:your-first-api[next guide] we will make a REST style API to serve
-up wish lists.
+xref:your-first-api.adoc[next tutorial] we will make a REST style API to serve
+up "TO DO" lists.
