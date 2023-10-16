@@ -28,4 +28,4 @@ constraints are not used in routing decisions. They are only used to
 invalidate a route match.
 
 == References
-- link:https://github.com/pedestal/pedestal/pull/422[Pedestal PR #422]
+- link:{repo_root}/pull/422[Pedestal PR #422]

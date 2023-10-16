@@ -30,4 +30,4 @@ invalidate a route match.
 
 == References
 
-- link:https://github.com/pedestal/pedestal/pull/330[Pedestal PR #310]
+- link:{repo_root}/pull/330[Pedestal PR #310]

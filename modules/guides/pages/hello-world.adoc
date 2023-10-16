@@ -481,7 +481,7 @@ include::example$hello/deps.edn[]
 ----
 
 You can also see all the code in the GitHub repository for
-link:https://github.com/pedestal/pedestal/tree/master/modules/guides/examples/hello[this guide].
+link:{guides_examples_root}/hello[this guide].
 
 == The Path So Far
 

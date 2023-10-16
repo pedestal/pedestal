@@ -68,7 +68,7 @@ then you already have all the files you need. If
 not, take a moment to grab the sources from the
 xref:hello-world-query-parameters.adoc#_the_whole_shebang[whole shebang] in
 that guide.  Feel free to browse the complete sources in
-link:https://github.com/pedestal/pedestal/tree/master/modules/guides/examples/hello-content[the
+link:{guides_examples_root}/hello-content[the
 repository], but be warned that the file contains all the versions
 that we built up through the previous guide. You'll need to navigate
 some magic comments to pare it down to just the final version.

@@ -13,6 +13,8 @@ When processing, take care to modify the map (e.g., use `assoc`), rather than co
 a new map entirely. Interceptors may add arbitrary keys to the request map, and the interceptors' functionality
 may depend on getting stored values back out of the request map.
 
+Pedestal uses an extended version of the link:https://github.com/ring-clojure/ring/blob/master/SPEC[Ring request specification].
+
 
 [cols="s,d,d,d", options="header", grid="rows"]
 |===

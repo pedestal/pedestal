@@ -212,7 +212,7 @@ We've covered a minimal setup for server-sent event configuration and usage and
 demonstrated how to receive events from JavaScript.
 
 This guide was based on the examples in the 
-link:https://github.com/pedestal/samples/tree/master/server-sent-events[server-sent-event sample project]
+link:{repo_root}/samples/tree/master/server-sent-events[server-sent-event sample project]
 and the
 xref:reference:server-sent-events.adoc[Server-Sent Events Reference].
 

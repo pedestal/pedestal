@@ -1,5 +1,5 @@
 We'll take this in small steps. If you get stuck at any point in this
-guide, please submit an https://github.com/pedestal/pedestal/issues[issue]
+guide, please submit an {repo_root}/issues[issue]
 about this guide or, hop over to the
 https://groups.google.com/forum/#!forum/pedestal-users[Pedestal Users mailing list]
 and raise your hand there. You can also get help from

@@ -5,6 +5,7 @@
 *** xref:hello-world-content-types.adoc[]
 *** xref:your-first-api.adoc[]
 ** xref:defining-routes.adoc[]
+** xref:what-is-an-interceptor.adoc[]
 ** xref:developing-at-the-repl.adoc[]
 ** xref:live-repl.adoc[]
 ** xref:async.adoc[]

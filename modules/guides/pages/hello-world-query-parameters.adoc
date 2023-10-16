@@ -59,7 +59,7 @@ our handler will return a 404 response instead of a cordial greeting.
 If you worked through xref:hello-world.adoc[], then you already
 have all the files you need. If not, take a moment to grab the sources
 from
-link:https://github.com/pedestal/pedestal/tree/master/modules/guides/examples/hello[that guide].
+link:{guides_examples_root}/hello[that guide].
 That will be our starting point for enhancements this time.
 
 == Accepting Parameters

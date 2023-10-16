@@ -2,7 +2,7 @@
 
 == Description
 
-If your service-map.adoc#,service map does not include the key
+If your xref:service-map.adoc[] does not include the key
 `:io.pedestal.http/interceptors`, then Pedestal will create a vector of
 default interceptors for you.
 
@@ -16,7 +16,7 @@ its specific behavior.
 
 == Modifying the Default Stack
 
-If your service-map.adoc#,service map already includes the key
+If your service map already includes the key
 `:io.pedestal.http/interceptors` when you call one of the `create-`
 functions, then Pedestal won't add the default interceptors. So what
 should you do if you want to use the default interceptors, but want to

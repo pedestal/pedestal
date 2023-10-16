@@ -5,7 +5,6 @@
 *** xref:interceptors.adoc[]
 *** xref:chain-providers.adoc[]
 *** xref:important-protocols.adoc[]
-*** xref:handlers.adoc[]
 *** xref:error-handling.adoc[]
 
 ** HTTP Handling

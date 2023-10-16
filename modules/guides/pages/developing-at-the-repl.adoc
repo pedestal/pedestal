@@ -32,7 +32,7 @@ the REPL:
 
 This guide assumes you have a working REPL in your Pedestal application.
 If you generated your application using the 
-https://github.com/pedestal/pedestal/tree/master/service-template[pedestal-service Leiningen
+{repo_root}/tree/master/service-template[pedestal-service Leiningen
 template], this might be as simple as running `lein repl` at the command
 line. Perhaps your editor or IDE provides a facility for launching a REPL
 for your project. A great resource for understanding and configuring your
@@ -42,7 +42,7 @@ https://lambdaisland.com/guides/clojure-repls[Ultimate Guide to Clojure REPLs].
 == Getting Help if You're Stuck
 
 We'll take this in small steps. If you get stuck at any point in this
-guide, please submit an https://github.com/pedestal/pedestal-docs/issues[issue]
+guide, please submit an {repo_root}-docs/issues[issue]
 about this guide or hop over to the
 https://groups.google.com/forum/#!forum/pedestal-users[mailing list]
 and raise your hand there. You can also try the #pedestal channel in

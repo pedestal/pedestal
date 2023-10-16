@@ -140,7 +140,7 @@ function that takes a xref:service-map.adoc[] of everything
 needed to run an HTTP service.
 
 It is possible to create other chain providers. The
-https://github.com/pedestal/pedestal/tree/master/samples/fast-pedestal[fast-pedestal
+{repo_root}/tree/master/samples/fast-pedestal[fast-pedestal
 sample] shows how to do this with Jetty.
 
 See the following namespaces for the HTTP chain provider:

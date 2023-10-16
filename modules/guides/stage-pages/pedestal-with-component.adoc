@@ -26,7 +26,7 @@ out] first.
 
 == Getting Help if You're Stuck
 If you get stuck at any point in this guide, please submit an
-https://github.com/pedestal/docs/issues[issue] about this guide or hop
+{repo_root}/docs/issues[issue] about this guide or hop
 over to the
 https://groups.google.com/forum/#!forum/pedestal-users[mailing list]
 and raise your hand there.
@@ -216,7 +216,7 @@ link:hello-world[Hello World] guide.
 
 Let's create a `deps.edn` file so that we can fire up the `clj` tool.
 
-[[app-listing]]
+
 [source,clojure]
 .deps.edn
 ----
@@ -384,7 +384,7 @@ and testing your Component-based Pedestal services.
 == The Whole Shebang
 For reference, here are the complete contents of all the files.
 
-[[app-listing]]
+
 [source,clojure,subs="-callouts"]
 .src/pedestal.clj
 ----
@@ -400,7 +400,7 @@ include::component/src/pedestal.clj[tags=constructor]
 ----
 
 
-[[app-listing]]
+
 [source,clojure,subs="-callouts"]
 .src/routes.clj
 ----
@@ -412,7 +412,7 @@ include::component/src/routes.clj[tags=routes]
 ----
 
 
-[[app-listing]]
+
 [source,clojure,subs="-callouts"]
 .src/system.clj
 ----
@@ -424,7 +424,7 @@ include::component/src/system.clj[tags=init]
 ----
 
 
-[[app-listing]]
+
 [source,clojure,subs="-callouts"]
 .src/system_test.clj
 ----
@@ -439,7 +439,7 @@ include::component/src/system_test.clj[tags=with-system]
 include::component/src/system_test.clj[tags=test]
 ----
 
-[[app-listing]]
+
 [source,clojure,subs="-callouts"]
 .deps.edn
 ----

@@ -35,3 +35,11 @@ work that still needs to be done.
 - Discuss options
 - Map vs. string events
 
+## xref:reference:service-map.adoc[]
+
+- Break into service map vs. server map (on a new page) for things like :start-fn, etc.
+
+## xref:reference:response-map.adoc[]
+
+- Are response headers converted to lower case?
+- :body may be extensible (e.g., chan)

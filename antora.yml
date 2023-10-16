@@ -9,4 +9,6 @@ nav:
 
 asciidoc:
   attributes:
-    core_async: "link:https://github.com/clojure/core.async/[Clojure core.async]"
+    core_async: "link:https://github.com/clojure/core.async/[core.async]"
+    repo_root: "https://github.com/pedestal/pedestal"
+    guides_examples_root: "{repo_root}/tree/master/modules/guides/examples"
