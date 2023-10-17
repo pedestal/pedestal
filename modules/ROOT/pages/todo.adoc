@@ -21,7 +21,6 @@ work that still needs to be done.
 
 - Maybe add another macro for linking to Clojure documentation, much like the api: macro
 - Create a custom UI theme
-- Add a configurable attribute for the documentation root URL (for api: macro)
 
 ## xref:index.adoc[]
 

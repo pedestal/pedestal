@@ -8,5 +8,6 @@
 ** xref:what-is-an-interceptor.adoc[]
 ** xref:developing-at-the-repl.adoc[]
 ** xref:live-repl.adoc[]
+** xref:pedestal-with-component.adoc[]
 ** xref:async.adoc[]
 ** xref:sse.adoc[]

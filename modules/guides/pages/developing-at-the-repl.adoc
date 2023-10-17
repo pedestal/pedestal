@@ -7,7 +7,7 @@ development. In the context of Pedestal applications, we often want
 to interrogate the routing system and invoke interceptors (or handlers)
 in isolation. These explorations often form the basis for more robust
 automated tests, which will be covered in the
-link:unit-testing[Unit Testing Your Pedestal API] guide.
+xref:reference:unit-testing.adoc[] reference.
 
 == What You Will Learn
 

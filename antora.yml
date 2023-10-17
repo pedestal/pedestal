@@ -12,3 +12,8 @@ asciidoc:
     core_async: "link:https://github.com/clojure/core.async/[core.async]"
     repo_root: "https://github.com/pedestal/pedestal"
     guides_examples_root: "{repo_root}/tree/master/modules/guides/examples"
+    component_home: "https://github.com/stuartsierra/component/"
+    # For api: inline macro
+    default_api_ns: io.pedestal.http@  # @ signals it can be overridden by pages
+    api_doc_root: http://pedestal.io/api
+
