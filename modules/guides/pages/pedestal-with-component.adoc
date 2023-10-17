@@ -480,7 +480,3 @@ implementation. By limiting our component's responsibilities to http
 server and Pedestal provider life cycle support, we can use it in a
 wide variety of Pedestal implementations.
 
-== What's next?
-In a separate guide, link:pedestal-component-handlers-and-dependencies[Pedestal
-Component: Handlers and Dependencies], we'll demonstrate how to introduce
-dependencies and make them accessible to our handlers.

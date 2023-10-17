@@ -42,3 +42,8 @@ work that still needs to be done.
 
 - Are response headers converted to lower case?
 - :body may be extensible (e.g., chan)
+
+## Missing
+
+- "Pedestal with Component: Handlers and Dependencies" (never written)
+
