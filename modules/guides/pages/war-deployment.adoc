@@ -1,14 +1,4 @@
 = WAR Deployment
-Paul deGrandis
-2014-01-30
-:jbake-type: page
-:toc: macro
-:icons: font
-:section: guides
-
-toc::[]
-
-_by {author}_, _{revdate}_
 
 Java web applications are commonly deployed to *web containers*, also
 called Servlet containers or application servers. Web containers
@@ -115,11 +105,9 @@ NOTE: These instruction are out of date, surely there are Leiningen plugins to d
 Working from a standard Unix shell (or Cygwin on Windows), run the
 following commands in your project directory.
 
-You will need both [Leiningen] and [Maven] installed to run these
-commands.
+You will need both  https://github.com/technomancy/leiningen[Leiningen] and
+http://maven.apache.org/[Maven] installed to run these commands.
 
-[Leiningen]: https://github.com/technomancy/leiningen
-[Maven]: http://maven.apache.org/
 
 Getting dependencies:
 

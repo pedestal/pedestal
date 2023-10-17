@@ -426,8 +426,6 @@ include::example$component/src/pedestal.clj[tags=constructor]
 [source,clojure,subs="-callouts"]
 .src/routes.clj
 ----
-include::example$component/src/routes.clj[tags=ns]
-
 include::example$component/src/routes.clj[tags=response]
 
 include::example$component/src/routes.clj[tags=routes]

@@ -11,3 +11,4 @@
 ** xref:pedestal-with-component.adoc[]
 ** xref:async.adoc[]
 ** xref:sse.adoc[]
+** xref:war-deployment.adoc[]
