@@ -50,6 +50,10 @@ work that still needs to be done.
 - Need to eliminate Jetty/Servlet API dependencies from classpath
 - Discuss embedded as first option
 
+xref:privacy.adoc[]
+
+- Update "Cognitect" to "NuBank NA"
+
 ## Missing
 
 - "Pedestal with Component: Handlers and Dependencies" (never written)
