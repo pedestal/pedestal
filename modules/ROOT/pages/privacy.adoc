@@ -5,7 +5,7 @@ Cognitect, Inc. ("**Cognitect,**" "**we,**" or "**us**") provides the website lo
 
 By visiting the Website, you expressly consent to the use and disclosure of your Personal Information as described below.  If you do not agree with the terms set out in this Privacy Policy, please do not visit the Website.
 
-= WHAT INFORMATION DO WE COLLECT?
+== WHAT INFORMATION DO WE COLLECT?
 
 - Personal information is data that can be used to identify or contact a single person ("**Personal Information**").  We will only collect or receive Personal Information when you voluntarily provide information to us, such as when you contact us, using the contact information provided in this Privacy Policy, as described in more detail below:
 

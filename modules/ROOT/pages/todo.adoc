@@ -16,6 +16,7 @@ work that still needs to be done.
 - Put the Guides and Reference into a reasonable order
 - Make better use of xref: linking between pages
 - Lots of broken links (currently in Howard's IntelliJ bookmarks)
+- "Cognitect" -> "NuBank NA"
 
 ## Antora Technical Stuff
 
@@ -50,11 +51,16 @@ work that still needs to be done.
 - Need to eliminate Jetty/Servlet API dependencies from classpath
 - Discuss embedded as first option
 
-xref:privacy.adoc[]
+## xref:privacy.adoc[]
 
 - Update "Cognitect" to "NuBank NA"
+
+
+## xref:contributing.adoc[]]
+
+- Pretty of date, should reference page on using snapshots, etc.
 
 ## Missing
 
 - "Pedestal with Component: Handlers and Dependencies" (never written)
-
+- Page about using snapshots (or Git coordinates)
