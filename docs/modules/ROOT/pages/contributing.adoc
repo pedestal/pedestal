@@ -1,4 +1,4 @@
-= Community Resources
+= Contributing to Pedestal
 
 == Hacking on Pedestal
 
@@ -88,10 +88,10 @@ on just one of these pieces at a time, but you will want to test
 everything. Here is the workflow we recommend:
 
 1. Fork the https://github.com/pedestal/pedestal[repo] and clone your fork.
-1. Create a branch for your feature/bugfix.
-1. Make your changes and add tests.
-1. Run `clj -X:test` from the `tests` directory.
-1. Commit, push, and submit a pull request.
+2. Create a branch for your feature/bugfix.
+3. Make your changes and add tests.
+4. Run `clj -X:test` from the `tests` directory.
+5. Commit, push, and submit a pull request.
 
 == Contributor's Agreement
 

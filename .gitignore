@@ -1,6 +1,3 @@
-# Project related
-generated-js/
-
 # Java related
 pom.xml
 pom.xml.asc
@@ -45,5 +42,4 @@ logs/
 
 # Docs
 autodoc/
-docs
 codox
