@@ -18,13 +18,15 @@ build Pedestal?  We had two main reasons:
   Pedestal makes it easy to deliver server-sent events and asynchronous updates, and supports
   WebSocket connections.
 
+We believe in creating great solutions from reusable pieces.
+
 ## Features
 
 ### Ready for Production
 
 Pedestal works with a huge variety of containers and deployment options.
-Deploy applications or microservices on Unikernels, Docker containers, or
-as JAR files.
+Deploy applications or microservices on managed servers, Docker containers, or
+as stand-alone JAR files.
 
 Pedestal supports Jetty out of the box, and other containers through additional
 integrations.
@@ -38,15 +40,8 @@ It works with CORS to allow secure front end applications.
 
 ### Streaming
 
-Pedestal lets you create dynamic applications with server-sent events and websockets. It uses Clojure's {core_async} capabilities and Java NIO.
-
-
-
-### Late Binding
-
-Routers and xref:guides:what-is-an-interceptor.adoc[interceptors] let Pedestal
-services apply different behavior for each incoming request,
-rather than statically wrapping everything up during initialization.
+Pedestal lets you create dynamic applications with server-sent events and WebSockets.
+Pedestal uses Clojure's {core_async} capabilities and Java NIO to allow high levels of concurrency.
 
 ### Composable
 

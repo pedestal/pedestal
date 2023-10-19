@@ -1,0 +1,89 @@
+# Terminology
+
+Understanding Pedestal comes with the challenge of unpacking a number of terms - some specific to Pedestal, others
+inherited from underlying technologies.
+
+interceptor::
+An xref:guides:what-is-an-interceptor.adoc[interceptor] is the basic unit of work in Pedestal, a combination of
+specific functions related to handling a request or generating a response.
+
+interceptor chain::
+A pipeline of interceptors, setup and executed by a chain provider.
+
+chain provider::
+Creates and executes an interceptor chain, with some behaviors reflecting a specific domain - the normal domain
+is processing HTTP requests.
+
+servlet interceptor::
+A chain provider specific to handling HTTP requests from a servlet.
+
+service-map::
+The xref:reference:service-map.adoc[] is a collection of data that is used to setup request routing and interceptors,
+and ultimately create a server.
+
+server::
+A server is responsible for low-level communication with HTTP clients; A _server map_ is created from the service map,
+and can be used to start and stop the server. Many examples use the xref:reference:jetty.adoc[] server implementation.
+
+handler::
+A simple function that is passed a request map and returns a response map; handlers are converted to interceptors internally.
+
+core.async::
+The {core_async} library is a Clojure extension that allows for efficient and expressive concurrent systems.
+The central artifact is a _channel_, a pipe that allows data to be conveyed between concurrently running light-weight
+processes.
+
+servlet::
+The standard Java term for a request handler - a link:https://en.wikipedia.org/wiki/Jakarta_Servlet[servlet]
+operates in the context of a server and processes incoming requests.
+In Pedestal, a generic servlet is created and configured, and feeds incoming requests into a pipeline of interceptors.
+
+route::
+A mapping of an HTTP Verb (such as GET or POST) and a URL path to a specific set of interceptors.
+
+routing::
+The process of mapping an incoming request to a route, using a router and a routing specification.
+
+routing specification::
+A concise list of routing data, in one of several formats. A routing specification is converted into a routing table.
+
+routing table::
+A verbose, expanded version of routes that can be used by a router.
+
+router::
+A specific implementation (there are several in Pedestal, with different tradeoffs) responsible for
+identifying the route for an incoming request, using a routing table derived from a routing specification.
+
+routing interceptor::
+An interceptor whose job is to perform routing; the routing interceptor is constructed from a routing specification
+and a router implementation.
+
+REPL::
+The *R*{empty}ead *E*{empty}val *P*{empty}rint *L*{empty}oop:
+reading Clojure input, evaluting it, and printing the result.
+Clojure excels at interactive development.
+
+context map::
+The xref:reference:context-map.adoc[] contains data about the ongoing request; a context map is passed to
+interceptors, which often return a modified copy of it. Ultimately, the incoming request map and
+response map are stored in the context map, along with much other data internal to Pedestal.
+
+SLF4J::
+The link:https://www.slf4j.org/[Simple Logging Facade for Java], a generic wrapper around several competing
+approaches to generating logging output. Pedestal's api:*[io.pedestal.log] logging support works with SLF4J.
+
+Leiningen::
+link:https://leiningen.org/[Leiningen] is a popular and pervasive Clojure build tool.
+Projects with a `project.clj` file at the root are built using Leiningen, which can download dependencies from a Maven repository
+on demand.
+
+Maven repository::
+A source of Java and Clojure packages, used by the link:https://maven.apache.org/index.html[Maven build tool], but also
+by virtually all other similar tools in the Java ecosystem.
+
+clj::
+Also called "tools.deps", this is the name of a build tool for Clojure.
+link:https://clojure.org/reference/deps_and_cli[clj] is more recent than Leiningen and has a very different model, but can perform the same key functions:
+downloading dependencies (from Maven repositories and elsewhere) and running Clojure programs.
+Projects with a `deps.edn` file at the root are built using `clj`.
+

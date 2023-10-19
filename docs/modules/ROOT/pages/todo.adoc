@@ -55,10 +55,17 @@ work that still needs to be done.
 
 - Update "Cognitect" to "NuBank NA"
 
+## xref:guides:defining-routes.adoc[]
+
+- Convert from terse syntax to table syntax
 
 ## xref:contributing.adoc[]]
 
 - Pretty of date, should reference page on using snapshots, etc.
+
+xref:terms.adoc[]
+
+- Alphabetize the entries
 
 ## Missing
 
