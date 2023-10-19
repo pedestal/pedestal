@@ -226,20 +226,7 @@ to stop the service and start a replacement, using the update functions.
 With the update code live, you can use `curl` again to see the change in the service's behavior:
 
 ----
-> curl -i http://localhost:8890/greet\?name=Michael
-HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 17:45:24 GMT
-Strict-Transport-Security: max-age=31536000; includeSubdomains
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
-X-Download-Options: noopen
-X-Permitted-Cross-Domain-Policies: none
-Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
-Content-Type: text/plain
-Transfer-Encoding: chunked
 
-Hello, Michael
 > curl -i http://localhost:8890/greet\?name=Michael
 HTTP/1.1 200 OK
 Date: Thu, 12 Oct 2023 17:54:46 GMT
