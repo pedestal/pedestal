@@ -242,7 +242,7 @@ a bit of Clojure code, but I'll just highlight it here. (If you're
 interested in an exercise, try using `clojure.edn` to extract the
 request.)
 
-Inside the request, there is a map `:path-params` which looks like
+Inside the request, there is a map :path-params which looks like
 this:
 
 [source,clojure]
@@ -304,7 +304,7 @@ include::example$todo-api/src/main.clj[tag=db_interceptor]
 ----
 <1> `@database` gets the current value of the atom. We attach it to
 the request inside the context. This is step `A` from above.
-<2> The `:tx-data` key on the context may be set by other
+<2> The :tx-data key on the context may be set by other
 interceptors. This is step `D` from above.
 <3> The `do` block is a sure sign of a side effect. The `swap!` here is our stand-in for a real database transaction.
 <4> We attach the updated database value in case any other
@@ -431,7 +431,7 @@ a single interceptor.
 ----
 include::example$todo-api/src/main.clj[tags=list_create_with_response]
 ----
-<1> Generate URL for route `:list-view` and the new ID we just generated. Pedestal uses some hidden
+<1> Generate URL for route :list-view and the new ID we just generated. Pedestal uses some hidden
 machinery{empty}footnote:[A private, thread-bound var.] to get the routing table, which is needed to construct the URL.
 
 And the results (manually formatted for readability):
@@ -511,7 +511,7 @@ interceptor. We need to defer response creation until after the
 something to look up an item by its list ID and item ID, then render
 the result.
 
-That's exactly what we would do for the `:list-item-view` route! We
+That's exactly what we would do for the :list-item-view route! We
 can get some reuse here. If `list-item-create` can add the item to the
 database, then the item will exist. If the item can't be added, it will result in a  404 response.
 
@@ -537,7 +537,7 @@ executed.
 <5> This is where `list-item-create` passes a parameter to
 `list-item-view`.
 
-To understand the interceptors for the `:list-item-create` route, we
+To understand the interceptors for the :list-item-create route, we
 need to think about `enter` functions from left to right and `leave`
 functions from right to left.
 

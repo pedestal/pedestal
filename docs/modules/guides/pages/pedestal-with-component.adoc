@@ -44,7 +44,7 @@ service.
 
 We'll limit our component's responsibilities to lifecycle management
 of the Pedestal HTTP server and provider. We'll also expose the
-Pedestal service function (`:io.pedestal.http/service-fn`) upon
+Pedestal service function (:io.pedestal.http/service-fn) upon
 component initialization as a convenience for testing.
 
 Route or interceptor management will not be a component responsibility
@@ -354,7 +354,7 @@ api:url-for-routes[ns=io.pedestal.http.route] function.
 
 The end result is that `url-for` is a function
 
-The `service-fn` helper extracts the Pedestal `::http/service-fn` from
+The `service-fn` helper extracts the Pedestal ::http/service-fn from
 the started system. This helper allows us to keep focus on our
 tests rather than test initialization.
 ----

@@ -14,7 +14,7 @@ where the exception occurred.
 Instead, Pedestal works backwards, looking for an interceptor to handle
 the exception. All exceptions thrown from an
 interceptor are captured; Pedestal wraps such exceptions in an `ExceptionInfo` instance
-which is then bound to the `:io.pedestal.interceptor.chain/error` key
+which is then bound to the :io.pedestal.interceptor.chain/error key
 in the xref:context-map.adoc[context map].
 
 As long as there is an error attached to that key, Pedestal will not
@@ -45,7 +45,7 @@ defined in its exception data map:
 |===
 | Key | Type | Description
 
-| `:execution-id`
+| :execution-id
 | long
 | Unique value that identifies one "run" through the interceptors.
 
@@ -58,7 +58,7 @@ defined in its exception data map:
 | Keyword
 | The :name from the interceptor that threw the exception
 
-| `:exception-type`
+| :exception-type
 | Keyword
 | Keywordized form of the exception's Java class name
 
@@ -69,14 +69,14 @@ defined in its exception data map:
 |===
 
 The context map does _not_ contain the
-`:io.pedestal.interceptor.chain/error` key. The :error function can do
+:io.pedestal.interceptor.chain/error key. The :error function can do
 one of the following things:
 
 1. Return the context map. This is "catching" the error. Because the
 context map has no error bound to it, Pedestal will exit error
 handling and execute any remaining :leave handlers.
 2. Return the context map with the exception re-attached at
-`:io.pedestal.interceptor.chain/error`. This indicates that the
+:io.pedestal.interceptor.chain/error. This indicates that the
 handler doesn't recognize that exception and declines to handle
 it. Pedestal will continue looking for a handler.
 3. Throw a new exception. This indicates that the interceptor _should_
@@ -85,7 +85,7 @@ will start looking for a handler for this new exception.
 
 In that last case, Pedestal keeps track of the exceptions that were
 overridden. These are in a seq bound to
-`:io.pedestal.interceptor.chain/suppressed` in the context map.
+:io.pedestal.interceptor.chain/suppressed in the context map.
 
 Most commonly, the interceptor will return the context map with a :response
 map; this will trigger normal response processing by invoking any remaining interceptors' :leave functions.
@@ -136,7 +136,7 @@ Pattern matching is a concise way to express conditions for handling an error.
 For HTTP, the xref:servlet-interceptor.adoc[] provides the "last
 ditch" error handlers that log the error and return an _error_ response. In
 development mode, they emit a stack trace as the response body; you will see
-the error logged from the `:io.pedestal.http.impl.servlet-interceptor/stylobate`
+the error logged from the :io.pedestal.http.impl.servlet-interceptor/stylobate
 footnote:[link:https://en.wikipedia.org/wiki/Stylobate[Stylobate] is the term for a supporter of columns in
 classic Greek and Roman architecture; here the interceptor is providing support to the rest of Pedestal.]
 interceptor.

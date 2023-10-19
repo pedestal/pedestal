@@ -4,10 +4,10 @@
 .*See the guide*
 --
 This is the detailed interceptor _reference_; if you are new to Pedestal
-you may want to start with the xref:guides:what-is-an-interceptor.adoc[]
+you may want to start with the xref:guides:what-is-an-interceptor.adoc[].
 --
 
-Interceptors are the basic building block of features in Pedestal. The
+Interceptors are the basic unit of work in Pedestal. The
 core library provides interceptors that are generally useful for
 creating HTTP web services. Applications augment those with their own
 logic to handle.
@@ -132,7 +132,7 @@ purposes.
 The queue of interceptors remaining to execute is held in the
 xref:context-map.adoc[]. This means that an interceptor can
 enqueue other interceptors to be executed. In fact, this is exactly how
-xref:defining-routes.adoc[routing] works, the router is an interceptor that matches requests and
+xref:routing-quick-reference.adoc[routing] works, the router is an interceptor that matches requests and
 enqueues the desired interceptors when a route matches.
 
 Use

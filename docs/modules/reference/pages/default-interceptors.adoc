@@ -3,7 +3,7 @@
 == Description
 
 If your xref:service-map.adoc[] does not include the key
-`:io.pedestal.http/interceptors`, then Pedestal will create a vector of
+:io.pedestal.http/interceptors, then Pedestal will create a vector of
 default interceptors for you.
 
 The default interceptors are added to your service map when you call
@@ -17,7 +17,7 @@ its specific behavior.
 == Modifying the Default Stack
 
 If your service map already includes the key
-`:io.pedestal.http/interceptors` when you call one of the `create-`
+:io.pedestal.http/interceptors when you call one of the `create-`
 functions, then Pedestal won't add the default interceptors. So what
 should you do if you want to use the default interceptors, but want to
 add your own interceptors to the default stack?
@@ -28,7 +28,7 @@ yourself, _before_ calling `create-server` or `create-servlet`. That
 way, `default-interceptors` can build the default stack, then your
 application code has an opportunity to modify it. By the time you call
 `create-server` or `create-servlet`, the
-`:io.pedestal.http/interceptors` key will have your modified version
+:io.pedestal.http/interceptors key will have your modified version
 of the default interceptors.
 
 Here is an example of adding interceptors to perform authentication
@@ -70,22 +70,22 @@ to configure loggers and logging levels.
 
 === api:allow-origin[]
 
-Added when the service map has a value for `:io.pedestal.http/allowed-origins`.
+Added when the service map has a value for :io.pedestal.http/allowed-origins.
 
 === api:not-found[]
 
 Always added. However, if the service map includes a value for
-`:io.pedestal.http/not-found-interceptor`, then that interceptor will
+:io.pedestal.http/not-found-interceptor, then that interceptor will
 be used in this position instead of the built-in.
 
 === api:session[ns=io.pedestal.http.ring-middlewares]
 
 Added when the service map has a value for
-`:io.pedestal.http/enable-session` or `:io.pedestal.http/enable-csrf`.
+:io.pedestal.http/enable-session or :io.pedestal.http/enable-csrf.
 
 === api:anti-forgery[ns=io.pedestal.http.csrf]
 
-Added when the service map includes a value for `:io.pedestal.http/enable-csrf`.
+Added when the service map includes a value for :io.pedestal.http/enable-csrf.
 
 === api:content-type[ns=io.pedestal.http.ring-middlewares]
 
@@ -101,17 +101,17 @@ Always added.
 
 === api:resource[ns=io.pedestal.http.ring-middlewares]
 
-Added when the service map has a value for `:io.pedestal.http/resource-path`.
+Added when the service map has a value for :io.pedestal.http/resource-path.
 
 === api:file[ns=io.pedestal.http.ring-middlewares]
 
-Added when the service map has a value for `:io.pedestal.http/file-path`.
+Added when the service map has a value for :io.pedestal.http/file-path.
 
 === api:secure-headers[ns=io.pedestal.http.secure-headers]
 
 Added when the service map has a non-nil value for
-`:io.pedestal.http/secure-headers` or when the service map does not
-include the key `:io.pedestal.http/secure-headers` at all.
+:io.pedestal.http/secure-headers or when the service map does not
+include the key :io.pedestal.http/secure-headers at all.
 
 === api:router[ns=io.pedestal.http.route]
 

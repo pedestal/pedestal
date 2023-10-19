@@ -333,22 +333,24 @@ Be cautious about using path constraints.
 
 Experience has shown that constraints result in a worse experience for users of your API.
 Generally, it is better to validate path and query parameters inside your route (in an interceptor
-or handler for the specific route) so that proper errors could be returned to the client.
+or handler for the specific route) so that proper errors could be returned to the client,
+rather than a generic, and perhaps misleading, 404 NOT FOUND response.
 ====
 
-An an alternative to using path contrains, you could define a validating interceptor:
+As an alternative to using path constraints, you could define a validating interceptor:
 
 [source,clojure]
----
+----
 (def user-id-validator
   (interceptor
      {:name ::user-id-validator
       :enter (fn [context]
                (if (re-matches #"[0-9]+" (get-in context [:request :path-params :user-id]))
                  context
-                 (assoc context :response {:status 400
-                                           :body "user-id must be numeric"})))}))
----
+                 (assoc context
+                   :response {:status 400
+                              :body "user-id must be numeric"})))}))
+----
 
 This interceptor could be placed into the interceptor list for any route that has a user-id
 in the path, and will abort any request (with a 400 Bad Request status code) if the user-id
@@ -458,7 +460,7 @@ and returns a URL that can be used in a hyperlink.
 Any leftover entries in the :params map that do not correspond to
 path parameters get turned into query string parameters. If you want
 more control, you can give the generator the specific arguments
-`:path-params` and `:query-params`.
+:path-params and :query-params.
 
 == Request-specific URL generation
 

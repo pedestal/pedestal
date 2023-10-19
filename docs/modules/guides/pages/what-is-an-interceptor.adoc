@@ -159,7 +159,7 @@ A simple example is a timing interceptor that tracks how long it take to process
 ----
 <1> Give the interceptor a unique, namespace qualified name.
 <2> Update the context with a new key, namespace qualified to avoid collisions.
-<3> Destructuring trick, put `:keys` into a namespace to destructure using that namespace.
+<3> Destructuring trick, put :keys into a namespace to destructure using that namespace.
 <4> A side effect, but also the point of this interceptor.
 <5> Good hygiene is to `dissoc` anything that was previously added by the interceptor.
 

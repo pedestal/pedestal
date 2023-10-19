@@ -41,7 +41,7 @@ instance. Expected to return the Server instance. Use when advanced customizatio
 
 | :ssl-port
 | Integer
-| Port to use for TLS listener. Defaults to `443` and implies `:ssl?`.
+| Port to use for TLS listener. Defaults to `443` and implies :ssl?.
 
 | :h2c?
 | Boolean
@@ -49,7 +49,7 @@ instance. Expected to return the Server instance. Use when advanced customizatio
 
 | :h2?
 | Boolean
-| HTTP/2 TLS support. When `true`, `:ssl-port` must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
+| HTTP/2 TLS support. When `true`, :ssl-port must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
 
 | :connection-factory-fns
 | Vector of Functions
@@ -61,24 +61,24 @@ the SSL connection.
 | :ssl-context-factory
 | An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
 | The `SSLContextFactory` instance to use when creating the server. If
-specified, `:key-password`, :keystore, :truststore,
-`:trust-password`, `:security-provider`, `:client-auth` are ignored.
+specified, :key-password, :keystore, :truststore,
+:trust-password, :security-provider, :client-auth are ignored.
 
 | :keystore
 | String _or_ `java.security.Keystore`
-| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance. Not used if `:ssl-context-factory` is set.
+| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance. Not used if :ssl-context-factory is set.
 
 | :key-password
 | String
-| Used for TLS. Keystore password. Not used if `:ssl-context-factory` is set.
+| Used for TLS. Keystore password. Not used if :ssl-context-factory is set.
 
 | :truststore
 | String _or_ `java.security.Keystore`
-| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance. Not used if `:ssl-context-factory` is set.
+| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance. Not used if :ssl-context-factory is set.
 
 | :trust-password
 | String
-| Used for TLS. Trust store password. Not used if `:ssl-context-factory` is set.
+| Used for TLS. Trust store password. Not used if :ssl-context-factory is set.
 
 | :client-auth
 | String
@@ -87,7 +87,7 @@ specified, `:key-password`, :keystore, :truststore,
 
 | :security-provider
 | String
-| Java Security Provider name. Refer to the Jetty https://www.eclipse.org/jetty/documentation/jetty-9/index.html#configuring-ssl[ConfiguringSSL/TLS] documentation. Not used if `:ssl-context-factory` is set.
+| Java Security Provider name. Refer to the Jetty https://www.eclipse.org/jetty/documentation/jetty-9/index.html#configuring-ssl[ConfiguringSSL/TLS] documentation. Not used if :ssl-context-factory is set.
 
 | :io.pedestal.http.jetty/http-configuration
 | An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration] instance.
@@ -106,6 +106,6 @@ The default HttpConfiguration is:
 * `SendServerVersion` is set to `false`
 * An instance of `org.eclipse.jetty.server.SecureRequestCustomizer` is
 added via `addCustomizer`
-* When `:ssl?`, `:ssl-port` or `h2?` is provided,
-`securePort` is set to the value of `:ssl-port` and `secureScheme`
+* When :ssl?, :ssl-port or `h2?` is provided,
+`securePort` is set to the value of :ssl-port and `secureScheme`
 is set to `"https"`.

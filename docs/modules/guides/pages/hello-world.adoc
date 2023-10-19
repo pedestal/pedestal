@@ -132,8 +132,8 @@ name.)
 include::example$hello/src/hello.clj[tags=ns]
 ----
 <1> This namespace is called 'hello'. This almost always matches the filename.
-<2> We need to use the 'io.pedestal.http' namespace, but would like to only type 'http' later in the file.
-<3> We need to use the 'io.pedestal.http.route' namespace, but would like to spell it as 'route' later in the file.
+<2> We need to use the `io.pedestal.http` namespace, but would like to only type `http` later in the file.
+<3> We need to use the `io.pedestal.http.route` namespace, but would like to spell it as `route` later in the file.
 
 This is very similar to using `import` in Java or `require` in
 Ruby. It just makes some names from other namespaces available to us
@@ -161,7 +161,7 @@ api:io.pedestal.http.route[ns=io.pedestal.http.route]
 namespace actually comes from a library dedicated to routing
 (ingeniously named `pedestal.route`.)
 
-Where the :require says `:as something` it means we're making an
+Where the :require says :as `something` it means we're making an
 alias inside our namespace. So `io.pedestal.http` will be available as
 just `http` and `io.pedestal.http.route` will be available as
 `route`. Aliases don't change anything about the semantics of the
@@ -198,7 +198,7 @@ response to a "hello world" request.
 ----
 include::example$hello/src/hello.clj[tags=response]
 ----
-<1> Define a function called `hello` that takes one argument, which we will call `request`
+<1> Define a function called `respond-hello` that takes a single argument, which we will call `request`
 <2> Return a map with two keys and two values.
 
 A Clojure function returns the value of the last expression in the
@@ -230,10 +230,10 @@ Clojure is a _functional language_, which means that whenever possible,
 we create simple functions that have no side-effects: their behavior is defined
 only by the arguments passed in.
 
-This trivial `response-hello` handler function is functional. It can be tested entirely
-by invoking it, passing in request map, and looking at the response map it returns.
+This trivial `respond-hello` handler function is functional -- it can be tested entirely
+by invoking it, passing in a request map, and making assertions about at the response map it returns.
 There's no need to start up a server and send a request to it via HTTP, you can just
-have testing code call this code.
+have your tests call this code directly.
 
 That's one of the beauties of working in
 Clojure and Pedestal... you can try everything interactively in a running
@@ -295,13 +295,13 @@ Clojure 1.11.1
 user=>
 ----
 
-NOTE:: The downloads only occur the _first_ time you run the service; you can also see
-that pedestal.jetty bring in further dependencies on the other parts of pedestal (pedestal.log,
-pedestal.service, etc.)
+[NOTE]
+The downloads only occur the _first_ time you run the service; you can also see
+that the pedestal.jetty library brings in further dependencies on the other parts of Pedestal: pedestal.log, pedestal.service, etc.
 
-The `clj` tool will download dependencies, add them to the classpath
+The `clj` tool will download dependencies as needed, add them to the classpath
 and start a repl in the `user` namespace. Now we're able to 
-input Clojure code to evaluate it (turn it into a value). The first
+enter Clojure code to evaluate it (turn it into a value). The first
 thing we need to do is tell Clojure about our `hello` namespace:
 
 ----
@@ -335,8 +335,8 @@ function and it returns the map that we told it to. Let's move on to
 hooking this up to a route.
 
 It's worth noting that we passed in an empty map (`{}`) rather than a full request map.
-This is perfectly acceptable for testing; in fact we could have passed a `nil` as the
-`respond-hello` function doesn't actually use the request map.
+This is perfectly acceptable for testing; in fact we could have even passed a `nil`,
+as the `respond-hello` function doesn't actually use the request parameter.
 
 == Routes
 
@@ -344,7 +344,7 @@ In Pedestal, routing is the process of matching an incoming request to
 a handler footnote:[We're simplifying here, we'll get around to discussing
 _interceptors_ soon].
 
-Let's tell Pedestal that we want the route "/greet" to map to our
+Let's tell Pedestal that we want the route `GET /greet` to map to our
 handler function:
 
 [source,clojure]
@@ -388,9 +388,9 @@ error when you try to reference `hello/routes`.
 
 The function `try-routing-for` lets us ask "What would Pedestal do?"
 with an incoming HTTP request. We gave it our table of one route, a
-magic keyword `:prefix-tree`, then the query string and HTTP verb.
+magic keyword :prefix-tree, then the query string and HTTP verb.
 
-`try-routing-for` uses the example routing table, from `hello/routes`, and the router type, `:prefix-tree`,
+`try-routing-for` uses the example routing table, from `hello/routes`, and the router type, :prefix-tree,
 to create a temporary router; it then passes the provided method (:get) and path, `/greet`,
 so see how it would be routed; if the route matches, a _routing entry_ is returned, which identifies
 what was matched, and would be used in a live Pedestal application.

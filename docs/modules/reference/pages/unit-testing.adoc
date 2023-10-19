@@ -80,7 +80,7 @@ ensures your tests are fast.
 required parameters; headers and a request body are
 optional. Let us examine those parameters in more detail.
 
-The _service function_ refers to the `:io.pedestal.http/service-fn` key
+The _service function_ refers to the :io.pedestal.http/service-fn key
 value in the service map during service initialization.
 
 The _verb_ is an HTTP method represented as a keyword (i.e., :get,

@@ -2,9 +2,9 @@
 * Reference
 ** Pedestal Architecture
 *** xref:architecture-overview.adoc[]
+*** xref:important-protocols.adoc[]
 *** xref:interceptors.adoc[]
 *** xref:chain-providers.adoc[]
-*** xref:important-protocols.adoc[]
 *** xref:error-handling.adoc[]
 
 ** HTTP Handling
@@ -20,14 +20,12 @@
 *** xref:server-sent-events.adoc[]
 
 ** Routing and Linking
-*** xref:defining-routes.adoc[]
 *** xref:routing-quick-reference.adoc[]
-** xref:using-the-builtin-routers.adoc[]
-*** Routing Syntaxes
+*** Routing Specification Syntax
 **** xref:table-syntax.adoc[]
 **** xref:terse-syntax.adoc[]
 **** xref:verbose-syntax.adoc[]
-** Routers
+*** Routers
 **** xref:map-tree-router.adoc[]
 **** xref:linear-search-router.adoc[]
 **** xref:prefix-tree-router.adoc[]

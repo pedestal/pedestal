@@ -227,7 +227,7 @@ Below is one way you might inspect and format that information.
                (map interceptor-info interceptors)))))))
 ----
 
-Let's use our new utility to print the `::service/home-page` route
+Let's use our new utility to print the ::service/home-page route
 information.
 
 [source,clojure]

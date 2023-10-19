@@ -125,7 +125,7 @@ The "handler position" be anything that satisfies the api:IntoInterceptor[ns=io.
 
 === Route Name Clause
 
-A route name clause is the keyword `:route-name` followed by a keyword. Route names must be unique.
+A route name clause is the keyword :route-name followed by a keyword. Route names must be unique.
 
 === Constraint Clause
 

@@ -23,7 +23,7 @@ URLs in requests. Any kind of request (i.e., any HTTP verb) can supply
 query parameters.
 
 Query parameters will be attached to the xref:request-map.adoc[]
-under the key `:query-params`. The value will be a map, constructed as follows:
+under the key :query-params. The value will be a map, constructed as follows:
 
 * Each query parameter name becomes a key in the map.
 * The query parameter name is URL-decoded.
@@ -59,7 +59,7 @@ Becomes the somewhat weird map:
  :user id       "99"}
 ----
 
-The odd-looking keywords `:after:page` and `:after:storyid` are legal
+The odd-looking keywords :after:page and :after:storyid are legal
 Clojure keywords, but definitely not an idiomatic usage. The keyword
 `:user id` is even more unusual. Clojure keywords can include spaces,
 but the Clojure reader cannot parse a keyword literal with spaces in
@@ -79,7 +79,7 @@ segments of the URL, in lieu of query parameters, to supply
 identifiers.
 
 Pedestal calls these "path parameters". They are parsed from the URL
-and bound to the `:path-params` map in the xref:request-map.adoc[].
+and bound to the :path-params map in the xref:request-map.adoc[].
 
 Path parameters are always named by a keyword, which is taken from the URL fragment in the route. For example:
 
@@ -122,7 +122,7 @@ according to the request's `Content-Type` header:
 | application/x-www-form-urlencoded
 | HTML form
 | Yes
-| :form-params footnote:[`:form-params` keys are automatically converted to keywords.]
+| :form-params footnote:[:form-params keys are automatically converted to keywords.]
 | Yes footnote:[Form parameter keys are not automatically converted to keywords when merged into the :params map.
                       Use the api:keywordize-params[ns=io.pedestal.http.params] interceptor
                       to convert :params keys to keywords.]
@@ -186,5 +186,5 @@ occurs before routing, so you can use the correct verbs in your
 routes.
 
 Application code can generate links with verb smuggling via the
-`:method-param` option to
+:method-param option to
 api:url-for-routes[ns=io.pedestal.http.route].

@@ -31,8 +31,8 @@ api:terminate[ns=io.pedestal.interceptor.chain].
 [WARNING]
 --
 Interceptors may also change the interceptor queue by directly changing the values
-of the `:io.pedestal.interceptor.chain/stack` and
-`:io.pedestal.interceptor.chain/queue` in the xref:context-map.adoc[].
+of the :io.pedestal.interceptor.chain/stack and
+:io.pedestal.interceptor.chain/queue in the xref:context-map.adoc[].
 This should be avoided when possible, as manipulating the stack and queue improperly
 may have unintended consequences.
 --

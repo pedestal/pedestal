@@ -108,7 +108,7 @@ and terminate the process.
 <4> This is a quick way to bounce the server.
 
 
-The key `::http/join?` does the trick. We can now run `start-dev` in
+The key ::http/join? does the trick. We can now run `start-dev` in
 our REPL sessions. Instead of waiting forever, the REPL thread now
 returns, prints the value of the server (an ugly mess!) and lets us
 continue interacting. This is how we are going to start things in dev

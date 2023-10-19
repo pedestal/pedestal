@@ -39,7 +39,7 @@ Let's start with yet another basic, "Hello World" application.
 ----
 <1> The request map isn't used here, so we follow the convention of adding a leading underscore; this may also prevent
     warnings in your IDE.
-<2> Every route must have a unique `:route-name` and since we are providing a function, `hello-handler`, it must
+<2> Every route must have a unique :route-name and since we are providing a function, `hello-handler`, it must
     be explicitly specified.
 <3> Normally, the call to `io.pedestal.http/start` doesn't return (until something else shuts down the server); adding
     `::http/join? false` is necessary for REPL-oriented development.
@@ -121,7 +121,7 @@ from one of a number of specifications (such as the table format used here) into
 Part of expansion is a rule that says that a handler that's a symbol is replaced with the evaluation of that symbol.
 That's when `org.example.hello/hello-handler` is converted from a symbol to function.
 
-Notice that we also no longer have to specify a `:route-name`; with a handler symbol, a default route name is generated
+Notice that we also no longer have to specify a :route-name; with a handler symbol, a default route name is generated
 that's a keyword version of the symbol.
 
 Now, change the function to return `"Hello, Programming World!"`, reload the namespace, and get the `/hello` URL again:

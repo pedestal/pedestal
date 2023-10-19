@@ -1,9 +1,57 @@
 = Overview
 
-This is the start of the revised, Antora-based, documentation tree.
+## What is Pedestal?
 
-TODO: Capture the core design considerations here:
+Pedestal is a set of libraries that we use to build
+services and applications. It runs in the back end and
+can serve up whole HTML pages or handle API requests.
 
-* Data first
-* Open to extensions
-* Built from re-usable pieces
+There are a lot of tools in that space, so why did we
+build Pedestal?  We had two main reasons:
+
+- *Pedestal is designed for APIs first.* Most web application frameworks
+  still focus on the "page model" and server side rendering;
+  Pedestal lets you start simple and add that only if you need it.
+
+- *Pedestal makes it easy to create _live_ applications.* Applications
+  must respond with immediate feedback even while some back-end communication goes on.
+  Pedestal makes it easy to deliver server-sent events and asynchronous updates, and supports
+  WebSocket connections.
+
+## Features
+
+### Ready for Production
+
+Pedestal works with a huge variety of containers and deployment options.
+Deploy applications or microservices on Unikernels, Docker containers, or
+as JAR files.
+
+Pedestal supports Jetty out of the box, and other containers through additional
+integrations.
+
+### Secure by Default
+
+Pedestal automatically and by default uses secure headers,
+CSRF protection, and other recommended security practices.
+It works with CORS to allow secure front end applications.
+
+
+### Streaming
+
+Pedestal lets you create dynamic applications with server-sent events and websockets. It uses Clojure's {core_async} capabilities and Java NIO.
+
+
+
+### Late Binding
+
+Routers and xref:guides:what-is-an-interceptor.adoc[interceptors] let Pedestal
+services apply different behavior for each incoming request,
+rather than statically wrapping everything up during initialization.
+
+### Composable
+
+Pedestal is built from pieces that connect via Clojure
+xref:reference:important-protocols.adoc[protocols], giving you the
+flexibility to swap out virtually any core piece of Pedestal with an implementation
+optimized and customized to your needs.
+

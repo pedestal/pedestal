@@ -12,8 +12,8 @@ tradeoff is acceptable to your service.
 
 == How to use it?
 
-Add the key `:io.pedestal.http/router` to the service map with the
-value `:linear-search`.
+Add the key :io.pedestal.http/router to the service map with the
+value :linear-search.
 
 == Caveats
 
