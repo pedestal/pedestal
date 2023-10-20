@@ -1,7 +1,7 @@
 # Terminology
 
 Understanding Pedestal comes with the challenge of unpacking a number of terms - some specific to Pedestal, others
-inherited from underlying technologies.
+inherited from the underlying technologies Pedestal extends from.
 
 interceptor::
 An xref:guides:what-is-an-interceptor.adoc[interceptor] is the basic unit of work in Pedestal, a combination of
@@ -17,7 +17,7 @@ is processing HTTP requests.
 servlet interceptor::
 A chain provider specific to handling HTTP requests from a servlet.
 
-service-map::
+service map::
 The xref:reference:service-map.adoc[] is a collection of data that is used to setup request routing and interceptors,
 and ultimately create a server.
 
@@ -29,9 +29,9 @@ handler::
 A simple function that is passed a request map and returns a response map; handlers are converted to interceptors internally.
 
 core.async::
-The {core_async} library is a Clojure extension that allows for efficient and expressive concurrent systems.
-The central artifact is a _channel_, a pipe that allows data to be conveyed between concurrently running light-weight
-processes.
+The {core_async} library is a Clojure extension that allows for efficient and expressive concurrent processing systems.
+The central artifact is a _channel_, a kind of data pipe that allows information to be conveyed between concurrently
+running light-weight processes.
 
 servlet::
 The standard Java term for a request handler - a link:https://en.wikipedia.org/wiki/Jakarta_Servlet[servlet]
@@ -60,13 +60,22 @@ and a router implementation.
 
 REPL::
 The *R*{empty}ead *E*{empty}val *P*{empty}rint *L*{empty}oop:
-reading Clojure input, evaluting it, and printing the result.
+reading Clojure input, evaluating it, and printing the result.
 Clojure excels at interactive development.
 
 context map::
 The xref:reference:context-map.adoc[] contains data about the ongoing request; a context map is passed to
 interceptors, which often return a modified copy of it. Ultimately, the incoming request map and
 response map are stored in the context map, along with much other data internal to Pedestal.
+
+request map::
+A map of data about the incoming HTTP request, including HTTP verb, URL, and parameters; this is
+all the information needed to route and process the request, and is available inside the context map.
+
+response map::
+A map of data used to construct and send the HTTP response.
+The response map is stored into the context map to trigger the sending of the response.
+
 
 SLF4J::
 The link:https://www.slf4j.org/[Simple Logging Facade for Java], a generic wrapper around several competing
