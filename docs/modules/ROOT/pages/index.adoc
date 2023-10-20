@@ -7,8 +7,8 @@ Pedestal is a set of libraries that we use to build services and applications. I
 
 There are a lot of tools in that space, so why did we build Pedestal? We had two main reasons:
 
-* Pedestal is designed for APIs first. Most web app frameworks still focus on the "page model" and server side rendering. Pedestal lets you start simple and add that if you need it.
-* Pedestal makes it easy to create "live" applications. Applications must respond with immediate feedback even while some back-end communication goes on. Pedestal makes it easy to deliver server-sent events and asynchronous updates.
+* **Pedestal is designed for APIs first.** Most web app frameworks still focus on the "page model" and server side rendering. Pedestal lets you start simple and add that if you need it.
+* **Pedestal makes it easy to create "live" applications.** Applications must respond with immediate feedback even while some back-end communication goes on. Pedestal makes it easy to deliver server-sent events and asynchronous updates.
 This is the start of the revised, Antora-based, documentation tree.
 
 ++++
