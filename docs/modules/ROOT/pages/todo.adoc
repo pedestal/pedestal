@@ -20,7 +20,6 @@ work that still needs to be done.
 
 ## Antora Technical Stuff
 
-- Maybe add another macro for linking to Clojure documentation, much like the api: macro
 - Create a custom UI theme
 
 ## xref:index.adoc[]

@@ -475,10 +475,11 @@ unmodified version of the input. The trouble with deeply nested `if`s
 is that it's too easy to get lost in the nesting.
 
 This pattern is very common, and Clojure includes macros to help.
-The slightly tricky `cond->`{empty}foonote:[That's read out loud as "cond arrow". Once you master it,
+The slightly tricky clj:cond\->[]footnote:[That's read out loud as "cond arrow". Once you master it,
 you'll really level up in Clojure skills.] macro is what we need here.
-`cond->` is similar to the usual
-threading macro `->`, but it stead of a series of expressions, it expectes  pairs of conditions and expressions; the condition is evaluated, and only if true, is the value threaded through the expression.
+`cond\->` is similar to the usual
+threading macro `\->`, but instead of a just a series of expressions, it precedes
+each expression with a condition; the condition is evaluated first, and only if true is the value threaded through the expression.
 
 In practice, it's very straight forward:
 
