@@ -15,7 +15,7 @@
 ;; end::response_partials[]
 
 ;; tag::repository[]
-(defonce database (atom {}))
+(defonce database (atom {}))                                ;; <1>
 ;; end::repository[]
 
 ;; tag::db_interceptor[]
@@ -160,14 +160,14 @@
        context))})
 
 (def routes
-    (route/expand-routes
-      #{["/todo" :post [db-interceptor list-create]]
-        ["/todo" :get echo :route-name :list-query-form]
-        ["/todo/:list-id" :get [entity-render db-interceptor list-view]]
-        ["/todo/:list-id" :post [entity-render list-item-view db-interceptor list-item-create]]
-        ["/todo/:list-id/:item-id" :get [entity-render list-item-view db-interceptor]]
-        ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
-        ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]}))
+  (route/expand-routes
+    #{["/todo" :post [db-interceptor list-create]]
+      ["/todo" :get echo :route-name :list-query-form]
+      ["/todo/:list-id" :get [entity-render db-interceptor list-view]]
+      ["/todo/:list-id" :post [entity-render list-item-view db-interceptor list-item-create]]
+      ["/todo/:list-id/:item-id" :get [entity-render list-item-view db-interceptor]]
+      ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
+      ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]}))
 ;; end::list_item_create[]
 
 ;; tag::server[]

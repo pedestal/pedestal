@@ -102,8 +102,8 @@ include::example$hello-query/src/hello.clj[tags=server]
 <1> `defonce` here means we can recompile this file in the same REPL
 without overwriting the value in this atom.
 <2> `reset!` replaces the current value in the atom with the new value.
-<3> Tell Pedestal not to wait for the server to exit. You set `join?`
-to true when running "for real" so that your main function does exit
+<3> Tell Pedestal not to wait for the server to exit. You set ::http/join?
+to true when running in production so that your main function does not exit
 and terminate the process.
 <4> This is a quick way to bounce the server.
 
@@ -428,7 +428,7 @@ include::example$hello-query/src/hello.clj[tags=greeting_with_404]
 ----
 
 Because there are now three possible conditions that can happen in
-`respond-hello`, I've changed from an `if` to a `cond`
+`respond-hello`, I've changed from an clj:if[] to clj:cond[]
 expression. `cond` uses pairs of "condition / value" clauses. So if
 `(unmentionables nm)` returns any truthy value, then `cond` returns
 `nil` and stops evaluating. If `(empty? nm)` returns true, then `cond`

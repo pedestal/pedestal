@@ -7,7 +7,7 @@ development. In the context of Pedestal applications, we often want
 to interrogate the routing system and invoke interceptors (or handlers)
 in isolation. These explorations often form the basis for more robust
 automated tests, which will be covered in the
-xref:reference:unit-testing.adoc[] reference.
+xref:unit-testing.adoc[] guide.
 
 == What You Will Learn
 
@@ -41,12 +41,7 @@ https://lambdaisland.com/guides/clojure-repls[Ultimate Guide to Clojure REPLs].
 
 == Getting Help if You're Stuck
 
-We'll take this in small steps. If you get stuck at any point in this
-guide, please submit an {repo_root}-docs/issues[issue]
-about this guide or hop over to the
-https://groups.google.com/forum/#!forum/pedestal-users[mailing list]
-and raise your hand there. You can also try the #pedestal channel in
-the http://clojurians.net/[Clojurians] Slack team.
+include::partial$getting-help.adoc
 
 == Before We Begin
 
@@ -254,7 +249,7 @@ the structure of your application's output.
 
 It's not even necessary to start a server to see responses of your Pedestal service.
 
-Pedestal ships with a `response-for` function that will return the response of an
+Pedestal ships with a api:response-for[ns=io.pedestal.test] function that will return the response of an
 endpoint, exactly how it's passed to the Servlet/Chain-Provider.
 
 Let's jump into the REPL:
@@ -267,7 +262,7 @@ pedrepl.server> (def tempserv (::server/service-fn (server/create-servlet servic
 pedrepl.server> (response-for tempserv :get "/")
 ----
 
-You can also use the same response-for function to test against a live server.
+You can also use the same `response-for` function to test against a live server.
 Assuming you still have a running server from above (e.g. `(def serv (run-dev))`),
 You can do the following:
 
@@ -280,7 +275,7 @@ pedrepl.server> (response-for (::server/service-fn serv) :get "/")
 
 One of Pedestal's benefits is that its routing table is bidirectional.
 Not only does Pedestal use the route definition to recognize routes
-based on request data, but it can also generate urls to known route
+based on request data, but it can also generate URLs to known route
 handlers. Let's take a closer look at both of these capabilities in turn.
 
 === Route Recognition
@@ -328,9 +323,8 @@ pedrepl.server> (recognize-route :get "/about")
 === Route Generation
 
 When we generate urls during the lifetime of a request, we can simply
-use Pedestal's `url-for` function which is defined in the
-`io.pedestal.http.route` namespace. However, this function relies on
-the *url-for* variable which is dynamically bound during the life of a
+use Pedestal's api:url-for[ns=io.pedestal.http.route] function.
+However, this function relies on the *url-for* variable which is dynamically bound during the life of a
 request. In order to test URL generation from the REPL, we'll define
 the following utility:
 
@@ -358,14 +352,9 @@ pedrepl.server> (dev-url-for ::service/about-page :absolute? true)
 => "http://localhost:8080/about"
 ----
 
-The `url-for` function accepts a number of useful options. See the
-http://pedestal.io/api/io.pedestal.http.route.html#var-url-for-routes[API
-documentation] for full details.
-
 == Useful Techniques
 
 * Capture request
-
 
 == Connecting to a Running Application
 
@@ -373,7 +362,7 @@ documentation] for full details.
 
 In this guide we learned how to explore our Pedestal application from
 the REPL. Some of these explorations may serve as the basis for unit
-tests. Head over to the link:unit-testing[Unit Testing] guide to learn how to
+tests. Head over to the xref:unit-testing.adoc[] guide to learn how to
 test the complete interceptor chain for a given route and much more.
 
 Alternatively, you may want to learn to manage your applications stateful

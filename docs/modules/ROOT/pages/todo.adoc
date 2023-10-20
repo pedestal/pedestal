@@ -62,7 +62,7 @@ work that still needs to be done.
 
 - Pretty of date, should reference page on using snapshots, etc.
 
-xref:terms.adoc[]
+## xref:terms.adoc[]
 
 - Alphabetize the entries
 

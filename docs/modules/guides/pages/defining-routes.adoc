@@ -84,7 +84,7 @@ independent.
 compose it with regular functions. No more syntax-quoting to
 create interceptors with parameters.
 
-The "terse" and "verbose" syntaxes are both still supported, until we
+The "terse" and "verbose" syntax are both still supported, until we
 hear from the community. We've also put some effort into better error
 messages when dealing with the terse format.
 
@@ -324,7 +324,7 @@ What happens after such a rejection depends on which router is being used.
 
 | Prefix tree | Abort and return a 404 response
 | Map tree    | Abort and return a 404 response
-| Linear search | Continue searching remaining routes
+| Linear search | Continue searching the remaining routes
 |===
 
 [WARNING]

@@ -26,5 +26,5 @@
 ;; end::app[]
 
 ;; tag::init[]
-(set-init (fn [_old-system] (new-system :prod)))                  ;; <1>
+(set-init (fn [old-system] (new-system :prod)))
 ;; end::init[]

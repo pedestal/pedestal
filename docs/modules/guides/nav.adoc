@@ -9,6 +9,7 @@
 ** xref:developing-at-the-repl.adoc[]
 ** xref:live-repl.adoc[]
 ** xref:pedestal-with-component.adoc[]
+** xref:unit-testing.adoc[]
 ** xref:async.adoc[]
 ** xref:sse.adoc[]
 ** xref:war-deployment.adoc[]

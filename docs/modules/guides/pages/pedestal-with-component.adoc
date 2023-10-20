@@ -220,20 +220,16 @@ that dependency with `component/using`.
 The next step sets up the use of the
 link:https://github.com/stuartsierra/component.repl[component.repl] library.
 
----
+[source,clojure]
 include::example$component/src/system.clj[tags=init]
----
 
 The `set-init` function stores a function that is used to start (or restart) the system.
 When `start` or `reset` is invoked, this function is passed the old system (or nil if there is no old system),
 and the function returns the new, but unstarted, system.
 
-Our code doesn't care about the old system, so we use the name `\_old-system` for the parameter; the leading
-underscore ensures that any linter will not emit a warning about an unused variable. In the wild, you will often
-just see `_` as a parameter name in this case.
-
 
 == Running It
+
 We'll use `clj` tool to run our
 example. This should be familiar to you if you read through the
 link:hello-world[Hello World] guide.

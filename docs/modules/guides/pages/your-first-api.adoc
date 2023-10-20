@@ -165,7 +165,7 @@ user=>
 
 Let's try out the routes that we defined in the `main`
 namespace. We'll do that using
-api:io.pedestal.test/response-for[ns=io.pedestal.test]. This
+api:response-for[ns=io.pedestal.test]. This
 function exercises our server without going through any actual HTTP
 requests.
 
@@ -294,6 +294,8 @@ repository:
 ----
 include::example$todo-api/src/main.clj[tag=repository]
 ----
+<1> Using clj:defonce[] here ensures that the value, the database atom, will survive when we reload
+the namespace.
 
 And the interceptor to snapshot the database and handle transactions:
 

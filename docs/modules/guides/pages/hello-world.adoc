@@ -153,7 +153,7 @@ Speaking of the stuff we require, what is `io.pedestal.http` and
 `io.pedestal.http.route`? Those are each namespaces from Pedestal
 libraries. The
 api:io.pedestal.http[ns=io.pedestal.http]
-namespace has functions that let you connect with HTTP servers, handle
+namespace has functions that let you set up HTTP servers, handle
 requests, and send responses. The
 api:io.pedestal.http.route[ns=io.pedestal.http.route]
 namespace actually comes from a library dedicated to routing
@@ -352,7 +352,7 @@ include::example$hello/src/hello.clj[tags=routing]
 ----
 <1> We specify routes in a short notation, but they must be expanded and turned into a Router for use.
 <2> This is the "table syntax". There are xref:reference:routing-quick-reference.adoc[several formats]
-that can be passed to `expand-routes`.
+that can be passed to api:expand-routes[ns=io.pedestal.html.route].
 
 This routing table is a single route; the route matches:
 
@@ -384,7 +384,7 @@ code from `hello.clj`. That's what the :reload keyword does in the
 `require` call. Without that, you'll get a "cannot resolve symbol"
 error when you try to reference `hello/routes`.
 
-The function `try-routing-for` lets us ask "What would Pedestal do?"
+The function api:try-routing-for[ns=io.pedestal.http.route] lets us ask "What would Pedestal do?"
 with an incoming HTTP request. We gave it our table of one route, a
 magic keyword :prefix-tree, then the query string and HTTP verb.
 
