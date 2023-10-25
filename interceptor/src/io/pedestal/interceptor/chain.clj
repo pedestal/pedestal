@@ -25,6 +25,9 @@
 
 (defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
 
+(defn- needed-on-stack? [interceptor]
+  (or (:leave interceptor) (:error interceptor)))
+
 ;; This is used for printing out interceptors within debug messages
 (defn- name [interceptor]
   (get interceptor :name (pr-str interceptor)))
@@ -33,13 +36,13 @@
   (let [iname (name interceptor)
         throwable-str (pr-str (type t))]
     (ex-info (str throwable-str " in Interceptor " iname " - " (.getMessage t))
-           (merge {:execution-id execution-id
-                   :stage stage
-                   :interceptor iname
-                   :exception-type (keyword throwable-str)
-                   :exception t}
-                  (ex-data t))
-           t)))
+             (merge {:execution-id execution-id
+                     :stage stage
+                     :interceptor iname
+                     :exception-type (keyword throwable-str)
+                     :exception t}
+                    (ex-data t))
+             t)))
 
 (defn- try-f
   "If f is not nil, invokes it on context. If f throws an exception,
@@ -134,50 +137,48 @@
      (if-let [new-context (<! context-channel)]
        (execute-only new-context interceptor-key)
        (execute-only (assoc (dissoc old-context ::queue ::async-info)
-                       ::stack (get-in old-context [::async-info :stack])
-                       ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                                        {:execution-id (::execution-id old-context)
-                                         :stage (get-in old-context [::async-info :stage])
-                                         :interceptor (name (get-in old-context [::async-info :interceptor]))
-                                         :exception-type :PedestalChainAsyncPrematureClose}))
+                            ::stack (get-in old-context [::async-info :stack])
+                            ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                                             {:execution-id (::execution-id old-context)
+                                              :stage (get-in old-context [::async-info :stage])
+                                              :interceptor (name (get-in old-context [::async-info :interceptor]))
+                                              :exception-type :PedestalChainAsyncPrematureClose}))
                      interceptor-key)))
    nil))
 
 (defn- process-all-with-binding
-  "Invokes `interceptor-key` functions of all Interceptors on the execution
+  "Invokes `interceptor-key` (:enter or :leave)  functions of all Interceptors on the execution
   ::queue of context, saves them on the ::stack of context.
   Returns updated context.
   By default, `interceptor-key` is :enter"
   ([context]
    (process-all-with-binding context :enter))
   ([context interceptor-key]
-  (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
+   (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
    (loop [context (check-terminators context)]
-    (let [queue (::queue context)
-          stack (::stack context)
-          execution-id (::execution-id context)]
-      (log/trace :context context)
-      (if (empty? queue)
-        context
-        (let [interceptor (peek queue)
-              pre-bindings (:bindings context)
-              old-context context
-              new-queue (pop queue)
-              ;; conj on nil returns a list, acts like a stack:
-              new-stack (conj stack interceptor)
-              context (-> context
-                          (assoc ::queue new-queue
-                                 ::stack new-stack)
-                          (try-f interceptor interceptor-key))]
-          (cond
-            (channel? context) (go-async (assoc old-context
-                                                ::async-info {:interceptor interceptor
-                                                              :stage interceptor-key
-                                                              :stack new-stack})
-                                         context)
-            (::error context) (dissoc context ::queue)
-            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-            true (recur (check-terminators context)))))))))
+     (let [queue (::queue context)]
+       (log/trace :context context)
+       (if (empty? queue)
+         context
+         (let [interceptor (peek queue)
+               pre-bindings (:bindings context)
+               new-queue (pop queue)
+               prepped-context (cond-> (assoc context ::queue new-queue)
+                                 ;; conj on nil returns a list, acts like a stack:
+                                 (needed-on-stack? interceptor) (update ::stack conj interceptor))
+               ;; Let the interceptor operate
+               context' (try-f prepped-context interceptor interceptor-key)]
+           (cond
+             (channel? context') (go-async (assoc context
+                                                  ::async-info {:interceptor interceptor
+                                                                :stage interceptor-key
+                                                                :stack (::stack prepped-context)})
+                                           context')
+             (::error context') (dissoc context' ::queue)
+             ;; When bindings change, have to pop-out of the most recent `binding` block to establish
+             ;; the new bindings.
+             (not= (:bindings context') pre-bindings) (assoc context' ::rebind true)
+             true (recur (check-terminators context')))))))))
 
 (defn- process-all
   [context interceptor-key]
@@ -209,9 +210,9 @@
                         (try-error context interceptor)
                         context)]
           (cond
-           (channel? context) (go-async old-context context)
-           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-           true (recur context)))))))
+            (channel? context) (go-async old-context context)
+            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+            true (recur context)))))))
 
 (defn- process-any-errors
   "Establish the bindings present in `context` as thread local
@@ -223,8 +224,8 @@
                                    {})
                   (process-any-errors-with-binding context))]
     (if (::rebind context)
-        (recur (dissoc context ::rebind))
-        context)))
+      (recur (dissoc context ::rebind))
+      context)))
 
 (defn- enter-all
   "Establish the bindings present in `context` as thread local
@@ -253,9 +254,9 @@
                         (try-error context interceptor)
                         (try-f context interceptor :leave))]
           (cond
-           (channel? context) (go-async old-context context)
-           (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-           true (recur context)))))))
+            (channel? context) (go-async old-context context)
+            (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
+            true (recur context)))))))
 
 (defn- leave-all
   "Establish the bindings present in `context` as thread local
@@ -267,8 +268,8 @@
                                    {})
                   (leave-all-with-binding context))]
     (if (::rebind context)
-        (recur (dissoc context ::rebind))
-        context)))
+      (recur (dissoc context ::rebind))
+      context)))
 
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates

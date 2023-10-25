@@ -55,8 +55,7 @@
   (c/with-progress-reporting
     (c/bench
       (do (response-for service-fn :get "/fail")
-          nil)
-      ))
+          nil)))
   )
 
 ;; Results
@@ -64,3 +63,8 @@
 ;; Baseline:
 ;; /echo    94.08 µs
 ;; /fail    149.7 µs
+
+;; Simple opts (only push to stack if :leave or :error)
+
+;; /echo  89.3 µs
+;; /fail  141.8 µs
