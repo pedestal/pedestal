@@ -1,7 +1,6 @@
 = What is Pedestal?
-:page-layout: home
 
-image::animated-front-page-sample.gif[float="right"]
+image::animated-front-page-sample.gif[float="right",width=300]
 
 Pedestal is a set of libraries that we use to build services and applications. It runs in the back end and can serve up whole HTML pages or handle API requests.
 
