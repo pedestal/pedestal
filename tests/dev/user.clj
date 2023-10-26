@@ -15,4 +15,5 @@
 
 
   (trace/set-enable-trace! true)
+  (trace/set-compile-trace! false)
   )

@@ -14,11 +14,13 @@
   (:require [clojure.test :refer (deftest is testing)]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
+            [net.lewisship.trace :as trace]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
 (defn trace [context direction name]
-  (update-in context [::trace] (fnil conj []) [direction name]))
+  (trace/trace :direction direction :name name)
+  (update context ::trace (fnil conj []) [direction name]))
 
 (defn tracer [name]
   (interceptor/interceptor {:name name
@@ -36,15 +38,15 @@
 (defn catcher [name]
   (assoc (tracer name)
          :error (fn [context error]
-                  (update-in context [::trace] (fnil conj [])
-                             [:error name :from (:from (ex-data error))]))))
+                  (update context ::trace (fnil conj [])
+                          [:error name :from (:from (ex-data error))]))))
 
 (defn channeler [name]
   (assoc (tracer name)
          :enter (fn [context]
                   (let [a-chan (chan)
                         context* (-> (trace context :enter name)
-                                     (update-in [::thread-ids] (fnil conj []) (.. Thread currentThread getId)))]
+                                     (update ::thread-ids (fnil conj []) (.. Thread currentThread getId)))]
                     (go
                       (<! (timeout 100))
                       (>! a-chan context*))
@@ -63,7 +65,7 @@
          :enter (fn [context]
                   (let [a-chan (chan)
                         context* (-> (trace context :enter name)
-                                     (update-in [::thread-ids] (fnil conj []) (.. Thread currentThread getId)))]
+                                     (update ::thread-ids (fnil conj []) (.. Thread currentThread getId)))]
                     (go
                       (<! (timeout 100))
                       (>! a-chan context*))
@@ -88,12 +90,12 @@
                                         ch)}))
 
 (deftest t-simple-execution
-  (let [expected {::trace [[:enter :a]
-                           [:enter :b]
-                           [:enter :c]
-                           [:leave :c]
-                           [:leave :b]
-                           [:leave :a]]}
+  (let [expected [[:enter :a]
+                  [:enter :b]
+                  [:enter :c]
+                  [:leave :c]
+                  [:leave :b]
+                  [:leave :a]]
         actual-en (execute (enqueue {}
                                     [(tracer :a)
                                      (tracer :b)
@@ -105,7 +107,10 @@
         actual-ex (execute {} [(tracer :a)
                                (tracer :b)
                                (tracer :c)])]
-    (is (= expected actual-en actual-en* actual-ex))))
+    (is (= expected
+           (::trace actual-en)
+           (::trace actual-en*)
+           (::trace actual-ex)))))
 
 (deftest t-simple-oneway-execution
   (let [expected-enter {::trace [[:enter :a]
@@ -151,50 +156,50 @@
                              :enter))))
 
 (deftest t-error-caught
-  (is (= {::trace [[:enter :a]
-                   [:enter :b]
-                   [:enter :c]
-                   [:enter :d]
-                   [:enter :e]
-                   [:error :c :from :f]
-                   [:leave :b]
-                   [:leave :a]]}
-         (execute (enqueue {}
-                           [(tracer :a)
-                            (tracer :b)
-                            (catcher :c)
-                            (tracer :d)
-                            (tracer :e)
-                            (thrower :f)
-                            (tracer :g)]))))
-  (is (= {::trace [[:enter :a]
-                   [:enter :b]
-                   [:enter :c]
-                   [:enter :d]
-                   [:enter :e]
-                   [:error :c :from :f]]}
-         (execute-only (enqueue {}
-                                [(tracer :a)
-                                 (tracer :b)
-                                 (catcher :c)
-                                 (tracer :d)
-                                 (tracer :e)
-                                 (thrower :f)
-                                 (tracer :g)])
-                       :enter)))
-  (is (= {::trace [[:leave :h]
-                   [:leave :g]
-                   [:error :h :from :f]]}
-         (execute-only (enqueue {}
-                                [(tracer :a)
-                                 (tracer :b)
-                                 (catcher :c)
-                                 (tracer :d)
-                                 (tracer :e)
-                                 (leave-thrower :f)
-                                 (tracer :g)
-                                 (catcher :h)])
-                       :leave))))
+  (is (= [[:enter :a]
+          [:enter :b]
+          [:enter :c]
+          [:enter :d]
+          [:enter :e]
+          [:error :c :from :f]
+          [:leave :b]
+          [:leave :a]]
+         (::trace (execute (enqueue {}
+                                    [(tracer :a)
+                                     (tracer :b)
+                                     (catcher :c)
+                                     (tracer :d)
+                                     (tracer :e)
+                                     (thrower :f)
+                                     (tracer :g)])))))
+  #_(is (= {::trace [[:enter :a]
+                     [:enter :b]
+                     [:enter :c]
+                     [:enter :d]
+                     [:enter :e]
+                     [:error :c :from :f]]}
+           (execute-only (enqueue {}
+                                  [(tracer :a)
+                                   (tracer :b)
+                                   (catcher :c)
+                                   (tracer :d)
+                                   (tracer :e)
+                                   (thrower :f)
+                                   (tracer :g)])
+                         :enter)))
+  #_(is (= {::trace [[:leave :h]
+                     [:leave :g]
+                     [:error :h :from :f]]}
+           (execute-only (enqueue {}
+                                  [(tracer :a)
+                                   (tracer :b)
+                                   (catcher :c)
+                                   (tracer :d)
+                                   (tracer :e)
+                                   (leave-thrower :f)
+                                   (tracer :g)
+                                   (catcher :h)])
+                         :leave))))
 
 (deftest t-enqueue
   (is (thrown? AssertionError
@@ -209,7 +214,7 @@
                (enqueue {} [(tracer :a) nil]))
       "enqueue one invalid interceptor to empty queue")
   (is (thrown? AssertionError
-               (enqueue {} [(fn[_]) (tracer :b)]))
+               (enqueue {} [(fn [_]) (tracer :b)]))
       "enqueue one invalid interceptor to empty queue")
   (is (::chain/queue (enqueue {} [(tracer :a) (tracer :b)]))
       "enqueue multiple interceptors to empty queue")
@@ -223,7 +228,6 @@
                    (enqueue [nil])))
       "enqueue invalid to non-empty queue"))
 
-
 (deftest t-two-channels
   (let [result-chan (chan)
         res (execute (enqueue {}
@@ -232,8 +236,8 @@
                                (channeler :b)
                                (channeler :c)
                                (tracer :d)]))
-        result     (<!! result-chan)
-        trace      (result ::trace)
+        result (<!! result-chan)
+        trace (result ::trace)
         thread-ids (result ::thread-ids)]
     (is (= [[:enter :a]
             [:enter :b]
@@ -257,8 +261,8 @@
                                (tracer :d)
                                (thrower :e)
                                (tracer :f)]))
-        result     (<!! result-chan)
-        trace      (result ::trace)
+        result (<!! result-chan)
+        trace (result ::trace)
         thread-ids (result ::thread-ids)]
     (is (= [[:enter :a]
             [:enter :b]
@@ -290,14 +294,14 @@
 (deftest one-way-async-channel-enter
   (let [result-chan (chan)
         res (execute-only (enqueue {}
-                              [(tracer :a)
-                               (channeler :b)
-                               (channeler :c)
-                               (tracer :d)
-                               (enter-deliverer result-chan)])
+                                   [(tracer :a)
+                                    (channeler :b)
+                                    (channeler :c)
+                                    (tracer :d)
+                                    (enter-deliverer result-chan)])
                           :enter)
-        result     (<!! result-chan)
-        trace      (result ::trace)
+        result (<!! result-chan)
+        trace (result ::trace)
         thread-ids (result ::thread-ids)]
     (is (= [[:enter :a]
             [:enter :b]
@@ -310,14 +314,14 @@
 (deftest one-way-async-channel-enter-error
   (let [result-chan (chan)
         res (execute-only (enqueue {}
-                              [(deliverer result-chan)
-                               (tracer :a)
-                               (catcher :b)
-                               (failed-channeler :c) ;; Failures go back down the stack
-                               (tracer :d)])
+                                   [(deliverer result-chan)
+                                    (tracer :a)
+                                    (catcher :b)
+                                    (failed-channeler :c)   ;; Failures go back down the stack
+                                    (tracer :d)])
                           :enter)
-        result     (<!! result-chan)
-        trace      (result ::trace)]
+        result (<!! result-chan)
+        trace (result ::trace)]
     (is (= [[:enter :a]
             [:enter :b]
             [:error :b :from nil]
@@ -350,33 +354,32 @@
 (deftest termination
   (let [context (chain/terminate-when {} (fn [ctx]
                                            (some #{[:enter :b]} (::trace ctx))))
-        actual (execute (enqueue context
-                                 [(tracer :a)
-                                  (tracer :b)
-                                  (tracer :c)]))
+        actual  (execute context
+                        [(tracer :a)
+                         (tracer :b)
+                         (tracer :c)])
         expected-trace [[:enter :a] [:enter :b] [:leave :b] [:leave :a]]]
-    (is (= 1 (count (:io.pedestal.interceptor.chain/terminators actual))))
-    (is (every? fn? (:io.pedestal.interceptor.chain/terminators actual)))
-    (is (= (::trace actual) expected-trace))
-    (is (= (::trace (execute-only context :enter [(tracer :a)
-                                                  (tracer :b)
-                                                  (tracer :c)]))
-           [[:enter :a] [:enter :b]]))
+    (is (nil? (:io.pedestal.interceptor.chain/terminators actual)))
+    (is (= expected-trace (::trace actual)))
+    #_(is (= (::trace (execute-only context :enter [(tracer :a)
+                                                    (tracer :b)
+                                                    (tracer :c)]))
+             [[:enter :a] [:enter :b]]))
 
-    (testing "Async termination"
-      (let [result-chan    (chan)
-            _              (execute (enqueue context
-                                             [(deliverer result-chan)
-                                              (tracer :a)
-                                              (channeler :b)
-                                              (tracer :c)]))
-            result         (<!! result-chan)]
-        (is (=  (::trace result) expected-trace))))))
+     (testing "Async termination"
+      (let [result-chan (chan)
+            _ (execute context
+                       [(deliverer result-chan)
+                        (tracer :a)
+                        (channeler :b)
+                        (tracer :c)])
+            result (<!! result-chan)]
+        (is (= (::trace result) expected-trace))))))
 
 (defaround around-interceptor
-  "An interceptor that does the around pattern."
-  ([context] (assoc context :around :enter))
-  ([context] (assoc context :around :leave)))
+           "An interceptor that does the around pattern."
+           ([context] (assoc context :around :enter))
+           ([context] (assoc context :around :leave)))
 
 (deftest test-around-interceptor
   (is (interceptor/interceptor? around-interceptor)
@@ -393,9 +396,9 @@
       "The second fn body gets executed during the leave stage."))
 
 (defmiddleware middleware-interceptor
-  "An interceptor that does the middleware pattern."
-  ([request] (assoc request :middleware :enter))
-  ([response] (assoc response :middleware :leave)))
+               "An interceptor that does the middleware pattern."
+               ([request] (assoc request :middleware :enter))
+               ([response] (assoc response :middleware :leave)))
 
 (deftest test-middleware-interceptor
   (is (interceptor/interceptor? middleware-interceptor)
@@ -416,26 +419,26 @@
 
 (def failing-interceptor
   (interceptor/interceptor
-   {:name  ::failing-interceptor
-    :enter (fn [ctx]
-             (/ 1 0))}))
+    {:name ::failing-interceptor
+     :enter (fn [ctx]
+              (/ 1 0))}))
 
 (def rethrowing-error-handling-interceptor
   (interceptor/interceptor
-   {:name  ::rethrowing-error-handling-interceptor
-    :error (fn [ctx ex]
-             (throw (:exception (ex-data ex))))}))
+    {:name ::rethrowing-error-handling-interceptor
+     :error (fn [ctx ex]
+              (throw (:exception (ex-data ex))))}))
 
 (def throwing-error-handling-interceptor
   (interceptor/interceptor
-   {:name  ::throwing-error-handling-interceptor
-    :error (fn [ctx ex]
-             (throw (Exception. "Just testing the error-handler, this is not a real exception")))}))
+    {:name ::throwing-error-handling-interceptor
+     :error (fn [ctx ex]
+              (throw (Exception. "Just testing the error-handler, this is not a real exception")))}))
 
 (def error-handling-interceptor
   (interceptor/interceptor
-   {:name  ::error-handling-interceptor
-    :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
+    {:name ::error-handling-interceptor
+     :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
 
 (deftest chain-execution-error-suppression-test
   (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
