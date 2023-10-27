@@ -12,7 +12,6 @@
 
 (ns io.pedestal.interceptor-test
   (:require [clojure.core.async :as async]
-            [clojure.core.matrix :as m]
             [clojure.test :refer (deftest is testing)]
             [io.pedestal.internal :as i]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
@@ -42,16 +41,17 @@
                   (update context ::trace i/vec-conj
                           [:error name :from (:from (ex-data error))]))))
 
+(defn channel-callback [stage name]
+  (fn [context]
+    (let [context* (-> (trace context stage name)
+                       (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
+      (go
+        (<! (timeout 100))
+        context*))))
+
 (defn channeler [name]
   (assoc (tracer name)
-         :enter (fn [context]
-                  (let [a-chan (chan)
-                        context* (-> (trace context :enter name)
-                                     (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
-                    (go
-                      (<! (timeout 100))
-                      (>! a-chan context*))
-                    a-chan))))
+         :enter (channel-callback :enter name)))
 
 (defn failed-channeler [name]
   (assoc (tracer name)
@@ -63,27 +63,19 @@
 
 (defn two-channeler [name]
   (assoc (tracer name)
-         :enter (fn [context]
-                  (let [a-chan (chan)
-                        context* (-> (trace context :enter name)
-                                     (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
-                    (go
-                      (<! (timeout 100))
-                      (>! a-chan context*))
-                    a-chan))
-         :leave (fn [context]
-                  (let [a-chan (chan)
-                        context* (-> (trace context :leave name)
-                                     (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
-                    (go
-                      (<! (timeout 100))
-                      (>! a-chan context*))
-                    a-chan))))
+         :enter (channel-callback :enter name)
+         :leave (channel-callback :leave name)))
 
 (defn deliverer [ch]
   (interceptor/interceptor {:name ::deliverer
                             :leave #(do (>!! ch %)
                                         ch)}))
+
+(defn error-deliverer [ch]
+  (interceptor/interceptor {:name :error-deliverer
+                            :error (fn [context _]
+                                     (>!! ch context)
+                                     context)}))
 
 (defn enter-deliverer [ch]
   (interceptor/interceptor {:name ::deliverer
@@ -326,46 +318,31 @@
     (is (= 2
            (-> thread-ids distinct count)))))
 
-#_(deftest one-way-async-channel-enter-error
-    (let [result-chan (chan)
-          res (execute-only (enqueue {}
-                                     [(deliverer result-chan)
-                                      (tracer :a)
-                                      (catcher :b)
-                                      (failed-channeler :c) ;; Failures go back down the stack
-                                      (tracer :d)])
-                            :enter)
-          result (<!! result-chan)
-          trace (result ::trace)]
-      (is (= [[:enter :a]
-              [:enter :b]
-              [:error :b :from nil]
-              [:leave :a]]
-             trace))))
-
 ;; TODO: While `go-async` supports directions, it isn't currently used when
 ;;       executing leave.  `enter` behaves as expected, because of the
 ;;       queue/stack handling.
 ;; UPDATED: Look into enabling this as 0.7 processing is more uniform r.e. :enter vs. :leave
-;(deftest one-way-async-channel-leave
-;  (let [result-chan (chan)
-;        res (execute-only (enqueue {}
-;                              [(deliverer result-chan)
-;                               (tracer :a)
-;                               (two-channeler :b)
-;                               (two-channeler :c)
-;                               (tracer :d)])
-;                          :leave)
-;        result     (<!! result-chan)
-;        trace      (result ::trace)
-;        thread-ids (result ::thread-ids)]
-;    (is (= [[:leave :d]
-;            [:leave :c]
-;            [:leave :b]
-;            [:leave :a]]
-;           trace))
-;    (is (= 2
-;           (-> thread-ids distinct count)))))
+(deftest one-way-async-channel-leave
+  (let [result-chan (chan)
+        _ (execute-only (enqueue {}
+                                 ;; In 0.7, must supply these in execution order
+                                 ;; (in 0.6, you could specify them in inverse order at execute would
+                                 ;; reverse them).
+                                 [(tracer :d)
+                                  (two-channeler :c)
+                                  (two-channeler :b)
+                                  (tracer :a)
+                                  (deliverer result-chan)])
+                        :leave)
+        result (<!!! result-chan)
+        thread-ids (result ::thread-ids)]
+    (is (match? {::trace [[:leave :d]
+                          [:leave :c]
+                          [:leave :b]
+                          [:leave :a]]}
+                result))
+    (is (= 2
+           (-> thread-ids distinct count)))))
 
 (deftest termination
   (let [context (chain/terminate-when {} (fn [ctx]

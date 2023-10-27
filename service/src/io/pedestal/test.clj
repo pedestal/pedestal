@@ -175,7 +175,7 @@
                  (getStatus [this] @status-val)
                  (getBufferSize [this] 1500)
                  (setHeader [this header value] (swap! headers-map update :set-header assoc header value))
-                 (addHeader [this header value] (swap! headers-map update :added-headers conj value))
+                 (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
                  (setContentLengthLong [this content-length] (swap! headers-map assoc :content-length content-length))
