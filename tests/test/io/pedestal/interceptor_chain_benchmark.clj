@@ -73,3 +73,8 @@
 
 ;; /echo 53.8 µs
 ;; /fail 90.3 µs
+
+;; Some further, minor optimizations:
+
+;; /echo 52.6 µs
+;; /fail 90.8 µs
