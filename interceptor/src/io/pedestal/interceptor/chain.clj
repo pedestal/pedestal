@@ -16,7 +16,6 @@
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
   (:require [clojure.core.async :as async :refer [<! go]]
-            [net.lewisship.trace :refer [trace]]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong
@@ -56,7 +55,6 @@
                       :stage stage
                       :execution-id execution-id
                       :fn f)
-           (trace :interceptor (:name interceptor) :stage stage)
            (f context)
            (catch Throwable t
              (log/debug :throw t :execution-id execution-id)
@@ -77,7 +75,6 @@
         (log/debug :interceptor (name interceptor)
                    :stage :error
                    :execution-id execution-id)
-        (trace :interceptor (:name interceptor))
         (try (error-fn (dissoc context ::error) ex)
              (catch Throwable t
                (if (identical? (type t) (-> ex ex-data :exception type))
@@ -198,6 +195,10 @@
   [context stack]
   (-> context
       (flip-stack-into-queue stack)
+      ;; terminators exist to prematurely transition into the leave stage;
+      ;; if left around, they will trigger again, and prevent all :leave terminators
+      ;; from being invoked.
+      (dissoc ::terminators)
       (assoc ::stage :leave)))
 
 (defn- handle-async
@@ -245,16 +246,25 @@
   "Invokes interceptors in the queue."
   [context]
   ;; The stage will be either :enter or :leave (errors are handled specially)
-  (let [{::keys [stage execute-single? continuation]
+  (let [{::keys [stage execute-single? continuation execution-id]
          entry-bindings :bindings} context
         enter? (= :enter stage)]
     (log/debug :in 'invoke-interceptors
                :handling stage
-               :execution-id (::execution-id context))
+               :execution-id execution-id)
     (loop [{::keys [resolving-error? error]
             :as loop-context} (dissoc context ::continuation)
            queue-index (:queue-index continuation 0)
            stack (:stack continuation)]
+      (log/trace :in 'invoke-interceptors
+                 :stage stage
+                 :execution-id execution-id
+                 :context-keys (-> loop-context keys sort vec)
+                 :stack (mapv name stack)
+                 :queue (->> loop-context ::queue (drop queue-index) (mapv name))
+                 :resolving-error? resolving-error?
+                 :error? (contains? loop-context ::error)
+                 :bindings-mismatch? (not= entry-bindings (:bindings loop-context)))
       ;; Handle the results of the prior interceptor invocation (whether we get here by a direct recur,
       ;; or indirectly through the async machinery).
       (cond
@@ -294,14 +304,6 @@
 
         :else
         (do
-          (log/trace :in 'invoke-interceptors
-                     :stage stage
-                     :context loop-context
-                     :queue-index queue-index
-                     :stack stack)
-          (trace :stage stage
-                 :stack (mapv :name stack)
-                 :queue (mapv :name (->> loop-context ::queue (drop queue-index))))
           (let [initial-context (check-terminators loop-context)
                 interceptor (next-interceptor initial-context queue-index)]
             (if-not interceptor
