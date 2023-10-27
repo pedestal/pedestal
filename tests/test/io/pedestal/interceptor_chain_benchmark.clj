@@ -68,3 +68,8 @@
 
 ;; /echo  89.3 µs
 ;; /fail  141.8 µs
+
+;; After interceptor.chain rewrite:
+
+;; /echo 53.8 µs
+;; /fail 90.3 µs

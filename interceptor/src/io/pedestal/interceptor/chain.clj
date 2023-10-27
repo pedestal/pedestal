@@ -328,7 +328,7 @@
 
   The supplied function is appended to the list of such functions.
   All the functions are invoked, but only invoked once (a subsequent interceptor
-  also returning a channel does not have this side-ffect.
+  also returning a channel does not have this side effect.
 
   The functions are passed the context, but any returned value is ignored."
   {:since "0.7.0"}
