@@ -202,7 +202,7 @@
              ;                                                 :servlet-request servlet-request
              ;                                                 :servlet-response servlet-response})
              )
-      (interceptor.chain/enter-async start-servlet-async)))
+      (interceptor.chain/on-enter-async start-servlet-async)))
 
 (defn- leave-stylobate
   [{:keys [^HttpServletRequest servlet-request] :as context}]

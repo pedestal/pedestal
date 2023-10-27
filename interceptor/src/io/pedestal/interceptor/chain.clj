@@ -320,9 +320,9 @@
   after every Interceptor's :enter function. If pred returns logical
   true, execution will stop at that Interceptor."
   [context pred]
-  (update  context ::terminators i/vec-conj pred))
+  (update context ::terminators i/vec-conj pred))
 
-(defn enter-async
+(defn on-enter-async
   "Adds a callback function to be executed if the execution goes async, which occurs
   when an interceptor returns a channel rather than a context map.
 
@@ -334,6 +334,19 @@
   {:since "0.7.0"}
   [context f]
   (update context ::enter-async i/vec-conj f))
+
+(defmacro bind
+  "Updates the context to add a binding of the given var and value  Bound values
+  will be available in subsequent interceptors."
+  {:since "0.7.0"}
+  [context var value]
+  `(update ~context :bindings assoc (var ~var) ~value))
+
+(defmacro unbind
+  "Unbinds var previously bound with [[bind]]."
+  {:since "0.7.0"}
+  [context var]
+  `(update ~context :bindings dissoc (var ~var)))
 
 (def ^:private ^AtomicLong execution-id (AtomicLong.))
 
@@ -399,6 +412,10 @@
   then this function will return nil, as the final state of the
   context is not yet known.
 
+  The final context may contain additional keys not present in the
+  initial context, including those added by interceptors, and by
+  Pedestal (which will be fully qualified keywords).
+
   If any Interceptor function throws an exception, execution stops and
   begins popping Interceptors off the stack and calling their :error
   functions. The :error function takes two arguments: the context and
@@ -414,3 +431,4 @@
            invoke-interceptors-binder))
   ([context interceptors]
    (execute (enqueue context interceptors))))
+

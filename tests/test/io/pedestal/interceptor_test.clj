@@ -15,7 +15,7 @@
             [clojure.test :refer (deftest is testing)]
             [io.pedestal.internal :as i]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
-            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
@@ -23,9 +23,9 @@
   (update context ::trace i/vec-conj [direction name]))
 
 (defn tracer [name]
-  (interceptor/interceptor {:name name
-                            :enter #(trace % :enter name)
-                            :leave #(trace % :leave name)}))
+  (interceptor {:name name
+                :enter #(trace % :enter name)
+                :leave #(trace % :leave name)}))
 
 (defn thrower [name]
   (assoc (tracer name)
@@ -67,20 +67,20 @@
          :leave (channel-callback :leave name)))
 
 (defn deliverer [ch]
-  (interceptor/interceptor {:name ::deliverer
-                            :leave #(do (>!! ch %)
-                                        ch)}))
+  (interceptor {:name ::deliverer
+                :leave #(do (>!! ch %)
+                            ch)}))
 
 (defn error-deliverer [ch]
-  (interceptor/interceptor {:name :error-deliverer
-                            :error (fn [context _]
-                                     (>!! ch context)
-                                     context)}))
+  (interceptor {:name :error-deliverer
+                :error (fn [context _]
+                         (>!! ch context)
+                         context)}))
 
 (defn enter-deliverer [ch]
-  (interceptor/interceptor {:name ::deliverer
-                            :enter #(do (>!! ch %)
-                                        ch)}))
+  (interceptor {:name ::deliverer
+                :enter #(do (>!! ch %)
+                            ch)}))
 
 (deftest t-simple-execution
   (let [expected {::trace [[:enter :a]
@@ -414,25 +414,25 @@
 ;; error suppression test
 
 (def failing-interceptor
-  (interceptor/interceptor
+  (interceptor
     {:name ::failing-interceptor
      :enter (fn [ctx]
               (/ 1 0))}))
 
 (def rethrowing-error-handling-interceptor
-  (interceptor/interceptor
+  (interceptor
     {:name ::rethrowing-error-handling-interceptor
      :error (fn [ctx ex]
               (throw (:exception (ex-data ex))))}))
 
 (def throwing-error-handling-interceptor
-  (interceptor/interceptor
+  (interceptor
     {:name ::throwing-error-handling-interceptor
      :error (fn [ctx ex]
               (throw (Exception. "Just testing the error-handler, this is not a real exception")))}))
 
 (def error-handling-interceptor
-  (interceptor/interceptor
+  (interceptor
     {:name ::error-handling-interceptor
      :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
 
@@ -451,3 +451,49 @@
         (is (= :java.lang.Exception exception-type))
         (is (= "Just testing the error-handler, this is not a real exception"
                (ex-message exception)))))))
+
+
+(def ^:dynamic *bindable* nil)
+
+(deftest bound-vars-available-from-async-interceptors
+  (let [*events (atom [])
+        chan (chan)
+        observer (fn [name stage async?]
+                   (let [f (fn []
+                             (swap! *events conj {:name name :stage stage :value *bindable*}))]
+                     (interceptor {:name name
+                                   stage (fn [context]
+                                           (if async?
+                                             (go
+                                               (f)
+                                               context)
+                                             (do
+                                               (f)
+                                               context)))})))
+        interceptors [(interceptor {:name ::unlock
+                                    :leave (fn [context]
+                                             (async/close! chan)
+                                             context)})
+                      (observer :a :enter false)
+                      (observer :b :leave false)
+                      (interceptor {:name :first
+                                    :enter #(chain/bind % *bindable* "first")})
+                      (observer :c :enter true)
+                      (interceptor {:name :second
+                                    :enter #(go (chain/bind % *bindable* "second"))})
+                      (observer :d :enter false)
+                      (observer :e :leave true)
+                      (interceptor {:name :third
+                                    :leave #(chain/unbind % *bindable*)})]]
+        (execute {} interceptors)
+        (is (nil? (<!!! chan)))
+
+        (is (= [{:name :a :stage :enter :value nil}
+                ;; :first
+                {:name :c :stage :enter :value "first"}
+                ;; :second
+                {:name :d :stage :enter :value "second"}
+                ;; :third
+                {:name :e :stage :leave :value nil}
+                {:name :b :stage :leave :value nil}]
+               @*events))))
