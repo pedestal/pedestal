@@ -17,7 +17,8 @@
   key :exception should have a java.lang.Throwable as its value, and
   will be passed separately to the underlying logging API.
   One can override the logger via JVM or ENVAR settings."
-  (:require clojure.string)
+  (:require [clojure.string :as string]
+            [io.pedestal.internal :as i])
   (:import (org.slf4j Logger
                       LoggerFactory
                       MDC)
@@ -92,6 +93,12 @@
             Copy all key-values from the map to the MDC
             and return the MDC instance."))
 
+(defn- format-body
+  ^String [body]
+  (if (string? body)
+    body
+    (pr-str body)))
+
 (extend-protocol LoggerSource
   Logger
   (-level-enabled? [t level-key]
@@ -103,29 +110,29 @@
       :error (.isErrorEnabled t)))
   (-trace
     ([t body]
-     (.trace t ^String (if (string? body) body (pr-str body))))
+     (.trace t (format-body body)))
     ([t body throwable]
-     (.trace t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+     (.trace t (format-body body) ^Throwable throwable)))
   (-debug
     ([t body]
-     (.debug t ^String (if (string? body) body (pr-str body))))
+     (.debug t (format-body body)))
     ([t body throwable]
-     (.debug t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+     (.debug t (format-body body) ^Throwable throwable)))
   (-info
     ([t body]
-     (.info t ^String (if (string? body) body (pr-str body))))
+     (.info t (format-body body)))
     ([t body throwable]
-     (.info t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+     (.info t (format-body body) ^Throwable throwable)))
   (-warn
     ([t body]
-     (.warn t ^String (if (string? body) body (pr-str body))))
+     (.warn t (format-body body)))
     ([t body throwable]
-     (.warn t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+     (.warn t (format-body body) ^Throwable throwable)))
   (-error
     ([t body]
-     (.error t ^String (if (string? body) body (pr-str body))))
+     (.error t (format-body body)))
     ([t body throwable]
-     (.error t (if (string? body) ^String body ^String (pr-str body)) ^Throwable throwable)))
+     (.error t (format-body body) ^Throwable throwable)))
 
   nil
   (-level-enabled? [t level-key] false)
@@ -526,7 +533,7 @@
                          (System/getenv "PEDESTAL_METRICS_RECORDER"))]
     (if (= "nil" ns-fn-str)
       nil
-      (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
+      (let [[ns-str fn-str] (string/split ns-fn-str #"/")]
         (info :msg "Setting up a new metrics recorder; Requiring necessary namespace"
               :ns ns-str)
         (require (symbol ns-str))
@@ -951,7 +958,7 @@
                          (System/getenv "PEDESTAL_TRACER"))]
     (if (= "nil" ns-fn-str)
       nil
-      (let [tracer (let [[ns-str fn-str] (clojure.string/split ns-fn-str #"/")]
+      (let [tracer (let [[ns-str fn-str] (string/split ns-fn-str #"/")]
                      (info :msg "Setting up a new tracer; Requiring necessary namespace"
                            :ns ns-str)
                      (require (symbol ns-str))

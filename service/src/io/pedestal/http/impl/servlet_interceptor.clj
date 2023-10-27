@@ -115,7 +115,7 @@
                           :exception t
                           :src-chan body)
                 (do (log/meter ::async-write-errors)
-                    (log/error :msg "An error occured when async writing to the client"
+                    (log/error :msg "An error occurred when async writing to the client"
                                :throwable t
                                :src-chan body)))
               ;; Only close the body-ch eagerly in the failure case
@@ -141,12 +141,12 @@
 ;; should we provide help for adding it to content-type string?
 (defn- set-header [^HttpServletResponse servlet-resp h vs]
   (cond
-   (= h "Content-Type") (.setContentType servlet-resp vs)
-   (= h "Content-Length") (.setContentLengthLong servlet-resp (Long/parseLong vs))
-   (string? vs) (.setHeader servlet-resp h vs)
-   (sequential? vs) (doseq [v vs] (.addHeader servlet-resp h v))
-   :else
-   (throw (ex-info "Invalid header value" {:value vs}))))
+    (= h "Content-Type") (.setContentType servlet-resp vs)
+    (= h "Content-Length") (.setContentLengthLong servlet-resp (Long/parseLong vs))
+    (string? vs) (.setHeader servlet-resp h vs)
+    (sequential? vs) (doseq [v vs] (.addHeader servlet-resp h v))
+    :else
+    (throw (ex-info "Invalid header value" {:value vs}))))
 
 (defn- set-default-content-type
   [{:keys [headers body] :or {headers {}} :as resp-map}]
@@ -156,10 +156,10 @@
 
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]
-     (let [{:keys [status headers]} (set-default-content-type resp-map)]
-       (.setStatus servlet-resp status)
-       (doseq [[k vs] headers]
-         (set-header servlet-resp k vs)))))
+   (let [{:keys [status headers]} (set-default-content-type resp-map)]
+     (.setStatus servlet-resp status)
+     (doseq [[k vs] headers]
+       (set-header servlet-resp k vs)))))
 
 (defn- send-response
   [{:keys [^HttpServletResponse servlet-response response] :as context}]
@@ -187,13 +187,9 @@
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
-(defn- servlet-async? [{:keys [servlet-request] :as context}]
-  (request/async-started? servlet-request))
-
 (defn- start-servlet-async
-  [{:keys [servlet-request async?] :as context}]
-  ;; :async? is a function added by stylobate to see if the response has been converted to async yet or not.
-  (when-not (async? context)
+  [{:keys [servlet-request]}]
+  (when-not (request/async-started? servlet-request)
     (start-servlet-async* servlet-request)))
 
 (defn- enter-stylobate
@@ -205,13 +201,12 @@
              ;                                                {:servlet servlet
              ;                                                 :servlet-request servlet-request
              ;                                                 :servlet-response servlet-response})
-             ;; TODO: Why is this in the context?
-             :async? servlet-async?)
-      (update-in [:enter-async] (fnil conj []) start-servlet-async)))
+             )
+      (interceptor.chain/enter-async start-servlet-async)))
 
 (defn- leave-stylobate
-  [{:keys [^HttpServletRequest servlet-request async?] :as context}]
-  (when (async? context)
+  [{:keys [^HttpServletRequest servlet-request] :as context}]
+  (when (request/async-started? servlet-request)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
@@ -225,14 +220,14 @@
   (log/debug :in :leave-ring-response :response response)
 
   (cond
-   (nil? response) (do
-                     (send-error context "Internal server error: no response")
-                     context)
-   (satisfies? WriteableBodyAsync body) (let [chan (::resume-channel context (async/chan))]
-                                          (send-response (assoc context ::resume-channel chan))
-                                          chan)
-   true (do (send-response context)
-            context)))
+    (nil? response) (do
+                      (send-error context "Internal server error: no response")
+                      context)
+    (satisfies? WriteableBodyAsync body) (let [chan (::resume-channel context (async/chan))]
+                                           (send-response (assoc context ::resume-channel chan))
+                                           chan)
+    true (do (send-response context)
+             context)))
 
 (defn- terminator-inject
   [context]
@@ -243,7 +238,7 @@
   async case. This is just to make sure exceptions get returned
   somehow; application code should probably catch and log exceptions
   in its own interceptors."
-  [{:keys [servlet-response] :as context} exception]
+  [context exception]
   (log/error :msg "error-stylobate triggered"
              :exception exception
              :context context)
@@ -303,28 +298,32 @@
                                         :leave leave-ring-response
                                         :error error-ring-response}))
 
-(def terminator-injector
+(def ^{:deprecated "0.7.0"} terminator-injector
   "An interceptor which causes a interceptor to terminate when one of
   the interceptors produces a response, as defined by
-  ring.util.response/response?"
+  ring.util.response/response?
+
+  Prior to 0.7.0, this interceptor was automatically queued.
+  In 0.7.0, the context is initialized with a terminator function and this
+  interceptor is no longer used. "
   (interceptor/before
-   ::terminator-injector
-   terminator-inject))
+    ::terminator-injector
+    terminator-inject))
 
 (defn- error-debug
   "When an error propagates to this interceptor error fn, trap it,
   print it to the output stream of the HTTP request, and do not
   rethrow it."
-  [{:keys [servlet-response] :as context} exception]
+  [context exception]
   (log/error :msg "Dev interceptor caught an exception; Forwarding it as the response."
              :exception exception)
   (assoc context
          :response (-> (ring-response/response
-                        (with-out-str (println "Error processing request!")
-                          (println "Exception:\n")
-                          (stacktrace/print-cause-trace exception)
-                          (println "\nContext:\n")
-                          (pprint/pprint context)))
+                         (with-out-str (println "Error processing request!")
+                                       (println "Exception:\n")
+                                       (stacktrace/print-cause-trace exception)
+                                       (println "\nContext:\n")
+                                       (pprint/pprint context)))
                        (ring-response/status 500))))
 
 (def exception-debug
@@ -344,17 +343,19 @@
   and :servlet-response."
   [interceptors default-context]
   (fn [^Servlet servlet servlet-request servlet-response]
-    (let [context (merge default-context
-                         {:servlet-request servlet-request
-                          :servlet-response servlet-response
-                          :servlet-config (.getServletConfig servlet)
-                          :servlet servlet})]
+    (let [context (-> default-context
+                      terminator-inject
+                      (assoc :servlet-request servlet-request
+                             :servlet-response servlet-response
+                             :servlet-config (.getServletConfig servlet)
+                             :servlet servlet))]
       (log/debug :in :interceptor-service-fn
                  :context context)
       (log/counter :io.pedestal/active-servlet-calls 1)
       (try
         (let [final-context (interceptor.chain/execute context interceptors)]
           (log/debug :msg "Leaving servlet"
+                     ;; This will be nil if the execution went async
                      :final-context final-context))
         (catch EOFException e
           (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
@@ -371,13 +372,12 @@
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
-  and :servlet-response. The terminator-injector, stylobate,
+  and :servlet-response. The stylobate,
   and ring-response are prepended to the sequence of interceptors."
   ([interceptors] (http-interceptor-service-fn interceptors {}))
   ([interceptors default-context]
-     (interceptor-service-fn
-       (concat [terminator-injector
-                stylobate
-                ring-response]
-               interceptors)
-       default-context)))
+   (interceptor-service-fn
+     (into [stylobate
+            ring-response]
+           interceptors)
+     default-context)))

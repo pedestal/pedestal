@@ -16,6 +16,7 @@
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
   (:require [clojure.core.async :as async]
+            [io.pedestal.internal :as i]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong
@@ -104,14 +105,14 @@
       context)))
 
 (defn- prepare-for-async
-  "Calls all :enter-async functions in a context. The purpose of these
+  "Calls all ::enter-async functions in a context. The purpose of these
   functions is to ready backing servlets or any other machinery for preparing
   an asynchronous response."
   [context]
-  (doseq [enter-async-fn (:enter-async context)]
+  (doseq [enter-async-fn (::enter-async context)]
     (enter-async-fn context))
   ;; Only call it once per execution:
-  (dissoc context :enter-async))
+  (dissoc context ::enter-async))
 
 (declare ^:private invoke-interceptors-binder)
 
@@ -285,12 +286,13 @@
 
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates
-  the queue if necessary. Returns the updated context."
+  the queue if necessary. Returns the updated context.
+
+  Generally, interceptors are only added during the :enter phase."
   [context interceptors]
   {:pre [(every? interceptor/interceptor? interceptors)]}
   (log/trace :enqueue (map name interceptors) :context context)
-  (update context ::queue
-          #(into (or % []) interceptors)))
+  (update context ::queue i/into-vec interceptors))
 
 (defn enqueue*
   "Like 'enqueue' but vararg.
@@ -304,7 +306,10 @@
 (defn terminate
   "Removes all remaining interceptors from context's execution queue.
   This effectively short-circuits execution of Interceptors' :enter
-  functions and begins executing the :leave functions."
+  functions and begins executing the :leave functions.
+
+  Termination normally occurs when the queue of interceptors is exhausted,
+  or when an interceptor throws an exception."
   [context]
   (log/trace :in 'terminate :context context)
   (dissoc context ::queue))
@@ -315,7 +320,20 @@
   after every Interceptor's :enter function. If pred returns logical
   true, execution will stop at that Interceptor."
   [context pred]
-  (update-in context [::terminators] conj pred))
+  (update  context ::terminators i/vec-conj pred))
+
+(defn enter-async
+  "Adds a callback function to be executed if the execution goes async, which occurs
+  when an interceptor returns a channel rather than a context map.
+
+  The supplied function is appended to the list of such functions.
+  All the functions are invoked, but only invoked once (a subsequent interceptor
+  also returning a channel does not have this side-ffect.
+
+  The functions are passed the context, but any returned value is ignored."
+  {:since "0.7.0"}
+  [context f]
+  (update context ::enter-async i/vec-conj f))
 
 (def ^:private ^AtomicLong execution-id (AtomicLong.))
 
