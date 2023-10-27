@@ -15,25 +15,25 @@
   common \"context\" map, maintaining a virtual \"stack\", with error
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
-  (:require [clojure.core.async :as async :refer [<! go]]
+  (:require [clojure.core.async :as async]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong
            (clojure.core.async.impl.protocols Channel)))
 
-#_(declare execute)
-#_(declare execute-only)
-
 (defn- channel? [c] (instance? Channel c))
 
-(defn- needed-on-stack? [interceptor]
+(defn- needed-on-stack?
+  [interceptor]
   (or (:leave interceptor) (:error interceptor)))
 
 ;; This is used for printing out interceptors within debug messages
-(defn- name [interceptor]
+(defn- name
+  [interceptor]
   (get interceptor :name (pr-str interceptor)))
 
-(defn- throwable->ex-info [^Throwable t execution-id interceptor stage]
+(defn- throwable->ex-info
+  [^Throwable t execution-id interceptor stage]
   (let [iname (name interceptor)
         throwable-str (pr-str (type t))]
     (ex-info (str throwable-str " in Interceptor " iname " - " (.getMessage t))
@@ -110,96 +110,10 @@
   [context]
   (doseq [enter-async-fn (:enter-async context)]
     (enter-async-fn context))
+  ;; Only call it once per execution:
   (dissoc context :enter-async))
 
-#_(defn- go-async
-    "When presented with a channel as the return value of an enter function,
-    wait for the channel to return a new-context (via a go block). When a new
-    context is received, restart execution of the interceptor chain with that
-    context.
-
-    This function is non-blocking, returning nil immediately (a signal to halt
-    further execution on this thread)."
-    ([old-context context-channel]
-     (prepare-for-async old-context)
-     (go
-       (if-let [new-context (<! context-channel)]
-         ;; TODO: no allowance is made here for a async interceptor that fails, and
-         ;; even if it attaches ::error to new-context, that may not be processed
-         ;; until after the next interceptor is invoked.
-         (execute new-context)
-         (execute (assoc (dissoc old-context ::queue ::async-info)
-                         ::stack (get-in old-context [::async-info :stack])
-                         ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                                          {:execution-id (::execution-id old-context)
-                                           :stage (get-in old-context [::async-info :stage])
-                                           :interceptor (name (get-in old-context [::async-info :interceptor]))
-                                           :exception-type :PedestalChainAsyncPrematureClose})))))
-     nil)
-    ([old-context context-channel interceptor-key]
-     (prepare-for-async old-context)
-     (go
-       (if-let [new-context (<! context-channel)]
-         (execute-only new-context interceptor-key)
-         (execute-only (assoc (dissoc old-context ::queue ::async-info)
-                              ::stack (get-in old-context [::async-info :stack])
-                              ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                                               {:execution-id (::execution-id old-context)
-                                                :stage (get-in old-context [::async-info :stage])
-                                                :interceptor (name (get-in old-context [::async-info :interceptor]))
-                                                :exception-type :PedestalChainAsyncPrematureClose}))
-                       interceptor-key)))
-     nil))
-
-#_(defn- process-all-with-binding
-    "Invokes `interceptor-key` (:enter or :leave)  functions of all Interceptors on the execution
-    ::queue of context, saves them on the ::stack of context.
-    Returns updated context.
-    By default, `interceptor-key` is :enter"
-    ([context]
-     (process-all-with-binding context :enter))
-    ([context interceptor-key]
-     (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
-     (loop [context (check-terminators context)]
-       (let [queue (::queue context)]
-         (log/trace :context context)
-         (if (empty? queue)
-           context
-           (let [interceptor (peek queue)
-                 pre-bindings (:bindings context)
-                 new-queue (pop queue)
-                 prepped-context (cond-> (assoc context ::queue new-queue)
-                                   ;; conj on nil returns a list, acts like a stack:
-                                   (needed-on-stack? interceptor) (update ::stack conj interceptor))
-                 ;; Let the interceptor operate
-                 context' (try-f prepped-context interceptor interceptor-key)]
-             (cond
-               (channel? context') (go-async (assoc context
-                                                    ::async-info {:interceptor interceptor
-                                                                  :stage interceptor-key
-                                                                  :stack (::stack prepped-context)})
-                                             context')
-               (::error context') (dissoc context' ::queue)
-               ;; When bindings change, have to pop-out of the most recent `binding` block to establish
-               ;; the new bindings.
-               (not= (:bindings context') pre-bindings) (assoc context' ::rebind true)
-               true (recur (check-terminators context')))))))))
-
 (declare ^:private invoke-interceptors-binder)
-
-(defn- flip-stack-into-queue
-  [context stack]
-  (assoc context ::queue (into [] stack)))
-
-(defn- enter-leave-stage
-  [context stack]
-  (-> context
-      (flip-stack-into-queue stack)
-      ;; terminators exist to prematurely transition into the leave stage;
-      ;; if left around, they will trigger again, and prevent all :leave terminators
-      ;; from being invoked.
-      (dissoc ::terminators)
-      (assoc ::stage :leave)))
 
 (defn- handle-async
   "Invoked when an interceptor returns a channel, rather than a context map.
@@ -242,6 +156,20 @@
                (< queue-index (count queue)))
       (nth queue queue-index))))
 
+(defn- flip-stack-into-queue
+  [context stack]
+  (assoc context ::queue (into [] stack)))
+
+(defn- enter-leave-stage
+  [context stack]
+  (-> context
+      (flip-stack-into-queue stack)
+      ;; terminators exist to prematurely transition into the leave stage;
+      ;; if left around, they will trigger again, and prevent all :leave terminators
+      ;; from being invoked.
+      (dissoc ::terminators)
+      (assoc ::stage :leave)))
+
 (defn- invoke-interceptors
   "Invokes interceptors in the queue."
   [context]
@@ -275,15 +203,6 @@
                ::rebind true
                ::continuation {:stack stack
                                :queue-index queue-index})
-
-        ;;; if got an ::error on :enter stage, then swap to leave stage.
-        ;(and error
-        ;     (or execute-single? (= :enter stage))
-        ;
-        ;     )
-        ;;; Note: can either get an ::error, or a non-failed interceptor may change :bindings,
-        ;;; but not both, so it's safe to directly recurse here, rather than pop up and rebind.
-        ;(invoke-interceptors (enter-leave-stage loop-context stack))
 
         ;; When an error first occurs, switch resolving-error? on, which means we're attempting
         ;; to work back in the stack to find an interceptor that can handle the error.
@@ -338,17 +257,6 @@
                                  :queue-index queue-index'})
                   (recur result queue-index' stack'))))))))))
 
-#_(defn- process-all
-    [context interceptor-key]
-    ;; If we're processing leave handlers, reverse the queue
-    (let [context (if (= interceptor-key :leave) (update context ::queue reverse) context)
-          context (with-bindings (or (:bindings context)
-                                     {})
-                    (process-all-with-binding context interceptor-key))]
-      (if (::rebind context)
-        (recur (dissoc context ::rebind) interceptor-key)
-        context)))
-
 (defn- invoke-interceptors-binder
   "Exists to support :bindings in the context; a wrapper around invoke-interceptors that
    handles a special case where invoke-interceptors returns early so that bindings can
@@ -374,85 +282,6 @@
 
       :else
       context')))
-
-#_(defn- process-any-errors-with-binding
-    "Unwinds the context by invoking :error functions of Interceptors on
-    the ::stack of context, but **only** if there is an ::error present in the context."
-    [context]
-    (log/debug :in 'process-any-errors :execution-id (::execution-id context))
-    (loop [context context]
-      (let [stack (::stack context)
-            execution-id (::execution-id context)]
-        (log/trace :context context)
-        (if (empty? stack)
-          context
-          (let [interceptor (peek stack)
-                pre-bindings (:bindings context)
-                old-context context
-                context (assoc context ::stack (pop stack))
-                context (if (::error context)
-                          (try-error context interceptor)
-                          context)]
-            (cond
-              (channel? context) (go-async old-context context)
-              (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-              true (recur context)))))))
-
-#_(defn- process-any-errors
-    "Establish the bindings present in `context` as thread local
-    bindings, and then invoke process-any-errors-with-binding.
-    Conditionally re-establish bindings if a change in bindings is made by an
-    interceptor."
-    [context]
-    (let [context (with-bindings (or (:bindings context)
-                                     {})
-                    (process-any-errors-with-binding context))]
-      (if (::rebind context)
-        (recur (dissoc context ::rebind))
-        context)))
-
-#_(defn- enter-all
-    "Establish the bindings present in `context` as thread local
-    bindings, and then invoke enter-all-with-binding. Conditionally
-    re-establish bindings if a change in bindings is made by an
-    interceptor."
-    [context]
-    (process-all context :enter))
-
-#_(defn- leave-all-with-binding
-    "Unwinds the context by invoking :leave functions of Interceptors on
-    the ::stack of context. Returns updated context."
-    [context]
-    (log/debug :in 'leave-all :execution-id (::execution-id context))
-    (loop [context context]
-      (let [stack (::stack context)]
-        (log/trace :context context)
-        (if (empty? stack)
-          context
-          (let [interceptor (peek stack)
-                pre-bindings (:bindings context)
-                old-context context
-                context (assoc context ::stack (pop stack))
-                context (if (::error context)
-                          (try-error context interceptor)
-                          (try-f context interceptor :leave))]
-            (cond
-              (channel? context) (go-async old-context context)
-              (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-              true (recur context)))))))
-
-#_(defn- leave-all
-    "Establish the bindings present in `context` as thread local
-    bindings, and then invoke leave-all-with-binding. Conditionally
-    re-establish bindings if a change in bindings is made by an
-    interceptor."
-    [context]
-    (let [context (with-bindings (or (:bindings context)
-                                     {})
-                    (leave-all-with-binding context))]
-      (if (::rebind context)
-        (recur (dissoc context ::rebind))
-        context)))
 
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates
@@ -510,15 +339,12 @@
   "Like `execute`, but only processes the interceptors in a single direction,
   using `interceptor-key` (i.e. :enter, :leave) to determine which functions
   to call.
-  ---
-  Executes a queue of Interceptors attached to the context. Context
-  must be a map, Interceptors are added with 'enqueue'.
 
-  An Interceptor Record has keys :enter, :leave, and :error.
-  The value of each key is a function; missing
-  keys or nil values are ignored. When executing a context, all
-  the `interceptor-key` functions are invoked in order.
+  For :enter, the interceptor queue is executed to completion (or early termination),
+  then replaced with a queue of interceptors to execute during :leave.
 
+  For :leave, the interceptor queue is executed as is (this is a change from 0.6 and
+  earlier, where the provided queue would be reversed).
 
   This function is deprecated in Pedestal 0.7.0, as there is no reason to use
   it."
