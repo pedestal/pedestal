@@ -11,7 +11,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor-test
-  (:require [clojure.core.matrix :as m]
+  (:require [clojure.core.async :as async]
+            [clojure.core.matrix :as m]
             [clojure.test :refer (deftest is testing)]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
@@ -20,7 +21,7 @@
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
 (defn trace [context direction name]
-  (trace/trace :direction direction :name name)
+  #_(trace/trace :direction direction :name name)
   (update context ::trace (fnil conj []) [direction name]))
 
 (defn tracer [name]
@@ -277,20 +278,34 @@
     (is (= 1
            (-> thread-ids distinct count)))))
 
+(defn <!!!
+  "<!! with a timeout to keep tests from hanging."
+  ([ch]
+   (<!!! ch 1000))
+  ([ch timeout]
+   (async/alt!!
+     ch ([val _] val)
+     (async/timeout timeout) ::timeout)))
+
 (deftest failed-channel-produces-error
   (let [result-chan (chan)
-        res (execute (enqueue {}
-                              [(deliverer result-chan)
-                               (tracer :a)
-                               (catcher :b)
-                               (failed-channeler :c)
-                               (tracer :d)]))
-        result (<!! result-chan)]
+        result (execute (enqueue {}
+                                 [(deliverer result-chan)
+                                  (tracer :a)
+                                  (catcher :b)
+                                  ;; Will, on :enter, throw an exception
+                                  ;; that will be logged the console and
+                                  ;; should bubble up to :b.
+                                  (failed-channeler :c)
+                                  (tracer :d)]))]
+    ;; Check that when execution goes async, the original caller
+    ;; is returned a nil.
+    (is (nil? result))
     (is (match? {::trace [[:enter :a]
                           [:enter :b]
                           [:error :b :from nil]
                           [:leave :a]]}
-                result))))
+                (<!!! result-chan)))))
 
 (deftest one-way-async-channel-enter
   (let [result-chan (chan)
