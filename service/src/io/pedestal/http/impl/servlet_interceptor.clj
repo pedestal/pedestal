@@ -183,6 +183,7 @@
   ;; explicitly set it on the request.
   ;; See http://stackoverflow.com/questions/7749350
   (.setAttribute servlet-request "org.apache.catalina.ASYNC_SUPPORTED" true)
+  (log/trace :in 'start-servlet-async*)
   (doto (.startAsync servlet-request)
     (.setTimeout 0)))
 
@@ -191,6 +192,7 @@
 
 (defn- start-servlet-async
   [{:keys [servlet-request async?] :as context}]
+  ;; :async? is a function added by stylobate to see if the response has been converted to async yet or not.
   (when-not (async? context)
     (start-servlet-async* servlet-request)))
 
@@ -203,6 +205,7 @@
              ;                                                {:servlet servlet
              ;                                                 :servlet-request servlet-request
              ;                                                 :servlet-response servlet-response})
+             ;; TODO: Why is this in the context?
              :async? servlet-async?)
       (update-in [:enter-async] (fnil conj []) start-servlet-async)))
 

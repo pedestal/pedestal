@@ -51,12 +51,12 @@
   assoc's it on to context as ::error."
   [context interceptor stage]
   (let [execution-id (::execution-id context)]
-    (trace :interceptor (:name interceptor) :stage stage)
     (if-let [f (get interceptor stage)]
       (try (log/debug :interceptor (name interceptor)
                       :stage stage
                       :execution-id execution-id
                       :fn f)
+           (trace :interceptor (:name interceptor) :stage stage)
            (f context)
            (catch Throwable t
              (log/debug :throw t :execution-id execution-id)
@@ -72,12 +72,12 @@
   from context."
   [context interceptor]
   (let [execution-id (::execution-id context)]
-    (trace :interceptor (:name interceptor))
     (if-let [error-fn (get interceptor :error)]
       (let [ex (::error context)]
         (log/debug :interceptor (name interceptor)
                    :stage :error
                    :execution-id execution-id)
+        (trace :interceptor (:name interceptor))
         (try (error-fn (dissoc context ::error) ex)
              (catch Throwable t
                (if (identical? (type t) (-> ex ex-data :exception type))
