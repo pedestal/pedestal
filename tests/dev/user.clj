@@ -1,5 +1,6 @@
 (ns user
   (:require [clj-commons.pretty.repl :as repl]
+            matcher-combinators.test
             [net.lewisship.trace :as trace]))
 
 (repl/install-pretty-exceptions)
