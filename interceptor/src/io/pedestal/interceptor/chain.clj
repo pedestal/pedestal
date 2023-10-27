@@ -67,8 +67,9 @@
           context))))
 
 (defn- try-error
-  "If error-fn is not nil, invoke it on context and the current ::error
-  from context."
+  "If error-fn is not nil, invoke it with the context and the current ::error
+  from the context.  The interceptor can throw a new exception, add the current exception back
+  to the context, or discard the exception."
   [context interceptor]
   (let [execution-id (::execution-id context)]
     (if-let [error-fn (get interceptor :error)]
@@ -84,6 +85,7 @@
                  (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
                      (-> context
                          (assoc ::error (throwable->ex-info t execution-id interceptor :error))
+                         ;; This doesn't seem to be used, maybe left around to debug some issues?
                          (update ::suppressed conj ex)))))))
       (do (log/trace :interceptor (name interceptor)
                      :skipped? true
@@ -92,7 +94,7 @@
           context))))
 
 (defn- check-terminators
-  "Invokes each predicate in ::terminators on context. If any predicate
+  "Invokes each predicate in ::terminators with the context. If any predicate
   returns truthy, removes ::queue and ::terminators from context."
   [context]
   (let [terminators (::terminators context)]
@@ -213,9 +215,9 @@
                                  (assoc ::resolving-error? true)))
 
         ;; When executing a single stage (:error or :leave), after resolving an error
-        ;; either now complete, or just clear the resolving error flag.
-        ;; NOTE: could make the resolving-error? flag more recur state (with queue-index and stack)
-        ;; but that the additional complication is not worth it for what should be an exceptional case.
+        ;; either execution is now complete, or just clear the resolving error flag before continuing.
+        ;; NOTE: could make the resolving-error? flag more recur state (along with queue-index and stack)
+        ;; but the additional complication is not worth it for what should be an exceptional case.
         (and resolving-error?
              (not error))
         (if execute-single?
@@ -223,40 +225,39 @@
           (recur (dissoc loop-context ::resolving-error?) queue-index stack))
 
         :else
-        (do
-          (let [initial-context (check-terminators loop-context)
-                interceptor (next-interceptor initial-context queue-index)]
-            (if-not interceptor
-              ;; Terminate when the queue is empty (possibly because a terminator did its job
-              ;; and emptied it).
-              (case stage
-                :enter (if execute-single?
-                         ;; After execute-single w/ :enter, leave the context setup to
-                         ;; call execute-single w/ :leave.
-                         (flip-stack-into-queue initial-context stack)
-                         ;; But normally, at the end of :enter stage, flip over to
-                         ;; the :leave stage.
-                         (invoke-interceptors (enter-leave-stage initial-context stack)))
-                :leave initial-context)
-              (let [queue-index' (inc queue-index)
-                    stack' (when (or execute-single? enter?)
-                             (cond-> stack
-                               (needed-on-stack? interceptor) (conj interceptor)))
-                    result (if error
-                             (try-error initial-context interceptor)
-                             (try-f initial-context interceptor stage))]
-                ;; result is either a context map, or a channel that will
-                ;; convey the context map.
-                (if (channel? result)
-                  ;; If the interceptor changes :bindings, that's ok, because after
-                  ;; the new context is conveyed; it will invoke invoke-interceptors-binder, to pick back up
-                  ;; where we left off, as if we had just recur'ed.
-                  (handle-async result
-                                initial-context
-                                interceptor
-                                {:stack stack'
-                                 :queue-index queue-index'})
-                  (recur result queue-index' stack'))))))))))
+        (let [initial-context (check-terminators loop-context)
+              interceptor (next-interceptor initial-context queue-index)]
+          (if-not interceptor
+            ;; Terminate when the queue is empty (possibly because a terminator did its job
+            ;; and emptied it).
+            (case stage
+              :enter (if execute-single?
+                       ;; After execute-single w/ :enter, leave the context setup to
+                       ;; call execute-single w/ :leave.
+                       (flip-stack-into-queue initial-context stack)
+                       ;; But normally, at the end of :enter stage, flip over to
+                       ;; the :leave stage.
+                       (invoke-interceptors (enter-leave-stage initial-context stack)))
+              :leave initial-context)
+            (let [queue-index' (inc queue-index)
+                  stack' (when (or execute-single? enter?)
+                           (cond-> stack
+                             (needed-on-stack? interceptor) (conj interceptor)))
+                  result (if error
+                           (try-error initial-context interceptor)
+                           (try-f initial-context interceptor stage))]
+              ;; result is either a context map, or a channel that will
+              ;; convey the context map.
+              (if (channel? result)
+                ;; If the interceptor changes :bindings, that's ok, because after
+                ;; the new context is conveyed; it will invoke invoke-interceptors-binder, to pick back up
+                ;; where we left off, as if we had just recur'ed.
+                (handle-async result
+                              initial-context
+                              interceptor
+                              {:stack stack'
+                               :queue-index queue-index'})
+                (recur result queue-index' stack')))))))))
 
 (defn- invoke-interceptors-binder
   "Exists to support :bindings in the context; a wrapper around invoke-interceptors that
