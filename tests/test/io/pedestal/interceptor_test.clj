@@ -485,15 +485,15 @@
                       (observer :e :leave true)
                       (interceptor {:name :third
                                     :leave #(chain/unbind % *bindable*)})]]
-        (execute {} interceptors)
-        (is (nil? (<!!! chan)))
+    (execute {} interceptors)
+    (is (nil? (<!!! chan)))
 
-        (is (= [{:name :a :stage :enter :value nil}
-                ;; :first
-                {:name :c :stage :enter :value "first"}
-                ;; :second
-                {:name :d :stage :enter :value "second"}
-                ;; :third
-                {:name :e :stage :leave :value nil}
-                {:name :b :stage :leave :value nil}]
-               @*events))))
+    (is (match? [{:name :a :stage :enter :value nil}
+                 ;; :first
+                 {:name :c :stage :enter :value "first"}
+                 ;; :second
+                 {:name :d :stage :enter :value "second"}
+                 ;; :third
+                 {:name :e :stage :leave :value nil}
+                 {:name :b :stage :leave :value nil}]
+                @*events))))
