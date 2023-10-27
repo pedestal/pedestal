@@ -93,7 +93,7 @@
   by session and cookie interceptors."
   []
   (interceptor {:name ::flash
-                :enter #(update-in % [:request] flash/flash-request)
+                :enter #(update % :request flash/flash-request)
                 :leave (response-fn-adapter flash/flash-response)}))
 
 (defn head
@@ -200,5 +200,5 @@
   ([options]
      (let [options ((deref #'session/session-options) options)]
        (interceptor {:name ::session
-                     :enter (fn [context] (update-in context [:request] #(session/session-request % options)))
+                     :enter (fn [context] (update context :request #(session/session-request % options)))
                      :leave (response-fn-adapter session/session-response options)}))))

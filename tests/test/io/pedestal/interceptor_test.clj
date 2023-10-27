@@ -14,15 +14,14 @@
   (:require [clojure.core.async :as async]
             [clojure.core.matrix :as m]
             [clojure.test :refer (deftest is testing)]
+            [io.pedestal.internal :as i]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor]
-            [net.lewisship.trace :as trace]
             [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
 (defn trace [context direction name]
-  #_(trace/trace :direction direction :name name)
-  (update context ::trace (fnil conj []) [direction name]))
+  (update context ::trace i/vec-conj [direction name]))
 
 (defn tracer [name]
   (interceptor/interceptor {:name name
@@ -40,7 +39,7 @@
 (defn catcher [name]
   (assoc (tracer name)
          :error (fn [context error]
-                  (update context ::trace (fnil conj [])
+                  (update context ::trace i/vec-conj
                           [:error name :from (:from (ex-data error))]))))
 
 (defn channeler [name]
@@ -48,7 +47,7 @@
          :enter (fn [context]
                   (let [a-chan (chan)
                         context* (-> (trace context :enter name)
-                                     (update ::thread-ids (fnil conj []) (.. Thread currentThread getId)))]
+                                     (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
                     (go
                       (<! (timeout 100))
                       (>! a-chan context*))
@@ -67,7 +66,7 @@
          :enter (fn [context]
                   (let [a-chan (chan)
                         context* (-> (trace context :enter name)
-                                     (update ::thread-ids (fnil conj []) (.. Thread currentThread getId)))]
+                                     (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
                     (go
                       (<! (timeout 100))
                       (>! a-chan context*))
@@ -75,7 +74,7 @@
          :leave (fn [context]
                   (let [a-chan (chan)
                         context* (-> (trace context :leave name)
-                                     (update-in [::thread-ids] (fnil conj []) (.. Thread currentThread getId)))]
+                                     (update ::thread-ids i/vec-conj (.. Thread currentThread getId)))]
                     (go
                       (<! (timeout 100))
                       (>! a-chan context*))

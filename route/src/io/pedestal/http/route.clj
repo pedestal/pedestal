@@ -198,8 +198,8 @@
                :request request)
     (-> opts
         (dissoc :params)
-        (update-in [:path-params] #(merge (:path-params request) params %))
-        (update-in [:query-params]
+        (update :path-params #(merge (:path-params request) params %))
+        (update :query-params
                    #(merge (apply dissoc params (:path-params route)) %)))))
 
 (defn- merge-method-param
@@ -538,7 +538,7 @@
     {:name ::query-params
      :enter (fn [ctx]
               (try
-                (update-in ctx [:request] parse-query-params)
+                (update ctx :request parse-query-params)
                 (catch IllegalArgumentException iae
                   (interceptor.chain/terminate
                     (assoc ctx :response {:status 400
@@ -547,14 +547,14 @@
 (def path-params-decoder
   "An Interceptor which URL-decodes path parameters."
   (interceptor/interceptor
-   {:name ::path-params-decoder
-    :enter (fn [ctx]
-             (try
-               (update-in ctx [:request] parse-path-params)
-               (catch IllegalArgumentException iae
-                 (interceptor.chain/terminate
-                  (assoc ctx :response {:status 400
-                                        :body (str "Bad Request - " (.getMessage iae))})))))}))
+    {:name ::path-params-decoder
+     :enter (fn [ctx]
+              (try
+                (update ctx :request parse-path-params)
+                (catch IllegalArgumentException iae
+                  (interceptor.chain/terminate
+                    (assoc ctx :response {:status 400
+                                          :body (str "Bad Request - " (.getMessage iae))})))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
@@ -578,7 +578,7 @@
        (interceptor/interceptor
          {:name ::method-param
           :enter (fn [ctx]
-                   (update-in ctx [:request] #(replace-method param-path %)))}))))
+                   (update ctx :request #(replace-method param-path %)))}))))
 
 (defn form-action-for-routes
   "Like 'url-for-routes' but the returned function returns a map with the keys

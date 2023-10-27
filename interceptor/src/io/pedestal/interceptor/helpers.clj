@@ -297,12 +297,12 @@
   context during the enter stage, and `f2` on the :response value of
   context during the leave stage."
   ([f1 f2]
-     (interceptor {:enter (when f1 #(update-in % [:request] f1))
-                   :leave (when f2 #(update-in % [:response] f2))}))
+     (interceptor {:enter (when f1 #(update % :request f1))
+                   :leave (when f2 #(update % :response f2))}))
   ([n f1 f2]
      (interceptor {:name (interceptor-name n)
-                   :enter (when f1 #(update-in % [:request] f1))
-                   :leave (when f2 #(update-in % [:response] f2))})))
+                   :enter (when f1 #(update % :request f1))
+                   :leave (when f2 #(update % :response f2))})))
 
 (defmacro defmiddleware
   "Defines a middleware interceptor. The definition resembles a

@@ -151,7 +151,7 @@
 (defn- set-default-content-type
   [{:keys [headers body] :or {headers {}} :as resp-map}]
   (let [content-type (headers "Content-Type")]
-    (update-in resp-map [:headers] merge {"Content-Type" (or content-type
+    (update resp-map :headers merge {"Content-Type" (or content-type
                                                              (default-content-type body))})))
 
 (defn set-response

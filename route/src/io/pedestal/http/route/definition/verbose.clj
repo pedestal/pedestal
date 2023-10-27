@@ -30,38 +30,38 @@
     (handler-interceptor interceptor name)
     (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) name)
 
-   ;(symbol? interceptor) (if (-> (resolve interceptor)
-   ;                              fn?)
-   ;                        (handler-interceptor ((resolve interceptor)) name)
-   ;                        (handler-interceptor @(resolve interceptor) name))
-   ;(seq? interceptor) (handler-interceptor (eval interceptor) name)
+    ;(symbol? interceptor) (if (-> (resolve interceptor)
+    ;                              fn?)
+    ;                        (handler-interceptor ((resolve interceptor)) name)
+    ;                        (handler-interceptor @(resolve interceptor) name))
+    ;(seq? interceptor) (handler-interceptor (eval interceptor) name)
 
-   ))
+    ))
 
 
 
 (defn handler-map [m]
   (cond
-   (symbol? m)
-   (let [handler-name (definition/symbol->keyword m)]
-     {:route-name handler-name
-      :handler (resolve-interceptor m handler-name)})
-   ;(isa? (type m) clojure.lang.APersistentMap)
-   (instance? clojure.lang.IPersistentMap m)
-   (let [{:keys [route-name handler interceptors]} m
-         handler-name (cond
-                       (symbol? handler) (definition/symbol->keyword handler)
-                       (interceptor? handler) (:name handler))
-         interceptor (resolve-interceptor handler (or route-name handler-name))
-         interceptor-name (:name interceptor)]
-     {:route-name (if route-name
-                    route-name
-                    (if interceptor-name
-                      interceptor-name
-                      (throw (ex-info "Handler was not symbol or interceptor with name, no route name provided"
-                                      {:handler-spec m}))))
-      :handler (resolve-interceptor handler (or route-name handler-name))
-      :interceptors (mapv #(resolve-interceptor % nil) interceptors)})))
+    (symbol? m)
+    (let [handler-name (definition/symbol->keyword m)]
+      {:route-name handler-name
+       :handler (resolve-interceptor m handler-name)})
+    ;(isa? (type m) clojure.lang.APersistentMap)
+    (instance? clojure.lang.IPersistentMap m)
+    (let [{:keys [route-name handler interceptors]} m
+          handler-name (cond
+                         (symbol? handler) (definition/symbol->keyword handler)
+                         (interceptor? handler) (:name handler))
+          interceptor (resolve-interceptor handler (or route-name handler-name))
+          interceptor-name (:name interceptor)]
+      {:route-name (if route-name
+                     route-name
+                     (if interceptor-name
+                       interceptor-name
+                       (throw (ex-info "Handler was not symbol or interceptor with name, no route name provided"
+                                       {:handler-spec m}))))
+       :handler (resolve-interceptor handler (or route-name handler-name))
+       :interceptors (mapv #(resolve-interceptor % nil) interceptors)})))
 
 (defn- add-terminal-info
   "Merge in data from `handler-map` to `start-terminal`"
@@ -91,12 +91,12 @@
   constraint's key identifies a path-param."
   [{path-params :path-params :as dna} constraints verbs]
   (if (empty? verbs)
-    (update-in dna [:path-constraints] merge (map definition/capture-constraint constraints))
+    (update dna :path-constraints merge (map definition/capture-constraint constraints))
     (let [path-param? (fn [[k _]] (some #{k} path-params))
           [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
       (-> dna
-          (update-in [:path-constraints] merge (into {} (map definition/capture-constraint path-constraints)))
-          (update-in [:query-constraints] merge query-constraints)))))
+          (update :path-constraints merge (into {} (map definition/capture-constraint path-constraints)))
+          (update :query-constraints merge query-constraints)))))
 
 (defn undoubleslash
   [^String s]
@@ -112,14 +112,14 @@
   [{^String parent-path :path :as parent-dna}
    {:keys [constraints verbs interceptors path] :as current-node}]
   (cond-> parent-dna
-          true (merge (select-keys current-node [:app-name :scheme :host :port]))
-          path (path/parse-path path)
-          ;; special case case where parent-path is "/" so we don't have double "//"
-          path (assoc :path (undoubleslash (path-join parent-path path)))
-          constraints (update-constraints constraints verbs)
-          interceptors (update-in [:interceptors]
-                                  into
-                                  (map #(resolve-interceptor % nil) interceptors))))
+    true (merge (select-keys current-node [:app-name :scheme :host :port]))
+    path (path/parse-path path)
+    ;; special case case where parent-path is "/" so we don't have double "//"
+    path (assoc :path (undoubleslash (path-join parent-path path)))
+    constraints (update-constraints constraints verbs)
+    interceptors (update :interceptors
+                         into
+                         (map #(resolve-interceptor % nil) interceptors))))
 
 (defn- generate-route-entries
   "Return a list of route table entries based on the treeish structure

@@ -54,8 +54,8 @@
 (defn- data-response
   [f content-type]
   (ring-response/content-type
-   (ring-response/response (print-fn f))
-   content-type))
+    (ring-response/response (print-fn f))
+    content-type))
 
 (defn edn-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
@@ -106,7 +106,7 @@
     (fn [context]
       (if-not (response? (:response context))
         (do (log/meter ::not-found)
-          (assoc context :response (ring-response/not-found "Not Found")))
+            (assoc context :response (ring-response/not-found "Not Found")))
         context))))
 
 (def html-body
@@ -153,34 +153,34 @@
 
   ([iname default-content-type transit-format transit-opts]
    (interceptor/on-response
-    iname
-    (fn [response]
-      (let [body (:body response)
-            content-type (get-in response [:headers "Content-Type"])]
-        (if (and (coll? body) (not content-type))
-          (-> response
-              (ring-response/content-type default-content-type)
-              (assoc :body (fn [^OutputStream output-stream]
-                             (transit/write
-                              (transit/writer output-stream transit-format transit-opts) body)
-                             (.flush output-stream))))
-          response))))))
+     iname
+     (fn [response]
+       (let [body (:body response)
+             content-type (get-in response [:headers "Content-Type"])]
+         (if (and (coll? body) (not content-type))
+           (-> response
+               (ring-response/content-type default-content-type)
+               (assoc :body (fn [^OutputStream output-stream]
+                              (transit/write
+                                (transit/writer output-stream transit-format transit-opts) body)
+                              (.flush output-stream))))
+           response))))))
 
 (def transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
   transit+json if the body is a collection and a type has not been set."
   (transit-body-interceptor
-   ::transit-json-body
-   "application/transit+json;charset=UTF-8"
-   :json))
+    ::transit-json-body
+    "application/transit+json;charset=UTF-8"
+    :json))
 
 (def transit-msgpack-body
   "Set the Content-Type header to \"application/transit+msgpack\" and convert the body to
   transit+msgpack if the body is a collection and a type has not been set."
   (transit-body-interceptor
-   ::transit-msgpack-body
-   "application/transit+msgpack;charset=UTF-8"
-   :msgpack))
+    ::transit-msgpack-body
+    "application/transit+msgpack;charset=UTF-8"
+    :msgpack))
 
 (def transit-body
   "Same as `transit-json-body` --
@@ -281,10 +281,10 @@
 (defn dev-interceptors
   "Add [[dev-allow-origin]] and [[exception-debug]] interceptors to facilitate local development."
   [service-map]
-  (update-in service-map [::interceptors]
-             #(vec (->> %
-                        (cons cors/dev-allow-origin)
-                        (cons servlet-interceptor/exception-debug)))))
+  (update service-map ::interceptors
+          #(vec (->> %
+                     (cons cors/dev-allow-origin)
+                     (cons servlet-interceptor/exception-debug)))))
 
 ;; TODO: Make the next three functions a provider
 (defn service-fn
@@ -293,14 +293,14 @@
   [{interceptors ::interceptors
     :as service-map}]
   (assoc service-map ::service-fn
-                     (servlet-interceptor/http-interceptor-service-fn interceptors)))
+         (servlet-interceptor/http-interceptor-service-fn interceptors)))
 
 (defn servlet
   "Converts the service-fn in the service map to a servlet instance."
   [{service-fn ::service-fn
     :as service-map}]
   (assoc service-map ::servlet
-                     (servlet/servlet :service service-fn)))
+         (servlet/servlet :service service-fn)))
 
 (defn create-servlet
   "Creates a servlet given an options map with keyword keys prefixed by namespace e.g.

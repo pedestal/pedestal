@@ -83,7 +83,7 @@
 
 (defbefore add-binding
            [context]
-           (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
+           (update context :bindings #(assoc % #'*req* {:a 1})))
 
 (def app-routes
   `[[["/about" {:get [:about about-page]}]
