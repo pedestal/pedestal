@@ -192,18 +192,6 @@
   (when-not (request/async-started? servlet-request)
     (start-servlet-async* servlet-request)))
 
-(defn- enter-stylobate
-  [{:keys [servlet servlet-request servlet-response] :as context}]
-  (-> context
-      (assoc :request (request-map/servlet-request-map servlet servlet-request servlet-response)
-             ;; While the zero-copy saves GCs and Heap utilization, Pedestal is still dominated by Interceptors
-             ;:request (request-zerocopy/call-through-request servlet-request
-             ;                                                {:servlet servlet
-             ;                                                 :servlet-request servlet-request
-             ;                                                 :servlet-response servlet-response})
-             )
-      (interceptor.chain/on-enter-async start-servlet-async)))
-
 (defn- leave-stylobate
   [{:keys [^HttpServletRequest servlet-request] :as context}]
   (when (request/async-started? servlet-request)
@@ -281,7 +269,6 @@
   [2]: http://jcp.org/aboutJava/communityprocess/final/jsr315/index.html"
 
   (io.pedestal.interceptor/interceptor {:name ::stylobate
-                                        :enter enter-stylobate
                                         :leave leave-stylobate
                                         :error error-stylobate}))
 
@@ -344,11 +331,11 @@
   [interceptors default-context]
   (fn [^Servlet servlet servlet-request servlet-response]
     (let [context (-> default-context
-                      terminator-inject
                       (assoc :servlet-request servlet-request
                              :servlet-response servlet-response
                              :servlet-config (.getServletConfig servlet)
-                             :servlet servlet))]
+                             :servlet servlet
+                             :request (request-map/servlet-request-map servlet servlet-request servlet-response)))]
       (log/debug :in :interceptor-service-fn
                  :context context)
       (log/counter :io.pedestal/active-servlet-calls 1)
@@ -380,4 +367,6 @@
      (into [stylobate
             ring-response]
            interceptors)
-     default-context)))
+     (-> default-context
+         terminator-inject
+         (interceptor.chain/on-enter-async start-servlet-async)))))
