@@ -106,16 +106,6 @@
         (dissoc context ::queue ::terminators))
       context)))
 
-(defn- prepare-for-async
-  "Calls all ::enter-async functions in a context. The purpose of these
-  functions is to ready backing servlets or any other machinery for preparing
-  an asynchronous response."
-  [context]
-  (doseq [enter-async-fn (::enter-async context)]
-    (enter-async-fn context))
-  ;; Only call it once per execution:
-  (dissoc context ::enter-async))
-
 (declare ^:private invoke-interceptors-binder)
 
 (defn- handle-async
@@ -130,23 +120,30 @@
   (log/debug :in 'handle-async
              :execution-id (::execution-id execution-context)
              :interceptor (name active-interceptor))
-  (let [context' (prepare-for-async execution-context)]
-    (async/take! context-ch
-                 (fn [new-context]
-                   ;; Note: this will be invoked in a thread from the fix-sized core.async dispatch thread pool.
-                   (if new-context
-                     (-> new-context
-                         (assoc ::continuation continuation)
-                         invoke-interceptors-binder)
-                     ;; Otherwise, the interceptor closed the channel.
-                     (let [{::keys [stage execution-id]} context'
-                           error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                                          {:execution-id execution-id
-                                           :stage stage
-                                           :interceptor (name active-interceptor)
-                                           :exception-type :PedestalChainAsyncPrematureClose})]
-                       (invoke-interceptors-binder (assoc context' ::error error
-                                                          ::continuation continuation)))))))
+  ;; Invoke any callbacks the first time an async interceptor is called.
+  ;; Assumption: on-enter-async is only invoked before `execute` (or at least, before the first
+  ;; async interceptor is encountered).
+  (doseq [enter-async-fn (::enter-async execution-context)]
+    (enter-async-fn execution-context))
+  (async/take! context-ch
+               (fn [new-context]
+                 ;; Note: this will be invoked in a thread from the fix-sized core.async dispatch thread pool.
+                 (if new-context
+                   (-> new-context
+                       (dissoc ::enter-async)
+                       (assoc ::continuation continuation)
+                       invoke-interceptors-binder)
+                   ;; Otherwise, the interceptor closed the channel.
+                   (let [{::keys [stage execution-id]} execution-context
+                         error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                                        {:execution-id execution-id
+                                         :stage stage
+                                         :interceptor (name active-interceptor)
+                                         :exception-type :PedestalChainAsyncPrematureClose})]
+                     (invoke-interceptors-binder (-> execution-context
+                                                     (dissoc ::enter-async)
+                                                     (assoc ::error error
+                                                            ::continuation continuation)))))))
   ;; Expressly return nil to exit the original execution (it continues in
   ;; the core.async threads).
   nil)
@@ -332,20 +329,20 @@
   also returning a channel does not have this side effect.
 
   The functions are passed the context, but any returned value is ignored."
-  {:since "0.7.0"}
+  {:added "0.7.0"}
   [context f]
   (update context ::enter-async i/vec-conj f))
 
 (defmacro bind
   "Updates the context to add a binding of the given var and value  Bound values
   will be available in subsequent interceptors."
-  {:since "0.7.0"}
+  {:added "0.7.0"}
   [context var value]
   `(update ~context :bindings assoc (var ~var) ~value))
 
 (defmacro unbind
   "Unbinds var previously bound with [[bind]]."
-  {:since "0.7.0"}
+  {:added "0.7.0"}
   [context var]
   `(update ~context :bindings dissoc (var ~var)))
 

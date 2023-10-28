@@ -497,3 +497,14 @@
                  {:name :e :stage :leave :value nil}
                  {:name :b :stage :leave :value nil}]
                 @*events))))
+
+(deftest enter-async-invoked-only-once
+  (let [*count (atom 0)
+        f (fn [_] (swap! *count inc))
+        enter (fn [context]
+                (go context))]
+    (-> {}
+        (chain/on-enter-async f)
+        (execute [(interceptor {:name :a :enter enter})
+                  (interceptor {:name :b :enter enter})]))
+    (is (= 1 @*count))))
