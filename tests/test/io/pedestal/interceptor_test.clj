@@ -481,6 +481,8 @@
         chan (chan)
         observer (fn [name stage async?]
                    (let [f (fn []
+                             (log/warn :name name :stage stage :async? async?
+                                        :value *bindable*)
                              (swap! *events conj {:name name :stage stage :value *bindable*}))]
                      (interceptor {:name name
                                    stage (fn [context]
