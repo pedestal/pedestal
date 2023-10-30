@@ -125,8 +125,8 @@
   ;; async interceptor is encountered).
   (doseq [enter-async-fn (::enter-async execution-context)]
     (enter-async-fn execution-context))
-  (async/take! context-ch
-               (fn [new-context]
+  (async/go                                                       ; async/take! context-ch
+               (let [new-context (async/<! context-ch)]
                  ;; Note: this will be invoked in a thread from the fix-sized core.async dispatch thread pool.
                  (if new-context
                    (-> new-context
