@@ -59,6 +59,12 @@
   )
 
 ;; Results
+;;
+;; These are informal results, collected on Howard's M1 Mac, YMMV.
+;; Intent was to see if changes to the interceptor.chain namespace improved
+;; performance. A lot of the code being tested is outside interceptor.chain however.
+;; These numbers imply that even if interceptor chain processing was magically free,
+;; it wouldn't affect request handling speed significantly.
 
 ;; Baseline:
 ;; /echo    94.08 µs
@@ -78,3 +84,8 @@
 
 ;; /echo 52.6 µs
 ;; /fail 90.8 µs
+
+;; Oct 30 - split invoke-interceptors and invoke-interceptors-only
+
+;; /echo 51.8 µs
+;; /fail 86.5 µs

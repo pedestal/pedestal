@@ -109,7 +109,7 @@
 (declare ^:private invoke-interceptors-binder)
 
 (defn- handle-async
-  "Invoked when an interceptor returns a channel, rather than a context map.
+  "Invoked when an interceptor returns an asynchronous result via channel, rather than a context map.
 
   context-ch: will convey context
   execution-context: context passed to the active interceptor
@@ -174,17 +174,84 @@
   "Invokes interceptors in the queue."
   [context]
   ;; The stage will be either :enter or :leave (errors are handled specially)
-  (let [{::keys [stage execute-single? continuation execution-id]
+  (let [{::keys [stage continuation execution-id]
          entry-bindings :bindings} context
         enter? (= :enter stage)]
     (log/debug :in 'invoke-interceptors
+               :handling stage
+               :execution-id execution-id)
+    (loop [{::keys [error]
+            :as loop-context} (dissoc context ::continuation)
+           queue-index (:queue-index continuation 0)
+           stack (:stack continuation)]
+      (log/trace :in 'invoke-interceptors
+                 :stage stage
+                 :execution-id execution-id
+                 :context-keys (-> loop-context keys sort vec)
+                 :stack (mapv name stack)
+                 :queue (->> loop-context ::queue (drop queue-index) (mapv name))
+                 :error? (contains? loop-context ::error)
+                 :bindings-mismatch? (not= entry-bindings (:bindings loop-context)))
+      ;; Handle the results of the prior interceptor invocation (whether we get here by a direct recur,
+      ;; or indirectly through the async machinery).
+      (cond
+        (not= entry-bindings (:bindings loop-context))
+        ;; Return up a level so that bindings can be adjusted,
+        ;; and setup up the continuation to pick back up.
+        (assoc loop-context
+               ::rebind true
+               ::continuation {:stack stack
+                               :queue-index queue-index})
+
+        ;; When an error first occurs during enter phase, treat that as a terminator and enter
+        ;; the leave stage to process the error.
+        (and error enter?)
+        (invoke-interceptors (enter-leave-stage loop-context stack))
+
+        :else
+        (let [initial-context (check-terminators loop-context)
+              interceptor (next-interceptor initial-context queue-index)]
+          (if-not interceptor
+            ;; Terminate when the queue is empty (possibly because a terminator did its job
+            ;; and emptied it).
+            (case stage
+              :enter (invoke-interceptors (enter-leave-stage initial-context stack))
+              :leave initial-context)
+            (let [queue-index' (inc queue-index)
+                  stack' (when enter?
+                           (cond-> stack
+                             (needed-on-stack? interceptor) (conj interceptor)))
+                  result (if error
+                           (try-error initial-context interceptor)
+                           (try-f initial-context interceptor stage))]
+              ;; result is either a context map, or a channel that will
+              ;; convey the context map.
+              (if (channel? result)
+                ;; If the interceptor changes :bindings, that's ok, because after
+                ;; the new context is conveyed; it will invoke invoke-interceptors-binder, to pick back up
+                ;; where we left off, as if we had just recur'ed.
+                (handle-async result
+                              initial-context
+                              interceptor
+                              {:stack stack'
+                               :queue-index queue-index'})
+                (recur result queue-index' stack')))))))))
+
+(defn- invoke-interceptors-only
+  "Invokes interceptors in the queue, but only one direction (all :enter, or all :leave)."
+  [context]
+  ;; The stage will be either :enter or :leave (errors are handled specially)
+  (let [{::keys [stage continuation execution-id]
+         entry-bindings :bindings} context
+        enter? (= :enter stage)]
+    (log/debug :in 'invoke-interceptors-only
                :handling stage
                :execution-id execution-id)
     (loop [{::keys [resolving-error? error]
             :as loop-context} (dissoc context ::continuation)
            queue-index (:queue-index continuation 0)
            stack (:stack continuation)]
-      (log/trace :in 'invoke-interceptors
+      (log/trace :in 'invoke-interceptors-only
                  :stage stage
                  :execution-id execution-id
                  :context-keys (-> loop-context keys sort vec)
@@ -206,20 +273,16 @@
 
         ;; When an error first occurs, switch resolving-error? on, which means we're attempting
         ;; to work back in the stack to find an interceptor that can handle the error.
-        (and error (not resolving-error?))
-        (invoke-interceptors (-> loop-context
-                                 (enter-leave-stage stack)
-                                 (assoc ::resolving-error? true)))
+        (and error
+             (not resolving-error?))
+        (invoke-interceptors-only (-> loop-context
+                                      (cond-> enter? (enter-leave-stage stack))
+                                      (assoc ::resolving-error? true)))
 
-        ;; When executing a single stage (:error or :leave), after resolving an error
-        ;; either execution is now complete, or just clear the resolving error flag before continuing.
-        ;; NOTE: could make the resolving-error? flag more recur state (along with queue-index and stack)
-        ;; but the additional complication is not worth it for what should be an exceptional case.
+        ;  After resolving an error execution is complete.
         (and resolving-error?
              (not error))
-        (if execute-single?
-          loop-context
-          (recur (dissoc loop-context ::resolving-error?) queue-index stack))
+        loop-context
 
         :else
         (let [initial-context (check-terminators loop-context)
@@ -228,16 +291,11 @@
             ;; Terminate when the queue is empty (possibly because a terminator did its job
             ;; and emptied it).
             (case stage
-              :enter (if execute-single?
-                       ;; After execute-single w/ :enter, leave the context setup to
-                       ;; call execute-single w/ :leave.
-                       (flip-stack-into-queue initial-context stack)
-                       ;; But normally, at the end of :enter stage, flip over to
-                       ;; the :leave stage.
-                       (invoke-interceptors (enter-leave-stage initial-context stack)))
+              ;; At end of :enter, leave context in state to invoke execute-only :leave.
+              :enter (flip-stack-into-queue initial-context stack)
               :leave initial-context)
             (let [queue-index' (inc queue-index)
-                  stack' (when (or execute-single? enter?)
+                  stack' (when enter?
                            (cond-> stack
                              (needed-on-stack? interceptor) (conj interceptor)))
                   result (if error
@@ -261,13 +319,14 @@
    handles a special case where invoke-interceptors returns early so that bindings can
    be re-bound."
   [context]
-  (let [bindings (:bindings context)
+  (let [{:keys [bindings]
+         ::keys [invoker]} context
         context' (if bindings
                    (with-bindings bindings
                      ;; Advance the execution until complete, until an exit to swap the bindings,
                      ;; or until the execution switches to async mode.
-                     (invoke-interceptors context))
-                   (invoke-interceptors context))
+                     (invoker context))
+                   (invoker context))
         {::keys [rebind on-complete]} context']
     (cond
       rebind
@@ -382,6 +441,7 @@
    (some-> context
            begin
            (assoc ::stage interceptor-key
+                  ::invoker invoke-interceptors-only
                   ::execute-single? true)
            invoke-interceptors-binder))
   ([context interceptor-key interceptors]
@@ -425,7 +485,8 @@
   ([context]
    (some-> context
            begin
-           (assoc ::stage :enter)
+           (assoc ::stage :enter
+                  ::invoker invoke-interceptors)
            invoke-interceptors-binder))
   ([context interceptors]
    (execute (enqueue context interceptors))))
