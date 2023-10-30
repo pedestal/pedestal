@@ -126,8 +126,6 @@
   (doseq [enter-async-fn (::enter-async execution-context)]
     (enter-async-fn execution-context))
   (let [callback (fn [new-context]
-                   (log/debug :in 'handle-async/callback
-                              :thread-bindings (get-thread-bindings))
                    ;; Note: this will be invoked in a thread from the fix-sized core.async dispatch thread pool.
                    (if new-context
                      (-> new-context
@@ -325,9 +323,6 @@
   [context]
   (let [{:keys [bindings]
          ::keys [invoker]} context
-        _ (log/trace :in 'invoke-interceptors-binder
-                     :bindings bindings
-                     :thread-bindings (keys (get-thread-bindings)))
         context' (if (seq bindings)
                    (with-bindings bindings
                      ;; Advance the execution until complete, until an exit to swap the bindings,

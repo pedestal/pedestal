@@ -16,10 +16,8 @@
             [io.pedestal.internal :as i]
             [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.helpers :refer (definterceptor defaround defmiddleware)]
-            [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]
-            [io.pedestal.log :as log])
-  (:import (ch.qos.logback.classic Level Logger)))
+            [io.pedestal.interceptor.helpers :refer ( defaround defmiddleware)]
+            [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
 (defn trace [context direction name]
   (update context ::trace i/vec-conj [direction name]))
@@ -454,22 +452,6 @@
         (is (= "Just testing the error-handler, this is not a real exception"
                (ex-message exception)))))))
 
-(defn override-logging*
-  [logger-name level callback]
-  (let [^Logger logger (log/make-logger logger-name)
-        initial-level (.getLevel logger)]
-    (try
-      (.setLevel logger (get {:debug Level/DEBUG
-                              :trace Level/TRACE} level))
-      (callback)
-      (finally
-        (.setLevel logger initial-level)))))
-
-(defmacro override-logging
-  [logger-name level & body]
-  `(override-logging* ~logger-name ~level
-                      (fn [] (do ~@body))))
-
 (def ^:dynamic *bindable* :default)
 
 (deftest bound-vars-available-from-async-interceptors
@@ -477,8 +459,6 @@
         chan (chan)
         observer (fn [name stage async?]
                    (let [f (fn [context]
-                             (log/debug :name name :stage stage :async? async?
-                                        :value *bindable*)
                              (swap! *events conj {:name name :stage stage :value *bindable*})
                              context)]
                      (interceptor {:name name

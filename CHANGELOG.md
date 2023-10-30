@@ -16,7 +16,7 @@ Other changes:
 - Pedestal is now compatible with Clojure 1.10.1 and above
 - In `io.pedestal.interceptor.chain`:
     - `execute` has been rewritten for improved performance, and to properly handle certain cases where interceptors execute asynchronously
-    - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors
+    - New macro `bind` makes it easier for interceptors to manipulate dynamic variables exposed to following interceptors
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
 
 ## 0.6.0 - 12 Jun 2023
