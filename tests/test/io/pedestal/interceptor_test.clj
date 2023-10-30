@@ -478,8 +478,8 @@
         observer (fn [name stage async?]
                    (let [f (fn [context]
                              (log/debug :name name :stage stage :async? async?
-                                        :value *bindable*
-                                        (swap! *events conj {:name name :stage stage :value *bindable*}))
+                                        :value *bindable*)
+                             (swap! *events conj {:name name :stage stage :value *bindable*})
                              context)]
                      (interceptor {:name name
                                    stage (if async?
