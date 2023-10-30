@@ -143,8 +143,6 @@
                                                        (dissoc ::enter-async)
                                                        (assoc ::error error
                                                               ::continuation continuation))))))]
-    ;; On the CI server, keep seeing that the callback is invoked on a thread that has
-    ;; some thread bindings already in place.
     (async/take! context-ch callback)
     ;; Expressly return nil to exit the original execution (it continues in
     ;; the core.async threads).

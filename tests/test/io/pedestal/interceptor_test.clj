@@ -318,10 +318,6 @@
     (is (= 2
            (-> thread-ids distinct count)))))
 
-;; TODO: While `go-async` supports directions, it isn't currently used when
-;;       executing leave.  `enter` behaves as expected, because of the
-;;       queue/stack handling.
-;; UPDATED: Look into enabling this as 0.7 processing is more uniform r.e. :enter vs. :leave
 (deftest one-way-async-channel-leave
   (let [result-chan (chan)
         _ (execute-only (enqueue {}
