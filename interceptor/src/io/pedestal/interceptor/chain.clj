@@ -321,7 +321,9 @@
   [context]
   (let [{:keys [bindings]
          ::keys [invoker]} context
-        context' (if bindings
+        _ (log/trace :in 'invoke-interceptors-binder
+                     :bindings bindings)
+        context' (if (seq bindings)
                    (with-bindings bindings
                      ;; Advance the execution until complete, until an exit to swap the bindings,
                      ;; or until the execution switches to async mode.
