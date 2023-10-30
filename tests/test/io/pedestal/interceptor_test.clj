@@ -453,7 +453,7 @@
                (ex-message exception)))))))
 
 
-(def ^:dynamic *bindable* nil)
+(def ^:dynamic *bindable* :default)
 
 (deftest bound-vars-available-from-async-interceptors
   (let [*events (atom [])
@@ -477,10 +477,10 @@
                       (observer :a :enter false)
                       (observer :b :leave false)
                       (interceptor {:name :first
-                                    :enter #(chain/bind % *bindable* "first")})
+                                    :enter #(chain/bind % *bindable*  :first)})
                       (observer :c :enter true)
                       (interceptor {:name :second
-                                    :enter #(go (chain/bind % *bindable* "second"))})
+                                    :enter #(go (chain/bind % *bindable* :second))})
                       (observer :d :enter false)
                       (observer :e :leave true)
                       (interceptor {:name :third
@@ -488,14 +488,14 @@
     (execute {} interceptors)
     (is (nil? (<!!! chan)))
 
-    (is (match? [{:name :a :stage :enter :value nil}
+    (is (match? [{:name :a :stage :enter :value :default}
                  ;; :first
-                 {:name :c :stage :enter :value "first"}
+                 {:name :c :stage :enter :value :first}
                  ;; :second
-                 {:name :d :stage :enter :value "second"}
+                 {:name :d :stage :enter :value :second}
                  ;; :third
-                 {:name :e :stage :leave :value nil}
-                 {:name :b :stage :leave :value nil}]
+                 {:name :e :stage :leave :value :default}
+                 {:name :b :stage :leave :value :default}]
                 @*events))))
 
 (deftest enter-async-invoked-only-once
