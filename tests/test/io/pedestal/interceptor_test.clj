@@ -454,10 +454,6 @@
         (is (= "Just testing the error-handler, this is not a real exception"
                (ex-message exception)))))))
 
-(comment
-  (log/make-logger "io.pedestal.interceptor.chain")
-  )
-
 (defn override-logging*
   [logger-name level callback]
   (let [^Logger logger (log/make-logger logger-name)
@@ -480,19 +476,15 @@
   (let [*events (atom [])
         chan (chan)
         observer (fn [name stage async?]
-                   (let [f (fn []
-                             (log/warn :name name :stage stage :async? async?
-                                        :value *bindable*)
-                             (swap! *events conj {:name name :stage stage :value *bindable*}))]
+                   (let [f (fn [context]
+                             (log/debug :name name :stage stage :async? async?
+                                        :value *bindable*
+                                        (swap! *events conj {:name name :stage stage :value *bindable*}))
+                             context)]
                      (interceptor {:name name
-                                   stage (fn [context]
-                                           (if async?
-                                             (go
-                                               (f)
-                                               context)
-                                             (do
-                                               (f)
-                                               context)))})))
+                                   stage (if async?
+                                           #(go (f %))
+                                           f)})))
         interceptors [(interceptor {:name ::unlock
                                     :leave (fn [context]
                                              (async/close! chan)
@@ -505,12 +497,9 @@
                       (interceptor {:name :second
                                     :enter #(go (chain/bind % *bindable* :second))})
                       (observer :d :enter false)
-                      (observer :e :leave true)
-                      (interceptor {:name :third
-                                    :leave #(chain/unbind % *bindable*)})]]
-    (override-logging "io.pedestal.interceptor.chain" :trace
-                      (execute {} interceptors)
-                      (is (nil? (<!!! chan))))
+                      (observer :e :leave true)]]
+    (execute {} interceptors)
+    (is (nil? (<!!! chan)))
 
     (is (match? [{:name :a :stage :enter :value :default}
                  ;; :first
@@ -518,8 +507,8 @@
                  ;; :second
                  {:name :d :stage :enter :value :second}
                  ;; :third
-                 {:name :e :stage :leave :value :default}
-                 {:name :b :stage :leave :value :default}]
+                 {:name :e :stage :leave :value :second}
+                 {:name :b :stage :leave :value :second}]
                 @*events))))
 
 (deftest enter-async-invoked-only-once

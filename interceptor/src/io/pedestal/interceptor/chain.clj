@@ -125,28 +125,32 @@
   ;; async interceptor is encountered).
   (doseq [enter-async-fn (::enter-async execution-context)]
     (enter-async-fn execution-context))
-  (async/go                                                       ; async/take! context-ch
-               (let [new-context (async/<! context-ch)]
-                 ;; Note: this will be invoked in a thread from the fix-sized core.async dispatch thread pool.
-                 (if new-context
-                   (-> new-context
-                       (dissoc ::enter-async)
-                       (assoc ::continuation continuation)
-                       invoke-interceptors-binder)
-                   ;; Otherwise, the interceptor closed the channel.
-                   (let [{::keys [stage execution-id]} execution-context
-                         error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                                        {:execution-id execution-id
-                                         :stage stage
-                                         :interceptor (name active-interceptor)
-                                         :exception-type :PedestalChainAsyncPrematureClose})]
-                     (invoke-interceptors-binder (-> execution-context
-                                                     (dissoc ::enter-async)
-                                                     (assoc ::error error
-                                                            ::continuation continuation)))))))
-  ;; Expressly return nil to exit the original execution (it continues in
-  ;; the core.async threads).
-  nil)
+  (let [callback (fn [new-context]
+                   (log/debug :in 'handle-async/callback
+                              :thread-bindings (get-thread-bindings))
+                   ;; Note: this will be invoked in a thread from the fix-sized core.async dispatch thread pool.
+                   (if new-context
+                     (-> new-context
+                         (dissoc ::enter-async)
+                         (assoc ::continuation continuation)
+                         invoke-interceptors-binder)
+                     ;; Otherwise, the interceptor closed the channel.
+                     (let [{::keys [stage execution-id]} execution-context
+                           error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                                          {:execution-id execution-id
+                                           :stage stage
+                                           :interceptor (name active-interceptor)
+                                           :exception-type :PedestalChainAsyncPrematureClose})]
+                       (invoke-interceptors-binder (-> execution-context
+                                                       (dissoc ::enter-async)
+                                                       (assoc ::error error
+                                                              ::continuation continuation))))))]
+    ;; On the CI server, keep seeing that the callback is invoked on a thread that has
+    ;; some thread bindings already in place.
+    (async/take! context-ch callback)
+    ;; Expressly return nil to exit the original execution (it continues in
+    ;; the core.async threads).
+    nil))
 
 (defn- next-interceptor
   "Gets the next interceptor from the queue, or returns nil if the queue is exhausted."
@@ -322,7 +326,8 @@
   (let [{:keys [bindings]
          ::keys [invoker]} context
         _ (log/trace :in 'invoke-interceptors-binder
-                     :bindings bindings)
+                     :bindings bindings
+                     :thread-bindings (keys (get-thread-bindings)))
         context' (if (seq bindings)
                    (with-bindings bindings
                      ;; Advance the execution until complete, until an exit to swap the bindings,
@@ -395,17 +400,13 @@
   (update context ::enter-async i/vec-conj f))
 
 (defmacro bind
-  "Updates the context to add a binding of the given var and value  Bound values
-  will be available in subsequent interceptors."
+  "Updates the context to add a binding of the given var and value.
+   This is a convenience on modifying the :bindings key (a map of Vars and values).
+
+   Bound values will be available in subsequent interceptors."
   {:added "0.7.0"}
   [context var value]
   `(update ~context :bindings assoc (var ~var) ~value))
-
-(defmacro unbind
-  "Unbinds var previously bound with [[bind]]."
-  {:added "0.7.0"}
-  [context var]
-  `(update ~context :bindings dissoc (var ~var)))
 
 (def ^:private ^AtomicLong execution-id (AtomicLong.))
 
