@@ -108,9 +108,6 @@
   (let [expected-enter {::trace [[:enter :a]
                                  [:enter :b]
                                  [:enter :c]]}
-        expected-leave {::trace [[:leave :c]
-                                 [:leave :b]
-                                 [:leave :a]]}
         actual-en (execute-only {} :enter [(tracer :a)
                                            (tracer :b)
                                            (tracer :c)])
@@ -118,13 +115,9 @@
                                                  (tracer :a)
                                                  (tracer :b)
                                                  (tracer :c))
-                                 :enter)
-        ;; This is different since 0.6, in that the execution of :enter
-        ;; leaves a queue ready to run :leave.
-        actual-leave (execute-only (dissoc actual-en ::trace) :leave)]
+                                 :enter)]
     (is (match? expected-enter actual-en))
-    (is (match? expected-enter actual-en*))
-    (is (match? expected-leave actual-leave))))
+    (is (match? expected-enter actual-en*))))
 
 (deftest t-error-propagates
   (is (thrown? Exception
@@ -180,18 +173,15 @@
   (is (match? {::trace [[:leave :h]
                         [:leave :g]
                         [:error :h :from :f]]}
-              ;; In 0.7, slight change, as  execute-only does
-              ;; *not* reverse the queue for you.
               (execute-only (enqueue {}
-                                     (reverse
-                                       [(tracer :a)
-                                        (tracer :b)
-                                        (catcher :c)
-                                        (tracer :d)
-                                        (tracer :e)
-                                        (leave-thrower :f)
-                                        (tracer :g)
-                                        (catcher :h)]))
+                                     [(tracer :a)
+                                      (tracer :b)
+                                      (catcher :c)
+                                      (tracer :d)
+                                      (tracer :e)
+                                      (leave-thrower :f)
+                                      (tracer :g)
+                                      (catcher :h)])
                             :leave))))
 
 (deftest t-enqueue
@@ -321,21 +311,18 @@
 (deftest one-way-async-channel-leave
   (let [result-chan (chan)
         _ (execute-only (enqueue {}
-                                 ;; In 0.7, must supply these in execution order
-                                 ;; (in 0.6, you could specify them in inverse order at execute would
-                                 ;; reverse them).
-                                 [(tracer :d)
-                                  (two-channeler :c)
-                                  (two-channeler :b)
+                                 [(deliverer result-chan)
                                   (tracer :a)
-                                  (deliverer result-chan)])
+                                  (two-channeler :b)
+                                  (two-channeler :c)
+                                  (tracer :d)])
                         :leave)
         result (<!!! result-chan)
         thread-ids (result ::thread-ids)]
     (is (match? {::trace [[:leave :d]
                           [:leave :c]
-                          [:leave :b]
-                          [:leave :a]]}
+                          [:enter :b]
+                          [:enter :a]]}
                 result))
     (is (= 2
            (-> thread-ids distinct count)))))
@@ -347,7 +334,6 @@
                         [(tracer :a)
                          (tracer :b)
                          (tracer :c)])]
-    (is (nil? (:io.pedestal.interceptor.chain/terminators result)))
     (testing "execute-only"
       (is (match? {::trace [[:enter :a]
                             [:enter :b]

@@ -100,3 +100,9 @@
 
 ;; /echo 51.8 µs
 ;; /fail 86.5 µs
+
+;; Oct 31 - Back to (nearly) Square One
+;; Reverted most changes to interceptor.chain namespace.
+
+;; /echo 55.6 µs
+;; /fail 93.2 µs
