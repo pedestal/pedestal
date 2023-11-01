@@ -1,3 +1,5 @@
+# Project related
+
 # Java related
 pom.xml
 pom.xml.asc
@@ -10,16 +12,12 @@ lib/
 native/
 checkouts/
 target/
-.lein-deps-sum
-.lein-failures
-.lein-repl-history
-.lein-cljsbuild-repl
-.lein-plugins/
+.lein-*
 repl-port
 .nrepl-port
+.repl
 
 # Temp Files
-tmp/
 *.orig
 *~
 .*.swp
@@ -27,19 +25,14 @@ tmp/
 *.tmp
 *.bak
 
-# Editors (IntelliJ / Eclipse)
-*/.idea
-*/.classpath
-*/.project
-*/.settings
-
 # OS X
 .DS_Store
 
 # Logging
 *.log
-logs/
+/logs/
 
-# Docs
-autodoc/
-codox
+# Builds
+out/
+build/
+

@@ -1,0 +1,130 @@
+= Context Map
+:reftext: context map
+:navtitle: Context Map
+
+== Description
+
+The _context map_ is passed to each interceptor's :enter and
+:leave functions, and is one of two arguments passed to an interceptor's :error function.
+
+Pedestal makes use of a number of keys in the context map described below as part
+of its public API. Further keys may also be present and are officially undefined and
+are considered an implementation detail subject to change at any time.
+
+[cols="s,d,d", options="header", grid="rows"]
+|===
+| Key | Type | Description
+
+| :bindings
+| map of var -> value
+| See notes below.
+
+| :io.pedestal.interceptor.chain/error
+| Exception
+| When error processing is invoked, this value is the most recent exception that triggered error handling.
+
+| :io.pedestal.interceptor.chain/execution-id
+| Opaque
+| This identifier is set uniquely when the interceptor chain is initially executed. It is useful for correlating log events. Do not assume anything about the structure or type of this identifier.
+
+| :io.pedestal.interceptor.chain/queue
+| Stack of interceptors
+| These are the interceptors left to execute. You can inspect this for debugging purposes, but to manipulate it you should call api:enqueue[ns=io.pedestal.interceptor.chain],
+api:terminate[ns=io.pedestal.interceptor.chain], or
+api:terminate-when[ns=io.pedestal.interceptor.chain].
+
+| :io.pedestal.interceptor.chain/terminators
+| Collection of predicates
+| After executing each :enter function, Pedestal checks every predicate in this collection, passing the context map to each one. If any of them returns true-ish, Pedestal begins executing the :leave stack.
+
+|===
+
+NOTE: The io.pedestal.interceptor.chain/queue key is removed from the context map once an interceptor chain begins processing the :leave stage.
+
+
+== :bindings
+
+In ordinary Clojure code, the `binding` macro can be used to override the thread-bound values of
+dynamic Vars; this is not possible with interceptors, as the interceptor function will return before
+the next interceptor is executed.
+
+Instead, an interceptor that needs to override or communicate a value via a dynamic binding will instead
+modify the :bindings key of the context.
+
+Any bindings associated this way will stay present until they are `dissoc`-ed from the :bindings map; a binding
+added by one interceptor during the :enter phase will still be present during the :leave phase.
+
+It is not uncommon for an interceptor to provide an :enter function to bind a var, and a
+corresponding :leave function to remove the binding:
+
+[source,clojure]
+----
+(def ^:dynamic *request-id* nil)
+
+(def request-id-interceptor
+  {:name ::mdc
+   :enter (fn [context]
+            (update context :bindings assoc #'*request-id* (str (random-uuid)))
+   :leave (fn [context]
+            (update context :bindings dissoc #'*request-id*))})
+----
+
+== As Applied to HTTP
+
+A chain of interceptors can be used for any kind of pipelined
+processing with branching decisions. It is not limited to HTTP request
+handling.
+
+When used with Pedestal's HTTP handling, there are additional keys of
+interest.  The context map is created before the first interceptor is
+invoked. It describes the context of the interceptor execution
+itself. When the execution chain is connected to an HTTP server, the
+:request and :response keys have a special purpose.
+
+Pedestal does not attach metadata to the request map.
+
+When processing, take care to modify the map, rather than constructing
+a new one. Interceptors may add arbitrary keys to the request map, so
+it is important to preserve keys that your interceptor does not
+specifically modify.
+
+[cols="s,d,d", options="header", grid="rows"]
+|===
+| Key | Type | Description
+
+| :request
+| xref:request-map.adoc[]
+| Provided by the xref:chain-providers.adoc[HTTP chain provider].
+
+| :response
+| xref:response-map.adoc[]
+| Added by an interceptor or handler, as which point the :enter phase of request processing is completed.
+
+|===
+
+== Servlet Keys
+
+The following context keys are only present when using the
+xref:servlet-interceptor.adoc[]:
+
+[cols="s,d,d", options="header", grid="rows"]
+|===
+| Key | Type | Description
+
+| :servlet-request
+| HttpServletRequest
+| The request that was sent by the client. You should use the xref:request-map.adoc[] rather than directly accessing this.
+
+| :servlet-response
+| HttpServletResponse
+| The response object in which the HTTP server wants its response. You should construct and attach a xref:response-map.adoc[] rather than directly accessing this.
+
+| :servlet-config
+| jakarta.servlet.ServletConfig
+| The servlet configuration object.
+
+| :servlet
+| jakarta.servlet.Servlet
+| The servlet itself.
+
+|===

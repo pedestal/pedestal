@@ -1,0 +1,172 @@
+= Routing Quick Reference
+
+== Library
+
+The library api:*[ns=io.pedestal.http.route] namespace
+provides the core components to express routes and construct
+routers. It can be used independently of the pedestal-service library.
+
+== Route Specifications vs. Routers vs. Routing Interceptor
+
+Routing is the process of recognizing an incoming request, and matching it to a particular behavior.
+A route identifies a particular request path and request method (such as :get or :post) and identifies
+corresponding behavior in terms of a handler function, or a list of interceptors to execute.
+
+_Route specifications_ are the data values that spell out the possible routes.
+
+_Routers_ are built from route specifications, and apply a specific strategy to match incoming requests
+to the provided routes; there are a few different built-in Router implementations, with different limitations
+and trade-offs.
+
+The routing interceptor builds on a router to dispatch incoming requests to routes
+defined by the route specification. It identifies the route matching the incoming request
+and queues up route-specific interceptors to handle the request.
+
+Generally, all of this is automatic; an application provides a route specification in the :io.pedestal.http/route key
+of the xref:service-map.adoc[] (and perhaps a value for :io.pedestal.http/router) and a routing
+interceptor is automatically created.
+
+== Route Specifications
+
+Route specifications go through a series of transformations that results in a routing table;
+a routing table is a sequence of verbose routing maps.
+
+The
+api:expand-routes[ns=io.pedestal.http.route]
+function converts any kind of specification into a routing table:
+
+|===
+| Argument to `expand-routes` | Syntax used
+
+| Set
+| xref:table-syntax.adoc[] - most recent and straight forward; trades some redundancy for simplicity,
+  and is recommended in most cases.
+
+
+| Vector
+| xref:terse-syntax.adoc[] - improvement on the verbose syntax, with an emphasis on avoiding
+  redundancy.
+
+| Map
+| xref:verbose-syntax.adoc[] - oldest format.
+|===
+
+This mapping from value type to specification type is the responsibility of the
+api:ExpandableRoutes[ns=io.pedestal.http.route] protocol, which is
+extended on Map, Set, and Vector.
+
+To support a new syntax, come up with a syntax that resolves to new record type that implements the
+ExpandableRoutes protocol.
+
+=== Routing Table
+
+The expanded routing table is a list of maps, each with the following structure:
+
+[source,clojure]
+----
+  {:route-name :org.example.app/new-user
+   :app-name   :example-app        ; optional
+   :path       "/user/:id/*blah"   ; like Ruby on Rails
+                                   ; (catch-all route is "/*path")
+   :method     :post               ; or :any, :get, :put, ...
+   :scheme     :https              ; optional
+   :host       "example.com"       ; optional
+   :port       "8080"              ; optional
+   :interceptors [...]             ; vector of interceptors to be enqueued on the context
+
+   ;; Generated for path-matching:
+   :path-re           #"/\Quser\E/([^/]+)/(.+)"
+   :path-parts        ["user" :id :blah]
+   :path-params       [:id :blah]
+   :path-constraints  {:id "([^/]+)"
+                       :blah "(.+)"}
+   :query-constraints {:name #".+"
+                       :search #"[0-9]+"}
+   }
+----
+
+:route-name must be unique; typically it is a qualified keyword to ensure uniqueness.
+
+The keys :path-re, :path-parts, :path-params, and
+:path-constraints are derived from the :path.  This is part of what the
+api:expand-routes[ns=io.pedestal.http.route] function is responsible for.
+
+Users will not generally write routes directly in verbose format.
+
+== Builtin Routers
+
+Pedestal includes several Routers; this reflects not only the evolution of the Pedestal library,
+but also allows for different trade-offs in the algorithm used by each Router.  In rare cases, an application
+can provide its own Router rather than use one of Pedestal's.
+
+When your application starts a Pedestal service with
+api:create-servlet[ns=io.pedestal.http] or
+api:create-server[ns=io.pedestal.http],
+Pedestal creates a router, using the following keys from the service map:
+
+|===
+| Key | Meaning
+
+| :io.pedestal.http/routes | A route specification
+| :io.pedestal.http/router | Key to select a router, or a function that constructs a router from a routing table
+|===
+
+When the value of :io.pedestal.http/router is a keyword, it selects
+one of the built-in algorithms:
+
+|===
+| Keyword | Router | Performance | Scaling in # Routes | Limitations
+
+| :map-tree
+| xref:map-tree-router.adoc[Map Tree]  (default)
+| Very fast
+| Constant
+| Applies when all routes are static (no wild cards). Falls back to prefix tree if any routes have path parameters or wildcards.
+
+| :prefix-tree
+| xref:prefix-tree-router.adoc[Prefix Tree]
+| High performance, space efficient
+| Log32(N)
+| Wildcard routes always win over explicit paths in the same subtree. E.g., `/path/:wild` will always match, even if `/path/user` is defined
+
+| :linear-search
+| xref:linear-search-router.adoc[Linear Search]
+| Lowest performance
+| O(N)
+| Routes are checked in order. Precedence is precise.
+|===
+
+== Custom Router
+
+When the value of :io.pedestal.http/router is a function, that
+function is used to construct a router. The function must take one
+argument: the fully expanded routing table. The constructor function must
+return a value that satisfies the
+api:Router[ns=io.pedestal.http.route.router]
+protocol.
+
+So the function is passed the routing table and returns a `Router` for those routes.
+The `Router` is supplied with the incoming request, and returns the matching route map
+(a verbose route map extended with extracted parameters from the path).
+
+== Routing Interceptor
+
+The function api:router[ns=io.pedestal.http.route] is where it all comes together;
+this function is passed the route specification and, optionally, the router type; from that it creates
+the routing table, and passes that through the correct constructor, obtaining at the end an interceptor
+that performs routing, which it returns.
+
+During request execution, on a successful routing, the following keys are added or updated in the context map:
+
+|===
+| Key / Key Path | Value
+
+| :route | The verbose route map
+
+| :io.pedestal.interceptor.chain/queue | route-specific interceptors are queued
+
+| [:request :path-parameters] | Path parameters extracted from the request path
+
+|===
+
+On failure, when the router does not match any route, the context key :route is set to nil.

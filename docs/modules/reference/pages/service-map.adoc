@@ -1,0 +1,241 @@
+= Service Map
+:reftext: service map
+:navtitle: Service Map
+
+The service map is a blueprint that Pedestal uses to create all the necessary
+parts to begin processing requests: a service function, server function, chain provider, router, routes, and
+default set of interceptors.
+
+[NOTE]
+.Server vs. Service
+--
+A _server_ is just the part of the overall system that listens for requests and sends responses; it's
+the part most closely tied to your underlying servlet container (Jetty, Tomcat, and so forth).
+The _service_ runs the show: it's the server plus everything else: chain provider, the interceptors
+(including those responsible for routing), and so forth.
+--
+
+An application creates the service map and passes it to
+api:create-server[ns=io.pedestal.http].
+The result is a _server_ map that is ready to be started.
+
+Keep in mind, however, that this is strictly a convenience function
+that assembles the parts for you. There are use cases where you would
+not call `create-server`, but instead assemble a service function,
+chain provider, and so forth, directly.
+
+Pedestal may add other keys to this map for its own use. Other applications
+should treat any such keys and their values as implementation details
+and their behaviour will remain unspecified.
+
+NOTE: In the details below, ::http is an alias to :io.pedestal.http.
+
+[cols="s,d,d,d", options="header", grid="rows"]
+|===
+| Key | Always present? | Type | Description
+
+| ::http/allowed-origins
+| N
+| Function, map, or sequence of strings
+| Determines which origins are allowed for the api:cors/allow-origin[ns=io.pedestal.http.cors] interceptor. See "CORS" below.
+
+| ::http/chain-provider
+| N
+| Function
+| Only assigned when replacing the xref:servlet-interceptor.adoc[]. Receives the xref:service-map.adoc[], returns an updated with whatever additional pieces the server function expects. (See ::http/type, below.)
+
+| ::http/container-options
+| N
+| Map
+| Map of options to pass to the container. Each container, such as xref:jetty.adoc[], defines it own container-specific options.
+
+| ::http/enable-csrf
+| N
+| Map
+| A settings map to pass to the api:csrf/anti-forgery[ns=io.pedestal.http.csrf] interceptor. See CSRF below.
+
+| ::http/enable-session
+| N
+| Map
+| A settings map to pass to the api:ring-middlewares/session[ns=io.pedestal.http.ring-middlewares] interceptor. Settings are session-store specific. If non-`nil`, this interceptor is added. Default is `nil`.
+
+| ::http/file-path
+| N
+| String
+| File path used as root by the api:ring-middlewares/file[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, this interceptor is added. Default is `nil`.
+
+| ::http/host
+| N
+| String
+| Hostname, e.g., "localhost". Passed to the container. Defaults to `localhost` footnote:[
+`localhost` is a safe default and works with local testing, as your test code will be on the same
+host as the server. However, *only* connections originating on the local host will be accepted.
+For production deployments, however, you will usually set this to be `0.0.0.0`, which
+accepts connections from anywhere.  This is especially true when running
+Pedestal inside a Docker container, as all connections (even those from the host, or
+from another container on the same host) will be network, not localhost, connections.].
+
+| ::http/interceptors
+| N
+| Vector
+| Vector of items that satisfy api:http/default-interceptors[ns=io.pedestal.http].
+
+| ::http/join?
+| N
+| Boolean
+| If `false`, do not block the thread that starts the web server. Passed to the container.
+
+| ::http/method-param-name
+| N
+| Keyword
+| Query string parameter used to set the current HTTP verb. Default is :_method.
+
+| ::http/mime-types
+| N
+| Map of String -> String
+| Mime-types map used by the api:ring-middlewares/content-type[ns=io.pedestal.http.ring-middlewares] interceptor. Default is `{}`.
+
+| ::http/not-found-interceptor
+| N
+| Interceptor
+| Interceptor to use when returning a 404 Not Found response. Default is the api:http/not-found[ns=io.pedestal.http] interceptor.
+
+
+| ::http/port
+| N
+| Integer
+| Port for the running server. If `nil`, Pedestal defaults to port 80 and HTTP.
+
+| ::http/resource-path
+| N
+| string
+| File path used as root by the api:ring-middlewares/resource[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, the interceptor is added. Default is `nil`.
+
+| ::http/router
+| N
+| Keyword or route constructor
+| The router implementation to use. Can be :linear-search, :map-tree :prefix-tree, or a custom api:router/Router[ns=io.pedestal.http.route.router] constructor function. Defaults to :map-tree, which falls back to :prefix-tree.
+
+| ::http/routes
+| Y
+| Function, `ExpandableRoutes`, or sequence of maps
+| Something that satisfies the api:route/expand-routes[ns=io.pedestal.http.route] as the full route map contains some redundancies to make processing easier which `expand-routes` adds automatically.
+
+| ::http/secure-headers
+| N
+| map of keyword -> string
+| A settings map for various secure headers. See "Secure Headers" below
+
+| ::http/service-fn
+| N
+| function
+| A function which can be used as an implementation of the `jakarta.servlet.Servlet.service` method. The function is defined by api:http/create-server[ns=io.pedestal.http].
+
+| ::http/servlet
+| N
+| `jakarta.servlet.Servlet`
+| Present if the servlet is running.
+
+| ::http/start-fn
+| N
+| function
+| Zero-arity function that starts the server.
+
+| ::http/stop-fn
+| N
+| function
+| Zero-arity function that stops the server.
+
+| ::http/type
+| Y
+| Keyword or Function
+| Container for service or server function. As a keyword, names the container - currently, only :jetty is supported out of the box.
+As a function, acts as the server function.
+
+|===
+
+== Cross-Origin Resource Sharing (CORS)
+
+If the ::http/allowed-origins key is non-`nil`, the
+api:allow-origin[ns=io.pedestal.http.cors]
+interceptor is added. The default is `nil`.
+
+The allowed values are:
+
+- a function of one argument that returns a truthy value when an origin is allowed;
+- a map containing the following keys and values :allowed-origins sequence of strings or a function, :creds boolean indicating whether the client is allowed to send credentials, :max-age a long indicating the number of seconds a client should cache the response, and :methods, indicating the accepted HTTP methods, defaulting to "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS";
+- a sequence of strings matching the the scheme, host and port (`scheme://host:port`) of allowed origins.
+
+== Cross-Site Request Forgery (CSRF)
+
+When a value for ::http/enable-csrf is present, the
+api:anti-forgery[ns=io.pedestal.http.csrf]
+interceptor is added to the queue. This implies that support for HTTP sessions are enabled (Pedestal will add the
+necessary interceptor automatically).
+
+The value must be a map with the following keys:
+
+|===
+| Key | Value type | Description
+
+| :read-token
+| Function
+| This function takes a request and returns an anti-forgery token or `nil` if the token does not exist.
+
+| :cookie-token
+| any
+| truthy value for CSRF double-submit cookies
+
+| :error-response
+| Function
+| This function takes the response body and returns a 403 Not Authorized response
+
+| :error-handler
+| Function
+| This function takes the context and returns the appropriate response.
+
+|===
+
+Only one of :error-response or :error-handler may be specified.
+
+=== Secure Headers
+
+When the ::http/secure-headers value is present and non-`nil`, the api:secure-headers/secure-headers[ns=io.pedestal.http.secure-headers] interceptor is added.
+
+If the key is simply not present in the service map, then a set of default secure headers will be provided:
+
+|===
+| Key | HTTP Header | Content
+
+| :hsts-settings
+| Strict-Transport-Security
+| "max-age=31536000; includeSubdomains"
+
+| :frame-options-settings
+| X-Frame-Options
+| "DENY"
+
+| :content-type-settings
+| X-Content-Type-Options
+| "nosniff"
+
+| :xss-protection-settings
+| X-XSS-Protection
+| "1; mode=block"
+
+| :download-options-settings
+| X-Download-Options
+| "noopen"
+
+| :cross-domain-policies-settings
+| X-Permitted-Cross-Domain-Policies
+| "none"
+
+| :content-security-policy-settings
+| Content-Security-Policy
+| "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"
+
+|===
+
+If the value for ::http/secure-headers is present, it may contain
+keys and string values for the security headers. Any other keys will be ignored.

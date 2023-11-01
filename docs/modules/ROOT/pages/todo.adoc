@@ -1,0 +1,72 @@
+# Documentation Work Queue
+
+Moving from jBake to Antora has been an opportunity to go over each individual page of documentation, and each example.
+
+[IMPORTANT]
+Incorrect documentation is worse than no documentation.
+
+Not everything can be done in a single pass, so this space is being used to track
+work that still needs to be done.
+
+## General
+
+- Make the reference docs more concise; hand holding is for the guides
+- Dial back the "if you don't know Clojure" parts of some guides
+- Add an intro with all the key terms
+- Put the Guides and Reference into a reasonable order
+- Make better use of xref: linking between pages
+- Lots of broken links (currently in Howard's IntelliJ bookmarks)
+- "Cognitect" -> "NuBank NA"
+
+## Antora Technical Stuff
+
+- Create a custom UI theme
+
+## xref:index.adoc[]
+
+- Currently just a placeholder
+- Philosophy of Pedestal
+- Key terms and concepts quickly
+- Overview of the documentation
+
+## xref:reference:server-sent-events.adoc[]
+
+- Discuss options
+- Map vs. string events
+
+## xref:reference:service-map.adoc[]
+
+- Break into service map vs. server map (on a new page) for things like :start-fn, etc.
+
+## xref:reference:response-map.adoc[]
+
+- Are response headers converted to lower case?
+- :body may be extensible (e.g., chan)
+
+## xref:guides:war-deployment.adoc[]
+
+- Is web.xml this up to date w/ Jetty 11 (e.g., jakarta.*)
+- Update to discuss relevant Leiningen and Maven plugins
+- Need to eliminate Jetty/Servlet API dependencies from classpath
+- Discuss embedded as first option
+
+## xref:privacy.adoc[]
+
+- Update "Cognitect" to "NuBank NA"
+
+## xref:guides:defining-routes.adoc[]
+
+- Convert from terse syntax to table syntax
+
+## xref:contributing.adoc[]]
+
+- Pretty of date, should reference page on using snapshots, etc.
+
+## xref:terms.adoc[]
+
+- Alphabetize the entries
+
+## Missing
+
+- "Pedestal with Component: Handlers and Dependencies" (never written)
+- Page about using snapshots (or Git coordinates)
