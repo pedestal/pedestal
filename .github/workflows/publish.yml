@@ -13,5 +13,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v2
         with:
           repository: pedestal/pedestal-docs
-          token: $${ secrets.PUBLISH_PEDESTAL_IO_PAT }}
+          token: ${{ secrets.PUBLISH_PEDESTAL_IO_PAT }}
           event-type: pedestal_master_commit
