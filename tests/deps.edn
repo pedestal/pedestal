@@ -46,6 +46,7 @@
         io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
         io.pedestal/pedestal.route {:local/root "../route"}
         io.pedestal/pedestal.jetty {:local/root "../jetty"}
+        io.pedestal/pedestal.metrics {:local/root "../metrics"}
 
         org.clj-commons/pretty {:mvn/version "2.2"}
         io.github.hlship/trace {:mvn/version "v1.0"}

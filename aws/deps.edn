@@ -29,5 +29,5 @@
 
  :aliases
  {:local
-  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
-                   io.pedestal/pedestal.interceptor {:local/root "../interceptor"}}}}}
+  {:override-deps {io.pedestal/pedestal.log {:local/root "/Users/howard.lewisship/workspaces/github/pedestal/log"}
+                   io.pedestal/pedestal.interceptor {:local/root "/Users/howard.lewisship/workspaces/github/pedestal/interceptor"}}}}}

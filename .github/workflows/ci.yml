@@ -38,7 +38,7 @@ jobs:
           clojure -M -e '*clojure-version*'
       - name: Dependencies and Prep
         working-directory: service
-        run: clojure -X:deps:local prep
+        run: clojure -T:build:local compile-java
       - name: Compile services
         working-directory: service
         run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
