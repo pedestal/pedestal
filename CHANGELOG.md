@@ -2,6 +2,12 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
+## 0.6.2 - 17 Nov 2023
+
+Upgrade dependencies to fix CVEs in Jetty.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/14?closed=1)
+
 ## 0.6.1 - 03 Oct 2023
 
 Upgrade dependencies to fix CVEs:
