@@ -1,0 +1,96 @@
+= Streaming Responses
+
+In some cases, you may want to stream large responses back to clients.
+Streaming uses memory efficiently and can allow you to return a
+response larger than the service's memory. It also allows a client to
+start consuming data as quickly as possible.
+
+Streaming responses are a feature of the
+xref:servlet-interceptor.adoc[].
+It is entirely a function of the type of the body of the xref:response-map.adoc[], i.e., `(-> context :response :body type)`.
+
+|===
+| Type | Streamed? | Async?
+
+| Byte array
+| No
+| No
+
+| String
+| No
+| No
+
+| Clojure collection
+| No
+| No
+
+| Function
+| Yes
+| No
+
+| File
+| Yes
+| No
+
+| InputStream
+| Yes
+| No
+
+| ReadableByteChannel
+| Yes
+| Yes
+
+| ByteBuffer
+| Yes
+| Yes
+
+| {core_async} channel
+| Yes
+| Yes
+
+|===
+
+Async responses use non-blocking I/O. Not all containers support async
+responses.
+
+== Using a Function as the Response
+
+When the body is a function, the servlet-interceptor calls that
+function with a single argument: a `javax.servlet.ServletOutputStream`.
+
+The response status code and headers will already be written to the
+stream before calling the function.
+
+The function should close the stream when it is done.
+
+The function's return value is ignored.
+
+The function may run as long as it needs. This will occupy a thread,
+so consider using a {core_async} `go` or `thread` block.
+
+== Using a Collection as the Response
+
+A collection will be rendered into text via `clojure.core/pr`. This
+emits a valid EDN encoding of the data.
+
+The entire collection will be emitted. This means lazy sequences will
+be fully realized.
+
+Rendering collections is subject to `\*print-length*`, `\*print-level*`,
+and all other variables that affect `clojure.core/pr`.
+
+== Using a {core_async} Channel as the Response
+
+When the response body is a channel, every message read from the
+channel will be sent to the client as it is produced.
+
+If the client disconnects, the channel will be closed.
+
+== Uses
+
+Here are some examples of potentially large values that you might want
+to stream back to clients:
+
+- the contents of a lazy sequence
+- a file or resource stored on disk
+- a byte stream retrieved from some service, e.g., an image on S3

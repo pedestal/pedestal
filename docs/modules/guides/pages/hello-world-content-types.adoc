@@ -1,0 +1,525 @@
+= Hello World, With Content Types
+
+== Welcome Back
+
+In the first two parts of this trail, we made a
+xref:hello-world.adoc[basic service]
+and we enhanced it to
+xref:hello-world-query-parameters.adoc[accept a query parameter].
+
+Both of these returned their responses as plain text. Plain text is
+not particularly useful: it doesn't excel at presentation the way that HTML does,
+and it doesn't offer structured data to a smart client the way JSON
+(or XML, or EDN, or a number of formats) would.
+
+In fact, we should go a step further: the client should be in charge
+of whether they get human-presentable HTML, or code-focused JSON, using
+the very same endpoints.
+
+It's time to see how Pedestal handles content types and response bodies.
+We will also get our first taste of interceptors.
+
+== What You Will Learn
+
+After reading this guide, you will be able to:
+
+- Add interceptors to routes.
+- Use functions to create interceptors.
+- Use the response map.
+- Transform responses into other content types.
+
+== Guide Assumptions
+
+Like link:hello-world[Hello World], this guide is for beginners who
+are new to Pedestal and may be new to Clojure. It doesn't assume any
+prior experience with a Clojure-based web framework. You should be
+familiar with the basics of HTTP: URLs, response codes, and content
+types.
+
+If you've already done some of those other things, you might want to
+skip ahead to link:your-first-api[Your First API] to start building
+some logic and multiple routes.
+
+If you like to jump straight in to the deep end, you might be
+interested in the link:crash-course[Pedestal Crash Course] which
+assumes you know quite a bit about Clojure and web frameworks.
+
+This guide also assumes that you are in a Unix-like development
+environment, with Java installed. We've tested it on Mac OS X and
+Linux (any flavor) with great results. We haven't yet tried it on the
+Windows Subsystem for Linux, but would love to hear from you if you've
+succeeded with it there.
+
+== Getting Help if You're Stuck
+
+include::partial$getting-help.adoc[]
+
+== Where We Are Going
+
+In this guide, we will build on the same `hello.clj` that we've built
+up over the last two guides. We will enhance it to return a JSON
+content body. Then we will add the ability to look at the client's
+preferred content type and make a decision about what to return.
+
+== Before We Begin
+
+If you worked through xref:hello-world-query-parameters.adoc[]
+then you already have all the files you need. If
+not, take a moment to grab the sources from the
+xref:hello-world-query-parameters.adoc#_the_whole_shebang[whole shebang] in
+that guide.  Feel free to browse the complete sources in
+link:{guides_examples_root}/hello-content[the
+repository], but be warned that the file contains all the versions
+that we built up through the previous guide. You'll need to navigate
+some magic comments to pare it down to just the final version.
+
+== The Hard Way
+
+Our first effort to deal with content types will be pretty
+manual. This is to show you what goes on under the hood before we use
+the handy built-in features that Pedestal offers. Don't worry, this
+won't hurt too much. It'll also let us introduce the most important
+concept in Pedestal: Interceptors.
+
+Back in xref:hello-world-query-parameters.adoc[]
+we echoed an HTTP request back
+as the response. That was pretty useful for debugging, and it will
+come in handy for our next step. Since our `/greet` route is working
+so nicely, let's make a general route to just echo requests back. Pop
+open `hello.clj` and change the `routes` definition to this:
+
+[source,clojure]
+----
+include::example$hello-content/src/hello.clj[tags=routing]
+----
+
+You probably noticed that `routes` is created with a `def` and not with a
+`defn`. `def` creates a var and binds a value to that var. Under the
+jargon, that means it creates a new name in the namespace and attaches
+a value. `defn` is a macro that essentially expands into `def` with a
+`fn`, hence the name.
+
+In practice, when you see a `def`, you should think "this is creating
+a value, and values don't change." So it is with the routes. After
+changing the routes, you will need to restart your service.
+
+[sidebar]
+This is purely a result of the way we've built things for this guide. There
+are techniques that let you automatically reload routes during
+development. We'll get to those in
+xref:developing-at-the-repl.adoc[].
+
+When you restarted your service, you probably got a nasty message from Clojure like:
+
+```
+user=> (require :reload 'hello)
+Syntax error compiling at (hello.clj:55:3).
+Unable to resolve symbol: echo in this context
+user=>
+```
+
+That is a very precise way to say we forgot to define `echo` before using it. Let's do that now.
+
+We're going to define `echo` differently than our handler function
+`hello`. Instead of a simple handler function, we're going to define
+an interceptor.
+
+== Interceptors
+
+Interceptors are the basic unit of work in Pedestal.
+
+At every step of the way between when a request arrives from the client, and when a response
+is sent back, there's at least one interceptor. This includes:
+
+- Parsing query parameters
+- Routing the incoming request
+- Logging the request
+- Constructing the full response
+
+An interceptor is essentially a simple map, but the values for the most important
+keys are not simple values (like strings or numbers), but functions.
+
+image::interceptors.png[]
+
+This identifies two _phases_: *enter* and *leave*.  Each interceptor may participate in
+the phase by providing corresponding callback functions in the :enter and :leave keys (respectively)
+footnote:[There's also an error phase that we'll not discuss in this guide].
+
+Some interceptors only do work during the enter phase, some only during the leave phase, and some
+do work during both phases. An interceptor that omits the :enter or :leave key will just be skipped -- it's not an error.
+
+But what does that work entail?  It's essentially a bucket brigade: each interceptor is passed
+the xref:reference:context-map.adoc[], is free to perform other work if necessary, and returns
+a modified context map, which is passed to the next interceptor.
+
+Part of the context map is the interceptor queue, and the interceptor stack; the queue
+is a list of interceptors who have yet to be invoked during the enter phase.  As interceptors
+are invoked{empty}footnote:[Actually,
+interceptors are added to the stack even if they don't provide a :enter callback],
+they are also added to the interceptor stack, which is used during the leave phase.
+
+Because it's a stack, the leave phase invokes the interceptors in the opposite order from
+the enter phase:
+
+image::interceptor-stack.png[]
+
+Handler functions, like `respond-hello` in our example, are special
+cases. Pedestal can wrap a plain old Clojure function with an
+interceptor that takes the request map out of the context map, passes
+it to the function, and uses the return value of the function as the
+xref:reference:response-map.adoc[]
+{empty}footnote:[That actually takes more words to explain in English
+than it does in code!].
+
+[IMPORTANT]
+====
+As soon as _any_ interceptor attaches a
+:response key to the context map, Pedestal considers the request
+handled. Remaining interceptors in the interceptor queue won't be called, and only the ones
+that are already on the interceptor stack will be invoked during the leave phase.
+This is a "short-circuit" behavior, like an early-exit in code.
+====
+
+My advice is to build your value in the context with :enter
+functions, turn it into a response at the tail end of the interceptor
+queue, and then refine the response map with defaults, headers, cookies,
+and so on in :leave functions.
+
+== An Echo Interceptor
+
+We're ready to define `echo` as an interceptor:
+
+[source,clojure]
+----
+include::example$hello-content/src/hello.clj[tags=echo]
+----
+<1> Interceptor names help with debugging.
+<2> We're providing an :enter function.
+<3> Take the request map out of the context map.
+<4> Make a response map out of it.
+<5> Attach the response to the context map, and return the new context map.
+
+We normally wouldn't write this in such an expanded form, but I wanted
+to show all the pieces one by one. Ultimately, we're just making a map
+with the keys :name and :enter.
+
+We can try that interceptor out now. Bounce your service and use curl to exercise the `/echo` route:
+
+[source,bash]
+----
+> curl http://localhost:8890/echo
+{:protocol "HTTP/1.1", :async-supported? true, :remote-addr "127.0.0.1", :servlet-response #object[org.eclipse.jetty.server.Response 0x1ea4d091 "HTTP/1.1 200 \nDate: Thu, 12 Oct 2023 20:43:21 GMT\r\nStrict-Transport-Security: max-age=31536000; includeSubdomains\r\nX-Frame-Options: DENY\r\nX-Content-Type-Options: nosniff\r\nX-XSS-Protection: 1; mode=block\r\nX-Download-Options: noopen\r\nX-Permitted-Cross-Domain-Policies: none\r\nContent-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;\r\nContent-Type: application/edn\r\n\r\n"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x6593f4fd "io.pedestal.http.servlet.FnServlet@6593f4fd"], :headers {"accept" "*/*", "user-agent" "curl/8.1.2", "host" "localhost:8890"}, :server-port 8890, :servlet-request #object[org.eclipse.jetty.server.Request 0x1a57fb49 "Request(GET //localhost:8890/echo)@1a57fb49"], :path-info "/echo", :url-for #object[clojure.lang.Delay 0xd0b64a9 {:status :pending, :val nil}], :uri "/echo", :server-name "localhost", :query-string nil, :path-params {}, :body #object[org.eclipse.jetty.server.HttpInputOverHTTP 0x28234bf2 "HttpInputOverHTTP@28234bf2[c=0,q=0,[0]=null,s=STREAM]"], :scheme :http, :request-method :get, :context-path ""}%
+----
+
+This should look pretty familiar from xref:hello-world-query-parameters.adoc[the previous guide].
+
+== From Routes to Interceptors
+
+When Pedestal starts your service, it sets up some default
+interceptors for you. That includes an interceptor that does the
+routing. A router is just a specialized interceptor that looks at
+parts of the request, decides which interceptors to invoke next, and
+pushes those onto the interceptor queue.
+
+That means any other interceptor can _also_ modify the queue! This is
+one of the big benefits of using interceptors: the ability to make
+dynamic decisions during request handling.
+
+== Returning to Content Types
+
+Pedestal is agnostic as to what servlet container (such as xref:reference:jetty.adoc[]) is used to
+accept requests and return responses. At the core of Pedestal is the
+xref:reference:servlet-interceptor.adoc[]footnote:[This is poorly named as it's neither a Servlet nor an interceptor!], which is the bridge between the
+link:https://en.wikipedia.org/wiki/Jakarta_Servlet[Servlet API] (the domain of the servlet container) and Pedestal's interceptors.
+
+
+The servlet interceptor queues up several interceptors ahead of any provided by the
+service{empty}footnote:[Or provided by api:create-service[], such as the routing interceptor], including
+the api:ring-response[ns=io.pedestal.impl.servlet-interceptor] interceptor;
+part of this interceptor's job is to determine a default response `Content-Type` header,
+if the actual response map omits it - this is deduced from the response map's :body.
+
+.Content Type Mapping
+|===
+| Object in :body                        | Content-Type
+
+| Byte array                             | application/octet-stream
+| String                                 | text/plain
+| Clojure collection                     | application/edn
+| java.io.File                           | application/octet-stream
+| java.io.InputStream                    | application/octet-stream
+| java.nio.channels.ReadableByteChannel  | application/octet-stream
+| java.nio.ByteBuffer                    | application/octet-stream
+|===
+
+`ring-response` also uses the body type to determine how to stream the response to the
+client; for example, Clojure collections are printed as a string, which is then streamed.
+A `File`{empty}'s contents are read and streamed as a byte stream.
+
+`ring-response` does a reasonable job, but it's not always right. You might notice
+that "text/html" doesn't appear anywhere in that list. We can force
+that by setting a content type header in our response, like this:
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-content/src/hello.clj[tags=ok_html]
+----
+<1> Attach a header declaring the content type. Note that the key, "Content-Type", is case sensitive in the response map.
+
+Let's see the result:
+
+[source,bash]
+----
+> curl -i http://localhost:8890/greet
+HTTP/1.1 200 OK
+Date: Thu, 12 Oct 2023 21:51:05 GMT
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+X-Download-Options: noopen
+X-Permitted-Cross-Domain-Policies: none
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: text/plain
+Transfer-Encoding: chunked
+
+Hello, world!
+----
+
+As expected. But, something about that doesn't seem quite right. We're
+completely ignoring HTTP content negotiation. The client might want
+JSON instead of HTML. Or it might _want_ plain text. Or EDN. The
+trouble is that the HTTP content negotiation spec is a royal
+pain. Fortunately, Pedestal provides an interceptor to help.
+
+api:io.pedestal.http.content-negotiation/negotiate-content[ns=io.pedestal.http.content-negotiation]
+does the job. If you look at the docs, though, you'll see that is not
+an interceptor, but rather a function that returns an interceptor.
+
+This is a common pattern when you need to include some state or
+customize the behavior of an interceptor. You pass arguments to a
+function which returns an interceptor that "closes over" those
+arguments. It returns a data structure that contains functions that
+carry those arguments around with them.
+
+Let's remove the content type header from `ok` and use this interceptor.
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-content/src/hello.clj[tags=ns,continuo]
+
+include::example$hello-content/src/hello.clj[tags=routing_conneg]
+----
+<1> We'll need this namespace soon to emit JSON responses.
+<2> This is the content negotiation namespace for Pedestal.
+<3> A short, picky list of content types we can emit.
+<4> Notice this route now has a vector of interceptors to invoke.
+
+We are using a new namespace here, which will eventually let us write JSON data. That namespace comes from a library that we haven't included before. So if you try to run this as is, you'll get an error like this:
+
+```
+Execution error (FileNotFoundException) at hello/eval140$loading (hello.clj:2).
+Could not locate clojure/data/json__init.class, clojure/data/json.clj or clojure/data/json.cljc on classpath.
+```
+
+That is how Clojure tells you it is missing a library. By looking at
+the library's https://github.com/clojure/data.json[project page], we see that the latest stable release is
+"2.4.0" (at least, it is when this guide is being written!). We can
+add the library in the dependencies part of our `deps.edn` file:
+
+[source,clojure]
+.deps.edn
+----
+include::example$hello-content/deps.edn[]
+----
+
+Any time you change the dependencies, you will definitely need to
+restart your service.
+
+If you try this out, you'll notice that absolutely nothing
+changed. That's because the content negotiation interceptor handles
+the protocol, but it's up to you to do something about the result. The
+interceptor runs the algorithm, then attaches the result to the
+request. That result is then available throughout the rest of
+processing. This is a great way to decompose your interceptors into
+small pieces that can be plugged together.
+
+It's up to our service code to return a different body format
+depending on the accepted content type. It probably won't surprise you
+that this is a job for another interceptor!
+
+Here's our first stab at it.
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-content/src/hello.clj[tags=coerce_entangled]
+----
+<1> Get the result of the content negotiation interceptor. Use "text/plain" as a fallback in case no suitable match was found.
+<2> Get the current response out of the context map, get the current body out of the response. This must have been created by a previous interceptor's `enter` or `leave` function.
+<3> Translate the body according to the chosen content type.
+<4> Create a new response by attaching headers and the coerced body.
+<5> Return a new context by attaching the updated response.
+<6> Tell Pedestal to put this interceptor at the head of the queue.
+
+Why does this new interceptor go at the start of the vector? Take look
+at the picture of the interceptors above. The first one in the vector
+is called _first_ for the `enter` function but _last_ for the `leave`
+function. We want this interceptor to get the last word on the
+response body so it goes at the top. Turn the queue sideways to write
+it as a vector, and the topmost interceptor is on the left. It only
+takes a little bit to get used to this.
+
+Let's try this out with curl. Restart your service and try sending in some curl requests with different "Accept" headers:
+
+[source,bash]
+----
+> curl -i http://localhost:8890/greet
+HTTP/1.1 200 OK
+Date: Thu, 12 Oct 2023 22:06:52 GMT
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+X-Download-Options: noopen
+X-Permitted-Cross-Domain-Policies: none
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: text/html
+Transfer-Encoding: chunked
+
+Hello, world!
+----
+
+Notice the content type returned by our service was "text/html." Let's try some others. Keep an eye on the "Content-Type" header in each response.
+
+[source,bash]
+----
+> curl -i -H "Accept: text/html" http://localhost:8890/greet
+HTTP/1.1 200 OK
+Date: Thu, 12 Oct 2023 22:07:18 GMT
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+X-Download-Options: noopen
+X-Permitted-Cross-Domain-Policies: none
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: text/html
+Transfer-Encoding: chunked
+
+Hello, world!
+
+> curl -i -H "Accept: application/edn" http://localhost:8890/greet
+HTTP/1.1 200 OK
+Date: Thu, 12 Oct 2023 22:08:07 GMT
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+X-Download-Options: noopen
+X-Permitted-Cross-Domain-Policies: none
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: application/edn
+Transfer-Encoding: chunked
+
+"Hello, world!\n"%
+----
+
+Notice when asking for the response in `application/edn` format, the string result was enclosed in quotes.
+
+== Refactoring and Style
+
+So `coerce-body-interceptor` works as intended. As usual, I've
+written it in a fairly "non-compact" style so it is easier to see how
+the parts work with Pedestal. I see a couple of things we can improve
+though.
+
+First, there's a straight-up bug. If a previous interceptor has
+already defined a content type, we should respect that and not
+overwrite the body or the headers. Second, we're attaching a new
+headers map with _only_ the "Content-Type" header. Any other headers
+attached by other interceptors will be lost. Finally, we could improve
+the testability by factoring out some of its logic into pure
+functions.
+
+We're also going to touch up the `echo` interceptor while we're at it.
+
+It is common style in Pedestal applications to make heavy use of the
+core functions like `update` and `update-in`. They are good at taking
+out a part of a nested data structure, applying a function to it, then
+reattaching the updated part. Let's see how this interceptor would
+change if we refactor it that way.
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-content/src/hello.clj[tags=coerce_refactored_comm;coerce_body_1;routes_refactored]
+----
+
+We're going to take one more step toward Clojure mastery. Do you see
+the `coerce-body` function? It looks inside the context. If there's
+already a "Content-Type" header on the response, then it does nothing
+and returns the context without modification. On the other hand, if
+there is no content type assigned yet, it modifies the context by
+updating the response.
+
+This is a really common pattern in functional languages. You want to
+make a series of changes to a data structure, where each change is
+conditional on some other logic. In an imperative language, this would
+look like a series of `if` statements whose bodies each mutate the
+object being built. In Clojure, they would look like a deeply nested
+`if` special form, where each `if` returns either a modified or
+unmodified version of the input. The trouble with deeply nested `if`s
+is that it's too easy to get lost in the nesting.
+
+This pattern is very common, and Clojure includes macros to help.
+The slightly tricky clj:cond\->[]footnote:[That's read out loud as "cond arrow". Once you master it,
+you'll really level up in Clojure skills.] macro is what we need here.
+`cond\->` is similar to the usual
+threading macro `\->`, but instead of a just a series of expressions, it precedes
+each expression with a condition; the condition is evaluated first, and only if true is the value threaded through the expression.
+
+In practice, it's very straight forward:
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-content/src/hello.clj[tags=coerce_body_2]
+----
+<1> This is the test clause. It says "if there is no Content-Type header"
+<2> When the test is true, `cond->` puts `context` in the second position here, right after the `update-in`
+
+If there were more clauses in the `cond->`, each clause would receive
+the value returned from the previous clauses.
+
+== The Whole Shebang
+
+We're now getting a fair bit of code. This would be a good time to
+think about splitting into namespaces for different
+responsibilities. We'll tackle that some other time. For now, let's
+take a look at the whole thing. Spend some time making sure you
+understand how and when each line of code gets invoked.
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-content/src/hello.clj[tags=ns;continuo;coerce_refactored_comm;coerce_body_2;routes_refactored;server]
+----
+
+== The Path So Far
+
+In this guide, we built upon link:hello-world-query-parameters[Hello World, With Parameters] to add:
+
+* Rudimentary content negotiation.
+* Response body transforms.
+
+We also learned about interceptors and created a few.
+
+== Where To Next?
+
+The truth is that server-side applications don't vend out HTML nearly
+as much as they once did. APIs are where it's at. In the
+xref:your-first-api.adoc[next tutorial] we will make a REST style API to serve
+up "TO DO" lists.
