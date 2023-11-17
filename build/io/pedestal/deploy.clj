@@ -28,21 +28,25 @@
             (println "Compilation failed with status:" exit)
             (System/exit exit))))
       (b/write-pom {:class-dir class-dir
-                    :lib project-name
-                    :version version
-                    :basis basis
+                    :lib       project-name
+                    :version   version
+                    :basis     basis
                     ;; pedestal the GitHub organization, then pedestal the multi-module project, then the sub-dir
-                    :scm {:url (str "https://github.com/pedestal/pedestal/" dir)}})
-      (b/copy-dir {:src-dirs ["src" "resources"]
+                    :scm       {:url (str "https://github.com/pedestal/pedestal/" dir)}
+                    :pom-data  [[:licenses
+                                 [:license
+                                  [:name "Eclipse Public License"]
+                                  [:url "http://www.eclipse.org/legal/epl-v10.html"]]]]})
+      (b/copy-dir {:src-dirs   ["src" "resources"]
                    :target-dir class-dir})
       (b/jar {:class-dir class-dir
-              :jar-file output-file})
+              :jar-file  output-file})
       ;; Install it locally, so later modules can find it. This ensures that the
       ;; intra-project dependencies are correct in the generated POM files.
-      (b/install {:basis basis
-                  :lib project-name
-                  :version version
-                  :jar-file output-file
+      (b/install {:basis     basis
+                  :lib       project-name
+                  :version   version
+                  :jar-file  output-file
                   :class-dir class-dir})
       {:artifact-id project-name
        :version version
