@@ -1,0 +1,31 @@
+= Map Tree Router
+
+== Motivation
+
+Many Pedestal-based services do not leverage every routing
+feature. The Map Tree router is optimized for the _static routes_ use
+case.
+
+== Why use it?
+
+Routes requests in constant time (path matching is done by map
+lookup).
+
+== How to use it?
+
+No need to do anything. This is Pedestal's default router implementation.
+
+== Caveats
+
+While this is Pedestal's default router, it falls back to the
+xref:prefix-tree-router.adoc[]
+when path parameters or wildcards are used in routes.
+
+== Additional Notes
+
+Like the xref:prefix-tree-router.adoc[], query and path
+constraints are not used in routing decisions. They are only used to
+invalidate a route match.
+
+== References
+- link:{repo_root}/pull/422[Pedestal PR #422]

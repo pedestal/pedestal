@@ -1,0 +1,82 @@
+= Immutant
+
+== Container Options
+
+The following table lists the container options supported by Immutant.
+
+[cols="s,d,d", options="header", grid="rows"]
+|===
+| Key | Value type | Description
+
+| `:ssl-port`
+| Integer
+| Port to use for TLS listener. Defaults to `443` and implies `:ssl?`.
+??
+
+| `:keystore`
+| String _or_ `java.security.Keystore`
+| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance.
+
+| `:key-password`
+| String
+| Used for TLS. Keystore password.
+
+| `:trusstore`
+| String _or_ `java.security.Keystore`
+| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance.
+
+| `:truststore-password`
+| String _or_ `java.security.Keystore`
+| Used for TLS. Trusstore password. Required if `:truststore` specified.
+
+| `:client-auth`
+| String
+| Used for TLS. SSL client certificate authenticate, either `:want` or `:need`.
+
+| `:ssl-context`
+| `javax.net.ssl.SSLContext`
+| Used for TLS. A valid javax.net.ssl.SSLContext.
+
+| `:key-manageers`
+| `javax.net.ssl.KeyManager[]`
+| Used for TLS. A valid  javax.net.ssl.KeyManager[].
+
+| `:trust-managers`
+| `javax.net.ssl.TrustManager[]`
+| Used for TLS. a valid  javax.net.ssl.TrustManager[].
+
+| `:http2?`
+| Boolean
+| Used for TLS. Whether to enable HTTP/2 support.
+
+| `:io-threads`
+| Integer
+| Tuning option. The number of threads handling IO. Defaults to the number of available processors.
+
+| `:worker-threads`
+| Integer
+| Tuning option. The number of threads invoking handlers. Defaults to `(* io-threads)`.
+
+| `:buffer-size`
+| Integer
+| Tuning option. Defaults to `16k`.
+
+| `:buffers-per-region`
+| Integer
+| Tuning option. Defaults to `10`.
+
+| `:direct-buffers?`
+| Boolean
+| Tuning option. Defaults to `true`.
+
+| `:ajp-port`
+| Integer
+| Apache JServ Protocol listener.
+
+| `:configuration`
+|  `io.undertow.Undertow$Builder instance`
+| Used to create the Undertow server.
+
+|===
+
+Reference: Immutant link:http://immutant.org/documentation/2.1.10/apidoc/immutant.web.undertow.html#var-options[options] documentation.

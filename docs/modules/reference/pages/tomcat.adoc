@@ -1,0 +1,64 @@
+= Tomcat Configuration and Deployment
+
+== Container Options
+
+The following table lists the common container options supported by Tomcat.
+
+[cols="s,d,d", options="header", grid="rows"]
+|===
+| Key | Value type | Description
+
+| `:ssl?`
+| Boolean
+| Allows connections over HTTPS.
+
+| `:ssl-port`
+| Integer
+| Port to use for TLS listener. Defaults to `443` and implies `:ssl?`.
+
+| `:keystore`
+| String
+| Used for TLS. Path to keystore file.
+
+| `:key-password`
+| String
+| Used for TLS. Keystore password.
+
+| `:client-auth`
+| String
+| SSL client certificate authenticate, may be set to :need,
+`:want` or `:none`. Defaults to `:none`.
+
+|===
+
+==== General SSL configuration
+
+Aside from the options listed in the previous table, there are other
+SSL options supported by Tomcat as well. The options listed below may be
+specified as strings or keywords in the container options map.
+
+* `sessionTimeout`
+* `keystoreType`
+* `algorithm`
+* `truststoreType`
+* `truststorePass`
+* `useServerCipherSuitesOrder`
+* `sslImplementationName`
+* `truststoreProvider`
+* `sessionCacheSize`
+* `keyAlias`
+* `keystoreProvider`
+* `truststoreFile`
+* `truststoreAlgorithm`
+* `allowUnsafeLegacyRenegotiation`
+* `clientCertProvider`
+* `crlFile`
+* `trustMaxCertLength`
+* `ciphers`
+* `trustManagerClassName`
+* `keyPass`
+
+These options are set on the `org.apache.catalina.connector.Connector`
+instance via `setAttribute`. Refer to the Tomcat
+link:https://tomcat.apache.org/tomcat-9.0-doc/config/http.html[HTTP
+Connector] documentation for details.

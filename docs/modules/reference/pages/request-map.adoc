@@ -1,0 +1,136 @@
+= Request Map
+:reftext: request map
+:navtitle: Request Map
+
+The request map is attached to the xref:context-map.adoc[]
+before the first interceptor is invoked. The request map describes the
+incoming HTTP request, including information about the remote
+endpoint.
+
+Pedestal does not attach metadata to the request map.
+
+When processing, take care to modify the map (e.g., use `assoc`), rather than constructing
+a new map entirely. Interceptors may add arbitrary keys to the request map, and the interceptors' functionality
+may depend on getting stored values back out of the request map.
+
+Pedestal uses an extended version of the link:https://github.com/ring-clojure/ring/blob/master/SPEC[Ring request specification].
+
+
+[cols="s,d,d,d", options="header", grid="rows"]
+|===
+| Key | Always Present? | Type | Description
+| :async-supported?
+| Y
+| boolean
+| True if this request supports asynchronous operation
+
+| :body
+| Y
+| ServletInputStream
+| The body of the request. May be a zero-length stream.
+
+| :content-type
+| N
+| String
+| Present if sent by client footnote:[May not be set automatically by some chain providers (i.e., such as the AWS API Gateway api:provider[ns=io.pedestal.http.aws.lambda.utils]).]. Content type of the request body.
+
+| :content-length
+| N
+| Long
+| Present if sent by client. Content length of the request body.
+
+| :character-encoding
+| N
+| String
+| Present if sent by client. Character encoding applicable to request body.
+
+| :edn-params
+| N
+| Any
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/edn"
+
+| :form-params
+| N
+| Map of Keyword -> String
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/x-www-form-urlencoded". Some keys may be left as strings, if they contain characters that would make them invalid as Clojure keywords.
+
+| :headers
+| Y
+| Map of String -> String
+| Request headers sent by the client. Header names are all converted to lower case.
+
+| :json-params
+| N
+| Map of Keyword -> Any footnote:[Based on the coercion of any link:https://www.w3schools.com/js/js_json_objects.asp[valid] JSON data type]
+| Present if the  api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/json"
+
+| :params
+| N
+| Map of Keyword or String -> String or Keyword -> String
+| More info: xref:parameters.adoc[].
+
+| :path-info
+| Y
+| String
+| Request path, below the context path. Always at least "/", never an empty string.
+
+| :path-params
+| N
+| Map of Keyword -> String
+| Present if the router found any path parameters.
+
+| :protocol
+| Y
+| String
+| Name and version of the protocol with which the request was sent
+
+| :query-params
+| N
+| Map of Keyword -> String
+| Present if the api:default interceptors[ns=io.pedestal.http.route].)
+
+| :query-string
+| Y
+| String
+| The part of the request's URL after the '?' character.
+
+| :remote-addr
+| Y
+| String
+| IP Address of the client (or the last proxy to forward the request)
+
+| :request-method
+| Y
+| Keyword
+| The HTTP verb used to make this request, lowercased and in keyword form. For example, :get or :post. For :put and :delete request methods, this may be "smuggled" in via a query parameter :_method. (Performed by the api:method-param[ns=io.pedestal.http.route] interceptor.
+
+| :server-name
+| Y
+| String
+| Host name of the server to which the request was sent
+
+| :server-port
+| Y
+| int
+| Port number to which the request was sent
+
+| :scheme
+| Y
+| String
+| The name of the scheme used to make this request, for example, http, https, or ftp.
+
+| :ssl-client-cert
+| N
+| java.security.cert.X509Certificate[]
+| Present if sent by client. Array of certificates that identify the client.
+
+| :transit-params
+| N
+| Any
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/transit+json" or "application/transit+msgpack"
+
+| :uri
+| Y
+| String
+| The part of this request's URL from the protocol name up to the query string in the first line of the HTTP request
+|===

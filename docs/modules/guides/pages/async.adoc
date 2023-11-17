@@ -1,0 +1,116 @@
+= Async Request Processing
+
+== Introduction
+
+Your servlet container has a maximum number of request processing threads available;
+this is configurable, but (for example) the Jetty container defaults to 50 threads.
+That means if your application receives more than 50 concurrent requests, the later requests
+will be queued for later execution; this means that throughput for any request gets worse.
+
+Many applications spend  much of their time *waiting*: waiting to read from disk, or a database, or for
+a response from some other backend service; in normal processing, than means the request processing thread is blocked,
+doing nothing but taking up space.
+
+== Synchronous Handler
+
+Here is a synchronous handler that needs to wait for something to happen:
+
+[source,clojure]
+----
+(defn takes-time [request]
+  {:status 200
+   :body (lengthy-computation request)})
+
+(def routes
+  (route/expand-routes
+  #{["/takes-time" :get takes-time :route-name ::takes-time]}))
+----
+
+Because this handler is synchronous, requests for `/takes-time` will
+block until the call to `lengthy-computation` completes, stopping the
+servlet container thread from handling other work.
+
+== Triggering Async
+
+*If* you need to support more concurrent requests on a single server, and your workload is primarily I/O bound, then
+you should consider asynchronous request processing.
+
+With asynchronous request processing, a request can be unbound from a specific request processing thread.
+While some background work is happening (the disk or network I/O), the request processing thread can be used for some entirely
+different request. When the background work completes, the processing of the request resumes from where it left off.
+
+The support for all of this is based on Clojure's {core_async} library.
+
+
+[source,clojure]
+----
+(def takes-time
+  {:name ::takes-time
+   :enter (fn [context]
+            (go
+              (let [result (<! (lengthy-computation (:request context)))]
+                (assoc context :response {:status 200
+                                          :body result}))))})
+
+(def routes
+  (route/expand-routes
+    #{["/takes-time" :get takes-time :route-name :takes-time]}))
+----
+
+So, instead of providing a handler for the `/takes-time` route, we are providing an
+xref:reference:interceptors.adoc[interceptor], as that enables more options.
+
+A handler is passed a request map and returns a response map, and must always behave synchronously.
+
+By contrast, an interceptor is more involved; an interceptor is passed a
+xref:reference:context-map.adoc[] (that itself contains a :request map),
+and returns the same, or a modified context map (perhaps containing a :response map).
+
+And, for async processing, the interceptor can instead return a {core_async} _channel_ that conveys the
+modified context map, _when it is ready_.
+
+NOTE: A channel is somewhat akin to a
+link:https://en.wikipedia.org/wiki/Futures_and_promises[promise]... it represents a computation that
+will operate concurrently and complete at some point in the future.
+
+A core.async `go` block represents a deferred computation; a `go` block immediately returns
+a channel; when the body of the `go` block completes its execution, the result will be
+written into the channel.
+
+In this example, we assume that `lengthy-computation` has been changed to also return a channel;
+the core.async `<!` function will wait for that value to be delivered, before the context
+is rebuilt and written to the output channel.
+
+Pedestal recognizes the difference here ... it's getting back a channel, not a map, and
+can return the request processing thread to the container. When the new context, including the :response
+map, is delivered, Pedestal will acquire a request processing thread and resume processing the request.
+
+[sidebar]
+****
+This facility allows a single value to be placed on a channel per
+interceptor; for more extensive use of channels for SSE, see
+xref:reference:server-sent-events.adoc[].
+
+For more about streaming, see
+xref:reference:streaming.adoc[].
+****
+
+== Async Interceptor Chains
+
+In the above example, there was just a single interceptor for the route.  Most applications will have
+many interceptors for any particular route to cover a wide range of cross-functional concerns.
+
+Importantly, _any_ of these interceptors can "go async" by returning a channel instead of a context map.
+
+This has implications for all following interceptors in the interceptor chain;
+those interceptors will not execute in the original request processing thread,
+but instead will execute in a core.async dispatch thread.
+
+These dispatch threads are pooled, but the default is a maximum of eight dispatch threads.
+An interceptor that blocks may then block a dispatch thread.
+If this happens across enough requests, then eventually all dispatch threads could be blocked, and
+no code inside _any_ `go` block will execute - your server will be jammed up, consuming little or no CPU but not responding to incoming requests.
+
+So be cautious: ensure that only async processing occurs in an interceptor that may follow an async interceptor.
+Quick calculations are perfectly fine, but
+make sure not to do any blocking operations, such as disk or network I/O, inside any such interceptors.

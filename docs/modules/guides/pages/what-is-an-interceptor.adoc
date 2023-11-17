@@ -1,0 +1,244 @@
+= What is an Interceptor?
+:reftext: What Is An Interceptor Guide
+:navtitle: What is an Interceptor?
+
+It doesn't take very long to bump into the word "Interceptor" when
+you're working with Pedestal. They're the most important construct in
+the library, the essential unit-of-work that virtually everything else
+in Pedestal is built upon.
+
+== What You Will Learn
+
+After reading this guide, you will be able to:
+
+- Explain the role of interceptors in Pedestal
+- Compare interceptors to middleware
+- Create interceptors that affect execution of remaining interceptors
+- Understand how to handle errors
+
+== Interceptor Goals
+
+Pedestal exists to support the following goals:
+
+- Enable code reuse, especially for cross-cutting concerns.
+- Keep code as functional -- side-effect free -- as possible.
+- Ensure that code can be easily tested.
+- Support asynchronous request flows.
+
+=== Comparison to Ring
+
+Many developers come to Pedestal from an earlier Clojure web framework,
+link:https://github.com/ring-clojure/ring[Ring]; Ring has a very simple model:
+
+- A servlet container receives an HTTP request and creates a request map
+- A handler is passed the request map, and returns a response map
+- The response map is used to generate an HTTP response
+
+Cross-cutting concerns, such as logging and authentication, are handled in Ring via
+_middleware_.  Middleware is a function that takes a handler function, wraps it with new
+behavior, and returns a new handler function.
+
+Because a Ring handler is a stack of functions that invoke functions{empty}footnote:[Ring has, more recently, itself started to
+support asynchronous flows and WebSockets.] there's no room to support asynchronous flows.
+The essence of an asynchronous flow is that a function can
+_return_ early, and later, _resume_ from where they left off - a significant challenge for a language
+that doesn't support this concept, such as Java.
+
+As we'll see shortly, interceptors provide a different model where the return early and resume later is more explicit.
+
+== Core Definition
+
+An interceptor provides one _step_ in the processing of an overall request.
+Interceptors are formed into a pipeline; each interceptor is invoked to do its one step, then control returns
+to Pedestal, which then invokes the next interceptor in the pipeline.
+
+An interceptor might be specific to a particular route, or it might be more generic and wide-ranging, such
+as an interceptor that logs requests, or enforces authentication.
+
+Even saying "one step" is not exactly correct; Pedestal breaks request processing into two _phases_: *enter* and *leave*.
+
+The *enter* phase is related to processing of the incoming request; this covers cross-cutting concerns such as logging
+and authentication, but also routing, and route-specific interceptors and handlers.
+
+The *leave* phase begins once a response has been created and represents an "unwinding", in much the same way
+that a stack of function calls eventually unwind towards the initial caller.
+
+There's also an *error* phase, which occurs when an exception is thrown by an interceptor; this allows other interceptors
+to report or record the exception, and generate a useful response; the error phase is really a subset of the leave phase.
+
+In practical terms, an interceptor is an instance of the
+api:Interceptor[ns=io.pedestal.interceptor] record -- a specialized Clojure map. This map
+has keys :name, :enter, :leave, and :error.
+
+You rarely create an Interceptor directly, instead you pass a map, or some other value{empty}footnote:[For example,
+a handler function in a route will be wrapped as an interceptor.]
+to the api:interceptor[ns=io.pedestal.interceptor] function and an Interceptor record is returned
+footnote:[In most cases, even this step is performed for you, such as interceptors
+that are referenced as part of a route].
+
+An Interceptor should have a :name, and must have at least one of :enter, :leave, and :error.
+
+:name::
+A keyword used (especially in logging) to identify the interceptor; generally, this is a namespace qualified
+keyword.
+
+:enter::
+A callback function, passed the xref:reference:context-map.adoc[], returns a possibly modified context map.
+
+:leave::
+A callback function, passed the context map, returns a possibly modified context map.
+
+:error::
+A callback function, passed the context map and an exception, returns a possibly modified context map.
+
+[sidebar]
+.Why not a Protocol?
+This may look like a situation where a Clojure Protocol would make sense. However,
+a Protocol would have to define all four parts (a method for :name, :enter, :leave, and :error).
+This would be cumbersome, and would prevent some optimizations that occur inside Pedestal.
+
+So the context map flows through each interceptor; first through the enter phase, then later
+through the leave phase:
+
+image::interceptors.png[]
+
+== Queue and Stack
+
+The previous diagram shows a single interceptor, but the whole point here is that the interceptors work in a pipeline:
+
+image::interceptor-stack.png[]
+
+This pipeline is composed of two parts: the interceptor queue and the interceptor stack.
+These are both stored inside the context map.
+
+The queue is a list of interceptors that are waiting to execute in the enter phase.
+The stack is a list of interceptors that have already executed - it is used by the leave and error phases.
+
+As an interceptor is popped of the queue, it is pushed onto the stack.
+When execution switches from the enter phase to the leave (or error) phase, the logic changes
+to popping each successive interceptor off the stack to invoke the :leave or :error callback.
+
+=== Transition from Enter to Leave
+
+Not all interceptors in the queue will execute: any interceptor
+can attach a xref:reference:response-map.adoc[] (as key :response) to the context.
+That switches gears to the leave phase.
+
+Likewise, simply running out of interceptors in the enter phase will switch to the leave phase.
+
+=== Dynamic Queue
+
+Earlier we said that interceptors are the "unit of work" for Pedestal.  Even routing is one unit of work;
+a router interceptor works by matching an incoming request to a route, and the route provides a list of
+interceptors which are simply added to the queue.
+
+It is perfectly acceptable for other interceptors to extend the interceptor queue in just the same way.
+
+== Sharing Information between phases
+
+Remember that an interceptor's :enter callback is executed to completion before subsequent interceptor's
+are invoked; this means that any local symbol assigned via a `let` is out of scope for the later interceptors.
+
+If an interceptor needs to record information during the enter phase and access it again during the leave phase,
+there is no recourse but to add that data to the context map.
+
+A simple example is a timing interceptor that tracks how long it take to process a request:
+
+[source,clojure]
+----
+(def timing-interceptor
+  (interceptor
+    {:name ::timing ;; <1>
+     :enter (fn [context]
+              (assoc context ::start-ms (System/currentTimeMillis))) ;; <2>
+     :leave (fn [context]
+              (let [{::keys [start-ms]} context ;; <3>
+                    elapsed-ms (- (System/currentTimeMillis) start-ms)]
+                (log/debug :elapsed-ms elapsed-ms) ;; <4>
+                (dissoc context ::start-ms)))})) ;; <5>
+----
+<1> Give the interceptor a unique, namespace qualified name.
+<2> Update the context with a new key, namespace qualified to avoid collisions.
+<3> Destructuring trick, put :keys into a namespace to destructure using that namespace.
+<4> A side effect, but also the point of this interceptor.
+<5> Good hygiene is to `dissoc` anything that was previously added by the interceptor.
+
+
+== Asynchronous Results
+
+Any callback also has the option to work asynchronously; this is quite simple: return a
+{core_async} channel that will eventually convey the updated context map rather than simply returning
+the updated context map.
+
+Most often, going asynchronous is simply a matter of using the `clojure.core.async/go` macro:
+[source,clojure]
+----
+(def user-data-interceptor
+  (interceptor
+    {:name ::user-data
+     :enter (fn [context]
+                (go <1>
+                  (let [db (:db context) <2>
+                        user-id (get-in context [:request :query-parameters :user-id])
+                        user-ch (db/get-user db user-id)] <3>
+                    (assoc context :user (<! user-ch))))) <4>
+     :leave #(dissoc % :user)}))
+----
+<1> A `go` block returns a channel that conveys the result.
+<2> Assumption is that some other interceptor put the :db key into the context.
+<3> `db/get-user` is asynchronous and returns a channel that conveys the user.
+<4> `<!` waits for the result from `user-ch`, which is then applied to the context. A simple key is used
+    since other interceptors need access to this user data.
+
+When an interceptor returns a channel, Pedestal will return the request-processing thread to the servlet container, so that
+it can be used to process other incoming requests. It will then wait for the channel to convey the new context,
+and continue from there.  All remaining interceptors for the request
+will execute inside a thread from core.async's dispatch thread pool.
+
+[TIP]
+This only a thumbnail sketch; it doesn't address likely scenarios such as what if the user doesn't exist? What
+if there's a database failure?  What if reading the user from the database takes a really long time?
+
+== Error Handling
+
+When an interceptor throws an exception, the exception is caught by Pedestal, and the pipeline
+shifts to the error phase.
+
+In the error phase, Pedestal works up the stack of previously executed interceptors.
+
+For interceptors with an :error callback, that callback is passed the context map and the exception.
+
+The callback can:
+
+1. Return the context map; the exception will be ignored and Pedestal will switch to the leave phase.
+2. Attach the exception to the context map to allow a different intercept to handle the exception.
+3. Throw a new exception if unable to handle the original exception.
+
+Further details are in the xref:reference:error-handling.adoc[error handling reference].
+
+== Other Uses for Interceptor Pipelines
+
+One of Pedestal's core values is to create flexible utilities and use them in specific ways.
+One example of this approach is that the
+interceptor pipeline is not inherently tied to an HTTP request/response cycle; that is a _specific_
+application of the pipeline, setup via the xref:reference:servlet-interceptor.adoc[].
+
+The same approach could be used for any number of other purposes, including:
+
+- Handling messages sent to a JMS queue or Kafka topic
+- Transforming a document
+- Sending an outgoing HTTP request and processing the response
+
+The man differences are:
+
+- What data is stored in the initial context map
+- What are the termination conditions of the enter phase (via the api:terminate-when[ns=io.pedestal.interceptor.chain] function)
+
+== Where To Next?
+
+More details are available in the reference section:
+
+* xref:reference:interceptors.adoc[]
+* xref:reference:default-interceptors.adoc[]
+* xref:reference:error-handling.adoc[]
+* api:execute[ns=io.pedestal.interceptor.chain]
