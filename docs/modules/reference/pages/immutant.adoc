@@ -11,7 +11,6 @@ The following table lists the container options supported by Immutant.
 | `:ssl-port`
 | Integer
 | Port to use for TLS listener. Defaults to `443` and implies `:ssl?`.
-??
 
 | `:keystore`
 | String _or_ `java.security.Keystore`

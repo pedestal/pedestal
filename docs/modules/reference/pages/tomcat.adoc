@@ -31,7 +31,7 @@ The following table lists the common container options supported by Tomcat.
 
 |===
 
-==== General SSL configuration
+=== General SSL configuration
 
 Aside from the options listed in the previous table, there are other
 SSL options supported by Tomcat as well. The options listed below may be
