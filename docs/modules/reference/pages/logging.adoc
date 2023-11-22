@@ -1,5 +1,182 @@
 = Logging
+:default_api_ns: io.pedestal.log
 
-== Placeholder
+A critical part of Pedestal is how it performs _logging_.
 
-**Pull requests welcomed!**
+== SLF4J
+
+At the core, Pedestal builds upon the
+https://www.slf4j.org[Simple Logging Facade for Java].
+This facade is an abstraction over several different libraries used for logging, such
+as https://logback.qos.ch/[Logback],
+https://logging.apache.org/log4j/2.x/[Apache Log4j]
+or built-in java.util.logging packages.
+
+As part of your application's dependencies, you can include an adapter to your preferred
+logging library (see the
+https://www.slf4j.org/manual.html#swapping[notes on such dependencies]).
+
+If you fail to include any such library, you will see the following warning:
+
+----
+user=> (require '[io.pedestal.log :as l])
+SLF4J: No SLF4J providers were found.
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See https://www.slf4j.org/codes.html#noProviders for further details.
+----
+
+Without a logging adapter, all logging is a no-op. You should include a logging adapter, even if
+just for testing.
+
+== Events, Not Strings
+
+Pedestal departs from many Java and even Clojure logging frameworks in that it's core approach
+is to log _events_, not _strings_.  These events are in the form of a Clojure map.
+
+The intent is that logging in one program can be a source of data for another.
+Although this kind of thing is possible when logging output is primarily formatted for human readability,
+doing so in practice often involves reams for special rules and regular expressions - with Pedestal, it is
+very straight-forward to isolate the Clojure map and then parse it as EDN data.
+
+== Logging macros
+
+The central macros in the `io.pedestal.log` namespace are
+api:trace[],
+api:debug[],
+api:info[],
+api:warn[],
+and
+api:error[].
+These macros are responsible for obtaining an api:LoggerSource[] instance based on the
+namespace name (unless overridden) and converting the passed keys and values into a Clojure map, when is printed to a string and logged as the event body.
+
+Added to the map is the extra key, :line, which identifies the line number in the source.
+
+Bear in mind that often, Java libraries do their own logging, and that logging will not be formatted
+as Clojure maps.
+
+It is common for loggers to add an :in key, whose value is symbol identifying the function
+
+Example:
+
+[source,clojure]
+----
+(ns org.example.routes
+  (:require [io.pedestal.log :as l]) ...
+
+    ...
+    (l/debug :in 'auth :user-id user-id :roles user-roles)
+    ...
+----
+
+Sample logging output:
+
+----
+DEBUG org.example.routes - {:in auth, :user-id "3d1535dd-18fa-40f1-95f8-78d7f44b0319", :roles #{"buyer" "admin" "manager"}, :line 37}
+----
+
+Note that the _order_ of keys in the map is not specified.
+
+The use of macros, not functions, ensures that logging is efficient.
+The code emitted by the macro always checks to see if logging is enabled for the logger;
+when it is not, no further work occurs - the expressions passed to the macro are not evaluated.
+
+=== Exceptions
+
+A common case when logging is to log caught exceptions;
+the exception is specified with the :exception key,
+and the value must be some kind of java.lang.Throwable, though it's generally an
+instance of java.lang.Exception.
+
+[source,clojure]
+   (try
+     ...
+     true
+     (catch Exception e
+       (l/error :in 'processor :exception e)
+       false))
+
+=== Other special keys
+
+.Other special keys used with logging macros
+|===
+| Key | Value
+
+| :io.pedestal.log/logger
+| The logger instance to use, rather than the default. The logger must
+  extend the api:LoggerSource[] protocol.
+  The default is a logger with name matching the namespace.
+
+| :io.pedestal.log/formatter
+| A function that can be passed an event map and return a string used when logging (the underlying logging
+  APIs expect a string message).  The default is clj:pr-str[].
+|===
+
+== spy macro
+
+The api:spy[] macro takes an expression, evaluates it, and returns it.  Before returning, it logs the expression
+(as key :spy) and the result (as key :value) at debug level. This is often useful during
+REPL-driven development.
+
+== Mapped Diagnostic Context
+
+The https://logback.qos.ch/manual/mdc.html[MDC] is a feature of SLF4J that is mapped onto different logging implementations, just like
+the Logger. An SLF4J MDC is essentially a map of string keys and string values stored as per-thread global state.
+
+The SLF4J MDC is useful for storing additional values that should be logged; a common example is
+a https://docs.nginx.com/nginx-management-suite/acm/how-to/policies/request-correlation-id/[request correlation id].
+
+When setting up the format for logging, an additional directive is used to output the MDC.
+For example, when using `ch.qos.logback.core.ConsoleAppender`, the `%msg` pattern outputs the message string (the printed version of the Clojure event map); the `%X` pattern is used to print out individual keys in the MDC.
+
+Pedestal has its own MDC, as a dynamic var.
+
+The default behavior is for the Pedestal MDC map to be formatted (as with an event map) and
+stored into the MDC using the key "io.pedestal". Thus the pattern `%X{io.pedestal}` will print
+out that Pedestal MDC.
+
+The macros api:with-context[] and api:with-context-kv[] allow values to bound to the Pedestal MDC, which are then copied into the "io.pedestal" key of the SLF4J MDC; at the end of the block,
+the prior state of the SLF4J and Pedestal MDCs are restored.
+
+[WARNING]
+====
+Be careful about using the MDC when using {core_async} or any kind of thread pool; the MDC
+is stored per-thread, and there isn't an easy way to copy its value over to arbitrary new threads.
+====
+
+
+.Special Keys used with `with-context` and `with-context-kv`
+|===
+| Key | Value
+
+| :io.pedestal.log/mdc
+| The MDC to use, which must implement api:LoggingMDC[].
+
+| :io.pedestal.log/formatter
+| A function that can be passed an MDC map and return a string used when setting the `io.pedestal`
+key of the SLF4J MDC.  The default is clj:pr-str[].
+|===
+
+
+== Example logback-test.xml
+
+Logback supports overriding a logging configuration file that is used in production with one
+that is only used in tests - it's simply a matter of having a file named `logback-test.xml` on the classpath.
+
+A full production Logback configuration will often set limits on what's logged, and deal with writing output
+to timestamped files.  For testing, you want to be less selective on logging output, and log to the console.
+
+This is a somewhat minimal example:
+
+[source,xml]
+----
+include::example$logback-test.xml[]
+----
+
+Because this file enabled scanning, it can be updated at runtime to enable or disable
+logging of specific namespaces.
+
+== Metrics and Telemetry
+
+The api:*[] namespace contains additional protocols and functions related to metrics and telemetry; these are slated to be deprecated in 0.7 and reimplemented, and will be documented
+at that time.
