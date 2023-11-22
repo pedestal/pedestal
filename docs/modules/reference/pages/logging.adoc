@@ -48,7 +48,7 @@ api:warn[],
 and
 api:error[].
 These macros are responsible for obtaining an api:LoggerSource[] instance based on the
-namespace name (unless overridden) and converting the passed keys and values into a Clojure map, when is printed to a string and logged as the event body.
+namespace name (unless overridden) and converting the passed keys and values into a Clojure map, which is printed to a string and logged as the event body.
 
 Added to the map is the extra key, :line, which identifies the line number in the source.
 
@@ -140,7 +140,7 @@ the prior state of the SLF4J and Pedestal MDCs are restored.
 
 [WARNING]
 ====
-Be careful about using the MDC when using {core_async} or any kind of thread pool; the MDC
+Be careful about using the SLF4J MDC when using {core_async} or any kind of thread pool; the MDC
 is stored per-thread, and there isn't an easy way to copy its value over to arbitrary new threads.
 ====
 
@@ -164,7 +164,8 @@ Logback supports overriding a logging configuration file that is used in product
 that is only used in tests - it's simply a matter of having a file named `logback-test.xml` on the classpath.
 
 A full production Logback configuration will often set limits on what's logged, and deal with writing output
-to timestamped files.  For testing, you want to be less selective on logging output, and log to the console.
+to timestamped files.  For testing and local development,
+you want to be less selective on logging output, and log to the console.
 
 This is a somewhat minimal example:
 
