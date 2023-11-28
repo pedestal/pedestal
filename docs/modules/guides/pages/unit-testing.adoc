@@ -76,7 +76,7 @@ services and simulates the receipt of a servlet request and creation
 of a servlet response - but does so without the overhead of an actual HTTP connection, which
 ensures your tests are fast.
 
-`response-for takes as arguments a service function, verb and url as
+`response-for` takes as arguments a service function, verb and url as
 required parameters; headers and a request body are
 optional. Let us examine those parameters in more detail.
 
@@ -94,7 +94,8 @@ The _headers_ and request _body_ inputs are optional and specified with the
 === Usage
 
 Before using `response-for` in tests, a test service must be
-created. This is done by calling `io.pedestal.http/create-servlet`
+created. This is done by calling
+api:create-servlet[ns=io.pedestal.http]
 with the service map as a parameter. The resulting service-fn can be
 bound to a var and used in subsequent tests.
 
