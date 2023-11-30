@@ -11,8 +11,29 @@
 
 Changes:
 
-- pedestal.logging: SLF4J dependency changed to 2.0.7 
+- pedestal.logging: SLF4J dependency changed to 2.0.7
 - Pedestal is compatible with Clojure 1.10.1 and above
+
+## 0.6.3 -- 30 Nov 2023
+
+A change has been made to the `path-params-decoder` to address the breaking change in 0.6.0; by
+making the decoder idempotent, it is no longer a breaking change.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/15?closed=1)
+
+## 0.6.2 - 17 Nov 2023
+
+Upgrade dependencies to fix CVEs in Jetty.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/14?closed=1)
+
+## 0.6.1 - 03 Oct 2023
+
+Upgrade dependencies to fix CVEs:
+
+ * aws-java-sdk-xray
+ * jetty (various)
+ * tomcat-embed-jasper & tomcat-embed-core
 
 ## 0.6.0 - 12 Jun 2023
 

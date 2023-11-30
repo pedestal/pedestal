@@ -52,5 +52,3 @@
           ((:enter params/keyword-body-params))
           app
           (get-in [:request :body-params])))))
-
-(run-tests)
