@@ -4,6 +4,7 @@
 
 
 
+
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-19 Cognitect, Inc.
 
@@ -16,7 +17,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(defproject pedestal-service/lein-template "0.6.2"
+(defproject pedestal-service/lein-template "0.6.3"
   :description "A Pedestal Service template."
   :url "https://github.com/pedestal/pedestal"
   :scm "https://github.com/pedestal/pedestal"
