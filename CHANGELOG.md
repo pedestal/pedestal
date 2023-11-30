@@ -2,6 +2,11 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
+## 0.6.3 -- UNRELEASED
+
+A change has been made to the `path-params-decoder` to address the breaking change in 0.6.0; by
+making the decoder idempotent, it is no longer a breaking change.
+
 ## 0.6.2 - 17 Nov 2023
 
 Upgrade dependencies to fix CVEs in Jetty.
