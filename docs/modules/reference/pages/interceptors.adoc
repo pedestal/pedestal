@@ -1,0 +1,205 @@
+= Interceptors
+
+[TIP]
+.*See the guide*
+--
+This is the detailed interceptor _reference_; if you are new to Pedestal
+you may want to start with the xref:guides:what-is-an-interceptor.adoc[].
+--
+
+Interceptors are the basic unit of work in Pedestal. The
+core library provides interceptors that are generally useful for
+creating HTTP web services. Applications augment those with their own
+logic to handle.
+
+An interceptor is a pair of unary functions footnote:[An optional third function is used for error handling.]
+An interceptor must provide at least one of :enter, :leave and :error.
+Each function is called with a xref:context-map.adoc[] and must return either a context
+map or a {core_async} channel that will deliver a context map; the latter case triggers
+xref:guides:async.adoc[asynchronous request processing].
+
+Pedestal calls the :enter function on the way "in" to handling a
+request. It calls the :leave function on the way back "out". This is
+shown here for a single interceptor:
+
+image::guides:interceptors.png[]
+
+Either the :enter or :leave function may be omitted without harm.
+
+Logically speaking, interceptors form a queue.
+During the :enter phase, the next interceptor is popped off the queue,
+pushed onto the leave stack, and it's :enter function, if any, is executed.
+
+Once the handler (or other interceptor) adds a :response to the context,
+the chain logic switches to :leave mode: it pops interceptors off
+the leave stack and invokes the :leave function, if any.
+
+Because it's the leave _stack_ the :leave functions are invoked
+in the opposite order from the :enter functions.
+
+image::guides:interceptor-stack.png[]
+
+Both the queue and the stack reside in the context map. Since
+interceptors can modify the context map, that means they can change
+the plan of execution for the rest of the request! Interceptors are
+allowed to enqueue more interceptors to be called, or they can
+terminate the request.
+
+This process, of running all the interceptor :enter functions, then running
+the interceptor :leave functions, is called _executing the interceptor chain_.
+
+== Context Bindings
+
+Interceptors expect certain keys to be present in the context
+map. These _context bindings_ are part of the contract between
+provider and interceptors.
+
+The most important keys are :request, which holds the xref:request-map.adoc[], and
+:response, which holds the xref:response-map.adoc[].
+
+Further keys are described in the xref:context-map.adoc[] reference.
+
+== Interceptor Return Values
+
+Interceptor functions must return values. Returning `nil` will cause
+an internal server error.
+
+An :enter or :leave function may return a context map directly. In
+this case, processing continues with the next interceptor.
+
+If the interceptor is expected to take a long time to return a result, it may
+instead return a {core_async} channel. Pedestal will yield the request processing thread and
+wait for a value to be produced.
+
+Only one value will be consumed from the returned channel, and the value must be a context map.
+
+[IMPORTANT]
+.*Chaining With Async Interceptors*
+--
+Any interceptor downstream of an asynchronous interceptor will be executed in the
+{core_async} dispatch thread pool.
+This can be problematic if any later interceptor or handler performs any blocking I/O, as the thread pool is a fixed
+size. Generally speaking, if any interceptor is asynchronous, all following non-trivial interceptors should also be asynchronous.
+
+Trivial interceptors do short computations or make changes to the context map; they do not perform any I/O or other
+operations that could block the thread they execute on, such as any file or socket I/O.
+
+When an interceptor returns a channel, the request processing thread can be returned to the servlet container.
+This may allow another pending request to be processed while the initial request is parked, waiting for
+the channel returned by an interceptor to convey the new context map.
+--
+
+== IntoInterceptor
+
+The protocol
+api:IntoInterceptor[ns=io.pedestal.interceptor]
+represents anything that can be used as an interceptor. Pedestal extends that protocol to the following:
+
+[cols="1,3"]
+|===
+| Type | Interpretation
+
+| Map
+| The :enter, :leave, and :name keys are used directly.
+
+| Function
+| The function is interpreted as a "handler". See <<_handlers>>.
+
+| List
+| The list is evaluated and its result is used as an interceptor. footnote:[This is supported behavior
+  related to the xref:table-syntax.adoc[table router syntax], but is no longer commonly used.]
+
+| Cons
+| Same as List
+
+| Symbol
+| The symbol is resolved and its target is converted to an interceptor.
+
+| Var
+| The var is de-referenced and its value is converted to an interceptor.
+
+|===
+
+Most of these cases are provided to make routing syntax
+easier.
+
+Applications should mainly use the map form as shown in the
+earlier examples when defining interceptors for routing
+purposes.
+
+== Manipulating the interceptor queue
+
+The queue of interceptors remaining to execute is held in the
+xref:context-map.adoc[]. This means that an interceptor can
+enqueue other interceptors to be executed. In fact, this is exactly how
+xref:routing-quick-reference.adoc[routing] works, the router is an interceptor that matches requests and
+enqueues the desired interceptors when a route matches.
+
+Use
+api:enqueue[ns=io.pedestal.interceptor.chain]
+to push more interceptors onto the queue.
+
+Use
+api:terminate[ns=io.pedestal.interceptor.chain]
+if processing should not continue - though normally, this is accomplished
+by attaching a :response map (the xref:response-map.adoc[]) to the xref:context-map.adoc[].
+
+[IMPORTANT]
+.*Interceptor Records*
+--
+Interceptors that are explicitly enqueued by the application must
+be defined using the
+api:interceptor[ns=io.pedestal.interceptor]
+function. This function takes a value which extends
+the IntoInterceptor protocol, and returns an Interceptor record.
+
+This is not necessary when constructing interceptors used in routing
+because interceptor representations are transformed to Interceptor
+records during route expansion.
+--
+
+It's worth noting that when an interceptor queues additional interceptors for execution,
+they execute after all interceptors already in the queue (not immediately after the interceptor that
+modified the queue).  This means you could, for example, put a routing interceptor first
+in the queue, then a few interceptors that provide behavior common to all routes, and those
+common interceptors will run before any route-specific interceptors.
+
+
+== Handlers
+
+A handler function is a special case of an interceptor.
+Pedestal treats the handler as a function that takes a xref:request-map.adoc[]
+and returns a xref:response-map.adoc[].
+
+A handler does _not_ have access to the full xref:context-map.adoc[execution context],
+therefore, it cannot manipulate the interceptor queue.
+
+Because a handler takes one kind of thing (request) and returns a
+different kind of thing (response), it can only be used in the last
+position of a stack.
+
+Handlers are always synchronous; they must return a response map, not a channel that delivers
+a response map.
+
+== Error Handling
+
+Pedestal supports defining interceptor-specific error handlers via the
+:error key. Refer to the xref:error-handling.adoc[] reference for more details.
+
+== Pedestal Interceptors
+
+The api:pedestal-service[ns=pedestal.service/index] library includes a large set of interceptors
+that are specialized for HTTP request handling.
+
+See the following namespaces for stock interceptors:
+
+- api:io.pedestal.http.body-params[ns=pedestal.service/io.pedestal.http.body-params]
+- api:io.pedestal.http.content-negotiation[ns=pedestal.service/io.pedestal.http.content-negotiation]
+- api:io.pedestal.http.cors[ns=pedestal.service/io.pedestal.http.cors]
+- api:io.pedestal.http.csrf[ns=pedestal.service/io.pedestal.http.csrf]
+- api:io.pedestal.http.ring-middlewares[ns=pedestal.service/io.pedestal.http.ring-middlewares]
+
+See the following namespaces for routing interceptors:
+
+- api:io.pedestal.http.route[ns=pedestal.route/io.pedestal.http.route]
+- api:io.pedestal.http.route.router[ns=pedestal.route/io.pedestal.http.route.router]

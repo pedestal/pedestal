@@ -527,6 +527,13 @@
                        (router-type router-implementations))]
      (router-spec routing-table router-ctor))))
 
+(defn- attach-bad-request-response
+  [context exception]
+  (assoc context :response
+         {:status 400
+          :headers {}
+          :body (str "Bad Request - " (.getMessage exception))}))
+
 (def query-params
   "Returns an interceptor which parses query-string parameters from an
   HTTP request into a map. Keys in the map are query-string parameter
@@ -539,22 +546,33 @@
      :enter (fn [ctx]
               (try
                 (update ctx :request parse-query-params)
-                (catch IllegalArgumentException iae
-                  (interceptor.chain/terminate
-                    (assoc ctx :response {:status 400
-                                          :body (str "Bad Request - " (.getMessage iae))})))))}))
+                (catch IllegalArgumentException e
+                  (attach-bad-request-response ctx e))))}))
 
 (def path-params-decoder
-  "An Interceptor which URL-decodes path parameters."
+  "An Interceptor which URL-decodes path parameters.
+  The path parameters are in the :request map as :path-parameters.
+
+  This will only operate once per interceptor chain execution, even if
+  it appears multiple times; this prevents failures in existing applications
+  that upgrade to Pedestal 0.6.0, as prior releases incorrectly failed to
+  parse path parameters. Existing applications that upgrade may have
+  this interceptor in some routes, which could yield runtime exceptions
+  and request failures if the interceptor is executed twice."
   (interceptor/interceptor
-    {:name ::path-params-decoder
-     :enter (fn [ctx]
-              (try
-                (update ctx :request parse-path-params)
-                (catch IllegalArgumentException iae
-                  (interceptor.chain/terminate
-                    (assoc ctx :response {:status 400
-                                          :body (str "Bad Request - " (.getMessage iae))})))))}))
+   {:name ::path-params-decoder
+    :enter (fn [ctx]
+             ;; This isn't truly idempotent, as it does not account for
+             ;; some intermediate interceptor modifying the path parameters,
+             ;; but this addresses the needs in issue #776.
+             (if (::path-params-decoded? ctx)
+               ctx
+               (try
+                 (-> ctx
+                     (update :request parse-path-params)
+                     (assoc ::path-params-decoded? true))
+                 (catch IllegalArgumentException e
+                   (attach-bad-request-response ctx e)))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in

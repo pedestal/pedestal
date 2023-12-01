@@ -1,0 +1,118 @@
+= Terse Syntax
+
+As its name implies, the terse syntax provides a compact approach for
+describing routes. When the argument to
+api:expand-routes[ns=io.pedestal.http.route]
+is a *vector*, it will be expanded using the terse syntax.
+
+Unlike the Table or Verbose syntax, it allows for the nesting
+of route definitions where each nested route vector adds a path segment.
+
+Unlike the Table syntax, any verb can be specified without verb whitelisting.
+
+A route table is a vector of nested vectors. Top-level
+vector(s) are termed _application_ vectors. Nested vectors are termed _route_
+vectors.
+
+== Quick Reference
+
+=== Application Vector Format
+
+1. (Optional) A keyword identifying the application by name
+2. (Optional) A URL scheme
+3. (Optional) A host name
+4. (Optional) A port
+5. One or more nested route vectors.
+
+=== Route Vector Format
+
+1. A path segment (must begin with a slash)
+2. A verb map
+3. (Optional) An interceptor vector with `^:interceptors` metadata
+footnote:before-verb[Can also be specified before the verb map.],
+footnote:current-and-child[Applies to the current route and any child routes.]
+4. (Optional) A constraints map with `^:constraints` metadata footnote:before-verb[], footnote:current-and-child[]
+5. Zero or more child route vectors
+
+=== Syntax for api:expand-routes[ns=io.pedestal.http.route]
+
+[source,clojure]
+----
+(ns myapp.service
+  (:require [io.pedestal.http.route :as route]))
+
+(def routes
+  [[:hello-world :http
+    ["/order" {:get  `list-orders
+               :post [:post-without-id `create-order]}
+     ["/:id"
+      ^:interceptors [load-order-from-db]
+      ^:constraints  {:id #"[0-9]+"}
+      {:get `view-order
+       :put `update-order
+       :post [:post-by-id `create-order]}]]]])
+----
+
+== Detailed Reference
+
+=== Path string
+
+The path string must:
+
+- Start with a slash ("/")
+- Consist of zero or more path segments separated by slashes.
+
+Each path segment is one of:
+
+1. A string literal
+2. A colon (":") followed by a legal Clojure identifier name. This is a path parameter.
+3. An asterisk ("*") followed by a legal Clojure identifier name. This is a wildcard path.
+
+When routing a request, a path parameter will match any characters
+other than a slash. The matched string will be bound to the request by
+the path parameter name from the route.
+
+For example, using the route `/users/:id/orders/:order-id`, the following request URLs would be treated as:
+
+[cols="2,1,5"]
+|===
+| URL | Match? | Path params
+
+| /users/abcdef/orders
+| No
+|
+
+| /users/abcdef/orders/12345
+| Yes
+| `{:id "abcdef" :order-id "12345"}`
+
+| /users/123545/orders/From%20Strings
+| Yes
+| `{:id "123545" :order-id "From Strings"}`
+|===
+
+All path parameter values are strings.
+
+NOTE: If you wish to use a wild card route as a fallback route then use the xref:linear-search-router.adoc[].
+Keep in mind that wildcard fallback routes are not recommended since they tend to increase the complexity of handler logic.
+
+=== Verb map
+
+The verb map contains verb to handler mappings. Each verb in the verb map
+defines a route. If a handler is referenced by multiple routes, a route name
+must be specified. The route name is a keyword which occurs in the first
+position of an interceptor vector in the verb map.
+
+Unlike the Table Route syntax, custom verbs do not need to be white listed.
+However, :any is a wildcard verb. During request routing, :any will match
+all requests.
+
+=== Handler or Interceptors
+
+The "handler position" be anything that satisfies the api:IntoInterceptor[ns=io.pedestal.interceptor] protocol. This includes:
+
+- Function value
+- Symbol
+- Var
+- Map
+- List

@@ -1,0 +1,29 @@
+= Response Bodies
+
+This reference describes how the xref:servlet-interceptor.adoc[] handles
+response bodies of various types. Much of this behavior depends on the
+protocols `WritableBody` and `WritableBodyAsync`. See
+xref:important-protocols.adoc[] for details about those.
+
+The exact handling of the response body depends on the Java or Clojure
+type of the value in the :body key of the xref:response-map.adoc[].
+
+[cols="1,3,3,1"]
+|===
+| Type | Default content type | Serialization | Async?
+
+| byte array | application/octet-stream | direct byte copy | no
+| string     | text/plain               | bytes according to platform's default character encoding | no
+| Clojure collection | application/edn  | text representation of data, same as Clojure's writer | no
+| Clojure function   | nil              | depends on the function                               | no
+| File               | application/octet-stream | bytes of the file copied to the output stream | no
+| InputStream        | application/octet-stream | bytes of the input stream copied to the output stream | no
+| ReadableByteChannel (NIO) | application/octet-stream | bytes of the channel copied to the output stream | yes
+| ByteBuffer (NIO) | application/octet-stream | bytes of the buffer copied to the output stream | yes
+| {core_async} channel | nil | see below | yes
+|===
+
+When a core.async channel delivers a message, that message is written
+to the stream, using any of the synchronous dispatches above. The
+message from the channel must not be another channel, it must be a value that
+can be immediately acted upon.

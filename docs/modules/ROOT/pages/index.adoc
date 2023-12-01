@@ -1,0 +1,47 @@
+= What is Pedestal?
+
+image::animated-front-page-sample.gif[float="right",width=300]
+
+Pedestal is a set of libraries that we use to build services and applications. It runs in the back end and can serve up whole HTML pages or handle API requests.
+
+There are a lot of tools in that space, so why did we build Pedestal? We had two main reasons:
+
+* **Pedestal is designed for APIs first.** Most web app frameworks still focus on the "page model" and server side rendering. Pedestal lets you start simple and add that if you need it.
+* **Pedestal makes it easy to create _live_ applications.** Applications must respond with immediate feedback even while some back-end communication goes on. Pedestal makes it easy to deliver server-sent events and asynchronous updates.
+
+++++
+<div class="features-section">
+  <h2>Features</h2>
+
+  <div class="main-feature-row">
+    <div class="main-feature">
+      <h3>Ready for Production</h3>
+      <div class="paragraph">Pedestal works with a huge variety of containers and deployment options. Deploy applications or microservices on unikernels, Docker containers, or JAR files. Pedestal supports Tomcat, Jetty, Immutant (with Undertow), Vert.x, nginx, and Netty.</div>
+    </div>
+    <div class="main-feature">
+      <h3>Secure by Default</h3>
+      <div class="paragraph">Pedestal automatically uses secure headers, CSRF-protection, and other best practices. It works with CORS to allow secure front end applications.</div>
+    </div>
+  </div>
+
+  <div class="main-feature-row">
+    <div class="main-feature">
+      <h3>Streaming</h3>
+      <div class="paragraph">Pedestal lets you create dynamic applications with server-sent events and websockets. It uses Clojure's async capabilities and Java NIO.</div>
+    </div>
+    <div class="main-feature">
+      <h3>Late Binding</h3>
+      <div class="paragraph">Routers and Interceptors let Pedestal services apply different behavior based on each incoming request, rather than statically wrapping everything up during initialization.</div>
+    </div>
+  </div>
+
+  <div class="main-feature-row">
+    <div class="main-feature">
+      <h3>Composable</h3>
+      <div class="paragraph">Pedestal is built from pieces that connect via protocols, giving you the flexibility to swap out any part.</div>
+    </div>
+    <div class="main-feature">
+    </div>
+  </div>
+</div>
+++++

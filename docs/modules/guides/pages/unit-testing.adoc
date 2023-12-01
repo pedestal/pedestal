@@ -1,0 +1,190 @@
+= Unit testing
+
+It is a good practice to separate core business logic from handler,
+and more generally, interceptor code. This separation of concerns has
+many benefits, including facilitating testing at the interceptor, interceptor
+chain and end-to-end response generation levels.
+
+== Testing interceptors in isolation
+
+Interceptors can be tested in isolation by either directly invoking the
+:enter, :leave or :error functions with a mock context map in your test
+or by using the interceptor chain
+api:execute[ns=io.pedestal.interceptor.chain]
+function. Both approaches are demonstrated below.
+
+Given the following interceptor:
+
+[source,clojure]
+----
+(def widget-finder
+     (interceptor/interceptor
+      {:enter (fn [ctx]
+                (assoc ctx :widget {:id 1 :title "foobar"} ))}))
+----
+
+We can test it either directly:
+
+[source,clojure]
+----
+(let [test-fn (:enter widget-finder)]
+  (is (= {:id 1 :title "foobar"} (:widget (test-fn {})))))
+----
+
+Or using the interceptor chain api:execute[ns=io.pedestal.interceptor.chain]
+function:
+
+[source,clojure]
+----
+(is (= {:id 1 :title "foobar"} (:widget (chain/execute {} [widget-finder]))))
+----
+
+We can extend this approach to test coordination across multiple interceptors as follows:
+
+[source,clojure]
+----
+(def widget-renderer
+  (interceptor/interceptor
+   {:leave (fn [ctx]
+             (if-let [widget (:widget ctx)]
+               (assoc ctx :response {:status 200
+                                     :body   (format "Widget ID %d, Title '%s'"
+                                                     (:id widget)
+                                                     (:title widget))})
+               (assoc ctx :response {:status 404 :body "Not Found"})))}))
+
+(is (= "Widget ID 1, Title 'foobar'"
+       (get-in (chain/execute {} [widget-renderer widget-finder])
+               [:response :body])))
+----
+
+
+== Testing your service with `response-for`
+
+The value in exercising the end-to-end operation of your service endpoints is
+that it provides quick feedback that you've wired things up correctly. Pedestal
+provides the test helper
+api:response-for[ns=io.pedestal.test]
+utility function to facilitate testing of services without having to spin up an
+http server.
+
+This style of testing ensures that routing is correct, and it fully exercises routing, interceptors,
+and any business logic.
+
+The `response-for` helper function is specific to servlet-based
+services and simulates the receipt of a servlet request and creation
+of a servlet response - but does so without the overhead of an actual HTTP connection, which
+ensures your tests are fast.
+
+`response-for` takes as arguments a service function, verb and url as
+required parameters; headers and a request body are
+optional. Let us examine those parameters in more detail.
+
+The _service function_ refers to the :io.pedestal.http/service-fn key
+value in the service map during service initialization.
+
+The _verb_ is an HTTP method represented as a keyword (i.e., :get,
+:post, :delete, etc...).
+
+The _url_ is a relative url represented as a string.
+
+The _headers_ and request _body_ inputs are optional and specified with the
+:headers and :body keys, respectively.
+
+=== Usage
+
+Before using `response-for` in tests, a test service must be
+created. This is done by calling
+api:create-servlet[ns=io.pedestal.http]
+with the service map as a parameter. The resulting service-fn can be
+bound to a var and used in subsequent tests.
+
+[source,clojure]
+----
+(def service (:io.pedestal.http/service-fn (io.pedestal.http/create-servlet service-map)))
+----
+
+==== Testing GET
+
+The following example illustrates a simple execution of `response-for`
+within a test:
+
+[source,clojure]
+----
+(is (= "Hello!" (:body (response-for service :get "/hello"))))
+----
+
+The response returned by `response-for` contains :status, :body
+and :header keys. The value of the :headers key is a map with
+stringified keys. Testing header values would look something like
+this:
+
+[source,clojure]
+----
+(is (= "text/plain"
+       (get-in (response-for service :get "/hello") [:headers "Content-Type"])))
+----
+
+==== Testing POST
+
+POST'ing to a service endpoint can be tested by using the :post verb
+and specifying a request :body. The route under test typically
+includes the
+api:body-params[ns=io.pedestal.http.body-params]
+interceptor to support request payload parsing. Therefore, you will
+need to set the `Content-Type` header of the test request to the
+appropriate value based on the payload format of the request body.
+
+[source,clojure]
+----
+(is (= 200 (:status (response-for service
+                                  :post "/foo"
+                                  :headers {"Content-Type" "application/json"}
+                                  :body "{\"foo\":\"bar\"}"))))
+----
+[source,clojure]
+----
+(is (= 200 (:status (response-for service
+                                  :post "/foo-login"
+                                  :headers {"Content-Type" "application/x-www-form-urlencoded"}
+                                  :body "username=test@test.com&password=my-pwd"))))
+----
+
+Notice how `Content-Type` is a string.
+
+==== Constructing route URLs
+
+Pedestal provides a utility,
+api:url-for-routes[ns=io.pedestal.http.route].
+This is passed the _expanded_ routes for your application, and returns a function that will generate
+a URL for a specific route; primarily by specifying the route name, but also other factors.
+
+It is recommended to create a `url-for` test helper based on `url-for-routes`, and
+use that helper to create the relative urls for your tests. This allows you to
+refer to routes by name as opposed to hard-coded paths. Route names
+are typically more stable. Aside from that, it makes it easy to test
+routes which use query or path parameters.
+
+Here's an example:
+
+[source,clojure]
+----
+(require '[io.pedestal.http.route :as http.routes])
+
+(def routes #{["/user/:id/items" :post `user-items]} ; <1>
+
+(def url-for (http.routes/url-for-routes (http.routes/expand-routes routes))))
+
+(is (= 200 (:status (response-for service
+                                  :get (url-for ::user-items ;<2>
+                                                 :path-params {:id 1}
+                                                 :query-params {:sort "ASC"})))))
+----
+<1> The namespace qualified symbol for `user-items` will be the default route name (as a keyword)
+<2> The route name is used to get the URL back
+
+==== Testing Async interactions
+
+Nothing special needs to be done when testing routes which include
+async interactions. The `response-for` helper forces asynchronous
+request processing to synchronous processing for test purposes.

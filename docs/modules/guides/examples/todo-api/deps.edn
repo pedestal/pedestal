@@ -1,0 +1,5 @@
+{:deps
+ {io.pedestal/pedestal.jetty   {:mvn/version "0.6.1"}
+  org.clojure/data.json        {:mvn/version "2.4.0"}
+  org.slf4j/slf4j-simple       {:mvn/version "2.0.9"}}
+ :paths ["src"]}

@@ -18,6 +18,27 @@ Other changes:
     - New macro `bind` makes it easier for interceptors to manipulate dynamic variables exposed to following interceptors
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
 
+## 0.6.3 -- 30 Nov 2023
+
+A change has been made to the `path-params-decoder` to address the breaking change in 0.6.0; by
+making the decoder idempotent, it is no longer a breaking change.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/15?closed=1)
+
+## 0.6.2 - 17 Nov 2023
+
+Upgrade dependencies to fix CVEs in Jetty.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/14?closed=1)
+
+## 0.6.1 - 03 Oct 2023
+
+Upgrade dependencies to fix CVEs:
+
+ * aws-java-sdk-xray
+ * jetty (various)
+ * tomcat-embed-jasper & tomcat-embed-core
+
 ## 0.6.0 - 12 Jun 2023
 
 **BREAKING CHANGES:**

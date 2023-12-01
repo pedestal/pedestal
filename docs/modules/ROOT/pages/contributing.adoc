@@ -1,0 +1,113 @@
+= Contributing to Pedestal
+
+== Hacking on Pedestal
+
+=== Checkout Instructions
+
+All the code is in one repository, with subprojects for the different
+modules. Just clone https://github.com/pedestal/pedestal and you are
+good to go.
+
+=== Testing Pedestal Itself
+
+If you're working on Pedestal itself, you can test everything
+
+From the `tests` directory, execute `clj -X:test`.
+
+== Contributing to Pedestal
+
+Thanks for your interest in helping out with Pedestal! Let this document
+serve as your guide. (This is a copy of
+https://github.com/pedestal/pedestal/blob/master/CONTRIBUTING.md[CONTRIBUTING.md]
+in the main https://github.com/pedestal/pedestal/[Pedestal repo]. If
+you ever see a discrepancy, it's probably because this document is out
+of date relative to that one.)
+
+=== Looking for work?
+
+If you're looking for a task to work on, check out the
+https://github.com/pedestal/pedestal/issues?labels=primed[primed label] in our issues.
+
+Less defined tasks will be marked with the
+https://github.com/pedestal/pedestal/issues?labels=discuss[discuss
+label]. Jump in here if you want to be a part of something big.
+
+=== New Features
+
+Pedestal is the thinking person's framework, so every contribution starts with
+some *deep* thought. Finished?
+
+Alright, your next step is to start a discussion.
+
+Create an https://github.com/pedestal/pedestal/issues/new[issue] to start
+a conversation. Tell us what you're trying to accomplish and how you think you
+might do it. If all is well, we'll probably give you the thumbs up to
+start developing.
+
+=== Bugs
+
+Of course, if you run into any straight-up bugs or weirdness feel free to skip
+the thinking (or at least too much of it) and immediately submit an
+https://github.com/pedestal/pedestal/issues/new[issue].
+
+We have an issue template in place that will ask you some details
+about the platform you are running and how to reproduce the bug. (If
+you can reproduce it reliably. If not, go ahead and file the issue
+anyway so we can start looking at it.)
+
+Some of the usual stuff we'll want to know:
+
+* What happened?
+** "I manifested a being from the outer dimensions."
+* What did you expect to happen?
+** "Hello, world."
+* How can you reproduce it?
+** "I created a new Pedestal service with the template, then installed some code that Bob Howard gave me."
+* What operating system and version are you using?
+** e.g. "OS X 10.8"
+* What version of Clojure, Java, and Leiningen or Boot are you using?
+** e.g. "Leiningen 2.5.2 on Java 1.8.0_u40 Java HotSpot(TM) 64-Bit Server VM"
+* What Pedestal version are you using?
+** e.g. "0.5.0"
+** or, for a SNAPSHOT: "0.5.1-SNAPSHOT at d0cf2b4"
+
+Even better, include a link to a gist or repository where we can jump straight
+to the problem.
+
+=== Tests
+
+We love well-tested code. We won't accept pull requests unless they're
+either well tested or sufficiently trivial (such as simple docstring
+changes). All of our code is tested via GitHub actions, and any pull
+requests you submit will be too.
+
+=== Workflow
+
+Pedestal is broken up into several pieces. You'll usually be working
+on just one of these pieces at a time, but you will want to test
+everything. Here is the workflow we recommend:
+
+1. Fork the https://github.com/pedestal/pedestal[repo] and clone your fork.
+2. Create a branch for your feature/bugfix.
+3. Make your changes and add tests.
+4. Run `clj -X:test` from the `tests` directory.
+5. Commit, push, and submit a pull request.
+
+== Contributor's Agreement
+
+When it comes to code contributions there is one more thing we need from
+you: a signed contributor's agreement.
+
+We know that a contributor's agreement can be a pain, but we want everyone
+to be able to use Pedestal, including developers working on projects for very
+large companies. Many of these big organizations care *a lot* about the provenance of
+the code they use -- that is they need to know where the code came from and who owns it.
+The contributor's agreement simply puts down in writing what we think is the
+standard open source arrangement: Mostly it says that you are donating code that
+you wrote to the project. By submitting a signed contributor's agreement,
+you are helping to ensure that your work will be available to the largest possible audience.
+
+It is an extra step, but there really is not much to executing the Pedestal contributor's agreement:
+You just need to complete the following online agreement to assign copyright to Cognitect.
+
+https://secure.echosign.com/public/hostedForm?formid=8JU33Z7A7JX84U[Cognitect Contributor Agreement]

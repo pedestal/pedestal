@@ -1,0 +1,111 @@
+= Jetty 11
+
+link:https://eclipse.dev/jetty/[Jetty 11] is the default container used with Pedestal.
+
+== Container Options
+
+The following table lists the container options supported by Jetty.
+
+[cols="m,d,d", options="header", grid="rows"]
+|===
+| Key | Value type | Description
+
+| :daemon?
+| Boolean
+| Use daemon threads. Defaults to `false`.
+
+| :max-threads
+| Integer
+| The maximum number of threads to use. Defaults to `50`.
+
+| :reuse-addr?
+| Boolean
+| Reuse the socket address. Defaults to `true`.
+
+| :thread-pool
+| A link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/thread/ThreadPool.html[ThreadPool] instance.
+| Override the Jetty thread pool (ignores max-threads)
+
+| :configurator
+| Function
+| A function called with the `org.eclipse.jetty.server.Server`
+instance. Expected to return the Server instance. Use when advanced customization is required.
+
+| :context-configurator
+| Function
+| A function called with the `org.eclipse.jetty.servlet.ServletContextHandler` instance. Use when advanced customization is required.
+
+| :ssl?
+| Boolean
+| Allows connections over HTTPS.
+
+| :ssl-port
+| Integer
+| Port to use for TLS listener. Defaults to `443` and implies :ssl?.
+
+| :h2c?
+| Boolean
+| HTTP/2 cleartext support. Allows upgrading connections from HTTP/1.1 to the Http/2 protocol. Defaults to `true`. When `true`, :port must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
+
+| :h2?
+| Boolean
+| HTTP/2 TLS support. When `true`, :ssl-port must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
+
+| :connection-factory-fns
+| Vector of Functions
+| A vector of functions that take the options map and
+an `org.eclipse.jetty.server.HttpConfiguration` instance and return an
+`org.eclipse.jetty.server.ConnectionFactory` instance. Applies only to
+the SSL connection.
+
+| :ssl-context-factory
+| An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
+| The `SSLContextFactory` instance to use when creating the server. If
+specified, :key-password, :keystore, :truststore,
+:trust-password, :security-provider, :client-auth are ignored.
+
+| :keystore
+| String _or_ `java.security.Keystore`
+| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance. Not used if :ssl-context-factory is set.
+
+| :key-password
+| String
+| Used for TLS. Keystore password. Not used if :ssl-context-factory is set.
+
+| :truststore
+| String _or_ `java.security.Keystore`
+| Used for TLS. Path to keystore file _or_ a `java.security.Keystore` instance. Not used if :ssl-context-factory is set.
+
+| :trust-password
+| String
+| Used for TLS. Trust store password. Not used if :ssl-context-factory is set.
+
+| :client-auth
+| String
+| SSL client certificate authenticate, may be set to :need,
+:want or :none. Defaults to :none.
+
+| :security-provider
+| String
+| Java Security Provider name. Refer to the Jetty https://www.eclipse.org/jetty/documentation/jetty-9/index.html#configuring-ssl[ConfiguringSSL/TLS] documentation. Not used if :ssl-context-factory is set.
+
+| :io.pedestal.http.jetty/http-configuration
+| An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration] instance.
+| The `HttpConfiguration` instance to use when creating the
+server. Use when advanced customization is required. The default
+`HttpConfiguration` is listed below.
+
+|===
+
+== Default HttpConfiguration
+
+The default HttpConfiguration is:
+
+* `SendDateHeader` is set to `true`
+* `SendXPoweredBy` is set to `false`
+* `SendServerVersion` is set to `false`
+* An instance of `org.eclipse.jetty.server.SecureRequestCustomizer` is
+added via `addCustomizer`
+* When :ssl?, :ssl-port or `h2?` is provided,
+`securePort` is set to the value of :ssl-port and `secureScheme`
+is set to `"https"`.
