@@ -18,9 +18,9 @@
             [clojure.java.io :as io]
             [clojure.core.async :as async]
             [io.pedestal.http.container :as container])
-  (:import (jakarta.servlet.http  HttpServletRequest HttpServletResponse)
+  (:import (jakarta.servlet.http HttpServletRequest HttpServletResponse)
            (jakarta.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
-           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream )
+           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
            (clojure.lang IMeta)
            (java.util Enumeration NoSuchElementException)
            (java.nio.channels Channels ReadableByteChannel)))
@@ -55,7 +55,7 @@
         (let [result (first @data)]
           (when (nil? result)
             (throw
-             (NoSuchElementException. (str "Attempt to fetch element from " kw))))
+              (NoSuchElementException. (str "Attempt to fetch element from " kw))))
           (swap! data rest)
           result)))))
 
@@ -67,7 +67,7 @@
   nil
   (->servlet-input-stream [_]
     (proxy [ServletInputStream]
-        []
+           []
       (read ([] -1)
         ([^bytes b] -1)
         ([^bytes b ^Integer off ^Integer len] -1))
@@ -80,11 +80,11 @@
   InputStream
   (->servlet-input-stream [wrapped-stream]
     (proxy [ServletInputStream]
-      []
+           []
       (available ([] (.available wrapped-stream)))
       (read ([] (.read wrapped-stream))
         ([^bytes b] (.read wrapped-stream b))
-        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len)))) ))
+        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len))))))
 
 (defn- test-servlet-input-stream
   ([] (test-servlet-input-stream nil))
@@ -103,8 +103,8 @@
     (with-meta
       (reify HttpServletRequest
         (getMethod [this] (-> verb
-                            name
-                            cstr/upper-case))
+                              name
+                              cstr/upper-case))
         (getRequestURL [this] (StringBuffer. url))
         (getServerPort [this] port)
         (getServerName [this] host)
@@ -140,7 +140,7 @@
         (getContentLengthLong [this] (Long/parseLong (get-in options [:headers "Content-Length"] "0")))
         (getContentType [this] (get-in options [:headers "Content-Type"] ""))
         (getCharacterEncoding [this] "UTF-8")
-        (setAttribute [this s obj] nil) ;; Needed for NIO testing (see Servlet Interceptor)
+        (setAttribute [this s obj] nil)                     ;; Needed for NIO testing (see Servlet Interceptor)
         (getAttribute [this attribute] nil))
       meta-data)))
 
@@ -148,7 +148,7 @@
   []
   (let [output-stream (ByteArrayOutputStream.)]
     (proxy [ServletOutputStream IMeta]
-        []
+           []
       (write
         ([arg] (if (= java.lang.Integer (type arg))
                  (.write output-stream (int arg))
@@ -174,7 +174,7 @@
                  (setStatus [this status] (reset! status-val status))
                  (getStatus [this] @status-val)
                  (getBufferSize [this] 1500)
-                 (setHeader [this header value] (swap! headers-map update-in [:set-header] assoc header value))
+                 (setHeader [this header value] (swap! headers-map update :set-header assoc header value))
                  (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
                  (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
                  (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
@@ -204,7 +204,7 @@
                             (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan))))))
 
-      meta-data)))
+               meta-data)))
 
 (defn test-servlet-response-status
   [test-servlet-response]
@@ -261,12 +261,12 @@
   (let [servlet-resp (apply servlet-response-for interceptor-service-fn verb url options)]
     (log/debug :in :response-for
                :servlet-resp servlet-resp)
-    (update-in servlet-resp [:headers] #(merge (:set-header %)
-                                               (:added-headers %)
-                                               (when-let [content-type (:content-type %)]
-                                                 {"Content-Type" content-type})
-                                               (when-let [content-length (:content-length %)]
-                                                 {"Content-Length" content-length})))))
+    (update servlet-resp :headers #(merge (:set-header %)
+                                          (:added-headers %)
+                                          (when-let [content-type (:content-type %)]
+                                            {"Content-Type" content-type})
+                                          (when-let [content-length (:content-length %)]
+                                            {"Content-Length" content-length})))))
 
 (defn response-for
   "Return a ring response map for an HTTP request of type `verb`
@@ -281,4 +281,4 @@
   :headers : An optional map that are the headers"
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
-      (update-in [:body] #(.toString ^ByteArrayOutputStream % "UTF-8"))))
+      (update :body #(.toString ^ByteArrayOutputStream % "UTF-8"))))

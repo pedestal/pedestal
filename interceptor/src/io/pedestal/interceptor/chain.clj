@@ -15,15 +15,18 @@
   common \"context\" map, maintaining a virtual \"stack\", with error
   handling and support for asynchronous execution."
   (:refer-clojure :exclude (name))
-  (:require [clojure.core.async :as async :refer [<! go]]
+  (:require [clojure.core.async  :refer [<! go]]
+            [io.pedestal.internal :as i]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
-  (:import java.util.concurrent.atomic.AtomicLong))
+  (:import java.util.concurrent.atomic.AtomicLong
+           (clojure.core.async.impl.protocols Channel)
+           (clojure.lang PersistentQueue)))
 
 (declare execute)
 (declare execute-only)
 
-(defn- channel? [c] (instance? clojure.core.async.impl.protocols.Channel c))
+(defn- channel? [c] (instance? Channel c))
 
 ;; This is used for printing out interceptors within debug messages
 (defn- name [interceptor]
@@ -67,8 +70,7 @@
   [context interceptor]
   (let [execution-id (::execution-id context)]
     (if-let [error-fn (get interceptor :error)]
-      (let [ex (::error context)
-            stage :error]
+      (let [ex (::error context)]
         (log/debug :interceptor (name interceptor)
                    :stage :error
                    :execution-id execution-id)
@@ -80,7 +82,7 @@
                  (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
                      (-> context
                          (assoc ::error (throwable->ex-info t execution-id interceptor :error))
-                         (update-in [::suppressed] conj ex)))))))
+                         (update ::suppressed conj ex)))))))
       (do (log/trace :interceptor (name interceptor)
                      :skipped? true
                      :stage :error
@@ -100,10 +102,10 @@
     context))
 
 (defn- prepare-for-async
-  "Call all of the :enter-async functions in a context. The purpose of these
+  "Calls all of the :enter-async functions in a context. The purpose of these
   functions is to ready backing servlets or any other machinery for preparing
   an asynchronous response."
-  [{:keys [enter-async] :as context}]
+  [{::keys [enter-async] :as context}]
   (doseq [enter-async-fn enter-async]
     (enter-async-fn context)))
 
@@ -119,8 +121,8 @@
    (prepare-for-async old-context)
    (go
      (if-let [new-context (<! context-channel)]
-       (execute new-context)
-       (execute (assoc (dissoc old-context ::queue ::async-info)
+       (execute (dissoc new-context ::enter-async))
+       (execute (assoc (dissoc old-context ::queue ::async-info ::enter-async)
                        ::stack (get-in old-context [::async-info :stack])
                        ::error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
                                         {:execution-id (::execution-id old-context)
@@ -153,9 +155,7 @@
   ([context interceptor-key]
   (log/debug :in 'process-all :handling interceptor-key :execution-id (::execution-id context))
    (loop [context (check-terminators context)]
-    (let [queue (::queue context)
-          stack (::stack context)
-          execution-id (::execution-id context)]
+    (let [{::keys [stack queue]} context]
       (log/trace :context context)
       (if (empty? queue)
         context
@@ -175,6 +175,8 @@
                                                               :stage interceptor-key
                                                               :stack new-stack})
                                          context)
+            ;; These cases are handled in the async case by re-entry into the
+            ;; execute (or execute-only) functions.
             (::error context) (dissoc context ::queue)
             (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
             true (recur (check-terminators context)))))))))
@@ -196,8 +198,7 @@
   [context]
   (log/debug :in 'process-any-errors :execution-id (::execution-id context))
   (loop [context context]
-    (let [stack (::stack context)
-          execution-id (::execution-id context)]
+    (let [stack (::stack context)]
       (log/trace :context context)
       (if (empty? stack)
         context
@@ -240,8 +241,7 @@
   [context]
   (log/debug :in 'leave-all :execution-id (::execution-id context))
   (loop [context context]
-    (let [stack (::stack context)
-          execution-id (::execution-id context)]
+    (let [stack (::stack context)]
       (log/trace :context context)
       (if (empty? stack)
         context
@@ -270,15 +270,17 @@
         (recur (dissoc context ::rebind))
         context)))
 
+(defn- into-queue
+  [queue values]
+  (into (or queue PersistentQueue/EMPTY) values))
+
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates
   the queue if necessary. Returns updated context."
   [context interceptors]
   {:pre [(every? interceptor/interceptor? interceptors)]}
   (log/trace :enqueue (map name interceptors) :context context)
-  (update-in context [::queue]
-             (fnil into clojure.lang.PersistentQueue/EMPTY)
-             interceptors))
+  (update context ::queue into-queue interceptors))
 
 (defn enqueue*
   "Like 'enqueue' but vararg.
@@ -303,7 +305,7 @@
   after every Interceptor's :enter function. If pred returns logical
   true, execution will stop at that Interceptor."
   [context pred]
-  (update-in context [::terminators] conj pred))
+  (update context ::terminators conj pred))
 
 (def ^:private ^AtomicLong execution-id (AtomicLong.))
 
@@ -322,6 +324,28 @@
       (log/trace :context context)
       (dissoc context ::stack ::execution-id))
     context))
+
+(defn on-enter-async
+  "Adds a callback function to be executed if the execution goes async, which occurs
+  when an interceptor returns a channel rather than a context map.
+
+  The supplied function is appended to the list of such functions.
+  All the functions are invoked, but only invoked once (a subsequent interceptor
+  also returning a channel does not have this side effect.
+
+  The functions are passed the context, but any returned value is ignored."
+  {:added "0.7.0"}
+  [context f]
+  (update context ::enter-async i/vec-conj f))
+
+(defmacro bind
+  "Updates the context to add a binding of the given var and value.
+   This is a convenience on modifying the :bindings key (a map of Vars and values).
+
+   Bound values will be available in subsequent interceptors."
+  {:added "0.7.0"}
+  [context var value]
+  `(update ~context :bindings assoc (var ~var) ~value))
 
 (defn execute-only
   "Like `execute`, but only processes the interceptors in a single direction,

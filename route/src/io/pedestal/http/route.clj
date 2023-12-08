@@ -198,8 +198,8 @@
                :request request)
     (-> opts
         (dissoc :params)
-        (update-in [:path-params] #(merge (:path-params request) params %))
-        (update-in [:query-params]
+        (update :path-params #(merge (:path-params request) params %))
+        (update :query-params
                    #(merge (apply dissoc params (:path-params route)) %)))))
 
 (defn- merge-method-param
@@ -596,7 +596,7 @@
        (interceptor/interceptor
          {:name ::method-param
           :enter (fn [ctx]
-                   (update-in ctx [:request] #(replace-method param-path %)))}))))
+                   (update ctx :request #(replace-method param-path %)))}))))
 
 (defn form-action-for-routes
   "Like 'url-for-routes' but the returned function returns a map with the keys

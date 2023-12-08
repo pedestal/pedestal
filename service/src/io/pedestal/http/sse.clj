@@ -60,23 +60,23 @@
    (mk-data name data nil))
   ([name data id]
    (let [bab (ByteArrayBuilder.)]
-        (when name
-          (.write bab ^bytes EVENT_FIELD)
-          (.write bab ^bytes (get-bytes name))
-          (.write bab ^bytes CRLF))
+     (when name
+       (.write bab ^bytes EVENT_FIELD)
+       (.write bab ^bytes (get-bytes name))
+       (.write bab ^bytes CRLF))
 
-        (doseq [part (string/split data #"\r?\n")]
-          (.write bab ^bytes DATA_FIELD)
-          (.write bab ^bytes (get-bytes part))
-          (.write bab ^bytes CRLF))
+     (doseq [part (string/split data #"\r?\n")]
+       (.write bab ^bytes DATA_FIELD)
+       (.write bab ^bytes (get-bytes part))
+       (.write bab ^bytes CRLF))
 
-        (when (not-empty id)
-          (.write bab ^bytes ID_FIELD)
-          (.write bab ^bytes (get-bytes id))
-          (.write bab ^bytes CRLF))
+     (when (not-empty id)
+       (.write bab ^bytes ID_FIELD)
+       (.write bab ^bytes (get-bytes id))
+       (.write bab ^bytes CRLF))
 
-        (.write bab ^bytes CRLF)
-        (.toByteArray bab))))
+     (.write bab ^bytes CRLF)
+     (.toByteArray bab))))
 
 (defn send-event
   ([channel name data]
@@ -134,7 +134,7 @@
     (log/counter ::active-streams 1)
     (try
       (loop []
-        (let [hb-timeout  (async/timeout (* 1000 heartbeat-delay))
+        (let [hb-timeout (async/timeout (* 1000 heartbeat-delay))
               [event port] (async/alts! [event-channel hb-timeout])]
           (cond
             (= port hb-timeout)
@@ -185,7 +185,7 @@
                       (ring-response/charset "UTF-8")
                       (ring-response/header "Connection" "close")
                       (ring-response/header "Cache-Control" "no-cache")
-                      (update-in [:headers] merge (:cors-headers context)))
+                      (update :headers merge (:cors-headers context)))
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
                          :response-channel response-channel

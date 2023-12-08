@@ -47,7 +47,7 @@
 (defn- normalize-args
   [arg]
   (if (map? arg)
-    (update-in arg [:allowed-origins]
+    (update arg :allowed-origins
                (fn [x] (if (fn? x)
                          x
                          (let [x-set (into #{} x)]

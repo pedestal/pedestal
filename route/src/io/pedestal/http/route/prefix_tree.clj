@@ -53,13 +53,13 @@
         first-groups (butlast groups)
         last-group (last groups)]
     (flatten
-     (conj (mapv #(if (wild? (first %))
-                    %
-                    (str (str/join "/" %) "/"))
-                 first-groups)
-           (if (wild? (first last-group))
-             last-group
-             (str/join "/" last-group))))))
+      (conj (mapv #(if (wild? (first %))
+                     %
+                     (str (str/join "/" %) "/"))
+                  first-groups)
+            (if (wild? (first last-group))
+              last-group
+              (str/join "/" last-group))))))
 
 (comment
 
@@ -90,21 +90,21 @@
   tree node."
   [segment o]
   (map->Node
-   (cond (wild-param? segment)
-         {:wild? true
-          :segment segment
-          :param (keyword (subs segment 1))
-          :payload (when o (->Payload [o]))}
+    (cond (wild-param? segment)
+          {:wild? true
+           :segment segment
+           :param (keyword (subs segment 1))
+           :payload (when o (->Payload [o]))}
 
-         (catch-all-param? segment)
-         {:catch-all? true
-          :segment segment
-          :param (keyword (subs segment 1))
-          :payload (when o (->Payload [o]))}
+          (catch-all-param? segment)
+          {:catch-all? true
+           :segment segment
+           :param (keyword (subs segment 1))
+           :payload (when o (->Payload [o]))}
 
-         :else
-         {:segment segment
-          :payload (when o (->Payload [o]))})))
+          :else
+          {:segment segment
+           :payload (when o (->Payload [o]))})))
 
 (defn- add-child
   "Given a tree node, a single char string key and a child node,
@@ -178,10 +178,10 @@
     (if (= common path-spec)
       (-> (assoc parent :payload (when o (->Payload [o])))
           (add-child (char-key segment lcs)
-                     (update-in node [:segment] subs lcs)))
+                     (update node :segment subs lcs)))
       (-> parent
           (add-child (char-key segment lcs)
-                     (update-in node [:segment] subs lcs))
+                     (update node :segment subs lcs))
           (insert-child (char-key path-spec lcs) (subs path-spec lcs) o)))))
 
 (defn insert
@@ -228,11 +228,11 @@
 (defn- result-map
   "Construct and return a lookup result."
   ([node path-params]
-     {:path-params path-params
-      :payload (:payload node)})
+   {:path-params path-params
+    :payload (:payload node)})
   ([node path-params path]
-     {:path-params (assoc path-params (:param node) path)
-      :payload (:payload node)}))
+   {:path-params (assoc path-params (:param node) path)
+    :payload (:payload node)}))
 
 (defn- get-child
   "Given a node, a request path and a segment size (the lcs index of
@@ -364,10 +364,10 @@
               [:x :y :z])
   ;;=> 42
 
-  (best-match {:x    {:y    {:a    nil}
-                      ::any {:c    nil}}
-               ::any {:y    {:b    nil}
-                      ::any {:d    nil
+  (best-match {:x {:y {:a nil}
+                   ::any {:c nil}}
+               ::any {:y {:b nil}
+                      ::any {:d nil
                              ::any 42}}}
               [:x :y :z])
   ;;=> 42

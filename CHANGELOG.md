@@ -8,11 +8,15 @@
 
 - pedestal.immutant has been removed
 - pedestal.tomcat has been removed
+- In `io.pedestal.interceptor.chain/execute-only` has subtly changed, but this function is not widely used (if at all)
 
-Changes:
+Other changes:
 
-- pedestal.logging: SLF4J dependency changed to 2.0.7
-- Pedestal is compatible with Clojure 1.10.1 and above
+- pedestal.logging: SLF4J dependency changed to 2.0.7 
+- Pedestal is now compatible with Clojure 1.10.1 and above
+- In `io.pedestal.interceptor.chain`:
+    - New macro `bind` makes it easier for interceptors to manipulate dynamic variables exposed to following interceptors
+    - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
 
 ## 0.6.3 -- 30 Nov 2023
 

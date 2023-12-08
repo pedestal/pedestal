@@ -39,7 +39,7 @@
 
 (defn sleeper-page
   [request]
-  (Thread/sleep (* 100  (inc  (rand 0.5))))
+  (Thread/sleep (* 100 (inc (rand 0.5))))
   (ring-resp/response "Hello World!"))
 
 (defn home-page
@@ -55,8 +55,8 @@
 (defn basic-proxy
   [request]
   (-> (http/get "http://localhost:8081/")
-      (select-keys  [:status :headers :body])
-      (update-in  [:headers] select-keys  ["Content-Type"])))
+      (select-keys [:status :headers :body])
+      (update :headers select-keys ["Content-Type"])))
 
 (defn nio-home
   [request]
@@ -81,15 +81,15 @@
      :body (-> resp :body)}))
 
 (interceptor/defbefore async-nio-proxy [context]
-  (let [chan (async/chan)
-        resp (ahttp/request {:request-method :get
-                             :uri "http://localhost:8081"})]
-    (async/go
-      (async/>! chan (assoc context :response {:status (-> resp :status async/<!)
-                                               :headers (-> resp :headers async/<! (select-keys ["Content-Type"]))
-                                               :body (-> resp :body)}))
-      (async/close! chan))
-    chan))
+                       (let [chan (async/chan)
+                             resp (ahttp/request {:request-method :get
+                                                  :uri "http://localhost:8081"})]
+                         (async/go
+                           (async/>! chan (assoc context :response {:status (-> resp :status async/<!)
+                                                                    :headers (-> resp :headers async/<! (select-keys ["Content-Type"]))
+                                                                    :body (-> resp :body)}))
+                           (async/close! chan))
+                         chan))
 
 
 

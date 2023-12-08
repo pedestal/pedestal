@@ -83,7 +83,7 @@
 
 (defbefore add-binding
            [context]
-           (update-in context [:bindings] #(assoc % #'*req* {:a 1})))
+           (update context :bindings #(assoc % #'*req* {:a 1})))
 
 (def app-routes
   `[[["/about" {:get [:about about-page]}]
@@ -216,21 +216,6 @@
               (response-for app :get)
               :body))))
 
-(def with-bindings*-atom
-  (atom 0))
-
-(let [original-with-bindings* with-bindings*]
-  (defn with-bindings*-tracing
-    [binding-map f & args]
-    (swap! with-bindings*-atom inc)
-    (apply original-with-bindings* binding-map f args)))
-
-(deftest dynamic-binding-minimalism
-  (with-redefs [with-bindings* with-bindings*-tracing]
-    (is (= 3 (do (response-for app :get "/about")
-                 @with-bindings*-atom))
-        "with-bindings* is only called three times, once initially on enter, once when routing creates the linker, and once initially on leave")))
-
 ;; data response fn tests
 
 (defn- slurp-output-stream [output-stream]
@@ -333,13 +318,11 @@
 ;;; Async request handlers
 
 (defbefore hello-async [context]
-           (let [ch (async/chan 1)]
-             (async/go
-               (async/>! ch (assoc context
-                                   :response
-                                   {:status 200
-                                    :body "Hello async"})))
-             ch))
+           (async/go
+             (assoc context
+                    :response
+                    {:status 200
+                     :body "Hello async"})))
 
 (def async-hello-routes
   `[[["/hello-async" {:get hello-async}]]])
