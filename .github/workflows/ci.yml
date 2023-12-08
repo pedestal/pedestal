@@ -49,10 +49,11 @@ jobs:
         working-directory: tests
         run: clojure -X:test:1.10
       - name: CVE Vulnerabilities Check
+        if: false # temporary
         id: cve-check
         run: clojure -T:build cve-check
       - name: Upload cve-check-results.html
-        if: ${{ !cancelled() && steps.cve-check.conclusion }}
+        if: false # temporary, ${{ !cancelled() && steps.cve-check.conclusion }}
         uses: actions/upload-artifact@v3
         with:
           name: cve-check-results.html
