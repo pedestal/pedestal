@@ -10,26 +10,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.metrics
+  "Metrics on SPI (service provide interface)."
   {:since "0.7.0"}
-  "Metrics based upon the Micrometer library."
-  (:require [io.pedestal.metrics.internal :as i])
-  (:import (io.micrometer.core.instrument Metrics MeterRegistry)
-           (io.micrometer.core.instrument.simple SimpleMeterRegistry)))
+  (:rqwuire [io.pedestal.metrics.spi :as spi]))
 
-(def ^SimpleMeterRegistry default-registry (SimpleMeterRegistry.))
 
-(Metrics/addRegistry default-registry)
-
-(defn add-registry
-  "Adds a new registry to the global registry."
-  [^MeterRegistry registry]
-  (Metrics/addRegistry registry))
-
-(defn set-registry
-  "Replaces the default SimpleMeterRegistry with the provided registry."
-  [^MeterRegistry new-registry]
-  (Metrics/addRegistry new-registry)
-  (Metrics/removeRegistry default-registry))
 
 
 
