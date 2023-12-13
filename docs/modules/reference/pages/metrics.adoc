@@ -18,11 +18,11 @@ now, or over time, broken up by any number of dimensions.  Dimensions are used t
 that can include such things as the server's hostname, a request's URI, the environment (staging vs. production), or
 the AWS region.
 
-At the core, your application will include extra  code to emit metrics; depending on the underlying metrics service you
-are using, these are either stored in-memory until _scrape_ by another collecting service, or pushed to the collecting
+At the core, your application will include extra code to emit metrics; depending on the underlying metrics service you
+are using, these are either stored in-memory until _scraped_ by another collecting service, or pushed to the collecting
 service at intervals.
 
-Pedestal's default metrics API is
+Pedestal's default metrics library is
 https://metrics.dropwizard.io/4.2.0/manual/core.html[DropWizard], and the default configuration stores the results internally in JMX.
 
 
@@ -36,9 +36,8 @@ when first used.
 All of these metrics-producing functions have two forms: the canonical form accepts a _recorder_, the metric name, and
 additional arguments; the common form omits the recorder, and uses the api:default-recorder[].
 
-A metric name can be any object that can be converted to a string; for a keyword, this is the fully qualified name, with
-the leading `:` stripped off.
-
+A metric name can be any object that can be converted to a string; usually a fully qualified symbol or keyword. For a
+keyword, the leading `:` stripped off.
 
 === api:counter[]
 
@@ -80,7 +79,7 @@ com.codahale.metrics.MetricRegistry.
 By default, the registry is created via api:metric-registry[], and uses a
 api:jmx-reporter[] to store metrics.
 
-However, this can be overriden at application startup; the JVM system property
+However, this can be overridden at application startup; the JVM system property
 `io.pedestal.log.defaultMetricsRecorder` or environment variable `PEDESTAL_METRICS_RECORDER`
 can specify the fully-qualified name of a function to invoke (with no arguments), that returns the
 default recorder.
