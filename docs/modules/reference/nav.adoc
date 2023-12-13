@@ -36,4 +36,5 @@
 **** xref:immutant.adoc[]
 **** xref:tomcat.adoc[]
 *** xref:logging.adoc[]
+*** xref:metrics.adoc[]
 
