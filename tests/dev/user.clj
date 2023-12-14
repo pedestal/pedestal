@@ -3,6 +3,8 @@
             matcher-combinators.test
             [net.lewisship.trace :as trace]))
 
+(set! *warn-on-reflection* true)
+
 (repl/install-pretty-exceptions)
 (trace/setup-default)
 
