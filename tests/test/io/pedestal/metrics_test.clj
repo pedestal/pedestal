@@ -2,7 +2,7 @@
   (:require [io.pedestal.metrics :as metrics]
             [io.pedestal.metrics.micrometer :as mm]
             [clojure.test :refer [deftest is use-fixtures]])
-  (:import (io.micrometer.core.instrument MeterRegistry Tags Meter$Id)))
+  (:import (io.micrometer.core.instrument MeterRegistry)))
 
 (def ^:dynamic ^MeterRegistry *registry* nil)
 
@@ -16,16 +16,18 @@
 
 (use-fixtures :each registry-fixture)
 
-(defn- meter-id
-  ^Meter$Id [metric-name tags]
-  (Meter$Id. (mm/convert-metric-name metric-name)
-             (Tags/of (mm/iterable-tags metric-name tags))
-             nil nil nil))
-
-(defn- get-counter [metric-name tags]
+(defn- get-counter
+  [metric-name tags]
   (-> (.get *registry* (mm/convert-metric-name metric-name))
       (.tags (mm/iterable-tags metric-name tags))
       .counter))
+
+(defn- get-gauge
+  [metric-name tags]
+  (-> (.get *registry* (mm/convert-metric-name metric-name))
+      (.tags (mm/iterable-tags metric-name tags))
+      .gauge))
+
 
 (deftest counter-by-keyword-and-string-name-are-the-same
   (let [metric-name "foo.bar.baz"
@@ -80,6 +82,22 @@
     (is (= ["tag(url=/foo)"]
            (->> foo-counter .getId .getTags (mapv str))))))
 
+(deftest increment-counter
+  (let [metric-name ::counter
+        tags        {:method :post
+                     :url    "/api"}
+        _           (metrics/counter metric-name tags)
+        counter     (get-counter metric-name tags)]
+    (is (= 0.0 (.count counter)))
+
+    (metrics/increment-counter metric-name tags)
+
+    (is (= 1.0 (.count counter)))
+
+    (metrics/advance-counter metric-name tags 4.0)
+
+    (is (= 5.0 (.count counter)))))
+
 (deftest valid-tag-keys-and-values
   (is (= ["tag(string-key=string-value)"
           "tag(io.pedestal.metrics-test/symbol-key=io.pedestal.metrics-test/symbol-value)"
@@ -110,3 +128,42 @@
             :tags        {:kw []}}
            (ex-data e)))))
 
+(deftest gauge-monitor
+  (let [*monitored  (atom [])
+        value-fn    #(count @*monitored)
+        metric-name ::gauge
+        tags        {::this :that}
+        _           (metrics/gauge metric-name tags value-fn)
+        gauge       (get-gauge metric-name tags)]
+
+    (is (= 0.0 (.value gauge)))
+
+    (swap! *monitored conj 0)
+
+    (is (= 1.0 (.value gauge)))
+
+    (swap! *monitored conj 1 2 3)
+
+    (is (= 4.0 (.value gauge)))))
+
+(deftest duplicate-gauge-ignored
+  (let [*monitored  (atom [])
+        value-fn    #(count @*monitored)
+        metric-name ::gauge
+        tags        {::this :that}
+        _           (metrics/gauge metric-name tags value-fn)
+        gauge       (get-gauge metric-name tags)]
+
+    (is (= 0.0 (.value gauge)))
+
+    (swap! *monitored conj 0)
+
+    (is (= 1.0 (.value gauge)))
+
+    (metrics/gauge metric-name tags (constantly 9999))
+
+    (is (= 1.0 (.value gauge)))
+
+    (swap! *monitored conj 1 2 3)
+
+    (is (= 4.0 (.value gauge)))))

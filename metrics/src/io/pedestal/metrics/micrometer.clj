@@ -13,8 +13,9 @@
   "Default metrics implementation based on Micrometer."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi])
-  (:import (io.micrometer.core.instrument Counter Gauge Meter$Builder MeterRegistry Metrics Tag)
+  (:import (io.micrometer.core.instrument Counter Gauge MeterRegistry Metrics Tag)
            (io.micrometer.core.instrument.simple SimpleMeterRegistry)
+           (io.pedestal.metrics.spi MetricSource)
            (java.util.function Supplier)))
 
 (defn ^:no-doc convert-metric-name
@@ -111,7 +112,7 @@
 
 (defn wrap-registry
   "Wraps a registry as a [[MetricSource]]."
-  [^MeterRegistry registry]
+ ^MetricSource [^MeterRegistry registry]
   (assert (some? registry))
   ;; Can't have meters with same name but different type. This is caught on metric creation.
   ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
@@ -129,7 +130,7 @@
       (gauge [_ metric-name tags value-fn]
         (let [k [metric-name tags]]
           (when-not (contains? @*gauges k)
-            (write-to-cache *gauges k (new-gauge registry metric-name value-fn))))
+            (write-to-cache *gauges k (new-gauge registry metric-name tags value-fn))))
         nil))))
 
 (defn default-registry
