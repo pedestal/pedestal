@@ -13,21 +13,23 @@
   "Service Provider Interface for metrics providers; protocols that providers should expose and implement."
   {:since "0.7.0"})
 
-(defprotocol GaugeMetric [])
-(defprotocol CounterMetric [])
-(defprotocol HistogramMetric [])
-(defprotocol MeterMetric [])
+(defprotocol MetricSource
 
-(defprotocol MetricsProvider
+  "Provides methods to find or create counters and gauges."
 
-  (counter ^CounterMetric [provider metric-name delta]
-    "Advance a single numeric metric by the delta amount.")
+  ;; TODO: Support tags
 
-  (gauge ^GaugeMetric [provider metric-name value-fn]
-    "Registers a single metric value ....")
+  (counter
+    [source metric-name]
+    "Finds or creates a counter metric with the given metric name.
 
-  (histogram ^HistogramMetric [provider metric-name value]
-    "Used to provide values that are combined into a histogram metric.")
+    Returns a function used to increment the counter.  With no arguments,
+    increments the counter by 1, or with a single numeric argument, increments
+    the counter by that amount.")
 
-  (meter ^MeterMetric [provider metric-name n-events]
-    "Measure the rate of a ticking metric."))
+  (gauge [source metric-name value-fn]
+    "Creates, if necessary, a gauge with the given metric name.
+
+    The value-fn will be periodically invoked and should return a long value.
+
+    Returns nil."))
