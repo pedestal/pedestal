@@ -11,6 +11,7 @@
 
 (ns ^:no-doc io.pedestal.metrics.internal
   "Internal utils subject to change without notice."
+  {:since "0.7.0"}
   (:require [clojure.string :as string]))
 
 

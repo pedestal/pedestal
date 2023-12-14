@@ -26,29 +26,30 @@
 
   Invoking the counter function with no arguments increments the counter by 1.
   Invoking it with a numeric argument increments it by that amount."
-  ([metric-name]
-   (counter *default-metric-source* metric-name))
-  ([metric-source metric-name]
-   (spi/counter metric-source metric-name)))
+  ([metric-name tags]
+   (counter *default-metric-source* metric-name tags))
+  ([metric-source metric-name tags]
+   (spi/counter metric-source metric-name tags)))
 
 (defn increment-counter
   "Increments a counter metric by 1.
 
   Returns nil."
-  ([metric-name]
-   (increment-counter *default-metric-source* metric-name))
-  ([metric-source metric-name]
-   ((spi/counter metric-source metric-name))
+  ([metric-name tags]
+   (increment-counter *default-metric-source* metric-name tags))
+  ([metric-source metric-name tags]
+   ;; Obtain and invoke the function.
+   ((spi/counter metric-source metric-name tags))
    nil))
 
 (defn advance-counter
   "Increments a counter metric by a numeric amount.
 
   Returns nil."
-  ([metric-name amount]
-   (advance-counter *default-metric-source* metric-name amount))
-  ([metric-source metric-name amount]
-   ((spi/counter metric-source metric-name) amount)
+  ([metric-name tags amount]
+   (advance-counter *default-metric-source* metric-name tags amount))
+  ([metric-source metric-name tags amount]
+   ((spi/counter metric-source metric-name tags) amount)
    nil))
 
 (defn gauge
@@ -56,10 +57,11 @@
    a number.  Does nothing if a gauge with that name already exists.
 
    Returns nil."
-  ([metric-name value-fn]
-   (gauge *default-metric-source* metric-name value-fn))
-  ([metric-source metric-name value-fn]
-   (spi/gauge metric-source metric-name value-fn)))
+  ([metric-name tags value-fn]
+   (gauge *default-metric-source* metric-name tags value-fn))
+  ([metric-source metric-name tags value-fn]
+   (spi/gauge metric-source metric-name tags value-fn)
+   nil))
 
 
 
