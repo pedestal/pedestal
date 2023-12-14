@@ -1,33 +1,23 @@
 (ns io.pedestal.metrics-test
   (:require [io.pedestal.metrics :as metrics]
             [io.pedestal.metrics.micrometer :as mm]
-            [clojure.test :refer [deftest is use-fixtures]])
-  (:import (io.micrometer.core.instrument MeterRegistry)))
-
-(def ^:dynamic ^MeterRegistry *registry* nil)
+            [clojure.test :refer [deftest is use-fixtures]]))
 
 (defn registry-fixture
   [f]
   (try
-    (let [registry (mm/default-registry)]
-      (binding [*registry*                      registry
-                metrics/*default-metric-source* (mm/wrap-registry registry)]
-        (f)))))
+    (binding [metrics/*default-metric-source* (mm/default-source)]
+      (f))))
 
 (use-fixtures :each registry-fixture)
 
 (defn- get-counter
   [metric-name tags]
-  (-> (.get *registry* (mm/convert-metric-name metric-name))
-      (.tags (mm/iterable-tags metric-name tags))
-      .counter))
+  (mm/get-counter metrics/*default-metric-source* metric-name tags))
 
 (defn- get-gauge
   [metric-name tags]
-  (-> (.get *registry* (mm/convert-metric-name metric-name))
-      (.tags (mm/iterable-tags metric-name tags))
-      .gauge))
-
+  (mm/get-gauge metrics/*default-metric-source* metric-name tags))
 
 (deftest counter-by-keyword-and-string-name-are-the-same
   (let [metric-name "foo.bar.baz"
@@ -99,31 +89,37 @@
     (is (= 5.0 (.count counter)))))
 
 (deftest valid-tag-keys-and-values
-  (is (= ["tag(string-key=string-value)"
-          "tag(io.pedestal.metrics-test/symbol-key=io.pedestal.metrics-test/symbol-value)"
-          "tag(io.pedestal.metrics-test/keyword-key=io.pedestal.metrics-test/keyword-value)"
-          "tag(key-long=1234)"
-          "tag(key-double=3.14)"
-          "tag(key-boolean=true)"]
-         (->> (mm/iterable-tags :does.not.matter
-                                {"string-key"  "string-value"
-                                 `symbol-key   `symbol-value
-                                 ::keyword-key ::keyword-value
-                                 :key-long     1234
-                                 :key-double   3.14
-                                 :key-boolean  true})
-              (mapv str)))))
+  (let [metric-name ::counter
+        tags        {"string-key"  "string-value"
+                     `symbol-key   `symbol-value
+                     ::keyword-key ::keyword-value
+                     :key-long     1234
+                     :key-double   3.14
+                     :key-boolean  true}]
+    (metrics/counter metric-name tags)
+    (is (= #{"tag(string-key=string-value)"
+             "tag(io.pedestal.metrics-test/symbol-key=io.pedestal.metrics-test/symbol-value)"
+             "tag(io.pedestal.metrics-test/keyword-key=io.pedestal.metrics-test/keyword-value)"
+             "tag(key-long=1234)"
+             "tag(key-double=3.14)"
+             "tag(key-boolean=true)"}
+           (->> (get-counter metric-name tags)
+                .getId
+                .getTags
+                (mapv str)
+                ;; Order is not always consistent
+                set)))))
 
 (deftest invalid-tag-key
   (when-let [e (is (thrown-with-msg? Exception #"Exception building tags .* \QInvalid Tag key type: java.lang.Long\E"
-                                     (mm/iterable-tags ::metric {37 :long})))]
+                                     (get-counter ::metric {37 :long})))]
     (is (= {:metric-name ::metric
             :tags        {37 :long}}
            (ex-data e)))))
 
 (deftest invalid-tag-value
   (when-let [e (is (thrown-with-msg? Exception #"Exception building tags .* \QInvalid Tag value type: clojure.lang.PersistentVector\E"
-                                     (mm/iterable-tags ::metric {:kw []})))]
+                                     (get-counter ::metric {:kw []})))]
     (is (= {:metric-name ::metric
             :tags        {:kw []}}
            (ex-data e)))))

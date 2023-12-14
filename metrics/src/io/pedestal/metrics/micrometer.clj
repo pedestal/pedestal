@@ -18,7 +18,14 @@
            (io.pedestal.metrics.spi MetricSource)
            (java.util.function Supplier)))
 
-(defn ^:no-doc convert-metric-name
+(defprotocol MeterRegistrySource
+
+  (meter-registry ^MeterRegistry [source]
+    "Returns the underlying MeterRegistry from a MetricSource.
+
+    This is primarily intended for tests."))
+
+(defn- convert-metric-name
   [metric-name]
   (cond
     (string? metric-name)
@@ -72,7 +79,7 @@
     (throw (ex-info (str "Invalid Tag value type: " (-> v class .getName))
                     {:value v}))))
 
-(defn ^:no-doc iterable-tags
+(defn- iterable-tags
   ^Iterable [metric-name tags]
   (try
     (mapv (fn [[k v]]
@@ -131,7 +138,11 @@
         (let [k [metric-name tags]]
           (when-not (contains? @*gauges k)
             (write-to-cache *gauges k (new-gauge registry metric-name tags value-fn))))
-        nil))))
+        nil)
+
+      MeterRegistrySource
+
+      (meter-registry [_] registry))))
 
 (defn default-registry
   ^MeterRegistry []
@@ -142,3 +153,15 @@
   "Wraps [[default-registry]] as a MetricSource."
   ^MetricSource []
   (wrap-registry (default-registry)))
+
+(defn get-counter
+  [metric-source metric-name tags]
+  (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
+      (.tags (iterable-tags metric-name tags))
+      .counter))
+
+(defn get-gauge
+  [metric-source metric-name tags]
+  (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
+      (.tags (iterable-tags metric-name tags))
+      .gauge))
