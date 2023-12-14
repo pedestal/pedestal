@@ -15,7 +15,7 @@
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.metrics.internal :as internal]))
 
-(def ^:dynamic *default-metric-source*f
+(def ^:dynamic *default-metric-source*
   "The default metric source, used when a metric source is not specified.
 
   TODO: Describe props, envs, etcs."
