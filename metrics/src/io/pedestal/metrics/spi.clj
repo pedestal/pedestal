@@ -43,4 +43,10 @@
 
     If called when the gauge already exists, returns without doing anything.
 
-    Returns nil."))
+    Returns nil.")
+
+  (timer [source metric-name tags]
+    "Finds or creates a timer, returning the timer's trigger function.
+
+    When invoked, the trigger function starts a timer and returns a
+    new function that stops the timer."))

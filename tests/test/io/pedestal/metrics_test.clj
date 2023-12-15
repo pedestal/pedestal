@@ -1,12 +1,17 @@
 (ns io.pedestal.metrics-test
   (:require [io.pedestal.metrics :as metrics]
             [io.pedestal.metrics.micrometer :as mm]
-            [clojure.test :refer [deftest is use-fixtures]]))
+            [clojure.test :refer [deftest is use-fixtures]])
+  (:import (java.util.concurrent TimeUnit)))
+
+(def *now (atom 0))
 
 (defn registry-fixture
   [f]
   (try
-    (binding [metrics/*default-metric-source* (mm/default-source)]
+    (binding [metrics/*default-metric-source* (mm/wrap-registry (mm/default-registry)
+                                                                (fn [] @*now))]
+      (reset! *now (System/currentTimeMillis))
       (f))))
 
 (use-fixtures :each registry-fixture)
@@ -18,6 +23,11 @@
 (defn- get-gauge
   [metric-name tags]
   (mm/get-gauge metrics/*default-metric-source* metric-name tags))
+
+(defn- get-timer
+  [metric-name tags]
+  (mm/get-timer metrics/*default-metric-source* metric-name tags))
+
 
 (deftest counter-by-keyword-and-string-name-are-the-same
   (let [metric-name "foo.bar.baz"
@@ -163,3 +173,55 @@
     (swap! *monitored conj 1 2 3)
 
     (is (= 4.0 (.value gauge)))))
+
+(deftest timer
+  (let [metric-name ::db-read
+        tags        {::this :that}
+        timer-fn    (metrics/timer metric-name tags)
+        timer       (get-timer metric-name tags)
+        stop-fn     (timer-fn)]
+    (swap! *now + 15e8)
+    (stop-fn)
+
+    (is (= 1 (.count timer)))
+
+    (is (= 1500.0 (.totalTime timer TimeUnit/MILLISECONDS)))
+
+    ;; It's idempotent - this is an assurance added by io.pedestal.metrics.micrometer.
+
+    (stop-fn)
+
+    (is (= 1 (.count timer)))))
+
+(deftest parallel-timers
+  (let [metric-name ::db-read
+        tags        {::this :that}
+        timer-fn    (metrics/timer metric-name tags)
+        timer       (get-timer metric-name tags)
+        ;; Both start at the "same" time
+        stop-fn-1   (timer-fn)
+        stop-fn-2   (timer-fn)]
+    (swap! *now + 15e8)
+    (stop-fn-1)
+
+    (swap! *now + 25e8)
+
+    (stop-fn-2)
+
+    (is (= 2 (.count timer)))
+
+    ;; 5500 = 1500 + (1500 + 2500)
+    (is (= 5500.0 (.totalTime timer TimeUnit/MILLISECONDS)))))
+
+(deftest timed-macro
+  (let [metric-name ::timed
+        tags        {::this :that}
+        _           (metrics/timer metric-name tags)
+        timer       (get-timer metric-name tags)]
+    (is (= ::result
+           (metrics/timed metric-name tags
+                          (swap! *now + 25e8)
+                          ::result)))
+    (is (= 1 (.count timer)))
+    (is (= 2500.0 (.totalTime timer TimeUnit/MILLISECONDS)))))
+

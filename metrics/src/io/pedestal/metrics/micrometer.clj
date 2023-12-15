@@ -13,9 +13,10 @@
   "Default metrics implementation based on Micrometer."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi])
-  (:import (io.micrometer.core.instrument Counter Gauge MeterRegistry Metrics Tag)
+  (:import (io.micrometer.core.instrument Counter Gauge MeterRegistry Metrics Tag Timer)
            (io.micrometer.core.instrument.simple SimpleMeterRegistry)
            (io.pedestal.metrics.spi MetricSource)
+           (java.util.concurrent CountDownLatch TimeUnit)
            (java.util.function Supplier)))
 
 (defprotocol MeterRegistrySource
@@ -112,37 +113,69 @@
         (.tags (iterable-tags metric-name tags))
         (.register registry))))
 
+(defn- new-timer
+  [^MeterRegistry registry metric-name tags time-source-fn]
+  (let [^Timer timer (-> (Timer/builder (convert-metric-name metric-name))
+                         (.tags (iterable-tags metric-name tags))
+                         (.register registry))]
+    (fn start-timer []
+      (let [start-nanos (time-source-fn)
+            *first?     (atom true)]
+        (fn stop-timer []
+          ;; Only the first call to the stop timer fn does anything, extra calls are ignored.
+          ;; Needed? This is more than the underlying API does!
+          (when (compare-and-set! *first? true false)
+            (.record timer (- (time-source-fn) start-nanos) TimeUnit/NANOSECONDS)))))))
+
 (defn- write-to-cache
   [*cache k value]
   (swap! *cache assoc k value)
   value)
 
+(defn- default-time-source
+  ^long []
+  (System/nanoTime))
+
 (defn wrap-registry
-  "Wraps a registry as a [[MetricSource]]."
- ^MetricSource [^MeterRegistry registry]
-  (assert (some? registry))
-  ;; Can't have meters with same name but different type. This is caught on metric creation.
-  ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
-  ;; of a (function wrapped around a) counter.
-  (let [*counters (atom {})
-        *gauges   (atom {})]
-    (reify spi/MetricSource
+  "Wraps a registry as a [[MetricSource]].
 
-      (counter [_ metric-name tags]
-        (let [k [metric-name tags]]
-          (or (get-in @*counters k)
-              (write-to-cache *counters k
-                              (new-counter registry metric-name tags)))))
+  time-source-fn: Used for testing, returns the current time in nanoseconds; used with Timers."
+  (^MetricSource [^MeterRegistry registry]
+   (wrap-registry registry default-time-source))
+  (^MetricSource [^MeterRegistry registry time-source-fn]
+   (assert (some? registry))
+   ;; Can't have meters with same name but different type. This is caught on metric creation.
+   ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
+   ;; of a (function wrapped around a) counter.
+   (let [*counters (atom {})
+         *gauges   (atom {})
+         *timers   (atom {})]
+     (reify spi/MetricSource
 
-      (gauge [_ metric-name tags value-fn]
-        (let [k [metric-name tags]]
-          (when-not (contains? @*gauges k)
-            (write-to-cache *gauges k (new-gauge registry metric-name tags value-fn))))
-        nil)
+       (counter [_ metric-name tags]
+         (let [k [metric-name tags]]
+           (or (get-in @*counters k)
+               (write-to-cache *counters k
+                               (new-counter registry metric-name tags)))))
 
-      MeterRegistrySource
+       (gauge [_ metric-name tags value-fn]
+         (let [k [metric-name tags]]
+           (when-not (contains? @*gauges k)
+             (write-to-cache *gauges k (new-gauge registry metric-name tags value-fn))))
+         nil)
 
-      (meter-registry [_] registry))))
+       ;; Using the time-source-fn as a wrapper around System/currentTimeMillis supports
+       ;; testing, but another approach could leverage the Clock optionally passed to
+       ;; a MeterRegistry.
+
+       (timer [_ metric-name tags]
+         (let [k [metric-name tags]]
+           (or (get-in @*timers k)
+               (write-to-cache *timers k (new-timer registry metric-name tags time-source-fn)))))
+
+       MeterRegistrySource
+
+       (meter-registry [_] registry)))))
 
 (defn default-registry
   ^MeterRegistry []
@@ -165,3 +198,9 @@
   (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
       (.tags (iterable-tags metric-name tags))
       .gauge))
+
+(defn get-timer
+  [metric-source metric-name tags]
+  (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
+      (.tags (iterable-tags metric-name tags))
+      .timer))

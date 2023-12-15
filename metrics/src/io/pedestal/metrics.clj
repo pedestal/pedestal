@@ -60,10 +60,35 @@
   ([metric-name tags value-fn]
    (gauge *default-metric-source* metric-name tags value-fn))
   ([metric-source metric-name tags value-fn]
-   (spi/gauge metric-source metric-name tags value-fn)
-   nil))
+   (spi/gauge metric-source metric-name tags value-fn)))
 
+(defn timer
+  "Creates a Timer and return the timer's trigger function.
+  Invoking the trigger starts tracking duration, and returns another function that stops
+  the timer and records the elapsed duration.
 
+  The stop timer function is idempotent; only the first call records a duration.
+
+  Internally, timers measure elapsed nanosecond time."
+  ([metric-name tags]
+   (timer *default-metric-source* metric-name tags))
+  ([metric-source metric-name tags]
+   (spi/timer metric-source metric-name tags)))
+
+(defmacro timed*
+  "Variant of [[timed]] when using the default metric source."
+  [metric-source metric-name tags & body]
+  `(let [stop-fn# ((timer ~metric-source ~metric-name ~tags))]
+     (try
+       (do ~@body)
+       (finally
+         (stop-fn#)))))
+
+(defmacro timed
+  "Obtains and starts a time, then executes the body adding a (try ... finally) block to stop
+   the timer."
+  [metric-name tags & body]
+  `(timed* *default-metric-source* ~metric-name ~tags ~@body))
 
 
 
