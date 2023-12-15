@@ -8,10 +8,10 @@
 
 (defn registry-fixture
   [f]
+  (reset! *now (System/nanoTime))
   (try
     (binding [metrics/*default-metric-source* (mm/wrap-registry (mm/default-registry)
                                                                 (fn [] @*now))]
-      (reset! *now (System/currentTimeMillis))
       (f))))
 
 (use-fixtures :each registry-fixture)
