@@ -77,7 +77,7 @@
    (spi/timer metric-source metric-name tags)))
 
 (defmacro timed*
-  "Variant of [[timed]] when using the default metric source."
+  "Variant of [[timed]] when using a specific metric source."
   [metric-source metric-name tags & body]
   `(let [stop-fn# ((timer ~metric-source ~metric-name ~tags))]
      (try
@@ -87,7 +87,7 @@
 
 (defmacro timed
   "Obtains and starts a timer, then executes the body adding a (try ... finally) block to stop
-   the timer."
+   the timer, using  the [[*default-metric-source*]]."
   [metric-name tags & body]
   `(timed* *default-metric-source* ~metric-name ~tags ~@body))
 
