@@ -24,7 +24,7 @@
 
   Tags are converted internally into maps of string keys to string values; for keywords,
   the leading `:` is stripped off.  Tag keys may be strings, keywords or symbols;
-  Tag values are the same, but may also be numbers.
+  Tag values are the same, but may also be numbers or booleans.
 
   Metric names are required, but tags may be nil.
   "
@@ -32,7 +32,7 @@
   (counter [source metric-name tags]
     "Finds or creates a counter metric with the given metric name.
 
-    Returns a function used to increment the counter.  With no arguments,
+    Returns a function used to increment the counter.  Invoked with no arguments,
     increments the counter by 1, or with a single numeric argument, increments
     the counter by that amount.")
 

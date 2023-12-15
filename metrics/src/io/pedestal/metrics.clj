@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.metrics
-  "Metrics on SPI (service provide interface)."
+  "Metrics functionality, built on the metrics SPI (service provide interface)."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.metrics.internal :as internal]))
@@ -22,10 +22,11 @@
   (internal/create-default-metric-source))
 
 (defn counter
-  "Gets or creates a counter.  Returns a counter function.
+  "Finds or creates a counter metric with the given metric name.
 
-  Invoking the counter function with no arguments increments the counter by 1.
-  Invoking it with a numeric argument increments it by that amount."
+  Returns a function used to increment the counter.  Invoked with no arguments,
+  increments the counter by 1, or with a single numeric argument, increments
+  the counter by that amount."
   ([metric-name tags]
    (counter *default-metric-source* metric-name tags))
   ([metric-source metric-name tags]
@@ -38,12 +39,12 @@
   ([metric-name tags]
    (increment-counter *default-metric-source* metric-name tags))
   ([metric-source metric-name tags]
-   ;; Obtain and invoke the function.
+   ;; Obtain and invoke the counter's increment function
    ((spi/counter metric-source metric-name tags))
    nil))
 
 (defn advance-counter
-  "Increments a counter metric by a numeric amount.
+  "Increments a counter metric by a numeric amount (which should be positive).
 
   Returns nil."
   ([metric-name tags amount]
@@ -63,8 +64,8 @@
    (spi/gauge metric-source metric-name tags value-fn)))
 
 (defn timer
-  "Creates a Timer and return the timer's trigger function.
-  Invoking the trigger starts tracking duration, and returns another function that stops
+  "Creates a timer and return the timer's trigger function.
+  Invoking the trigger starts tracking execution duration, and returns another function that stops
   the timer and records the elapsed duration.
 
   The stop timer function is idempotent; only the first call records a duration.
@@ -85,7 +86,7 @@
          (stop-fn#)))))
 
 (defmacro timed
-  "Obtains and starts a time, then executes the body adding a (try ... finally) block to stop
+  "Obtains and starts a timer, then executes the body adding a (try ... finally) block to stop
    the timer."
   [metric-name tags & body]
   `(timed* *default-metric-source* ~metric-name ~tags ~@body))
