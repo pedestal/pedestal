@@ -5,7 +5,6 @@
 
 (defn registry-fixture
   [f]
-  (reset! *now (System/nanoTime))
   (try
     (binding [metrics/*default-metric-source* (c/wrap-registry (c/default-registry))]
       (f))))
@@ -82,7 +81,6 @@
         timer-fn    (metrics/timer metric-name nil)
         timer       (get-timer metric-name)
         stop-fn     (timer-fn)]
-    (swap! *now + 15e8)
     (stop-fn)
 
     (is (= 1 (.getCount timer)))
@@ -103,12 +101,9 @@
         ;; Both start at the "same" time
         stop-fn-1   (timer-fn)
         stop-fn-2   (timer-fn)]
-    (swap! *now + 15e8)
     (stop-fn-1)
 
     (let [after-fn1 (-> timer .getSnapshot .getMax)]
-      (swap! *now + 25e8)
-
       (stop-fn-2)
 
       (is (= 2 (.getCount timer)))
