@@ -4,9 +4,10 @@
 
 (deftest mdc-context-set-correctly
   (let [inner-value (atom nil)
-        unwrapped-value (atom nil)]
+        unwrapped-value (atom nil)
+        some-map {:b 2}]
     (log/with-context {:a 1}
-      (log/with-context {:b 2}
+      (log/with-context some-map
         (log/info :msg "See the MDC in action")
         (reset! inner-value log/*mdc-context*))
       (log/info :msg "More MDC goodness")
@@ -15,6 +16,25 @@
            @inner-value))
     (is (= {:a 1}
            @unwrapped-value))))
+
+(deftest with-context-expansion
+  (let [body ["some" "random" "body"]]
+    (testing "a nil or vector context map in with-context doesn't incur macro code-gen overhead"
+      (is (= `(do ~@body)
+             (macroexpand `(log/with-context [:bad :input] ~@body))
+             (macroexpand `(log/with-context nil ~@body)))))
+
+    (testing "providing a variable to with-context generates context-manipulating code"
+      (is (not (= `(do ~@body)
+                  (macroexpand `(log/with-context some-ctx-map-var ~@body))))))
+
+    (testing "providing an expression to with-context generates context-manipulating code"
+      (is (not (= `(do ~@body)
+                  (macroexpand `(log/with-context (constantly {:extra 'context}) ~@body))))))
+
+    (testing "providing a non-empty map to with-context generates context-manipulating code"
+      (is (not (= `(do ~@body)
+                  (macroexpand `(log/with-context {:extra 'context} ~@body))))))))
 
 (deftest nil-trace-origin
   (is (nil? (log/-span nil "operation-name")))
