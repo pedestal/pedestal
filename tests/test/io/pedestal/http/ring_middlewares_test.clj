@@ -23,7 +23,6 @@
     {:name  ::app
      :enter (fn [{:keys [response request]
                   :as   context}]
-              (prn `app :response response)
               (assoc context :response (or (::fixed-response request)
                                            response
                                            (merge request {:status 200 :body "OK"}))))}))
@@ -39,31 +38,45 @@
   (chain/execute (context partial-request) interceptors))
 
 (deftest content-type-is-valid
-  (is (= "application/json"
-         (-> (execute {:uri "/index.json"} (m/content-type) app)
-             (get-in [:response :headers "Content-Type"]))))
+  (is (match?
+        {:response
+         {:headers
+          {"Content-Type" "application/json"}}}
+        (execute {:uri "/index.json"}
+                 (m/content-type)
+                 app)))
+
   (is (nil? (->
-              (execute {:uri "/foo"} (m/content-type) app)
+              (execute {:uri "/foo"}
+                       (m/content-type)
+                       app)
               (get-in [:response :headers "Content-Type"])))))
 
 (deftest cookies-is-valid
-  (is (= ["a=b"]
-         (-> (execute {:headers {"cookie" "a=b"}} m/cookies app)
-             (get-in [:response :headers "Set-Cookie"])))))
+  (is (match?
+        {:response
+         {:headers {"Set-Cookie" ["a=b"]}}}
+        (execute {:headers {"cookie" "a=b"}}
+                 m/cookies
+                 app))))
 
 (deftest file-is-valid
   (is (= "<h1>WOOT!</h1>\n"
-         (-> (execute {:uri "/"} (m/file "test/io/pedestal/public") app)
+         (-> (execute {:uri "/"}
+                      (m/file "test/io/pedestal/public")
+                      app)
              (get-in [:response :body])
              slurp))))
 
 (deftest file-info-is-valid
-  (is (= "text/html"
-         (-> (execute {:uri "/"}
-                      (m/file "test/io/pedestal/public")
-                      (m/file-info)
-                      app)
-             (get-in [:response :headers "Content-Type"])))))
+  (is (match?
+        {:response
+         {:headers
+          {"Content-Type" "text/html"}}}
+        (execute {:uri "/"}
+                 (m/file "test/io/pedestal/public")
+                 (m/file-info)
+                 app))))
 
 (deftest flash-is-valid
   (let [expected-message "This is the flash message"
@@ -77,19 +90,22 @@
             (get-in [:request :flash])))))
 
 (deftest head-is-valid
-  (let [head (m/head)]
-    ;; The head interceptor converts the request-method to :get, but then
-    ;; discards the body.
-    (is (match?
-          {:request
-           {:request-method :get}
-           :response {:status 200
-                      :body   nil}}
-          (execute {:request-method :head} head app)))))
+  (is (match?
+        {:request
+         {:request-method :get}
+         :response {:status 200
+                    :body   nil}}
+        (execute {:request-method :head}
+                 (m/head)
+                 app))))
 
 (deftest keyword-params-is-valid
-  (is (match? {:request {:params {:a "1" :b "2"}}}
-              (execute {:params {"a" "1" "b" "2"}} m/keyword-params))))
+  (is (match?
+        {:request
+         {:params
+          {:a "1" :b "2"}}}
+        (execute {:params {"a" "1" "b" "2"}}
+                 m/keyword-params))))
 
 (defn- string-store [item]
   (-> (select-keys item [:filename :content-type])
@@ -110,19 +126,24 @@
                    :content-type "multipart/form-data; boundary=XXXX"
                    :body         (ring.util.io/string-input-stream form-body)}]
     (is (match?
-          {:request {:multipart-params {"foo" ["bar" "baz"]}}}
+          {:request
+           {:multipart-params
+            {"foo" ["bar" "baz"]}}}
           (execute request (m/multipart-params {:store string-store}))))))
 
 (deftest nested-params-is-valid
   (is (match?
-        {:request {:params {"foo" {"bar" "baz"}}}}
+        {:request
+         {:params
+          {"foo" {"bar" "baz"}}}}
         (execute {:params {"foo[bar]" "baz"}} (m/nested-params)))))
 
 (deftest not-modified-is-valid
   (is (match?
-        {:response {:status  304
-                    :headers {"Content-Length" "0"}
-                    :body    nil}}
+        {:response
+         {:status  304
+          :headers {"Content-Length" "0"}
+          :body    nil}}
         (execute
           {:headers         {"if-none-match" "42"}
            :request-method  :get
@@ -159,13 +180,6 @@
                       (m/fast-resource "/io/pedestal/public"))
              :response))))
 
-(defn- make-store [reader writer deleter]
-  (reify store/SessionStore
-    (read-session [_ k] (reader k))
-    (write-session [_ k s] (writer k s))
-    (delete-session [_ k] (deleter k))))
-
-
 (deftest session-is-valid
   (let [session-key    (str (random-uuid))
         session-data   {:bar "foo"}
@@ -181,43 +195,28 @@
                    (m/session {:store store})
                    app)))))
 
-
-
 (def delete-session
   (i/interceptor
     {:name  ::delete-session
-     :leave #(assoc-in % [:response :session] nil)}))
+     :leave #(update % :response assoc :session nil)}))
 
 (deftest session-after-deletion
   (let [session-key    (str (random-uuid))
         session-data   {:bar "foo"}
+        ;; Because memory-store returns nil, the old session-key will still be
+        ;; used, but we'll check that the data for the session was removed.
         store          (memory/memory-store (atom {session-key session-data}))
         session-cookie (str "ring-session=" session-key)]
-    (do #_is (do #_match?
-               {:request
-                {:session     session-data
-                 :session/key session-key}
-                :response
-                {:headers {"Set-Cookie" [session-cookie]}}}
-               (execute {:headers {"cookie" session-cookie}}
-                        (m/session {:store store})
-                        delete-session
-                        app))))
-
-
-
-
-  #_
-  (is (= '("ring-session=deleted;Path=/;HttpOnly")
-         (let [interceptor (m/session
-                             {:store
-                              (make-store (constantly {:foo "bar"})
-                                          (constantly nil)
-                                          (constantly "deleted"))})]
-           (->
-             (context {:headers {"cookie" "ring-session=foo%3Abar"}})
-             ((:enter interceptor))
-             ; delete session
-             (#(assoc % :response (assoc (:request %) :session nil)))
-             ((:leave interceptor))
-             (get-in [:response :headers "Set-Cookie"]))))))
+    (is (match?
+          {:request
+           {:session     session-data
+            :session/key session-key}
+           :response
+           ;; Ensure that a new session id was created.
+           {:headers {"Set-Cookie" [session-cookie]}}}
+          (execute {:headers {"cookie" session-cookie}}
+                   (m/session {:store store})
+                   delete-session
+                   app)))
+    ;; Show that the data for the session was removed.
+    (is (nil? (store/read-session store session-key)))))
