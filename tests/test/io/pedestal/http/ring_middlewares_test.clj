@@ -16,7 +16,8 @@
             [ring.middleware.session.memory :as memory]
             [io.pedestal.interceptor.chain :as chain]
             [clojure.test :refer [deftest is]]
-            [ring.middleware.session.store :as store]))
+            [ring.middleware.session.store :as store])
+  (:import (java.util UUID)))
 
 (def app
   (i/interceptor
@@ -181,7 +182,7 @@
              :response))))
 
 (deftest session-is-valid
-  (let [session-key    (str (random-uuid))
+  (let [session-key    (str (UUID/randomUUID))
         session-data   {:bar "foo"}
         store          (memory/memory-store (atom {session-key session-data}))
         session-cookie (str "ring-session=" session-key)]
