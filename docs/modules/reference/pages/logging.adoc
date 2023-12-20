@@ -10,7 +10,7 @@ https://www.slf4j.org[Simple Logging Facade for Java].
 This facade is an abstraction over several different libraries used for logging, such
 as https://logback.qos.ch/[Logback],
 https://logging.apache.org/log4j/2.x/[Apache Log4j]
-or built-in java.util.logging packages.
+or the built-in java.util.logging packages.
 
 As part of your application's dependencies, you can include an adapter to your preferred
 logging library (see the
@@ -47,15 +47,16 @@ api:info[],
 api:warn[],
 and
 api:error[].
-These macros are responsible for obtaining an api:LoggerSource[] instance based on the
-namespace name (unless overridden) and converting the passed keys and values into a Clojure map, which is printed to a string and logged as the event body.
+These macros are responsible for obtaining a api:LoggerSource[] instance based on the
+namespace name (unless overridden) and converting the passed keys and values into a Clojure map, which is printed to a string and logged as the event message.
 
 Added to the map is the extra key, :line, which identifies the line number in the source.
 
 Bear in mind that often, Java libraries do their own logging, and that logging will not be formatted
 as Clojure maps.
 
-It is common for loggers to add an :in key, whose value is symbol identifying the function
+It is common for loggers to add an :in key, whose value is symbol identifying the function containing
+the logging call.
 
 Example:
 
@@ -104,12 +105,12 @@ instance of java.lang.Exception.
 
 | :io.pedestal.log/logger
 | The logger instance to use, rather than the default. The logger must
-  extend the api:LoggerSource[] protocol.
+  satisfy the api:LoggerSource[] protocol.
   The default is a logger with name matching the namespace.
 
 | :io.pedestal.log/formatter
 | A function that can be passed an event map and return a string used when logging (the underlying logging
-  APIs expect a string message).  The default is clj:pr-str[].
+  APIs expect a string message).  The default is clj:pr-str[] (via api:default-formatter[]).
 |===
 
 == spy macro
@@ -118,7 +119,36 @@ The api:spy[] macro takes an expression, evaluates it, and returns it.  Before r
 (as key :spy) and the result (as key :value) at debug level. This is often useful during
 REPL-driven development.
 
-== Mapped Diagnostic Context
+== Overriding the LoggerSource
+
+The logging functionality is itself pluggable; what Pedestal supplies out of the box is an adapter
+for SLF4J in the form of a api:LoggerSource[] protocol, extended onto SLF4J's
+`org.slf4j.Logger` interface.
+
+If you wish to use pedestal-log with a different logging library, you may specify an override
+for the logger source; this is a function that is passed a logger name string, and returns
+an instance that extends api:LoggerSource[].
+
+The override can be specified as the fully qualified name of a Clojure function, either
+via system property `io.pedestal.log.overrideLogger` or by environment variable `PEDESTAL_LOGGER`.
+
+== Overriding the default event formatter
+
+By default, log event data is formatted to a string using `pr-str` (this default is
+provided by api:default-formatter[]), before being passed
+(via the methods of the api:LoggerSource[] protocol) to the underlying logging implementation.
+
+However, this can be overridden, which is useful for:
+
+- Identifying and removing or redacting personal data that should not be logged
+- Formatting the log output in a particular way, such as formatting as JSON rather than EDN
+
+The system property `io.pedestal.log.formatter`, or environment  variable `PEDESTAL_LOG_FORMATTER`,
+can specify a fully qualified function name; this function is passed the event map and returns a string,
+and will be used instead of `pr-str` as the default when the :io.pedestal.log/formatter key is not provided.
+
+
+== Mapped Diagnostic Context (SLF4J)
 
 The https://logback.qos.ch/manual/mdc.html[MDC] is a feature of SLF4J that is mapped onto different logging implementations, just like
 the Logger. An SLF4J MDC is essentially a map of string keys and string values stored as per-thread global state.
@@ -135,7 +165,7 @@ The default behavior is for the Pedestal MDC map to be formatted (as with an eve
 stored into the MDC using the key "io.pedestal". Thus the pattern `%X{io.pedestal}` will print
 out that Pedestal MDC.
 
-The macros api:with-context[] and api:with-context-kv[] allow values to bound to the Pedestal MDC, which are then copied into the "io.pedestal" key of the SLF4J MDC; at the end of the block,
+The macro api:with-context[] and allows values to bound to the Pedestal MDC, which are then copied into the "io.pedestal" key of the SLF4J MDC; at the end of the block,
 the prior state of the SLF4J and Pedestal MDCs are restored.
 
 [WARNING]
@@ -145,7 +175,7 @@ is stored per-thread, and there isn't an easy way to copy its value over to arbi
 ====
 
 
-.Special Keys used with `with-context` and `with-context-kv`
+.Special Keys used with `with-context`
 |===
 | Key | Value
 
@@ -154,7 +184,7 @@ is stored per-thread, and there isn't an easy way to copy its value over to arbi
 
 | :io.pedestal.log/formatter
 | A function that can be passed an MDC map and return a string used when setting the `io.pedestal`
-key of the SLF4J MDC.  The default is clj:pr-str[].
+key of the SLF4J MDC.  The default is clj:pr-str[] via api:default-formatter[].
 |===
 
 
