@@ -49,6 +49,5 @@
 
 (defn resolve-var-from
   [property-name env-var]
-  (let [resolver]
-    (or (resolver "JVM property" property-name (System/getProperty property-name))
-        (resolver "environment variable" env-var (System/getenv env-var)))))
+  (or (resolver "JVM property" property-name (System/getProperty property-name))
+      (resolver "environment variable" env-var (System/getenv env-var))))
