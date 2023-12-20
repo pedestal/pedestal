@@ -9,5 +9,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:config-paths ["clj-kondo-resources/clj-kondo.exports/io.pedestal/pedestal.interceptor"
-                "clj-kondo-resources/clj-kondo.exports/io.pedestal/pedestal.log"]}
+{:hooks
+ {:analyze-call
+  {io.pedestal.log/trace hooks.io.pedestal.log/log-expr
+   io.pedestal.log/debug hooks.io.pedestal.log/log-expr
+   io.pedestal.log/info  hooks.io.pedestal.log/log-expr
+   io.pedestal.log/warn  hooks.io.pedestal.log/log-expr
+   io.pedestal.log/error hooks.io.pedestal.log/log-expr}}}
