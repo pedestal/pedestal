@@ -21,12 +21,8 @@
 
         ;; interceptors
 
-        ;; Temporary override until Ring 1.11 is available
-        ;; (see https://github.com/ring-clojure/ring/issues/439#issuecomment-1676282396)
-
-        ring/ring-core {:git/url "https://github.com/hlship/ring.git"
-                        :git/sha "8c1faa362dfe2fb2b0db8b03d55e42855f044198"
-                        :deps/root "ring-core"}
+        ;; Ring 1.11 is the first version to support Servlet API 4.0
+        ring/ring-core {:mvn/version "1.11.0-RC2"}
 
         ;ring/ring-core {:mvn/version "1.10.0"
         ;                :exclusions [org.clojure/clojurejava
