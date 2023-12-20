@@ -20,6 +20,7 @@
 
         org.clojure/java.classpath {:mvn/version "1.0.0"}
         org.clojure/tools.namespace {:mvn/version "1.4.4"}
+        org.clojure/data.json {:mvn/version "2.4.0"}
         ;; TODO: clj-http 3.10.0 is available but
         ;; gzip compression test fails. Even though
         ;; `accept-encoding: gzip, deflate` is set by clj-http
