@@ -12,6 +12,8 @@
 {:paths ["src" "target/classes"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         io.pedestal/pedestal.log {:mvn/version "0.6.0"}
+        io.pedestal/pedestal.metrics {:local/root "../metrics"}
+        #_ {:mvn/version "TBD"}
         io.pedestal/pedestal.interceptor {:mvn/version "0.6.0"}
         io.pedestal/pedestal.route {:mvn/version "0.6.0"}
 
@@ -55,6 +57,7 @@
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.metrics {:local/root "../metrics"}
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
                    io.pedestal/pedestal.route {:local/root "../route"}}}
   ;; Normally javax.servlet-api comes from the runtime container (e.g., Jetty) but we need it here

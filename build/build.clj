@@ -29,6 +29,7 @@
 (def module-dirs
   ;; Keep these in dependency order
   ["log"
+   "metrics"
    "interceptor"
    "route"
    "service"

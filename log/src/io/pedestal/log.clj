@@ -466,7 +466,7 @@
             "Update a single Numeric/Long metric by the `delta` amount")
   (-gauge [t metric-name value-fn]
           "Register a single metric value, returned by a 0-arg function;
-          This function will be called everytime the Guage value is requested.")
+          This function will be called everytime the Gauge value is requested.")
   (-histogram [t metric-name value]
               "Measure a distribution of Long values")
   (-meter [t metric-name n-events]
