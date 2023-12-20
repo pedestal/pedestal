@@ -14,6 +14,8 @@
         ;; logging
         org.slf4j/slf4j-api {:mvn/version "2.0.7"}
         ;; metrics
+        io.pedestal/pedestal-metrics {:local/root "../metrics"}
+        #_ {:mvn/version "TBD"}
         io.dropwizard.metrics/metrics-core {:mvn/version "4.2.19"}
         io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.19"}
         ;; tracing

@@ -16,10 +16,11 @@
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
  :deps {criterium/criterium {:mvn/version "0.4.6"}
 
-        nubank/matcher-combinators {:mvn/version "3.8.5"}
+        nubank/matcher-combinators {:mvn/version "3.8.8"}
 
         org.clojure/java.classpath {:mvn/version "1.0.0"}
         org.clojure/tools.namespace {:mvn/version "1.4.4"}
+        org.clojure/data.json {:mvn/version "2.4.0"}
         ;; TODO: clj-http 3.10.0 is available but
         ;; gzip compression test fails. Even though
         ;; `accept-encoding: gzip, deflate` is set by clj-http
@@ -46,8 +47,9 @@
         io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
         io.pedestal/pedestal.route {:local/root "../route"}
         io.pedestal/pedestal.jetty {:local/root "../jetty"}
+        io.pedestal/pedestal.metrics {:local/root "../metrics"}
 
-        org.clj-commons/pretty {:mvn/version "2.2"}
+        org.clj-commons/pretty {:mvn/version "2.2.1"}
         io.github.hlship/trace {:mvn/version "v1.0"}
 
         ;; This is primarily to pick up the logging dependencies it provides.

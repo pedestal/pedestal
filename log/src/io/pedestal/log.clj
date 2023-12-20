@@ -1,3 +1,4 @@
+; Copyright 2021-2023 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2018 Cognitect, Inc.
 
@@ -11,12 +12,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.log
-  "Logging via slf4j. Each logging level is a macro: trace, debug,
-  info, warn, and error. Each namespace gets its own Logger. Arguments
-  are key-value pairs, which will be printed as with 'pr'. The special
-  key :exception should have a java.lang.Throwable as its value, and
-  will be passed separately to the underlying logging API.
-  One can override the logger via JVM or ENVAR settings."
+  "A logging wrapper around SLF4J (but adapatable to other logging systems).
+  Primary macros are [[trace]], [[debug]], [[info]], [[warn]], and [[error]].
+
+  Over time, this namespace has also accumulated other visibility-related functionality,
+  including metrics (via the Codahale library) and telemetry (via OpenTelemetry)."
   (:require [clojure.string :as string]
             [io.pedestal.internal :as i])
   (:import (org.slf4j Logger
@@ -27,18 +27,25 @@
                                  Gauge Counter Histogram Meter
                                  Slf4jReporter)
            (com.codahale.metrics.jmx JmxReporter)
-           (io.opentracing Scope
-                           Span
-                           SpanContext
-                           Tracer
-                           Tracer$SpanBuilder)
-           io.opentracing.log.Fields
+           (io.opentracing Span SpanContext Tracer Tracer$SpanBuilder)
            (io.opentracing.util GlobalTracer)
            (java.util Map)
            (java.util.concurrent TimeUnit)
            (clojure.lang IFn)))
 
 (defprotocol LoggerSource
+
+  "Adapts an underlying logger (such as defined by SLF4J) to io.pedestal.log.
+
+   For -trace, -debug, etc., the body will typically be a String, formatted from
+   the event map; if you write code that directly invokes these methods,
+   but use the io.pedestal.log implementation of LoggerSource for SLF4J, then
+   Strings will pass through unchanged, but other Clojure types will be converted to strings
+   via `pr-str`.
+
+   If you write your own LoggerSource, you understand the same requirements: io.pedestal.log's
+   macros will only supply a String body, but other code may pass other types."
+
   (-level-enabled? [t level-key]
                    "Given the log level as a keyword,
                    return a boolean if that log level is currently enabled.")
@@ -187,42 +194,40 @@
   (-clear-mdc [t] nil)
   (-set-mdc [t m] nil))
 
-;; Override the logger
-;; ---------------------
-;; Pedestal's logging is backed by a protocol, which you are free to extend
-;; for your own system.
-;; Per logging message, you can substitute in your own logger and bypass SLF4J,
-;; using the :io.pedestal.log/logger key.
-;; You can also override the logger for an entire application by setting the
-;; JVM Property 'io.pedestal.log.overrideLogger' or ENVAR 'PEDESTAL_LOGGER'
-;; to a symbol that resolves to a single-arity function
-;; (passed a string logger tag, the NS string of the log call).
-;; This function should return something that satisfies the LoggerSource protocol.
-;; The function will be called multiple times (as the logging macros are expanded).
-
-(def override-logger (try
-                       (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                                     (System/getenv "PEDESTAL_LOGGER"))
-                                 symbol
-                                 resolve)
-                       (catch java.lang.RuntimeException e
-                         nil)))
+(def override-logger
+  "Override of the default logger source, from symbol property io.pedestal.log.overrideLogger
+  or environment variable PEDESTAL_LOGGER."
+  (i/resolve-var-from "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))
 
 (def ^:private override-logger-delay
   "Improves the ergonomics of overriding logging by delaying
-  override logger resolution while maintaining backwards compatibility."
+  override logger resolution while maintaining backwards compatibility.
+
+  This replaces override-logger, as it allows runtime setting of the property, rather
+  than being locked into the property name when the namespace is first loaded."
   (delay (or override-logger
-             (some-> (or (System/getProperty "io.pedestal.log.overrideLogger")
-                         (System/getenv "PEDESTAL_LOGGER"))
-                     symbol
-                     requiring-resolve))))
+             (i/resolve-var-from "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))))
 
 (defn make-logger
   "Returns a logger which satisfies the LoggerSource protocol."
   [^String logger-name]
-  (or (let [override-logger @override-logger-delay]
-        (and override-logger (override-logger logger-name)))
-        (LoggerFactory/getLogger logger-name)))
+  (or (when-let [override-logger @override-logger-delay]
+        (override-logger logger-name))
+      (LoggerFactory/getLogger logger-name)))
+
+(def ^:private *default-formatter
+  (delay
+    (or (i/resolve-var-from "io.pedestal.log.formatter" "PEDESTAL_LOG_FORMATTER")
+        pr-str)))
+
+(defn default-formatter
+  "Returns the default formatter (used to convert the event map to a string) used when the
+  :io.pedestal.log/formatter key is not present in the log event.  The default is `pr-str`, but
+  can be overridden via JVM property io.pedestal.log.formatter or
+  environment variable PEDESTAL_LOG_FORMATTER."
+  {:since "0.7.0"}
+  []
+  @*default-formatter)
 
 (def log-level-dispatch
   {:trace -trace
@@ -273,9 +278,9 @@
                          ^String (name (ns-name *ns*)))
          logger (or (::logger keyvals-map)
                     (make-logger logger-name))]
-     (when (io.pedestal.log/-level-enabled? logger level)
+     (when (-level-enabled? logger level)
        (let [exception (:exception keyvals-map)
-             formatter (::formatter keyvals-map pr-str)
+             formatter (or (::formatter keyvals-map) (default-formatter))
              ;; You/Users have full control over binding *print-length*, use it wisely please
              msg (formatter (dissoc keyvals-map
                                     :exception ::logger ::logger-name ::formatter :level))
@@ -292,13 +297,16 @@
         exception' (:exception keyvals-map)
         logger' (gensym "logger")  ; for nested syntax-quote
         string' (gensym "string")
-        log-method' (symbol (str "io.pedestal.log/-" (name level)))
-        formatter (::formatter keyvals-map pr-str)]
+        log-method' (symbol "io.pedestal.log" (str "-" (name level)))
+        formatter   (::formatter keyvals-map)]
     `(let [~logger' ~(or (::logger keyvals-map)
                          `(make-logger ~(name (ns-name *ns*))))]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level)
-         (let [~string' (binding [*print-length* 80]
-                          (~formatter ~(assoc (dissoc keyvals-map
+         (let [formatter# ~(if formatter
+                             formatter
+                             `(default-formatter))
+               ~string' (binding [*print-length* 80]
+                          (formatter# ~(assoc (dissoc keyvals-map
                                                  :exception
                                                  :io.pedestal.log/logger
                                                  :io.pedestal.log/formatter)
@@ -355,25 +363,45 @@
 ;; -------------------------
 
 (def ^:dynamic *mdc-context*
-  "This map is copied into the SLF4J MDC when the `with-context` or
-  `with-context-kv` macros are used.  You are free to take control of
+  "This map is copied into the SLF4J MDC by the `with-context` macro.
+
+  You are free to take control of
   it for MDC-related purposes as it doesn't directly affect Pedestal's
   logging implementation.
 
   This map also includes all options that were passed into `with-context`."
   {})
 
-(def mdc-context-key "io.pedestal")
+(def mdc-context-key
+  "The key to use when formatting [*mdc-context*] for storage into the
+  MDC (via [[-put-mdc]]).  io.pedestal.log uses only this single key of the
+  underlying LoggingMDC implementation."
+  "io.pedestal")
+
+(defn ^:no-doc format-mdc
+  "Used by macros to find the formatter stored in the MDC (or a default)
+  and format it, excluding the ::formatter and ::mdc keys."
+  [mdc-map]
+  (let [formatter (or (::formatter mdc-map)
+                      (default-formatter))]
+    (formatter (dissoc mdc-map ::formatter ::mdc))))
+
+(defn ^:no-doc put-formatted-mdc
+  [mdc-map]
+  (let [mdc (or (::mdc mdc-map)
+                (MDC/getMDCAdapter))]
+    (-put-mdc mdc mdc-context-key (format-mdc mdc-map))))
+
 
 (defmacro with-context
   "Given a map of keys/values/options and a body,
   Set the map into the MDC via the *mdc-context* binding.
-  The MDC used defaults to SLF4J MDC unless the `:io.pedestal.log/mdc`
+
+  The MDC used defaults to the SLF4J MDC unless the :io.pedestal.log/mdc
   option is specified (see Options).
-  All options from the map are removed when setting the MDC.
 
   By default, the map is formatted into a string value and stored
-  under the 'io.pedestal' key, via `io.pedestal.log/mdc-context-key`
+  under the \"io.pedestal\" key.
 
   Caveats:
   SLF4J MDC, only maintains thread-local bindings, users are encouraged to
@@ -388,48 +416,46 @@
 
   Options:
    :io.pedestal.log/formatter - a single-arg function that when given the map, returns a formatted string
-                                Defaults to `pr-str`
+                                Default (via [[default-formatter]]) is `pr-str`
    :io.pedestal.log/mdc - An object that satisfies the LoggingMDC protocol
-                          Defaults to the SLF4J MDC.
-
-  Note:
-  If you mix `with-context` with the more basic `with-context-kv`, you may see undesired keys/values in the log"
+                          Defaults to the SLF4J MDC."
   [ctx-map & body]
-  (let [formatter (::formatter ctx-map pr-str)]
-    (if (empty? ctx-map) ;; Optimize for the code-gen/dynamic case where the map may be empty
+  (if (empty? ctx-map)                                      ;; Optimize for the code-gen/dynamic case where the map may be empty
       `(do
          ~@body)
-      `(let [old-ctx# *mdc-context*
-             mdc# (or ~(::mdc ctx-map) (MDC/getMDCAdapter))]
-         (binding [*mdc-context* (merge *mdc-context* ~ctx-map)]
-           (-put-mdc mdc# mdc-context-key (~formatter (dissoc *mdc-context*
-                                                              :io.pedestal.log/formatter
-                                                              :io.pedestal.log/mdc)))
+      `(let [old-ctx# *mdc-context*]
+         ;; Note: /formatter goes into the MDC context but is filtered out when formatting.
+         ;; This is to allow formatting in the finally block to use the formatter, if any,
+         ;; of the old context.
+         (binding [*mdc-context* (merge old-ctx# ~ctx-map)]
+           (put-formatted-mdc *mdc-context*)
            (try
              ~@body
              (finally
-               (-put-mdc mdc# mdc-context-key ((:io.pedestal.log/formatter old-ctx# pr-str)
-                                               (dissoc old-ctx#
-                                                       :io.pedestal.log/formatter
-                                                       :io.pedestal.log/mdc))))))))))
+               ;; This still seems to be the hard way to do this, as it feels like we should just
+               ;; capture the previously written formatted string and revert to that on exit.
+               (put-formatted-mdc old-ctx#)))))))
+
 (defmacro with-context-kv
   "Given a key, value, and body,
   associates the key-value pair into the *mdc-context* only for the scope/execution of `body`,
-  and sets the *mdc-context* into the SLF4J MDC
-   under the 'io.pedestal' key (via `io.pedestal.log/mdc-context-key`) using `pr-str` on the map for the MDC value.
+  and formats and stores the *mdc-context* into the SLF4J MDC
+  under the 'io.pedestal' key (via `io.pedestal.log/mdc-context-key`) using the
+  formatter (from the :io.pedestal.log/formatter option, or [[default-formatter]].
 
-  Note:
-  No keys are are dissoc'd from *mdc-context* with this simplified version.
-  If you mix `with-context` and `with-context-kv`, you may see undesired keys/values in the log"
+  This macro has been deprecated, use [[with-context]] instead:
+  - This macro expands to nil if the provided k is nil; this is likely a day-1 bug
+  - This macro bypasses the LoggingMDC protocol, invoking SLF4J methods directly"
+  {:deprecated "0.7.0"}
   [k v & body]
   (when k
     `(let [old-ctx# *mdc-context*]
        (binding [*mdc-context* (assoc *mdc-context* ~k ~v)]
-         (org.slf4j.MDC/put mdc-context-key (pr-str *mdc-context*))
+         (MDC/put mdc-context-key (format-mdc *mdc-context*))
          (try
            ~@body
            (finally
-             (org.slf4j.MDC/put mdc-context-key (pr-str old-ctx#))))))))
+             (MDC/put mdc-context-key (format-mdc old-ctx#))))))))
 
 ;; Metrics
 ;; -----------
@@ -440,7 +466,7 @@
             "Update a single Numeric/Long metric by the `delta` amount")
   (-gauge [t metric-name value-fn]
           "Register a single metric value, returned by a 0-arg function;
-          This function will be called everytime the Guage value is requested.")
+          This function will be called everytime the Gauge value is requested.")
   (-histogram [t metric-name value]
               "Measure a distribution of Long values")
   (-meter [t metric-name n-events]
