@@ -202,7 +202,7 @@
      :leave #(update % :response assoc :session nil)}))
 
 (deftest session-after-deletion
-  (let [session-key    (str (random-uuid))
+  (let [session-key    (str (UUID/randomUUID))
         session-data   {:bar "foo"}
         ;; Because memory-store returns nil, the old session-key will still be
         ;; used, but we'll check that the data for the session was removed.
