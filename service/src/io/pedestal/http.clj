@@ -290,10 +290,10 @@
 (defn service-fn
   "Converts the interceptors for the service into a service function, which is a function
   that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
-  [{interceptors ::interceptors
+  [{::keys [interceptors service-fn-options]
     :as service-map}]
   (assoc service-map ::service-fn
-         (servlet-interceptor/http-interceptor-service-fn interceptors)))
+         (servlet-interceptor/http-interceptor-service-fn interceptors service-fn-options)))
 
 (defn servlet
   "Converts the service-fn in the service map to a servlet instance."
@@ -374,7 +374,8 @@
                 ::enable-session
                 ::enable-csrf
                 ::secure-headers
-                ::path-params-decoder]))
+                ::path-params-decoder
+                ::service-fn-options]))
 
 (s/def ::port pos-int?)
 (s/def ::type (s/or :fn fn?
@@ -412,6 +413,7 @@
 (s/def ::secure-headers map?)
 (s/def ::path-params-decoder ::interceptor)
 
+(s/def ::service-fn-options ::servlet-interceptor/http-interceptor-service-fn-options)
 
 (defn server
   "Converts a service map to a server map.
