@@ -31,7 +31,7 @@
   (:import (clojure.lang Fn IPersistentCollection)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io File InputStream OutputStreamWriter EOFException)
+           (java.io File IOException InputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -221,6 +221,12 @@
   [context]
   (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
 
+(defn is-broken-pipe?
+  "Checks for a broken pipe exception, which (by default) is omitted."
+  [exception]
+  (and (instance? IOException exception)
+       (.equalsIgnoreCase "broken pipe" (ex-message exception))))
+
 (defn default-exception-analyzer
   "The default for the :exception-analyzer option, this function is passed the
   context and a thrown exception that bubbled up to the stylobate interceptor.
@@ -231,9 +237,12 @@
 
   If a non-nil value is returned, it must be an exception, which will be logged.
 
-  This implementation simply returns the exception."
+  This implementation returns the exception, unless it represents a broken pipe (a common
+  exception that occurs when, during a long response, the client terminates the socket connection)."
+  {:added "0.7.0"}
   [context exception]
-  exception)
+  (when-not (is-broken-pipe? exception)
+    exception))
 
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
@@ -291,7 +300,7 @@
 
 (defn- create-stylobate
   [options]
-  (let [exception-analyzer (or (::exception-analyzer options)
+  (let [exception-analyzer (or (:exception-analyzer options)
                                default-exception-analyzer)]
     (interceptor
       {:name  ::stylobate
