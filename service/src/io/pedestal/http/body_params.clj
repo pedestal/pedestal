@@ -1,3 +1,4 @@
+; Copyright 2023 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -14,13 +15,12 @@
   (:require [clojure.edn :as edn]
             [cheshire.core :as json]
             [cheshire.parse :as parse]
-            [clojure.string :as str]
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor.helpers :as interceptor]
-            [io.pedestal.log :as log]
             [cognitect.transit :as transit]
             [ring.middleware.params :as params])
-  (:import [java.util.regex Pattern]))
+  (:import (java.io EOFException InputStream InputStreamReader PushbackReader)
+           (java.util.regex Pattern)))
 
 (defn- parser-for
   "Find a parser for the given content-type, never returns nil"
@@ -54,7 +54,7 @@
 
 (defn add-parser
   [parser-map content-type parser-fn]
-  (let [content-pattern (if (instance? java.util.regex.Pattern content-type)
+  (let [content-pattern (if (instance? Pattern content-type)
                           content-type
                           (re-pattern (str "^" (Pattern/quote content-type) "$")))]
     (assoc parser-map content-pattern parser-fn)))
@@ -72,13 +72,13 @@
                            (apply hash-map options))]
     (fn [request]
       (let [encoding (or (:character-encoding request) "UTF-8")
-            input-stream (java.io.InputStreamReader.
-                           ^java.io.InputStream (:body request)
+            input-stream (InputStreamReader.
+                           ^InputStream (:body request)
                            ^String encoding)]
         (assoc request
                :edn-params (->
                              input-stream
-                             java.io.PushbackReader.
+                             PushbackReader.
                              (->> (edn/read edn-options))))))))
 
 (def edn-parser
@@ -100,7 +100,7 @@
               key-fn keyword
               array-coerce-fn nil}} options]
     (binding [parse/*use-bigdecimals?* bigdec]
-      (json/parse-stream (java.io.PushbackReader. reader) key-fn array-coerce-fn))))
+      (json/parse-stream (PushbackReader. reader) key-fn array-coerce-fn))))
 
 (defn custom-json-parser
   "Return a json-parser fn that, given a request, will read the body of that
@@ -112,8 +112,8 @@
       (assoc request
              :json-params
              (apply json-read
-                    (java.io.InputStreamReader.
-                      ^java.io.InputStream (:body request)
+                    (InputStreamReader.
+                      ^InputStream (:body request)
                       ^String encoding)
                     options)))))
 
@@ -127,11 +127,23 @@
   pass to transit/reader along with the body of the request."
   [& options]
   (fn [{:keys [body] :as request}]
-    (if (zero? (.available ^java.io.InputStream body))
-      request
-      (assoc request
-             :transit-params
-             (transit/read (apply transit/reader body options))))))
+    ;; Alas, exceptions are a poor form of flow control, but
+    ;; the prior check, via InputStream/available, was not always accurate
+    ;; (see https://github.com/pedestal/pedestal/issues/764).
+    ;; Fortunately, this code is only invoked when the request's content type
+    ;; identifies transit and it should be quite rare for a client to do so and
+    ;; provide an empty body.
+    (let [transit-params (try
+                           (transit/read (apply transit/reader body options))
+                           ;; com.cognitect.transit.impl.ReaderFactory/read catches
+                           ;; the EOFException and rethrows it, wrapped in a RuntimeException.
+                           (catch RuntimeException e
+                             (when-not (some->> e ex-cause (instance? EOFException))
+                               (throw e))
+
+                             nil))]
+      (cond-> request
+              transit-params (assoc :transit-params transit-params)))))
 
 (def transit-parser
   "Take a request and parse its body as transit."
@@ -169,6 +181,7 @@
   (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)
         edn-options-vec (apply concat edn-options)
         json-options-vec (apply concat json-options)]
+
     {#"^application/edn" (apply custom-edn-parser edn-options-vec)
      #"^application/json" (apply custom-json-parser json-options-vec)
      #"^application/x-www-form-urlencoded" form-parser
