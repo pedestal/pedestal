@@ -139,9 +139,9 @@
                            ;; the EOFException and rethrows it, wrapped in a RuntimeException.
                            (catch RuntimeException e
                              (when-not (some->> e ex-cause (instance? EOFException))
-                               (throw e)
+                               (throw e))
 
-                               nil)))]
+                             nil))]
       (cond-> request
               transit-params (assoc :transit-params transit-params)))))
 
