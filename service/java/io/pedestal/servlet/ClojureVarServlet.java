@@ -14,7 +14,6 @@ package io.pedestal.servlet;
 
 import clojure.lang.IFn;
 import clojure.java.api.Clojure;
-import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.GenericServlet;
@@ -34,7 +33,7 @@ import jakarta.servlet.ServletResponse;
  * The namespace will be loaded as with clojure.core/require, then the
  * Var will be resolved.
  *
- * <p>The root binding of each Var must be a Clojure function taking the
+ * <p>Each Var must be a Clojure function taking the
  * same arguments as the corresponding method in the Servlet interface:
  *
  * <pre>
@@ -45,9 +44,9 @@ import jakarta.servlet.ServletResponse;
  *
  * <p>The return value from any of these functions is ignored.
  *
- * <p>The Vars will be resolved and de-referenced only once, when the
- * Servlet is initialized. Changing the root binding of a Var after
- * the Servlet has been initialized will have no effect.
+ * <p>The root bindings of the Vars may be redefined during local development
+ * and the servlet will use the latest bindings (that is, it invokes the Var,
+ * it doesn't extract the function from the Var).
  */
 public class ClojureVarServlet extends GenericServlet {
     private IFn serviceFn;
@@ -56,7 +55,7 @@ public class ClojureVarServlet extends GenericServlet {
     private static final IFn SYMBOL = Clojure.var("clojure.core", "symbol");
 
     /** Does nothing. Initialization happens in the init method. */
-    public ClojureVarServlet() {;}
+    public ClojureVarServlet() {}
 
     /** Initializes the Servlet with Clojure functions resolved from
      * Vars named in the Servlet initialization parameters. If an init
@@ -99,7 +98,7 @@ public class ClojureVarServlet extends GenericServlet {
 
         String[] parts = varName.split("/", 2);
         String namespace = parts[0];
-        String name = parts[1];
+        String name = parts.length > 1 ? parts[1] : null;
         if (namespace == null || name == null) {
             throw new ServletException("Invalid namespace-qualified symbol '"
                                        + varName + "'");
@@ -112,11 +111,9 @@ public class ClojureVarServlet extends GenericServlet {
                                        + namespace + "'", t);
         }
 
-        IFn fn = Clojure.var(namespace, name);
-        if (fn == null) {
-            throw new ServletException("Var '" + varName + "' not found");
-        }
-        return fn;
+        // If the Var doesn't already exist, this creates it, but it will throw
+        // a reasonable exception when invoked.
+        return Clojure.var(namespace, name);
     }
 }
 

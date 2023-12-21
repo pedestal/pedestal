@@ -9,7 +9,9 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:paths ["src" "target/classes"]
+{:paths ["src"
+         "java"
+         "target/classes"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         io.pedestal/pedestal.log {:mvn/version "0.6.0"}
         io.pedestal/pedestal.metrics {:local/root "../metrics"}
@@ -60,8 +62,7 @@
   ;; to compile our servlet and other classes.
   ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
   :servlet-api
-  {:extra-paths ["java" "target/classes"]
-   :extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}
+  {:extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}
                 org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}}
   ;; clj -T:build <command>
   :build {:deps {io.github.hlship/build-tools {:git/tag "0.9" :git/sha "4efa3c9"}}
