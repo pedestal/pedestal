@@ -21,8 +21,6 @@
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
             [ring.middleware.flash :as flash]
-            [ring.middleware.head :as head]
-            [ring.middleware.keyword-params :as keyword-params]
             [ring.middleware.multipart-params :as multipart-params]
             [ring.middleware.nested-params :as nested-params]
             [ring.middleware.not-modified :as not-modified]
@@ -200,5 +198,5 @@
   ([options]
      (let [options ((deref #'session/session-options) options)]
        (interceptor {:name ::session
-                     :enter (fn [context] (update context :request #(session/session-request % options)))
+                     :enter (fn [context] (update context :request session/session-request options))
                      :leave (response-fn-adapter session/session-response options)}))))
