@@ -15,6 +15,7 @@
 *** xref:response-map.adoc[]
 *** xref:response-bodies.adoc[]
 *** xref:parameters.adoc[]
+*** xref:ring.adoc[]
 *** xref:default-interceptors.adoc[]
 *** xref:streaming.adoc[]
 *** xref:server-sent-events.adoc[]

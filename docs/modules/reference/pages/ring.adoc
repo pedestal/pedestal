@@ -1,0 +1,86 @@
+= Ring Middleware
+:default_api_ns: io.pedestal.http.ring-middlewares
+
+link:https://github.com/ring-clojure/ring/[Ring]
+is an older Clojure web framework, itself inspired by even older
+libraries, such as link:https://github.com/rack/rack[Ruby Rack].
+
+Pedestal was originally created to extend Ring's underlying model with one
+that could be made asynchronous, through the introduction of the
+xref:interceptors.adoc[interceptor model]. The Pedestal team
+contributed patches to Ring to split much of its standard middleware
+into discrete functions that could be invoked from interceptors.
+
+To this day, much of the low-level HTTP logic, such as managing cookies and
+parsing multi-part form submissions, is simply wrappers around the same functionality
+in Ring.
+
+These interceptors are in the api:*[] namespace.
+
+This page provides extra documentation for several of these interceptors.
+
+## api:session[]
+
+Provides support for client-specific session data, which is commonly used for
+page-oriented applications (rather than API oriented applications).
+
+This data takes the form of a :session key on the
+xref:request-map.adoc[].
+An interceptor can add a :session key to the xref:response-map.adoc[],
+which will cause the `session` interceptor to store the new map.
+
+The interceptor operates with a `SessionStore` which stores the
+session data for all clients; Ring provides one implementation, useful for testing,
+that stores session data in an Atom; the other implementation uses an
+encoded and encrypted cookie.
+
+A cookie, by default named `ring-session`, stores a unique client id that is used
+with the SessionStore to store and retrieve session data.
+
+api:session[] options:
+
+|===
+|Option |Type | Default
+
+| :store
+| ring.middleware.session.store/SessionStore
+| via ring.middleware.session.memory/memory-store
+
+| :set-cookies?
+| boolean
+| true
+
+| :cookie-name
+| String
+| "ring-session"
+
+| :cookie-attrs
+| map
+| `{: path "/" :http-only true}`
+
+| :root
+| String
+| "/"
+
+|===
+
+See link:https://ring-clojure.github.io/ring/ring.middleware.session.html#var-wrap-session[Ring API]
+for further details.
+
+== api:flash[]
+
+"Flash" is the term for a short message that persists between one request and the next;
+it is commonly used in page oriented applications to have POST requests respond with
+a redirect to a GET request for the data just added or updated; the _flash_ is where
+a short message can be stored between requests.
+
+The api:flash[] interceptor must be ordered after the api:session[] interceptor, as the flash is just a key in the session map.
+
+In practice, a handler or interceptor adds a :flash key to the response; this is stored into the session, and on the next request, there will be a :flash key in the request.
+
+== api:fast-resource[]
+
+This interceptor allows a client to access resources, files on the JVM classpath.
+It is an enhanced version of api:resource[] that will identify larger resources
+and create a response whose body is a java.nio.channels.FileChannel for the underlying
+file; this will allow xref:jetty.adoc[] to stream the content asynchronously.
