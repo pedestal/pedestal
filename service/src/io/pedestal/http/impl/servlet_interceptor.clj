@@ -221,7 +221,7 @@
   [context]
   (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
 
-(defn is-broken-pipe?
+(defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
   [exception]
   (and (instance? IOException exception)
@@ -268,6 +268,16 @@
   (send-error context "Internal server error: exception")
   context)
 
+(defn- create-stylobate
+  [options]
+  (let [exception-analyzer (or (:exception-analyzer options)
+                               default-exception-analyzer)]
+    (interceptor
+      {:name  ::stylobate
+       :leave leave-stylobate
+       :error (fn [context exception]
+                (error-stylobate exception-analyzer context exception))})))
+
 (def ^{:deprecated "0.7.0"} stylobate
   "An interceptor which creates favorable pre-conditions for further
   io.pedestal.interceptors, and handles all post-conditions for
@@ -289,24 +299,12 @@
   not caught, this interceptor will log the error but not communicate
   any details to the client.
 
+  This var is deprecated in 0.7.0 as it should only be added to the
+  interceptor chain by [[http-interceptor-service-fn]].
+
   [1]: https://github.com/ring-clojure/ring/blob/master/SPEC
   [2]: http://jcp.org/aboutJava/communityprocess/final/jsr315/index.html"
-
-  (interceptor
-    {:name  ::stylobate
-     :leave leave-stylobate
-     :error (fn [context exception]
-              (error-stylobate default-exception-analyzer context exception))}))
-
-(defn- create-stylobate
-  [options]
-  (let [exception-analyzer (or (:exception-analyzer options)
-                               default-exception-analyzer)]
-    (interceptor
-      {:name  ::stylobate
-       :leave leave-stylobate
-       :error (fn [context exception]
-                (error-stylobate exception-analyzer context exception))})))
+  (create-stylobate nil))
 
 (def ring-response
   "An interceptor which transmits a Ring specified response map to an
@@ -402,7 +400,7 @@
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
-  and :servlet-response. The stylobate and ring-response interceptors
+  and :servlet-response. The [[stylobate]] and [[ring-response]] interceptors
   are prepended to the sequence of interceptors.
 
   Options:
