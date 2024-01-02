@@ -19,6 +19,7 @@
 *** xref:default-interceptors.adoc[]
 *** xref:streaming.adoc[]
 *** xref:server-sent-events.adoc[]
+*** xref:websockets.adoc[]
 
 ** Routing and Linking
 *** xref:routing-quick-reference.adoc[]
