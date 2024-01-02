@@ -26,8 +26,8 @@
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.interceptor :as pedestal.interceptor]
-            [io.pedestal.interceptor.helpers :as interceptor]
+            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.helpers :as helpers]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
@@ -84,7 +84,7 @@
 
 (def log-request
   "Log the request's method and uri."
-  (interceptor/on-request
+  (helpers/on-request
     ::log-request
     (fn [request]
       (log/info :msg (format "%s %s"
@@ -102,7 +102,7 @@
 
 (def not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
-  (interceptor/after
+  (helpers/after
     ::not-found
     (fn [context]
       (if-not (response? (:response context))
@@ -113,7 +113,7 @@
 (def html-body
   "Set the Content-Type header to \"text/html\" if the body is a string and a
   type has not been set."
-  (interceptor/on-response
+  (helpers/on-response
     ::html-body
     (fn [response]
       (let [body (:body response)
@@ -125,7 +125,7 @@
 (def json-body
   "Set the Content-Type header to \"application/json\" and convert the body to
   JSON if the body is a collection and a type has not been set."
-  (interceptor/on-response
+  (helpers/on-response
     ::json-body
     (fn [response]
       (let [body (:body response)
@@ -153,7 +153,7 @@
    (transit-body-interceptor iname default-content-type transit-format {}))
 
   ([iname default-content-type transit-format transit-opts]
-   (interceptor/on-response
+   (helpers/on-response
      iname
      (fn [response]
        (let [body (:body response)
@@ -261,9 +261,9 @@
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
-               (some? request-logger) (conj (pedestal.interceptor/interceptor request-logger))
+               (some? request-logger) (conj (interceptor/interceptor request-logger))
                (some? allowed-origins) (conj (cors/allow-origin allowed-origins))
-               (some? not-found-interceptor) (conj (pedestal.interceptor/interceptor not-found-interceptor))
+               (some? not-found-interceptor) (conj (interceptor/interceptor not-found-interceptor))
                (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
                (some? enable-csrf) (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
                                           (csrf/anti-forgery enable-csrf)])
@@ -388,7 +388,7 @@
 ;; Each container will define its own container-options schema:
 (s/def ::container-options map?)
 (s/def ::websockets ::ws/websockets-map)
-(s/def ::interceptors ::pedestal.interceptor/interceptors)
+(s/def ::interceptors ::interceptor/interceptors)
 
 (s/def ::request-logger ::interceptor)
 (s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
