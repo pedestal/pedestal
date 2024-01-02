@@ -12,7 +12,8 @@
 
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
-  common interceptor creation patterns.")
+  common interceptor creation patterns."
+  (:require [clojure.spec.alpha :as s]))
 
 (defrecord Interceptor [name enter leave error])
 
@@ -87,3 +88,6 @@
            true)]
    :post [(valid-interceptor? %)]}
   (-interceptor t))
+
+(s/def ::interceptor #(satisfies? IntoInterceptor %))
+(s/def ::interceptors (s/coll-of ::inteceptor))
