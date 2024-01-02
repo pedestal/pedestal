@@ -23,7 +23,7 @@ type of the value in the :body key of the xref:response-map.adoc[].
 | {core_async} channel | nil | see below | yes
 |===
 
-When a core.async channel delivers a message, that message is written
+When a {core_async} channel delivers a message, that message is written
 to the stream, using any of the synchronous dispatches above. The
 message from the channel must not be another channel, it must be a value that
 can be immediately acted upon.
