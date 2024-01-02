@@ -390,7 +390,7 @@
 (s/def ::websockets ::ws/websockets-map)
 (s/def ::interceptors ::interceptor/interceptors)
 
-(s/def ::request-logger ::interceptor)
+(s/def ::request-logger ::interceptor/interceptor)
 (s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
                       :fn fn?
                       :nil nil?
@@ -402,7 +402,7 @@
                                :fn fn?
                                ;; io.pedestal.http.cors/allow-origin has more details
                                :map map?))
-(s/def ::not-found-interceptor ::interceptor)
+(s/def ::not-found-interceptor ::interceptor/interceptor)
 (s/def ::mime-types (s/map-of string? string?))
 ;; See io.pedestal.http.ring-middlewares/session for more details
 (s/def ::enable-session map?)
@@ -410,7 +410,7 @@
 (s/def ::enable-csrf map?)
 ;; See io.pedestal.http.secure-headers/secure-headers for more details
 (s/def ::secure-headers map?)
-(s/def ::path-params-decoder ::interceptor)
+(s/def ::path-params-decoder ::interceptor/interceptor)
 (s/def ::initial-context map?)
 
 (s/def ::service-fn-options ::servlet-interceptor/http-interceptor-service-fn-options)
