@@ -1,3 +1,4 @@
+; Copyright 2023-2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,7 +14,8 @@
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
-  (:require [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s])
+  (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)))
 
 (defrecord Interceptor [name enter leave error])
 
@@ -29,11 +31,11 @@
 (declare interceptor)
 (extend-protocol IntoInterceptor
 
-  clojure.lang.IPersistentMap
+  IPersistentMap
   (-interceptor [t] (map->Interceptor t))
 
   ; This is the `handler` case
-  clojure.lang.Fn
+  Fn
   (-interceptor [t]
     (let [int-meta (meta t)]
       ;; To some degree, support backwards compatibility
@@ -43,16 +45,16 @@
         (interceptor {:enter (fn [context]
                                (assoc context :response (t (:request context))))}))))
 
-  clojure.lang.IPersistentList
+  IPersistentList
   (-interceptor [t] (interceptor (eval t)))
 
-  clojure.lang.Cons
+  Cons
   (-interceptor [t] (interceptor (eval t)))
 
-  clojure.lang.Symbol
+  Symbol
   (-interceptor [t] (interceptor (resolve t)))
 
-  clojure.lang.Var
+  Var
   (-interceptor [t] (interceptor (deref t)))
 
   Interceptor
@@ -90,4 +92,4 @@
   (-interceptor t))
 
 (s/def ::interceptor #(satisfies? IntoInterceptor %))
-(s/def ::interceptors (s/coll-of ::inteceptor))
+(s/def ::interceptors (s/coll-of ::interceptor))

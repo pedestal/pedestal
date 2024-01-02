@@ -16,7 +16,7 @@ work that still needs to be done.
 - Put the Guides and Reference into a reasonable order
 - Make better use of xref: linking between pages
 - Lots of broken links (currently in Howard's IntelliJ bookmarks)
-- "Cognitect" -> "NuBank NA"
+- "Cognitect" -> "Nubank NA"
 
 ## Antora Technical Stuff
 
@@ -52,7 +52,7 @@ work that still needs to be done.
 
 ## xref:privacy.adoc[]
 
-- Update "Cognitect" to "NuBank NA"
+- Update "Cognitect" to "Nubank NA"
 
 ## xref:guides:defining-routes.adoc[]
 
@@ -60,7 +60,7 @@ work that still needs to be done.
 
 ## xref:contributing.adoc[]]
 
-- Pretty of date, should reference page on using snapshots, etc.
+- Pretty out of date, should reference page on using snapshots, etc.
 
 ## xref:terms.adoc[]
 
