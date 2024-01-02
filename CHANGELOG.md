@@ -6,9 +6,9 @@
 
 **BREAKING CHANGES:**
 
-- pedestal.immutant has been removed
-- pedestal.tomcat has been removed
-- In `io.pedestal.interceptor.chain/execute-only` has subtly changed, but this function is not widely used (if at all)
+- Library pedestal.immutant has been removed
+- Library pedestal.tomcat has been removed
+- Namespace io.pedestal.http.jetty.websockets has been removed, and replaced with io.pedestal.http.websockets
 
 Other changes:
 
