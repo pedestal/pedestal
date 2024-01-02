@@ -240,7 +240,7 @@
   This implementation returns the exception, unless it represents a broken pipe (a common
   exception that occurs when, during a long response, the client terminates the socket connection)."
   {:added "0.7.0"}
-  [context exception]
+  [_context exception]
   (when-not (is-broken-pipe? exception)
     exception))
 
@@ -279,25 +279,8 @@
                 (error-stylobate exception-analyzer context exception))})))
 
 (def ^{:deprecated "0.7.0"} stylobate
-  "An interceptor which creates favorable pre-conditions for further
-  io.pedestal.interceptors, and handles all post-conditions for
-  processing an interceptor chain. It expects a context map
-  with :servlet-request, :servlet-response, and :servlet keys.
-
-  After entering this interceptor, the context will contain a new
-  key :request, the value will be a request map adhering to the Ring
-  specification[1].
-
-  This interceptor supports asynchronous responses as defined in the
-  Java Servlet Specification[2] version 3.0. On leaving this
-  interceptor, if the servlet request has been set asynchronous, all
-  asynchronous resources will be closed. Pausing this interceptor will
-  inform the servlet container that the response will be delivered
-  asynchronously.
-
-  If a later interceptor in this context throws an exception which is
-  not caught, this interceptor will log the error but not communicate
-  any details to the client.
+  "An interceptor which primarily handles uncaught exceptions thrown
+  during execution of the interceptor chain.
 
   This var is deprecated in 0.7.0 as it should only be added to the
   interceptor chain by [[http-interceptor-service-fn]].

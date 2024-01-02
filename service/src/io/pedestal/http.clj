@@ -290,10 +290,10 @@
 (defn service-fn
   "Converts the interceptors for the service into a service function, which is a function
   that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
-  [{::keys [interceptors service-fn-options]
+  [{::keys [interceptors initial-context service-fn-options]
     :as service-map}]
   (assoc service-map ::service-fn
-         (servlet-interceptor/http-interceptor-service-fn interceptors service-fn-options)))
+         (servlet-interceptor/http-interceptor-service-fn interceptors initial-context service-fn-options)))
 
 (defn servlet
   "Converts the service-fn in the service map to a servlet instance."
@@ -363,7 +363,6 @@
                 ::websockets
                 ::interceptors
                 ::request-logger
-                ::routes
                 ::router
                 ::file-path
                 ::resource-path
@@ -375,6 +374,9 @@
                 ::enable-csrf
                 ::secure-headers
                 ::path-params-decoder
+                ::initial-context
+                ::start-fn
+                ::stop-fn
                 ::service-fn-options]))
 
 (s/def ::port pos-int?)
@@ -385,11 +387,7 @@
 ;; Each container will define its own container-options schema:
 (s/def ::container-options map?)
 (s/def ::websockets ::ws/websockets-map)
-(s/def ::interceptors (s/coll-of ::interceptor))
-
-;; TODO: Move this def to the interceptor library
-
-(s/def ::interceptor #(satisfies? pedestal.interceptor/IntoInterceptor %))
+(s/def ::interceptors ::pedestal.interceptor/interceptors)
 
 (s/def ::request-logger ::interceptor)
 (s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
@@ -412,8 +410,11 @@
 ;; See io.pedestal.http.secure-headers/secure-headers for more details
 (s/def ::secure-headers map?)
 (s/def ::path-params-decoder ::interceptor)
+(s/def ::initial-context map?)
 
 (s/def ::service-fn-options ::servlet-interceptor/http-interceptor-service-fn-options)
+(s/def ::start-fn fn?)
+(s/def ::stop-fn fn?)
 
 (defn server
   "Converts a service map to a server map.
