@@ -1,4 +1,4 @@
-; Copyright 2023 Cognitect, Inc.
+; Copyright 2023-2024 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -143,53 +143,55 @@
       (.sendBinary remote-endpoint msg (send-handler p-chan))
       p-chan)))
 
-(defn on-open-start-ws-connection
-  "Returns an :on-open callback for [[add-endpoint]] that starts
-   an asynchronous connection loop. The returned function itself
-   returns a core.async send channel, on which
-   values can be put, to send values to the client.
+(defn start-ws-connection
+  "Starts a simple websocket connection for the given session and config.
 
-   Basic values are String, to send a text message, or ByteBuffer,
-   to send binary message.
+  Returns a channel used to send messages to the client.
 
-   Alternately, wrap the basic value in a vector; the second element
-   is a response channel; the response channel will convey either :success
-   or an exception; this allows the application to handle flow control.
+  The values written to the channel are either a payload (a String, ByteBuffer, or some object
+  that satisfies the WebSocketSendAsync protocol) or is a tuple of a payload and a response channel.
 
-   Options:
+  When the response channel is non-nil, the result of the message send is written to it:
+  Either the keyword :success, or an Exception thrown when attempting to send the message.
 
-   :send-buffer-or-n
-   : Used to create the channel, defaults to 10.
+  Options:
+     :send-buffer-or-n - used to create the channel, defaults to 10.
   "
-  [opts]
+  [^Session ws-session opts]
   (let [{:keys [send-buffer-or-n]
-         :or {send-buffer-or-n 10}} opts]
-    (fn [^Session ws-session ^EndpointConfig _config]
-      (let [send-ch (async/chan send-buffer-or-n)
-            async-remote (.getAsyncRemote ws-session)]
-        (go-loop []
-          (if-let [payload (and (.isOpen ws-session)
-                                (async/<! send-ch))]
-            ;; The payload is a message and an optional response channel; a message is either
-            ;; a String or a ByteBuffer (or something that implement WebSocketSendAsync).
-            (let [[out-msg resp-ch] (if (sequential? payload)
-                                      payload
-                                      [payload nil])
-                  ;; TODO: Not really async because we park for the response here.
-                  result (try (async/<! (ws-send-async out-msg async-remote))
-                              (catch Exception ex
-                                (log/error :msg "Failed on ws-send-async"
-                                           :exception ex)
-                                ex))]
-              ;; If a resp-ch was provided, then convey the result (e.g., notify the caller
-              ;; that the payload was sent).  This result is either :success or an exception.
-              (when resp-ch
-                (try
-                  (async/put! resp-ch result)
-                  (catch Exception ex
-                    (log/error :msg "Invalid response channel"
-                               :exception ex))))
-              (recur))
-            ;; The session is closed when the channel is closed.
-            (.close ws-session)))
-        send-ch))))
+         :or   {send-buffer-or-n 10}} opts
+        send-ch      (async/chan send-buffer-or-n)
+        async-remote (.getAsyncRemote ws-session)]
+    (go-loop []
+      (if-let [payload (and (.isOpen ws-session)
+                            (async/<! send-ch))]
+        ;; The payload is a message and an optional response channel; a message is either
+        ;; a String or a ByteBuffer (or something that implement WebSocketSendAsync).
+        (let [[out-msg resp-ch] (if (sequential? payload)
+                                  payload
+                                  [payload nil])
+              ;; TODO: Not really async because we park for the response here.
+              result (try (async/<! (ws-send-async out-msg async-remote))
+                          (catch Exception ex
+                            (log/error :msg "Failed on ws-send-async"
+                                       :exception ex)
+                            ex))]
+          ;; If a resp-ch was provided, then convey the result (e.g., notify the caller
+          ;; that the payload was sent).  This result is either :success or an exception.
+          (when resp-ch
+            (try
+              (async/put! resp-ch result)
+              (catch Exception ex
+                (log/error :msg "Invalid response channel"
+                           :exception ex))))
+          (recur))
+        ;; The session is closed when the channel is closed.
+        (.close ws-session)))
+    ;; Return the channel used to send messages to the client
+    send-ch))
+
+(defn on-open-start-ws-connection
+  "Returns an :on-open callback for [[add-endpoint]], using [[start-ws-connection]] to do the actual work."
+  [opts]
+  (fn [^Session ws-session ^EndpointConfig _config]
+    (start-ws-connection ws-session opts)))

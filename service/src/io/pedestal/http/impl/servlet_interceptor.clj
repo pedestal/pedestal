@@ -1,3 +1,4 @@
+; Copyright 2023-2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -17,13 +18,13 @@
             [clojure.stacktrace :as stacktrace]
             [clojure.core.async :as async]
             [io.pedestal.log :as log]
-            [io.pedestal.interceptor]
-            [io.pedestal.interceptor.helpers :as interceptor]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request :as request]
             [io.pedestal.http.request.map :as request-map]
             [ring.util.response :as ring-response]
+            [clojure.spec.alpha :as s]
     ;; for side effects:
             io.pedestal.http.route
             io.pedestal.http.request.servlet-support
@@ -31,7 +32,7 @@
   (:import (clojure.lang Fn IPersistentCollection)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletRequest HttpServletResponse)
-           (java.io File InputStream OutputStreamWriter EOFException)
+           (java.io File IOException InputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -221,15 +222,39 @@
   [context]
   (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
 
+(defn- is-broken-pipe?
+  "Checks for a broken pipe exception, which (by default) is omitted."
+  [exception]
+  (and (instance? IOException exception)
+       (.equalsIgnoreCase "broken pipe" (ex-message exception))))
+
+(defn default-exception-analyzer
+  "The default for the :exception-analyzer option, this function is passed the
+  context and a thrown exception that bubbled up to the stylobate interceptor.
+
+  Primarily, this function determines if an exception should be logged or not;
+  it can also log or otherwise report an exception itself, and then prevent
+  the stylobate interceptor from reporting the exception, by returning nil.
+
+  If a non-nil value is returned, it must be an exception, which will be logged.
+
+  This implementation returns the exception, unless it represents a broken pipe (a common
+  exception that occurs when, during a long response, the client terminates the socket connection)."
+  {:added "0.7.0"}
+  [_context exception]
+  (when-not (is-broken-pipe? exception)
+    exception))
+
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
   async case. This is just to make sure exceptions get returned
   somehow; application code should probably catch and log exceptions
   in its own interceptors."
-  [context exception]
-  (log/error :msg "error-stylobate triggered"
-             :exception exception
-             :context context)
+  [error-analyzer context exception]
+  (when-let [exception' (error-analyzer context exception)]
+    (log/error :msg "error-stylobate triggered"
+               :exception exception'
+               :context context))
   (leave-stylobate context))
 
 (defn- error-ring-response
@@ -244,33 +269,26 @@
   (send-error context "Internal server error: exception")
   context)
 
-(def stylobate
-  "An interceptor which creates favorable pre-conditions for further
-  io.pedestal.interceptors, and handles all post-conditions for
-  processing an interceptor chain. It expects a context map
-  with :servlet-request, :servlet-response, and :servlet keys.
+(defn- create-stylobate
+  [options]
+  (let [exception-analyzer (or (:exception-analyzer options)
+                               default-exception-analyzer)]
+    (interceptor
+      {:name  ::stylobate
+       :leave leave-stylobate
+       :error (fn [context exception]
+                (error-stylobate exception-analyzer context exception))})))
 
-  After entering this interceptor, the context will contain a new
-  key :request, the value will be a request map adhering to the Ring
-  specification[1].
+(def ^{:deprecated "0.7.0"} stylobate
+  "An interceptor which primarily handles uncaught exceptions thrown
+  during execution of the interceptor chain.
 
-  This interceptor supports asynchronous responses as defined in the
-  Java Servlet Specification[2] version 3.0. On leaving this
-  interceptor, if the servlet request has been set asynchronous, all
-  asynchronous resources will be closed. Pausing this interceptor will
-  inform the servlet container that the response will be delivered
-  asynchronously.
-
-  If a later interceptor in this context throws an exception which is
-  not caught, this interceptor will log the error but not communicate
-  any details to the client.
+  This var is deprecated in 0.7.0 as it should only be added to the
+  interceptor chain by [[http-interceptor-service-fn]].
 
   [1]: https://github.com/ring-clojure/ring/blob/master/SPEC
   [2]: http://jcp.org/aboutJava/communityprocess/final/jsr315/index.html"
-
-  (io.pedestal.interceptor/interceptor {:name ::stylobate
-                                        :leave leave-stylobate
-                                        :error error-stylobate}))
+  (create-stylobate nil))
 
 (def ring-response
   "An interceptor which transmits a Ring specified response map to an
@@ -281,21 +299,22 @@
   to 500 with a generic error message. Also, if later interceptors
   fail to furnish the context with a :response map, this interceptor
   will set the HTTP response to a 500 error."
-  (io.pedestal.interceptor/interceptor {:name ::ring-response
-                                        :leave leave-ring-response
-                                        :error error-ring-response}))
+  (interceptor
+    {:name  ::ring-response
+     :leave leave-ring-response
+     :error error-ring-response}))
 
 (def ^{:deprecated "0.7.0"} terminator-injector
-  "An interceptor which causes a interceptor to terminate when one of
+  "An interceptor which causes execution to terminate when one of
   the interceptors produces a response, as defined by
   ring.util.response/response?
 
   Prior to 0.7.0, this interceptor was automatically queued.
   In 0.7.0, the context is initialized with a terminator function and this
   interceptor is no longer used. "
-  (interceptor/before
-    ::terminator-injector
-    terminator-inject))
+  (interceptor
+    {:name  ::terminator-injector
+     :enter terminator-inject}))
 
 (defn- error-debug
   "When an error propagates to this interceptor error fn, trap it,
@@ -320,8 +339,9 @@
   services. Including it in interceptor paths on production systems
   may present a security risk by exposing call stacks of the
   application when exceptions are encountered."
-  (io.pedestal.interceptor/interceptor {:name ::exception-debug
-                                        :error error-debug}))
+  (interceptor
+    {:name  ::exception-debug
+     :error error-debug}))
 
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the
@@ -355,16 +375,29 @@
         (finally
           (log/counter :io.pedestal/active-servlet-calls -1))))))
 
+(s/def ::http-interceptor-service-fn-options
+  (s/keys :opt-un [::exception-analyzer]))
+
+(s/def ::exception-analyzer fn?)
+
 (defn http-interceptor-service-fn
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
-  and :servlet-response. The stylobate,
-  and ring-response are prepended to the sequence of interceptors."
+  and :servlet-response. The [[stylobate]] and [[ring-response]] interceptors
+  are prepended to the sequence of interceptors.
+
+  Options:
+  :exception-analyzer - function that analyzes exceptions that propagate
+  up to the stylobate interceptor, defaults to [[default-exception-analyzer]].
+
+  This is normally called automatically from io.pedestal.http/service-fn."
   ([interceptors] (http-interceptor-service-fn interceptors {}))
   ([interceptors default-context]
+   (http-interceptor-service-fn interceptors default-context nil))
+  ([interceptors default-context options]
    (interceptor-service-fn
-     (into [stylobate
+     (into [(create-stylobate options)
             ring-response]
            interceptors)
      (-> default-context

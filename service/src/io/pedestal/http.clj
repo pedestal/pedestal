@@ -1,3 +1,4 @@
+; Copyright 2023-2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -25,8 +26,8 @@
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.interceptor :as pedestal.interceptor]
-            [io.pedestal.interceptor.helpers :as interceptor]
+            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.helpers :as helpers]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
@@ -83,7 +84,7 @@
 
 (def log-request
   "Log the request's method and uri."
-  (interceptor/on-request
+  (helpers/on-request
     ::log-request
     (fn [request]
       (log/info :msg (format "%s %s"
@@ -101,7 +102,7 @@
 
 (def not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
-  (interceptor/after
+  (helpers/after
     ::not-found
     (fn [context]
       (if-not (response? (:response context))
@@ -112,7 +113,7 @@
 (def html-body
   "Set the Content-Type header to \"text/html\" if the body is a string and a
   type has not been set."
-  (interceptor/on-response
+  (helpers/on-response
     ::html-body
     (fn [response]
       (let [body (:body response)
@@ -124,7 +125,7 @@
 (def json-body
   "Set the Content-Type header to \"application/json\" and convert the body to
   JSON if the body is a collection and a type has not been set."
-  (interceptor/on-response
+  (helpers/on-response
     ::json-body
     (fn [response]
       (let [body (:body response)
@@ -152,7 +153,7 @@
    (transit-body-interceptor iname default-content-type transit-format {}))
 
   ([iname default-content-type transit-format transit-opts]
-   (interceptor/on-response
+   (helpers/on-response
      iname
      (fn [response]
        (let [body (:body response)
@@ -260,9 +261,9 @@
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
-               (some? request-logger) (conj (pedestal.interceptor/interceptor request-logger))
+               (some? request-logger) (conj (interceptor/interceptor request-logger))
                (some? allowed-origins) (conj (cors/allow-origin allowed-origins))
-               (some? not-found-interceptor) (conj (pedestal.interceptor/interceptor not-found-interceptor))
+               (some? not-found-interceptor) (conj (interceptor/interceptor not-found-interceptor))
                (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
                (some? enable-csrf) (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
                                           (csrf/anti-forgery enable-csrf)])
@@ -290,10 +291,10 @@
 (defn service-fn
   "Converts the interceptors for the service into a service function, which is a function
   that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
-  [{interceptors ::interceptors
+  [{::keys [interceptors initial-context service-fn-options]
     :as service-map}]
   (assoc service-map ::service-fn
-         (servlet-interceptor/http-interceptor-service-fn interceptors)))
+         (servlet-interceptor/http-interceptor-service-fn interceptors initial-context service-fn-options)))
 
 (defn servlet
   "Converts the service-fn in the service map to a servlet instance."
@@ -363,7 +364,6 @@
                 ::websockets
                 ::interceptors
                 ::request-logger
-                ::routes
                 ::router
                 ::file-path
                 ::resource-path
@@ -374,7 +374,11 @@
                 ::enable-session
                 ::enable-csrf
                 ::secure-headers
-                ::path-params-decoder]))
+                ::path-params-decoder
+                ::initial-context
+                ::start-fn
+                ::stop-fn
+                ::service-fn-options]))
 
 (s/def ::port pos-int?)
 (s/def ::type (s/or :fn fn?
@@ -384,13 +388,9 @@
 ;; Each container will define its own container-options schema:
 (s/def ::container-options map?)
 (s/def ::websockets ::ws/websockets-map)
-(s/def ::interceptors (s/coll-of ::interceptor))
+(s/def ::interceptors ::interceptor/interceptors)
 
-;; TODO: Move this def to the interceptor library
-
-(s/def ::interceptor #(satisfies? pedestal.interceptor/IntoInterceptor %))
-
-(s/def ::request-logger ::interceptor)
+(s/def ::request-logger ::interceptor/interceptor)
 (s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
                       :fn fn?
                       :nil nil?
@@ -402,7 +402,7 @@
                                :fn fn?
                                ;; io.pedestal.http.cors/allow-origin has more details
                                :map map?))
-(s/def ::not-found-interceptor ::interceptor)
+(s/def ::not-found-interceptor ::interceptor/interceptor)
 (s/def ::mime-types (s/map-of string? string?))
 ;; See io.pedestal.http.ring-middlewares/session for more details
 (s/def ::enable-session map?)
@@ -410,8 +410,12 @@
 (s/def ::enable-csrf map?)
 ;; See io.pedestal.http.secure-headers/secure-headers for more details
 (s/def ::secure-headers map?)
-(s/def ::path-params-decoder ::interceptor)
+(s/def ::path-params-decoder ::interceptor/interceptor)
+(s/def ::initial-context map?)
 
+(s/def ::service-fn-options ::servlet-interceptor/http-interceptor-service-fn-options)
+(s/def ::start-fn fn?)
+(s/def ::stop-fn fn?)
 
 (defn server
   "Converts a service map to a server map.

@@ -131,7 +131,7 @@ Here is an example from the test suite:
 
 Pattern matching is a concise way to express conditions for handling an error.
 
-== Error Handling and Logging
+== Logging Uncaught Exceptions
 
 For HTTP, the xref:servlet-interceptor.adoc[] provides the "last
 ditch" error handlers that log the error and return an _error_ response. In
@@ -147,3 +147,15 @@ map. This is often quite large and may contain data you do not wish to log.
 While having defaults is nice, it is highly recommended that services implement
 their own error handling/logging. This gives you full control over how errors
 are processed.
+
+Some exceptions should not be logged; by default, Pedestal will identify
+an exception that indicates a broken pipe to the client when sending the response; such errors will not be logged but will be quietly ignored.
+
+This logic can be altered using the xref:service-map.adoc[] :io.pedestal.http/service-fn-options key;
+the value is itself a map, and the key :exception-analyzer can be specified.
+
+An exception analyzer function is passed the xref:context-map.adoc[] and the unhandled exception;
+it may return nil to prevent the exception from being logged, or return the exception itself,
+or an alternate exception, to have that be the exception that is logged.
+
+When not specified, the function the api:default-exception-analyzer[ns=io.pedestal.http.impl.servlet-interceptor] is used; this is where the logic to check for a broken pipe exception lives.

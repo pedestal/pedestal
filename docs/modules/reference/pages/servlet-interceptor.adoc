@@ -2,7 +2,7 @@
 
 As the name implies, the servlet interceptor is both a servlet and an
 interceptor. It is created when an application calls
-`io.pedestal.http/create-server` or `io.pedestal.http/create-servlet`.
+api:create-server[] or api:create-servlet[].
 
 When created, the servlet interceptor creates the global interceptor queue,
 which includes a number of interceptors private to the servlet interceptor, and
@@ -18,6 +18,24 @@ The servlet interceptor performs the following tasks:
    2. Executes the interceptor queue (:enter, then :leave)
    3. Catches any exceptions that aren't handled by xref:error-handling.adoc[] within the interceptors
    4. Writes the final response, using the xref:response-map.adoc[]
+
+Part of this work is by adding new keys to the default context map; beyond
+that, additional interceptors are prepended:
+
+== :io.pedestal.http.impl.servlet-interceptor/stylobate
+
+The stylobate interceptor handles otherwise uncaught
+xref:error-handling.adoc[unhandled exceptions] that occur during
+interceptor chain execution.
+
+It also works with the `ring-response` interceptor when dealing
+with xref:streaming.adoc[async response bodies].
+
+== :io.pedestal.http.impl.servlet-interceptor/ring-response
+
+Responsible for converting the :response key in the context, when present,
+into a response delivered to the client; this may include
+xref:streaming.adoc[async streaming].
 
 There are a couple of special cases to note.
 

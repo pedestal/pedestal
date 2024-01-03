@@ -193,7 +193,7 @@ Most often, going asynchronous is simply a matter of using the `clojure.core.asy
 When an interceptor returns a channel, Pedestal will return the request-processing thread to the servlet container, so that
 it can be used to process other incoming requests. It will then wait for the channel to convey the new context,
 and continue from there.  All remaining interceptors for the request
-will execute inside a thread from core.async's dispatch thread pool.
+will execute inside a thread from {core_async}'s dispatch thread pool.
 
 [TIP]
 This only a thumbnail sketch; it doesn't address likely scenarios such as what if the user doesn't exist? What

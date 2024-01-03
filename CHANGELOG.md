@@ -6,9 +6,9 @@
 
 **BREAKING CHANGES:**
 
-- pedestal.immutant has been removed
-- pedestal.tomcat has been removed
-- In `io.pedestal.interceptor.chain/execute-only` has subtly changed, but this function is not widely used (if at all)
+- Library pedestal.immutant has been removed
+- Library pedestal.tomcat has been removed
+- Namespace io.pedestal.http.jetty.websockets has been removed, and replaced with io.pedestal.http.websockets
 
 Other changes:
 
@@ -17,6 +17,10 @@ Other changes:
 - In `io.pedestal.interceptor.chain`:
     - New macro `bind` makes it easier for interceptors to manipulate dynamic variables exposed to following interceptors
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
+- New service map keys have been introduced, to support handling of uncaught exceptions, and to specify an initial context map
+- There is now a clojure.spec specification for the structure of the service map
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 
 ## 0.6.3 -- 30 Nov 2023
 

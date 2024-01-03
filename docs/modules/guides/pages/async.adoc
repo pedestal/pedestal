@@ -73,12 +73,12 @@ NOTE: A channel is somewhat akin to a
 link:https://en.wikipedia.org/wiki/Futures_and_promises[promise]... it represents a computation that
 will operate concurrently and complete at some point in the future.
 
-A core.async `go` block represents a deferred computation; a `go` block immediately returns
+A {core_async} `go` block represents a deferred computation; a `go` block immediately returns
 a channel; when the body of the `go` block completes its execution, the result will be
 written into the channel.
 
 In this example, we assume that `lengthy-computation` has been changed to also return a channel;
-the core.async `<!` function will wait for that value to be delivered, before the context
+the {core_async} `<!` function will wait for that value to be delivered, before the context
 is rebuilt and written to the output channel.
 
 Pedestal recognizes the difference here ... it's getting back a channel, not a map, and
@@ -104,7 +104,7 @@ Importantly, _any_ of these interceptors can "go async" by returning a channel i
 
 This has implications for all following interceptors in the interceptor chain;
 those interceptors will not execute in the original request processing thread,
-but instead will execute in a core.async dispatch thread.
+but instead will execute in a {core_async} dispatch thread.
 
 These dispatch threads are pooled, but the default is a maximum of eight dispatch threads.
 An interceptor that blocks may then block a dispatch thread.

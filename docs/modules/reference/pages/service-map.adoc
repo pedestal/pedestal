@@ -28,6 +28,8 @@ Pedestal may add other keys to this map for its own use. Other applications
 should treat any such keys and their values as implementation details
 and their behaviour will remain unspecified.
 
+== Service Map Keys
+
 NOTE: In the details below, ::http is an alias to :io.pedestal.http.
 
 [cols="s,d,d,d", options="header", grid="rows"]
@@ -37,12 +39,12 @@ NOTE: In the details below, ::http is an alias to :io.pedestal.http.
 | ::http/allowed-origins
 | N
 | Function, map, or sequence of strings
-| Determines which origins are allowed for the api:cors/allow-origin[ns=io.pedestal.http.cors] interceptor. See "CORS" below.
+| Determines which origins are allowed for the api:allow-origin[ns=io.pedestal.http.cors] interceptor. See "CORS" below.
 
 | ::http/chain-provider
 | N
 | Function
-| Only assigned when replacing the xref:servlet-interceptor.adoc[]. Receives the xref:service-map.adoc[], returns an updated with whatever additional pieces the server function expects. (See ::http/type, below.)
+| Only assigned when replacing the xref:servlet-interceptor.adoc[]. Receives the xref:service-map.adoc[], returns an updated map with whatever additional pieces the server function expects. (See ::http/type, below.)
 
 | ::http/container-options
 | N
@@ -75,10 +77,17 @@ accepts connections from anywhere.  This is especially true when running
 Pedestal inside a Docker container, as all connections (even those from the host, or
 from another container on the same host) will be network, not localhost, connections.].
 
+| ::http/initial-context
+| N
+| Map
+| The initial xref:context-map.adoc[] that is passed through the interceptor chain;
+  This option makes it possible to place values into the context for
+  all requests.
+
 | ::http/interceptors
 | N
 | Vector
-| Vector of items that satisfy api:http/default-interceptors[ns=io.pedestal.http].
+| Vector of items that satisfy the  api:IntoInterceptor[ns=io.pedestal.interceptor] protocol.
 
 | ::http/join?
 | N
@@ -108,7 +117,7 @@ from another container on the same host) will be network, not localhost, connect
 
 | ::http/resource-path
 | N
-| string
+| String
 | File path used as root by the api:ring-middlewares/resource[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, the interceptor is added. Default is `nil`.
 
 | ::http/router
@@ -123,13 +132,19 @@ from another container on the same host) will be network, not localhost, connect
 
 | ::http/secure-headers
 | N
-| map of keyword -> string
+| Map of keyword -> string
 | A settings map for various secure headers. See "Secure Headers" below
 
 | ::http/service-fn
 | N
-| function
+| Function
 | A function which can be used as an implementation of the `jakarta.servlet.Servlet.service` method. The function is defined by api:http/create-server[ns=io.pedestal.http].
+
+| ::http/service-fn-options
+| N
+| Map
+| Service function options passed to
+  api:http-interceptor-service-fn[io.pedestal.http.impl.servlet-interceptor].
 
 | ::http/servlet
 | N
@@ -138,21 +153,40 @@ from another container on the same host) will be network, not localhost, connect
 
 | ::http/start-fn
 | N
-| function
-| Zero-arity function that starts the server.
+| Function
+| Zero-arity function that starts the server. *Part of the server map.*
 
 | ::http/stop-fn
 | N
-| function
-| Zero-arity function that stops the server.
+| Function
+| Zero-arity function that stops the server. *Part of the server map.*
 
 | ::http/type
 | Y
 | Keyword or Function
-| Container for service or server function. As a keyword, names the container - currently, only :jetty is supported out of the box.
-As a function, acts as the server function.
+| Container for service or server function. As a keyword, names the container - currently, only
+  :jetty is supported out of the box.
+  As a function, acts as the server function.
+  When omitted, Jetty is the default.
+
+| ::http/websockets
+| N
+| Map
+| Defines websocket routing. See xref:websockets.adoc[].
 
 |===
+
+== default-interceptors
+
+The api:default-interceptors[] function is the primary user of the majority of the service map keys;
+it builds and attaches the ::http/interceptors key (a list of interceptors) from the various other
+service map keys, but only if the key is itself nil or missing.
+
+`default-interceptors` is called automatically from api:create-server[].
+
+You may find that you do not rely on `default-interceptors` logic, but build your own interceptor
+chain directly; in that case, simply attach the interceptors as ::http/interceptors before calling
+api:create-server[].  Many of the other service map keys will not be needed, beyond ::http/port and ::http/type.
 
 == Cross-Origin Resource Sharing (CORS)
 
@@ -239,3 +273,28 @@ If the key is simply not present in the service map, then a set of default secur
 
 If the value for ::http/secure-headers is present, it may contain
 keys and string values for the security headers. Any other keys will be ignored.
+
+== Server Map
+
+The api:server[] function converts the service map to a server map; much of this is
+the responsibility of the container-specific `server` function, such as
+api:.server[ns=io.pedestal.http.jetty] - the function is determined from the ::http/type key of the service map.
+
+This function is passed the full service map, and a set of server options; these options
+are a subset of the service map keys: :host, :port, :join?, :container-options, and :websockets (each
+as a non-namespaced keyword).
+
+The `server` function should create a service (e.g., a Jetty Server) and return a map with
+at least keys :start-fn and :stop-fn.  These are then qualified into the io.pedestal.http namespace
+and merged into the service map.
+
+The api:start[] and api:stop[] functions use the ::http/start-fn and ::http/stop-fn keys to start
+and stop the server instance.
+
+== Spec Validation
+
+The service map can grow quite complex, with options controlling everything from routing, to
+security, to container-specific options.
+
+The service map may be validated via {clojure_spec}; the ::io.pedestal.http/service-map spec identifies
+the possible keys and values.

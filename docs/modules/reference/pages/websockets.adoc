@@ -1,0 +1,34 @@
+= Websockets
+:default_api_ns: io.pedestal.websocket
+
+[WARNING]
+====
+Websocket support was present prior to Pedestal 0.7, but was a container-specific option for
+Jetty. In Pedestal 0.7, websocket support was refactored to be more universal and declarative, part of
+the xref:service-map.adoc[].
+====
+
+link:https://en.wikipedia.org/wiki/WebSocket[Websockets] are an asynchronous and bidirectional connection between a client and a server.  Once a Websocket connection is established, either
+party may send messages to the other party - this unleashes truly unbounded possibilities for creating dynamic, real-time, and asynchronous applications.
+
+A xref:service-map.adoc[] may define a :io.pedestal.http/websockets key.
+This key footnote:[The {clojure_spec} :io.pedestal.websocket/websockets-map specifies the structure of this option.] is a map of strings to a _endpoint maps_ footnote:[The {clojure_spec}
+:io.pedestal.websocket/endpoint-map specifies the structure of an endpoint map.].
+Each map key is the path for the websocket;
+the corresponding endpoint map is a collection of callback functions.
+
+The path and endpoint map are ultimately passed to the api:add-endpoint[] function, which describes
+in detail how the callbacks are used in detail.
+
+Essentially, the :on-open callback is invoked when the client initiates the connection.
+
+It is intended that, when the client connects, some form of server-side process will be initiated
+capable of sending messages to the client asynchronously.
+It is the responsibility of the :on-open callback to create such a process.
+One common option is to use api:on-open-start-ws-connection[] to create the callback, or
+construct the :on-open callback around the api:start-ws-connection[] function.
+
+The :on-string and :on-binary callbacks are invoked when a text or binary message from the client
+is received.
+
+
