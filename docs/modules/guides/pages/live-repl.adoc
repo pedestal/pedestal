@@ -289,11 +289,10 @@ api:routes-from[ns=io.pedestal.http.route] macro:
       http/start))
 ----
 
-`routes-from` is built on api:dev-mode?[ns=io.pedestal.environment], a boolean value set from the JVM system property
-`io.pedestal.dev-mode`.  By default, `dev-mode?` is false, and `routes-from` operates in production mode, so
+`routes-from` is aware of the xref:reference:dev-mode.adoc[Pedestal execution mode].  By default, `routes-from` operates in production mode, so
 `(route/routes-from routes)` evaluates to `routes`.
 
-However, in development mode, `(route/routes-from routes)` expands to `#(expand-routes (deref (var routes)))` ... the
+However, in local development mode, `(route/routes-from routes)` expands to `#(expand-routes (deref (var routes)))` ... the
 same code we used above, to delay route evaluation.
 
 

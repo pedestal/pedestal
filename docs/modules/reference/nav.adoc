@@ -6,6 +6,7 @@
 *** xref:interceptors.adoc[]
 *** xref:chain-providers.adoc[]
 *** xref:error-handling.adoc[]
+*** xref:dev-mode.adoc[]
 
 ** HTTP Handling
 *** xref:servlet-interceptor.adoc[]
