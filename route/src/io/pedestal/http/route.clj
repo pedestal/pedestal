@@ -21,8 +21,10 @@
             [io.pedestal.http.route.router :as router]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.map-tree :as map-tree]
-            [io.pedestal.http.route.prefix-tree :as prefix-tree])
-  (:import (java.net URLEncoder URLDecoder)))
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]
+            [io.pedestal.environment :refer [dev-mode?]])
+  (:import (clojure.lang Fn Sequential)
+           (java.net URLEncoder URLDecoder)))
 
 
 (comment
@@ -177,12 +179,11 @@
   "Replace the HTTP method of a request with the value provided at
   param-path (if provided). Removes the value found at param-path."
   [param-path request]
-  (let [{:keys [request-method]} request]
-    (if-let [method (get-in request param-path)]
-      (-> request
-          (assoc :request-method (keyword method))
-          (dissoc-in param-path))
-      request)))
+  (if-let [method (get-in request param-path)]
+    (-> request
+        (assoc :request-method (keyword method))
+        (dissoc-in param-path))
+    request))
 
 ;;; Linker
 
@@ -400,7 +401,12 @@
     - The routing table in use.
     - The incoming request being routed.
 
-  where `options` are as described in `url-for-routes`."
+  where `options` are as described in [[url-for-routes]].
+
+  This function may only be successfully called after routing has occurred.
+  It's purpose is to allow an interceptor in the identified route to generate
+  URL's for other routes (by name).
+  "
   [route-name & options]
   (if *url-for*
     (apply (if (delay? *url-for*) (deref *url-for*) *url-for*)
@@ -478,7 +484,7 @@
 (extend-protocol RouterSpecification
   ;; Normally, we start with a verbose routing table and create a router from that
   ;; so RouterSpecification is extended on Sequential
-  clojure.lang.Sequential
+  Sequential
   (router-spec [routing-table router-ctor]
     (let [router (router-ctor routing-table)]
       (interceptor/interceptor
@@ -488,7 +494,7 @@
   ;; The alternative is to pass in a no-arguments function that returns the expanded routes.
   ;; That is only used in development, as it can allow for significant changes to routing and handling
   ;; without restarting the running application, but it is slow.
-  clojure.lang.Fn
+  Fn
   (router-spec [f router-ctor]
     (interceptor/interceptor
       {:name ::router
@@ -498,7 +504,7 @@
                   (route-context context router routing-table)))})))
 
 (def router-implementations
-  "Maps from the common router implemenations (:map-tree, :prefix-tree, or :linear-search) to a router
+  "Maps from the common router implementations (:map-tree, :prefix-tree, or :linear-search) to a router
   constructor function (which accepts expanded routes, and returns a Router instance)."
   {:map-tree map-tree/router
    :prefix-tree prefix-tree/router
@@ -634,3 +640,33 @@
                            :request-method verb}}
         context ((:enter router) context)]
     (:route context)))
+
+
+(defmacro routes-from
+  "Wraps around an expression that provides the routing specification.
+
+ In production mode (the default) evaluates to the routing expression, unchanged.
+
+ In development mode (see [[dev-mode?]]), evaluates to a function that, when invoked, returns the routing expression
+ passed through [[expand-routes]]; this
+ is to support a REPL workflow. This works in combination with the extension of [[RouterSpecification]]
+ onto Fn, which requires that the returned routing specification be expanded.
+
+ Further, when the expression is a non-local symbol, it is assumed to identify a Var holding the unexpanded routing specification;
+ to avoid capturing the Var's value, the expansion de-references the named Var before passing it to expand-routes."
+  {:added "0.7.0"}
+  [route-spec-expr]
+  (cond
+    (not dev-mode?)
+    route-spec-expr
+
+    (and (symbol? route-spec-expr)
+         (not (contains? &env route-spec-expr)))
+    `(fn [] (-> (var ~route-spec-expr)
+                deref
+                expand-routes))
+
+    ;; Either an inline route, a reference to a local symbol, or a function call.
+    :else
+    `(fn [] (expand-routes ~route-spec-expr))))
+
