@@ -13,9 +13,12 @@
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         org.clojure/core.async {:mvn/version "1.6.673"}
         io.pedestal/pedestal.log {:mvn/version "0.6.0"}
+        io.pedestal/pedestal.common #_ {:mvn/version "TBD"}
+        {:local/root "../common"}
         ;; Error interceptor tooling
         org.clojure/core.match {:mvn/version "1.0.1"
                                 :exclusions [org.clojure/clojurescript]}}
  :aliases
  {:local
-  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}}}}}
+  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.common {:local/root "../common"}}}}}

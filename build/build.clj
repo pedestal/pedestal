@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -28,7 +29,8 @@
 
 (def module-dirs
   ;; Keep these in dependency order
-  ["log"
+  ["common"
+   "log"
    "metrics"
    "interceptor"
    "route"
