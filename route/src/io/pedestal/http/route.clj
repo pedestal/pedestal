@@ -1,5 +1,6 @@
-; Copyright 2013 Relevance, Inc.
+; Copyright 2024 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
+; Copyright 2013 Relevance, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -23,7 +24,7 @@
             [io.pedestal.http.route.map-tree :as map-tree]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.environment :refer [dev-mode?]])
-  (:import (clojure.lang Fn Sequential)
+  (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
 
 
@@ -364,7 +365,7 @@
 
      :fragment      A string for the fragment part of the url.
 
-     :absolute?     Boolean, whether or not to force an absolute URL
+     :absolute?     Boolean, whether to force an absolute URL
 
      :scheme        Keyword (:http | :https) used to override the scheme
                     portion of the url.
@@ -424,15 +425,15 @@
                   form of routing data."))
 
 (extend-protocol ExpandableRoutes
-  clojure.lang.APersistentVector
+  APersistentVector
   (-expand-routes [route-spec]
     (terse/terse-routes route-spec))
 
-  clojure.lang.APersistentMap
+  APersistentMap
   (-expand-routes [route-spec]
     (-expand-routes [[(terse/map-routes->vec-routes route-spec)]]))
 
-  clojure.lang.APersistentSet
+  APersistentSet
   (-expand-routes [route-spec]
     (table/table-routes route-spec)))
 
@@ -511,14 +512,14 @@
    :linear-search linear-search/router})
 
 (defn router
-  "Given the routing table and, optionally, what kind of router to construct, returns
-  a RouterSpecification instance, from which a routing interceptor can be obtained.
+  "Given the expanded routing table and, optionally, what kind of router to construct,
+  creates and returns a router interceptor.
 
-  router-type may be a keyword identifying a known [[router-implementation]], or function
+  router-type may be a keyword identifying a known implementation (see [[router-implementations]]), or function
   that accepts a routing table, and returns a [[Router]].
 
   The default router type is :map-tree, which is the fastest built-in router;
-  however, if the expanded routes contain path paramters or wildcards,
+  however, if the expanded routes contain path parameters or wildcards,
   the result is equivalent to the slower :prefix-tree implementation."
   ([routing-table]
    (router routing-table :map-tree))
