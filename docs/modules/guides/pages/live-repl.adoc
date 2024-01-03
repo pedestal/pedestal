@@ -18,7 +18,8 @@ Let's start with yet another basic, "Hello World" application.
 [source,clojure]
 ----
 (ns org.example.hello
-  (:require [io.pedestal.http :as http]))
+  (:require [io.pedestal.http :as http]
+            [io.pedestal.http.route :as route])
 
 (defn hello-handler [_request] <1>
   {:status 200
@@ -86,7 +87,7 @@ Hello, World!
 That's strange.  It's as if the code change wasn't picked up.  We can verify that the code
 change is, in fact, live by evaluating `(hello-handler nil)` at the REPL:
 
-[source.clojure]
+[source,clojure]
 ----
 (hello-handler nil)
 => {:status 200, :body "Hello, Clojure World!"}
@@ -104,7 +105,7 @@ The first step is to stop the service by evaluating `(swap! server http/stop)`.
 
 Next, change the `routes` function:
 
-[source.clojure]
+[source,clojure]
 ----
 
 (def routes
@@ -145,11 +146,11 @@ to avoid capture, not just of the `hello-handler` function, but of the entire ro
 == Deferred Route Function
 
 Fortunately, Pedestal supports this use case - a route is normally a data structure, but it can also be a zero-arguments function
-that returns an _expanded_ route.
+that returns an _expanded_ route specification.
 
 Stop the service and make these changes:
 
-[source.clojure]
+[source,clojure]
 ----
 (ns org.example.hello
   (:require [io.pedestal.http :as http]
@@ -196,20 +197,22 @@ Hello, JVM World!
 
 [WARNING]
 .*Not For Production*
---
-Using a function, as we do here, is *absolutely not for production*.  Even a trivial route takes a chunk of time
-to expand, so doing it on every single request will absolutely trash your production server's throughput.
---
+----
+Using a function, as we do here, is *absolutely not for production*.  Even a trivial
+route specification takes a chunk of time to expand, so doing it on every single request will absolutely trash your
+production server's throughput.
+----
 
 Still, we're not quite done.  Let's say we want to be less formal, and respond on the path `/hi` instead of `/hello`.
 We can change the routes:
 
-```
+[source,clojure]
+----
 (def routes
   #{["/hi" :get `hello-handler]})
-```
+----
 
-But this doesn't yet work:
+But this _still_ doesn't live-reload as we'd expect:
 
 ```
 > http :9999/hi
@@ -232,7 +235,8 @@ always returns the current value of `routes`.
 
 Change the route back to `/hello` and modify the `start` function:
 
-```
+[source,clojure]
+----
 (defn start
   []
   (-> {::http/port 9999
@@ -241,7 +245,7 @@ Change the route back to `/hello` and modify the `start` function:
        ::http/join? false}
       http/create-server
       http/start))
-```
+----
 
 Stop and restart the server, and verify that `/hello` still works.
 
@@ -263,6 +267,40 @@ The `(var routes)` captures the Var named `routes` (rather than the value stored
 the current route specification out of the Var, This happens on every invocation of the
 function - on every request.  If you like, you can abbreviate `(deref (var routes))` to `@#'routes`.
 --
+
+## Using routes-from
+
+It's not very desirable to have to keep two separate functions, one for production, and one for REPL oriented
+development ... especially given how badly throughput will be affected if the local REPL version leaks through to
+production.
+
+So simplify things, the startup code can be changed to use the
+api:routes-from[ns=io.pedestal.http.route] macro:
+
+[source,clojure]
+----
+(defn start
+  []
+  (-> {::http/port 9999
+       ::http/routes (route/routes-from routes)
+       ::http/type :jetty
+       ::http/join? false}
+      http/create-server
+      http/start))
+----
+
+`routes-from` is built on api:dev-mode?[ns=io.pedestal.environment], a boolean value set from the JVM system property
+`io.pedestal.dev-mode`.  By default, `dev-mode?` is false, and `routes-from` operates in production mode, so
+`(route/routes-from routes)` evaluates to `routes`.
+
+However, in development mode, `(route/routes-from routes)` expands to `#(expand-routes (deref (var routes)))` ... the
+same code we used above, to delay route evaluation.
+
+
+
+
+
+
 
 ## Wrap Up
 
