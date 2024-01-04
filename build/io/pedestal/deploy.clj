@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -32,7 +33,11 @@
                     :version version
                     :basis basis
                     ;; pedestal the GitHub organization, then pedestal the multi-module project, then the sub-dir
-                    :scm {:url (str "https://github.com/pedestal/pedestal/" dir)}})
+                    :scm       {:url (str "https://github.com/pedestal/pedestal/tree/master/" dir)}
+                    :pom-data  [[:licenses
+                                 [:license
+                                  [:name "Eclipse Public License"]
+                                  [:url "http://www.eclipse.org/legal/epl-v10.html"]]]]})
       (b/copy-dir {:src-dirs ["src" "resources"]
                    :target-dir class-dir})
       (b/jar {:class-dir class-dir

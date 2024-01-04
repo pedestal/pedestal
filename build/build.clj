@@ -30,8 +30,8 @@
 (def module-dirs
   ;; Keep these in dependency order
   ["common"
-   "log"
    "metrics"
+   "log"
    "interceptor"
    "route"
    "service"
