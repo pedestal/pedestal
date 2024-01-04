@@ -48,6 +48,7 @@
         io.pedestal/pedestal.route {:local/root "../route"}
         io.pedestal/pedestal.jetty {:local/root "../jetty"}
         io.pedestal/pedestal.metrics {:local/root "../metrics"}
+        io.pedestal/pedestal.common {:local/root "../common"}
 
         org.clj-commons/pretty {:mvn/version "2.2.1"}
         io.github.hlship/trace {:mvn/version "v1.0"}
@@ -71,6 +72,8 @@
   :test
   {:extra-deps {io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+   ;; Needed for io.pedestal.http.route-repl-test:
+   :jvm-opts ["-Dio.pedestal.dev-mode=true"]
    ;; Need extra test runner to avoid test hangs
    :exec-fn io.pedestal.test-runner/test}
 

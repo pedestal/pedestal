@@ -29,7 +29,8 @@
             io.pedestal.http.route
             io.pedestal.http.request.servlet-support
             io.pedestal.http.request.zerocopy)
-  (:import (clojure.lang Fn IPersistentCollection)
+  (:import (clojure.core.async.impl.protocols Channel)
+           (clojure.lang Fn IPersistentCollection)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletRequest HttpServletResponse)
            (java.io File IOException InputStream OutputStreamWriter EOFException)
@@ -100,7 +101,7 @@
 
 (extend-protocol WriteableBodyAsync
 
-  clojure.core.async.impl.protocols.Channel
+  Channel
   (write-body-async [body ^HttpServletResponse servlet-response resume-chan context]
     (async/go
       (loop []

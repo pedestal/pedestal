@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,7 +14,6 @@
 (ns io.pedestal.http.route.definition.table
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.route.definition :as route-definition]
-            [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.http.route.path :as path])
   (:import (java.util List)))
 

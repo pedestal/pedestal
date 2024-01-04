@@ -15,12 +15,13 @@
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
   (:require [clojure.spec.alpha :as s])
-  (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)))
+  (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
+           (java.io Writer)))
 
 (defrecord Interceptor [name enter leave error])
 
 (defmethod print-method Interceptor
-  [^Interceptor i ^java.io.Writer w]
+  [^Interceptor i ^Writer w]
   (.write w (if-let [n (.name i)]
               (str "#Interceptor{:name " (pr-str n) "}")
               "#Interceptor{}")))
