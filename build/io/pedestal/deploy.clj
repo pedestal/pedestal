@@ -13,6 +13,8 @@
 (ns io.pedestal.deploy
   (:require [clojure.tools.build.api :as b]))
 
+;; Largely borrowed from https://github.com/hlship/build-tools/blob/main/src/net/lewisship/build/jar.clj
+
 (defn build-and-install
   [dir version]
   (println dir "...")
