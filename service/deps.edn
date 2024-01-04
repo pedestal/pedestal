@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -13,11 +14,10 @@
          "java"
          "target/classes"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        io.pedestal/pedestal.log {:mvn/version "0.6.0"}
-        io.pedestal/pedestal.metrics {:local/root "../metrics"}
-        #_ {:mvn/version "TBD"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.6.0"}
-        io.pedestal/pedestal.route {:mvn/version "0.6.0"}
+        io.pedestal/pedestal.log {:mvn/version "0.7.0-SNAPSHOT"}
+        io.pedestal/pedestal.metrics {:mvn/version "0.7.0-SNAPSHOT"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.7.0-SNAPSHOT"}
+        io.pedestal/pedestal.route {:mvn/version "0.7.0-SNAPSHOT"}
 
         ;; channels
 

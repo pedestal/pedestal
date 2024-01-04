@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -11,8 +12,8 @@
 
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        io.pedestal/pedestal.log {:mvn/version "0.6.0"}
-        io.pedestal/pedestal.service {:mvn/version "0.6.0"}
+        io.pedestal/pedestal.log {:mvn/version "0.7.0-SNAPSHOT"}
+        io.pedestal/pedestal.service {:mvn/version "0.7.0-SNAPSHOT"}
         org.eclipse.jetty/jetty-server {:mvn/version "11.0.18"}
         org.eclipse.jetty/jetty-servlet {:mvn/version "11.0.18"}
         org.eclipse.jetty/jetty-alpn-server {:mvn/version "11.0.18"}
@@ -29,4 +30,6 @@
                    ;; Recapitulate transitive dependencies of pedestal.service since the
                    ;; :local alias isn't carried through when resolving the local dependencies.
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
-                   io.pedestal/pedestal.route {:local/root "../route"}}}}}
+                   io.pedestal/pedestal.route {:local/root "../route"}
+                   io.pedestal/pedestal.metrics {:local/root "../metrics"}
+                   io.pedestal/pedestal.common {:local/root "../common"}}}}}
