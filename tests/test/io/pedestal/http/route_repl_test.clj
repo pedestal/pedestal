@@ -94,3 +94,15 @@
   (let [output (with-redefs [dev-mode? false]
                  (eval `(routes-from sample-routes)))]
     (is (identical? sample-routes output))))
+
+(deftest fn-router-invokes-fn-at-creation
+  (let [*invoke-count (atom 0)
+        f             (fn []
+                        (swap! *invoke-count inc)
+                        (route/expand-routes sample-routes))]
+    ; Create a router interceptor
+    (route/router f)
+    ;; The routing spec fn is invoked immediately, even before a
+    ;; request is routed.
+    (is (= 1 @*invoke-count))))
+

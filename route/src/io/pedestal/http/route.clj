@@ -398,21 +398,18 @@
   nil)
 
 (defn url-for
-  "Invokes currently bound contextual linker to generate url based on
+  "Used by an invoked interceptor (including a handler function)
+  to generate URLs based on a known route name (from the routing specification),
+  and additional data.
 
-    - The routing table in use.
-    - The incoming request being routed.
+  This uses a hidden dynamic variable, so it can only be invoked
+  from request processing threads, and only *after* the routing interceptor has routed
+  the request.
 
-  where `options` are as described in [[url-for-routes]].
-
-  This function may only be successfully called after routing has occurred.
-  It's purpose is to allow an interceptor in the identified route to generate
-  URL's for other routes (by name).
-  "
+  The available options are as described in [[url-for-routes]]."
   [route-name & options]
   (if *url-for*
-    (apply (if (delay? *url-for*) (deref *url-for*) *url-for*)
-           route-name options)
+    (apply @*url-for* route-name options)
     (throw (ex-info "*url-for* not bound" {}))))
 
 (defprotocol ExpandableRoutes
@@ -472,7 +469,7 @@
 
 (defn- route-context [context router routes]
   (if-let [route (router/find-route router (:request context))]
-    ;;  This is where path-params are added to the request. vvvv
+    ;;  This is where path-params are added to the request.
     (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
           linker (delay (url-for-routes routes :request request-with-path-params))]
       (-> context
@@ -498,6 +495,10 @@
   ;; without restarting the running application, but it is slow.
   Fn
   (router-spec [f router-ctor]
+    ;; Force evaluation of the table now, so that (when using routes-for), the
+    ;; routing table is output to the console. This also ensures that invalid
+    ;; route specifications are caught at startup.
+    (f)
     (interceptor/interceptor
       {:name ::router
        :enter (fn [context]
