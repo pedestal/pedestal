@@ -167,17 +167,13 @@
   ;; Ensure the version number is parsable
   (v/parse-version version)
   (doseq [dir module-dirs]
-    (println "Updating" dir "...")
     (requiring-invoke io.pedestal.build/update-version-in-deps (str dir "/deps.edn") version))
 
    (doseq [path (->> (fs/glob "docs" "**/deps.edn")
                      (map str))]
-     (println "Updating" path)
      (requiring-invoke io.pedestal.build/update-version-in-deps path version))
 
-  (println "Updating service-template (Leiningen template project) ...")
-
-  (requiring-invoke io.pedestal.build/update-service-template version)
+  (requiring-invoke io.pedestal.build/update-version-in-misc-files version)
 
   (b/write-file {:path version-file
                  :string version})

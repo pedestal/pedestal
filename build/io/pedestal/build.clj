@@ -40,6 +40,7 @@
                            node
                            (affected-keys node)))
         nodes' (r/update nodes :deps fix-deps)]
+    (println "Updating" deps-path)
     (b/write-file {:path deps-path
                    :string (str nodes')})))
 
@@ -50,17 +51,21 @@
   (let [lines (-> path
                   slurp
                   str/split-lines)
-        lines' (map #(if-let [replacement (f %)]
+        lines' (mapv #(if-let [replacement (f %)]
                        replacement
                        %)
                     lines)]
+    (println "Updating" path)
     (b/write-file {:path path
                    ;; Ensure a blank line at the end.
-                   :string (str/join "\n" (conj lines' ""))})))
+                   :string (str (str/join "\n" lines') \newline)})))
 
-(defn update-service-template
-  "Clumsily updates the dependencies in a project.clj file in the given directory."
+(defn update-version-in-misc-files
   [version]
+  (fixup-version "docs/antora.yml"
+                 (fn [line]
+                   (when (str/includes? line "libs_version")
+                     (str "    libs_version: " version))))
   (fixup-version "service-template/project.clj"
                  (fn [line]
                    (when-let [[_ prefix suffix] (re-matches #"(?x)
@@ -87,3 +92,5 @@
                    "
                                                             line)]
                      (str prefix version suffix)))))
+
+
