@@ -1,0 +1,107 @@
+= Pedestal Libraries
+
+Pedestal is composed of multiple libraries, and many of these can be used outside of a Pedestal application.
+
+[%header,cols=3]
+.Pedestal Libraries Summary
+|===
+| Library Name
+| Description
+| Dependencies
+
+| pedestal.common
+| Common functionality and internal utilities.
+|
+
+| pedestal.metrics
+| Wrapper around https://micrometer.io/[Micrometer] for generating application metrics.
+|
+
+| pedestal.log
+| Wrapper around https://www.slf4j.org/[Simple Logging Facade for Java] footnote:[Also, some legacy
+metrics and tracing functionality.]
+| pedestal.common, https://metrics.dropwizard.io/4.2.0/[Dropwizard Metrics], https://opentracing.io/[Open Tracing]
+
+| pedestal.interceptor
+| Asynchronous xref:interceptors.adoc[interceptor pipeline]
+| pedestal.log, pedestal.common
+
+| pedestal.route
+| HTTP request xref:routing-quick-reference.adoc[routing]
+| pedestal.log, pedestal.interceptor, pedestal.common, {core_async}
+
+| pedestal.service
+| Container-agnostic HTTP service support
+| pedestal.log, pedestal.metrics, pedestal.interceptor, pedestal.route, {core_async},
+  Java Servlet API, Java WebSocket API,
+  https://github.com/ring-clojure/ring[ring/ring-core],
+  several others
+
+| pedestal.jetty
+| xref:jetty.adoc[Jetty 11] adapter
+| pedestal.log, pedestal.service, Jetty 11 (server, servlet, alpn-servicer, http2-service, etc.)
+
+| pedestal.service-tools
+| Tools used for local development
+| pedestal.service, https://github.com/clojure/data.xml[org.clojure/data.xml],
+  https://github.com/weavejester/ns-tracker[ns-tracker]
+
+| pedestal.aws
+| Use Pedestal for https://aws.amazon.com/lambda/[Amazon Web Service Lambdas]
+| pedestal.log, pedestal.interceptor, AWS, etc.
+
+|===
+
+== Artifact Coordinates
+
+Pedestal libraries are uploaded to the https://clojars.org/[Clojars] repository; files in such a repository
+are called _artifacts_.
+
+All pedestal libraries are in the `io.pedestal` group.
+
+For https://leiningen.org/[Leiningen], add this vector to
+the :dependencies list inside your `project.clj`:
+
+[subs="attributes"]
+----
+    [io.pedestal/pedestal.jetty "{libs_version}"]
+----
+
+You will adjust the library name as necessary.
+
+For Clojure Deps, add this key and value to the :deps map inside your `deps.edn`:
+
+[subs="attributes"]
+----
+   io.pedestal/pedestal.jetty {:mvn/version "{libs_version}"}
+----
+
+== Git Artifact Coordinates
+
+Pedestal is built using Clojure Deps; this means that it is possible to
+get access bleeding-edge versions of the libraries
+https://clojure.org/reference/deps_and_cli#_dependencies[directly from the GitHub repository].
+
+---
+   io.pedestal/pedestal.jetty {:git/url "https://github.com/pedestal/pedestal.git"
+                               :git/sha "a0b6a0f7e57710ba6b9f0aa3a62dd1f68e278f43"
+                               :deps/root "jetty"}
+---
+
+All Pedestal libraries are in the same repository, :deps/root is used to select
+the sub-directory containing the library's code (this matches the library name,
+without the `pedestal.` prefix).
+
+[WARNING]
+====
+:git/url's are not transitive; when the library you select has dependencies
+on other Pedestal libraries, those will be accessed as :mvn/version dependencies.
+You may need to provide additional dependencies to bring in multiple
+Pedestal libraries.
+
+For example, if you are verifying a bug fix that was split between pedestal.route and
+pedestal.service, you should introduce dependencies on both libraries; otherwise
+you may only get half of the bug fix.
+====
+
+

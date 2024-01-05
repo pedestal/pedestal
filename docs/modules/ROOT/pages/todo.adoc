@@ -18,9 +18,6 @@ work that still needs to be done.
 - Lots of broken links (currently in Howard's IntelliJ bookmarks)
 - "Cognitect" -> "Nubank NA"
 
-## Antora Technical Stuff
-
-- Create a custom UI theme
 
 ## xref:index.adoc[]
 
@@ -34,10 +31,6 @@ work that still needs to be done.
 - Discuss options
 - Map vs. string events
 
-## xref:reference:service-map.adoc[]
-
-- Break into service map vs. server map (on a new page) for things like :start-fn, etc.
-
 ## xref:reference:response-map.adoc[]
 
 - Are response headers converted to lower case?
@@ -50,17 +43,9 @@ work that still needs to be done.
 - Need to eliminate Jetty/Servlet API dependencies from classpath
 - Discuss embedded as first option
 
-## xref:privacy.adoc[]
-
-- Update "Cognitect" to "Nubank NA"
-
 ## xref:guides:defining-routes.adoc[]
 
 - Convert from terse syntax to table syntax
-
-## xref:contributing.adoc[]]
-
-- Pretty out of date, should reference page on using snapshots, etc.
 
 ## xref:terms.adoc[]
 
@@ -69,4 +54,3 @@ work that still needs to be done.
 ## Missing
 
 - "Pedestal with Component: Handlers and Dependencies" (never written)
-- Page about using snapshots (or Git coordinates)

@@ -41,3 +41,5 @@
 *** xref:logging.adoc[]
 *** xref:metrics.adoc[]
 
+** xref:libraries.adoc[]
+

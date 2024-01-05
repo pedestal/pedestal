@@ -7,7 +7,8 @@ They are appropriate when you only need a unidirectional flow of events from the
 server to the client (if you need a bidirectional connection, then WebSockets are
 a better choice).
 
-TIP: SSEs have largely been eclipsed by WebSockets, which Pedestal also supports.
+TIP: SSEs have largely been eclipsed by WebSockets, which
+xref:reference:websockets.adoc[Pedestal also supports].
 
 == What You Will Learn
 

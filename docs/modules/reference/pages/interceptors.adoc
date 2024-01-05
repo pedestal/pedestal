@@ -103,7 +103,8 @@ represents anything that can be used as an interceptor. Pedestal extends that pr
 | The :enter, :leave, and :name keys are used directly.
 
 | Function
-| The function is interpreted as a "handler". See <<_handlers>>.
+| The function is interpreted as a link:#_handlers[handler] (or, rarely, as
+an link:#_indirect_interceptors[indirect interceptor].)
 
 | List
 | The list is evaluated and its result is used as an interceptor. footnote:[This is supported behavior
@@ -133,7 +134,7 @@ The queue of interceptors remaining to execute is held in the
 xref:context-map.adoc[]. This means that an interceptor can
 enqueue other interceptors to be executed. In fact, this is exactly how
 xref:routing-quick-reference.adoc[routing] works, the router is an interceptor that matches requests and
-enqueues the desired interceptors when a route matches.
+enqueues the desired interceptors when a specific route is identified.
 
 Use
 api:enqueue[ns=io.pedestal.interceptor.chain]
@@ -168,7 +169,7 @@ common interceptors will run before any route-specific interceptors.
 == Handlers
 
 A handler function is a special case of an interceptor.
-Pedestal treats the handler as a function that takes a xref:request-map.adoc[]
+Pedestal treats the handler as a function that takes a xref:request-map.adoc[] parameter,
 and returns a xref:response-map.adoc[].
 
 A handler does _not_ have access to the full xref:context-map.adoc[execution context],
@@ -176,10 +177,24 @@ therefore, it cannot manipulate the interceptor queue.
 
 Because a handler takes one kind of thing (request) and returns a
 different kind of thing (response), it can only be used in the last
-position of a stack.
+position of an interceptor stack.
 
-Handlers are always synchronous; they must return a response map, not a channel that delivers
-a response map.
+Handlers are always synchronous; they must return a response map, they may
+not return a channel that delivers a response map.
+
+== Indirect Interceptors
+
+When IntoInterceptor is applied to a function _and_ that function has either the :interceptor
+or :interceptorfn metadata, it is not treated as a handler.
+The function will be invoked, and the returned value will itself be converted into an interceptor.
+
+Note that you will need to carefully put the metadata on the function itself,
+and not on the symbol or Var associated with the function:
+
+[clojure]
+----
+    ^{:interceptor true} (fn [] ...)
+----
 
 == Error Handling
 

@@ -84,7 +84,7 @@
             v)))
 
 (defn parse-query-string
-  "Parses URL query string (not including the leading '?') into a map.
+  "Parses URL query string (not including the leading '?') into1 a map.
   options are key-value pairs, valid options are:
 
      :key-fn    Function to call on parameter keys (after URL
