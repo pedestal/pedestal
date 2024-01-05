@@ -16,6 +16,7 @@
             [net.lewisship.build :refer [requiring-invoke deploy-jar]]
             [net.lewisship.trace :as trace :refer [trace]]
             [clojure.tools.build.api :as b]
+            [babashka.fs :as fs]
             [net.lewisship.build.versions :as v]))
 
 (trace/setup-default)
@@ -167,7 +168,12 @@
   (v/parse-version version)
   (doseq [dir module-dirs]
     (println "Updating" dir "...")
-    (requiring-invoke io.pedestal.build/update-version-in-deps dir version))
+    (requiring-invoke io.pedestal.build/update-version-in-deps (str dir "/deps.edn") version))
+
+   (doseq [path (->> (fs/glob "docs" "**/deps.edn")
+                     (map str))]
+     (println "Updating" path)
+     (requiring-invoke io.pedestal.build/update-version-in-deps path version))
 
   (println "Updating service-template (Leiningen template project) ...")
 

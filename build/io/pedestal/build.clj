@@ -26,11 +26,10 @@
                      k'))))))
 
 (defn update-version-in-deps
-  "Updates intra-module dependencies to use the provided version; this uses rewrite-edn to do so without losing
+  "Updates dependencies to use the provided version; this uses rewrite-edn to do so without losing
   formatting or comments."
-  [module-dir version]
-  (let [deps-path (str module-dir "/deps.edn")
-        nodes (-> deps-path
+  [deps-path version]
+  (let [nodes (-> deps-path
                   slurp
                   r/parse-string)
         ;; Since this is specific to io.pedestal, we don't have to worry about
