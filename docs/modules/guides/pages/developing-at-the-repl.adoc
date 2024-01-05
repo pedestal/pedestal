@@ -367,7 +367,10 @@ test the complete interceptor chain for a given route and much more.
 
 Alternatively, you may want to learn to manage your applications stateful
 components (like the HTTP server) more effectively. Check out the guide
-on link:pedestal-with-component[Integrating Pedestal with Component] to learn
+on
+xref:pedestal-with-component.adoc[]
+to learn
 how easy it can be to incorporate Stuart Sierra's Reloaded workflow into
-your Pedestal development, and read link:live-repl.adoc[Reloading at the REPL]
+your Pedestal development, and read
+xref:live-repl.adoc[]
 for a non-component take on how to make live changes without restarting.

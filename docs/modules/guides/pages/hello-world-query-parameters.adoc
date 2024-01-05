@@ -29,10 +29,6 @@ If you've already done some of those other things, you might want to
 skip ahead to xref:your-first-api.adoc[] to start building
 some logic and multiple routes.
 
-If you like to jump straight in to the deep end, you might be
-interested in the link:crash-course[Pedestal Crash Course] which
-assumes you know quite a bit about Clojure and web frameworks.
-
 This guide also assumes that you are in a Unix-like development
 environment, with Java installed. We've tested it on Mac OS X and
 Linux (any flavor) with great results. We haven't yet tried it on the
@@ -59,7 +55,7 @@ our handler will return a 404 response instead of a cordial greeting.
 If you worked through xref:hello-world.adoc[], then you already
 have all the files you need. If not, take a moment to grab the sources
 from
-link:{guides_examples_root}/hello[that guide].
+link:{guides_examples_root}/hello[the repository].
 That will be our starting point for enhancements this time.
 
 == Accepting Parameters
@@ -123,11 +119,10 @@ Clojure 1.11.1
 user=> (require 'hello)
 nil
 user=> (hello/start-dev)
-[main] INFO org.eclipse.jetty.util.log - Logging initialized @16010ms to org.eclipse.jetty.util.log.Slf4jLog
-[main] INFO org.eclipse.jetty.server.Server - jetty-9.4.52.v20230823; built: 2023-08-23T19:29:37.669Z; git: abdcda73818a1a2c705da276edb0bf6581e7997e; jvm 11.0.19+7-LTS
-[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@1227013b{/,null,AVAILABLE}
-[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@4ab4f6d7{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
-[main] INFO org.eclipse.jetty.server.Server - Started @16147ms
+[main] INFO org.eclipse.jetty.server.Server - jetty-11.0.18; built: 2023-10-27T02:14:36.036Z; git: 5a9a771a9fbcb9d36993630850f612581b78c13f; jvm 11.0.19+7-LTS
+[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@549db1c6{/,null,AVAILABLE}
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@2d3b708a{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
+[main] INFO org.eclipse.jetty.server.Server - Started Server@5770b59f{STARTING}[11.0.18,sto=0] @15614ms
 #:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835 0x4e27c500 "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835@4e27c500"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15089 0x6dbd38e8 "io.pedestal.http.jetty$server$fn__15089@6dbd38e8"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{}], :route-name :greet, :path-params []}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x1a183473 "io.pedestal.http.servlet.FnServlet@1a183473"], :server #object[org.eclipse.jetty.server.Server 0x351bfccc "Server@351bfccc{STARTED}[9.4.52.v20230823]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15091 0x2d7956fb "io.pedestal.http.jetty$server$fn__15091@2d7956fb"]}
 user=>
 ----

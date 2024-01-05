@@ -5,9 +5,9 @@
             [io.pedestal.test :refer [response-for]]
             [com.stuartsierra.component :as component]
             [clojure.test :refer :all]
-            [routes]
-            [system]
-            [pedestal]))
+            routes
+            system
+            pedestal))
                                                                  ;; end::ns[]
 
                                                                  ;; tag::url-for[]

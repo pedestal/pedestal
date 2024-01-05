@@ -4,8 +4,8 @@
             [com.stuartsierra.component.repl
              :refer [reset set-init start stop system]]     ;; <2>
             [io.pedestal.http :as http]                     ;; <3>
-            [pedestal]                                      ;; <4>
-            [routes]))                                      ;; <5>
+            pedestal                                        ;; <4>
+            routes))                                        ;; <5>
 ;; end::ns[]
 
 ;; tag::app[]
