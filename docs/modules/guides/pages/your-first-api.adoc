@@ -31,11 +31,6 @@ HTTP: URLs, response codes, and content types.
 You do not need experience with any particular database or persistence
 framework.
 
-If you like to jump straight in to the deep end, you might be
-interested in the
-link:crash-course[Pedestal Crash Course] which
-assumes you know quite a bit about Clojure and web frameworks.
-
 This guide also assumes that you are in a Unix-like development
 environment, with Java installed. We've tested it on Mac OS X and
 Linux (any flavor) with great results. We haven't yet tried it on the
@@ -152,12 +147,11 @@ Clojure 1.11.1
 user=> (require 'main)
 nil
 user=> (main/start-dev)
-[main] INFO org.eclipse.jetty.util.log - Logging initialized @16482ms to org.eclipse.jetty.util.log.Slf4jLog
-[main] INFO org.eclipse.jetty.server.Server - jetty-9.4.52.v20230823; built: 2023-08-23T19:29:37.669Z; git: abdcda73818a1a2c705da276edb0bf6581e7997e; jvm 11.0.19+7-LTS
-[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@51e28071{/,null,AVAILABLE}
-[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@44ca5127{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
-[main] INFO org.eclipse.jetty.server.Server - Started @16639ms
-#:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835 0xc1add62 "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835@c1add62"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15231 0x723c7f2f "io.pedestal.http.jetty$server$fn__15231@723c7f2f"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/todo/:list-id/:item-id", :method :delete, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-delete, :path-params [:list-id :item-id]} {:path "/todo/:list-id/:item-id", :method :get, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :list-item-view} #Interceptor{:name :database-interceptor}], :route-name :database-interceptor, :path-params [:list-id :item-id]} {:path "/todo/:list-id/:item-id", :method :put, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-update, :path-params [:list-id :item-id]} {:path "/todo/:list-id", :method :get, :path-constraints {:list-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)", :path-parts ["todo" :list-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :database-interceptor} #Interceptor{:name :list-view}], :route-name :list-view, :path-params [:list-id]} {:path "/todo/:list-id", :method :post, :path-constraints {:list-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)", :path-parts ["todo" :list-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :list-item-view} #Interceptor{:name :database-interceptor} #Interceptor{:name :list-item-create}], :route-name :list-item-create, :path-params [:list-id]} {:path "/todo", :method :get, :path-re #"/\Qtodo\E", :path-parts ["todo"], :interceptors [#Interceptor{:name :echo}], :route-name :list-query-form, :path-params []} {:path "/todo", :method :post, :path-re #"/\Qtodo\E", :path-parts ["todo"], :interceptors [#Interceptor{:name :database-interceptor} #Interceptor{:name :list-create}], :route-name :list-create, :path-params []}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x5cb077e3 "io.pedestal.http.servlet.FnServlet@5cb077e3"], :server #object[org.eclipse.jetty.server.Server 0x737935a4 "Server@737935a4{STARTED}[9.4.52.v20230823]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15233 0x278758da "io.pedestal.http.jetty$server$fn__15233@278758da"]}
+[main] INFO org.eclipse.jetty.server.Server - jetty-11.0.18; built: 2023-10-27T02:14:36.036Z; git: 5a9a771a9fbcb9d36993630850f612581b78c13f; jvm 11.0.19+7-LTS
+[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@6c8f2e4e{/,null,AVAILABLE}
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@1432a683{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
+[main] INFO org.eclipse.jetty.server.Server - Started Server@b025f2f{STARTING}[11.0.18,sto=0] @57816ms
+#:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14892 0x515f104c "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14892@515f104c"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15680 0x1dde2d1 "io.pedestal.http.jetty$server$fn__15680@1dde2d1"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/todo/:list-id", :method :get, :path-constraints {:list-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)", :path-parts ["todo" :list-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :database-interceptor} #Interceptor{:name :list-view}], :route-name :list-view, :path-params [:list-id]} {:path "/todo/:list-id", :method :post, :path-constraints {:list-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)", :path-parts ["todo" :list-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :list-item-view} #Interceptor{:name :database-interceptor} #Interceptor{:name :list-item-create}], :route-name :list-item-create, :path-params [:list-id]} {:path "/todo", :method :post, :path-re #"/\Qtodo\E", :path-parts ["todo"], :interceptors [#Interceptor{:name :database-interceptor} #Interceptor{:name :list-create}], :route-name :list-create, :path-params []} {:path "/todo", :method :get, :path-re #"/\Qtodo\E", :path-parts ["todo"], :interceptors [#Interceptor{:name :echo}], :route-name :list-query-form, :path-params []} {:path "/todo/:list-id/:item-id", :method :delete, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-delete, :path-params [:list-id :item-id]} {:path "/todo/:list-id/:item-id", :method :get, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :list-item-view} #Interceptor{:name :database-interceptor}], :route-name :database-interceptor, :path-params [:list-id :item-id]} {:path "/todo/:list-id/:item-id", :method :put, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-update, :path-params [:list-id :item-id]}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x47caa1ff "io.pedestal.http.servlet.FnServlet@47caa1ff"], :server #object[org.eclipse.jetty.server.Server 0xb025f2f "Server@b025f2f{STARTED}[11.0.18,sto=0]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15682 0x7330574d "io.pedestal.http.jetty$server$fn__15682@7330574d"]}
 user=>
 ----
 
@@ -594,13 +588,12 @@ We covered some more advanced concepts with interceptors this time:
 
 == Where To Next?
 
-Congratulations! You've finished the whole link:index#_getting_started[Getting
-Started] trail.
+Congratulations! You've finished the whole getting stated trail.
 
-For more guided learning, head back up to the link:index[Guides]
-page. Or, to go deep on some of these topics, check out any of the
+To go deep on some of these topics, check out any of the
 following references:
 
-* link:../reference/interceptors[Interceptors]
-* link:../reference/index#_routing_and_linking[Routing and Linking]
-* link:../reference/default-interceptors[Default Interceptors]
+* xref:reference:interceptors.adoc[]
+* xref:reference:routing-quick-reference.adoc[]
+* xref:reference:default-interceptors.adoc[]
+

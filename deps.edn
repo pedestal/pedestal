@@ -17,7 +17,8 @@
    :deps {io.github.hlship/build-tools {:git/tag "0.10" :git/sha "9953da"}
           io.github.hlship/trace {:mvn/version "v1.0"}
           io.aviso/logging {:mvn/version "1.0"}
-          borkdude/rewrite-edn {:mvn/version "0.4.7"}}}
+          borkdude/rewrite-edn {:mvn/version "0.4.7"}
+          babashka/fs {:mvn/version "0.5.20"}}}
 
   ;; Invoked via clj -T:build cve-check
   :nvd

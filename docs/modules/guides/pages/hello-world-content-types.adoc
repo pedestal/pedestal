@@ -30,19 +30,15 @@ After reading this guide, you will be able to:
 
 == Guide Assumptions
 
-Like link:hello-world[Hello World], this guide is for beginners who
+Like xref:hello-world.adoc[], this guide is for beginners who
 are new to Pedestal and may be new to Clojure. It doesn't assume any
 prior experience with a Clojure-based web framework. You should be
 familiar with the basics of HTTP: URLs, response codes, and content
 types.
 
 If you've already done some of those other things, you might want to
-skip ahead to link:your-first-api[Your First API] to start building
+skip ahead to xref:your-first-api.adoc[] to start building
 some logic and multiple routes.
-
-If you like to jump straight in to the deep end, you might be
-interested in the link:crash-course[Pedestal Crash Course] which
-assumes you know quite a bit about Clojure and web frameworks.
 
 This guide also assumes that you are in a Unix-like development
 environment, with Java installed. We've tested it on Mac OS X and
@@ -326,7 +322,7 @@ Could not locate clojure/data/json__init.class, clojure/data/json.clj or clojure
 
 That is how Clojure tells you it is missing a library. By looking at
 the library's https://github.com/clojure/data.json[project page], we see that the latest stable release is
-"2.4.0" (at least, it is when this guide is being written!). We can
+"2.5.0" (at least, it is when this guide is being written!). We can
 add the library in the dependencies part of our `deps.edn` file:
 
 [source,clojure]
@@ -510,7 +506,7 @@ include::example$hello-content/src/hello.clj[tags=ns;continuo;coerce_refactored_
 
 == The Path So Far
 
-In this guide, we built upon link:hello-world-query-parameters[Hello World, With Parameters] to add:
+In this guide, we built upon xref:hello-world-query-parameters.adoc[] to add:
 
 * Rudimentary content negotiation.
 * Response body transforms.

@@ -20,7 +20,7 @@ After reading this guide, you will be able to:
 == Guide Assumptions
 
 This guide is for intermediate users who have worked through some
-sample applications or the first few link:hello-world[Hello World]
+sample applications or the first few xref:hello-world.adoc[]
 guides. In particular, you should know how to run a build, start a
 REPL, and start and stop your server.
 

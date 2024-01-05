@@ -114,7 +114,7 @@ feed requests into the interceptor pipeline.
 
 If you've read some of the other guides, this implementation should
 look somewhat familiar. It's a combination of the server-specific code
-used in the link:hello-world[Hello World] guide.
+used in the xref:hello-world.adoc[] guide.
 
 ****
 Before we go on, remember the `test?` function? It's idiomatic in
@@ -232,7 +232,7 @@ and the function returns the new, but unstarted, system.
 
 We'll use `clj` tool to run our
 example. This should be familiar to you if you read through the
-link:hello-world[Hello World] guide.
+xref:hello-world.adoc[].
 
 From the project's root directory, fire up a repl, and start the system.
 ----
@@ -330,10 +330,10 @@ to write too much code. Let's do it!
 First create a `system_test.clj` file in the `src` directory.
 
 [source, clojure]
-.src/system_test.clj
+.test/system_test.clj
 
 ----
-include::example$component/src/system_test.clj[tags=ns]
+include::example$component/test/system_test.clj[tags=ns]
 ----
 The `system-test` namespace requires all the dependencies
 necessary for testing.
@@ -343,7 +343,7 @@ Now let's get to those helpers.
 The `url-for` helper allows us to refer to routes by
 _route-name_. This is very useful, and is almost always adapted into new projects.
 ----
-include::example$component/src/system_test.clj[tags=url-for]
+include::example$component/test/system_test.clj[tags=url-for]
 ----
 We need to expand the routes before invoking Pedestal's
 api:url-for-routes[ns=io.pedestal.http.route] function.
@@ -354,7 +354,7 @@ The `service-fn` helper extracts the Pedestal ::http/service-fn from
 the started system. This helper allows us to keep focus on our
 tests rather than test initialization.
 ----
-include::example$component/src/system_test.clj[tags=service-fn]
+include::example$component/test/system_test.clj[tags=service-fn]
 ----
 
 
@@ -362,13 +362,13 @@ The `with-system` macro allows us to start/stop systems between test
 executions. We'll model its design on macros like `with-open` and
 `with-redefs` so that its shape and usage is familiar.
 ----
-include::example$component/src/system_test.clj[tags=with-system]
+include::example$component/test/system_test.clj[tags=with-system]
 ----
 
 Now that we've got our helpers implemented, let's move on to our
 test. Create a test named `greeting-test`.
 ----
-include::example$component/src/system_test.clj[tags=test]
+include::example$component/test/system_test.clj[tags=test]
 ----
 <1> `sut` (for _system under test_) will be bound to the started
 system by `with-system`. Notice how :test is passed as the system
@@ -381,19 +381,18 @@ by name.
 <4> We should get back a '200' status.
 <5> We should get back a response body of 'Hello, world!'
 
-Now let's restart the repl and run our tests.
+Now let's restart run the tests from the command line:
 ----
-user=> (require 'system-test)
-nil
-user=> (clojure.test/run-tests 'system-test)
+> clj -X:test
+
+Running tests in #{"test"}
 
 Testing system-test
-[main] INFO io.pedestal.http - {:msg "GET /greet", :line 80}
+[main] INFO io.pedestal.http - {:msg "GET /greet", :line 90}
 
 Ran 1 tests containing 2 assertions.
 0 failures, 0 errors.
-{:test 1, :pass 2, :fail 0, :error 0, :type :summary}
-user=>
+>
 ----
 
 That's it! You now know the fundamentals necessary for implementing
@@ -442,17 +441,17 @@ include::example$component/src/system.clj[tags=init]
 
 
 [source,clojure,subs="-callouts"]
-.src/system_test.clj
+.test/system_test.clj
 ----
-include::example$component/src/system_test.clj[tags=ns]
+include::example$component/test/system_test.clj[tags=ns]
 
-include::example$component/src/system_test.clj[tags=url-for]
+include::example$component/test/system_test.clj[tags=url-for]
 
-include::example$component/src/system_test.clj[tags=service-fn]
+include::example$component/test/system_test.clj[tags=service-fn]
 
-include::example$component/src/system_test.clj[tags=with-system]
+include::example$component/test/system_test.clj[tags=with-system]
 
-include::example$component/src/system_test.clj[tags=test]
+include::example$component/test/system_test.clj[tags=test]
 ----
 
 

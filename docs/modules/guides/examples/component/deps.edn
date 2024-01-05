@@ -1,6 +1,11 @@
-{:deps
- { io.pedestal/pedestal.jetty {:mvn/version "0.6.1"}
-  com.stuartsierra/component {:mvn/version "1.1.0"}
-  org.slf4j/slf4j-simple {:mvn/version "2.0.9"}
-  com.stuartsierra/component.repl {:mvn/version "0.2.0"}}
- :paths ["src"]}
+{:paths ["src"]
+ :deps  {io.pedestal/pedestal.jetty      {:mvn/version "0.7.0-SNAPSHOT"}
+         com.stuartsierra/component      {:mvn/version "1.1.0"}
+         org.slf4j/slf4j-simple          {:mvn/version "2.0.9"}
+         com.stuartsierra/component.repl {:mvn/version "0.2.0"}}
+ :aliases
+ {:test
+  {:extra-paths ["test"]
+   :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
+                                                       :git/sha "dfb30dd"}}
+   :exec-fn     cognitect.test-runner.api/test}}}

@@ -262,8 +262,8 @@ service needs. This goes in the main directory `hello`:
 ----
 include::example$hello/deps.edn[]
 ----
-<1> Tell `clj` we need pedestal.jetty and a logging library.
-<2> Tell `clj` where our source code lives.
+<1> Tell `clj` where our source code lives.
+<2> Tell `clj` we need pedestal.jetty and a logging library.
 
 We talked about `pedestal.service` and `pedestal.route` before, but we
 have a new one here. Pedestal works with many different HTTP servers,
@@ -295,7 +295,8 @@ user=>
 
 [NOTE]
 The downloads only occur the _first_ time you run the service; you can also see
-that the pedestal.jetty library brings in further dependencies on the other parts of Pedestal: pedestal.log, pedestal.service, etc.
+that the pedestal.jetty library brings in further dependencies on the other parts of Pedestal: pedestal.log, pedestal.service, etc. The exact libraries and versions downloaded will vary with the exact version of
+Pedestal.
 
 The `clj` tool will download dependencies as needed, add them to the classpath
 and start a repl in the `user` namespace. Now we're able to 

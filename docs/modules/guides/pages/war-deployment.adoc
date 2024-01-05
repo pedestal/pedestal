@@ -16,7 +16,8 @@ a particular internal layout and a `.war` extension.
 
 ## Step One: Prepare Your Project
 
-When running your application locally link:live-repl[at the REPL], you will want to
+When running your application locally
+xref:live-repl.adoc[at the REPL], you will want to
 have your choice of servlet container running inside your JVM, and so the
 servlet container, and the Pedestal adaptor for the container, will be a dependency
 of your project.
