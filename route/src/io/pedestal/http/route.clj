@@ -23,7 +23,8 @@
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.map-tree :as map-tree]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
-            [io.pedestal.environment :refer [dev-mode?]])
+            [io.pedestal.environment :refer [dev-mode?]]
+            [io.pedestal.http.route.internal :as internal])
   (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
 
@@ -628,9 +629,8 @@
 ;;; Help for debugging
 (defn print-routes
   "Prints a route table (from [[expand-routes]]) in an easier to read format."
-  [routing-table]
-  (doseq [r (map (juxt :method :path :route-name) routing-table)]
-    (println r)))
+  [expanded-routes]
+  (internal/print-routing-table expanded-routes))
 
 (defn try-routing-for
   "Used for testing; constructs a router from the routing-table and router-type and perform routing, returning the matched
@@ -663,11 +663,16 @@
 
     (and (symbol? route-spec-expr)
          (not (contains? &env route-spec-expr)))
-    `(fn [] (-> (var ~route-spec-expr)
-                deref
-                expand-routes))
+    `(let [*prior-routes# (atom nil)]
+       (fn [] (->> (var ~route-spec-expr)
+                   deref
+                   expand-routes
+                   (internal/print-routing-table-on-change *prior-routes#))))
 
     ;; Either an inline route, a reference to a local symbol, or a function call.
     :else
-    `(fn [] (expand-routes ~route-spec-expr))))
+    `(let [*prior-routes# (atom nil)]
+       (fn [] (->> ~route-spec-expr
+                   expand-routes
+                   (internal/print-routing-table-on-change *prior-routes#))))))
 
