@@ -488,10 +488,11 @@
 (deftest indirect-interceptor
   (let [indirect (interceptor/interceptor {:name ::indirect :enter identity})
         f1       ^:interceptor (fn [] indirect)
-        f2       ^:interceptorfn (fn [] indirect)]
+        f2       ^:interceptorfn (fn [] {:name ::indirect :enter identity})]
 
     (is (identical? indirect
                     (interceptor/-interceptor f1)))
 
-    (is (identical? indirect
+    ;; This also shows that the result is converted (from a Map to an Interceptor).
+    (is (= indirect
                     (interceptor/-interceptor f2)))))
