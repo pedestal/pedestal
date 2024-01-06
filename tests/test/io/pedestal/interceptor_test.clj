@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -483,3 +484,14 @@
         (execute [(interceptor {:name :a :enter enter})
                   (interceptor {:name :b :enter enter})]))
     (is (= 1 @*count))))
+
+(deftest indirect-interceptor
+  (let [indirect (interceptor/interceptor {:name ::indirect :enter identity})
+        f1       ^:interceptor (fn [] indirect)
+        f2       ^:interceptorfn (fn [] indirect)]
+
+    (is (identical? indirect
+                    (interceptor/-interceptor f1)))
+
+    (is (identical? indirect
+                    (interceptor/-interceptor f2)))))
