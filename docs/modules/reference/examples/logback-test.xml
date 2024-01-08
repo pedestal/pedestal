@@ -11,5 +11,6 @@
     </root>
 
     <logger name="org.eclipse.jetty" level="warn"/>
+    <logger name="io.pedestal" level="warn"/>
 
 </configuration>

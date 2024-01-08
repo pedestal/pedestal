@@ -204,7 +204,10 @@ This is a somewhat minimal example:
 include::example$logback-test.xml[]
 ----
 
-Because this file enabled scanning, it can be updated at runtime to enable or disable
+Both Jetty and Pedestal can produce quite a bit of debug output, so the sample above
+disables that logging.
+
+Because the configuration enables file scanning, it can be updated at runtime to enable or disable
 logging of specific namespaces.
 
 == Metrics and Telemetry
