@@ -1,6 +1,6 @@
 # io.pedestal/embedded
 
-Creates a template embedded Jetty Pedestal project.
+Creates a template embedded Jetty Pedestal project, with logging via [Logback](https://logback.qos.ch/).
 
 ## Usage
 

@@ -1,11 +1,11 @@
 (ns {{top/ns}}.{{main/ns}}.routes)
 
 (defn hello-handler
-  [request]
+  [_request]
   {:status 200
    :body "Hello"})
 
 (defn routes
   []
-  #{[:get "/hello" [`hello-handler] :route-name ::hello]})
+  #{["/hello" :get [`hello-handler] :route-name ::hello]})
 

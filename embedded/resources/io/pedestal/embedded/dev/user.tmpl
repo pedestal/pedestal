@@ -1,5 +1,7 @@
 (ns user
-  (:require [clj-commons.pretty.repl :as repl]))
+  (:require [clj-commons.pretty.repl :as repl]
+            ; Add support for (is (match?)) and (is (thrown-match?)):
+            matcher-combinators.test))
 
 ;; Setup clj-commons/pretty to report exceptions.
 ;; This affects io.pedestal.http.impl.servlet-interceptor/exception-debug which
