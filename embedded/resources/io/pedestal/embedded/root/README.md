@@ -11,11 +11,11 @@ Invoke a library API function from the command-line:
     $ clojure -X {{top/ns}}.{{main/ns}}/foo :a 1 :b '"two"'
     {:a 1, :b "two"} "Hello, World!"
 
-Run the project's tests (they'll fail until you edit them):
+Run the project's tests:
 
     $ clojure -T:build test
 
-Run the project's CI pipeline and build a JAR (this will fail until you edit the tests to pass):
+Run the project's CI pipeline and build a JAR:
 
     $ clojure -T:build ci
 
