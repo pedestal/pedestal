@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.build
-  "Seperated out to avoid unnecessary code loading."
+  "Separated out to avoid unnecessary code loading."
   (:require [borkdude.rewrite-edn :as r]
             [clojure.tools.build.api :as b]
             [clojure.string :as str]))
@@ -62,6 +62,7 @@
 
 (defn update-version-in-misc-files
   [version]
+  (update-version-in-deps "embedded/resources/io/pedestal/embedded/build/deps.tmpl" version)
   (fixup-version "docs/antora.yml"
                  (fn [line]
                    (when (str/includes? line "libs_version")
@@ -71,7 +72,7 @@
                    (when-let [[_ prefix suffix] (re-matches #"(?x)
                    (\s*
                     \(defproject \s+
-                    .+?  # project name
+                    .+?    # project name
                     \s+ \" # quote before version
                    )       # end of prefix
                    .+?
