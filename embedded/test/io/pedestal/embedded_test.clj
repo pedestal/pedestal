@@ -1,4 +1,4 @@
-(ns io.pedestal.deps-test
+(ns io.pedestal.embedded-test
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
@@ -8,6 +8,6 @@
 
 (deftest valid-template-test
   (testing "template.edn is valid."
-    (let [template (edn/read-string (slurp (io/resource "io/pedestal/deps/template.edn")))]
+    (let [template (edn/read-string (slurp (io/resource "io/pedestal/embedded/template.edn")))]
       (is (s/valid? :org.corfield.new/template template)
           (s/explain-str :org.corfield.new/template template)))))

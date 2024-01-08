@@ -1,0 +1,8 @@
+(ns {{top/ns}}.{{main/ns}}.service-test
+  (:require [clojure.test :refer [deftest is]]
+            [io.pedestal.http :as http]
+            [{{top/ns}}.{{main/ns}}.service :refer [service-map]]))
+
+(deftest can-create-server-map
+  (is (some? (-> (service-map nil)
+                 http/create-server))))

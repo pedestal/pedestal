@@ -1,15 +1,15 @@
-# io.pedestal/deps
+# io.pedestal/embedded
 
-FIXME: my new template.
+Creates a template embedded Jetty Pedestal project.
 
 ## Usage
 
 FIXME: write usage documentation!
 
 This is a template project for use with [deps-new](https://github.com/seancorfield/deps-new).
-As originally generated, it will produce a new library project when run:
+As originally generated, it will produce a new embedded Pedestal project when run:
 
-    $ clojure -Sdeps '{:deps {io.pedestal/deps {:local/root "."}}}' -Tnew create :template io.pedestal/deps :name myusername/mycoolservice
+    $ clojure -Sdeps '{:deps {io.pedestal/embedded {:local/root "."}}}' -Tnew create :template io.pedestal/embedded :name myusername/mycoolservice 
 
 Assuming you have installed `deps-new` as your `new` "tool" via:
 

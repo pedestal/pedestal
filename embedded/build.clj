@@ -2,12 +2,14 @@
   (:refer-clojure :exclude [test])
   (:require [clojure.tools.build.api :as b]))
 
-(def lib 'io.pedestal/deps)
+(def lib 'io.pedestal/embedded)
 (def version "0.1.0-SNAPSHOT")
 #_ ; alternatively, use MAJOR.MINOR.COMMITS:
 (def version (format "1.0.%s" (b/git-count-revs nil)))
 
-(defn test "Run all the tests." [opts]
+(defn test
+  "Run all the tests."
+  [opts]
   (let [basis    (b/create-basis {:aliases [:test]})
         cmds     (b/java-command
                   {:basis      basis

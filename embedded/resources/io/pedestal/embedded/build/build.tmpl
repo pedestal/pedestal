@@ -9,7 +9,9 @@
 (def version (format "1.0.%s" (b/git-count-revs nil)))
 (def class-dir "target/classes")
 
-(defn test "Run all the tests." [opts]
+(defn test
+  "Run all the tests."
+  [opts]
   (let [basis    (b/create-basis {:aliases [:test]})
         cmds     (b/java-command
                   {:basis      basis
