@@ -1,21 +1,21 @@
 {:paths ["src"
          "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
-        io.pedestal/pedestal.jetty {:mvn/version "0.7.0-SNAPSHOT"}
+ :deps {org.clojure/clojure            {:mvn/version "1.11.1"}
+        io.pedestal/pedestal.jetty     {:mvn/version "0.7.0-SNAPSHOT"}
         ch.qos.logback/logback-classic {:mvn/version "1.4.14"}}
  :aliases
  {:test
   {:extra-paths ["test"
                  "test-resources"
                  "dev"]
+   :jvm-opts ["-Dclj-commons.ansi.enabled=false"]
    :extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}
                 org.clj-commons/pretty {:mvn/version "2.2.1"}
                 io.github.cognitect-labs/test-runner
-                {:git/tag "v0.5.1" :git/sha "dfb30dd"}}}
+                {:git/tag "v0.5.1"
+                 :git/sha "dfb30dd"}}}
   :dev-mode
-  {:jvm-opts ["-Dio.pedestal.dev-mode=true"
-              "-Dclj-commons.ansi.enabled=false"]}
-  :build {:deps {io.github.clojure/tools.build
-                 {:mvn/version "0.9.6"}
-                 slipset/deps-deploy {:mvn/version "0.2.0"}}
+  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.9.6"}
+                 slipset/deps-deploy           {:mvn/version "0.2.0"}}
           :ns-default build}}}

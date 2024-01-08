@@ -1,0 +1,7 @@
+(ns user
+  (:require [clj-commons.pretty.repl :as repl]))
+
+;; Setup clj-commons/pretty to report exceptions.
+;; This affects io.pedestal.http.impl.servlet-interceptor/exception-debug which
+;; may be enabled for local development and testing.
+(repl/install-pretty-exceptions)

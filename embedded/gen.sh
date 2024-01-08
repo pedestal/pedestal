@@ -10,4 +10,4 @@ clj -Sdeps '{:deps {io.pedestal/embedded {:local/root "."}}}' \
   create :template io.pedestal/embedded \
   :name org.example/embedded \
   :target-dir target/out \
-  :overwrite :delete
+  :overwrite :overwrite
