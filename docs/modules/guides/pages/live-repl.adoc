@@ -270,7 +270,7 @@ function - on every request.  If you like, you can abbreviate `(deref (var route
 
 ## Using routes-from
 
-It's not very desirable to have to keep two separate functions, one for production, and one for REPL oriented
+It's not very desirable to have to keep two separate start functions, one for production, and one for REPL oriented
 development ... especially given how badly throughput will be affected if the local REPL version leaks through to
 production.
 
@@ -292,14 +292,21 @@ api:routes-from[ns=io.pedestal.http.route] macro:
 `routes-from` is aware of the xref:reference:dev-mode.adoc[Pedestal execution mode].  By default, `routes-from` operates in production mode, so
 `(route/routes-from routes)` evaluates to `routes`.
 
-However, in local development mode, `(route/routes-from routes)` expands to `#(expand-routes (deref (var routes)))` ... the
-same code we used above, to delay route evaluation.
+However, in local development mode, `(route/routes-from routes)` expands (approximately) to `#(expand-routes (deref (var routes)))` ... the same code we used above, to delay route evaluation.
 
+Further,in local development mode, `routes-from` will print the formatted routing table to the console at startup, and at any later time that the routing table changes:
 
+```
+Routing table:
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃ Path   ┃ Name                    ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃ :get   ┃ /hello ┃ :io.example.hello/hello ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━┛
+```
 
-
-
-
+This output is especially useful to know the correct route name to pass to
+api:url-for[ns=io.pedestal.http.route].
 
 ## Wrap Up
 
