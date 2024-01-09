@@ -481,18 +481,18 @@
        server)))
 
 (defn start
-  "Given a server map returned by  [[server]] (usually via [[create-server]]),
+  "Given a server map, as returned by [[server]] (usually via [[create-server]]),
    starts the server. The server may later be stopped via [[stop]].
 
-  Returns `service-map` on success."
+  Returns the server map unchanged."
   [server-map]
   ((::start-fn server-map))
   server-map)
 
 (defn stop
-  "Given server map (started by [[start]], stops the server, if running.
+  "Given a server map (started by [[start]]), stops the server, if running.
 
-  Returns `service-map` on success."
+  Returns the server map unchanged."
   [server-map]
   ((::stop-fn server-map))
   server-map)
