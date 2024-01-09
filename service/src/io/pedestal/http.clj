@@ -438,7 +438,9 @@
    the namespaces (::host becomes :host).
 
    Returns a server map, which merges the provided service map with additional keys from
-   the server-fn. The server map may be passed to [[start]] and [[stop]]."
+   the map returned by the server-fn. The server map may be passed to [[start]] and [[stop]].
+
+   A typical embedded app will call [[create-server]], rather than calling this function directly."
   [service-map]
   (let [{type ::type
          :or {type :jetty}} service-map
