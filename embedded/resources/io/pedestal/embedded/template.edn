@@ -22,7 +22,8 @@
     "deps.tmpl"  "deps.edn"}
    :only]
   ["dev" "dev"
-   {"user.tmpl" "user.clj"}]
+   {"user.tmpl" "user.clj"
+    "dev.tmpl" "dev.clj"}]
   ["src" "src/{{top/file}}"
    {"service.tmpl" "{{main/file}}/service.clj"
     "routes.tmpl" "{{main/file}}/routes.clj"}]

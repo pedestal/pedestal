@@ -1,0 +1,32 @@
+(ns dev
+  (:require [io.pedestal.http :as http]
+            [{{top/ns}}.{{main/ns}}.service :as service]))
+
+(defonce server nil)
+
+(defn init
+  "Constructs the current development server."
+  []
+  (alter-var-root #'server
+    (fn [_]
+        (-> (service/service-map nil)
+            http/create-server))))
+
+(defn start
+  "Starts the current development system."
+  []
+  (alter-var-root #'server http/start))
+
+(defn stop
+  "Shuts down and destroys the current development server."
+  []
+  (alter-var-root #'server
+    (fn [server]
+      (when server
+        (http/stop server)))))
+
+(defn go
+  "Initializes the current development server and starts it running."
+  []
+  (init)
+  (start))
