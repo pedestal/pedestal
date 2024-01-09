@@ -481,21 +481,21 @@
        server)))
 
 (defn start
-  "Given service map returned by  [[server]] (usually via [[create-server]]),
+  "Given a server map returned by  [[server]] (usually via [[create-server]]),
    starts the server. The server may later be stopped via [[stop]].
 
   Returns `service-map` on success."
-  [service-map]
-  ((::start-fn service-map))
-  service-map)
+  [server-map]
+  ((::start-fn server-map))
+  server-map)
 
 (defn stop
-  "Given service map, stops the server, if running.
+  "Given server map (started by [[start]], stops the server, if running.
 
   Returns `service-map` on success."
-  [service-map]
-  ((::stop-fn service-map))
-  service-map)
+  [server-map]
+  ((::stop-fn server-map))
+  server-map)
 
 ;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
 
