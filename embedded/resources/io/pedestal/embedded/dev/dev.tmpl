@@ -13,12 +13,12 @@
             http/create-server))))
 
 (defn start
-  "Starts the current development system."
+  "Starts the current development server."
   []
   (alter-var-root #'server http/start))
 
 (defn stop
-  "Shuts down and destroys the current development server."
+  "Shuts down the current development server."
   []
   (alter-var-root #'server
     (fn [server]
