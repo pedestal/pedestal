@@ -438,7 +438,9 @@
    the namespaces (::host becomes :host).
 
    Returns a server map, which merges the provided service map with additional keys from
-   the server-fn. The server map may be passed to [[start]] and [[stop]]."
+   the map returned by the server-fn. The server map may be passed to [[start]] and [[stop]].
+
+   A typical embedded app will call [[create-server]], rather than calling this function directly."
   [service-map]
   (let [{type ::type
          :or {type :jetty}} service-map
@@ -479,21 +481,21 @@
        server)))
 
 (defn start
-  "Given service map returned by  [[server]] (usually via [[create-server]]),
+  "Given a server map, as returned by [[server]] (usually via [[create-server]]),
    starts the server. The server may later be stopped via [[stop]].
 
-  Returns `service-map` on success."
-  [service-map]
-  ((::start-fn service-map))
-  service-map)
+  Returns the server map unchanged."
+  [server-map]
+  ((::start-fn server-map))
+  server-map)
 
 (defn stop
-  "Given service map, stops the server, if running.
+  "Given a server map (started by [[start]]), stops the server, if running.
 
-  Returns `service-map` on success."
-  [service-map]
-  ((::stop-fn service-map))
-  service-map)
+  Returns the server map unchanged."
+  [server-map]
+  ((::stop-fn server-map))
+  server-map)
 
 ;; Container prod mode for use with the io.pedestal.servlet.ClojureVarServlet class.
 

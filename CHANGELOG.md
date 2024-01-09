@@ -19,6 +19,7 @@ Other changes:
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
 - New service map keys have been introduced, to support handling of uncaught exceptions, and to specify an initial context map
 - There is now a clojure.spec specification for the structure of the service map
+- Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 
