@@ -1,0 +1,33 @@
+= Embedded Template
+
+Pedestal includes a template that can be used with
+https://github.com/seancorfield/deps-new[deps-new], a tool used to generate new projects from a template.
+
+`deps-new` works with the `clojure` (or `clj`) tool, and generates a `deps.edn`-based project.
+If you are a Leiningen user, it is relative straight forward to create an equivalent `project.clj` from the
+generated `deps.edn`.
+
+The _embedded_ part indicates that the template is configured to work using
+xref:reference:jetty.adoc[], and it starts Jetty from within a running Clojure application
+(an alternate, and less used approach is to
+xref:war-deployment.adoc[bundle a Pedestal application into
+a WAR] and deploy into Jetty, or another servlet container).
+
+== Setting up deps-new
+
+`deps-new` operates as a Clojure tool, and can be added using the following command:
+
+    clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
+
+
+== Creating a project
+
+Before you begin, you should decide on a _group name_ and _project name_ for your new Pedestal application.
+These are combined with a slash to form the full project name.
+
+For example, you might chose `com.blueant` as your group name, and `peripheral` as you project name (we'll use
+this example below), in which case, your full project name is `com.blueant/peripheral`.
+
+`deps-new` will create a new project in a subdirectory matching your project name: `peripheral`.
+
+
