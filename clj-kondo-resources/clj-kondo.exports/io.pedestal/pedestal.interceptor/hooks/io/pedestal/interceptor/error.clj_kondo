@@ -1,0 +1,26 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
+(ns hooks.io.pedestal.interceptor.error
+  (:require [clj-kondo.hooks-api :as api]))
+
+(defn error-dispatch
+  "Expands (error-dispatch [ctx ex] match-forms)
+  to (fn [ctx ex] (case [ctx ex] match-forms)) keeping spirit of
+  error-dispatch per clj-kondo examples."
+  [{:keys [:node]}]
+  (let [[binding-vec & match-forms] (rest (:children node))]
+    (when-not (= 2 (count (:children binding-vec)))
+      (throw (ex-info "error-dispatch only takes ctx and ex." {})))
+    {:node (api/list-node [(api/token-node 'fn)
+                           binding-vec
+                           (api/list-node (concat [(api/token-node 'case) binding-vec]
+                                                  match-forms))])}))

@@ -26,6 +26,7 @@ tmp/
 .*.swo
 *.tmp
 *.bak
+.clj-kondo/.cache/
 
 # Editors (IntelliJ / Eclipse)
 */.idea
