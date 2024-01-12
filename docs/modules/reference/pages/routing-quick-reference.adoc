@@ -19,23 +19,25 @@ to form a routing interceptor:
 ....
 flowchart
   subgraph ExpandableRoutes/-expand-routes
-  table("#{...}")-->|table/table-routes|expanded
-  terse("[...]")-->|terse/terse-routes|expanded
-  map("{...}")-->|terse/map-routes->vec-routes|expanded
+  table("#{} table")-->|table/table-routes|expanded
+  terse("[] terse")-->|terse/terse-routes|expanded
+  map("{} verbose")-->|terse/map-routes->vec-routes|expanded
   end
   expanded(expanded routes)-->|RouterSpecification/router-spec|inter
-  cons(Router)-->inter
+  cons(Router Constructor)-->inter
   inter(Routing Interceptor)
 ....
 
 _Route specifications_ are the data values that spell out the possible routes.
 These are normalized and expanded into a routing table.
 
-_Router_ are provided with the routing table, and apply a specific strategy to match incoming requests
+A _Router Constructor_ function is provided with the routing table, and applies a specific strategy to match incoming requests
 to the provided routes; there are a few different built-in Router implementations, with different limitations
-and trade-offs.
+and trade-offs. The constructor returns a
+api:Router[ns=io.pedestal.http.route.router] instance encapsulating the routing table and the
+strategy.
 
-The routing interceptor builds on a Router to dispatch incoming requests to routes
+The routing interceptor builds on a `Router` to dispatch incoming requests to routes
 defined by the route specification. It identifies the route matching the incoming request
 and queues up route-specific interceptors to handle the request.
 
@@ -105,10 +107,10 @@ The expanded routing table is a list of maps, each with the following structure:
 :route-name must be unique; typically it is a qualified keyword to ensure uniqueness.
 
 The keys :path-re, :path-parts, :path-params, and
-:path-constraints are derived from the :path.  This is part of what the
-api:expand-routes[ns=io.pedestal.http.route] function is responsible for.
+:path-constraints are derived from the :path.
 
 Users will not generally write routes directly in verbose format.
+Use of the table format is encouraged.
 
 == Builtin Routers
 
