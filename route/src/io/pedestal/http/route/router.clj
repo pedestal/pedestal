@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -17,4 +18,4 @@
   Each implementation of Router represents a different strategy for dispatching incoming requests,
   balancing a number of tradeoffs."
   (find-route [this req]
-    "Given an incoming request, find the matching route (one route map from the routing routes)."))
+    "Given an incoming request, find the matching route (one route map from the routing table)."))

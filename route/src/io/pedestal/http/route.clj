@@ -628,7 +628,7 @@
                          method))}))))
 
 ;;; Help for debugging
-(defn print-routes
+(defn  print-routes
   "Prints a route table (from [[expand-routes]]) in an easier to read format."
   [expanded-routes]
   (internal/print-routing-table expanded-routes))

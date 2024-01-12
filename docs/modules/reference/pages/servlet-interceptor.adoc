@@ -1,13 +1,10 @@
 = Servlet Interceptor
 
-As the name implies, the servlet interceptor is both a servlet and an
-interceptor. It is created when an application calls
-api:create-server[] or api:create-servlet[].
-
-When created, the servlet interceptor creates the global interceptor queue,
-which includes a number of interceptors private to the servlet interceptor, and
-additional interceptors provided by the application; importantly, the final interceptor will
-perform routing, which will add route-matched interceptors to the queue.
+The servlet interceptor is the bridge between a Java Servlet API and Pedestal's
+interceptor chain. It is created when an application calls
+api:create-server[] or api:create-servlet[]; ultimately, the function
+api:service-fn[] is responsible, and the actual work
+occurs in api:http-interceptor-service-fn[ns=io.pedestal.http.impl.servlet-interceptor].
 
 The servlet interceptor is a xref:chain-providers.adoc[chain provider] that
 invokes interceptors when an HTTP request arrives.
@@ -55,12 +52,12 @@ This should be avoided when possible, as manipulating the stack and queue improp
 may have unintended consequences.
 --
 
-The queue contains the interceptors to be executed next. The first
-item in the queue will be the next interceptor considered.
-When an interceptor's :enter function is executed, it is removed from the queue and added to the stack.
+The queue contains the interceptors to be executed next.
+Each interceptor is taken from the head of the queue and added to the stack; if it has
+an :enter callback, the callback is invoked.
 
-The stack contains the previously executed interceptors that need their :leave functions
-called. The top of the stack will be considered first.
+Once the interceptor chain terminates, normally by adding a xref:request-map.adoc[]
+to the context, the stack is used to invoke :leave callbacks on the interceptors.
 
 ## Early Termination
 

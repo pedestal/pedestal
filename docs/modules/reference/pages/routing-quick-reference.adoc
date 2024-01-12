@@ -12,13 +12,30 @@ Routing is the process of recognizing an incoming request, and matching it to a 
 A route identifies a particular request path and request method (such as :get or :post) and identifies
 corresponding behavior in terms of a handler function, or a list of interceptors to execute.
 
-_Route specifications_ are the data values that spell out the possible routes.
+A _routing specification_ is data that can be transformed and linked with a specific routing algorithm
+to form a routing interceptor:
 
-_Routers_ are built from route specifications, and apply a specific strategy to match incoming requests
+[mermaid]
+....
+flowchart
+  subgraph ExpandableRoutes/-expand-routes
+  table("#{...}")-->|table/table-routes|expanded
+  terse("[...]")-->|terse/terse-routes|expanded
+  map("{...}")-->|terse/map-routes->vec-routes|expanded
+  end
+  expanded(expanded routes)-->|RouterSpecification/router-spec|inter
+  cons(Router)-->inter
+  inter(Routing Interceptor)
+....
+
+_Route specifications_ are the data values that spell out the possible routes.
+These are normalized and expanded into a routing table.
+
+_Router_ are provided with the routing table, and apply a specific strategy to match incoming requests
 to the provided routes; there are a few different built-in Router implementations, with different limitations
 and trade-offs.
 
-The routing interceptor builds on a router to dispatch incoming requests to routes
+The routing interceptor builds on a Router to dispatch incoming requests to routes
 defined by the route specification. It identifies the route matching the incoming request
 and queues up route-specific interceptors to handle the request.
 
@@ -153,8 +170,8 @@ The `Router` is supplied with the incoming request, and returns the matching rou
 
 The function api:router[ns=io.pedestal.http.route] is where it all comes together;
 this function is passed the route specification and, optionally, the router type; from that it creates
-the routing table, and passes that through the correct constructor, obtaining at the end an interceptor
-that performs routing, which it returns.
+the routing table, and passes that through the correct Router constructor function,
+obtaining at the end an interceptor that performs routing, which it returns.
 
 During request execution, on a successful routing, the following keys are added or updated in the context map:
 

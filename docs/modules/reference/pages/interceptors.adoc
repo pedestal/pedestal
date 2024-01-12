@@ -57,6 +57,13 @@ provider and interceptors.
 The most important keys are :request, which holds the xref:request-map.adoc[], and
 :response, which holds the xref:response-map.adoc[].
 
+[NOTE]
+====
+Technically, the interceptor pipeline doesn't know about :request and :response, because
+the interceptor pipeline is not specically purposed with HTTP processing; the
+xref:servlet-interceptor.adoc[] adds these details.
+====
+
 Further keys are described in the xref:context-map.adoc[] reference.
 
 == Interceptor Return Values
@@ -68,10 +75,13 @@ An :enter or :leave function may return a context map directly. In
 this case, processing continues with the next interceptor.
 
 If the interceptor is expected to take a long time to return a result, it may
-instead return a {core_async} channel. Pedestal will yield the request processing thread and
+instead return a {core_async} channel. Pedestal will yield the request processing thread back
+the the servlet container (so that it can process other incoming requests) and
 wait for a value to be produced.
 
 Only one value will be consumed from the returned channel, and the value must be a context map.
+
+Request processing continues once the channel delivers the context map.
 
 [IMPORTANT]
 .*Chaining With Async Interceptors*
@@ -122,7 +132,8 @@ an link:#_indirect_interceptors[indirect interceptor].)
 |===
 
 Most of these cases are provided to make routing syntax
-easier.
+easier, or reflect earlier attempts to improve
+xref:guides:live-repl.adoc[live reloading at the REPL].
 
 Applications should mainly use the map form as shown in the
 earlier examples when defining interceptors for routing
@@ -169,8 +180,8 @@ common interceptors will run before any route-specific interceptors.
 == Handlers
 
 A handler function is a special case of an interceptor.
-Pedestal treats the handler as a function that takes a xref:request-map.adoc[] parameter,
-and returns a xref:response-map.adoc[].
+Pedestal treats the handler as a function that accepts a xref:request-map.adoc[] parameter,
+and returns a xref:response-map.adoc[] result.
 
 A handler does _not_ have access to the full xref:context-map.adoc[execution context],
 therefore, it cannot manipulate the interceptor queue.
@@ -203,18 +214,24 @@ Pedestal supports defining interceptor-specific error handlers via the
 
 == Pedestal Interceptors
 
-The api:pedestal-service[ns=pedestal.service/index] library includes a large set of interceptors
+The io.pedestal/pedestal.service library includes a large set of interceptors
 that are specialized for HTTP request handling.
+Many of these interceptors are automatically added to the
+interceptor queue by the api:default-interceptors[] function.
 
-See the following namespaces for stock interceptors:
+- api:allow-origin[ns=io.pedestal.http.cors]
+- api:anti-forgery[ns=io.pedestal.http.csrf]
+- api:body-params[ns=io.pedestal.http.body-params]
+- api:dev-allow-origin[ns=io.pedestal.http.cors]
+- api:method-param[ns=io.pedestal.http.route]
+- api:negotiate-content[ns=io.pedestal.http.content-negotiation]
+- api:path-params-decoder[ns=io.pedestal.http.route]
+- api:query-params[ns=io.pedestal.http.route]
+- several from api:*[ns=io.pedestal.http.ring-middlewares] (see also
+  xref:ring.adoc[])
 
-- api:io.pedestal.http.body-params[ns=pedestal.service/io.pedestal.http.body-params]
-- api:io.pedestal.http.content-negotiation[ns=pedestal.service/io.pedestal.http.content-negotiation]
-- api:io.pedestal.http.cors[ns=pedestal.service/io.pedestal.http.cors]
-- api:io.pedestal.http.csrf[ns=pedestal.service/io.pedestal.http.csrf]
-- api:io.pedestal.http.ring-middlewares[ns=pedestal.service/io.pedestal.http.ring-middlewares]
+Routing-related interceptors are provided by the io.pedestal/pedestal.route library:
 
-See the following namespaces for routing interceptors:
-
-- api:io.pedestal.http.route[ns=pedestal.route/io.pedestal.http.route]
-- api:io.pedestal.http.route.router[ns=pedestal.route/io.pedestal.http.route.router]
+- api:path-params-decoder[ns=io.pedestal.http.route]
+- api:query-params[ns=io.pedestal.http.route]
+- api:router[ns=io.pedestal.http.route

@@ -197,11 +197,11 @@ Hello, JVM World!
 
 [WARNING]
 .*Not For Production*
-----
+====
 Using a function, as we do here, is *absolutely not for production*.  Even a trivial
 route specification takes a chunk of time to expand, so doing it on every single request will absolutely trash your
 production server's throughput.
-----
+====
 
 Still, we're not quite done.  Let's say we want to be less formal, and respond on the path `/hi` instead of `/hello`.
 We can change the routes:
@@ -290,7 +290,9 @@ api:routes-from[ns=io.pedestal.http.route] macro:
 ----
 
 `routes-from` is aware of the xref:reference:dev-mode.adoc[Pedestal execution mode].  By default, `routes-from` operates in production mode, so
-`(route/routes-from routes)` evaluates to `routes`.
+`(route/routes-from routes)` evaluates to just `routes` - no deferred evaluation,
+no rebuild of the routing table on each request,
+which is just what we want in production.
 
 However, in local development mode, `(route/routes-from routes)` expands (approximately) to `#(expand-routes (deref (var routes)))` ... the same code we used above, to delay route evaluation.
 
@@ -306,7 +308,11 @@ Routing table:
 ```
 
 This output is especially useful to know the correct route name to pass to
-api:url-for[ns=io.pedestal.http.route].
+api:url-for[ns=io.pedestal.http.route]
+(to generate application URLs included in responses)
+or
+api:response-for[ns=io.pedestal.test]
+(used in your xref:unit-testing.adoc[unit tests]).
 
 ## Wrap Up
 

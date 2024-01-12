@@ -41,7 +41,7 @@ https://lambdaisland.com/guides/clojure-repls[Ultimate Guide to Clojure REPLs].
 
 == Getting Help if You're Stuck
 
-include::partial$getting-help.adoc
+include::partial$getting-help.adoc[]
 
 == Before We Begin
 
@@ -138,14 +138,17 @@ Try this new function out at the REPL:
 [source,clojure]
 ----
 pedrepl.server> (print-routes)
-
-[:get /about :pedrepl.service/about-page]
-[:get / :pedrepl.service/home-page]
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃ Path   ┃ Name                        ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃ :get   ┃ /      ┃ :pedrepl.service/home-page  ┃
+┃ :get   ┃ /about ┃ :pedrepl.service/about-page ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 nil
 ----
 
 This simple output lists the HTTP method, relative path,
-and handler function for each one of our routes. This is
+and route name for each one of our routes. This is
 a great start, but as our application grows we may want
 to find a route by name. Let's add another utility to do
 just that:
