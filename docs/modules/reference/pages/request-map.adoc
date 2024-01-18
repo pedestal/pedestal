@@ -47,12 +47,12 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | :edn-params
 | N
 | Any
-| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/edn"
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/edn"
 
 | :form-params
 | N
 | Map of Keyword -> String
-| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/x-www-form-urlencoded". Some keys may be left as strings, if they contain characters that would make them invalid as Clojure keywords.
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/x-www-form-urlencoded". Some keys may be left as strings, if they contain characters that would make them invalid as Clojure keywords.
 
 | :headers
 | Y
@@ -62,7 +62,7 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | :json-params
 | N
 | Map of Keyword -> Any footnote:[Based on the coercion of any link:https://www.w3schools.com/js/js_json_objects.asp[valid] JSON data type]
-| Present if the  api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/json"
+| Present if the  api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/json"
 
 | :params
 | N
@@ -82,12 +82,12 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | :protocol
 | Y
 | String
-| Name and version of the protocol with which the request was sent
+| Name and version of the protocol with which the request was sent.
 
 | :query-params
 | N
 | Map of Keyword -> String
-| Present if the api:default interceptors[ns=io.pedestal.http.route].)
+| Present if the api:query-params[ns=io.pedestal.http.route] interceptor has executed.
 
 | :query-string
 | Y
@@ -127,7 +127,7 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | :transit-params
 | N
 | Any
-| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor is used _and_ the client sent content type "application/transit+json" or "application/transit+msgpack"
+| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/transit+json" or "application/transit+msgpack"
 
 | :uri
 | Y
