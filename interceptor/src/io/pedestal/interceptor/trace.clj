@@ -1,4 +1,5 @@
 (ns io.pedestal.interceptor.trace
+  {:deprecated "0.7.0"}
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log])
@@ -49,7 +50,7 @@
   (log/finish-span span)
   context)
 
-(defn tracing-interceptor
+(defn ^{:deprecated "0.7.0"} tracing-interceptor
   "Return an Interceptor for automatically initiating a distributed trace
   span on every request, which is finished on `leave`.
 

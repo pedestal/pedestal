@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,17 +14,14 @@
 (ns io.pedestal.http.sse
   (:require [ring.util.response :as ring-response]
             [clojure.core.async :as async]
-            [clojure.core.async.impl.protocols :as asyncimpl]
             [io.pedestal.http.servlet :refer :all]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor]
             [clojure.stacktrace]
             [clojure.string :as string])
-  (:import [java.nio.charset Charset]
-           [java.io BufferedReader StringReader OutputStream]
-           [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
-           [jakarta.servlet ServletResponse]
-           [com.fasterxml.jackson.core.util ByteArrayBuilder]))
+  (:import
+    [java.util.concurrent Executors ThreadFactory ScheduledExecutorService]
+    [com.fasterxml.jackson.core.util ByteArrayBuilder]))
 
 (set! *warn-on-reflection* true)
 
@@ -188,14 +186,14 @@
                       (update :headers merge (:cors-headers context)))
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
-                         :response-channel response-channel
-                         :response response)]
+                    :response-channel response-channel
+                    :response response)]
      (async/thread
        (stream-ready-fn event-channel context*))
-     (start-dispatch-loop (merge {:event-channel event-channel
+     (start-dispatch-loop (merge {:event-channel    event-channel
                                   :response-channel response-channel
-                                  :heartbeat-delay heartbeat-delay
-                                  :context context*}
+                                  :heartbeat-delay  heartbeat-delay
+                                  :context          context*}
                                  (when on-client-disconnect
                                    {:on-client-disconnect #(on-client-disconnect context*)})))
      context*)))
@@ -219,7 +217,7 @@
    (start-event-stream stream-ready-fn heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn heartbeat-delay bufferfn-or-n opts]
    (interceptor/interceptor
-     {:name (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
+     {:name  (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
       :enter (fn [context]
                (log/trace :msg "switching to sse")
                (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))

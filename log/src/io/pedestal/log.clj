@@ -1,4 +1,4 @@
-; Copyright 2021-2023 Nubank NA
+; Copyright 2021-2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2018 Cognitect, Inc.
 
@@ -12,11 +12,12 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.log
-  "A logging wrapper around SLF4J (but adapatable to other logging systems).
+  "A logging wrapper around SLF4J (but adaptable to other logging systems).
   Primary macros are [[trace]], [[debug]], [[info]], [[warn]], and [[error]].
 
   Over time, this namespace has also accumulated other visibility-related functionality,
-  including metrics (via the Codahale library) and telemetry (via OpenTelemetry)."
+  including metrics (via the Codahale library) and telemetry (via OpenTelemetry) - these protocols and
+  functions have been deprecated in 0.7.0 and will be removed in the future."
   (:require [clojure.string :as string]
             [io.pedestal.internal :as i])
   (:import (org.slf4j Logger
@@ -460,7 +461,9 @@
 ;; Metrics
 ;; -----------
 
-(defprotocol MetricRecorder
+(defprotocol ^{:deprecated "0.7.0"} MetricRecorder
+
+  "Metrics support in the pedestal.log library has been deprecated."
 
   (-counter [t metric-name delta]
             "Update a single Numeric/Long metric by the `delta` amount")
@@ -483,7 +486,7 @@
   (-gauge [registry metric-name value-fn]
     (try
       (.register registry ^String metric-name (reify Gauge
-                                        (getValue [this] (value-fn))))
+                                        (getValue [_] (value-fn))))
       value-fn
       (catch IllegalArgumentException iae
         nil)))
@@ -523,7 +526,7 @@
 ;; Utility/Auxiliary metric functions
 ;; ----------------------------------
 
-(defn metric-registry
+(defn ^{:deprecated "0.7.0"} metric-registry
   "Create a metric-registry.
   Optionally pass in single-arg functions, which when passed a registry,
   create, start, and return a reporter."
@@ -533,13 +536,13 @@
       (reporter-fn registry))
     registry))
 
-(defn jmx-reporter [^MetricRegistry registry]
+(defn ^{:deprecated "0.7.0"} jmx-reporter [^MetricRegistry registry]
   (doto (some-> (JmxReporter/forRegistry registry)
                 (.inDomain "io.pedestal.metrics")
                 (.build))
     (.start)))
 
-(defn log-reporter [^MetricRegistry registry]
+(defn ^{:deprecated "0.7.0"} log-reporter [^MetricRegistry registry]
   (doto (some-> (Slf4jReporter/forRegistry registry)
                 (.outputTo (LoggerFactory/getLogger "io.pedestal.metrics"))
                 (.convertRatesTo TimeUnit/SECONDS)
@@ -547,7 +550,7 @@
                 (.build))
     (.start 1 TimeUnit/MINUTES)))
 
-(def default-recorder
+(def ^{:deprecated "0.7.0"} default-recorder
   "This is the default recorder of all metrics.
   This value is configured by setting the JVM Property 'io.pedestal.log.defaultMetricsRecorder'
   or the environment variable 'PEDESTAL_METRICS_RECORDER'.
@@ -571,32 +574,32 @@
 ;; Public Metrics API
 ;; -------------------
 
-(defn format-name
+(defn ^{:deprecated "0.7.0"} format-name
   "Format a given metric name, regardless of type, into a string"
   [n]
   (if (keyword? n)
     (subs (str n) 1) ;; This preserves the namespace
     (str n)))
 
-(defn counter
+(defn ^{:deprecated "0.7.0"} counter
   ([metric-name ^Long delta]
    (-counter default-recorder (format-name metric-name) delta))
   ([recorder metric-name ^Long delta]
    (-counter recorder (format-name metric-name) delta)))
 
-(defn gauge
+(defn ^{:deprecated "0.7.0"} gauge
   ([metric-name ^IFn value-fn]
    (-gauge default-recorder (format-name metric-name) value-fn))
   ([recorder metric-name ^IFn value-fn]
    (-gauge recorder (format-name metric-name) value-fn)))
 
-(defn histogram
+(defn ^{:deprecated "0.7.0"} histogram
   ([metric-name ^Long value]
    (-histogram default-recorder (format-name metric-name) value))
   ([recorder metric-name ^Long value]
    (-histogram recorder (format-name metric-name) value)))
 
-(defn meter
+(defn ^{:deprecated "0.7.0"} meter
   ([metric-name]
    (-meter default-recorder (format-name metric-name) 1))
   ([metric-name ^Long n-events]
@@ -607,7 +610,10 @@
 ;; Tracing
 ;; -----------
 
-(defprotocol TraceSpan
+(defprotocol ^{:deprecated "0.7.0"} TraceSpan
+
+  "Telemetry support in the pedestal.log library has been deprecated."
+
   (-set-operation-name [t operation-name]
                        "Given a span and the operation name (String),
                        set the logical operation this span represents,
@@ -629,7 +635,10 @@
                 If no timestamp is specified, `now`/nanoTime is used, adjusted for microseconds.
                 Multiple calls to -finishSpan should be noops"))
 
-(defprotocol TraceSpanLog
+(defprotocol ^{:deprecated "0.7.0"} TraceSpanLog
+
+  "Telemetry support in the pedestal.log library has been deprecated."
+
   (-log-span [t msg]
              [t msg micros]
              "Given a span, a log message/event, and optionally an explicit timestamp in microseconds,
@@ -646,7 +655,10 @@
                Record the error to the span as an 'error', attaching Message, Error.Kind and Error.Object to the span,
                and return the span."))
 
-(defprotocol TraceSpanLogMap
+(defprotocol ^{:deprecated "0.7.0"} TraceSpanLogMap
+
+  "Telemetry support in the pedestal.log library has been deprecated."
+
   (-log-span-map [t msg-map]
                  [t msg-map micros]
                  "Given a span, a map of fields, and optionally an explicit timestamp in microseconds,
@@ -658,7 +670,10 @@
                  Some Trace Recorders don't fully support round-tripping maps -- use carefully.
                  Some Trace platforms have semantics around key/values, eg. https://github.com/opentracing/specification/blob/master/semantic_conventions.md"))
 
-(defprotocol TraceSpanBaggage
+(defprotocol ^{:deprecated "0.7.0"} TraceSpanBaggage
+
+  "Telemetry support in the pedestal.log library has been deprecated."
+
   (-set-baggage [t k v]
                 "Given a span, a baggage key (String) and baggage value (String),
                 add the key and value to the Span (and any additional context holding the span).
@@ -676,7 +691,10 @@
                     "Given a span,
                     return a Map of all baggage items."))
 
-(defprotocol TraceOrigin
+(defprotocol ^{:deprecated "0.7.0"} TraceOrigin
+
+  "Telemetry support in the pedestal.log library has been deprecated."
+
   (-register [t]
              "Given a Tracer/TraceOrigin
              perform whatver steps are necessary to register that Tracer/TraceOrigin
@@ -858,16 +876,16 @@
 (declare default-tracer)
 
 ;; OpenTracing Logging -- Semantic Fields
-(def span-log-event      io.opentracing.log.Fields/EVENT)
-(def span-log-msg        io.opentracing.log.Fields/MESSAGE)
-(def span-log-error-kind io.opentracing.log.Fields/ERROR_KIND)
-(def span-log-error-obj  io.opentracing.log.Fields/ERROR_OBJECT)
-(def span-log-stack      io.opentracing.log.Fields/STACK)
+(def ^{:deprecated "0.7.0"} span-log-event      io.opentracing.log.Fields/EVENT)
+(def ^{:deprecated "0.7.0"} span-log-msg        io.opentracing.log.Fields/MESSAGE)
+(def ^{:deprecated "0.7.0"} span-log-error-kind io.opentracing.log.Fields/ERROR_KIND)
+(def ^{:deprecated "0.7.0"} span-log-error-obj  io.opentracing.log.Fields/ERROR_OBJECT)
+(def ^{:deprecated "0.7.0"} span-log-stack      io.opentracing.log.Fields/STACK)
 
 ;; Public Tracing API
 ;; -------------------
 
-(defn span
+(defn ^{:deprecated "0.7.0"} span
   "Given an operation name,
   and optionally a parent Span, and optionally a map of options
   return a new Span with the operation name set, started, and active.
@@ -887,13 +905,13 @@
    (-activate-span default-tracer
                    (-span default-tracer operation-name parent-span opts))))
 
-(defn active-span
+(defn ^{:deprecated "0.7.0"} active-span
   "Return the current active span;
   Returns nil if there isn't an active span."
   []
   (-active-span default-tracer))
 
-(defn tag-span
+(defn ^{:deprecated "0.7.0"} tag-span
   "Tag a given span.
 
   Tags can be expressed as:
@@ -916,7 +934,7 @@
            (-tag-span span tag-k tag-v)
            (partition 2 kvs))))
 
-(defn log-span
+(defn ^{:deprecated "0.7.0"} log-span
   "Log to a given span, and return the span.
 
   If the log message is a string, the message is logged as an info 'message'.
@@ -942,7 +960,7 @@
                                     "\nProblem pair seq: " (pr-str kvs)))
    (-log-span-map span (assoc (apply hash-map kvs) k v))))
 
-(defn span-baggage
+(defn ^{:deprecated "0.7.0"} span-baggage
   ([span]
    (-get-baggage-map span))
   ([span k]
@@ -950,7 +968,7 @@
   ([span k not-found]
    (-get-baggage span k not-found)))
 
-(defn add-span-baggage!
+(defn ^{:deprecated "0.7.0"}add-span-baggage!
   ([span m]
    (reduce-kv (fn [span' k v]
                 (-set-baggage span' k v))
@@ -967,12 +985,12 @@
            (-set-baggage span bag-k bag-v)
            (partition 2 kvs))))
 
-(defn finish-span
+(defn  ^{:deprecated "0.7.0"} finish-span
   "Given a span, finish the span and return it."
   [span]
   (-finish-span span))
 
-(def default-tracer
+(def ^{:deprecated "0.7.0"} default-tracer
   "This is the default Tracer, registered as the OpenTracing's GlobalTracer.
   This value is configured by setting the JVM Property 'io.pedestal.log.defaultTracer'
   or the environment variable 'PEDESTAL_TRACER'.
