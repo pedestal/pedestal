@@ -12,6 +12,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.sse
+  "Support for Server Sent Events."
   (:require [ring.util.response :as ring-response]
             [clojure.core.async :as async]
             [io.pedestal.http.servlet :refer :all]
@@ -22,8 +23,6 @@
   (:import
     [java.util.concurrent Executors ThreadFactory ScheduledExecutorService]
     [com.fasterxml.jackson.core.util ByteArrayBuilder]))
-
-(set! *warn-on-reflection* true)
 
 (def ^String UTF-8 "UTF-8")
 

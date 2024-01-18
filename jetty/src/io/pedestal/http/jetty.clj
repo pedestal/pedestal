@@ -12,6 +12,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
+  "Jetty adaptor for Pedestal."
   (:require [io.pedestal.http.jetty.container]
             [clojure.string :as string]
             [io.pedestal.websocket :as ws])
@@ -196,14 +197,17 @@
       (context-configurator service-context-handler))
     (configurator server)))
 
-(defn start
+(defn ^{:deprecated "0.7.0"} start
+  "Deprecated; to be made private in the future."
   [^Server server
-   {:keys [join?] :or {join? true} :as options}]
+   {:keys [join?] :or {join? true} }]
   (.start server)
   (when join? (.join server))
   server)
 
-(defn stop [^Server server]
+(defn ^{:deprecated "0.7.0"} stop
+  "Deprecated; to be made private in the future."
+  [^Server server]
   (.stop server)
   server)
 

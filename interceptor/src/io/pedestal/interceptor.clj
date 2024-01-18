@@ -27,9 +27,11 @@
               "#Interceptor{}")))
 
 (defprotocol IntoInterceptor
+
+  "Conversion into Interceptor, ready for execution as part of an interceptor chain."
+
   (-interceptor [t] "Given a value, produce an Interceptor Record."))
 
-(declare interceptor)
 (extend-protocol IntoInterceptor
 
   IPersistentMap
@@ -42,26 +44,28 @@
       ;; To some degree, support backwards compatibility
       (if (or (:interceptor int-meta)
               (:interceptorfn int-meta))
-        (interceptor (t))
-        (interceptor {:enter (fn [context]
+        (-interceptor (t))
+        (-interceptor {:enter (fn [context]
                                (assoc context :response (t (:request context))))}))))
 
   IPersistentList
-  (-interceptor [t] (interceptor (eval t)))
+  (-interceptor [t] (-interceptor (eval t)))
 
   Cons
-  (-interceptor [t] (interceptor (eval t)))
+  (-interceptor [t] (-interceptor (eval t)))
 
   Symbol
-  (-interceptor [t] (interceptor (resolve t)))
+  (-interceptor [t] (-interceptor (resolve t)))
 
   Var
-  (-interceptor [t] (interceptor (deref t)))
+  (-interceptor [t] (-interceptor (deref t)))
 
   Interceptor
   (-interceptor [t] t))
 
 (defn interceptor-name
+  "Ensures that an interceptor name (to eventually by the :name value of an Interceptor)
+  is either a keyword or nil.  Generally, interceptor names should be namespace-qualified keywords."
   [n]
   (if-not (or (nil? n) (keyword? n))
     (throw (ex-info (str "Name must be keyword or nil; Got: " (pr-str n)) {:name n}))

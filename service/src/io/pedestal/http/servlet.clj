@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -12,7 +13,8 @@
 
 (ns io.pedestal.http.servlet
   "Generic Servlet adapter that closes over its implementation
-  functions."
+  functions; this dynamically creates a Servlet instance that can be used with
+  a servlet container such as Jetty."
   (:import (jakarta.servlet Servlet ServletConfig)))
 
 ;; Do not construct instances directly; use the 'servlet' function.

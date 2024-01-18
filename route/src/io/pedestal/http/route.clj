@@ -335,9 +335,11 @@
   "Returns a function that generates URL routes (as strings) from the
   routes table. The returned function has the signature:
 
-     [route-name & options]
+  ```
+      [route-name & options]
+  ```
 
-  Where 'options' are key-value pairs from:
+  Where `options` are key-value pairs from:
 
      :app-name      Application name specified for this route
 
@@ -409,6 +411,8 @@
   The available options are as described in [[url-for-routes]]."
   [route-name & options]
   (if *url-for*
+    ;; The linker (stored in *url-for*) is rarely used outside of tests, so it is a delay object
+    ;; that must be de-referenced so it can initialize on first invocation.
     (apply @*url-for* route-name options)
     (throw (ex-info "*url-for* not bound" {}))))
 
@@ -437,7 +441,8 @@
 
 (defn expand-routes
   "Given a value (the route specification), produce and return a routing table,
-  a seq of verbose routing maps.
+  a seq of verbose routing maps. The routing table can then be converted
+  to a [[Router]] using a number of routing algorithms.
 
   A route specification is any type that satisfies [[ExpandableRoutes]];
   this includes Clojure vectors, maps, and sets (for terse, table, and verbose routes).
@@ -458,19 +463,21 @@
 
 (defprotocol RouterSpecification
   (router-spec [routing-table router-ctor]
-    "Returns an interceptor which attempts to match each route against
+    "Given a routing-table (usually, via [[expand-routes]] and a routing contructor
+    functions, returns an interceptor which attempts to match each route against
     a :request in context. For the first route that matches, it will:
 
     - enqueue the matched route's interceptors
-    - associate the route into the context at :route
+    - associate the route into the context as key :route
     - associate a map of :path-params into the :request
 
-  If no route matches, returns context with :route nil."))
+  If no route matches, returns the context with :route nil."))
 
 (defn- route-context [context router routes]
   (if-let [route (router/find-route router (:request context))]
     ;;  This is where path-params are added to the request.
     (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
+          ;; Rarely used, potentially expensive to create, delay creation until needed.
           linker (delay (url-for-routes routes :request request-with-path-params))]
       (-> context
           (assoc :route route
@@ -634,10 +641,12 @@
   (internal/print-routing-table expanded-routes))
 
 (defn try-routing-for
-  "Used for testing; constructs a router from the routing-table and router-type and perform routing, returning the matched
-  route (from the expanded routes), or nil if routing was unsuccessful."
+  "Used for testing; constructs a router from the routing-table and router-type and performs routing
+  on the provided path and verb (e.g., :get or :post).
+
+  Returns the matched route (a map from the routing table), or nil if routing was unsuccessful."
   [routing-table router-type path verb]
-  (let [router  (router routing-table router-type)
+  (let [router  (router routing-table router-type)          ; create a disposable interceptor
         context {:request {:path-info path
                            :request-method verb}}
         context ((:enter router) context)]
@@ -647,9 +656,9 @@
 (defmacro routes-from
   "Wraps around an expression that provides the routing specification.
 
- In production mode (the default) evaluates to the routing expression, unchanged.
+ In production mode (the default) evaluates to the expression, unchanged.
 
- In development mode (see [[dev-mode?]]), evaluates to a function that, when invoked, returns the routing expression
+ In development mode (see [[dev-mode?]]), evaluates to a function that, when invoked, returns the expression
  passed through [[expand-routes]]; this
  is to support a REPL workflow. This works in combination with the extension of [[RouterSpecification]]
  onto Fn, which requires that the returned routing specification be expanded.
