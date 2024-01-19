@@ -19,15 +19,127 @@ a WAR] and deploy into Jetty, or another servlet container).
 
     clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
+You will need the very latest version of this, version 0.7.0; you should re-execute the above command to ensure you have the latest.
+
+
+You will also https://github.com/seancorfield/deps-new#more-general-usage[need some scaffolding] in your `~/.clojure/deps.edn`; add the following
+to the :aliases map:
+
+    :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}}
+
+TIP: This step is only necessary if Clojure 1.12 is not your default; at the time
+of writing, 1.12 was still in alpha.
+
 
 == Creating a project
 
 Before you begin, you should decide on a _group name_ and _project name_ for your new Pedestal application.
 These are combined with a slash to form the full project name.
 
-For example, you might chose `com.blueant` as your group name, and `peripheral` as you project name (we'll use
+For example, you might choose `com.blueant` as your group name, and `peripheral` as you project name (we'll use
 this example below), in which case, your full project name is `com.blueant/peripheral`.
 
 `deps-new` will create a new project in a subdirectory matching your project name: `peripheral`.
 
+The command for this is somewhat arcane:
 
+```
+clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded :name com.blueant/peripheral
+```
+
+TIP: The `-A:1.12` option references the global alias you set up earlier and, again,
+is only needed if Clojure 1.12 is not your default.
+
+Example:
+
+```
+> clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded :name com.blueant/peripheral
+
+Resolving io.github.pedestal/pedestal as a git dependency
+Creating project from io.pedestal/embedded in peripheral
+> tree peripheral
+peripheral
+├── CHANGELOG.md
+├── LICENSE
+├── README.md
+├── build.clj
+├── deps.edn
+├── dev
+│   ├── dev.clj
+│   └── user.clj
+├── doc
+│   └── intro.md
+├── resources
+│   └── public
+│       └── index.html
+├── src
+│   └── com
+│       └── blueant
+│           └── peripheral
+│               ├── routes.clj
+│               └── service.clj
+├── test
+│   └── com
+│       └── blueant
+│           └── peripheral
+│               └── service_test.clj
+└── test-resources
+    └── logback-test.xml
+
+14 directories, 13 files
+>
+```
+
+TIP: The exact set of files created may change over time, as the embedded
+template evolves.
+
+## Exploring the new project
+
+From the new directory (`peripheral`) you can run tests:
+
+```
+> clj -T:build test
+
+Running tests in #{"test"}
+
+Testing com.blueant.peripheral.service-test
+
+Ran 2 tests containing 2 assertions.
+0 failures, 0 errors.
+>
+```
+
+You can also fire up a REPL and start the service:
+
+
+```
+> clj -A:test:dev-mode
+Clojure 1.11.1
+user=> (use 'dev)
+nil
+user=> (go)
+Routing table:
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃ Path   ┃ Name                                 ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+#:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__17265 0x6853bae "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__17265@6853bae"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__17934 0x26714a4a "io.pedestal.http.jetty$server$fn__17934@26714a4a"], :resource-path "public", :interceptors [#Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/exception-debug} #Interceptor{:name :io.pedestal.http.cors/dev-allow-origin} #Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.ring-middlewares/resource} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes #object[com.blueant.peripheral.service$service_map$fn__17845 0x7589371f "com.blueant.peripheral.service$service_map$fn__17845@7589371f"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x46a4eecd "io.pedestal.http.servlet.FnServlet@46a4eecd"], :server #object[org.eclipse.jetty.server.Server 0x1cc1ddad "Server@1cc1ddad{STARTED}[11.0.18,sto=0]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__17936 0x6953f5fc "io.pedestal.http.jetty$server$fn__17936@6953f5fc"]}
+user=>
+```
+
+From another window, you can open http://localhost:8080/index.html, to see
+a brief welcoming page.
+
+The `dev` namespace provides the functions `go`, 'start', and 'stop'.
+
+The `:test` alias sets up the classpath so that the `dev` namespace is
+available.
+
+The `:dev-mode` alias enables
+xref:live-repl.adoc[REPL oriented development mode], including
+the output of the routing table as the service started.
+
+The template provides a tiny amount of structure and examples; it's a seed
+from which you can grow a full project, but small as it is, it's worth
+exploring it in more detail.
