@@ -4,6 +4,7 @@
 *** xref:hello-world-query-parameters.adoc[]
 *** xref:hello-world-content-types.adoc[]
 *** xref:your-first-api.adoc[]
+** xref:embedded-template.adoc[]
 ** xref:defining-routes.adoc[]
 ** xref:what-is-an-interceptor.adoc[]
 ** xref:developing-at-the-repl.adoc[]

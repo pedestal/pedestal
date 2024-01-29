@@ -12,7 +12,7 @@ Routing is the process of recognizing an incoming request, and matching it to a 
 A route identifies a particular request path and request method (such as :get or :post) and identifies
 corresponding behavior in terms of a handler function, or a list of interceptors to execute.
 
-A _routing specification_ is data that can be transformed and linked with a specific routing algorithm
+A _route specification_ is data that can be transformed and linked with a specific routing algorithm
 to form a routing interceptor:
 
 [mermaid]
