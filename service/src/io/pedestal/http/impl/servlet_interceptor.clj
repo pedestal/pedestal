@@ -25,6 +25,7 @@
             [io.pedestal.http.request.map :as request-map]
             [ring.util.response :as ring-response]
             [clojure.spec.alpha :as s]
+            [io.pedestal.metrics :as metrics]
     ;; for side effects:
             io.pedestal.http.route
             io.pedestal.http.request.servlet-support
@@ -96,6 +97,8 @@
   (let [output-stream (.getOutputStream servlet-resp)]
     (write-body-to-stream body output-stream)))
 
+(def ^:private async-write-errors-fn (metrics/counter ::async-write-errors nil))
+
 (defprotocol WriteableBodyAsync
   (write-body-async [body servlet-response resume-chan context]))
 
@@ -117,6 +120,7 @@
                           :exception t
                           :src-chan body)
                 (do (log/meter ::async-write-errors)
+                    (async-write-errors-fn)
                     (log/error :msg "An error occurred when async writing to the client"
                                :throwable t
                                :src-chan body)))
@@ -350,31 +354,37 @@
   context map containing :servlet, :servlet-config, :servlet-request,
   and :servlet-response."
   [interceptors default-context]
-  (fn [^Servlet servlet servlet-request servlet-response]
-    (let [context (-> default-context
-                      (assoc :servlet-request servlet-request
-                             :servlet-response servlet-response
-                             :servlet-config (.getServletConfig servlet)
-                             :servlet servlet
-                             :request (request-map/servlet-request-map servlet servlet-request servlet-response)))]
-      (log/debug :in :interceptor-service-fn
-                 :context context)
-      (log/counter :io.pedestal/active-servlet-calls 1)
-      (try
-        (let [final-context (interceptor.chain/execute context interceptors)]
-          (log/debug :msg "Leaving servlet"
-                     ;; This will be nil if the execution went async
-                     :final-context final-context))
-        (catch EOFException e
-          (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
-        (catch Throwable t
-          (log/meter ::base-servlet-error)
-          (log/error :msg "Servlet code threw an exception"
-                     :throwable t
-                     :cause-trace (with-out-str
-                                    (stacktrace/print-cause-trace t))))
-        (finally
-          (log/counter :io.pedestal/active-servlet-calls -1))))))
+  (let [error-metric-fn (metrics/counter ::base-servlet-error nil)
+        *active-calls   (atom 0)]
+    (metrics/gauge :io.pedestal/active-servlet-calls nil #(deref *active-calls))
+    (fn [^Servlet servlet servlet-request servlet-response]
+      (let [context (-> default-context
+                        (assoc :servlet-request servlet-request
+                               :servlet-response servlet-response
+                               :servlet-config (.getServletConfig servlet)
+                               :servlet servlet
+                                        :request (request-map/servlet-request-map servlet servlet-request servlet-response)))]
+        (log/debug :in :interceptor-service-fn
+                   :context context)
+        (log/counter :io.pedestal/active-servlet-calls 1)
+        (swap! *active-calls inc)
+        (try
+          (let [final-context (interceptor.chain/execute context interceptors)]
+            (log/debug :msg "Leaving servlet"
+                       ;; This will be nil if the execution went async
+                       :final-context final-context))
+          (catch EOFException e
+            (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
+          (catch Throwable t
+            (log/meter ::base-servlet-error)
+            (error-metric-fn)
+            (log/error :msg "Servlet code threw an exception"
+                       :throwable t
+                       :cause-trace (with-out-str
+                                      (stacktrace/print-cause-trace t))))
+          (finally
+            (log/counter :io.pedestal/active-servlet-calls -1)
+            (swap! *active-calls dec)))))))
 
 (s/def ::http-interceptor-service-fn-options
   (s/keys :opt-un [::exception-analyzer]))

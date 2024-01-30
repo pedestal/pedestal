@@ -13,7 +13,8 @@
 
 (ns io.pedestal.http.sse
   "Support for Server Sent Events."
-  (:require [ring.util.response :as ring-response]
+  (:require [io.pedestal.metrics :as metrics]
+            [ring.util.response :as ring-response]
             [clojure.core.async :as async]
             [io.pedestal.http.servlet :refer :all]
             [io.pedestal.log :as log]
@@ -75,6 +76,8 @@
      (.write bab ^bytes CRLF)
      (.toByteArray bab))))
 
+(def ^:private payload-size-fn (metrics/distribution-summary ::payload-size nil))
+
 (defn send-event
   ([channel name data]
    (send-event channel name data nil))
@@ -86,6 +89,7 @@
               :data data
               :id id)
    (log/histogram ::payload-size (count data))
+   (payload-size-fn (count data))
    (try
      (put-fn channel (mk-data name data id))
      (catch Throwable t
@@ -127,37 +131,41 @@
   on `event-channel` to the HTTP infrastructure via
   `response-channel`."
   [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
-  (async/go
-    (log/counter ::active-streams 1)
-    (try
-      (loop []
-        (let [hb-timeout (async/timeout (* 1000 heartbeat-delay))
-              [event port] (async/alts! [event-channel hb-timeout])]
-          (cond
-            (= port hb-timeout)
-            (if (async/>! response-channel CRLF)
-              (recur)
-              (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
-
-            (and (some? event) (= port event-channel))
-            ;; You can name your events using the maps
-            ;; {:name "my-event" :data "some message data here"}
-            ;; .. and optionally supply IDs (strings) that make sense to your application
-            ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
-            (let [event-name (if (map? event) (str (:name event)) nil)
-                  event-data (if (map? event) (str (:data event)) (str event))
-                  event-id (if (map? event) (str (:id event)) nil)]
-              (if (send-event response-channel event-name event-data event-id async/put!)
+  (let [*active-streams (atom 0)]
+    (metrics/gauge ::active-streams nil #(deref *active-streams))
+    (async/go
+      (log/counter ::active-streams 1)
+      (swap! *active-streams inc)
+      (try
+        (loop []
+          (let [hb-timeout (async/timeout (* 1000 heartbeat-delay))
+                [event port] (async/alts! [event-channel hb-timeout])]
+            (cond
+              (= port hb-timeout)
+              (if (async/>! response-channel CRLF)
                 (recur)
-                (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+                (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
-            :else
-            (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
-      (finally
-        (async/close! event-channel)
-        (async/close! response-channel)
-        (log/counter ::active-streams -1)
-        (when on-client-disconnect (on-client-disconnect))))))
+              (and (some? event) (= port event-channel))
+              ;; You can name your events using the maps
+              ;; {:name "my-event" :data "some message data here"}
+              ;; .. and optionally supply IDs (strings) that make sense to your application
+              ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
+              (let [event-name (if (map? event) (str (:name event)) nil)
+                    event-data (if (map? event) (str (:data event)) (str event))
+                    event-id   (if (map? event) (str (:id event)) nil)]
+                (if (send-event response-channel event-name event-data event-id async/put!)
+                  (recur)
+                  (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+
+              :else
+              (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
+        (finally
+          (async/close! event-channel)
+          (async/close! response-channel)
+          (log/counter ::active-streams -1)
+          (swap! *active-streams dec)
+          (when on-client-disconnect (on-client-disconnect)))))))
 
 (defn start-stream
   "Starts an SSE event stream and initiates a heartbeat to keep the

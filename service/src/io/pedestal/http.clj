@@ -31,6 +31,7 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
+            [io.pedestal.metrics :as metrics]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
@@ -82,6 +83,8 @@
 ;; Where the macro tries to call a function on 0-arity, but the actual
 ;; interceptor (already compiled) requires a 2-arity version.
 
+(def ^:private request-meter-fn (metrics/counter ::request nil))
+
 (def log-request
   "Log the request's method and uri."
   (helpers/on-request
@@ -91,6 +94,7 @@
                              (string/upper-case (name (:request-method request)))
                              (:uri request)))
       (log/meter ::request)
+      (request-meter-fn)
       request)))
 
 (defn response?
@@ -100,6 +104,8 @@
   (and (map? resp)
        (integer? (:status resp))))
 
+(def ^:private not-found-meter-fn (metrics/counter ::not-found nil))
+
 (def not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
   (helpers/after
@@ -107,6 +113,7 @@
     (fn [context]
       (if-not (response? (:response context))
         (do (log/meter ::not-found)
+            (not-found-meter-fn)
             (assoc context :response (ring-response/not-found "Not Found")))
         context))))
 
