@@ -28,6 +28,10 @@
   [metric-name tags]
   (mm/get-timer metrics/*default-metric-source* metric-name tags))
 
+(defn- get-summary
+  [metric-name tags]
+  (mm/get-distribution-summary metrics/*default-metric-source* metric-name tags))
+
 
 (deftest counter-by-keyword-and-string-name-are-the-same
   (let [metric-name "foo.bar.baz"
@@ -43,6 +47,12 @@
     (f2 5)
 
     (is (= 6.0 (.count counter)))))
+
+(deftest counter-uniqueness
+  (let [metric-name ::counter
+        tags        {::gnip :gnop}]
+    (is (identical? (metrics/counter metric-name tags)
+                    (metrics/counter metric-name tags)))))
 
 (deftest counter-by-keyword-or-symbol-are-the-same
   (let [metric-sym 'foo.bar/baz
@@ -193,6 +203,12 @@
 
     (is (= 1 (.count timer)))))
 
+(deftest timer-uniqueness
+  (let [metric-name ::unique
+        tags        {:one :two}]
+    (is (identical? (metrics/timer metric-name tags)
+                    (metrics/timer metric-name tags)))))
+
 (deftest parallel-timers
   (let [metric-name ::db-read
         tags        {::this :that}
@@ -224,4 +240,30 @@
                           ::result)))
     (is (= 1 (.count timer)))
     (is (= 2500.0 (.totalTime timer TimeUnit/MILLISECONDS)))))
+
+(deftest distribution-summary
+  (let [metric-name ::summary
+        tags        {::this :that}
+        f           (metrics/distribution-summary metric-name tags)
+        summary     (get-summary metric-name tags)]
+
+    (is (= 0 (.count summary)))
+
+
+    (is (nil? (f 100)))
+
+    (is (= 1 (.count summary)))
+    (is (= 100.0 (.mean summary)))
+
+
+    (f 200)
+
+    (is (= 2 (.count summary)))
+    (is (= 150.0 (.mean summary)))))
+
+(deftest distribution-summary-uniqueness
+  (let [metric-name ::frodo
+        tags        {::ring :bearer}]
+    (is (identical? (metrics/distribution-summary metric-name tags)
+                    (metrics/distribution-summary metric-name tags)))))
 

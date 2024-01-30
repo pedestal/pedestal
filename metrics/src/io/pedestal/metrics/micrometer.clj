@@ -13,10 +13,10 @@
   "Default metrics implementation based on Micrometer."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi])
-  (:import (io.micrometer.core.instrument Counter Gauge MeterRegistry Metrics Tag Timer)
+  (:import (io.micrometer.core.instrument Counter DistributionSummary Gauge MeterRegistry Tag Timer)
            (io.micrometer.core.instrument.simple SimpleMeterRegistry)
            (io.pedestal.metrics.spi MetricSource)
-           (java.util.concurrent CountDownLatch TimeUnit)
+           (java.util.concurrent TimeUnit)
            (java.util.function Supplier)))
 
 (defprotocol MeterRegistrySource
@@ -41,19 +41,6 @@
     :else
     (throw (ex-info (str "Invalid metric name: " metric-name)
                     {:metric-name metric-name}))))
-
-#_
-(defn add-registry
-  "Adds a new registry to the global registry."
-  [^MeterRegistry registry]
-  (Metrics/addRegistry registry))
-
-#_
-(defn set-registry
-  "Replaces the default SimpleMeterRegistry with the provided registry."
-  [^MeterRegistry new-registry]
-  (Metrics/addRegistry new-registry)
-  (Metrics/removeRegistry default-registry))
 
 (defn- convert-key
   [k]
@@ -127,6 +114,16 @@
           (when (compare-and-set! *first? true false)
             (.record timer (- (time-source-fn) start-nanos) TimeUnit/NANOSECONDS)))))))
 
+(defn- new-distribution-summary
+  [^MeterRegistry registry metric-name tags]
+  (let [summary (-> (DistributionSummary/builder (convert-metric-name metric-name))
+                    (.tags (iterable-tags metric-name tags))
+                    (.register registry))]
+    (fn record-value
+      [value]
+      (.record summary (double value))
+      nil)))
+
 (defn- write-to-cache
   [*cache k value]
   (swap! *cache assoc k value)
@@ -147,14 +144,15 @@
    ;; Can't have meters with same name but different type. This is caught on metric creation.
    ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
    ;; of a (function wrapped around a) counter.
-   (let [*counters (atom {})
-         *gauges   (atom {})
-         *timers   (atom {})]
+   (let [*counters  (atom {})
+         *gauges    (atom {})
+         *timers    (atom {})
+         *summaries (atom {})]
      (reify spi/MetricSource
 
        (counter [_ metric-name tags]
          (let [k [metric-name tags]]
-           (or (get-in @*counters k)
+           (or (get @*counters k)
                (write-to-cache *counters k
                                (new-counter registry metric-name tags)))))
 
@@ -170,8 +168,13 @@
 
        (timer [_ metric-name tags]
          (let [k [metric-name tags]]
-           (or (get-in @*timers k)
+           (or (get @*timers k)
                (write-to-cache *timers k (new-timer registry metric-name tags time-source-fn)))))
+
+       (distribution-summary [_ metric-name tags]
+         (let [k [metric-name tags]]
+           (or (get @*summaries k)
+               (write-to-cache *summaries k (new-distribution-summary registry metric-name tags)))))
 
        MeterRegistrySource
 
@@ -204,3 +207,9 @@
   (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
       (.tags (iterable-tags metric-name tags))
       .timer))
+
+(defn get-distribution-summary
+  [metric-source metric-name tags]
+  (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
+      (.tags (iterable-tags metric-name tags))
+      .summary))

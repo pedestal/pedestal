@@ -91,6 +91,18 @@
   [metric-name tags & body]
   `(timed* *default-metric-source* ~metric-name ~tags ~@body))
 
+(defn distribution-summary
+  "Creates a distribution summary, which tracks the number of events and a dimension for each event;
+  internally, distributes different events to various bucket ranges, yielding a histogram of sizes of
+  the event; a comment example is to use a distribution summary to track the size of incoming requests
+  or outgoing responses.
+
+  Returns a function that records the dimension of an event."
+  ([metric-name tags]
+   (distribution-summary *default-metric-source* metric-name tags))
+  ([metric-source metric-name tags]
+   (spi/distribution-summary metric-source metric-name tags)))
+
 
 
 

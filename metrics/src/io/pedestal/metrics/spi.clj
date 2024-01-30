@@ -9,13 +9,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
+
 (ns io.pedestal.metrics.spi
   "Service Provider Interface for metrics providers; protocols that providers should expose and implement."
   {:since "0.7.0"})
 
 (defprotocol MetricSource
 
-  "Provides methods to find or create counters and gauges.
+  "Provides methods to find or create counters, timers, and gauges.
 
   Metrics are created using a metric-name (which can be a string, keyword, or symbol)
   and tags (which may be nil).  Tags are sometimes referred to as dimensions, and may
@@ -26,11 +27,12 @@
   the leading `:` is stripped off.  Tag keys may be strings, keywords or symbols;
   Tag values are the same, but may also be numbers or booleans.
 
-  Metric names are required, but tags may be nil.
-  "
+  Metric names are required, but tags may be nil."
 
   (counter [source metric-name tags]
     "Finds or creates a counter metric with the given metric name.
+
+    Counters should only ever increase.
 
     Returns a function used to increment the counter.  Invoked with no arguments,
     increments the counter by 1, or with a single numeric argument, increments
@@ -49,4 +51,10 @@
     "Finds or creates a timer, returning the timer's trigger function.
 
     When invoked, the trigger function starts a timer and returns a
-    new function that stops the timer."))
+    new function that stops the timer.")
+
+  (distribution-summary [source metric-name tags]
+    "Finds or creates a distribution summary, returning a function.
+
+    The function is passed a value, to record that value as a new event that will be
+    included in the distribution summary."))
