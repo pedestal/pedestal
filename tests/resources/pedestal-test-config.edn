@@ -1,0 +1,3 @@
+{
+ :overridden io.pedestal.internal-test/test-overridden
+ }

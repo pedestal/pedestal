@@ -1,0 +1,7 @@
+{
+ :not-overridden io.pedestal.internal-test/prod-not-overridden
+ :overridden io.pedestal.internal-test/prod-overridden
+ :string         "io.pedestal.internal-test/via-string-key"
+ :just-symbol just-a-symbol
+ :not-a-symbol 42
+ }
