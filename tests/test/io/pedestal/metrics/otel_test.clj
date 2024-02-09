@@ -16,21 +16,23 @@
             [io.pedestal.metrics.otel :as otel]
             [clojure.test :refer [deftest is are use-fixtures]])
   (:import (clojure.lang ExceptionInfo)
-           (io.opentelemetry.api.metrics LongCounter LongCounterBuilder Meter)))
+           (io.opentelemetry.api.metrics DoubleGaugeBuilder LongCounter LongCounterBuilder LongGaugeBuilder Meter
+                                         ObservableLongGauge ObservableLongMeasurement)
+           (java.util.function Consumer)))
 
 (def *now (atom 0))
 
-(def *calls (atom nil))
+(def *events (atom nil))
 
-(defn- calls
-  "Returns value of *calls before clearing it."
+(defn- events
+  "Returns value of **events before clearing it."
   []
-  (let [result @*calls]
-    (reset! *calls [])
+  (let [result @*events]
+    (reset! *events [])
     result))
 
 (defn- event [& args]
-  (swap! *calls i/vec-conj (vec args)))
+  (swap! *events i/vec-conj (vec args)))
 
 (defn mock-counter-builder
   [name]
@@ -58,18 +60,50 @@
     (add [_ value attributes]
       (event :add name value attributes))))
 
+
+(defn mock-long-gauge-builder
+  [name]
+  (reify
+    LongGaugeBuilder
+
+    (setDescription [this description]
+      (event :setDescription name description)
+      this)
+
+    (setUnit [this unit]
+      (event :setUnit name unit)
+      this)
+
+    (buildWithCallback [this callback]
+      (event :buildWithCallback name callback)
+      this)
+
+    ObservableLongGauge))
+
+(defn mock-double-gauge-builder
+  [name]
+  (reify
+    DoubleGaugeBuilder
+
+    (ofLongs [_]
+      (event :ofLongs name)
+      (mock-long-gauge-builder name))))
+
 (def mock-meter
   (reify
 
     Meter
 
     (counterBuilder [_ name]
-      (mock-counter-builder name))))
+      (mock-counter-builder name))
+
+    (gaugeBuilder [_ name]
+      (mock-double-gauge-builder name))))
 
 (defn mock-metric-fixture
   [f]
   (binding [metrics/*default-metric-source* (otel/wrap-meter mock-meter)]
-    (reset! *calls [])
+    (reset! *events [])
     (f)))
 
 (use-fixtures :each mock-metric-fixture)
@@ -90,17 +124,17 @@
     ;; the application supplied key.
     (is (match? [[:build-counter "foo.bar.baz"]
                  [:build-counter "foo.bar.baz"]]
-                (calls)))
+                (events)))
 
     (f1)
 
     (is (match? [[:add "foo.bar.baz" 1 empty-attributes]]
-                (calls)))
+                (events)))
 
     (f2 5)
 
     (is (match? [[:add "foo.bar.baz" 5 empty-attributes]]
-                (calls)))))
+                (events)))))
 
 (deftest counter-with-description-and-unit
   (let [metric-name :gnip.gnop
@@ -111,11 +145,11 @@
     (is (match? [[:setDescription "gnip.gnop" "description"]
                  [:setUnit "gnip.gnop" "unit"]
                  [:build-counter "gnip.gnop"]]
-                (calls)))
+                (events)))
 
     (f 99)
     (is (match? [[:add "gnip.gnop" 99 clojure-domain-attributes]]
-                (calls)))))
+                (events)))))
 
 (deftest valid-metric-names
   (are [expected input] (= expected (convert-metric-name input))
@@ -138,3 +172,52 @@
            (ex-message e)))
     (is (= {:metric-name {}})
         (ex-data e))))
+
+(defn- extract-callback [events]
+  (let [[_ _ callback] (->> events
+                            (filter #(-> % first (= :buildWithCallback)))
+                            first)]
+    callback))
+
+(deftest create-gauge
+  (let [f                  (constantly 1547)
+        _                  (metrics/gauge :example.gauge
+                                          {::metrics/description "gauge description"
+                                           ::metrics/unit        "yawns"
+                                           :domain               "clojure"}
+                                          f)
+        setup-events       (events)
+        _                  (is (match? [[:ofLongs "example.gauge"]
+                                        [:setDescription "example.gauge" "gauge description"]
+                                        [:setUnit "example.gauge" "yawns"]
+                                        [:buildWithCallback "example.gauge" (m/pred some?)]]
+                                       setup-events))
+        ^Consumer callback (extract-callback setup-events)
+        olm                (reify ObservableLongMeasurement
+                             (record [_ value attributes]
+                               (event :olm-record value attributes)))]
+
+    ;; The callback is passed the OLM and its job is to call the function and report its value
+    ;; to the OLM via its .record method.
+
+    (.accept callback olm)
+    (is (match? [[:olm-record 1547 clojure-domain-attributes]]
+                (events)))))
+
+(deftest create-duplicate-gauge
+  (metrics/gauge "foo.bar.baz" {} (constantly -97))
+
+  (is (match? [[:ofLongs "foo.bar.baz"]
+               [:buildWithCallback "foo.bar.baz" (m/pred some?)]]
+              (events)))
+
+  (metrics/gauge "foo.bar.baz" {} (constantly 42))
+
+  ;; Same name, attributes -> same gauge.
+  ;; This is somewhat dicey as the reported value could be different and the new
+  ;; value gets forgotten. But it's not clear what it means to build a duplicate gauge
+  ;; inside open telemetry.
+
+  (is (= []
+         (events))))
+

@@ -14,7 +14,8 @@
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi])
   (:import (io.opentelemetry.api.common AttributeKey Attributes AttributesBuilder)
-           (io.opentelemetry.api.metrics Meter)))
+           (io.opentelemetry.api.metrics Meter ObservableLongMeasurement)
+           (java.util.function Consumer)))
 
 (defn- convert-metric-name
   [metric-name]
@@ -59,16 +60,31 @@
 (defn- new-counter
   [^Meter meter metric-name tags]
   (let [{:io.pedestal.metrics/keys [description unit]} tags
-        counter    (cond-> (.counterBuilder meter (convert-metric-name metric-name))
-                           description (.setDescription description)
-                           unit (.setUnit unit)
-                           true .build)
+        counter    (-> (.counterBuilder meter (convert-metric-name metric-name))
+                       (cond->
+                         description (.setDescription description)
+                         unit (.setUnit unit))
+                       .build)
         attributes (tags->attributes tags)]
     (fn
       ([]
        (.add counter 1 attributes))
       ([increment]
        (.add counter increment attributes)))))
+
+(defn- new-gauge
+  [^Meter meter metric-name tags value-fn]
+  (let [{:io.pedestal.metrics/keys [description unit]} tags
+        attributes (tags->attributes tags)
+        callback   (reify Consumer
+                     (accept [_ measurement]
+                       (.record ^ObservableLongMeasurement measurement (value-fn) attributes)))]
+    (-> (.gaugeBuilder meter (convert-metric-name metric-name))
+        .ofLongs
+        (cond->
+          description (.setDescription description)
+          unit (.setUnit unit))
+        (.buildWithCallback callback))))
 
 
 (defn- default-time-source
@@ -91,10 +107,18 @@
    ;; Can't have meters with same name but different type. This is caught on metric creation.
    ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
    ;; of a (function wrapped around a) counter, etc.
-   (let [*counters (atom {})]
+   (let [*counters (atom {})
+         *gauges   (atom {})]
      (reify spi/MetricSource
 
        (counter [_ metric-name tags]
          (let [k [metric-name tags]]
            (or (get @*counters k)
-               (write-to-cache *counters k (new-counter meter metric-name tags)))))))))
+               (write-to-cache *counters k (new-counter meter metric-name tags)))))
+
+       (gauge [_ metric-name tags value-fn]
+         (let [k [metric-name tags]]
+           (when-not (contains? @*gauges k)
+             (write-to-cache *gauges k
+                             (new-gauge meter metric-name tags value-fn))))
+         nil)))))
