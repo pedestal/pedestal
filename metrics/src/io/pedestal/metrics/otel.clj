@@ -86,6 +86,25 @@
           unit (.setUnit unit))
         (.buildWithCallback callback))))
 
+;; Future work:
+;; Tag to configure granularity of the timer
+;; Tag to choose histogram vs. counter as underlying data
+
+(defn- new-timer
+  [^Meter meter metric-name tags time-source-fn]
+  (let [counter-fn (new-counter meter metric-name tags)]
+    (fn start-timer []
+      (let [start-nanos (time-source-fn)
+            *first?     (atom true)]
+        (fn stop-timer []
+          ;; Only the first call to the stop timer fn does anything,
+          ;; extra calls are ignored.
+          (let [elapsed-nanos (- (time-source-fn) start-nanos)]
+            (when (compare-and-set! *first? true false)
+              ;; Pass the number of milliseconds to the counter.
+              ;; Yes this means we lose fractional amounts of milliseconds.
+              (counter-fn
+                (Math/floorDiv elapsed-nanos 1000000)))))))))
 
 (defn- default-time-source
   ^long []
@@ -108,7 +127,8 @@
    ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
    ;; of a (function wrapped around a) counter, etc.
    (let [*counters (atom {})
-         *gauges   (atom {})]
+         *gauges   (atom {})
+         *timers   (atom {})]
      (reify spi/MetricSource
 
        (counter [_ metric-name tags]
@@ -121,4 +141,9 @@
            (when-not (contains? @*gauges k)
              (write-to-cache *gauges k
                              (new-gauge meter metric-name tags value-fn))))
-         nil)))))
+         nil)
+
+       (timer [_ metric-name tags]
+         (let [k [metric-name tags]]
+           (or (get @*timers k)
+               (write-to-cache *timers k (new-timer meter metric-name tags time-source-fn)))))))))

@@ -102,8 +102,10 @@
 
 (defn mock-metric-fixture
   [f]
-  (binding [metrics/*default-metric-source* (otel/wrap-meter mock-meter)]
+  (binding [metrics/*default-metric-source* (otel/wrap-meter mock-meter
+                                                             (fn [] @*now))]
     (reset! *events [])
+    (reset! *now 0)
     (f)))
 
 (use-fixtures :each mock-metric-fixture)
@@ -220,4 +222,39 @@
 
   (is (= []
          (events))))
+
+(def nanosecond 1000000000)
+(deftest create-timer
+  (let [elapsed-ms 60
+        timer-fn   (metrics/timer :timer.test nil)
+        _          (is (match? [[:build-counter "timer.test"]]
+                               (events)))
+        _          (reset! *now (* 50 nanosecond))
+        stop-fn    (timer-fn)]
+
+    (swap! *now + (* elapsed-ms 1000 1000))
+
+    (is (match? []
+                (events)))
+
+    (stop-fn)
+
+    (is (match? [[:add "timer.test" elapsed-ms empty-attributes]]
+                (events)))
+
+    ;; A second call to stop-fn does nothing
+
+    (stop-fn)
+
+    (is (match? []
+                (events)))))
+
+(deftest timed-macro
+  (let [elapsed-ms 37]
+    (reset! *now (* 8387 nanosecond))
+    (metrics/timed :timed.macro {:domain "clojure"}
+      (swap! *now + (* elapsed-ms 1000 1000)))
+    (is (match? [[:build-counter "timed.macro"]
+                 [:add "timed.macro" elapsed-ms clojure-domain-attributes]]
+                (events)))))
 

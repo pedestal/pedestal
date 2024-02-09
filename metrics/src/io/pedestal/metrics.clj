@@ -10,7 +10,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.metrics
-  "Metrics functionality, built on the metrics SPI (service provide interface)."
+  "Metrics functionality, built on the metrics SPI (service provide interface).
+
+  "
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.metrics.internal :as internal]))
