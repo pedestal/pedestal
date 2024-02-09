@@ -16,7 +16,7 @@
             [io.pedestal.metrics.otel :as otel]
             [clojure.test :refer [deftest is are use-fixtures]])
   (:import (clojure.lang ExceptionInfo)
-           (io.opentelemetry.api.metrics DoubleGaugeBuilder LongCounter LongCounterBuilder LongGaugeBuilder Meter
+           (io.opentelemetry.api.metrics DoubleGaugeBuilder DoubleHistogramBuilder LongCounter LongCounterBuilder LongGaugeBuilder LongHistogram LongHistogramBuilder Meter
                                          ObservableLongGauge ObservableLongMeasurement)
            (java.util.function Consumer)))
 
@@ -89,6 +89,35 @@
       (event :ofLongs name)
       (mock-long-gauge-builder name))))
 
+(defn mock-long-histogram-builder
+  [name]
+  (reify LongHistogramBuilder
+
+    (setDescription [this description]
+      (event :setDescription name description)
+      this)
+
+    (setUnit [this unit]
+      (event :setUnit name unit)
+      this)
+
+    (build [this]
+      (event :build name)
+      this)
+
+    LongHistogram
+
+    (record [_ value attributes]
+      (event :record name value attributes))))
+
+(defn mock-double-histogram-builder
+  [name]
+  (reify DoubleHistogramBuilder
+
+    (ofLongs [_]
+      (event :ofLongs name)
+      (mock-long-histogram-builder name))))
+
 (def mock-meter
   (reify
 
@@ -98,7 +127,10 @@
       (mock-counter-builder name))
 
     (gaugeBuilder [_ name]
-      (mock-double-gauge-builder name))))
+      (mock-double-gauge-builder name))
+
+    (histogramBuilder [_ name]
+      (mock-double-histogram-builder name))))
 
 (defn mock-metric-fixture
   [f]
@@ -257,4 +289,19 @@
     (is (match? [[:build-counter "timed.macro"]
                  [:add "timed.macro" elapsed-ms clojure-domain-attributes]]
                 (events)))))
+
+(deftest histogram
+  (let [update-fn (metrics/histogram :histogram.test {:domain "clojure"
+                                                      ::metrics/description "histogram description"
+                                                      ::metrics/unit "laughs"})]
+      (is (match? [[:ofLongs "histogram.test"]
+                   [:setDescription "histogram.test" "histogram description"]
+                   [:setUnit "histogram.test" "laughs"]
+                   [:build "histogram.test"]]
+                  (events)))
+
+      (update-fn 42)
+
+      (is (match? [[:record "histogram.test" 42 clojure-domain-attributes]]
+                   (events)))))
 

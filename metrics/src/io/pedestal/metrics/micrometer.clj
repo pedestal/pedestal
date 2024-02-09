@@ -114,7 +114,7 @@
           (when (compare-and-set! *first? true false)
             (.record timer (- (time-source-fn) start-nanos) TimeUnit/NANOSECONDS)))))))
 
-(defn- new-distribution-summary
+(defn- new-histogram
   [^MeterRegistry registry metric-name tags]
   (let [summary (-> (DistributionSummary/builder (convert-metric-name metric-name))
                     (.tags (iterable-tags metric-name tags))
@@ -147,7 +147,7 @@
    (let [*counters  (atom {})
          *gauges    (atom {})
          *timers    (atom {})
-         *summaries (atom {})]
+         *histograms (atom {})]
      (reify spi/MetricSource
 
        (counter [_ metric-name tags]
@@ -171,10 +171,10 @@
            (or (get @*timers k)
                (write-to-cache *timers k (new-timer registry metric-name tags time-source-fn)))))
 
-       (distribution-summary [_ metric-name tags]
+       (histogram [_ metric-name tags]
          (let [k [metric-name tags]]
-           (or (get @*summaries k)
-               (write-to-cache *summaries k (new-distribution-summary registry metric-name tags)))))
+           (or (get @*histograms k)
+               (write-to-cache *histograms k (new-histogram registry metric-name tags)))))
 
        MeterRegistrySource
 
@@ -208,7 +208,7 @@
       (.tags (iterable-tags metric-name tags))
       .timer))
 
-(defn get-distribution-summary
+(defn get-histogram
   [metric-source metric-name tags]
   (-> (.get (meter-registry metric-source) (convert-metric-name metric-name))
       (.tags (iterable-tags metric-name tags))

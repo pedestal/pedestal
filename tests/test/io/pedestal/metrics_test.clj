@@ -28,9 +28,9 @@
   [metric-name tags]
   (mm/get-timer metrics/*default-metric-source* metric-name tags))
 
-(defn- get-summary
+(defn- get-histogram
   [metric-name tags]
-  (mm/get-distribution-summary metrics/*default-metric-source* metric-name tags))
+  (mm/get-histogram metrics/*default-metric-source* metric-name tags))
 
 
 (deftest counter-by-keyword-and-string-name-are-the-same
@@ -244,8 +244,8 @@
 (deftest distribution-summary
   (let [metric-name ::summary
         tags        {::this :that}
-        f           (metrics/distribution-summary metric-name tags)
-        summary     (get-summary metric-name tags)]
+        f           (metrics/histogram metric-name tags)
+        summary     (get-histogram metric-name tags)]
 
     (is (= 0 (.count summary)))
 
@@ -264,6 +264,6 @@
 (deftest distribution-summary-uniqueness
   (let [metric-name ::frodo
         tags        {::ring :bearer}]
-    (is (identical? (metrics/distribution-summary metric-name tags)
-                    (metrics/distribution-summary metric-name tags)))))
+    (is (identical? (metrics/histogram metric-name tags)
+                    (metrics/histogram metric-name tags)))))
 

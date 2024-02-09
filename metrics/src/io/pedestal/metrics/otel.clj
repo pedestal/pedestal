@@ -14,7 +14,7 @@
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi])
   (:import (io.opentelemetry.api.common AttributeKey Attributes AttributesBuilder)
-           (io.opentelemetry.api.metrics Meter ObservableLongMeasurement)
+           (io.opentelemetry.api.metrics LongCounter LongHistogram Meter ObservableLongMeasurement)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
@@ -60,17 +60,30 @@
 (defn- new-counter
   [^Meter meter metric-name tags]
   (let [{:io.pedestal.metrics/keys [description unit]} tags
-        counter    (-> (.counterBuilder meter (convert-metric-name metric-name))
-                       (cond->
-                         description (.setDescription description)
-                         unit (.setUnit unit))
-                       .build)
-        attributes (tags->attributes tags)]
+        ^LongCounter counter (-> (.counterBuilder meter (convert-metric-name metric-name))
+                                 (cond->
+                                   description (.setDescription description)
+                                   unit (.setUnit unit))
+                                 .build)
+        attributes           (tags->attributes tags)]
     (fn
       ([]
        (.add counter 1 attributes))
       ([increment]
        (.add counter increment attributes)))))
+
+(defn- new-histogram
+  [^Meter meter metric-name tags]
+  (let [{:io.pedestal.metrics/keys [description unit]} tags
+        ^LongHistogram histogram (-> (.histogramBuilder meter (convert-metric-name metric-name))
+                                     .ofLongs
+                                     (cond->
+                                       description (.setDescription description)
+                                       unit (.setUnit unit))
+                                     .build)
+        attributes               (tags->attributes tags)]
+    (fn [value]
+      (.record histogram value attributes))))
 
 (defn- new-gauge
   [^Meter meter metric-name tags value-fn]
@@ -106,6 +119,7 @@
               (counter-fn
                 (Math/floorDiv elapsed-nanos 1000000)))))))))
 
+
 (defn- default-time-source
   ^long []
   (System/nanoTime))
@@ -126,9 +140,10 @@
    ;; Can't have meters with same name but different type. This is caught on metric creation.
    ;; We use separate caches though, otherwise we could mistakenly return a gauge instead
    ;; of a (function wrapped around a) counter, etc.
-   (let [*counters (atom {})
-         *gauges   (atom {})
-         *timers   (atom {})]
+   (let [*counters   (atom {})
+         *gauges     (atom {})
+         *histograms (atom {})
+         *timers     (atom {})]
      (reify spi/MetricSource
 
        (counter [_ metric-name tags]
@@ -143,7 +158,13 @@
                              (new-gauge meter metric-name tags value-fn))))
          nil)
 
+       (histogram [_ metric-name tags]
+         (let [k [metric-name tags]]
+           (or (get @*histograms k)
+               (write-to-cache *histograms k (new-histogram meter metric-name tags)))))
+
        (timer [_ metric-name tags]
          (let [k [metric-name tags]]
            (or (get @*timers k)
                (write-to-cache *timers k (new-timer meter metric-name tags time-source-fn)))))))))
+

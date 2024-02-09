@@ -27,7 +27,11 @@
   the leading `:` is stripped off.  Tag keys may be strings, keywords or symbols;
   Tag values are the same, but may also be numbers or booleans.
 
-  Metric names are required, but tags may be nil."
+  Metric names are required, but tags may be nil.
+
+  Some implementation may use specific tags (typically, with namespace qualified keyword keys)
+  to configure the metric in some additional way. Such configuration tags are stripped out
+  of the tags that are reported to the underlying metric consumer."
 
   (counter [source metric-name tags]
     "Finds or creates a counter metric with the given metric name.
@@ -53,7 +57,7 @@
     When invoked, the trigger function starts a timer and returns a
     new function that stops the timer.")
 
-  (distribution-summary [source metric-name tags]
+  (histogram [source metric-name tags]
     "Finds or creates a distribution summary, returning a function.
 
     The function is passed a value, to record that value as a new event that will be

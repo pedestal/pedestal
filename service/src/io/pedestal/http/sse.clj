@@ -76,7 +76,7 @@
      (.write bab ^bytes CRLF)
      (.toByteArray bab))))
 
-(def ^:private payload-size-fn (metrics/distribution-summary ::payload-size nil))
+(def ^:private payload-size-fn (metrics/histogram ::payload-size nil))
 
 (defn send-event
   ([channel name data]
