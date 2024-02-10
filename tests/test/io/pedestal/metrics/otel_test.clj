@@ -185,8 +185,52 @@
     (is (match? [[:add "gnip.gnop" 99 clojure-domain-attributes]]
                 (events)))))
 
+(deftest increment-counter
+  (let [metric-name :test.counter
+        tags        {:domain "clojure"}]
+    (metrics/increment-counter metric-name tags)
+
+    (is (match? [[:build-counter "test.counter"]
+                 [:add "test.counter" 1 clojure-domain-attributes]]
+                (events)))
+
+
+    (metrics/increment-counter metric-name tags)
+
+    (is (match? [[:add "test.counter" 1 clojure-domain-attributes]]
+                (events)))))
+
+(deftest advance-counter
+  (let [metric-name :test.counter
+        tags        {:domain "clojure"}]
+    (metrics/advance-counter metric-name tags 7)
+
+    (is (match? [[:build-counter "test.counter"]
+                 [:add "test.counter" 7 clojure-domain-attributes]]
+                (events)))
+
+
+    (metrics/advance-counter metric-name tags 9)
+
+    (is (match? [[:add "test.counter" 9 clojure-domain-attributes]]
+                (events)))))
+
 (deftest valid-metric-names
   (are [expected input] (= expected (convert-metric-name input))
+
+    "foo" :foo
+    "foo.bar" :foo.bar
+    "gnip/gnop" :gnip/gnop
+    "io.pedestal.metrics/foo" ::metrics/foo
+
+    "any old string" "any old string"
+
+    "clojure.core/atom" `atom
+
+    "unqualified-symbol" 'unqualified-symbol))
+
+(deftest valid-keys
+  (are [expected input] (= expected (.getKey (convert-key input)))
 
     "foo" :foo
     "foo.bar" :foo.bar
@@ -206,6 +250,12 @@
            (ex-message e)))
     (is (= {:metric-name {}})
         (ex-data e))))
+
+(deftest invalid-tag-key
+  (when-let [e (is (thrown-with-msg? Exception #"\QInvalid Tag key type: clojure.lang.PersistentArrayMap\E"
+                                     (convert-key {37 :long})))]
+    (is (= {:key        {37 :long}}
+           (ex-data e)))))
 
 (defn- extract-callback [events]
   (let [[_ _ callback] (->> events

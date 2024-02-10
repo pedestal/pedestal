@@ -23,7 +23,8 @@
   [v coll]
   (into (or v []) coll))
 
-(defn println-err [& s]
+(defn println-err
+  [& s]
   (binding [*out* *err*]
     (apply println s)))
 
@@ -35,7 +36,8 @@
 (def test-config (read-config "pedestal-test-config.edn"))
 (def prod-config (read-config "pedestal-config.edn"))
 
-(defn- to-sym [val]
+(defn- to-sym
+  [val]
   (cond
     (nil? val) nil
 
@@ -53,7 +55,8 @@
     :else
     (throw (IllegalArgumentException. (str val " is not a string or qualified symbol")))))
 
-(defn- resolver [from-source from-name val]
+(defn- resolver
+  [from-source from-name val]
   (when-let [sym (to-sym val)]
     (try
       (let [v (requiring-resolve sym)]
@@ -64,18 +67,25 @@
                                from-source from-name))))
       (catch Exception e
         ;; A likely cause is when the symbol is not qualified; requiring-resolve will throw.
-        (println-err (format "ERROR: Could not resolve symbol %s (from %s %s): %s"
+        (println-err (format "ERROR: Could not resolve symbol %s (%s): %s"
                              (str sym)
+                             (if from-source
+                               (str "from " from-source " " from-name)
+                               "default value")
                              from-source from-name
                              (ex-message e)))))))
 
 (defn resolve-var-from
-  [property-name env-var]
-  (or (resolver "JVM property" property-name (System/getProperty property-name))
-      (resolver "environment variable" env-var (System/getenv env-var))
-      ;; Defaults can be stored in config files, and the property name becomes a keyword
-      ;; key.  The value can be a string
-      (let [config-key (keyword property-name)
-            from-name  (str "key " config-key)]
-        (or (resolver "test configuration" from-name (get test-config config-key))
-            (resolver "configuration" from-name (get prod-config config-key))))))
+  ([property-name env-var]
+   (resolve-var-from property-name env-var nil))
+  ([property-name env-var default-value]
+   (or (resolver "JVM property" property-name (System/getProperty property-name))
+       (resolver "environment variable" env-var (System/getenv env-var))
+       ;; Defaults can be stored in config files, and the property name becomes a keyword
+       ;; key.  The value can be a string
+       (let [config-key (keyword property-name)
+             from-name  (str "key " config-key)]
+         (or (resolver "test configuration" from-name (get test-config config-key))
+             (resolver "configuration" from-name (get prod-config config-key))))
+       (when default-value
+         (resolver nil nil default-value)))))

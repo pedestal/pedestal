@@ -12,24 +12,16 @@
 (ns ^:no-doc io.pedestal.metrics.internal
   "Internal utils subject to change without notice."
   {:since "0.7.0"}
-  (:require [clojure.string :as string]))
-
+  (:require [io.pedestal.internal :as i]))
 
 (defn create-default-metric-source
   []
-  (let [config-value (or (System/getProperty "io.pedestal.metrics.metric-source")
-                         (System/getenv "PEDESTAL_METRICS_SOURCE")
-                         "io.pedestal.metrics.micrometer/default-source")
-        [ns-str symbol-str] (string/split config-value #"/")
-        symbol-name  (symbol ns-str symbol-str)
-        v            (or (requiring-resolve symbol-name)
-                         (throw (ex-info (str "Unable to create default metric source; no such var: " symbol-name)
-                                         {:symbol-name symbol-name})))]
+  (let [v (i/resolve-var-from "io.pedestal.metrics.metric-source"
+                              "PEDESTAL_METRICS_SOURCE"
+                              "io.pedestal.metrics.otel/default-source")]
     (try
       (v)
       (catch Exception e
-        (throw (ex-info (format "Error invoking function %s (to create default metric source): %s"
-                                config-value
-                                (ex-message e))
-                        {:symbol-name symbol-name}
-                        e))))))
+        (throw (RuntimeException. (format "Error invoking function %s (to create default metric source)"
+                                          (str v))
+                                  e))))))

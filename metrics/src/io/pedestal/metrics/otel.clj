@@ -15,6 +15,7 @@
   (:require [io.pedestal.metrics.spi :as spi])
   (:import (io.opentelemetry.api.common AttributeKey Attributes AttributesBuilder)
            (io.opentelemetry.api.metrics LongCounter LongHistogram Meter ObservableLongMeasurement)
+           (io.opentelemetry.sdk.autoconfigure AutoConfiguredOpenTelemetrySdk)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
@@ -168,3 +169,14 @@
            (or (get @*timers k)
                (write-to-cache *timers k (new-timer meter metric-name tags time-source-fn)))))))))
 
+;; This is likely to change significantly once we add Open Telemetry tracing.
+
+(defn default-source
+  "Default source for the global metric source."
+  []
+  (let [open-telemetry-sdk (-> (AutoConfiguredOpenTelemetrySdk/initialize)
+                               (.getOpenTelemetrySdk))
+        meter              (-> (.meterBuilder open-telemetry-sdk "io.pedestal.metrics")
+                               (.setInstrumentationVersion "1.0.0")
+                               .build)]
+    (wrap-meter meter)))
