@@ -58,31 +58,37 @@
 (defn- resolver
   [from-source from-name val]
   (when-let [sym (to-sym val)]
-    (try
-      (let [v (requiring-resolve sym)]
-        (if v
-          @v
-          (println-err (format "WARNING: Symbol %s (from %s %s) does not exist"
+    (let [value-source (if from-source
+                         (str "from " from-source " " from-name)
+                         "default value")]
+      (try
+        (let [v (requiring-resolve sym)]
+          (if v
+            @v
+            (println-err (format "WARNING: Symbol %s (%s) does not exist"
+                                 (str sym)
+                                 value-source))))
+        (catch Exception e
+          ;; A likely cause is when the symbol is not qualified; requiring-resolve will throw.
+          (println-err (format "ERROR: Could not resolve symbol %s (%s): %s"
                                (str sym)
-                               from-source from-name))))
-      (catch Exception e
-        ;; A likely cause is when the symbol is not qualified; requiring-resolve will throw.
-        (println-err (format "ERROR: Could not resolve symbol %s (%s): %s"
-                             (str sym)
-                             (if from-source
-                               (str "from " from-source " " from-name)
-                               "default value")
-                             from-source from-name
-                             (ex-message e)))))))
+                               value-source
+                               from-source from-name
+                               (ex-message e))))))))
 
 (defn resolve-var-from
+  "Resolves a var based on a JVM property, environment variable, or a default.
+
+  Prints a warning if the symbol does not exist or other error requiring the var.
+
+  May return nil."
   ([property-name env-var]
    (resolve-var-from property-name env-var nil))
   ([property-name env-var default-value]
    (or (resolver "JVM property" property-name (System/getProperty property-name))
        (resolver "environment variable" env-var (System/getenv env-var))
        ;; Defaults can be stored in config files, and the property name becomes a keyword
-       ;; key.  The value can be a string
+       ;; key.  The value can be a string or a qualified symbol.
        (let [config-key (keyword property-name)
              from-name  (str "key " config-key)]
          (or (resolver "test configuration" from-name (get test-config config-key))

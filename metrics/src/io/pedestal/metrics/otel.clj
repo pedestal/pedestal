@@ -10,12 +10,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.metrics.otel
-  "Default metrics implementatation based on OpenTelemetry."
+  "Default metrics implementation based on OpenTelemetry."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi])
   (:import (io.opentelemetry.api.common AttributeKey Attributes AttributesBuilder)
            (io.opentelemetry.api.metrics LongCounter LongHistogram Meter ObservableLongMeasurement)
-           (io.opentelemetry.sdk.autoconfigure AutoConfiguredOpenTelemetrySdk)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
@@ -47,7 +46,7 @@
                             {:key k})))]
     (AttributeKey/stringKey s)))
 
-(defn- tags->attributes
+(defn- map->Attributes
   ^Attributes [tags]
   (let [tags' (dissoc tags :io.pedestal.metrics/unit :io.pedestal.metrics/description)]
     (if-not (seq tags')
@@ -59,40 +58,40 @@
            .build))))
 
 (defn- new-counter
-  [^Meter meter metric-name tags]
-  (let [{:io.pedestal.metrics/keys [description unit]} tags
+  [^Meter meter metric-name attributes]
+  (let [{:io.pedestal.metrics/keys [description unit]} attributes
         ^LongCounter counter (-> (.counterBuilder meter (convert-metric-name metric-name))
                                  (cond->
                                    description (.setDescription description)
                                    unit (.setUnit unit))
                                  .build)
-        attributes           (tags->attributes tags)]
+        attributes'           (map->Attributes attributes)]
     (fn
       ([]
-       (.add counter 1 attributes))
+       (.add counter 1 attributes'))
       ([increment]
-       (.add counter increment attributes)))))
+       (.add counter increment attributes')))))
 
 (defn- new-histogram
-  [^Meter meter metric-name tags]
-  (let [{:io.pedestal.metrics/keys [description unit]} tags
+  [^Meter meter metric-name attributes]
+  (let [{:io.pedestal.metrics/keys [description unit]} attributes
         ^LongHistogram histogram (-> (.histogramBuilder meter (convert-metric-name metric-name))
                                      .ofLongs
                                      (cond->
                                        description (.setDescription description)
                                        unit (.setUnit unit))
                                      .build)
-        attributes               (tags->attributes tags)]
+        attributes'               (map->Attributes attributes)]
     (fn [value]
-      (.record histogram value attributes))))
+      (.record histogram value attributes'))))
 
 (defn- new-gauge
-  [^Meter meter metric-name tags value-fn]
-  (let [{:io.pedestal.metrics/keys [description unit]} tags
-        attributes (tags->attributes tags)
+  [^Meter meter metric-name attributes value-fn]
+  (let [{:io.pedestal.metrics/keys [description unit]} attributes
+        attributes' (map->Attributes attributes)
         callback   (reify Consumer
                      (accept [_ measurement]
-                       (.record ^ObservableLongMeasurement measurement (value-fn) attributes)))]
+                       (.record ^ObservableLongMeasurement measurement (value-fn) attributes')))]
     (-> (.gaugeBuilder meter (convert-metric-name metric-name))
         .ofLongs
         (cond->
@@ -105,8 +104,8 @@
 ;; Tag to choose histogram vs. counter as underlying data
 
 (defn- new-timer
-  [^Meter meter metric-name tags time-source-fn]
-  (let [counter-fn (new-counter meter metric-name tags)]
+  [^Meter meter metric-name attributes time-source-fn]
+  (let [counter-fn (new-counter meter metric-name attributes)]
     (fn start-timer []
       (let [start-nanos (time-source-fn)
             *first?     (atom true)]
@@ -147,36 +146,25 @@
          *timers     (atom {})]
      (reify spi/MetricSource
 
-       (counter [_ metric-name tags]
-         (let [k [metric-name tags]]
+       (counter [_ metric-name attributes]
+         (let [k [metric-name attributes]]
            (or (get @*counters k)
-               (write-to-cache *counters k (new-counter meter metric-name tags)))))
+               (write-to-cache *counters k (new-counter meter metric-name attributes)))))
 
-       (gauge [_ metric-name tags value-fn]
-         (let [k [metric-name tags]]
+       (gauge [_ metric-name attributes value-fn]
+         (let [k [metric-name attributes]]
            (when-not (contains? @*gauges k)
              (write-to-cache *gauges k
-                             (new-gauge meter metric-name tags value-fn))))
+                             (new-gauge meter metric-name attributes value-fn))))
          nil)
 
-       (histogram [_ metric-name tags]
-         (let [k [metric-name tags]]
+       (histogram [_ metric-name attributes]
+         (let [k [metric-name attributes]]
            (or (get @*histograms k)
-               (write-to-cache *histograms k (new-histogram meter metric-name tags)))))
+               (write-to-cache *histograms k (new-histogram meter metric-name attributes)))))
 
-       (timer [_ metric-name tags]
-         (let [k [metric-name tags]]
+       (timer [_ metric-name attributes]
+         (let [k [metric-name attributes]]
            (or (get @*timers k)
-               (write-to-cache *timers k (new-timer meter metric-name tags time-source-fn)))))))))
+               (write-to-cache *timers k (new-timer meter metric-name attributes time-source-fn)))))))))
 
-;; This is likely to change significantly once we add Open Telemetry tracing.
-
-(defn default-source
-  "Default source for the global metric source."
-  []
-  (let [open-telemetry-sdk (-> (AutoConfiguredOpenTelemetrySdk/initialize)
-                               (.getOpenTelemetrySdk))
-        meter              (-> (.meterBuilder open-telemetry-sdk "io.pedestal.metrics")
-                               (.setInstrumentationVersion "1.0.0")
-                               .build)]
-    (wrap-meter meter)))

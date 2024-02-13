@@ -16,9 +16,8 @@
 
 (defn create-default-metric-source
   []
-  (let [v (i/resolve-var-from "io.pedestal.metrics.metric-source"
-                              "PEDESTAL_METRICS_SOURCE"
-                              "io.pedestal.metrics.otel/default-source")]
+  (when-let [v (i/resolve-var-from "io.pedestal.metrics.metric-source"
+                                   "PEDESTAL_METRICS_SOURCE")]
     (try
       (v)
       (catch Exception e

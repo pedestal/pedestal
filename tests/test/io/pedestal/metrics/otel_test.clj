@@ -187,30 +187,30 @@
 
 (deftest increment-counter
   (let [metric-name :test.counter
-        tags        {:domain "clojure"}]
-    (metrics/increment-counter metric-name tags)
+        attributes        {:domain "clojure"}]
+    (metrics/increment-counter metric-name attributes)
 
     (is (match? [[:build-counter "test.counter"]
                  [:add "test.counter" 1 clojure-domain-attributes]]
                 (events)))
 
 
-    (metrics/increment-counter metric-name tags)
+    (metrics/increment-counter metric-name attributes)
 
     (is (match? [[:add "test.counter" 1 clojure-domain-attributes]]
                 (events)))))
 
 (deftest advance-counter
   (let [metric-name :test.counter
-        tags        {:domain "clojure"}]
-    (metrics/advance-counter metric-name tags 7)
+        attributes        {:domain "clojure"}]
+    (metrics/advance-counter metric-name attributes 7)
 
     (is (match? [[:build-counter "test.counter"]
                  [:add "test.counter" 7 clojure-domain-attributes]]
                 (events)))
 
 
-    (metrics/advance-counter metric-name tags 9)
+    (metrics/advance-counter metric-name attributes 9)
 
     (is (match? [[:add "test.counter" 9 clojure-domain-attributes]]
                 (events)))))

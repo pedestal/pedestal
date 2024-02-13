@@ -12,12 +12,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         io.pedestal/pedestal.common {:mvn/version "0.7.0-SNAPSHOT"}
-        io.opentelemetry/opentelemetry-api {:mvn/version "1.34.1"}
-        io.opentelemetry/opentelemetry-sdk {:mvn/version "1.34.1"}
-        io.opentelemetry/opentelemetry-sdk-metrics {:mvn/version "1.34.1"}
-        io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.34.1"}
-        io.opentelemetry/opentelemetry-exporter-otlp {:mvn/version "1.34.1"}
-        io.opentelemetry/opentelemetry-exporter-logging {:mvn/version "1.34.1"}}
+        io.opentelemetry/opentelemetry-api {:mvn/version "1.34.1"}}
 
  :aliases
  {:local
