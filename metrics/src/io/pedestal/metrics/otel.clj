@@ -12,50 +12,22 @@
 (ns io.pedestal.metrics.otel
   "Default metrics implementation based on OpenTelemetry."
   {:since "0.7.0"}
-  (:require [io.pedestal.metrics.spi :as spi])
-  (:import (io.opentelemetry.api.common AttributeKey Attributes AttributesBuilder)
+  (:require [io.pedestal.metrics.spi :as spi]
+            [io.pedestal.telemetry.internal :as i])
+  (:import (io.opentelemetry.api.common Attributes)
            (io.opentelemetry.api.metrics LongCounter LongHistogram Meter ObservableLongMeasurement)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
   [metric-name]
-  (cond
-    (string? metric-name)
-    metric-name
-
-    (keyword? metric-name)
-    (subs (str metric-name) 1)
-
-    (symbol? metric-name)
-    (str metric-name)
-
-    :else
+  (or
+    (i/convert-name metric-name)
     (throw (ex-info (str "Invalid metric name type: " (-> metric-name class .getName))
                     {:metric-name metric-name}))))
 
-(defn- convert-key
-  ^AttributeKey [k]
-  (let [s (cond
-            (string? k) k
-            (keyword? k) (subs (str k) 1)
-            (symbol? k) (str k)
-            ;; TODO: Maybe support Class?
-
-            :else
-            (throw (ex-info (str "Invalid Tag key type: " (-> k class .getName))
-                            {:key k})))]
-    (AttributeKey/stringKey s)))
-
 (defn- map->Attributes
-  ^Attributes [tags]
-  (let [tags' (dissoc tags :io.pedestal.metrics/unit :io.pedestal.metrics/description)]
-    (if-not (seq tags')
-      (Attributes/empty)
-      (->> (reduce-kv (fn [^AttributesBuilder b k v]
-                        (.put b (convert-key k) v))
-                      (Attributes/builder)
-                      tags')
-           .build))))
+  ^Attributes [attributes]
+  (i/map->Attributes attributes [:io.pedestal.metrics/unit :io.pedestal.metrics/description]))
 
 (defn- new-counter
   [^Meter meter metric-name attributes]
