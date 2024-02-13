@@ -69,11 +69,9 @@
                                  (str sym)
                                  value-source))))
         (catch Exception e
-          ;; A likely cause is when the symbol is not qualified; requiring-resolve will throw.
           (println-err (format "ERROR: Could not resolve symbol %s (%s): %s"
                                (str sym)
                                value-source
-                               from-source from-name
                                (ex-message e))))))))
 
 (defn resolve-var-from
@@ -89,9 +87,8 @@
        (resolver "environment variable" env-var (System/getenv env-var))
        ;; Defaults can be stored in config files, and the property name becomes a keyword
        ;; key.  The value can be a string or a qualified symbol.
-       (let [config-key (keyword property-name)
-             from-name  (str "key " config-key)]
-         (or (resolver "test configuration" from-name (get test-config config-key))
-             (resolver "configuration" from-name (get prod-config config-key))))
+       (let [config-key (keyword property-name)]
+         (or (resolver "test configuration key" config-key (get test-config config-key))
+             (resolver "configuration key" config-key (get prod-config config-key))))
        (when default-value
          (resolver nil nil default-value)))))

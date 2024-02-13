@@ -10,12 +10,23 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.internal-test
-  (:require [io.pedestal.internal :refer [resolve-var-from]]
-            [clojure.test :refer [deftest is]]))
+  (:require [clojure.string :as string]
+            [io.pedestal.internal :refer [resolve-var-from]]
+            [clojure.test :refer [deftest is]])
+  (:import (java.io StringWriter)))
 
 (def test-overridden ::test-value)
 (def prod-not-overridden ::prod-value)
 (def via-string-key ::string-key-value)
+(def via-default ::via-default)
+
+(defmacro capture-output [stream & body]
+  `(let [s# (StringWriter.)]
+     (with-bindings* {#'~stream s#}
+       (fn []
+         ~@body))
+     (-> s# .toString string/trim)))
+
 
 (deftest test-overrides-prod
   (is (= ::test-value
@@ -36,3 +47,20 @@
 (deftest config-value-must-be-string-or-qualified-symbol
   (is (thrown-with-msg? IllegalArgumentException #"\Q42 is not a string or qualified symbol\E"
                         (resolve-var-from "not-a-symbol" "_XXX_"))))
+
+(deftest valid-var-from-config-default
+  (is (= ::via-default
+         (resolve-var-from "_XXX_" "_XXX_" "io.pedestal.internal-test/via-default"))))
+
+
+(deftest warning-when-symbol-does-not-exist
+  (is (= "WARNING: Symbol io.pedestal.internal-test/does-not-exist (default value) does not exist"
+         (capture-output *err*
+                         (resolve-var-from "_XXX_" "_XXX" "io.pedestal.internal-test/does-not-exist")
+                         ))))
+
+(deftest error-when-can-not-resolve-symbol
+  (is (= (str "ERROR: Could not resolve symbol this.namespace/does-not-exist (from configuration key :does-not-exist): "
+              "Could not locate this/namespace__init.class, this/namespace.clj or this/namespace.cljc on classpath.")
+         (capture-output *err*
+                         (resolve-var-from "does-not-exist" "_XXX_")))))
