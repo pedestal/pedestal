@@ -32,6 +32,7 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
             [io.pedestal.metrics :as metrics]
+            [io.pedestal.http.tracing :as tracing]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
@@ -197,22 +198,26 @@
   transit-json-body)
 
 (defn default-interceptors
-  "Builds interceptors given a service map with keyword keys prefixed by namespace e.g.
-  :io.pedestal.http/routes (or ::http/routes if the namespace is aliased to `http`).
+  "Builds a default vector of interceptors given a service map with keyword keys prefixed by namespace e.g.
+  :io.pedestal.http/routes (or ::http/routes if the namespace is aliased to `http`); the interceptor are
+  added to the ::interceptors key.
 
-  Note:
-    No additional interceptors are added if :interceptors key is set.
+  This function is called from [[create-servlet]] and [[create-provider]].
+
+  When the ::interceptors key is already present in the context, this function does nothing.
+  This allows  application code to invoke default-interceptors, and then add or modify those interceptors
+  before continuing on towards creating and starting a server.
 
   Options:
 
-  * :routes: Something that satisfies the [[ExpandableRoutes]] protocol
+  * :routes: Something that satisfies the [[ExpandableRoutes]] protocol,
     a function that returns routes when called, or a seq of route maps that defines a service's routes.
-    If passing in a seq of route maps, it's recommended to use io.pedestal.http.route/expand-routes.
   * :router: The [[Router]] implementation to use. Can be :linear-search, :map-tree
     :prefix-tree, or a custom Router constructor function. Defaults to :map-tree, which falls back on :prefix-tree
-  * :file-path: File path used as root by the middlewares/file interceptor. If nil, this interceptor
+  * :file-path: File path used as root by the middlewares/file interceptor (exposing a local directory
+     as the root). If nil, this interceptor
     is not added. Default is nil.
-  * :resource-path: File path used as root by the [[resource]] interceptor; If nil, no interceptor
+  * :resource-path: Resource path (on the classpath) used as root by the [[resource]] interceptor; If nil, no interceptor
     is added. Default is nil.
   * :method-param-name: Query string parameter used to set the current HTTP verb. Default is `_method`.
   * :allowed-origins: Determines what origins are allowed for the [[allow-origin]] interceptor. If
@@ -228,9 +233,11 @@
      sessions are enabled. If nil, no interceptor is added. Default is nil.
   * :secure-headers: A settings map for various secure headers.
      Keys are: [:hsts-settings :frame-options-settings :content-type-settings :xss-protection-settings :download-options-settings :cross-domain-policies-settings :content-security-policy-settings]
-     If nil, no interceptor is not added.  Default is the default secure-headers settings
+     If nil, this interceptor is not added.  Default is the default secure-headers settings
   * :path-params-decoder: An interceptor to decode path params. Default [[path-params-decoder]].
-     If nil, this interceptor is not added."
+     If nil, this interceptor is not added.
+  * :tracing: An interceptor to handle telemetry request tracing; this is added immediately after the router. Defaults
+    to [[tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0)."
   [service-map]
   (let [{interceptors ::interceptors
          request-logger ::request-logger
@@ -246,6 +253,7 @@
          enable-csrf ::enable-csrf
          secure-headers ::secure-headers
          path-params-decoder ::path-params-decoder
+         tracing ::tracing
          :or {file-path nil
               request-logger log-request
               router :map-tree
@@ -256,7 +264,8 @@
               enable-session nil
               enable-csrf nil
               secure-headers {}
-              path-params-decoder route/path-params-decoder}} service-map
+              path-params-decoder route/path-params-decoder
+              tracing (tracing/tracing-interceptor)}} service-map
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes
@@ -283,7 +292,8 @@
                (some? resource-path) (conj (middlewares/resource resource-path))
                (some? file-path) (conj (middlewares/file file-path))
                true (conj (route/router processed-routes router))
-               (some? path-params-decoder) (conj path-params-decoder)))
+               (some? path-params-decoder) (conj path-params-decoder)
+               (some? tracing) (conj tracing)))
       service-map)))
 
 (defn dev-interceptors
@@ -370,6 +380,10 @@
                 ::container-options
                 ::websockets
                 ::interceptors
+                ;; These are placed here when the service is created (e.g., io.pedestal.jetty/service)
+                ::start-fn
+                ::stop-fn
+                ;; From here down is essentially just what the default-interceptors function needs
                 ::request-logger
                 ::router
                 ::file-path
@@ -383,9 +397,8 @@
                 ::secure-headers
                 ::path-params-decoder
                 ::initial-context
-                ::start-fn
-                ::stop-fn
-                ::service-fn-options]))
+                ::service-fn-options
+                ::tracing]))
 
 (s/def ::port pos-int?)
 (s/def ::type (s/or :fn fn?
@@ -419,6 +432,7 @@
 (s/def ::secure-headers map?)
 (s/def ::path-params-decoder ::interceptor/interceptor)
 (s/def ::initial-context map?)
+(s/def ::tracing ::interceptor/interceptor)
 
 (s/def ::service-fn-options ::servlet-interceptor/http-interceptor-service-fn-options)
 (s/def ::start-fn fn?)

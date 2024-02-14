@@ -92,3 +92,26 @@
              (resolver "configuration key" config-key (get prod-config config-key))))
        (when default-value
          (resolver nil nil default-value)))))
+
+(def *deprecations (atom #{}))
+
+(defn deprecation-warning
+  [k label]
+  (when-not (contains? @*deprecations k)
+    (swap! *deprecations conj k)
+    (println-err (str "WARNING: " label
+                      " is deprecated and may be removed in a future release (in namespace "
+                      *ns* ")"))))
+
+(defmacro deprecated
+  [label & body]
+  (let [ns-str (str *ns*)]
+    `(let [label# (str ~label)
+           k#     (str ~ns-str ":" label#)]
+       (deprecation-warning k# label#)
+       ~@body)))
+
+(defn reset-deprecations
+  []
+  (swap! *deprecations empty))
+

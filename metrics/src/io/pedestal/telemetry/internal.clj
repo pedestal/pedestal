@@ -21,7 +21,7 @@
     (keyword? v) (-> v str (subs 1))
     (symbol? v) (str v)))
 
-(defn- convert-key
+(defn convert-key
   ^AttributeKey [k]
   (let [s (cond
             (string? k) k

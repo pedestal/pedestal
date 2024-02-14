@@ -20,6 +20,7 @@ Other changes:
 - New service map keys have been introduced, to support handling of uncaught exceptions, and to specify an initial context map
 - There is now a clojure.spec specification for the structure of the service map
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
+- Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 

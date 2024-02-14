@@ -15,6 +15,7 @@
   "Jetty adaptor for Pedestal."
   (:require [io.pedestal.http.jetty.container]
             [clojure.string :as string]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.websocket :as ws])
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.server Server
@@ -201,15 +202,17 @@
   "Deprecated; to be made private in the future."
   [^Server server
    {:keys [join?] :or {join? true} }]
-  (.start server)
-  (when join? (.join server))
-  server)
+  (deprecated `start
+    (.start server)
+    (when join? (.join server))
+    server))
 
 (defn ^{:deprecated "0.7.0"} stop
   "Deprecated; to be made private in the future."
   [^Server server]
-  (.stop server)
-  server)
+  (deprecated `stop
+    (.stop server)
+    server))
 
 (defn server
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance."

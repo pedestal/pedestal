@@ -19,7 +19,7 @@
   including metrics (via the Codahale library) and telemetry (via OpenTelemetry) - these protocols and
   functions have been deprecated in 0.7.0 and will be removed in the future."
   (:require [clojure.string :as string]
-            [io.pedestal.internal :as i])
+            [io.pedestal.internal :as i :refer [deprecated]])
   (:import (org.slf4j Logger
                       LoggerFactory
                       MDC)
@@ -449,14 +449,15 @@
   - This macro bypasses the LoggingMDC protocol, invoking SLF4J methods directly"
   {:deprecated "0.7.0"}
   [k v & body]
-  (when k
-    `(let [old-ctx# *mdc-context*]
-       (binding [*mdc-context* (assoc *mdc-context* ~k ~v)]
-         (MDC/put mdc-context-key (format-mdc *mdc-context*))
-         (try
-           ~@body
-           (finally
-             (MDC/put mdc-context-key (format-mdc old-ctx#))))))))
+  (deprecated `with-context-kv
+    (when k
+      `(let [old-ctx# *mdc-context*]
+         (binding [*mdc-context* (assoc *mdc-context* ~k ~v)]
+           (MDC/put mdc-context-key (format-mdc *mdc-context*))
+           (try
+             ~@body
+             (finally
+               (MDC/put mdc-context-key (format-mdc old-ctx#)))))))))
 
 ;; Metrics
 ;; -----------
@@ -466,12 +467,12 @@
   "Metrics support in the pedestal.log library has been deprecated."
 
   (-counter [t metric-name delta]
-            "Update a single Numeric/Long metric by the `delta` amount")
+    "Update a single Numeric/Long metric by the `delta` amount")
   (-gauge [t metric-name value-fn]
-          "Register a single metric value, returned by a 0-arg function;
-          This function will be called everytime the Gauge value is requested.")
+    "Register a single metric value, returned by a 0-arg function;
+    This function will be called everytime the Gauge value is requested.")
   (-histogram [t metric-name value]
-              "Measure a distribution of Long values")
+    "Measure a distribution of Long values")
   (-meter [t metric-name n-events]
           "Measure the rate of a ticking metric - a meter."))
 
@@ -531,24 +532,27 @@
   Optionally pass in single-arg functions, which when passed a registry,
   create, start, and return a reporter."
   [& reporter-init-fns]
-  (let [registry (MetricRegistry.)]
-    (doseq [reporter-fn reporter-init-fns]
-      (reporter-fn registry))
-    registry))
+  (deprecated `metric-registry
+    (let [registry (MetricRegistry.)]
+      (doseq [reporter-fn reporter-init-fns]
+        (reporter-fn registry))
+      registry)))
 
 (defn ^{:deprecated "0.7.0"} jmx-reporter [^MetricRegistry registry]
-  (doto (some-> (JmxReporter/forRegistry registry)
-                (.inDomain "io.pedestal.metrics")
-                (.build))
-    (.start)))
+  (deprecated `jmx-reporter
+    (doto (some-> (JmxReporter/forRegistry registry)
+                  (.inDomain "io.pedestal.metrics")
+                  (.build))
+      (.start))))
 
 (defn ^{:deprecated "0.7.0"} log-reporter [^MetricRegistry registry]
-  (doto (some-> (Slf4jReporter/forRegistry registry)
-                (.outputTo (LoggerFactory/getLogger "io.pedestal.metrics"))
-                (.convertRatesTo TimeUnit/SECONDS)
-                (.convertDurationsTo TimeUnit/MILLISECONDS)
-                (.build))
-    (.start 1 TimeUnit/MINUTES)))
+  (deprecated `log-reporter
+    (doto (some-> (Slf4jReporter/forRegistry registry)
+                  (.outputTo (LoggerFactory/getLogger "io.pedestal.metrics"))
+                  (.convertRatesTo TimeUnit/SECONDS)
+                  (.convertDurationsTo TimeUnit/MILLISECONDS)
+                  (.build))
+      (.start 1 TimeUnit/MINUTES))))
 
 (def ^{:deprecated "0.7.0"} default-recorder
   "This is the default recorder of all metrics.
@@ -697,7 +701,7 @@
 
   (-register [t]
              "Given a Tracer/TraceOrigin
-             perform whatver steps are necessary to register that Tracer/TraceOrigin
+             perform whatever steps are necessary to register that Tracer/TraceOrigin
              to support the creation of spans,
              and return the Tracer/TraceOrigin.
 

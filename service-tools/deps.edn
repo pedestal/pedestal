@@ -31,5 +31,6 @@
 
   :local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.common {:local/root "../common"}
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
                    io.pedestal/pedestal.service {:local/root "../service"}}}}}

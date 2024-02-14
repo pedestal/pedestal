@@ -14,6 +14,7 @@
             [io.pedestal.metrics :as metrics]
             [matcher-combinators.matchers :as m]
             [io.pedestal.metrics.otel :as otel]
+            [io.pedestal.telemetry.internal :refer [convert-key]]
             [clojure.test :refer [deftest is are use-fixtures]])
   (:import (clojure.lang ExceptionInfo)
            (io.opentelemetry.api.metrics DoubleGaugeBuilder DoubleHistogramBuilder LongCounter LongCounterBuilder LongGaugeBuilder LongHistogram LongHistogramBuilder Meter
@@ -143,8 +144,6 @@
 (use-fixtures :each mock-metric-fixture)
 
 (def convert-metric-name @#'otel/convert-metric-name)
-
-(def convert-key @#'otel/convert-key)
 
 (def empty-attributes (m/via str "{}"))
 

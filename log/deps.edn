@@ -24,4 +24,6 @@
         io.opentracing/opentracing-util {:mvn/version "0.33.0"}}
  :aliases
  {:local
-  {:override-deps {io.pedestal/pedestal.metrics {:local/root "../metrics"}}}}}
+  {:override-deps
+   {io.pedestal/pedestal.metrics {:local/root "../metrics"}
+    io.pedestal/pedestal.common  {:local/root "../common"}}}}}
