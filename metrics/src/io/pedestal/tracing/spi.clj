@@ -13,15 +13,15 @@
   (:import (io.opentelemetry.api GlobalOpenTelemetry)
            (io.opentelemetry.api.trace SpanBuilder)))
 
-(defprotocol TelemetrySource
+(defprotocol TracingSource
 
   (create-span
     ^SpanBuilder [this operation-name attributes]
     "Creates a new SpanBuilder, from which a Span can be created; additional functions
-    in io.pedestal.telemetry allow the span to be configured prior to be activated."))
+    in io.pedestal.telemetry allow the span to be configured prior to being activated."))
 
 (extend-type nil
-  TelemetrySource
+  TracingSource
 
   (create-span [_ _ _]
     (-> (GlobalOpenTelemetry/get)

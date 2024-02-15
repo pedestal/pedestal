@@ -9,21 +9,22 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.telemetry
+(ns io.pedestal.tracing
   "Wrappers around Open Telemetry tracing."
   {:added "0.7.0"}
   (:require [io.pedestal.telemetry.internal :as i]
             [io.pedestal.tracing.spi :as spi])
   (:import (io.opentelemetry.api.trace Span SpanBuilder SpanKind)))
 
-(def ^:dynamic *telemetry-source* nil)
+(def ^:dynamic *tracing-source*
+  (i/create-default-tracing-source))
 
 (defn create-span
   "Creates a new span builder, wrapped in a map, which allows configuration of the span prior to starting it."
   ([operation-name attributes]
-   (create-span *telemetry-source* operation-name attributes))
-  ([telemetry-source operation-name attributes]
-   {::builder (spi/create-span telemetry-source operation-name attributes)}))
+   (create-span *tracing-source* operation-name attributes))
+  ([tracing-source operation-name attributes]
+   {::builder (spi/create-span tracing-source operation-name attributes)}))
 
 (def ^:private span-kinds
   {:internal SpanKind/INTERNAL

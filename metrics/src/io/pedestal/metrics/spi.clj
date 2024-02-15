@@ -75,6 +75,4 @@
     (fn noop-start []
       (fn noop-end [])))
 
-  (histogram [_ _ _] (constantly nil))
-
-  )
+  (histogram [_ _ _] (constantly nil)))

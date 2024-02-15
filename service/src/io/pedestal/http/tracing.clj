@@ -13,9 +13,11 @@
   "HTTP request tracing based on Open Telemetry."
   {:added "0.7.0"}
   (:require [clojure.string :as string]
-            [io.pedestal.telemetry :as tel]
+            [io.pedestal.tracing :as tel]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as chain]))
+            [io.pedestal.interceptor.chain :as chain])
+  (:import (io.opentelemetry.context Context)
+           (java.lang AutoCloseable)))
 
 (defn- value-str
   [v]
@@ -40,19 +42,26 @@
                                             :schema              scheme
                                             :server.port         port
                                             :route.name          (value-str route-name)})
-                          tel/start)]
-      (assoc context ::span span))
+                          tel/start)
+          otel-context (-> (Context/current)
+                           (.with span))
+          otel-context-scope (.makeCurrent otel-context)]
+      (assoc context ::span span
+             ::otel-context otel-context
+             ::otel-context-scope otel-context-scope))
     ;; No route, no span
     context))
 
 (defn- trace-leave [context]
   (if-let [span (::span context)]
-    (let [{:keys [response]} context
+    (let [{:keys  [response]
+           ::keys [otel-context-scope]} context
           {:keys [status]} response]
       (-> span
           (cond-> status (tel/add-attribute :http.response.status_code status))
           tel/end-span)
-      (dissoc context ::span))
+      (.close ^AutoCloseable otel-context-scope)
+      (dissoc context ::span ::otel-context-scope ::otel-context))
     context))
 
 (defn- trace-error [context error]
@@ -63,7 +72,7 @@
         ;; The exception is only reported here, not handled so reattach for later interceptors to deal with.
         (assoc ::chain/error error))))
 
-(defn tracing-interceptor
+(defn request-tracing-interceptor
   "A tracing interceptor comes after the routing interceptor and uses the routing data
   in the context (if routing was successful) to time the execution of the route (which is to say,
   all interceptors in the route selected by the router)."
@@ -74,3 +83,6 @@
      :leave trace-leave
      :error trace-error}))
 
+
+;; TODO: Propagate the ::otel-context when going async
+;; Perhaps a fn and/or macro to setup ::otel-context as current() and close it after.

@@ -12,6 +12,7 @@
 (ns io.pedestal.telemetry.internal
   "Internal utilities used by Pedestal telemetry; subject to change without notice."
   {:no-doc true}
+  (:require [io.pedestal.internal :as i])
   (:import (io.opentelemetry.api.common Attributes AttributeKey AttributesBuilder)))
 
 (defn convert-name
@@ -45,3 +46,21 @@
                       attributes')
            .build))))
 
+(defn- create
+  [what property-name env-var]
+  (when-let [v (i/resolve-var-from property-name env-var)]
+    (try
+      (v)
+      (catch Exception e
+        (throw (RuntimeException. (format "Error invoking function %s (to create default %s source)"
+                                          (str v)
+                                          what)
+                                  e))))))
+
+(defn create-default-metric-source
+  []
+  (create "metric" "io.pedestal.telemetry.metric-source" "PEDESTAL_METRICS_SOURCE"))
+
+(defn create-default-tracing-source
+  []
+  (create "tracing" "io.pedestal.telemetry.tracing-source" "PEDESTAL_TRACING_SOURCE"))

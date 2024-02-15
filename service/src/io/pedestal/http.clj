@@ -237,7 +237,7 @@
   * :path-params-decoder: An interceptor to decode path params. Default [[path-params-decoder]].
      If nil, this interceptor is not added.
   * :tracing: An interceptor to handle telemetry request tracing; this is added immediately after the router. Defaults
-    to [[tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0)."
+    to [[request-tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0)."
   [service-map]
   (let [{interceptors ::interceptors
          request-logger ::request-logger
@@ -265,7 +265,7 @@
               enable-csrf nil
               secure-headers {}
               path-params-decoder route/path-params-decoder
-              tracing (tracing/tracing-interceptor)}} service-map
+              tracing (tracing/request-tracing-interceptor)}} service-map
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes

@@ -1,4 +1,4 @@
-; Copyright 2023 Nubank NA
+; Copyright 2023-2024 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,12 +10,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.metrics
-  "Metrics functionality, built on the metrics SPI (service provider interface).
-
-  "
+  "Metrics functionality, built on the metrics SPI (service provider interface)."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi]
-            [io.pedestal.metrics.internal :as internal]))
+            [io.pedestal.telemetry.internal :as internal]))
 
 (def ^:dynamic *default-metric-source*
   "The default metric source, used when a specific metric source is not specified.
