@@ -10,8 +10,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.tracing.spi
-  (:import (io.opentelemetry.api GlobalOpenTelemetry)
-           (io.opentelemetry.api.trace SpanBuilder)))
+  "Defines the TracingSource protocol, and provides implementations on nil nad on Tracer."
+  (:require [io.pedestal.telemetry.internal :as i])
+  (:import (io.opentelemetry.api OpenTelemetry)
+           (io.opentelemetry.api.trace SpanBuilder Tracer)))
 
 (defprotocol TracingSource
 
@@ -20,10 +22,17 @@
     "Creates a new SpanBuilder, from which a Span can be created; additional functions
     in io.pedestal.telemetry allow the span to be configured prior to being activated."))
 
-(extend-type nil
-  TracingSource
+(extend-protocol TracingSource
+
+  nil
 
   (create-span [_ _ _]
-    (-> (GlobalOpenTelemetry/get)
+    (-> (OpenTelemetry/noop)
         (.getTracer "noop")
-        (.spanBuilder "noop span"))))
+        (.spanBuilder "noop span")))
+
+  Tracer
+
+  (create-span [tracer operation-name attributes]
+    (-> (.spanBuilder tracer (i/convert-name operation-name))
+        (.setAllAttributes (i/map->Attributes attributes)))))

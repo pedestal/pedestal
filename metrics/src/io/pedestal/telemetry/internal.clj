@@ -36,15 +36,16 @@
     (AttributeKey/stringKey s)))
 
 (defn map->Attributes
-  ^Attributes [attributes dissoc-key]
-  (let [attributes' (apply dissoc attributes dissoc-key)]
-    (if-not (seq attributes')
-      (Attributes/empty)
-      (->> (reduce-kv (fn [^AttributesBuilder b k v]
-                        (.put b (convert-key k) v))
-                      (Attributes/builder)
-                      attributes')
-           .build))))
+  (^Attributes [attributes]
+   (if-not (seq attributes)
+     (Attributes/empty)
+     (->> (reduce-kv (fn [^AttributesBuilder b k v]
+                       (.put b (convert-key k) v))
+                     (Attributes/builder)
+                     attributes)
+          .build)))
+  (^Attributes [attributes dissoc-keys]
+   (map->Attributes (apply dissoc attributes dissoc-keys))))
 
 (defn- create
   [what property-name env-var]

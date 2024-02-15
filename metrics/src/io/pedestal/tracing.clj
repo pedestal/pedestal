@@ -57,6 +57,8 @@
   (.setAttribute span (i/convert-key attribute-key) attribute-value))
 
 (defn end-span
+  "Ends the span, which will set its termination time to current time.  Every started span
+  must be ended."
   [^Span span]
   (.end span))
 
