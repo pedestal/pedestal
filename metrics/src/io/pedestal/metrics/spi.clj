@@ -27,7 +27,7 @@
 
   Metric names are required, but attributes may be nil.
 
-  Some implementation may use specific attributes (typically, with namespace qualified keyword keys)
+  Some implementations may use specific attributes (typically, with namespace qualified keyword keys)
   to configure the metric in some additional way. Such configuration attributes are stripped out
   of the attributes that are reported to the underlying metric consumer.
 

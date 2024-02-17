@@ -45,23 +45,34 @@
                           tel/start)
           otel-context (-> (Context/current)
                            (.with span))
-          otel-context-scope (.makeCurrent otel-context)]
-      (assoc context ::span span
-             ::otel-context otel-context
-             ::otel-context-scope otel-context-scope))
+          otel-context-scope (.makeCurrent otel-context)
+          prior-context (get-in context [:bindings #'tel/*context*])]
+      (-> context
+          (assoc ::span span
+                 ::otel-context otel-context
+                 ::prior-otel-context prior-context
+                 ::otel-context-scope otel-context-scope)
+          ;; Bind *context* so that any async code can create spans within this span
+          (chain/bind tel/*context* otel-context-scope)))
     ;; No route, no span
     context))
 
 (defn- trace-leave [context]
   (if-let [span (::span context)]
     (let [{:keys  [response]
-           ::keys [otel-context-scope]} context
+           ::keys [otel-context-scope prior-otel-context]} context
           {:keys [status]} response]
       (-> span
           (cond-> status (tel/add-attribute :http.response.status_code status))
           tel/end-span)
       (.close ^AutoCloseable otel-context-scope)
-      (dissoc context ::span ::otel-context-scope ::otel-context))
+      (let [context' (-> context
+                         (dissoc ::span ::otel-context-scope ::otel-context)
+                         (chain/unbind tel/*context*))]
+        ;; Restore the prior context if not nil, otherwise unbind it.
+        (if prior-otel-context
+          (chain/bind context' tel/*context* prior-otel-context)
+          (chain/unbind context' tel/*context*))))
     context))
 
 (defn- trace-error [context error]

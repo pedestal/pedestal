@@ -19,12 +19,23 @@
 (def ^:dynamic *tracing-source*
   (i/create-default-tracing-source))
 
+(def ^:dynamic *context*
+  "The active OpenTelemetry context used as the parent of any created spans.  If nil,
+  then the span is created with the OpenTelemetry's default current context.
+
+  This is designed to be bound when a span is created so that new spans created
+  subsequently in other threads (typically, asynchronous execution) can connect to the appropriate
+  context. In those cases, OpenTelemetry's current context is not always accurate, as it is stored
+  in a thread-local variable."
+  nil)
+
 (defn create-span
   "Creates a new span builder, wrapped in a map, which allows configuration of the span prior to starting it."
   ([operation-name attributes]
    (create-span *tracing-source* operation-name attributes))
   ([tracing-source operation-name attributes]
-   {::builder (spi/create-span tracing-source operation-name attributes)}))
+   {::builder (cond-> (spi/create-span tracing-source operation-name attributes)
+                *context* (.setParent *context*))}))
 
 (def ^:private span-kinds
   {:internal SpanKind/INTERNAL
@@ -49,6 +60,8 @@
   ^Span [span-map]
   (let [{::keys [^SpanBuilder builder]} span-map]
     (.startSpan builder)))
+
+;; Could add extra functions to allow setting the start time
 
 (defn add-attribute
   "Adds an attribute to a span, typically, to record response attributes such as the status code.

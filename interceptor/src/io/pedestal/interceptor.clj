@@ -64,7 +64,7 @@
   (-interceptor [t] t))
 
 (defn interceptor-name
-  "Ensures that an interceptor name (to eventually by the :name value of an Interceptor)
+  "Ensures that an interceptor name (to eventually be the :name key of an Interceptor)
   is either a keyword or nil.  Generally, interceptor names should be namespace-qualified keywords."
   [n]
   (if-not (or (nil? n) (keyword? n))

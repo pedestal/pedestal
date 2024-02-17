@@ -349,6 +349,12 @@
   [context var value]
   `(update ~context :bindings assoc (var ~var) ~value))
 
+(defmacro unbind
+  "Updates the context to remove a previous binding."
+  {:added "0.7.0"}
+  [context var]
+  `(update ~context :bindings dissoc (var ~var)))
+
 (defn execute-only
   "Like [[execute]], but only processes the interceptors in a single direction,
   using `interceptor-key` (i.e. :enter, :leave) to determine which functions

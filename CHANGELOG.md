@@ -15,7 +15,7 @@ Other changes:
 - pedestal.logging: SLF4J dependency changed to 2.0.7 
 - Pedestal is now compatible with Clojure 1.10.1 and above
 - In `io.pedestal.interceptor.chain`:
-    - New macro `bind` makes it easier for interceptors to manipulate dynamic variables exposed to following interceptors
+    - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
 - New service map keys have been introduced, to support handling of uncaught exceptions, and to specify an initial context map
 - There is now a clojure.spec specification for the structure of the service map
