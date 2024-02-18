@@ -236,7 +236,7 @@
      If nil, this interceptor is not added.  Default is the default secure-headers settings
   * :path-params-decoder: An interceptor to decode path params. Default [[path-params-decoder]].
      If nil, this interceptor is not added.
-  * :tracing: An interceptor to handle telemetry request tracing; this is added immediately after the router. Defaults
+  * :tracing: An interceptor to handle telemetry request tracing; this is added as the first interceptor. Defaults
     to [[request-tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0)."
   [service-map]
   (let [{interceptors ::interceptors
@@ -277,6 +277,7 @@
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []
+               (some? tracing) (conj tracing)
                (some? request-logger) (conj (interceptor/interceptor request-logger))
                (some? allowed-origins) (conj (cors/allow-origin allowed-origins))
                (some? not-found-interceptor) (conj (interceptor/interceptor not-found-interceptor))
@@ -292,8 +293,7 @@
                (some? resource-path) (conj (middlewares/resource resource-path))
                (some? file-path) (conj (middlewares/file file-path))
                true (conj (route/router processed-routes router))
-               (some? path-params-decoder) (conj path-params-decoder)
-               (some? tracing) (conj tracing)))
+               (some? path-params-decoder) (conj path-params-decoder)))
       service-map)))
 
 (defn dev-interceptors

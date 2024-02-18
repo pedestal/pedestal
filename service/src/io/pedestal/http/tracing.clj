@@ -31,54 +31,69 @@
     :else
     (str v)))
 
-(defn- trace-enter [context]
-  (if-let [route (:route context)]
-    (let [{:keys [route-name path method scheme port]} route
-          method-name (-> method name string/upper-case)
-          span-name   (str method-name " " path)
-          span        (-> (tel/create-span span-name
-                                           {:http.route          path
-                                            :http.request.method method-name
-                                            :schema              scheme
-                                            :server.port         port
-                                            :route.name          (value-str route-name)})
-                          tel/start)
-          otel-context (-> (Context/current)
-                           (.with span))
-          otel-context-scope (.makeCurrent otel-context)
-          prior-context (get-in context [:bindings #'tel/*context*])]
-      (-> context
-          (assoc ::span span
-                 ::otel-context otel-context
-                 ::prior-otel-context prior-context
-                 ::otel-context-scope otel-context-scope)
-          ;; Bind *context* so that any async code can create spans within this span
-          (chain/bind tel/*context* otel-context-scope)))
-    ;; No route, no span
-    context))
+(defn- update-span-if-routed
+  [context]
+  (when-let [route (:route context)]
+    (let [{:keys [method-name path route-name]} route
+          {::keys [span]} context
+          span-name (str method-name " " path)]
+      (-> span
+          (tel/rename-span span-name)
+          (tel/add-attribute :http.route path)
+          (tel/add-attribute :route.name (value-str route-name)))))
+  context)
 
-(defn- trace-leave [context]
-  (if-let [span (::span context)]
-    (let [{:keys  [response]
-           ::keys [otel-context-scope prior-otel-context]} context
-          {:keys [status]} response]
+
+(defn- trace-enter
+  [context]
+  (let [{:keys [request]} context
+        {:keys [server-port request-method scheme]} request
+        method-name        (-> request-method name string/upper-case)
+        ;; Use a placeholder name; it will be overwritten and further details added
+        ;; on leave/error if the request was routed.
+        ;; TODO: make this more configurable
+        span               (-> (tel/create-span "unrouted"
+                                                {::http.request.method method-name
+                                                 :schema               scheme
+                                                 :server.port          server-port})
+                               tel/start)
+        otel-context       (-> (Context/current)
+                               (.with span))
+        otel-context-scope (.makeCurrent otel-context)
+        prior-context      (get-in context [:bindings #'tel/*context*])]
+    (-> context
+        (assoc ::span span
+               ::otel-context otel-context
+               ::prior-otel-context prior-context
+               ::otel-context-scope otel-context-scope)
+        ;; Bind *context* so that any async code can create spans within the new span
+        ;; (Otel uses a thread local to track the current span, and that will not propagate
+        ;; to other threads the way a dynamic var will).
+        (chain/bind tel/*context* otel-context-scope))))
+
+(defn- trace-leave
+  [context]
+  (let [{:keys  [response]
+         ::keys [span otel-context-scope prior-otel-context]} context
+        {:keys [status]} response]
+    (let [context' (-> context
+                       (update-span-if-routed)
+                       (dissoc ::span ::otel-context-scope ::otel-context)
+                       (chain/unbind tel/*context*))]
       (-> span
           (cond-> status (tel/add-attribute :http.response.status_code status))
           tel/end-span)
       (.close ^AutoCloseable otel-context-scope)
-      (let [context' (-> context
-                         (dissoc ::span ::otel-context-scope ::otel-context)
-                         (chain/unbind tel/*context*))]
-        ;; Restore the prior context if not nil, otherwise unbind it.
-        (if prior-otel-context
-          (chain/bind context' tel/*context* prior-otel-context)
-          (chain/unbind context' tel/*context*))))
-    context))
+      ;; Restore the prior context if not nil, otherwise unbind it.
+      (if prior-otel-context
+        (chain/bind context' tel/*context* prior-otel-context)
+        (chain/unbind context' tel/*context*)))))
 
-(defn- trace-error [context error]
+(defn- trace-error
+  [context error]
   (let [{:keys [::span]} context]
     (-> context
-        (cond-> span (assoc ::span (.recordException span error)))
+        (assoc ::span (.recordException span error))
         trace-leave
         ;; The exception is only reported here, not handled so reattach for later interceptors to deal with.
         (assoc ::chain/error error))))
@@ -86,7 +101,10 @@
 (defn request-tracing-interceptor
   "A tracing interceptor comes after the routing interceptor and uses the routing data
   in the context (if routing was successful) to time the execution of the route (which is to say,
-  all interceptors in the route selected by the router)."
+  all interceptors in the route selected by the router).
+
+  This interceptor should come first (or at least, early) in the incoming pipeline to ensure
+  that all execution time is accounted for."
   []
   (interceptor
     {:name  ::tracing
