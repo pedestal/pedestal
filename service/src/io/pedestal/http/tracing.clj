@@ -54,7 +54,7 @@
         ;; TODO: make this more configurable
         span               (-> (tel/create-span "unrouted"
                                                 {::http.request.method method-name
-                                                 :schema               scheme
+                                                 :scheme               (value-str scheme)
                                                  :server.port          server-port})
                                tel/start)
         otel-context       (-> (Context/current)
