@@ -34,8 +34,8 @@
 (defn- update-span-if-routed
   [context]
   (when-let [route (:route context)]
-    (let [{:keys [method-name path route-name]} route
-          {::keys [span]} context
+    (let [{:keys [path route-name]} route
+          {::keys [span method-name]} context
           span-name (str method-name " " path)]
       (-> span
           (tel/rename-span span-name)
@@ -60,9 +60,10 @@
         otel-context       (-> (Context/current)
                                (.with span))
         otel-context-scope (.makeCurrent otel-context)
-        prior-context      (get-in context [:bindings #'tel/*context*])]
+        prior-context      tel/*context*]
     (-> context
         (assoc ::span span
+               ::method-name method-name
                ::otel-context otel-context
                ::prior-otel-context prior-context
                ::otel-context-scope otel-context-scope)
@@ -78,7 +79,7 @@
         {:keys [status]} response]
     (let [context' (-> context
                        (update-span-if-routed)
-                       (dissoc ::span ::otel-context-scope ::otel-context)
+                       (dissoc ::span ::otel-context-scope ::otel-context ::prior-otel-context ::method-name)
                        (chain/unbind tel/*context*))]
       (-> span
           (cond-> status (tel/add-attribute :http.response.status_code status))
@@ -111,7 +112,3 @@
      :enter trace-enter
      :leave trace-leave
      :error trace-error}))
-
-
-;; TODO: Propagate the ::otel-context when going async
-;; Perhaps a fn and/or macro to setup ::otel-context as current() and close it after.
