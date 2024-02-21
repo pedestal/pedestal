@@ -58,7 +58,7 @@
         ;; Bind *context* so that any async code can create spans within the new span
         ;; (Otel uses a thread local to track the current span, and that will not propagate
         ;; to other threads the way a dynamic var will).
-        (chain/bind tel/*context* otel-context-scope))))
+        (chain/bind tel/*context* otel-context))))
 
 (defn- trace-leave
   [context]
