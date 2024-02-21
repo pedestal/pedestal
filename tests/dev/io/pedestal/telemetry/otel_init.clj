@@ -6,7 +6,7 @@
   (delay (-> (AutoConfiguredOpenTelemetrySdk/initialize)
              (.getOpenTelemetrySdk))))
 
-(defn default-metric-source
+(defn metric-source
   "Default source for the global metric source."
   []
   (-> @*sdk
@@ -15,7 +15,7 @@
       .build
       otel/wrap-meter))
 
-(defn default-tracing-source
+(defn tracing-source
   []
   (-> @*sdk
       (.getTracerProvider)

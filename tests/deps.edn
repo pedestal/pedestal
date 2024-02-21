@@ -87,12 +87,22 @@
                 io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.35.0"}
                 io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.35.0"}
                 io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.35.0"}}
-   :jvm-opts ["-Dio.pedestal.telemetry.metric-source=io.pedestal.telemetry.otel-init/default-metric-source"
-              "-Dio.pedestal.telemetry.tracing-source=io.pedestal.telemetry.otel-init/default-tracing-source"
+   :jvm-opts ["-Dio.pedestal.telemetry.metric-source=io.pedestal.telemetry.otel-init/metric-source"
+              "-Dio.pedestal.telemetry.tracing-source=io.pedestal.telemetry.otel-init/tracing-source"
+              "-Dotel.exporter.oltp.endpoint=http://localhost:4317"
+              "-Dotel.resource.attributes=service.name=pedestal-demo"
+              "-Dotel.metrics.exporter=logging"]}
+
+  :otel-agent
+  {:jvm-opts ["-Dio.pedestal.telemetry.metric-source=io.pedestal.telemetry.otel-agent-init/metric-source"
+              "-Dio.pedestal.telemetry.tracing-source=io.pedestal.telemetry.otel-agent-init/tracing-source"
               "-Dotel.exporter.oltp.endpoint=http://localhost:4317"
               "-Dotel.resource.attributes=service.name=pedestal-demo"
               "-Dotel.metrics.exporter=logging"
-             #_ "-javaagent:target/opentelemetry-javaagent.jar"]}
+              ;; Must download this via
+              ;; curl https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar \
+              ;;   -O --output-dir target
+              "-javaagent:target/opentelemetry-javaagent.jar"]}
 
   ;; clj -X:bench-log
   ;; Runs a benchmark of io.pedestal.log (~ 44ns), then clojure.tools.logging (~ 57 ns),
