@@ -13,23 +13,12 @@
   "HTTP request tracing based on Open Telemetry."
   {:added "0.7.0"}
   (:require [clojure.string :as string]
+            [net.lewisship.trace :refer [trace]]
             [io.pedestal.tracing :as tel]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain])
   (:import (io.opentelemetry.context Context)
            (java.lang AutoCloseable)))
-
-(defn- value-str
-  [v]
-  (cond
-    (string? v)
-    v
-
-    (keyword? v)
-    (-> v str (subs 1))
-
-    :else
-    (str v)))
 
 (defn- update-span-if-routed
   [context]
@@ -40,12 +29,14 @@
       (-> span
           (tel/rename-span span-name)
           (tel/add-attribute :http.route path)
-          (tel/add-attribute :route.name (value-str route-name)))))
+          (tel/add-attribute :route.name route-name))))
   context)
 
 
 (defn- trace-enter
   [context]
+  (trace :uri (get-in context [:request :uri])
+         :current-context (Context/current))
   (let [{:keys [request]} context
         {:keys [server-port request-method scheme]} request
         method-name        (-> request-method name string/upper-case)
@@ -53,8 +44,8 @@
         ;; on leave/error if the request was routed.
         ;; TODO: make this more configurable
         span               (-> (tel/create-span "unrouted"
-                                                {::http.request.method method-name
-                                                 :scheme               (value-str scheme)
+                                                {:http.request.method  method-name
+                                                 :scheme               scheme
                                                  :server.port          server-port})
                                tel/start)
         otel-context       (-> (Context/current)
@@ -100,9 +91,8 @@
         (assoc ::chain/error error))))
 
 (defn request-tracing-interceptor
-  "A tracing interceptor comes after the routing interceptor and uses the routing data
-  in the context (if routing was successful) to time the execution of the route (which is to say,
-  all interceptors in the route selected by the router).
+  "A tracing interceptor comes traces the execution of the request.  When the request is
+  succesfully routed, the trace will identify the HTTP route and route name.
 
   This interceptor should come first (or at least, early) in the incoming pipeline to ensure
   that all execution time is accounted for."

@@ -67,7 +67,8 @@
   "Adds an attribute to a span, typically, to record response attributes such as the status code.
   This should not be called after the span has ended."
   ^Span [^Span span attribute-key attribute-value]
-  (.setAttribute span (i/convert-key attribute-key) attribute-value))
+  ;; Looks like attributes on spans must always be string keys and string values.
+  (.setAttribute span (i/convert-key attribute-key) (i/to-str attribute-value)))
 
 (defn end-span
   "Ends the span, which will set its termination time to current time.  Every started span

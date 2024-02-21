@@ -15,7 +15,7 @@
   (:require [io.pedestal.internal :as i])
   (:import (io.opentelemetry.api.common Attributes AttributeKey AttributesBuilder)))
 
-(defn convert-name
+(defn to-str
   [v]
   (cond
     (string? v) v
@@ -37,15 +37,17 @@
 
 (defn map->Attributes
   (^Attributes [attributes]
+   (map->Attributes attributes nil))
+  (^Attributes [attributes opts]
    (if-not (seq attributes)
      (Attributes/empty)
-     (->> (reduce-kv (fn [^AttributesBuilder b k v]
-                       (.put b (convert-key k) v))
-                     (Attributes/builder)
-                     attributes)
-          .build)))
-  (^Attributes [attributes dissoc-keys]
-   (map->Attributes (apply dissoc attributes dissoc-keys))))
+     (let [{:keys [value-fn]
+            :or   {value-fn identity}} opts]
+       (->> (reduce-kv (fn [^AttributesBuilder b k v]
+                         (.put b (convert-key k) (value-fn v)))
+                       (Attributes/builder)
+                       attributes)
+            .build)))))
 
 (defn- create
   [what property-name env-var]

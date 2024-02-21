@@ -21,13 +21,14 @@
 (defn- convert-metric-name
   [metric-name]
   (or
-    (i/convert-name metric-name)
+    (i/to-str metric-name)
     (throw (ex-info (str "Invalid metric name type: " (-> metric-name class .getName))
                     {:metric-name metric-name}))))
 
 (defn- map->Attributes
   ^Attributes [attributes]
-  (i/map->Attributes attributes [:io.pedestal.metrics/unit :io.pedestal.metrics/description]))
+  (i/map->Attributes (when attributes
+                       (dissoc attributes [:io.pedestal.metrics/unit :io.pedestal.metrics/description]))))
 
 (defn- new-counter
   [^Meter meter metric-name attributes]
