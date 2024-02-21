@@ -28,7 +28,7 @@
 (defn- map->Attributes
   ^Attributes [attributes]
   (i/map->Attributes (when attributes
-                       (dissoc attributes [:io.pedestal.metrics/unit :io.pedestal.metrics/description]))))
+                       (dissoc attributes :io.pedestal.metrics/unit :io.pedestal.metrics/description))))
 
 (defn- new-counter
   [^Meter meter metric-name attributes]
