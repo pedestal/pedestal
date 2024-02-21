@@ -2,7 +2,9 @@
   (:require [io.pedestal.metrics :as m]
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
+            [io.pedestal.tracing :as tel]
             [net.lewisship.trace :refer [trace]]
+            [clojure.core.async :refer [go <! timeout]]
             [io.pedestal.tracing :as t])
   (:import (io.opentelemetry.context Context)))
 
@@ -17,8 +19,34 @@
    :headers {}
    :body    {:state :running}})
 
+(defn work-in-span
+  [label delay-ms time-ms]
+  (go
+    (<! (timeout delay-ms))
+
+    (let [span (-> (tel/create-span label nil)
+                   (tel/start))]
+      (<! (timeout time-ms))
+      (tel/end-span span))
+    [:ok label]))
+
+(def async
+  {:name  ::async
+   :enter (fn [context]
+            (go
+              (let [c1 (work-in-span "alpha" 500 2000)
+                    c2 (work-in-span "beta" 1000 2000)
+                    c3 (work-in-span "gamma" 750 1000)]
+                (assoc context
+                       :response {:status  200
+                                  :headers {}
+                                  :body    {:c1 (<! c1)
+                                            :c2 (<! c2)
+                                            :c3 (<! c3)}}))))})
+
 (def routes
-  #{["/status" :get status-handler :route-name ::status]})
+  #{["/status" :get status-handler :route-name ::status]
+    ["/async" :get async :route-name ::async]})
 
 (defn- create-and-start-server
   [_]
