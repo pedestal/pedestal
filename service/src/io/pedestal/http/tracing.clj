@@ -13,7 +13,6 @@
   "HTTP request tracing based on Open Telemetry."
   {:added "0.7.0"}
   (:require [clojure.string :as string]
-            [net.lewisship.trace :refer [trace]]
             [io.pedestal.tracing :as tel]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain])
@@ -35,8 +34,6 @@
 
 (defn- trace-enter
   [context]
-  (trace :uri (get-in context [:request :uri])
-         :current-context (Context/current))
   (let [{:keys [request]} context
         {:keys [server-port request-method scheme]} request
         method-name        (-> request-method name string/upper-case)
