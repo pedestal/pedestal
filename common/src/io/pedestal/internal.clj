@@ -96,20 +96,17 @@
 (def *deprecations (atom #{}))
 
 (defn deprecation-warning
-  [k label]
-  (when-not (contains? @*deprecations k)
-    (swap! *deprecations conj k)
+  [label]
+  (when-not (contains? @*deprecations label)
+    (swap! *deprecations conj label)
     (println-err (str "WARNING: " label
-                      " is deprecated and may be removed in a future release (in namespace "
-                      *ns* ")"))))
+                      " is deprecated and may be removed in a future release"))))
 
 (defmacro deprecated
   [label & body]
-  (let [ns-str (str *ns*)]
-    `(let [label# (str ~label)
-           k#     (str ~ns-str ":" label#)]
-       (deprecation-warning k# label#)
-       ~@body)))
+  `(do
+     (deprecation-warning ~label)
+     ~@body))
 
 (defn reset-deprecations
   []
