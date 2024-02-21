@@ -37,12 +37,6 @@
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
-
-;; The approach here is based on code from ring.adapter.jetty
-
-;; The Jetty9 updates are based on http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
-;; and http://download.eclipse.org/jetty/stable-9/xref/org/eclipse/jetty/embedded/ManyConnectors.html
-
 (defn- ^SslContextFactory ssl-context-factory
   "Creates a new SslContextFactory instance from a map of options."
   [options]

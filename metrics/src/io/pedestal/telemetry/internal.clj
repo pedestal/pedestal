@@ -50,8 +50,8 @@
             .build)))))
 
 (defn- create
-  [what property-name env-var]
-  (when-let [v (i/resolve-var-from property-name env-var)]
+  [what property-name env-var default]
+  (when-let [v (i/resolve-var-from property-name env-var default)]
     (try
       (v)
       (catch Exception e
@@ -62,8 +62,10 @@
 
 (defn create-default-metric-source
   []
-  (create "metric" "io.pedestal.telemetry.metric-source" "PEDESTAL_METRICS_SOURCE"))
+  (create "metric" "io.pedestal.telemetry.metric-source" "PEDESTAL_METRICS_SOURCE"
+          "io.pedestal.telemetry.otel-global-init/metric-source"))
 
 (defn create-default-tracing-source
   []
-  (create "tracing" "io.pedestal.telemetry.tracing-source" "PEDESTAL_TRACING_SOURCE"))
+  (create "tracing" "io.pedestal.telemetry.tracing-source" "PEDESTAL_TRACING_SOURCE"
+          "io.pedestal.telemetry.otel-global-init/tracing-source"))

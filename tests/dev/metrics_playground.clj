@@ -17,12 +17,15 @@
    :headers {}
    :body    {:state :running}})
 
+(def routes
+  #{["/status" :get status-handler :route-name ::status]})
+
 (defn- create-and-start-server
   [_]
   (->> {::http/port   8080
         ::http/type   :jetty
         ::http/join?  false
-        ::http/routes (route/routes-from #{["/status" :get status-handler :route-name ::status]})}
+        ::http/routes (route/routes-from routes)}
        http/create-server
        http/start))
 

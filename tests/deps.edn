@@ -87,17 +87,15 @@
                 io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.35.0"}
                 io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.35.0"}
                 io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.35.0"}}
-   :jvm-opts ["-Dio.pedestal.telemetry.metric-source=io.pedestal.telemetry.otel-init/metric-source"
-              "-Dio.pedestal.telemetry.tracing-source=io.pedestal.telemetry.otel-init/tracing-source"
-              "-Dotel.exporter.oltp.endpoint=http://localhost:4317"
-              "-Dotel.resource.attributes=service.name=pedestal-demo"
-              "-Dotel.metrics.exporter=logging"]}
+   :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
+                ;; Without this, get a warning and no-op behavior:
+                "-Dotel.java.global-autoconfigure.enabled=true"
+                "-Dotel.resource.attributes=service.name=pedestal-demo-sdk"
+                "-Dotel.metrics.exporter=logging"]}
 
   :otel-agent
-  {:jvm-opts ["-Dio.pedestal.telemetry.metric-source=io.pedestal.telemetry.otel-agent-init/metric-source"
-              "-Dio.pedestal.telemetry.tracing-source=io.pedestal.telemetry.otel-agent-init/tracing-source"
-              "-Dotel.exporter.oltp.endpoint=http://localhost:4317"
-              "-Dotel.resource.attributes=service.name=pedestal-demo"
+  {:jvm-opts ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
+              "-Dotel.resource.attributes=service.name=pedestal-demo-agent"
               "-Dotel.metrics.exporter=logging"
               ;; Must download this via
               ;; curl https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar \
