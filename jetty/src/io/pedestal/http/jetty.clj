@@ -198,21 +198,30 @@
       (context-configurator service-context-handler))
     (configurator server)))
 
-(defn ^{:deprecated "0.7.0"} start
+
+(defn- -start
   "Deprecated; to be made private in the future."
   [^Server server
-   {:keys [join?] :or {join? true} }]
+   {:keys [join?] :or {join? true}}]
+  (.start server)
+  (when join? (.join server))
+  server)
+
+(defn ^{:deprecated "0.7.0"} start
+  "Deprecated; to be made private in the future."
+  [^Server server options]
   (deprecated `start
-    (.start server)
-    (when join? (.join server))
-    server))
+    (-start server options)))
+
+(defn- -stop [^Server server]
+  (.stop server)
+  server)
 
 (defn ^{:deprecated "0.7.0"} stop
   "Deprecated; to be made private in the future."
   [^Server server]
   (deprecated `stop
-    (.stop server)
-    server))
+    (-stop server)))
 
 (defn server
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
@@ -220,8 +229,8 @@
   ([service-map options]
    (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
      {:server server
-      :start-fn #(start server options)
-      :stop-fn #(stop server)})))
+      :start-fn #(-start server options)
+      :stop-fn #(-stop server)})))
 
 
 ;; TODO: spec all this
