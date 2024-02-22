@@ -17,10 +17,14 @@ Other changes:
 - In `io.pedestal.interceptor.chain`:
     - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
-- New service map keys have been introduced, to support handling of uncaught exceptions, and to specify an initial context map
+- New service map keys have been introduced:
+  - Support handling of uncaught exceptions
+  - Specify to specify an initial context map
+  - Specify an interceptor responsible for request tracing
 - There is now a clojure.spec specification for the structure of the service map
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
+- Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 

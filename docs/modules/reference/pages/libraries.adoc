@@ -14,13 +14,13 @@ Pedestal is composed of multiple libraries, and many of these can be used outsid
 |
 
 | pedestal.metrics (to be renamed to pedestal.telemetry)
-| Wrapper around https://micrometer.io/[Micrometer] for generating application metrics and tracing.
+| Wrapper around https://opentelemetry.io/[Open Telemetry] for generating application metrics and tracing.
 |
 
 | pedestal.log
-| Wrapper around https://www.slf4j.org/[Simple Logging Facade for Java] footnote:[Also, some legacy
+| Wrapper around https://www.slf4j.org/[Simple Logging Facade for Java] footnote:[Also, some deprecated
 metrics and tracing functionality.]
-| pedestal.common, https://opentelemetry.io[Open Telemetry]
+| pedestal.common, https://metrics.dropwizard.io/4.2.0/[Dropwizard Metrics], https://opentracing.io/[Open Tracing]
 
 | pedestal.interceptor
 | Asynchronous xref:interceptors.adoc[interceptor pipeline]

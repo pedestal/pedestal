@@ -82,7 +82,7 @@
   May return nil."
   ([property-name env-var]
    (resolve-var-from property-name env-var nil))
-  ([property-name env-var default-value]
+  ([property-name env-var default-var-name]
    (or (resolver "JVM property" property-name (System/getProperty property-name))
        (resolver "environment variable" env-var (System/getenv env-var))
        ;; Defaults can be stored in config files, and the property name becomes a keyword
@@ -90,8 +90,8 @@
        (let [config-key (keyword property-name)]
          (or (resolver "test configuration key" config-key (get test-config config-key))
              (resolver "configuration key" config-key (get prod-config config-key))))
-       (when default-value
-         (resolver nil nil default-value)))))
+       (when default-var-name
+         (resolver nil nil default-var-name)))))
 
 (def *deprecations (atom #{}))
 

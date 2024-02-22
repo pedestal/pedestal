@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.tracing.spi
-  "Defines the TracingSource protocol, and provides implementations on nil nad on Tracer."
+  "Defines the TracingSource protocol, and provides implementations on nil and on OpenTelemetry's Tracer."
   (:require [io.pedestal.telemetry.internal :as i])
   (:import (io.opentelemetry.api OpenTelemetry)
            (io.opentelemetry.api.trace SpanBuilder Tracer)))

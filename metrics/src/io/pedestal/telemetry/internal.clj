@@ -57,7 +57,7 @@
   (attr-kv-pair [v k]
     [(AttributeKey/doubleKey k) (double v)])
 
-  ;; We don't/can't handler arrays and nils are not allowed here
+  ;; We don't/can't handle arrays, and nils are not allowed here
   )
 
 (defn to-str
@@ -96,8 +96,8 @@
          .build)))
 
 (defn- create
-  [what property-name env-var default]
-  (when-let [v (i/resolve-var-from property-name env-var default)]
+  [what property-name env-var default-var-name]
+  (when-let [v (i/resolve-var-from property-name env-var default-var-name)]
     (try
       (v)
       (catch Exception e
