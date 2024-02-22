@@ -13,11 +13,9 @@
   "HTTP request tracing based on Open Telemetry."
   {:added "0.7.0"}
   (:require [clojure.string :as string]
-            [io.pedestal.tracing :as tel]
+            [io.pedestal.tracing :as tracing]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as chain])
-  (:import (io.opentelemetry.context Context)
-           (java.lang AutoCloseable)))
+            [io.pedestal.interceptor.chain :as chain]))
 
 (defn- update-span-if-routed
   [context]
@@ -26,9 +24,9 @@
           {::keys [span method-name]} context
           span-name (str method-name " " path)]
       (-> span
-          (tel/rename-span span-name)
-          (tel/add-attribute :http.route path)
-          (tel/add-attribute :route.name route-name))))
+          (tracing/rename-span span-name)
+          (tracing/add-attribute :http.route path)
+          (tracing/add-attribute :route.name route-name))))
   context)
 
 
@@ -36,65 +34,68 @@
   [context]
   (let [{:keys [request]} context
         {:keys [server-port request-method scheme]} request
-        method-name        (-> request-method name string/upper-case)
+        method-name          (-> request-method name string/upper-case)
         ;; Use a placeholder name; it will be overwritten and further details added
         ;; on leave/error if the request was routed.
         ;; TODO: make this more configurable
-        span               (-> (tel/create-span "unrouted"
-                                                {:http.request.method  method-name
-                                                 ;; :scheme can be nil when using response-for, in tests
-                                                 :scheme               (or scheme "unknown")
-                                                 :server.port          server-port})
-                               (tel/with-kind :server)
-                               tel/start)
-        otel-context       (-> (Context/current)
-                               (.with span))
-        otel-context-scope (.makeCurrent otel-context)
-        prior-context      tel/*context*]
+        span                 (-> (tracing/create-span "unrouted"
+                                                      {:http.request.method method-name
+                                                       ;; :scheme can be nil when using response-for, in tests
+                                                       :scheme              (or scheme "unknown")
+                                                       :server.port         server-port})
+                                 (tracing/with-kind :server)
+                                 tracing/start)
+        otel-context         (tracing/make-span-context span)
+        otel-context-cleanup (tracing/make-context-current otel-context)
+        prior-context        tracing/*context*]
     (-> context
         (assoc ::span span
                ::method-name method-name
                ::otel-context otel-context
                ::prior-otel-context prior-context
-               ::otel-context-scope otel-context-scope)
+               ::otel-context-cleanup otel-context-cleanup)
         ;; Bind *context* so that any async code can create spans within the new span
         ;; (Otel uses a thread local to track the current span, and that will not propagate
         ;; to other threads the way a dynamic var will).
-        (chain/bind tel/*context* otel-context))))
+        (chain/bind tracing/*context* otel-context))))
 
 (defn- trace-leave
   [context]
   (let [{:keys  [response]
-         ::keys [span otel-context-scope prior-otel-context]} context
+         ::keys [span otel-context-cleanup prior-otel-context]} context
         {:keys [status]} response
         status-code (when status
                       (if (<= status 299) :ok :error))]
     (let [context' (-> context
                        (update-span-if-routed)
-                       (dissoc ::span ::otel-context-scope ::otel-context ::prior-otel-context ::method-name)
-                       (chain/unbind tel/*context*))]
+                       (dissoc ::span ::otel-context-cleanup ::otel-context ::prior-otel-context ::method-name)
+                       (chain/unbind tracing/*context*))]
       (-> span
           (cond->
-            status (tel/add-attribute :http.response.status_code status)
-            status-code (tel/set-status-code status-code))
-          tel/end-span)
-      (.close ^AutoCloseable otel-context-scope)
+            status (tracing/add-attribute :http.response.status_code status)
+            status-code (tracing/set-status-code status-code))
+          tracing/end-span)
+      (otel-context-cleanup)
       ;; This assumes that a nil context represents an unbound value, so on nil, return it to the unbound state.
       (if prior-otel-context
-        (chain/bind context' tel/*context* prior-otel-context)
-        (chain/unbind context' tel/*context*)))))
+        (chain/bind context' tracing/*context* prior-otel-context)
+        (chain/unbind context' tracing/*context*)))))
 
 (defn- trace-error
   [context error]
+  ;; If an exception is trown inside trace-enter, trace-error will be called with the
+  ;; unmodified context, which does not have a context.
   (let [{:keys [::span]} context]
-    (-> context
-        (assoc ::span (-> (tel/record-exception span error)
-                          (tel/set-status-code :error)))
-        trace-leave
-        ;; The exception is only reported here, not handled, so reattach for later interceptors to deal with.
-        ;; Since this interceptor is usually first, it will fall back to stylobate logic to report the error
-        ;; to the client, if not previously caught and handled.
-        (assoc ::chain/error error))))
+    (if-not span
+      (assoc context ::chain/error error)
+      (-> context
+          (assoc ::span (-> (tracing/record-exception span error)
+                            (tracing/set-status-code :error)))
+          trace-leave
+          ;; The exception is only reported here, not handled, so reattach for later interceptors to deal with.
+          ;; Since this interceptor is usually first, it will fall back to stylobate logic to report the error
+          ;; to the client, if not previously caught and handled.
+          (assoc ::chain/error error)))))
 
 (defn request-tracing-interceptor
   "A tracing interceptor traces the execution of the request.  When the request is

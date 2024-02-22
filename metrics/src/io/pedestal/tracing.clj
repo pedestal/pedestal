@@ -15,7 +15,8 @@
   (:require [io.pedestal.telemetry.internal :as i]
             [io.pedestal.tracing.spi :as spi])
   (:import (io.opentelemetry.api.common AttributeKey)
-           (io.opentelemetry.api.trace Span SpanBuilder SpanKind StatusCode)))
+           (io.opentelemetry.api.trace Span SpanBuilder SpanKind StatusCode)
+           (io.opentelemetry.context Context)))
 
 (def ^:dynamic *tracing-source*
   (i/create-default-tracing-source))
@@ -95,3 +96,16 @@
 (defn record-exception
   ^Span [^Span span ^Exception e]
   (.recordException span e))
+
+(defn make-span-context
+  "Creates a Context with the current context and the provided span."
+  ^Context [^Span span]
+  (.with (Context/current) span))
+
+(defn make-context-current
+  "Makes the context the current context, returning a no-args function to close the scope (restoring the prior
+  current scope)."
+  [^Context context]
+  (let [scope (.makeCurrent context)]
+    (fn close-scope []
+      (.close scope))))
