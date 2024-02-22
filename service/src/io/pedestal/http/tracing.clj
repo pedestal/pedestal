@@ -43,7 +43,8 @@
         ;; TODO: make this more configurable
         span               (-> (tel/create-span "unrouted"
                                                 {:http.request.method  method-name
-                                                 :scheme               scheme
+                                                 ;; :scheme can be nil when using response-for, in tests
+                                                 :scheme               (or scheme "unknown")
                                                  :server.port          server-port})
                                (tel/with-kind :server)
                                tel/start)

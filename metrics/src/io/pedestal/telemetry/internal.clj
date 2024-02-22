@@ -55,7 +55,7 @@
 
   Float
   (attr-kv-pair [v k]
-    [(AttributeKey/doubleKey k) (double value)])
+    [(AttributeKey/doubleKey k) (double v)])
 
   ;; We don't/can't handler arrays and nils are not allowed here
   )
