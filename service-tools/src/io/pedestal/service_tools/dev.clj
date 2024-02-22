@@ -25,7 +25,7 @@
 
 (defn watch
   "Watches a list of directories for file changes, reloading them as necessary."
-  ([] (deprecated `watch (watch ["src"])))
+  ([] (watch ["src"]))
   ([src-paths]
    (deprecated `watch
                (let [track (tracker/ns-tracker src-paths)
@@ -44,8 +44,7 @@
   return a function suitable for a service's :routes entry,
   that reloads routes on source file changes."
   ([routes-var]
-   (deprecated `watch-routes-fn
-     (watch-routes-fn routes-var ["src"])))
+   (watch-routes-fn routes-var ["src"]))
   ([routes-var src-paths]
    (deprecated `watch-routes-fn
      (let [tracked (tracker/ns-tracker src-paths)]

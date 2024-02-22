@@ -95,8 +95,7 @@
   If the trace-filter or the span-resolver return something falsey, the context is forwarded without
   an active span"
   ([]
-   (deprecated `tracing-interceptor
-     (tracing-interceptor {})))
+   (tracing-interceptor {}))
   ([opts]
    (deprecated `tracing-interceptor
      (let [{:keys [span-resolver
