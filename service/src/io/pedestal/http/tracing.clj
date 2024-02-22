@@ -16,7 +16,8 @@
             [io.pedestal.tracing :as tel]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain])
-  (:import (io.opentelemetry.context Context)
+  (:import (io.opentelemetry.api.trace Span)
+           (io.opentelemetry.context Context)
            (java.lang AutoCloseable)))
 
 (defn- update-span-if-routed
@@ -68,7 +69,6 @@
         {:keys [status]} response
         status-code (when status
                       (if (<= status 299) :ok :error))]
-    (prn :status status :status-code status-code)
     (let [context' (-> context
                        (update-span-if-routed)
                        (dissoc ::span ::otel-context-scope ::otel-context ::prior-otel-context ::method-name)
@@ -79,7 +79,7 @@
             status-code (tel/set-status-code status-code))
           tel/end-span)
       (.close ^AutoCloseable otel-context-scope)
-      ;; Restore the prior context if not nil, otherwise unbind it.
+      ;; This assumes that a nil context represents an unbound value, so on nil, return it to unbound.
       (if prior-otel-context
         (chain/bind context' tel/*context* prior-otel-context)
         (chain/unbind context' tel/*context*)))))
@@ -88,17 +88,21 @@
   [context error]
   (let [{:keys [::span]} context]
     (-> context
-        (assoc ::span (.recordException span error))
+        (assoc ::span (-> (.recordException ^Span span error)
+                          (tel/set-status-code :error)))
         trace-leave
-        ;; The exception is only reported here, not handled so reattach for later interceptors to deal with.
+        ;; The exception is only reported here, not handled, so reattach for later interceptors to deal with.
+        ;; Since this interceptor is usually first, it will fall back to stylobate logic to report the error
+        ;; to the client, if not previously caught and handled.
         (assoc ::chain/error error))))
 
 (defn request-tracing-interceptor
   "A tracing interceptor comes traces the execution of the request.  When the request is
-  succesfully routed, the trace will identify the HTTP route and route name.
+  successfully routed, the trace will identify the HTTP route and route name.
 
   This interceptor should come first (or at least, early) in the incoming pipeline to ensure
-  that all execution time is accounted for."
+  that all execution time is accounted for.  This is less important when the OpenTelemetry Java agent is
+  in use, at that captures the overall time more accurately."
   []
   (interceptor
     {:name  ::tracing
