@@ -16,8 +16,7 @@
             [io.pedestal.tracing :as tel]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain])
-  (:import (io.opentelemetry.api.trace Span)
-           (io.opentelemetry.context Context)
+  (:import (io.opentelemetry.context Context)
            (java.lang AutoCloseable)))
 
 (defn- update-span-if-routed
@@ -80,7 +79,7 @@
             status-code (tel/set-status-code status-code))
           tel/end-span)
       (.close ^AutoCloseable otel-context-scope)
-      ;; This assumes that a nil context represents an unbound value, so on nil, return it to unbound.
+      ;; This assumes that a nil context represents an unbound value, so on nil, return it to the unbound state.
       (if prior-otel-context
         (chain/bind context' tel/*context* prior-otel-context)
         (chain/unbind context' tel/*context*)))))
@@ -89,7 +88,7 @@
   [context error]
   (let [{:keys [::span]} context]
     (-> context
-        (assoc ::span (-> (.recordException ^Span span error)
+        (assoc ::span (-> (tel/record-exception span error)
                           (tel/set-status-code :error)))
         trace-leave
         ;; The exception is only reported here, not handled, so reattach for later interceptors to deal with.
@@ -98,12 +97,12 @@
         (assoc ::chain/error error))))
 
 (defn request-tracing-interceptor
-  "A tracing interceptor comes traces the execution of the request.  When the request is
+  "A tracing interceptor traces the execution of the request.  When the request is
   successfully routed, the trace will identify the HTTP route and route name.
 
   This interceptor should come first (or at least, early) in the incoming pipeline to ensure
   that all execution time is accounted for.  This is less important when the OpenTelemetry Java agent is
-  in use, at that captures the overall time more accurately."
+  in use, at that captures the overall request processing time, from start to finish, more accurately."
   []
   (interceptor
     {:name  ::tracing

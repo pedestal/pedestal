@@ -31,12 +31,12 @@
   nil)
 
 (defn create-span
-  "Creates a new span builder, wrapped in a map, which allows configuration of the span prior to starting it."
-  ([operation-name attributes]
+  "Creates a new span builder, which allows configuration of the span prior to starting it."
+  (^SpanBuilder [operation-name attributes]
    (create-span *tracing-source* operation-name attributes))
-  ([tracing-source operation-name attributes]
-   {::builder (cond-> (spi/create-span tracing-source operation-name attributes)
-                *context* (.setParent *context*))}))
+  (^SpanBuilder [tracing-source operation-name attributes]
+   (cond-> (spi/create-span tracing-source operation-name attributes)
+     *context* (.setParent *context*))))
 
 (def ^:private span-kinds
   {:internal SpanKind/INTERNAL
@@ -46,21 +46,20 @@
    :consumer SpanKind/CONSUMER})
 
 (defn with-kind
-  "Labels the span with a kind (:internal, :server, :client, :producer, or :consumer)."
-  [span-map kind]
-  (update span-map ::builder #(.setSpanKind ^SpanBuilder % (get span-kinds kind))))
+  "Updates the span builder to label the new span with a kind (:internal, :server, :client, :producer, or :consumer)."
+  ^SpanBuilder [^SpanBuilder builder kind]
+  (.setSpanKind builder (get span-kinds kind)))
 
 (defn as-root
   "Identifies the new span as a root span, with no parent.  When this is not called, and span is active
   in the Open Telemetry context, the active span will be the parent of the new span when the span is started."
-  [span-map]
-  (update span-map ::builder #(.setNoParent ^SpanBuilder %)))
+  ^SpanBuilder [^SpanBuilder builder]
+  (.setNoParent builder))
 
 (defn start
-  "Builds the span from the span map, starting and returning it."
-  ^Span [span-map]
-  (let [{::keys [^SpanBuilder builder]} span-map]
-    (.startSpan builder)))
+  "Builds the span from the span builder, starting and returning it."
+  ^Span [^SpanBuilder builder]
+  (.startSpan builder))
 
 ;; Could add extra functions to allow setting the start time
 
@@ -93,3 +92,6 @@
   ^Span [^Span span status-code]
   (.setStatus span (get status-codes status-code)))
 
+(defn record-exception
+  ^Span [^Span span ^Exception e]
+  (.recordException span e))
