@@ -35,4 +35,4 @@
 
   (create-span [tracer operation-name attributes]
     (-> (.spanBuilder tracer (i/to-str operation-name))
-        (.setAllAttributes (i/map->Attributes attributes {:value-fn i/to-str})))))
+        (.setAllAttributes (i/map->Attributes attributes)))))

@@ -13,7 +13,52 @@
   "Internal utilities used by Pedestal telemetry; subject to change without notice."
   {:no-doc true}
   (:require [io.pedestal.internal :as i])
-  (:import (io.opentelemetry.api.common Attributes AttributeKey AttributesBuilder)))
+  (:import (clojure.lang Keyword Symbol)
+           (io.opentelemetry.api.common AttributeType Attributes AttributeKey AttributesBuilder)))
+
+(defprotocol AttributeKVPair
+
+  (attr-kv-pair [v k]))
+
+(extend-protocol AttributeKVPair
+
+  String
+
+  (attr-kv-pair [v k]
+    [(AttributeKey/stringKey k) v])
+
+  Boolean
+
+  (attr-kv-pair [v k]
+    [(AttributeKey/booleanKey k) v])
+
+  Symbol
+
+  (attr-kv-pair [v k]
+    [(AttributeKey/stringKey k) (str v)])
+
+  Keyword
+  (attr-kv-pair [v k]
+    [(AttributeKey/stringKey k) (-> v str (subs 1))])
+
+  Long
+  (attr-kv-pair [v k]
+    [(AttributeKey/longKey k) v])
+
+  Integer
+  (attr-kv-pair [v k]
+    [(AttributeKey/longKey k) (long v)])
+
+  Double
+  (attr-kv-pair [v k]
+    [(AttributeKey/doubleKey k) v])
+
+  Float
+  (attr-kv-pair [v k]
+    [(AttributeKey/doubleKey k) (double value)])
+
+  ;; We don't/can't handler arrays and nils are not allowed here
+  )
 
 (defn to-str
   [v]
@@ -23,31 +68,32 @@
     (symbol? v) (str v)))
 
 (defn convert-key
-  ^AttributeKey [k]
-  (let [s (cond
-            (string? k) k
-            (keyword? k) (subs (str k) 1)
-            (symbol? k) (str k)
-            ;; TODO: Maybe support Class?
+  ^String [k]
+  (cond
+    (string? k) k
+    (keyword? k) (subs (str k) 1)
+    (symbol? k) (str k)
+    ;; TODO: Maybe support Class?
 
-            :else
-            (throw (ex-info (str "Invalid Tag key type: " (-> k class .getName))
-                            {:key k})))]
-    (AttributeKey/stringKey s)))
+    :else
+    (throw (ex-info (str "Invalid attribute key type: " (-> k class .getName))
+                    {:key k}))))
+
+(defn kv->pair
+  [k v]
+  (let [k' (convert-key k)]
+    (attr-kv-pair v k')))
 
 (defn map->Attributes
-  (^Attributes [attributes]
-   (map->Attributes attributes nil))
-  (^Attributes [attributes opts]
-   (if-not (seq attributes)
-     (Attributes/empty)
-     (let [{:keys [value-fn]
-            :or   {value-fn identity}} opts]
-       (->> (reduce-kv (fn [^AttributesBuilder b k v]
-                         (.put b (convert-key k) (value-fn v)))
-                       (Attributes/builder)
-                       attributes)
-            .build)))))
+  ^Attributes [attributes]
+  (if-not (seq attributes)
+    (Attributes/empty)
+    (->> (reduce-kv (fn [^AttributesBuilder b k v]
+                      (let [[k' v'] (kv->pair k v)]
+                        (.put b ^AttributeKey k' v')))
+                    (Attributes/builder)
+                    attributes)
+         .build)))
 
 (defn- create
   [what property-name env-var default]
@@ -69,3 +115,4 @@
   []
   (create "tracing" "io.pedestal.telemetry.tracing-source" "PEDESTAL_TRACING_SOURCE"
           "io.pedestal.telemetry.otel-global-init/tracing-source"))
+

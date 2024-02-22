@@ -229,7 +229,7 @@
     "unqualified-symbol" 'unqualified-symbol))
 
 (deftest valid-keys
-  (are [expected input] (= expected (.getKey (convert-key input)))
+  (are [expected input] (= expected (convert-key input))
 
     "foo" :foo
     "foo.bar" :foo.bar
@@ -251,7 +251,7 @@
         (ex-data e))))
 
 (deftest invalid-tag-key
-  (when-let [e (is (thrown-with-msg? Exception #"\QInvalid Tag key type: clojure.lang.PersistentArrayMap\E"
+  (when-let [e (is (thrown-with-msg? Exception #"\QInvalid attribute key type: clojure.lang.PersistentArrayMap\E"
                                      (convert-key {37 :long})))]
     (is (= {:key        {37 :long}}
            (ex-data e)))))

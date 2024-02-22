@@ -14,7 +14,8 @@
   {:added "0.7.0"}
   (:require [io.pedestal.telemetry.internal :as i]
             [io.pedestal.tracing.spi :as spi])
-  (:import (io.opentelemetry.api.trace Span SpanBuilder SpanKind)))
+  (:import (io.opentelemetry.api.common AttributeKey)
+           (io.opentelemetry.api.trace Span SpanBuilder SpanKind StatusCode)))
 
 (def ^:dynamic *tracing-source*
   (i/create-default-tracing-source))
@@ -67,16 +68,28 @@
   "Adds an attribute to a span, typically, to record response attributes such as the status code.
   This should not be called after the span has ended."
   ^Span [^Span span attribute-key attribute-value]
-  ;; Looks like attributes on spans must always be string keys and string values.
-  (.setAttribute span (i/convert-key attribute-key) (i/to-str attribute-value)))
+  (let [[k v] (i/kv->pair attribute-key attribute-value)]
+    (.setAttribute span ^AttributeKey k v)))
 
 (defn end-span
   "Ends the span, which will set its termination time to current time.  Every started span
-  must be ended."
+  must be ended.
+
+  Returns nil."
   [^Span span]
   (.end span))
 
 (defn ^Span rename-span
-  [^Span span span-name]
+  ^Span [^Span span span-name]
   (.updateName span span-name))
+
+(def ^:private status-codes
+  {:ok    StatusCode/OK
+   :error StatusCode/ERROR
+   :unset StatusCode/UNSET})
+
+(defn set-status-code
+  "Set the status code of the span to either :ok, :error, or :unset."
+  ^Span [^Span span status-code]
+  (.setStatus span (get status-codes status-code)))
 

@@ -44,6 +44,7 @@
                                                 {:http.request.method  method-name
                                                  :scheme               scheme
                                                  :server.port          server-port})
+                               (tel/with-kind :server)
                                tel/start)
         otel-context       (-> (Context/current)
                                (.with span))
@@ -64,13 +65,18 @@
   [context]
   (let [{:keys  [response]
          ::keys [span otel-context-scope prior-otel-context]} context
-        {:keys [status]} response]
+        {:keys [status]} response
+        status-code (when status
+                      (if (<= status 299) :ok :error))]
+    (prn :status status :status-code status-code)
     (let [context' (-> context
                        (update-span-if-routed)
                        (dissoc ::span ::otel-context-scope ::otel-context ::prior-otel-context ::method-name)
                        (chain/unbind tel/*context*))]
       (-> span
-          (cond-> status (tel/add-attribute :http.response.status_code status))
+          (cond->
+            status (tel/add-attribute :http.response.status_code status)
+            status-code (tel/set-status-code status-code))
           tel/end-span)
       (.close ^AutoCloseable otel-context-scope)
       ;; Restore the prior context if not nil, otherwise unbind it.
