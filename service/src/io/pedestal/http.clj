@@ -44,6 +44,11 @@
            (java.io OutputStreamWriter
                     OutputStream)))
 
+;; This is the majority case; attempting to require it here helps with applications that AOT.
+(try
+  (require 'io.pedestal.http.jetty)
+  (catch Exception _))
+
 ;; edn and json response formats
 
 (defn- print-fn
