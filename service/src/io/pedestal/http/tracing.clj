@@ -21,8 +21,10 @@
   [context]
   (when-let [route (:route context)]
     (let [{:keys [path route-name]} route
-          {::keys [span method-name]} context
-          span-name (str method-name " " path)]
+          {::keys [span]} context
+          ;; Recompute the method name in case there was verb-smuggling
+          method-name (-> context :request :request-method name string/upper-case)
+          span-name   (str method-name " " path)]
       (-> span
           (tracing/rename-span span-name)
           (tracing/add-attribute :http.route path)
@@ -34,12 +36,11 @@
   [context]
   (let [{:keys [request]} context
         {:keys [server-port request-method scheme]} request
-        method-name          (-> request-method name string/upper-case)
         ;; Use a placeholder name; it will be overwritten and further details added
         ;; on leave/error if the request was routed.
         ;; TODO: make this more configurable
         span                 (-> (tracing/create-span "unrouted"
-                                                      {:http.request.method method-name
+                                                      {:http.request.method (-> request-method name string/upper-case)
                                                        ;; :scheme can be nil when using response-for, in tests
                                                        :scheme              (or scheme "unknown")
                                                        :server.port         server-port})
@@ -50,7 +51,6 @@
         prior-context        tracing/*context*]
     (-> context
         (assoc ::span span
-               ::method-name method-name
                ::otel-context otel-context
                ::prior-otel-context prior-context
                ::otel-context-cleanup otel-context-cleanup)
@@ -68,7 +68,7 @@
                       (if (<= status 299) :ok :error))]
     (let [context' (-> context
                        (update-span-if-routed)
-                       (dissoc ::span ::otel-context-cleanup ::otel-context ::prior-otel-context ::method-name)
+                       (dissoc ::span ::otel-context-cleanup ::otel-context ::prior-otel-context)
                        (chain/unbind tracing/*context*))]
       (-> span
           (cond->
