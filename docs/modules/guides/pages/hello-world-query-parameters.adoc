@@ -498,7 +498,7 @@ In this guide, we built upon xref:hello-world.adoc[] to add:
 * "Domain" logic
 * Conditional responses
 
-We also learned about the xref:reference:request-map[], which is central to any
+We also learned about the xref:reference:request-map.adoc[], which is central to any
 non-trivial handler, as well as one approach to dealing with invalid user input in
 the request.
 
