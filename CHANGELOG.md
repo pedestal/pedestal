@@ -19,8 +19,8 @@ Other changes:
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
 - New service map keys have been introduced:
   - Support handling of uncaught exceptions
-  - Specify to specify an initial context map
-  - Specify an interceptor responsible for request tracing
+  - May now specify an initial context map
+  - May now specify an interceptor responsible for request tracing
 - There is now a clojure.spec specification for the structure of the service map
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr

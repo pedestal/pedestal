@@ -30,8 +30,8 @@
   This namespace has been effectively deprecated since 2016, and is fully
   deprecated in release 0.6.0.
   "
-  (:require [io.pedestal.interceptor :as interceptor :refer [interceptor
-                                                             interceptor-name]]
+  (:require [io.pedestal.interceptor :refer [interceptor
+                                             interceptor-name]]
             [io.pedestal.internal :refer [deprecated]]))
 
 (defmacro definterceptor
@@ -65,9 +65,9 @@
   additional information."
   [args]
   (cond
-   (symbol? (first args)) (first args)
-   (and (vector? (first args))
-        (< 1 (count args))) `(fn ~@args)))
+    (symbol? (first args)) (first args)
+    (and (vector? (first args))
+         (< 1 (count args))) `(fn ~@args)))
 
 (defn- infer-first-interceptor-function
   "Given list `args`, infer a form that will evaluate to a function
@@ -76,8 +76,8 @@
   information for the first function will be inferred from the list."
   [args]
   (cond
-   (symbol? (first args)) (first args)
-   (list? (first args)) (conj (first args) 'fn)))
+    (symbol? (first args)) (first args)
+    (list? (first args)) (conj (first args) 'fn)))
 
 (defn infer-rest-interceptor-function
   "Given list `args`, return the rest of args that would remain after
@@ -145,17 +145,17 @@
                      :leave #(apply f % args)})))))
 
 (defsimpleinterceptordef after
-  "Defines an after interceptor. The defined function is processed
-  during the leave stage of interceptor execution. The implicitly
-  created function will operate on context, and return a value used as
-  the new context, e.g.:
+                         "Defines an after interceptor. The defined function is processed
+                         during the leave stage of interceptor execution. The implicitly
+                         created function will operate on context, and return a value used as
+                         the new context, e.g.:
 
-  (defafter check-zotted
-    [context]
-    (if-not (:zotted context)
-      (throw (ex-info \"Context was not zotted!\"
-                      {:context context}))
-      context))")
+                         (defafter check-zotted
+                           [context]
+                           (if-not (:zotted context)
+                             (throw (ex-info \"Context was not zotted!\"
+                                             {:context context}))
+                             context))")
 
 (defn around
   "Return an interceptor which calls `f1` on context during the enter
@@ -212,27 +212,27 @@
                               (assoc context :request (apply f (:request context) args)))})))))
 
 (defsimpleinterceptordef on-request
-  "Defines an on-request interceptor. The definition performs
-  pre-processing on a request during the enter stage of interceptor
-  execution. The implicitly created interceptor will extract the
-  request from the context it receives, pass it to the defined
-  function, and then associate the return value from the defined
-  function as into context with the :request key and return
-  context, e.g.:
+                         "Defines an on-request interceptor. The definition performs
+                         pre-processing on a request during the enter stage of interceptor
+                         execution. The implicitly created interceptor will extract the
+                         request from the context it receives, pass it to the defined
+                         function, and then associate the return value from the defined
+                         function as into context with the :request key and return
+                         context, e.g.:
 
-  (defon-request parse-body-as-wibblefish
-    [request]
-    (assoc request :wibblefish-params
-           (wibblefish-parse (:body request))))
+                         (defon-request parse-body-as-wibblefish
+                           [request]
+                           (assoc request :wibblefish-params
+                                  (wibblefish-parse (:body request))))
 
-  This is equivalent to:
+                         This is equivalent to:
 
-  (defbefore parse-body-as-wibblefish
-    [context]
-    (let [request (:request context)
-          new-request (assoc request :wibblefish-params
-                             (wibblefish-parse (:body request)))]
-      (assoc context :request new-request)))")
+                         (defbefore parse-body-as-wibblefish
+                           [context]
+                           (let [request (:request context)
+                                 new-request (assoc request :wibblefish-params
+                                                    (wibblefish-parse (:body request)))]
+                             (assoc context :request new-request)))")
 
 (defn on-response
   "Returns an interceptor which updates the :response value of context
@@ -250,26 +250,26 @@
                               (assoc context :response (apply f (:response context) args)))})))))
 
 (defsimpleinterceptordef on-response
-  "Defines an on-response interceptor. The definition performs post
-  processing on a response during the leave stage of interceptor
-  execution. The implicitly created interceptor will extract the
-  response from the context it receives, pass it to the defined
-  function, and then associate the return value from the defined function
-  into context with the :response key and return context, e.g.:
+                         "Defines an on-response interceptor. The definition performs post
+                         processing on a response during the leave stage of interceptor
+                         execution. The implicitly created interceptor will extract the
+                         response from the context it receives, pass it to the defined
+                         function, and then associate the return value from the defined function
+                         into context with the :response key and return context, e.g.:
 
-  (defon-response change-body-to-html
-    [response]
-    (assoc response :body
-           (render-to-html (:body response))))
+                         (defon-response change-body-to-html
+                           [response]
+                           (assoc response :body
+                                  (render-to-html (:body response))))
 
-  This is equivalent to:
+                         This is equivalent to:
 
-  (defafter change-body-to-html
-    [context]
-    (let [response (:response context)
-          new-response (assoc response :body
-                              (render-to-html (:body response)))]
-      (assoc context :response new-response)))")
+                         (defafter change-body-to-html
+                           [context]
+                           (let [response (:response context)
+                                 new-response (assoc response :body
+                                                     (render-to-html (:body response)))]
+                             (assoc context :response new-response)))")
 
 (defn handler
   "Returns an interceptor which calls f on the :request value of
@@ -286,30 +286,30 @@
                (assoc context :response (f (:request context))))))))
 
 (defsimpleinterceptordef handler
-  "Defines a handler interceptor. The definition mirrors a ring-style
-  request handler and is made in terms of a ring style request. The
-  implicitly created interceptor will extract the request from the
-  context it receives, pass it to the defined function, and then
-  associate the return value from the defined function as into
-  context with the :response key and return context, e.g.:
+                         "Defines a handler interceptor. The definition mirrors a ring-style
+                         request handler and is made in terms of a ring style request. The
+                         implicitly created interceptor will extract the request from the
+                         context it receives, pass it to the defined function, and then
+                         associate the return value from the defined function as into
+                         context with the :response key and return context, e.g.:
 
-  (defhandler hello-name
-    [request]
-    (ring.util.response/response
-      (str \"Hello, \" (-> request
-                           :params
-                           :name))))
+                         (defhandler hello-name
+                           [request]
+                           (ring.util.response/response
+                             (str \"Hello, \" (-> request
+                                                  :params
+                                                  :name))))
 
-  This is equivalent to:
+                         This is equivalent to:
 
-  (defbefore hello-name
-    [context]
-    (let [request (:request context)
-          response (ring.util.response/response
-                     (str \"Hello, \" (-> request
-                                          :params
-                                          :name)))]
-      (assoc context :response response)))")
+                         (defbefore hello-name
+                           [context]
+                           (let [request (:request context)
+                                 response (ring.util.response/response
+                                            (str \"Hello, \" (-> request
+                                                                 :params
+                                                                 :name)))]
+                             (assoc context :response response)))")
 
 (defn middleware
   "Returns an interceptor which calls `f1` on the :request value of

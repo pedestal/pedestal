@@ -532,27 +532,24 @@
   Optionally pass in single-arg functions, which when passed a registry,
   create, start, and return a reporter."
   [& reporter-init-fns]
-  (deprecated `metric-registry
-    (let [registry (MetricRegistry.)]
-      (doseq [reporter-fn reporter-init-fns]
-        (reporter-fn registry))
-      registry)))
+  (let [registry (MetricRegistry.)]
+    (doseq [reporter-fn reporter-init-fns]
+      (reporter-fn registry))
+    registry))
 
 (defn ^{:deprecated "0.7.0"} jmx-reporter [^MetricRegistry registry]
-  (deprecated `jmx-reporter
-    (doto (some-> (JmxReporter/forRegistry registry)
-                  (.inDomain "io.pedestal.metrics")
-                  (.build))
-      (.start))))
+  (doto (some-> (JmxReporter/forRegistry registry)
+                (.inDomain "io.pedestal.metrics")
+                (.build))
+    (.start)))
 
 (defn ^{:deprecated "0.7.0"} log-reporter [^MetricRegistry registry]
-  (deprecated `log-reporter
-    (doto (some-> (Slf4jReporter/forRegistry registry)
-                  (.outputTo (LoggerFactory/getLogger "io.pedestal.metrics"))
-                  (.convertRatesTo TimeUnit/SECONDS)
-                  (.convertDurationsTo TimeUnit/MILLISECONDS)
-                  (.build))
-      (.start 1 TimeUnit/MINUTES))))
+  (doto (some-> (Slf4jReporter/forRegistry registry)
+                (.outputTo (LoggerFactory/getLogger "io.pedestal.metrics"))
+                (.convertRatesTo TimeUnit/SECONDS)
+                (.convertDurationsTo TimeUnit/MILLISECONDS)
+                (.build))
+    (.start 1 TimeUnit/MINUTES)))
 
 (def ^{:deprecated "0.7.0"} default-recorder
   "This is the default recorder of all metrics.

@@ -31,6 +31,6 @@
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
-                   io.pedestal/pedestal.metrics {:local/root "../metrics"}
+                   io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
                    io.pedestal/pedestal.common  {:local/root "../common"}
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}}}}}

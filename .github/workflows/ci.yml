@@ -18,12 +18,12 @@ jobs:
           java-version: '11'
           distribution: 'corretto'
       - name: Setup Clojure
-        uses: DeLaGuardo/setup-clojure@12.1
+        uses: DeLaGuardo/setup-clojure@12.5
         with:
           cli: 1.11.1.1413
 
       - name: Cache Clojure dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.m2/repository
@@ -54,7 +54,7 @@ jobs:
         run: clojure -T:build cve-check
       - name: Upload cve-check-results.html
         if: false # temporary, ${{ !cancelled() && steps.cve-check.conclusion }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.3.1
         with:
           name: cve-check-results.html
           path: target/nvd/dependency-check-report.html

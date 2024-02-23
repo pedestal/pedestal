@@ -12,29 +12,25 @@
 
 (ns ^{:doc "Integration tests of request handling."}
   io.pedestal.http.request-handling-test
-  (:require [io.pedestal.http.route :as route]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
-            [ring.util.response :as ring-response]
-            [io.pedestal.interceptor.helpers :refer [defhandler defafter]]
-            [io.pedestal.http :as service])
-  (:use [clojure.test]
-        [clojure.pprint]
-        [io.pedestal.test]))
+  (:require [ring.util.response :as ring-response]
+            [clojure.test :refer [deftest is are]]
+            [io.pedestal.test :refer [response-for]]
+            [io.pedestal.http :as service]))
 
-(defhandler terminator
+(defn terminator
   "An interceptor that creates a valid ring response and places it in
   the context, terminating the interceptor chain."
-  [request]
-  {:status 200
-   :body "Terminated."
+  [_request]
+  {:status  200
+   :body    "Terminated."
    :headers {}})
 
-(defhandler leaf-handler
+(defn leaf-handler
   "An interceptor that creates a valid ring response and places it in
   the context."
-  [request]
-  {:status 200
-   :body "Leaf handled!"
+  [_request]
+  {:status  200
+   :body    "Leaf handled!"
    :headers {}})
 
 (def request-handling-routes
@@ -47,8 +43,8 @@
 (let [file (java.io.File/createTempFile "request-handling-test" ".txt")]
   (def tempfile-url
     (->> file
-     .getName
-     (str "http://request-handling.pedestal/")))
+         .getName
+         (str "http://request-handling.pedestal/")))
   (def tempdir
     (.getParent file))
   (spit file "some test data"))
@@ -59,26 +55,26 @@
       service/service-fn
       ::service/service-fn))
 
-(def app (make-app {::service/routes request-handling-routes
+(def app (make-app {::service/routes        request-handling-routes
                     ::service/resource-path "public"
-                    ::service/file-path tempdir}))
+                    ::service/file-path     tempdir}))
 
 (deftest termination-test
   (are [url body] (= body (->> url
                                (response-for app :get)
                                :body))
-       "http://request-handling.pedestal/terminated/leaf" "Terminated."
-       "http://request-handling.pedestal/unterminated/leaf" "Leaf handled!"
-       "http://request-handling.pedestal/unrouted" "Not Found"
-       "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
-       tempfile-url "some test data"))
+    "http://request-handling.pedestal/terminated/leaf" "Terminated."
+    "http://request-handling.pedestal/unterminated/leaf" "Leaf handled!"
+    "http://request-handling.pedestal/unrouted" "Not Found"
+    "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
+    tempfile-url "some test data"))
 
-(defafter custom-not-found
-  [context]
-  (assoc context :response (ring-response/not-found "Custom Not Found")))
+(def custom-not-found
+  {:leave (fn [context]
+            (assoc context :response (ring-response/not-found "Custom Not Found")))})
 
 (deftest custom-not-found-test
-  (let [app (make-app {::service/routes request-handling-routes
+  (let [app (make-app {::service/routes                request-handling-routes
                        ::service/not-found-interceptor custom-not-found})]
     (is (= "Custom Not Found"
            (:body (response-for app :get "http://request-handling.pedestal/unrouted"))))))
@@ -86,8 +82,8 @@
 (let [file (java.io.File/createTempFile "request-handling-test" ".css")]
   (def tempfile-url
     (->> file
-     .getName
-     (str "http://request-handling.pedestal/")))
+         .getName
+         (str "http://request-handling.pedestal/")))
   (def tempdir
     (.getParent file))
   (spit file "some test data"))
@@ -97,6 +93,6 @@
                                                     (response-for app :get)
                                                     :headers)
                                                "Content-Type"))
-       "http://request-handling.pedestal/test.html" "text/html"
-       "http://request-handling.pedestal/test.js" "text/javascript"
-       tempfile-url "text/css"))
+    "http://request-handling.pedestal/test.html" "text/html"
+    "http://request-handling.pedestal/test.js" "text/javascript"
+    tempfile-url "text/css"))

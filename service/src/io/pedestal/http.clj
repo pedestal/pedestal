@@ -26,8 +26,7 @@
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.interceptor :as interceptor]
-            [io.pedestal.interceptor.helpers :as helpers]
+            [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
@@ -82,26 +81,22 @@
 
 ;; Interceptors
 ;; ------------
-;; We avoid using the macro-versions in here, to avoid complications with AOT.
-;; The error you'd see would be something like,
-;;   "java.lang.IllegalArgumentException:
-;;      No matching ctor found for class io.pedestal.interceptor.helpers$after$fn__6188"
-;; Where the macro tries to call a function on 0-arity, but the actual
-;; interceptor (already compiled) requires a 2-arity version.
 
 (def ^:private request-meter-fn (metrics/counter ::request nil))
 
 (def log-request
   "Log the request's method and uri."
-  (helpers/on-request
-    ::log-request
-    (fn [request]
-      (log/info :msg (format "%s %s"
-                             (string/upper-case (name (:request-method request)))
-                             (:uri request)))
-      (log/meter ::request)
-      (request-meter-fn)
-      request)))
+  (interceptor
+    {:name  ::log-request
+     :enter (fn [context]
+              (let [{:keys [request]} context
+                    {:keys [uri request-method]} request]
+                (log/info :msg (format "%s %s"
+                                       (-> request-method name string/upper-case)
+                                       uri))
+                (log/meter ::request)
+                (request-meter-fn)
+                context))}))
 
 (defn response?
   "A valid response is any map that includes an integer :status
@@ -112,42 +107,46 @@
 
 (def ^:private not-found-meter-fn (metrics/counter ::not-found nil))
 
+(defn- response-interceptor
+  [interceptor-name pred xform]
+  (interceptor
+    {:name  interceptor-name
+     :leave (fn [context]
+              (let [{:keys [response]} context]
+                (cond-> context
+                  (pred response) (assoc :response (xform response)))))}))
+
 (def not-found
   "An interceptor that returns a 404 when routing failed to resolve a route."
-  (helpers/after
+  (response-interceptor
     ::not-found
-    (fn [context]
-      (if-not (response? (:response context))
-        (do (log/meter ::not-found)
-            (not-found-meter-fn)
-            (assoc context :response (ring-response/not-found "Not Found")))
-        context))))
+    #(not (response? %))
+    (constantly (ring-response/not-found "Not Found"))))
+
+(defn- missing-content-type?
+  [response]
+  (nil? (get-in response [:headers "Content-Type"])))
 
 (def html-body
   "Set the Content-Type header to \"text/html\" if the body is a string and a
   type has not been set."
-  (helpers/on-response
+  (response-interceptor
     ::html-body
-    (fn [response]
-      (let [body (:body response)
-            content-type (get-in response [:headers "Content-Type"])]
-        (if (and (string? body) (not content-type))
-          (ring-response/content-type response "text/html;charset=UTF-8")
-          response)))))
+    #(and (-> % :body string?)
+          (missing-content-type? %))
+    #(ring-response/content-type % "text/html;charset=UTF-8")))
 
 (def json-body
   "Set the Content-Type header to \"application/json\" and convert the body to
   JSON if the body is a collection and a type has not been set."
-  (helpers/on-response
+  (response-interceptor
     ::json-body
+    #(and (-> % :body coll?)
+          (missing-content-type? %))
     (fn [response]
-      (let [body (:body response)
-            content-type (get-in response [:headers "Content-Type"])]
-        (if (and (coll? body) (not content-type))
-          (-> response
-              (ring-response/content-type "application/json;charset=UTF-8")
-              (assoc :body (print-fn #(json-print body))))
-          response)))))
+      (-> response
+          (ring-response/content-type "application/json;charset=UTF-8")
+          (assoc :body (print-fn #(-> response :body json-print)))))))
 
 (defn transit-body-interceptor
   "Returns an interceptor which sets the Content-Type header to the
@@ -166,19 +165,17 @@
    (transit-body-interceptor iname default-content-type transit-format {}))
 
   ([iname default-content-type transit-format transit-opts]
-   (helpers/on-response
+   (response-interceptor
      iname
+     #(and (-> % :body coll?)
+           (missing-content-type? %))
      (fn [response]
-       (let [body (:body response)
-             content-type (get-in response [:headers "Content-Type"])]
-         (if (and (coll? body) (not content-type))
-           (-> response
-               (ring-response/content-type default-content-type)
-               (assoc :body (fn [^OutputStream output-stream]
-                              (transit/write
-                                (transit/writer output-stream transit-format transit-opts) body)
-                              (.flush output-stream))))
-           response))))))
+       (-> response
+           (ring-response/content-type default-content-type)
+           (assoc :body (fn [^OutputStream output-stream]
+                          (transit/write
+                            (transit/writer output-stream transit-format transit-opts) (:body response))
+                          (.flush output-stream))))))))
 
 (def transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
@@ -244,33 +241,33 @@
   * :tracing: An interceptor to handle telemetry request tracing; this is added as the first interceptor. Defaults
     to [[request-tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0)."
   [service-map]
-  (let [{interceptors ::interceptors
-         request-logger ::request-logger
-         routes ::routes
-         router ::router
-         file-path ::file-path
-         resource-path ::resource-path
-         method-param-name ::method-param-name
-         allowed-origins ::allowed-origins
+  (let [{interceptors          ::interceptors
+         request-logger        ::request-logger
+         routes                ::routes
+         router                ::router
+         file-path             ::file-path
+         resource-path         ::resource-path
+         method-param-name     ::method-param-name
+         allowed-origins       ::allowed-origins
          not-found-interceptor ::not-found-interceptor
-         ext-mime-types ::mime-types
-         enable-session ::enable-session
-         enable-csrf ::enable-csrf
-         secure-headers ::secure-headers
-         path-params-decoder ::path-params-decoder
-         tracing ::tracing
-         :or {file-path nil
-              request-logger log-request
-              router :map-tree
-              resource-path nil
-              not-found-interceptor not-found
-              method-param-name :_method
-              ext-mime-types {}
-              enable-session nil
-              enable-csrf nil
-              secure-headers {}
-              path-params-decoder route/path-params-decoder
-              tracing (tracing/request-tracing-interceptor)}} service-map
+         ext-mime-types        ::mime-types
+         enable-session        ::enable-session
+         enable-csrf           ::enable-csrf
+         secure-headers        ::secure-headers
+         path-params-decoder   ::path-params-decoder
+         tracing               ::tracing
+         :or                   {file-path             nil
+                                request-logger        log-request
+                                router                :map-tree
+                                resource-path         nil
+                                not-found-interceptor not-found
+                                method-param-name     :_method
+                                ext-mime-types        {}
+                                enable-session        nil
+                                enable-csrf           nil
+                                secure-headers        {}
+                                path-params-decoder   route/path-params-decoder
+                                tracing               (tracing/request-tracing-interceptor)}} service-map
         processed-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes
@@ -314,14 +311,14 @@
   "Converts the interceptors for the service into a service function, which is a function
   that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
   [{::keys [interceptors initial-context service-fn-options]
-    :as service-map}]
+    :as    service-map}]
   (assoc service-map ::service-fn
          (servlet-interceptor/http-interceptor-service-fn interceptors initial-context service-fn-options)))
 
 (defn servlet
   "Converts the service-fn in the service map to a servlet instance."
   [{service-fn ::service-fn
-    :as service-map}]
+    :as        service-map}]
   (assoc service-map ::servlet
          (servlet/servlet :service service-fn)))
 
@@ -469,17 +466,17 @@
    A typical embedded app will call [[create-server]], rather than calling this function directly."
   [service-map]
   (let [{type ::type
-         :or {type :jetty}} service-map
+         :or  {type :jetty}} service-map
         ;; Ensure that if a host arg was supplied, we default to a safe option, "localhost"
         service-map-with-host (if (::host service-map)
                                 service-map
                                 (assoc service-map ::host "localhost"))
-        server-fn (if (fn? type)
-                    type
-                    (let [server-ns (symbol (str "io.pedestal.http." (name type)))]
-                      (require server-ns)
-                      (resolve (symbol (name server-ns) "server"))))
-        server-map (server-fn service-map (service-map->server-options service-map-with-host))]
+        server-fn             (if (fn? type)
+                                type
+                                (let [server-ns (symbol (str "io.pedestal.http." (name type)))]
+                                  (require server-ns)
+                                  (resolve (symbol (name server-ns) "server"))))
+        server-map            (server-fn service-map (service-map->server-options service-map-with-host))]
     (merge service-map-with-host (server-map->service-map server-map))))
 
 (defn create-server

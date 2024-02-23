@@ -16,7 +16,7 @@
         ;; logging
         org.slf4j/slf4j-api {:mvn/version "2.0.7"}
         ;; metrics
-        io.pedestal/pedestal.metrics {:mvn/version "0.7.0-SNAPSHOT"}
+        io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
         ;; old-metrics support, to be removed in 0.8 perhaps
         io.dropwizard.metrics/metrics-core {:mvn/version "4.2.19"}
         io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.19"}
@@ -26,5 +26,5 @@
  :aliases
  {:local
   {:override-deps
-   {io.pedestal/pedestal.metrics {:local/root "../metrics"}
+   {io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
     io.pedestal/pedestal.common  {:local/root "../common"}}}}}

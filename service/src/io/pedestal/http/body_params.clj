@@ -1,4 +1,4 @@
-; Copyright 2023 Nubank NA
+; Copyright 2023-2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -16,7 +16,7 @@
             [cheshire.core :as json]
             [cheshire.parse :as parse]
             [io.pedestal.http.params :as pedestal-params]
-            [io.pedestal.interceptor.helpers :as interceptor]
+            [io.pedestal.interceptor :refer [interceptor]]
             [cognitect.transit :as transit]
             [ring.middleware.params :as params])
   (:import (java.io EOFException InputStream InputStreamReader PushbackReader)
@@ -31,7 +31,7 @@
 
 (defn- parse-content-type
   "Runs the request through the appropriate parser"
-  [parser-map request]
+  [request parser-map]
   ((parser-for parser-map (:content-type request)) request))
 
 (defn- set-content-type
@@ -46,11 +46,11 @@
    that will ensure that the handler sees that content type in the request"
   ([wrap-fn] (fn [request] (wrap-fn identity)))
   ([wrap-fn expected-content-type]
-      (let [parser (wrap-fn identity)]
-        (fn [request]
-          (let [retyped-request (set-content-type request expected-content-type)
-                parsed-request (parser retyped-request)]
-            (set-content-type parsed-request (:content-type request)))))))
+   (let [parser (wrap-fn identity)]
+     (fn [request]
+       (let [retyped-request (set-content-type request expected-content-type)
+             parsed-request  (parser retyped-request)]
+         (set-content-type parsed-request (:content-type request)))))))
 
 (defn add-parser
   [parser-map content-type parser-fn]
@@ -71,7 +71,7 @@
   (let [edn-options (merge {:eof nil}
                            (apply hash-map options))]
     (fn [request]
-      (let [encoding (or (:character-encoding request) "UTF-8")
+      (let [encoding     (or (:character-encoding request) "UTF-8")
             input-stream (InputStreamReader.
                            ^InputStream (:body request)
                            ^String encoding)]
@@ -96,9 +96,9 @@
     :array-coerce-fn Define a collection to be used for array values by name."
   [reader & options]
   (let [{:keys [bigdec key-fn array-coerce-fn]
-         :or {bigdec false
-              key-fn keyword
-              array-coerce-fn nil}} options]
+         :or   {bigdec          false
+                key-fn          keyword
+                array-coerce-fn nil}} options]
     (binding [parse/*use-bigdecimals?* bigdec]
       (json/parse-stream (PushbackReader. reader) key-fn array-coerce-fn))))
 
@@ -143,7 +143,7 @@
 
                              nil))]
       (cond-> request
-              transit-params (assoc :transit-params transit-params)))))
+        transit-params (assoc :transit-params transit-params)))))
 
 (def transit-parser
   "Take a request and parse its body as transit."
@@ -179,18 +179,20 @@
   ;; custom-model-read-handler."
   [& parser-options]
   (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)
-        edn-options-vec (apply concat edn-options)
+        edn-options-vec  (apply concat edn-options)
         json-options-vec (apply concat json-options)]
 
-    {#"^application/edn" (apply custom-edn-parser edn-options-vec)
-     #"^application/json" (apply custom-json-parser json-options-vec)
+    {#"^application/edn"                   (apply custom-edn-parser edn-options-vec)
+     #"^application/json"                  (apply custom-json-parser json-options-vec)
      #"^application/x-www-form-urlencoded" form-parser
-     #"^application/transit\+json" (apply custom-transit-parser :json transit-options)
-     #"^application/transit\+msgpack" (apply custom-transit-parser :msgpack transit-options)}))
+     #"^application/transit\+json"         (apply custom-transit-parser :json transit-options)
+     #"^application/transit\+msgpack"      (apply custom-transit-parser :msgpack transit-options)}))
 
 (defn body-params
   ([] (body-params (default-parser-map)))
   ([parser-map]
-     (interceptor/on-request ::body-params
-                             (fn [request] (parse-content-type parser-map request)))))
+   (interceptor
+     {:name  ::body-params
+      :enter (fn [context]
+               (update context :request parse-content-type parser-map))})))
 

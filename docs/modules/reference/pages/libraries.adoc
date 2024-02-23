@@ -13,7 +13,7 @@ Pedestal is composed of multiple libraries, and many of these can be used outsid
 | Common functionality and internal utilities.
 |
 
-| pedestal.metrics (to be renamed to pedestal.telemetry)
+| pedestal.telemetry
 | Wrapper around https://opentelemetry.io/[Open Telemetry] for generating application metrics and tracing.
 |
 

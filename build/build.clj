@@ -31,7 +31,7 @@
 (def module-dirs
   ;; Keep these in dependency order
   ["common"
-   "metrics"
+   "telemetry"
    "log"
    "interceptor"
    "route"

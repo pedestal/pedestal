@@ -13,10 +13,11 @@
 (ns io.pedestal.http-test
   (:require [clojure.test :refer :all]
             [clojure.core.async :as async]
+            [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.test :refer :all]
             [io.pedestal.http :as service]
-            [io.pedestal.interceptor.helpers :refer [defon-response defbefore defafter]]
             [io.pedestal.http.impl.servlet-interceptor]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
@@ -24,15 +25,17 @@
            (java.nio.channels Pipe)))
 
 (defn about-page
-  [request]
+  [_request]
   (ring-resp/response (format "Yeah, this is a self-link to %s"
                               (io.pedestal.http.route/url-for :about))))
 
 (defn hello-page
-  [request] (ring-resp/response "HELLO"))
+  [_request]
+  (ring-resp/response "HELLO"))
 
 (defn hello-token-page
-  [request] (ring-resp/response (str "HELLO" (:io.pedestal.http.csrf/anti-forgery-token request))))
+  [request]
+  (ring-resp/response (str "HELLO" (:io.pedestal.http.csrf/anti-forgery-token request))))
 
 (defn hello-plaintext-page [request]
   (-> request hello-page (ring-resp/content-type "text/plain")))
@@ -42,48 +45,52 @@
             [:headers "Content-Type"]
             "text/plain"))
 
-(defn hello-byte-channel-page [request]
-  (let [p (Pipe/open)
-        b (ByteBuffer/wrap (.getBytes "HELLO" "UTF-8"))
+(defn hello-byte-channel-page
+  [_request]
+  (let [p    (Pipe/open)
+        b    (ByteBuffer/wrap (.getBytes "HELLO" "UTF-8"))
         sink (.sink p)]
     (.write sink b)
     (.close sink)
-    {:status 200
+    {:status  200
      :headers {"Content-Type" "text/plain"}
-     :body (.source p)}))
+     :body    (.source p)}))
 
-(defn hello-plaintext-no-content-type-page [request]
+(defn hello-plaintext-no-content-type-page
+  [request]
   (hello-page request))
 
-(defn transit-params [{:keys [transit-params] :as request}]
-  {:status 200
+(defn transit-params
+  [{:keys [transit-params] :as _request}]
+  {:status  200
    :headers {"Content-Type" "text/plain"}
-   :body (pr-str transit-params)})
+   :body    (pr-str transit-params)})
 
 (def ^:dynamic *req* {})
 
-(defn with-binding-page [request]
+(defn with-binding-page
+  [_request]
   (ring-resp/response (str ":req was bound to " *req*)))
 
 (defn just-status-page
-  [request] {:status 200})
+  [_request]
+  {:status 200})
 
 (defn get-edn
-  [request] (ring-resp/response {:a 1}))
+  [_request]
+  (ring-resp/response {:a 1}))
 
 (defn get-plaintext-edn
   [request]
   (-> request get-edn (ring-resp/content-type "text/plain")))
 
-(defon-response clobberware
-                [response]
-                (assoc response :body
-                       (format "You must go to %s!"
-                               (io.pedestal.http.route/url-for :about))))
+(def clobberware
+  {:leave #(update % :response assoc :body
+                   (format "You must go to %s!"
+                           (io.pedestal.http.route/url-for :about)))})
 
-(defbefore add-binding
-           [context]
-           (update context :bindings #(assoc % #'*req* {:a 1})))
+(def add-binding
+  {:enter #(chain/bind % *req* {:a 1})})
 
 (def app-routes
   `[[["/about" {:get [:about about-page]}]
@@ -124,14 +131,14 @@
   (let [response (response-for app :get "/text-as-html")]
     (is (= "text/html;charset=UTF-8" (get-in response [:headers "Content-Type"])))
     ;; Ensure secure headers by default
-    (is (= {"Content-Type" "text/html;charset=UTF-8"
-            "Strict-Transport-Security" "max-age=31536000; includeSubdomains"
-            "X-Frame-Options" "DENY"
-            "X-Content-Type-Options" "nosniff"
-            "X-XSS-Protection" "1; mode=block"
-            "X-Download-Options" "noopen"
+    (is (= {"Content-Type"                      "text/html;charset=UTF-8"
+            "Strict-Transport-Security"         "max-age=31536000; includeSubdomains"
+            "X-Frame-Options"                   "DENY"
+            "X-Content-Type-Options"            "nosniff"
+            "X-XSS-Protection"                  "1; mode=block"
+            "X-Download-Options"                "noopen"
             "X-Permitted-Cross-Domain-Policies" "none"
-            "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}
+            "Content-Security-Policy"           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}
            (:headers response)))))
 
 (deftest plaintext-body-with-html-interceptor-test
@@ -224,7 +231,7 @@
   (.toString output-stream "UTF-8"))
 
 (deftest edn-response-test
-  (let [obj {:a 1 :b 2 :c [1 2 3]}
+  (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
@@ -235,7 +242,7 @@
                (slurp-output-stream output-stream))))))
 
 (deftest transit-response-test
-  (let [obj {:a 1 :b 2 :c [1 2 3]}
+  (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
@@ -246,7 +253,7 @@
                (slurp-output-stream output-stream))))))
 
 (deftest default-edn-output-test
-  (let [obj {:a 1 :b 2 :c [1 2 3]}
+  (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
@@ -263,7 +270,7 @@
              (headers "Content-Type")))))
 
 (deftest json-response-test
-  (let [obj {:a 1 :b 2 :c [1 2 3]}
+  (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (cheshire.core/generate-string obj)
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
@@ -280,10 +287,10 @@
     f))
 
 (deftest input-stream-body-test
-  (let [body-content "Hello Input Stream"
-        body-stream (-> body-content
-                        create-temp-file
-                        FileInputStream.)
+  (let [body-content  "Hello Input Stream"
+        body-stream   (-> body-content
+                          create-temp-file
+                          FileInputStream.)
         output-stream (ByteArrayOutputStream.)]
     (is (= body-content
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-stream output-stream)
@@ -294,22 +301,22 @@
                  (.available body-stream)))))
 
 (deftest file-body-test
-  (let [body-content "Hello File"
-        body-file (create-temp-file body-content)
+  (let [body-content  "Hello File"
+        body-file     (create-temp-file body-content)
         output-stream (ByteArrayOutputStream.)]
     (is (= body-content
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-file output-stream)
                (slurp-output-stream output-stream))))))
 
 (def anti-forgery-app-interceptors
-  (service/default-interceptors {::service/routes app-routes
+  (service/default-interceptors {::service/routes      app-routes
                                  ::service/enable-csrf {}}))
 
 (def af-app (make-app anti-forgery-app-interceptors))
 
 (deftest html-body-test-csrf-token
   (let [response (response-for af-app :get "/token")
-        body (:body response)]
+        body     (:body response)]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (> (count body) 5))
     (is (= "HELLO" (subs body 0 5)))
@@ -317,20 +324,21 @@
 
 ;;; Async request handlers
 
-(defbefore hello-async [context]
-           (async/go
-             (assoc context
-                    :response
-                    {:status 200
-                     :body "Hello async"})))
+(def hello-async
+  {:enter (fn [context]
+            (async/go
+              (assoc context
+                     :response
+                     {:status 200
+                      :body   "Hello async"})))})
 
 (def async-hello-routes
   `[[["/hello-async" {:get hello-async}]]])
 
 (deftest channel-returning-request-handler
-  (let [app (-> {::service/routes async-hello-routes}
-                service/default-interceptors
-                service/service-fn
-                ::service/service-fn)
+  (let [app      (-> {::service/routes async-hello-routes}
+                     service/default-interceptors
+                     service/service-fn
+                     ::service/service-fn)
         response (response-for app :get "/hello-async")]
     (is (= "Hello async" (:body response)))))
