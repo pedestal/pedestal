@@ -15,7 +15,7 @@
          "target/classes"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         io.pedestal/pedestal.log {:mvn/version "0.7.0-SNAPSHOT"}
-        io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
+        io.pedestal/pedestal.telemetry {:mvn/version "0.7.0-SNAPSHOT"}
         io.pedestal/pedestal.interceptor {:mvn/version "0.7.0-SNAPSHOT"}
         io.pedestal/pedestal.route {:mvn/version "0.7.0-SNAPSHOT"}
 
