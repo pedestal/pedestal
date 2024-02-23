@@ -9,7 +9,7 @@
             [io.pedestal.http :as bootstrap]
             [clj-http.client :as http]
             [io.pedestal.http.route :as route]
-            [io.pedestal.interceptor.helpers :refer [defhandler handler]]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.jetty :as jetty])
@@ -19,48 +19,50 @@
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
-(defhandler hello-world [request]
-            {:status 200
-             :headers {"Content-Type" "text/plain"}
-             :body "Hello World"})
+(defn hello-world
+  [_request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    "Hello World"})
 
-(defhandler hello-bytebuffer [request]
-            {:status 200
-             :headers {"Content-Type" "text/plain"}
-             :body (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))})
+(defn hello-bytebuffer [_request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))})
 
-(defhandler hello-bytechannel [request]
-            (let [p (Pipe/open)
-                  b (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))
-                  sink (.sink p)]
-              (.write sink b)
-              (.close sink)
-              {:status 200
-               :headers {"Content-Type" "text/plain"}
-               :body (.source p)}))
+(defn hello-bytechannel [_request]
+  (let [p    (Pipe/open)
+        b    (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))
+        sink (.sink p)]
+    (.write sink b)
+    (.close sink)
+    {:status  200
+     :headers {"Content-Type" "text/plain"}
+     :body    (.source p)}))
 
-(defn content-type-handler [content-type]
-  (handler
-    (fn [_]
-      {:status 200
-       :headers {"Content-Type" content-type}
-       :body ""})))
+(defn content-type-handler
+  [content-type]
+  (fn [_request]
+    {:status  200
+     :headers {"Content-Type" content-type}
+     :body    ""}))
 
-(defhandler echo-handler [request]
-            {:status 200
-             :headers {"request-map" (str (dissoc request
-                                                  :body
-                                                  :servlet
-                                                  :servlet-request
-                                                  :servlet-response
-                                                  :servlet-context
-                                                  :pedestal.http.impl.servlet-interceptor/protocol
-                                                  :pedestal.http.impl.servlet-interceptor/async-supported?))}
-             :body (:body request)})
+(defn echo-handler
+  [request]
+  {:status  200
+   :headers {"request-map" (str (dissoc request
+                                        :body
+                                        :servlet
+                                        :servlet-request
+                                        :servlet-response
+                                        :servlet-context
+                                        :pedestal.http.impl.servlet-interceptor/protocol
+                                        :pedestal.http.impl.servlet-interceptor/async-supported?))}
+   :body    (:body request)})
 
 (defn jetty-server
   [app options]
-  (jetty/server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [app]))}
+  (jetty/server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [(interceptor app)]))}
                 (assoc options :join? false)))
 
 (defmacro with-server [app options & body]
@@ -81,7 +83,7 @@
 ;; requires routes/service-map/etc.
 ;; -----------------------------
 (defmacro with-service-server [service-map & body]
-  `(let [server# (bootstrap/create-server (merge {::bootstrap/type :jetty
+  `(let [server# (bootstrap/create-server (merge {::bootstrap/type  :jetty
                                                   ::bootstrap/join? false}
                                                  ~service-map))]
      (try
@@ -98,24 +100,24 @@
                  (is (= (:body response) "Hello World")))))
 
 (deftest https-round-trip
-  (with-server hello-world {:port 4347
-                            :container-options {:ssl-port 4348
+  (with-server hello-world {:port              4347
+                            :container-options {:ssl-port      4348
                                                 ;; I
                                                 :insecure-ssl? true
-                                                :keystore "test/io/pedestal/http/keystore.jks"
-                                                :key-password "password"}}
+                                                :keystore      "test/io/pedestal/http/keystore.jks"
+                                                :key-password  "password"}}
                (let [response (http/get "https://localhost:4348" {:insecure? true})]
                  (is (= (:status response) 200))
                  (is (= (:body response) "Hello World")))))
 
 
 (deftest https-round-trip-with-ssl
-  (with-server hello-world {:port 4347
-                            :container-options {:ssl? true
+  (with-server hello-world {:port              4347
+                            :container-options {:ssl?          true
                                                 :insecure-ssl? true
-                                                :ssl-port 4348
-                                                :keystore "test/io/pedestal/http/keystore.jks"
-                                                :key-password "password"}}
+                                                :ssl-port      4348
+                                                :keystore      "test/io/pedestal/http/keystore.jks"
+                                                :key-password  "password"}}
                (let [response (http/get "https://localhost:4348" {:insecure? true})]
                  (is (= (:status response) 200))
                  (is (= (:body response) "Hello World")))))
@@ -135,15 +137,15 @@
 
 
 (deftest ensure-configurator-runs-last
-  (let [max-threads 20
-        new-handler (proxy [AbstractHandler] []
-                      (handle [_ ^Request base-request request response]))
-        configurator (fn [^Server server]
-                       (.setAttribute server "ANewAttribute" 42)
-                       (.setHandler server new-handler)
-                       server)
+  (let [max-threads    20
+        new-handler    (proxy [AbstractHandler] []
+                         (handle [_ ^Request base-request request response]))
+        configurator   (fn [^Server server]
+                         (.setAttribute server "ANewAttribute" 42)
+                         (.setHandler server new-handler)
+                         server)
         ^Server server (:server (jetty-server hello-world
-                                              {:join? false :port 4347 :container-options {:max-threads max-threads
+                                              {:join? false :port 4347 :container-options {:max-threads  max-threads
                                                                                            :configurator configurator}}))]
     (is (= (.getMaxThreads ^QueuedThreadPool (.getThreadPool server)) max-threads))
     (is (= (.getAttribute server "ANewAttribute") 42))
@@ -220,15 +222,15 @@
     #{["/hello" :get `hello-world :route-name :hello]}))
 
 (def service-map
-  {:io.pedestal.http/type :jetty
+  {:io.pedestal.http/type   :jetty
    :io.pedestal.http/routes routes
-   :io.pedestal.http/port 4347})
+   :io.pedestal.http/port   4347})
 
 (deftest test-run-jetty-context-path
   (testing "default context-path"
     (with-service-server service-map
                          (let [response (http/get "http://localhost:4347/hello")
-                               url-for (route/url-for-routes routes)]
+                               url-for  (route/url-for-routes routes)]
                            (is (= (:status response) 200))
                            (is (.startsWith ^String (get-in response [:headers "content-type"])
                                             "text/plain"))
@@ -238,7 +240,7 @@
     (with-service-server (merge service-map
                                 {:io.pedestal.http/container-options {:context-path "/context"}})
                          (let [response (http/get "http://localhost:4347/context/hello")
-                               url-for (route/url-for-routes routes :context "/context")]
+                               url-for  (route/url-for-routes routes :context "/context")]
                            (is (= (:status response) 200))
                            (is (.startsWith ^String (get-in response [:headers "content-type"])
                                             "text/plain"))
@@ -246,18 +248,18 @@
                            (is (= (url-for :hello) "/context/hello"))))))
 
 (defn hello-page2 [request]
-  {:status 200
+  {:status  200
    :headers {"Content-Type" "text/plain"}
-   :body (route/url-for :hello)})
+   :body    (route/url-for :hello)})
 
 (def routes2
   (route/expand-routes
     #{["/hello" :get `hello-page2 :route-name :hello]}))
 
 (def service-map2
-  {:io.pedestal.http/type :jetty
+  {:io.pedestal.http/type   :jetty
    :io.pedestal.http/routes routes2
-   :io.pedestal.http/port 4347})
+   :io.pedestal.http/port   4347})
 
 (deftest test-run-jetty-custom-context-with-servletcontext
   (testing "custom context-path via servlet context"

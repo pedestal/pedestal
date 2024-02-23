@@ -1,3 +1,14 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.interceptor.error-test
   (:require [clojure.test :refer :all]
             [io.pedestal.test :refer :all]
@@ -50,9 +61,9 @@
          "Another bad one")))
 
 (deftest allows-fallthrough-behavior
+  (println "This test will log an ERROR, which can be ignored.")
   (let [boom-resp (response-for app :get drop-url)]
-    (is (= (:status boom-resp)
-           500))
-    (is (= (:body boom-resp)
-           "Internal server error: exception"))))
+    (is (match? {:status 500
+                  :body "Internal server error: exception"}
+                 boom-resp))))
 

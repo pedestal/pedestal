@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -14,7 +15,7 @@
   "CSRF protection interceptor support, compatible with ring-anti-forgery"
   (:require [crypto.random :as random]
             [crypto.equality :as crypto]
-            [io.pedestal.interceptor.helpers :as interceptor :refer [around]]))
+            [io.pedestal.interceptor :refer [interceptor]]))
 
 ;; This is a port of the ring-anti-forgery CSRF protection, with the following
 ;; differences:
@@ -92,9 +93,9 @@
       (= :get method)))
 
 (defn access-denied-response [body]
-  {:status 403
+  {:status  403
    :headers {"Content-Type" "text/html"}
-   :body body})
+   :body    body})
 
 (def denied-msg "<h1>Invalid anti-forgery token</h1>")
 
@@ -133,22 +134,25 @@
   ([options]
    {:pre [(not (and (:error-response options)
                     (:error-handler options)))]}
-   (let [token-reader (:read-token options default-request-token)
-         cookie-token? (:cookie-token options)
-         cookie-attrs (:cookie-attrs options)
+   (let [token-reader   (:read-token options default-request-token)
+         cookie-token?  (:cookie-token options)
+         cookie-attrs   (:cookie-attrs options)
          error-response (:error-response options default-error-response)
-         error-handler (:error-handler options (fn [context]
-                                                 (assoc-in context [:response] error-response)))]
-     (around ::anti-forgery
-       (fn [{request :request :as context}]
-         (let [token (session-token request)]
-           (if (and (not (get-request? request))
-                    (not (valid-request? request token-reader)))
-             (error-handler context)
-             (assoc-in context [:request anti-forgery-token] token))))
-       (fn [{response :response req :request :as context}]
-         (let [token (get-or-recreate-token req response)]
-           (assoc context
-                  :response (cond-> (assoc-session-token response req token)
-                              cookie-token? (assoc-double-submit-cookie token cookie-attrs)))))))))
+         error-handler  (:error-handler options (fn [context]
+                                                  (assoc-in context [:response] error-response)))]
+     (interceptor
+       {:name  ::anti-forgery
+        :enter (fn [context]
+                 (let [{:keys [request]} context
+                       token (session-token request)]
+                   (if (and (not (get-request? request))
+                            (not (valid-request? request token-reader)))
+                     (error-handler context)
+                     (assoc-in context [:request anti-forgery-token] token))))
+        :leave (fn [context]
+                 (let [{:keys [request response]} context
+                       token (get-or-recreate-token request response)]
+                   (assoc context
+                          :response (cond-> (assoc-session-token response request token)
+                                      cookie-token? (assoc-double-submit-cookie token cookie-attrs)))))}))))
 

@@ -12,24 +12,21 @@
 
 (ns ^{:doc "Integration tests of CORS processing."}
   io.pedestal.http.cors-test
-  (:require [io.pedestal.http.route :as route]
-            [io.pedestal.http.cors :as cors]
-            [io.pedestal.interceptor.helpers :refer [defhandler]]
-            [io.pedestal.http :as service]
-            [ring.util.response :as ring-resp])
-  (:use [clojure.test]
-        [clojure.pprint]
-        [io.pedestal.test]))
+  (:require [io.pedestal.http :as service]
+            [ring.util.response :as ring-resp]
+            [io.pedestal.test :refer [response-for]]
+            [clojure.test :refer [deftest is]]))
 
-(defhandler hello-world
-  [request] (ring-resp/response "Hello World!"))
+(defn hello-world
+  [_request]
+  (ring-resp/response "Hello World!"))
 
 (def routes
-  `[[["/hello-world" {:get hello-world
+  `[[["/hello-world" {:get   hello-world
                       :patch [:another-hello hello-world]}]]])
 
 (def app
-  (::service/service-fn (-> {::service/routes routes
+  (::service/service-fn (-> {::service/routes          routes
                              ::service/allowed-origins ["http://foo.com:8080"]}
                             service/default-interceptors
                             service/service-fn)))
@@ -55,7 +52,7 @@
     (is (= nil (get-in response [:headers "Origin"])))))
 
 (def allowed-origins-as-map-app
-  (::service/service-fn (-> {::service/routes routes
+  (::service/service-fn (-> {::service/routes          routes
                              ::service/allowed-origins {:allowed-origins ["http://foo.com:8080"]}}
                             service/default-interceptors
                             service/service-fn)))

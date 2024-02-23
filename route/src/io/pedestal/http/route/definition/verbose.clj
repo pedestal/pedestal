@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,16 +14,22 @@
 (ns io.pedestal.http.route.definition.verbose
   (:require [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.path :as path]
-            [io.pedestal.interceptor :refer [interceptor?]]
-            [io.pedestal.interceptor.helpers :as interceptor]
+            [io.pedestal.interceptor :refer [interceptor?] :as i]
             [clojure.string :as string]))
+
+(defn- handler->interceptor
+  [name request-fn]
+  (i/interceptor
+    {:name  name
+     :enter (fn [context]
+              (assoc context :response (-> context :request request-fn)))}))
 
 (defn handler-interceptor
   [handler name]
   (cond
     (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
                              (assoc interceptor :name (or interceptor-name name)))
-    (fn? handler) (interceptor/handler name handler)))
+    (fn? handler) (handler->interceptor name handler)))
 
 
 (defn resolve-interceptor [interceptor name]
@@ -45,22 +52,22 @@
     (symbol? m)
     (let [handler-name (definition/symbol->keyword m)]
       {:route-name handler-name
-       :handler (resolve-interceptor m handler-name)})
+       :handler    (resolve-interceptor m handler-name)})
     ;(isa? (type m) clojure.lang.APersistentMap)
     (instance? clojure.lang.IPersistentMap m)
     (let [{:keys [route-name handler interceptors]} m
-          handler-name (cond
-                         (symbol? handler) (definition/symbol->keyword handler)
-                         (interceptor? handler) (:name handler))
-          interceptor (resolve-interceptor handler (or route-name handler-name))
+          handler-name     (cond
+                             (symbol? handler) (definition/symbol->keyword handler)
+                             (interceptor? handler) (:name handler))
+          interceptor      (resolve-interceptor handler (or route-name handler-name))
           interceptor-name (:name interceptor)]
-      {:route-name (if route-name
-                     route-name
-                     (if interceptor-name
-                       interceptor-name
-                       (throw (ex-info "Handler was not symbol or interceptor with name, no route name provided"
-                                       {:handler-spec m}))))
-       :handler (resolve-interceptor handler (or route-name handler-name))
+      {:route-name   (if route-name
+                       route-name
+                       (if interceptor-name
+                         interceptor-name
+                         (throw (ex-info "Handler was not symbol or interceptor with name, no route name provided"
+                                         {:handler-spec m}))))
+       :handler      (resolve-interceptor handler (or route-name handler-name))
        :interceptors (mapv #(resolve-interceptor % nil) interceptors)})))
 
 (defn- add-terminal-info
@@ -71,7 +78,7 @@
          {:interceptors (-> interceptors
                             (into new-interceptors)
                             (conj (:handler handler-map)))
-          :route-name (:route-name handler-map)}))
+          :route-name   (:route-name handler-map)}))
 
 (defn- generate-verb-terminal
   "Return a new route table entry based on `dna` `path`, and a vector
@@ -130,8 +137,8 @@
             (mapcat (partial generate-route-entries current-dna) children))))
 
 (def default-dna
-  {:path-parts []
-   :path-params []
+  {:path-parts   []
+   :path-params  []
    :interceptors []})
 
 (defn expand-verbose-routes
