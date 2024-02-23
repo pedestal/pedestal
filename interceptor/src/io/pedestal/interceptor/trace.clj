@@ -1,6 +1,20 @@
+; Copyright 2023-2024 Nubank NA
+; Copyright 2018-2022 Cognitect, Inc.
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.interceptor.trace
+  {:deprecated "0.7.0"}
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.internal :refer [deprecated ]]
             [io.pedestal.log :as log])
   (:import (io.opentracing Tracer
                            SpanContext)
@@ -49,7 +63,7 @@
   (log/finish-span span)
   context)
 
-(defn tracing-interceptor
+(defn ^{:deprecated "0.7.0"} tracing-interceptor
   "Return an Interceptor for automatically initiating a distributed trace
   span on every request, which is finished on `leave`.
 
@@ -83,40 +97,41 @@
   ([]
    (tracing-interceptor {}))
   ([opts]
-   (let [{:keys [span-resolver
-                 trace-filter
-                 uri-as-span-operation?
-                 default-span-operation
-                 span-postprocess]
-          :or {span-resolver default-span-resolver
-               trace-filter (fn [ctx] true)
-               uri-as-span-operation? true
-               default-span-operation "PedestalSpan"
-               span-postprocess default-span-postprocess}} opts]
-     (interceptor/interceptor
-       {:name ::tracing-interceptor
-        :enter (fn [context]
-                 (if-let [span (and (trace-filter context)
-                                    (span-resolver (assoc context
-                                                          ::span-operation (if uri-as-span-operation?
-                                                                             (get-in context [:request :uri] default-span-operation)
-                                                                             default-span-operation))))]
-                   (assoc context ::log/span (log/tag-span
-                                               span
-                                               {"http.method" (name (get-in context [:request :request-method]))
-                                                "http.url" (get-in context [:request :uri])
-                                                "http.user-agent" (get-in context [:request :headers "user-agent"])
-                                                "component" "pedestal"
-                                                "span.kind" "server"}))
-                   context))
-        :leave (fn [context]
-                 (if-let [span (::log/span context)]
-                   (span-postprocess context span)
-                   context))
-        :error (fn [context throwable]
-                 (if-let [span (::log/span context)]
-                   (do
-                     (log/log-span span throwable)
-                     (log/finish-span span)
-                     (assoc context ::chain/error throwable))
-                   (assoc context ::chain/error throwable)))}))))
+   (deprecated `tracing-interceptor
+     (let [{:keys [span-resolver
+                   trace-filter
+                   uri-as-span-operation?
+                   default-span-operation
+                   span-postprocess]
+            :or   {span-resolver          default-span-resolver
+                   trace-filter           (fn [ctx] true)
+                   uri-as-span-operation? true
+                   default-span-operation "PedestalSpan"
+                   span-postprocess       default-span-postprocess}} opts]
+       (interceptor/interceptor
+         {:name  ::tracing-interceptor
+          :enter (fn [context]
+                   (if-let [span (and (trace-filter context)
+                                      (span-resolver (assoc context
+                                                            ::span-operation (if uri-as-span-operation?
+                                                                               (get-in context [:request :uri] default-span-operation)
+                                                                               default-span-operation))))]
+                     (assoc context ::log/span (log/tag-span
+                                                 span
+                                                 {"http.method"     (name (get-in context [:request :request-method]))
+                                                  "http.url"        (get-in context [:request :uri])
+                                                  "http.user-agent" (get-in context [:request :headers "user-agent"])
+                                                  "component"       "pedestal"
+                                                  "span.kind"       "server"}))
+                     context))
+          :leave (fn [context]
+                   (if-let [span (::log/span context)]
+                     (span-postprocess context span)
+                     context))
+          :error (fn [context throwable]
+                   (if-let [span (::log/span context)]
+                     (do
+                       (log/log-span span throwable)
+                       (log/finish-span span)
+                       (assoc context ::chain/error throwable))
+                     (assoc context ::chain/error throwable)))})))))

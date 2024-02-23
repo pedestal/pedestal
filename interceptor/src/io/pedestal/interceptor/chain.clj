@@ -1,3 +1,4 @@
+; Copyright 2023-2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -284,8 +285,8 @@
 
 (defn enqueue*
   "Like 'enqueue' but vararg.
-  If the last argument is a sequence of interceptors,
-  they're unpacked and to added to the context's execution queue."
+  If the last argument is itself a sequence of interceptors,
+  they're unpacked and added to the context's execution queue."
   [context & interceptors-and-seq]
   (if (seq? (last interceptors-and-seq))
     (enqueue context (apply list* interceptors-and-seq))
@@ -300,8 +301,9 @@
   (dissoc context ::queue))
 
 (defn terminate-when
-  "Adds pred as a terminating condition of the context. pred is a
-  function that takes a context as its argument. It will be invoked
+  "Adds a predicate establishing a terminating condition for execution of the interceptor chain.
+
+  pred is a function that takes a context as its argument. It will be invoked
   after every Interceptor's :enter function. If pred returns logical
   true, execution will stop at that Interceptor."
   [context pred]
@@ -333,7 +335,7 @@
   All the functions are invoked, but only invoked once (a subsequent interceptor
   also returning a channel does not have this side effect.
 
-  The functions are passed the context, but any returned value is ignored."
+  The callback function will be passed the context, but any returned value from the function is ignored."
   {:added "0.7.0"}
   [context f]
   (update context ::enter-async i/vec-conj f))
@@ -347,11 +349,17 @@
   [context var value]
   `(update ~context :bindings assoc (var ~var) ~value))
 
+(defmacro unbind
+  "Updates the context to remove a previous binding."
+  {:added "0.7.0"}
+  [context var]
+  `(update ~context :bindings dissoc (var ~var)))
+
 (defn execute-only
-  "Like `execute`, but only processes the interceptors in a single direction,
+  "Like [[execute]], but only processes the interceptors in a single direction,
   using `interceptor-key` (i.e. :enter, :leave) to determine which functions
   to call.
-  ---
+
   Executes a queue of Interceptors attached to the context. Context
   must be a map, Interceptors are added with 'enqueue'.
 
@@ -388,7 +396,7 @@
   Therefore :leave functions are called in the opposite order from
   :enter functions.
 
-  Both the :enter and :leave functions are called on a single
+  Both the :enter and :leave functions are passed a single
   argument, the context map, and return an updated context.
 
   If any Interceptor function throws an exception, execution stops and

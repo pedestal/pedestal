@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -11,21 +12,18 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.sse
-  (:require [ring.util.response :as ring-response]
+  "Support for Server Sent Events."
+  (:require [io.pedestal.metrics :as metrics]
+            [ring.util.response :as ring-response]
             [clojure.core.async :as async]
-            [clojure.core.async.impl.protocols :as asyncimpl]
             [io.pedestal.http.servlet :refer :all]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor]
             [clojure.stacktrace]
             [clojure.string :as string])
-  (:import [java.nio.charset Charset]
-           [java.io BufferedReader StringReader OutputStream]
-           [java.util.concurrent Executors ThreadFactory TimeUnit ScheduledExecutorService ScheduledFuture]
-           [jakarta.servlet ServletResponse]
-           [com.fasterxml.jackson.core.util ByteArrayBuilder]))
-
-(set! *warn-on-reflection* true)
+  (:import
+    [java.util.concurrent Executors ThreadFactory ScheduledExecutorService]
+    [com.fasterxml.jackson.core.util ByteArrayBuilder]))
 
 (def ^String UTF-8 "UTF-8")
 
@@ -78,6 +76,8 @@
      (.write bab ^bytes CRLF)
      (.toByteArray bab))))
 
+(def ^:private payload-size-fn (metrics/histogram ::payload-size nil))
+
 (defn send-event
   ([channel name data]
    (send-event channel name data nil))
@@ -89,6 +89,7 @@
               :data data
               :id id)
    (log/histogram ::payload-size (count data))
+   (payload-size-fn (count data))
    (try
      (put-fn channel (mk-data name data id))
      (catch Throwable t
@@ -130,37 +131,41 @@
   on `event-channel` to the HTTP infrastructure via
   `response-channel`."
   [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
-  (async/go
-    (log/counter ::active-streams 1)
-    (try
-      (loop []
-        (let [hb-timeout (async/timeout (* 1000 heartbeat-delay))
-              [event port] (async/alts! [event-channel hb-timeout])]
-          (cond
-            (= port hb-timeout)
-            (if (async/>! response-channel CRLF)
-              (recur)
-              (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
-
-            (and (some? event) (= port event-channel))
-            ;; You can name your events using the maps
-            ;; {:name "my-event" :data "some message data here"}
-            ;; .. and optionally supply IDs (strings) that make sense to your application
-            ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
-            (let [event-name (if (map? event) (str (:name event)) nil)
-                  event-data (if (map? event) (str (:data event)) (str event))
-                  event-id (if (map? event) (str (:id event)) nil)]
-              (if (send-event response-channel event-name event-data event-id async/put!)
+  (let [*active-streams (atom 0)]
+    (metrics/gauge ::active-streams nil #(deref *active-streams))
+    (async/go
+      (log/counter ::active-streams 1)
+      (swap! *active-streams inc)
+      (try
+        (loop []
+          (let [hb-timeout (async/timeout (* 1000 heartbeat-delay))
+                [event port] (async/alts! [event-channel hb-timeout])]
+            (cond
+              (= port hb-timeout)
+              (if (async/>! response-channel CRLF)
                 (recur)
-                (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+                (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
-            :else
-            (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
-      (finally
-        (async/close! event-channel)
-        (async/close! response-channel)
-        (log/counter ::active-streams -1)
-        (when on-client-disconnect (on-client-disconnect))))))
+              (and (some? event) (= port event-channel))
+              ;; You can name your events using the maps
+              ;; {:name "my-event" :data "some message data here"}
+              ;; .. and optionally supply IDs (strings) that make sense to your application
+              ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
+              (let [event-name (if (map? event) (str (:name event)) nil)
+                    event-data (if (map? event) (str (:data event)) (str event))
+                    event-id   (if (map? event) (str (:id event)) nil)]
+                (if (send-event response-channel event-name event-data event-id async/put!)
+                  (recur)
+                  (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
+
+              :else
+              (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
+        (finally
+          (async/close! event-channel)
+          (async/close! response-channel)
+          (log/counter ::active-streams -1)
+          (swap! *active-streams dec)
+          (when on-client-disconnect (on-client-disconnect)))))))
 
 (defn start-stream
   "Starts an SSE event stream and initiates a heartbeat to keep the
@@ -188,14 +193,14 @@
                       (update :headers merge (:cors-headers context)))
          event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context* (assoc context
-                         :response-channel response-channel
-                         :response response)]
+                    :response-channel response-channel
+                    :response response)]
      (async/thread
        (stream-ready-fn event-channel context*))
-     (start-dispatch-loop (merge {:event-channel event-channel
+     (start-dispatch-loop (merge {:event-channel    event-channel
                                   :response-channel response-channel
-                                  :heartbeat-delay heartbeat-delay
-                                  :context context*}
+                                  :heartbeat-delay  heartbeat-delay
+                                  :context          context*}
                                  (when on-client-disconnect
                                    {:on-client-disconnect #(on-client-disconnect context*)})))
      context*)))
@@ -219,7 +224,7 @@
    (start-event-stream stream-ready-fn heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn heartbeat-delay bufferfn-or-n opts]
    (interceptor/interceptor
-     {:name (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
+     {:name  (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
       :enter (fn [context]
                (log/trace :msg "switching to sse")
                (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))

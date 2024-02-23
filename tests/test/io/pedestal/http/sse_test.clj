@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -12,11 +13,11 @@
 
 (ns io.pedestal.http.sse-test
   (:require [io.pedestal.interceptor.chain :as interceptor]
-            [io.pedestal.log :as log]
             [io.pedestal.http.sse :refer :all]
             [io.pedestal.http.cors :as cors])
   (:use [clojure.test]
-        [io.pedestal.test]))
+        [io.pedestal.test])
+  (:import (clojure.core.async.impl.protocols Channel)))
 
 (deftest sse-start-stream
   (let [fake-context {:request {:headers {"origin" "http://foo.com:8080"}}}
@@ -32,7 +33,7 @@
           status :status} :response
           :as context} (interceptor/execute interceptor-context)]
     (is body "Response has a body")
-    (is (instance? clojure.core.async.impl.protocols.Channel body) "Response body is a channel")
+    (is (instance? Channel body) "Response body is a channel")
     (is (= 200 status)
         "A successful status code is sent to the client.")
     (is (= "text/event-stream; charset=UTF-8" content-type)

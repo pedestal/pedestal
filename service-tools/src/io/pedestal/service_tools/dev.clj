@@ -10,30 +10,34 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service-tools.dev
-  (:require [io.pedestal.http :as bootstrap]
-            [ns-tracker.core :as tracker]))
+(ns ^{:deprecated "0.7.0"} io.pedestal.service-tools.dev
+  "Development utilities for Pedestal.
+
+  Deprecated with no replacement; to be removed in a later release."
+  (:require [ns-tracker.core :as tracker]
+            [io.pedestal.internal :refer [deprecated]]))
 
 (defn- ns-reload [track]
- (try
-   (doseq [ns-sym (track)]
-     (require ns-sym :reload))
-   (catch Throwable e (.printStackTrace e))))
+  (try
+    (doseq [ns-sym (track)]
+      (require ns-sym :reload))
+    (catch Throwable e (.printStackTrace e))))
 
 (defn watch
   "Watches a list of directories for file changes, reloading them as necessary."
   ([] (watch ["src"]))
   ([src-paths]
-     (let [track (tracker/ns-tracker src-paths)
-           done (atom false)]
-       (doto
-           (Thread. (fn []
-                      (while (not @done)
-                        (ns-reload track)
-                        (Thread/sleep 500))))
-         (.setDaemon true)
-         (.start))
-       (fn [] (swap! done not)))))
+   (deprecated `watch
+               (let [track (tracker/ns-tracker src-paths)
+                     done  (atom false)]
+                 (doto
+                   (Thread. (fn []
+                              (while (not @done)
+                                (ns-reload track)
+                                (Thread/sleep 500))))
+                   (.setDaemon true)
+                   (.start))
+                 (fn [] (swap! done not))))))
 
 (defn watch-routes-fn
   "Given a routes var and optionally a vector of paths to watch,
@@ -42,8 +46,9 @@
   ([routes-var]
    (watch-routes-fn routes-var ["src"]))
   ([routes-var src-paths]
-   (let [tracked (tracker/ns-tracker src-paths)]
-     (fn []
-       (ns-reload tracked)
-       (deref routes-var)))))
+   (deprecated `watch-routes-fn
+     (let [tracked (tracker/ns-tracker src-paths)]
+       (fn []
+         (ns-reload tracked)
+         (deref routes-var))))))
 

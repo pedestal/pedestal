@@ -1,4 +1,4 @@
-; Copyright 2023 Nubank NA
+; Copyright 2023-2024 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,15 +10,15 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.metrics
-  "Metrics functionality, built on the metrics SPI (service provide interface)."
+  "Metrics functionality, built on the metrics SPI (service provider interface)."
   {:since "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi]
-            [io.pedestal.metrics.internal :as internal]))
+            [io.pedestal.telemetry.internal :as internal]))
 
 (def ^:dynamic *default-metric-source*
-  "The default metric source, used when a metric source is not specified.
+  "The default metric source, used when a specific metric source is not specified.
 
-  TODO: Describe props, envs, etcs."
+  This may itself be nil, in which case default no-op behavior will occur."
   (internal/create-default-metric-source))
 
 (defn counter
@@ -27,30 +27,30 @@
   Returns a function used to increment the counter.  Invoked with no arguments,
   increments the counter by 1, or with a single numeric argument, increments
   the counter by that amount."
-  ([metric-name tags]
-   (counter *default-metric-source* metric-name tags))
-  ([metric-source metric-name tags]
-   (spi/counter metric-source metric-name tags)))
+  ([metric-name attributes]
+   (counter *default-metric-source* metric-name attributes))
+  ([metric-source metric-name attributes]
+   (spi/counter metric-source metric-name attributes)))
 
 (defn increment-counter
   "Increments a counter metric by 1.
 
   Returns nil."
-  ([metric-name tags]
-   (increment-counter *default-metric-source* metric-name tags))
-  ([metric-source metric-name tags]
+  ([metric-name attributes]
+   (increment-counter *default-metric-source* metric-name attributes))
+  ([metric-source metric-name attributes]
    ;; Obtain and invoke the counter's increment function
-   ((spi/counter metric-source metric-name tags))
+   ((spi/counter metric-source metric-name attributes))
    nil))
 
 (defn advance-counter
   "Increments a counter metric by a numeric amount (which should be positive).
 
   Returns nil."
-  ([metric-name tags amount]
-   (advance-counter *default-metric-source* metric-name tags amount))
-  ([metric-source metric-name tags amount]
-   ((spi/counter metric-source metric-name tags) amount)
+  ([metric-name attributes amount]
+   (advance-counter *default-metric-source* metric-name attributes amount))
+  ([metric-source metric-name attributes amount]
+   ((spi/counter metric-source metric-name attributes) amount)
    nil))
 
 (defn gauge
@@ -58,10 +58,10 @@
    a number.  Does nothing if a gauge with that name already exists.
 
    Returns nil."
-  ([metric-name tags value-fn]
-   (gauge *default-metric-source* metric-name tags value-fn))
-  ([metric-source metric-name tags value-fn]
-   (spi/gauge metric-source metric-name tags value-fn)))
+  ([metric-name attributes value-fn]
+   (gauge *default-metric-source* metric-name attributes value-fn))
+  ([metric-source metric-name attributes value-fn]
+   (spi/gauge metric-source metric-name attributes value-fn)))
 
 (defn timer
   "Creates a timer and return the timer's trigger function.
@@ -71,15 +71,15 @@
   The stop timer function is idempotent; only the first call records a duration.
 
   Internally, timers measure elapsed nanosecond time."
-  ([metric-name tags]
-   (timer *default-metric-source* metric-name tags))
-  ([metric-source metric-name tags]
-   (spi/timer metric-source metric-name tags)))
+  ([metric-name attributes]
+   (timer *default-metric-source* metric-name attributes))
+  ([metric-source metric-name attributes]
+   (spi/timer metric-source metric-name attributes)))
 
 (defmacro timed*
   "Variant of [[timed]] when using a specific metric source."
-  [metric-source metric-name tags & body]
-  `(let [stop-fn# ((timer ~metric-source ~metric-name ~tags))]
+  [metric-source metric-name attributes & body]
+  `(let [stop-fn# ((timer ~metric-source ~metric-name ~attributes))]
      (try
        (do ~@body)
        (finally
@@ -88,8 +88,20 @@
 (defmacro timed
   "Obtains and starts a timer, then executes the body adding a (try ... finally) block to stop
    the timer, using  the [[*default-metric-source*]]."
-  [metric-name tags & body]
-  `(timed* *default-metric-source* ~metric-name ~tags ~@body))
+  [metric-name attributes & body]
+  `(timed* *default-metric-source* ~metric-name ~attributes ~@body))
+
+(defn histogram
+  "Creates a histogram (sometimes called a distribution summary), which tracks the number of events and a dimension for each event;
+  internally, distributes different events to various bucket ranges, yielding a histogram of sizes of
+  the event; a comment example is to use a histogram to track the size of incoming requests
+  or outgoing responses.
+
+  Returns a function that records the dimension of an event."
+  ([metric-name attributes]
+   (histogram *default-metric-source* metric-name attributes))
+  ([metric-source metric-name attributes]
+   (spi/histogram metric-source metric-name attributes)))
 
 
 

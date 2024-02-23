@@ -12,8 +12,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty
+  "Jetty adaptor for Pedestal."
   (:require [io.pedestal.http.jetty.container]
             [clojure.string :as string]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.websocket :as ws])
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.server Server
@@ -34,12 +36,6 @@
            (org.eclipse.jetty.websocket.jakarta.server.config JakartaWebSocketServletContainerInitializer JakartaWebSocketServletContainerInitializer$Configurator)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
-
-
-;; The approach here is based on code from ring.adapter.jetty
-
-;; The Jetty9 updates are based on http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
-;; and http://download.eclipse.org/jetty/stable-9/xref/org/eclipse/jetty/embedded/ManyConnectors.html
 
 (defn- ^SslContextFactory ssl-context-factory
   "Creates a new SslContextFactory instance from a map of options."
@@ -196,16 +192,30 @@
       (context-configurator service-context-handler))
     (configurator server)))
 
-(defn start
+
+(defn- -start
+  "Deprecated; to be made private in the future."
   [^Server server
-   {:keys [join?] :or {join? true} :as options}]
+   {:keys [join?] :or {join? true}}]
   (.start server)
   (when join? (.join server))
   server)
 
-(defn stop [^Server server]
+(defn ^{:deprecated "0.7.0"} start
+  "Deprecated; to be made private in the future."
+  [^Server server options]
+  (deprecated `start
+    (-start server options)))
+
+(defn- -stop [^Server server]
   (.stop server)
   server)
+
+(defn ^{:deprecated "0.7.0"} stop
+  "Deprecated; to be made private in the future."
+  [^Server server]
+  (deprecated `stop
+    (-stop server)))
 
 (defn server
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
@@ -213,8 +223,8 @@
   ([service-map options]
    (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
      {:server server
-      :start-fn #(start server options)
-      :stop-fn #(stop server)})))
+      :start-fn #(-start server options)
+      :stop-fn #(-stop server)})))
 
 
 ;; TODO: spec all this

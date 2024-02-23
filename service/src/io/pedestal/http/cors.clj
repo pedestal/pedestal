@@ -13,7 +13,8 @@
 (ns io.pedestal.http.cors
   (:require [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.log :as log]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [io.pedestal.metrics :as metrics]))
 
 (defn- convert-header-name
   [header-name]
@@ -73,7 +74,8 @@
     :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
   "
   [allowed-origins]
-  (let [{:keys [creds allowed-origins] :as args} (normalize-args allowed-origins)]
+  (let [{:keys [creds allowed-origins] :as args} (normalize-args allowed-origins)
+        origin-real-fn (metrics/counter ::origin-real nil)]
     (interceptor
       {:name ::allow-origin
        :enter (fn [context]
@@ -91,6 +93,7 @@
                     ;; origin is allowed and this is real
                     (and origin allowed (not preflight-request))
                     (do (log/meter ::origin-real)
+                        (origin-real-fn)
                         (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
                                                             (when creds {"Access-Control-Allow-Credentials" (str creds)}))))
 

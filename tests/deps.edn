@@ -17,6 +17,7 @@
  :deps {criterium/criterium {:mvn/version "0.4.6"}
 
         nubank/matcher-combinators {:mvn/version "3.8.8"}
+        nubank/mockfn {:mvn/version "0.7.0"}
 
         org.clojure/java.classpath {:mvn/version "1.0.0"}
         org.clojure/tools.namespace {:mvn/version "1.4.4"}
@@ -65,6 +66,9 @@
 
  :aliases
  {
+  :1.12
+  {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha7"}}}
+
   :1.10
   {:override-deps {org.clojure/clojure {:mvn/version "1.10.1"}}}
 
@@ -72,10 +76,32 @@
   :test
   {:extra-deps {io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-   ;; Needed for io.pedestal.http.route-repl-test:
-   :jvm-opts ["-Dio.pedestal.dev-mode=true"]
+   :jvm-opts   ["-Dio.pedestal.dev-mode=true"]              ;; Needed for io.pedestal.http.route-repl-test
+
    ;; Need extra test runner to avoid test hangs
-   :exec-fn io.pedestal.test-runner/test}
+   :exec-fn    io.pedestal.test-runner/test}
+
+  :otel
+  ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.35.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.35.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.35.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.35.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.35.0"}}
+   :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
+                ;; Without this, get a warning and no-op behavior:
+                "-Dotel.java.global-autoconfigure.enabled=true"
+                "-Dotel.resource.attributes=service.name=pedestal-demo-sdk"
+                "-Dotel.metrics.exporter=logging"]}
+
+  :otel-agent
+  {:jvm-opts ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
+              "-Dotel.resource.attributes=service.name=pedestal-demo-agent"
+              "-Dotel.metrics.exporter=logging"
+              ;; Must download this via
+              ;; curl https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar \
+              ;;   -O --output-dir target
+              "-javaagent:target/opentelemetry-javaagent.jar"]}
 
   ;; clj -X:bench-log
   ;; Runs a benchmark of io.pedestal.log (~ 44ns), then clojure.tools.logging (~ 57 ns),
