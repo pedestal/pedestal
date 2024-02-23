@@ -488,7 +488,7 @@
     (is (= 1 @*count))))
 
 (deftest indirect-interceptor
-  (let [indirect (interceptor/interceptor {:name ::indirect :enter identity})
+  (let [indirect (interceptor {:name ::indirect :enter identity})
         f1       ^:interceptor (fn [] indirect)
         f2       ^:interceptorfn (fn [] {:name ::indirect :enter identity})]
 
@@ -498,3 +498,106 @@
     ;; This also shows that the result is converted (from a Map to an Interceptor).
     (is (= indirect
            (interceptor/-interceptor f2)))))
+
+(def ^:dynamic *rebindable* nil)
+
+(deftest interceptor-leave-ordering-after-a-change-in-bindings
+  (let [step     (fn [interceptor-name]
+                   (interceptor
+                     {:name  interceptor-name
+                      :leave (fn [context]
+                               (-> context
+                                   (update :order i/vec-conj interceptor-name)
+                                   (assoc-in [:peek interceptor-name] *rebindable*)))}))
+
+        rebinder (fn [value]
+                   (interceptor
+                     {:leave (fn [context]
+                               (chain/bind context *rebindable* value))}))]
+    ;; This is the expected leave order
+    (is (match? {:order [:d :c :b :a]}
+                (chain/execute nil
+                               [(step :a)
+                                (step :b)
+                                (step :c)
+                                (step :d)])))
+
+    (is (match? {:order [:f :e :d :c :b :a]
+                 :peek  {:f nil
+                         :e nil
+                         :d :early
+                         :c :early
+                         :b :late
+                         :a :late}}
+                (chain/execute nil
+                               [(step :a)
+                                (step :b)
+                                (rebinder :late)
+                                (step :c)
+                                (step :d)
+                                (rebinder :early)
+                                (step :e)
+                                (step :f)])))))
+
+(defn <!!?
+  [ch]
+  (async/alt!!
+    ch ([context] context)
+
+    (async/timeout 75) ::timed-out))
+
+(deftest interceptor-leave-ordering-after-a-change-in-bindings-async
+  (let [step     (fn [interceptor-name]
+                   (interceptor
+                     {:name  interceptor-name
+                      :leave (fn [context]
+                               (go
+                                 (-> context
+                                     (update :order i/vec-conj interceptor-name)
+                                     (assoc-in [:peek interceptor-name] *rebindable*))))}))
+
+        rebinder (fn [value]
+                   (interceptor
+                     {:leave (fn [context]
+                               (go
+                                 (chain/bind context *rebindable* value)))}))
+        ch       (chan 1)
+        capture  (interceptor
+                   {:name  :capture
+                    :leave (fn [context]
+                             (go
+                               (>! ch context)
+                               context))})]
+
+    (chain/execute nil
+                   [capture
+                    (step :a)
+                    (step :b)
+                    (step :c)
+                    (step :d)])
+
+    ;; This is the expected leave order
+
+    (is (match? {:order [:d :c :b :a]}
+                (<!!? ch)))
+
+    (chain/execute nil
+                   [capture
+                    (step :a)
+                    (step :b)
+                    (rebinder :late)
+                    (step :c)
+                    (step :d)
+                    (rebinder :early)
+                    (step :e)
+                    (step :f)])
+
+    (is (match? {:order [:f :e :d :c :b :a]
+                 :peek  {:f nil
+                         :e nil
+                         :d :early
+                         :c :early
+                         :b :late
+                         :a :late}}
+                (<!!? ch)))))
+
