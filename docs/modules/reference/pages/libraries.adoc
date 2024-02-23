@@ -26,6 +26,10 @@ metrics and tracing functionality.]
 | Asynchronous xref:interceptors.adoc[interceptor pipeline]
 | pedestal.log, pedestal.common
 
+| pedestal.error
+| Simple error catching for interceptors
+| pedestal.interceptor, org.clojure/core.match
+
 | pedestal.route
 | HTTP request xref:routing-quick-reference.adoc[routing]
 | pedestal.log, pedestal.interceptor, pedestal.common, {core_async}

@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -27,8 +28,7 @@
   `:java.lang.ArithmeticException
   "
   [binding-vector & match-forms]
-  `(io.pedestal.interceptor/interceptor
+  `(interceptor/interceptor
      {:error (fn ~binding-vector
-               (clojure.core.match/match [(ex-data ~(second binding-vector))]
-                  ~@match-forms))}))
-
+               (match/match [(ex-data ~(second binding-vector))]
+                            ~@match-forms))}))

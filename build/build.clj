@@ -34,6 +34,7 @@
    "telemetry"
    "log"
    "interceptor"
+   "error"
    "route"
    "service"
    ;; And then the others:
