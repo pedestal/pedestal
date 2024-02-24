@@ -160,8 +160,7 @@
 
 (def ^{:deprecated "0.7.0"} transit-parser
   "Take a request and parse its body as JSON transit."
-  (i/deprecated `transit-parser
-    (custom-transit-parser :json)))
+  (custom-transit-parser :json))
 
 (defn form-parser
   "Take a request and parse its body as a form."
