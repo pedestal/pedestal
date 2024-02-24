@@ -18,21 +18,33 @@
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
             [cognitect.transit :as transit]
+            [io.pedestal.internal :as i]
             [ring.middleware.params :as params])
   (:import (java.io EOFException InputStream InputStreamReader PushbackReader)
            (java.util.regex Pattern)))
 
+(defn- search-for-parser
+  [parser-map content-type]
+  (reduce-kv (fn [_ k v]
+               (when (re-find k content-type)
+                 (reduced v)))
+             nil
+             parser-map))
+
 (defn- parser-for
   "Find a parser for the given content-type, never returns nil"
   [parser-map content-type]
-  (or (when content-type
-        (parser-map (some #(when (re-find % content-type) %) (keys parser-map))))
-      identity))
+  (or
+    (when content-type
+      (search-for-parser parser-map content-type))
+    identity))
+
 
 (defn- parse-content-type
   "Runs the request through the appropriate parser"
-  [request parser-map]
-  ((parser-for parser-map (:content-type request)) request))
+  [parser-map request]
+  (let [parser-fn (parser-for parser-map (:content-type request))]
+    (parser-fn request)))
 
 (defn- set-content-type
   "Changes the content type of a request"
@@ -59,9 +71,10 @@
                           (re-pattern (str "^" (Pattern/quote content-type) "$")))]
     (assoc parser-map content-pattern parser-fn)))
 
-(defn add-ring-middleware
+(defn ^{:deprecated "0.7.0"} add-ring-middleware
   [parser-map content-type middleware]
-  (add-parser parser-map content-type (convert-middleware middleware)))
+  (i/deprecated `add-ring-middleware
+    (add-parser parser-map content-type (convert-middleware middleware))))
 
 (defn custom-edn-parser
   "Return an edn-parser fn that, given a request, will read the body of that
@@ -145,9 +158,10 @@
       (cond-> request
         transit-params (assoc :transit-params transit-params)))))
 
-(def transit-parser
-  "Take a request and parse its body as transit."
-  (custom-transit-parser :json))
+(def ^{:deprecated "0.7.0"} transit-parser
+  "Take a request and parse its body as JSON transit."
+  (i/deprecated `transit-parser
+    (custom-transit-parser :json)))
 
 (defn form-parser
   "Take a request and parse its body as a form."
@@ -194,5 +208,5 @@
    (interceptor
      {:name  ::body-params
       :enter (fn [context]
-               (update context :request parse-content-type parser-map))})))
+               (update context :request #(parse-content-type parser-map %)))})))
 
