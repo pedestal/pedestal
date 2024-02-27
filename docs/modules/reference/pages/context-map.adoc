@@ -44,18 +44,20 @@ NOTE: The io.pedestal.interceptor.chain/queue key is removed from the context ma
 
 == :bindings
 
-In ordinary Clojure code, the `binding` macro can be used to override the thread-bound values of
+In ordinary Clojure code, the clj:binding[] macro can be used to override the thread-bound values of
 dynamic Vars; this is not possible with interceptors, as the interceptor function will return before
 the next interceptor is executed.
 
 Instead, an interceptor that needs to override or communicate a value via a dynamic binding will instead
 modify the :bindings key of the context.
 
-Any bindings associated this way will stay present until they are `dissoc`-ed from the :bindings map; a binding
+Any bindings associated this way will stay present until they are clj:dissoc[]-ed from the :bindings map; a binding
 added by one interceptor during the :enter phase will still be present during the :leave phase.
 
 It is not uncommon for an interceptor to provide an :enter function to bind a var, and a
-corresponding :leave function to remove the binding:
+corresponding :leave function to remove the binding.  Pedestal provides two macros,
+api:bind[] and api:unbind[], to handle this.
+
 
 [source,clojure]
 ----
@@ -64,9 +66,9 @@ corresponding :leave function to remove the binding:
 (def request-id-interceptor
   {:name ::mdc
    :enter (fn [context]
-            (update context :bindings assoc #'*request-id* (str (random-uuid)))
+            (chain/bind context *request-id* (str (random-uuid)))
    :leave (fn [context]
-            (update context :bindings dissoc #'*request-id*))})
+            (chain/unbind context *request-id*))})
 ----
 
 == As Applied to HTTP
