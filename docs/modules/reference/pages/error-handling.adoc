@@ -99,37 +99,51 @@ api:error-dispatch[ns=io.pedestal.interceptor.error]
 builds interceptors that use
 link:https://github.com/clojure/core.match[core.match] to select a clause.
 
+[NOTE]
+====
+This function is provided in the io.pedestal/pedestal.error library; to use
+`error-dispatch`, you must explicitly include the library in your project.
+====
+
+Error dispatch uses
+core.match to match the clj:ex-data[] of the exception; this allows you
+to handle a variety of different scenarios very concisely.  core.match works
+top-to-bottom, so you order your most specific cases first, and your
+more general cases later.
+
+Each match clauses specifies certain keys from the above list, and corresponding
+values to match against; the first match term that satisified all the conditions
+is executed, which determines the behavior when a matching error occurs.
+
 Here is an example from the test suite:
 
 [source,clojure]
 ----
 (def service-error-handler ;; <1>
-  (error-dispatch [ctx ex]
+  (error-dispatch [context ex]
     ;; <2>
     [{:exception-type :java.lang.ArithmeticException :interceptor ::another-bad-one}]
-    (assoc ctx :response {:status 400 :body "Another bad one"})
+    (assoc context :response {:status 400 :body "Another bad one"})
 
     ;; <3>
     [{:exception-type :java.lang.ArithmeticException}]
-    (assoc ctx :response {:status 400 :body "A bad one"})
+    (assoc context :response {:status 400 :body "A bad one"})
 
     ;; <4>
     :else
-    (assoc ctx :io.pedestal.interceptor.chain/error ex)))
+    (assoc context :io.pedestal.interceptor.chain/error ex)))
 
 ,,,
 
 (def routes
   (route/expand-routes
-    #{["/v1/api"  :any  [service-error-handler ,,,]]})) ;; <5>
+    #{["/v1/api" :any  [service-error-handler ,,,]]})) ;; <5>
 ----
-<1> This macro returns code that evaluates to an interceptor. Binding it to a var is the normal use.
+<1> This macro returns code that evaluates to an interceptor with a :leave callback. Binding the interceptor to a var is the normal case.
 <2> This is a pattern match that looks for an `ArithmeticException`, but only thrown by a particular interceptor. If the pattern matches, this expression gets evaluated. The error is handled and a response attached.
 <3> Another pattern match expression, matching any `ArithmeticException` s that weren't matched before. We return a different response body in these cases.
 <4> :else always matches because it is a truthy value. Reattaching the error tells Pedestal to keep looking for a handler.
 <5> We use the resulting interceptor like any other.
-
-Pattern matching is a concise way to express conditions for handling an error.
 
 == Logging Uncaught Exceptions
 

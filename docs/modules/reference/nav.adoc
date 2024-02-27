@@ -3,6 +3,7 @@
 ** Pedestal Architecture
 *** xref:architecture-overview.adoc[]
 *** xref:important-protocols.adoc[]
+*** xref:context-map.adoc[]
 *** xref:interceptors.adoc[]
 *** xref:chain-providers.adoc[]
 *** xref:error-handling.adoc[]
@@ -11,7 +12,6 @@
 ** HTTP Handling
 *** xref:servlet-interceptor.adoc[]
 *** xref:service-map.adoc[]
-*** xref:context-map.adoc[]
 *** xref:request-map.adoc[]
 *** xref:response-map.adoc[]
 *** xref:response-bodies.adoc[]

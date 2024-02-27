@@ -191,7 +191,7 @@
   (is (thrown? AssertionError
                (enqueue {} [(fn [_])]))
       "function is not an interceptor")
-  (is (::chain/queue (enqueue {} [(tracer :a)]))
+  (is (chain/queue (enqueue {} [(tracer :a)]))
       "enqueue interceptor to empty queue")
   (is (thrown? AssertionError
                (enqueue {} [(tracer :a) nil]))
@@ -199,9 +199,9 @@
   (is (thrown? AssertionError
                (enqueue {} [(fn [_]) (tracer :b)]))
       "enqueue one invalid interceptor to empty queue")
-  (is (::chain/queue (enqueue {} [(tracer :a) (tracer :b)]))
+  (is (chain/queue (enqueue {} [(tracer :a) (tracer :b)]))
       "enqueue multiple interceptors to empty queue")
-  (is (::chain/queue (-> {}
+  (is (chain/queue (-> {}
                          (enqueue [(tracer :a)])
                          (enqueue [(tracer :b)])))
       "enqueue to non-empty queue")

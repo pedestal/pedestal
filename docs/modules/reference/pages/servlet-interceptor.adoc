@@ -50,6 +50,8 @@ of the :io.pedestal.interceptor.chain/stack and
 :io.pedestal.interceptor.chain/queue in the xref:context-map.adoc[].
 This should be avoided when possible, as manipulating the stack and queue improperly
 may have unintended consequences.
+
+Future releases of Pedestal may change how the queue and stack are stored in the context.
 --
 
 The queue contains the interceptors to be executed next.

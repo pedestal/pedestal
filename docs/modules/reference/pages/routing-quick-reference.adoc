@@ -175,17 +175,18 @@ this function is passed the route specification and, optionally, the router type
 the routing table, and passes that through the correct Router constructor function,
 obtaining at the end an interceptor that performs routing, which it returns.
 
-During request execution, on a successful routing, the following keys are added or updated in the context map:
+During request execution, on a successful routing, the following keys are added in the context map:
 
 |===
 | Key / Key Path | Value
 
 | :route | The verbose route map
 
-| :io.pedestal.interceptor.chain/queue | route-specific interceptors are queued
-
 | [:request :path-parameters] | Path parameters extracted from the request path
 
 |===
+
+In addition, additional interceptors, specific to the route, will have been
+scheduled for execution via the api:enqueue[ns=io.pedestal.interceptor.chain] function.
 
 On failure, when the router does not match any route, the context key :route is set to nil.

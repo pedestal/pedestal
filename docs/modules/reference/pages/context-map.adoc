@@ -1,6 +1,7 @@
 = Context Map
 :reftext: context map
 :navtitle: Context Map
+:default_api_ns: io.pedestal.interceptor.chain
 
 == Description
 
@@ -27,11 +28,10 @@ are considered an implementation detail subject to change at any time.
 | Opaque
 | This identifier is set uniquely when the interceptor chain is initially executed. It is useful for correlating log events. Do not assume anything about the structure or type of this identifier.
 
-| :io.pedestal.interceptor.chain/queue
+| :io.pedestal.interceptor.chain/queue{empty}footnote:[Do not access this key directly, use the api:queue[] function to see which interceptors are scheduled to execute. A future release of Pedestal may change how the interceptor queue is stored in the context.]
 | Stack of interceptors
-| These are the interceptors left to execute. You can inspect this for debugging purposes, but to manipulate it you should call api:enqueue[ns=io.pedestal.interceptor.chain],
-api:terminate[ns=io.pedestal.interceptor.chain], or
-api:terminate-when[ns=io.pedestal.interceptor.chain].
+| These are the interceptors left to execute. You can inspect this for debugging purposes with api:queue[], or manipulate the queue with api:enqueue[],
+api:terminate[], or  api:terminate-when[].
 
 | :io.pedestal.interceptor.chain/terminators
 | Collection of predicates

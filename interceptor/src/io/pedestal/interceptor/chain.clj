@@ -415,3 +415,13 @@
        context)))
   ([context interceptors]
    (execute (enqueue context interceptors))))
+
+(defn ^{:added "0.7.0"} queue
+  "Returns the contents of the queue, the as-yet uninvoked interceptors during the :enter phase
+  of chain execution.
+
+  Prior to 0.7.0, this was achieved by accessing the :io.pedestal.interceptor.chain/queue key;
+  future enhancements may change how the interceptor queue and stack are stored."
+  [context]
+  (::queue context))
+
