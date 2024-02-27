@@ -19,6 +19,7 @@ Other changes:
 - In `io.pedestal.interceptor.chain`:
     - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
+    - New function `queue` is used to peek at what interceptors remain on the queue 
 - New service map keys have been introduced:
   - Support handling of uncaught exceptions
   - May now specify an initial context map
