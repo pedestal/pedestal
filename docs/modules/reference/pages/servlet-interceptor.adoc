@@ -1,22 +1,23 @@
 = Servlet Interceptor
 
-The servlet interceptor is the bridge between a Java Servlet API and Pedestal's
+The servlet interceptor is the bridge between the Java Servlet API and Pedestal's
 interceptor chain. It is created when an application calls
 api:create-server[] or api:create-servlet[]; ultimately, the function
-api:service-fn[] is responsible, and the actual work
-occurs in api:http-interceptor-service-fn[ns=io.pedestal.http.impl.servlet-interceptor].
+api:service-fn[],
+calls api:http-interceptor-service-fn[ns=io.pedestal.http.impl.servlet-interceptor],
+results in the ::http/service-fn context map key; this is a function that accpets
+the servlet, servlet request and servlet response (as defined by the Servlet API)
+and executes an interceptor chain, as a xref:chain-providers.adoc[chain provider],
+to handle an incoming HTTP request.
 
-The servlet interceptor is a xref:chain-providers.adoc[chain provider] that
-invokes interceptors when an HTTP request arrives.
-
-The servlet interceptor performs the following tasks:
+The service function performs the following tasks:
 
    1. Sets up the xref:context-map.adoc[] and xref:request-map.adoc[]
    2. Executes the interceptor queue (:enter, then :leave)
    3. Catches any exceptions that aren't handled by xref:error-handling.adoc[] within the interceptors
    4. Writes the final response, using the xref:response-map.adoc[]
 
-Part of this work is by adding new keys to the default context map; beyond
+Part of this work is accomplished  by adding new keys to the default context map; beyond
 that, additional interceptors are prepended:
 
 == :io.pedestal.http.impl.servlet-interceptor/stylobate
@@ -33,55 +34,6 @@ with xref:streaming.adoc[async response bodies].
 Responsible for converting the :response key in the context, when present,
 into a response delivered to the client; this may include
 xref:streaming.adoc[async streaming].
-
-There are a couple of special cases to note.
-
-## Manipulating the Queue and Stack
-
-Interceptors may rewrite the interceptor queue by calling functions
-api:enqueue[ns=io.pedestal.interceptor.chain]
-and
-api:terminate[ns=io.pedestal.interceptor.chain].
-
-[WARNING]
---
-Interceptors may also change the interceptor queue by directly changing the values
-of the :io.pedestal.interceptor.chain/stack and
-:io.pedestal.interceptor.chain/queue in the xref:context-map.adoc[].
-This should be avoided when possible, as manipulating the stack and queue improperly
-may have unintended consequences.
-
-Future releases of Pedestal may change how the queue and stack are stored in the context.
---
-
-The queue contains the interceptors to be executed next.
-Each interceptor is taken from the head of the queue and added to the stack; if it has
-an :enter callback, the callback is invoked.
-
-Once the interceptor chain terminates, normally by adding a xref:request-map.adoc[]
-to the context, the stack is used to invoke :leave callbacks on the interceptors.
-
-## Early Termination
-
-Before invoking the :enter functions, the servlet interceptor sets
-up a _terminator_ predicate on the context.
-This predicate is passed the context map and returns a truthy value
-if execution should transition from :enter to :leave.
-
-The default predicate checks to see if the :response context key is present and, if so, is
-a valid Ring response map; that is, does it have a :status key of type integer, and a :headers key
-containing a map?
-
-The end result is that in some cases, interceptors (including handlers) will not get executed for
-a particular request.  For example, an application that has a concept of authentication
-may include an interceptor that checks for valid credentials in the request, and adds a :response map
-to the context when the credentials are missing or invalid. That will cause the response to immediately
-be sent to the client, bypassing any later interceptors.
-
-In addition, it is possible to have more than one termination predicate; if any predicate returns
-a truthy value, then the :enter execution will terminate.
-New predicates can be appended using
-api:terminate-when[ns=io.pedestal.interceptor.chain].
 
 ## Partial Responses
 

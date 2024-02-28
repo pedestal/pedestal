@@ -63,6 +63,13 @@ vector. That means their `enter` functions will be called in the order
 they appear in this document, and their `leave` functions are called
 in reverse order.
 
+The following identifies the interceptor by their var or function, in the order they are
+added by `default-interceptors`.
+
+=== api:request-tracing-interceptor[ns=io.pedestal.http.tracing]
+
+Always added, unless the :io.pedestal.http/tracing options is set to nil.
+
 === api:log-request[]
 
 Always added. Logs each request at `info` level. See xref:logging.adoc[]
@@ -116,3 +123,8 @@ include the key :io.pedestal.http/secure-headers at all.
 === api:router[ns=io.pedestal.http.route]
 
 Always added.
+
+=== api:path-params-decoder[ns=io.pedestal.http.route]
+
+Added unless :io.pedestal.http/path-params-decoder is not is set to nil.
+
