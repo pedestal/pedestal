@@ -7,10 +7,10 @@ start consuming data as quickly as possible.
 
 Streaming responses are a feature of the
 xref:servlet-interceptor.adoc[].
-It is entirely a function of the type of the body of the xref:response-map.adoc[], i.e., `(-> context :response :body type)`.
+Steaming behavior is enabled based on the type of the body of the xref:response-map.adoc[].
 
 |===
-| Type | Streamed? | Async?
+| Body Type | Streamed? | Async?
 
 | Byte array
 | No

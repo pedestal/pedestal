@@ -1,85 +1,84 @@
 = Metrics
-:default_api_ns: io.pedestal.log
-
-[WARNING]
-This describes metrics as implemented in 0.6; this is a focus of effort in 0.7 and so will likely change considerably.
-
-== Introduction
-
-You can think of metrics as a stream of tiny, time-stamped events, that flow into a special kind of database,
-organized to efficiently query such a stream, and aggregate the results in multiple useful ways. A full explanation
-of metrics is beyond the scope of this document, however.
-
-Metrics are a key part of _observability_, the ability to see how your application, running as tens or hundreds (or
-thousands) of servers, is operating as a whole. Where logging can give you information about a specific request, and can
-somewhat grudgingly aggregate data together - metrics services such as https://prometheus.io/[Prometheus] _exist_ to
-aggregate vast amounts of data points together, and give you the ability to see what's happening to your application
-now, or over time, broken up by any number of dimensions.  Dimensions are used to select events by application-supplied values,
-that can include such things as the server's hostname, a request's URI, the environment (staging vs. production), or
-the AWS region.
-
-At the core, your application will include extra code to emit metrics; depending on the underlying metrics service you
-are using, these are either stored in-memory until _scraped_ by another collecting service, or pushed to the collecting
-service at intervals.
-
-Pedestal's default metrics library is
-https://metrics.dropwizard.io/4.2.0/manual/core.html[DropWizard], and the default configuration stores the results internally in JMX.
+:default_api_ns:io.pedestal.metrics
 
 
-== API
+Pedestal metrics are a wrapper around {otel}, which provides cross-platform solutions for metrics, tracing, and logging.
 
-The metrics functions are defined in the api:*[] namespace, along with supporting protocols and utility functions.
+Metrics and tracing are provided in the io.pedestal/pedestal.telemetry library.
 
-Generally, there is no need to define a metric before using it; it will be registered or created, from its name, automatically
-when first used.
+The api:*[] namespace contains the API that applications can use to emit metrics.
 
-All of these metrics-producing functions have two forms: the canonical form accepts a _recorder_, the metric name, and
-additional arguments; the common form omits the recorder, and uses the api:default-recorder[].
+== Supported Metrics Types
 
-A metric name can be any object that can be converted to a string; usually a fully qualified symbol or keyword. For a
-keyword, the leading `:` stripped off.
+Pedestal supports:
 
-=== api:counter[]
+counter::
+A numeric value that increases over time, such as the number of requests processed.
 
-Counters are simply values that increase over time; the argument is a _delta_ value, a long to increment the counter by.
+gauge::
+Measures value that varies over time, such as the depth of a queue.
 
-A common counter metric might be the total number of requests processed.
+timer::
+Measures a duration and a count, used for things like request processing time.
 
-=== api:gauge[]
+histogram::
+Tracks a range of values, exposing them in different bucket ranges; useful for
+identifying broad trends, and used for metrics such as size of incoming requests.
 
-Gauges are used to track a value that varies over time; a callback function is passed to the `gauge` function; this callback
-will be periodically invoked to return a value for the metric.
+== Setup
 
-A common gauge metric might be the number of entries stored in a cache.
+The metrics API is built around the api:*default-metric-source*[], which is created
+at startup from function identified by xref:config.adoc[runtime configuration].
+
+Open Telemetry defines a wide range of JVM system properties and environment variables to
+configure metrics (and tracing); those are outside the scope of this document.
+
+Rather than rely on outside configuration, an application can provide its own initialization function
+to setup Open Telemetry as needed.
 
 
-=== api:histogram[]
+== Built-in Metrics
 
-A histogram is somewhat like a gauge; it's a value that varies over time. The difference is, you supply the values
-(there isn't as callback) and the metrics that are produced are broken out in a
-number of ways: by min, max, mean, median, standard deviation, and by various percentiles.
+Pedestal has a small amount of built-in metrics.
 
-A common histogram metric might be the latency of database reads or updates.
+:io.pedestal.http/request::
 
-=== api:meter[]
+A counter of the number of incoming requests, produced by the
+api:log-request[ns=io.pedestal.http/log-request] interceptor.
 
-Meters are used to track the _rate_ at which operations occur.
+:io.pedestal.http/not-found::
 
-`meter` is much like counter, it is invoked with a value indicating how many operations occurred (this value is typically
-1).  It produces moving averages for the one-, five-, and fifteen-minute rates based on sampling this value.
+A count of the number of requests that are not found (are not routed), produced
+by the api:not-found[ns=io.pedestal.http] interceptor.
 
-A common meter might be the number of total number of requests processed.
+:io.pedestal.http.cors/origin-real::
+A counter for the number of requests that are allowed, produced by the
+api:allow-origin[ns=io.pedestal.http.cors] interceptor.
 
-=== api:default-recorder[]
+:io.pedestal.http.impl.servlet-interceptor/base-servlet-error::
+A counter for number of uncaught exceptions thrown during interceptor execution.
 
-This is a var, not a function; it stores a _recorder_, an object that extends the
-api:MetricRecorder[] protocol; this is usually an instance of
-com.codahale.metrics.MetricRegistry.
+:io.pedestal/active-servlet-calls::
+A gauge measuring the number of active requests in progress at any one time.
 
-By default, the registry is created via api:metric-registry[], and uses a
-api:jmx-reporter[] to store metrics.
+:io.pedestal.http.sse/payload-size::
+A histogram measuring the size of server-sent messages sent to the client.
 
-However, this can be overridden at application startup; the JVM system property
-`io.pedestal.log.defaultMetricsRecorder` or environment variable `PEDESTAL_METRICS_RECORDER`
-can specify the fully-qualified name of a function to invoke (with no arguments), that returns the
-default recorder.
+:io.pedestal.http.sse/active-streams::
+A gauge of the number of active streams sending server-sent messages.
+
+:io.pedestal.http.impl.servlet-interceptor/async-write-errors::
+
+A counter of the number of times that the asynchrounous pipe to a client closed during delivery of a streaming
+response.
+
+== Compatibility
+
+Where Pedestal emits metrics, it emits them both using
+xref:metrics-0.6.adoc[the deprecated 0.6 metrics support], and the new pedestal.telemetry implementation.
+
+In addition, there is support for the Drop Wizard metrics library as an alternative to Open Telemetry, via
+api:default-registry[ns=io.pedestal.metrics.codahale]; this is to provide a migration path from Pedestal 0.6 to Pedestal 0.7 when your application is making use of the deprecated metrics support.
+
+WARNING: In a future Pedestal release, the deprecated metrics support
+in the api:*[ns=io.pedestal.log] namespace will be removed entirely from Pedestal.

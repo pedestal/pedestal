@@ -354,7 +354,7 @@ Here's our first stab at it.
 include::example$hello-content/src/hello.clj[tags=coerce_entangled]
 ----
 <1> Get the result of the content negotiation interceptor. Use "text/plain" as a fallback in case no suitable match was found.
-<2> Get the current response out of the context map, get the current body out of the response. This must have been created by a previous interceptor's `enter` or `leave` function.
+<2> Get the current response out of the context map, get the current body out of the response. This must have been created by a previous interceptor's :enter or :leave function.
 <3> Translate the body according to the chosen content type.
 <4> Create a new response by attaching headers and the coerced body.
 <5> Return a new context by attaching the updated response.
@@ -362,7 +362,7 @@ include::example$hello-content/src/hello.clj[tags=coerce_entangled]
 
 Why does this new interceptor go at the start of the vector? Take look
 at the picture of the interceptors above. The first one in the vector
-is called _first_ for the `enter` function but _last_ for the `leave`
+is called _first_ for the :enter function but _last_ for the :leave
 function. We want this interceptor to get the last word on the
 response body so it goes at the top. Turn the queue sideways to write
 it as a vector, and the topmost interceptor is on the left. It only
