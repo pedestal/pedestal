@@ -2,12 +2,13 @@
 
 image::animated-front-page-sample.gif[float="right",width=300]
 
-Pedestal is a set of libraries that we use to build services and applications. It runs in the back end and can serve up whole HTML pages or handle API requests.
+Pedestal is a set of libraries that we use to build web services and applications. Pedestal runs in the back-end and can handle
+anything from tiny static web sites, to traditional page oriented applications, to dynamic single page applications built using
+server-sent events and WebSockets.
 
-There are a lot of tools in that space, so why did we build Pedestal? We had two main reasons:
+Pedestal scales up with your needs.
 
-* **Pedestal is designed for APIs first.** Most web app frameworks still focus on the "page model" and server side rendering. Pedestal lets you start simple and add that if you need it.
-* **Pedestal makes it easy to create _live_ applications.** Applications must respond with immediate feedback even while some back-end communication goes on. Pedestal makes it easy to deliver server-sent events and asynchronous updates.
+We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and *Simplicity*, to the Clojure web development.
 
 ++++
 <div class="features-section">
@@ -16,7 +17,7 @@ There are a lot of tools in that space, so why did we build Pedestal? We had two
   <div class="main-feature-row">
     <div class="main-feature">
       <h3>Ready for Production</h3>
-      <div class="paragraph">Pedestal works with a huge variety of containers and deployment options. Deploy applications or microservices on unikernels, Docker containers, or JAR files. Pedestal supports Tomcat, Jetty, Immutant (with Undertow), Vert.x, nginx, and Netty.</div>
+      <div class="paragraph">Pedestal works with a huge variety of containers and deployment options. Deploy applications or microservices on unikernels, Docker containers, or as stand-alone JAR files, or a servlet-container WAR files.</div>
     </div>
     <div class="main-feature">
       <h3>Secure by Default</h3>
@@ -27,7 +28,7 @@ There are a lot of tools in that space, so why did we build Pedestal? We had two
   <div class="main-feature-row">
     <div class="main-feature">
       <h3>Streaming</h3>
-      <div class="paragraph">Pedestal lets you create dynamic applications with server-sent events and websockets. It uses Clojure's async capabilities and Java NIO.</div>
+      <div class="paragraph">Pedestal lets you create dynamic applications with server-sent events and WebSockets. It leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.</div>
     </div>
     <div class="main-feature">
       <h3>Late Binding</h3>
@@ -38,10 +39,15 @@ There are a lot of tools in that space, so why did we build Pedestal? We had two
   <div class="main-feature-row">
     <div class="main-feature">
       <h3>Composable</h3>
-      <div class="paragraph">Pedestal is built from pieces that connect via protocols, giving you the flexibility to swap out any part.</div>
+      <div class="paragraph">Pedestal is built from pieces that connect via protocols, giving you the flexibility to swap out any part with something
+customized to your application.</div>
     </div>
     <div class="main-feature">
+      <h3>Testable</h3>
+      <div class="paragraph">Pedestal's core interceptor model breaks request processing into small pieces that are simple, often purely functional, and easy to
+test; then lets you stack those pieces up to form your full application.</div>
     </div>
   </div>
+
 </div>
 ++++

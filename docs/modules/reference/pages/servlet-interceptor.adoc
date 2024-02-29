@@ -5,7 +5,7 @@ interceptor chain. It is created when an application calls
 api:create-server[] or api:create-servlet[]; ultimately, the function
 api:service-fn[],
 calls api:http-interceptor-service-fn[ns=io.pedestal.http.impl.servlet-interceptor],
-results in the ::http/service-fn context map key; this is a function that accpets
+results in the ::http/service-fn context map key; this is a function that accepts
 the servlet, servlet request and servlet response (as defined by the Servlet API)
 and executes an interceptor chain, as a xref:chain-providers.adoc[chain provider],
 to handle an incoming HTTP request.
@@ -22,12 +22,9 @@ that, additional interceptors are prepended:
 
 == :io.pedestal.http.impl.servlet-interceptor/stylobate
 
-The stylobate interceptor handles otherwise uncaught
+The stylobate interceptor primarily handles otherwise uncaught
 xref:error-handling.adoc[unhandled exceptions] that occur during
 interceptor chain execution.
-
-It also works with the `ring-response` interceptor when dealing
-with xref:streaming.adoc[async response bodies].
 
 == :io.pedestal.http.impl.servlet-interceptor/ring-response
 

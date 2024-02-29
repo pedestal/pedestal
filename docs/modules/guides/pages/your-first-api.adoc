@@ -503,7 +503,7 @@ function atomically. That's what the `swap!` call does for us.
 But since that function might not succeed, it means we don't know
 enough to create the response inside the `list-item-create`
 interceptor. We need to defer response creation until after the
-`db-interceptor` runs its `leave` function. Basically, we need
+`db-interceptor` runs its :leave function. Basically, we need
 something to look up an item by its list ID and item ID, then render
 the result.
 
@@ -512,8 +512,8 @@ can get some reuse here. If `list-item-create` can add the item to the
 database, then the item will exist. If the item can't be added, it will result in a  404 response.
 
 We just need to do something a little funky-looking with the `list-item-view`
-interceptor. We need to put its behavior in the `leave` function
-instead of the `enter` function.
+interceptor. We need to put its behavior in the :leave function
+instead of the :enter function.
 
 Here's the pair of new interceptors, plus the updated route table.
 
@@ -534,7 +534,7 @@ executed.
 `list-item-view`.
 
 To understand the interceptors for the :list-item-create route, we
-need to think about `enter` functions from left to right and `leave`
+need to think about :enter functions from left to right and :leave
 functions from right to left.
 
 |===
@@ -583,7 +583,7 @@ We covered some more advanced concepts with interceptors this time:
 
 * Passing results from one interceptor to another
 * Reusing interceptors in different routes
-* Separating query from transaction with `enter` and `leave` functions
+* Separating query from transaction with :enter and :leave functions
 * Testing our routes interactively at a REPL.
 
 == Where To Next?

@@ -16,11 +16,15 @@
   (:import (io.opentelemetry.api GlobalOpenTelemetry)))
 
 (defn metric-source
+  "Wraps the meter obtained from GlobalOpenTelemetry, with an
+  instrumentation scope name of io.pedestal.metrics."
   []
   (-> (GlobalOpenTelemetry/getMeter "io.pedestal.metrics")
       (otel/wrap-meter)))
 
 (defn tracing-source
+  "Returns the tracer obtained from GlobalOpenTelementry, with an
+  instrumentation scope name of io.pedestal.tracing."
   []
-  (-> (GlobalOpenTelemetry/getTracer "io.pedestal.tracing")))
+  (GlobalOpenTelemetry/getTracer "io.pedestal.tracing"))
 
