@@ -8,7 +8,6 @@
 *** xref:chain-providers.adoc[]
 *** xref:error-handling.adoc[]
 *** xref:dev-mode.adoc[]
-*** xref:config.adoc[]
 
 ** HTTP Handling
 *** xref:servlet-interceptor.adoc[]
@@ -35,12 +34,14 @@
 **** xref:prefix-tree-router.adoc[]
 
 ** Deployment and Operations
+*** xref:config.adoc[]
 *** Containers
 **** xref:jetty.adoc[]
 **** xref:immutant.adoc[]
 **** xref:tomcat.adoc[]
 *** xref:logging.adoc[]
 *** xref:metrics.adoc[]
+*** xref:metrics-0.6.adoc[]
 
 ** xref:libraries.adoc[]
 

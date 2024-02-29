@@ -6,15 +6,19 @@ Pedestal that can operate outside of a service, or before a service map is used 
 These sub-systems are:
 
 - xref:dev-mode.adoc[]
-- Logging
-- Metrics
+- xref:logging.adoc[]
+- xref::metrics.adoc[]
 - Tracing
 
-For (the majority of these), Pedestal operates in terms of a configuration function: The configuration
+For all but Developer Mode{empty}footnote:[Developer mode is the exception, as it resolves to
+a boolean value, rather than a function to execute.], Pedestal operates in terms of a configuration function: The configuration
 function is specified in one of several ways, and this is resolved to a particular var in a namespace, which
 is invoked to return a needed value.
 
 == Configuration Order
+
+Pedestal uses late binding to configure these values, so that it is possible to customize Pedestal's behavior to
+the operating environment: anything from local developer to final production.
 
 Pedestal will search a series of sources for a value that identifies the var; these are in a specific order,
 with an eye towards making it possible to override the value at runtime for testing or production, as that is often
@@ -26,7 +30,7 @@ a need for these subsystems.
 - Entry in the `pedestal-config.edn` resource
 - A hard-coded default, or nil
 
- The intent is that a Pedestal application will typically include a `pedestal-config.edn` on the classpath (packaged with
+The intent is that a Pedestal application will typically include a `pedestal-config.edn` on the classpath (packaged with
 the application's sources or compiled classes, typically stored in `resources`); the `pedestal-test-config.edn` will
 only be on the classpath (typically, stored in `test-resources`).
 
@@ -49,38 +53,36 @@ of configuration has its own interpretation of the Var.
 The following section list the current configuration values; each heading identifies the JVM system property,
 then the equivalent environment variable.
 
-=== io.pedestal.log.overrideLogger
-
-Environent Variable: PEDESTAL_LOGGER
+io.pedestal.log.overrideLogger / PEDESTAL_LOGGER::
 
 Used to create an api:LoggerSource[ns=io.pedestal.log] instance from a logger name;
   If not specified, then `org.slf4j.LoggerFactory.getLogger(java.lang.String)` is used.
 
-=== io.pedestal.log.formatter
-
-Environent Variable: PEDESTAL_LOG_FORMATTER
+io.pedestal.log.formatter / PEDESTAL_LOG_FORMATTER::
 
 A function used to format a logged event map to a string prior to being passed to the LoggerSource.
 When not specified, clj:pr-str[] is used.
 
-=== io.pedestal.telemetry.metric-source
+io.pedestal.log.defaultMetricsRecorder / PEDESTAL_METRICS_RECORDER::
 
-Environent Variable: PEDESTAL_METRICS_SOURCE
+Used to configure the now-deprecated support for metrics in the pedestal.log library.
+Supports the special string "nil" to indicate no metrics publishing.  Does not check
+the EDN config files.  Defaults to a registry built around api:jmx-recorder[ns=io.pedestal.log].
 
-An function that returns an instance of api:MetricSource[ns=io.pedestal.metrics.spi] used to create metrics used by
+io.pedestal.telemetry.metric-source / PEDESTAL_METRICS_SOURCE::
+
+A function that returns an instance of api:MetricSource[ns=io.pedestal.metrics.spi] used to create metrics used by
 Pedestal or applications.
-
++
 The default, api:metric-source[ns=io.pedestal.telemetry.otel-global-init], gets
 the value from
 `io.opentelemetry.api.GlobalOpenTelemetry.getMeter(java.lang.String)`.
 
-=== io.pedestal.telemetry.tracing-source
-
-Environent Variable: PEDESTAL_TRACING_SOURCE
+io.pedestal.telemetry.tracing-source/ PEDESTAL_TRACING_SOURCE::
 
 A function that returns an instance of
 api:TracingSource[ns=io.pedestal.tracing.spi], used to emit tracing events.
-
++
 The default, api:tracing-source[ns=io.pedestal.telemetry.otel-global-init], gets its value
 from `io.opentelemetry.api.GlobalOpenTelemetry.getTracer(java.lang.String)`.
 

@@ -207,10 +207,11 @@ include::example$logback-test.xml[]
 Both Jetty and Pedestal can produce quite a bit of debug output, so the sample above
 disables that logging.
 
-Because the configuration enables file scanning, it can be updated at runtime to enable or disable
+Because the Logback configuration enables file scanning, it can be updated at runtime to enable or disable
 logging of specific namespaces.
 
-== Metrics and Telemetry
+== Metrics and Tracing
 
-The api:*[] namespace contains additional protocols and functions related to metrics and telemetry; these are slated to be deprecated in 0.7 and reimplemented, and will be documented
-at that time.
+The api:*[] namespace contains additional protocols and functions related to metrics and tracing; these are
+deprecated in Pedestal 0.7 and have been replaced with new APIs built around {otel}; the deprecated functions
+will be removed in a future Pedestal release.
