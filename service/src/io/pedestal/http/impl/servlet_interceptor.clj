@@ -46,12 +46,8 @@
 
 (extend-protocol WriteableBody
 
-  (class (byte-array 0))
-  (default-content-type [_] "application/octet-stream")
-  (write-body-to-stream [byte-array output-stream]
-    (io/copy byte-array output-stream))
-
   String
+
   (default-content-type [_] "text/plain")
   (write-body-to-stream [string output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
@@ -59,6 +55,7 @@
       (.flush writer)))
 
   IPersistentCollection
+
   (default-content-type [_] "application/edn")
   (write-body-to-stream [o output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
@@ -67,16 +64,19 @@
       (.flush writer)))
 
   Fn
+
   (default-content-type [_] nil)
   (write-body-to-stream [f output-stream]
     (f output-stream))
 
   File
+
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [file output-stream]
     (io/copy file output-stream))
 
   InputStream
+
   (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [input-stream output-stream]
     (try
@@ -84,14 +84,26 @@
       (finally (.close input-stream))))
 
   ReadableByteChannel
+
   (default-content-type [_] "application/octet-stream")
 
   ByteBuffer
+
   (default-content-type [_] "application/octet-stream")
 
   nil
   (default-content-type [_] nil)
   (write-body-to-stream [_ _]))
+
+;; This is sequestered out as it confuses both clj-kondo and the Cursive linter.
+#_{:clj-kondo/ignore [:syntax]}
+(extend-protocol WriteableBody
+
+  (class (byte-array 0))
+
+  (default-content-type [_] "application/octet-stream")
+  (write-body-to-stream [byte-array output-stream]
+    (io/copy byte-array output-stream)))
 
 (defn- write-body [^HttpServletResponse servlet-resp body]
   (let [output-stream (.getOutputStream servlet-resp)]
@@ -158,7 +170,7 @@
   [{:keys [headers body] :or {headers {}} :as resp-map}]
   (let [content-type (headers "Content-Type")]
     (update resp-map :headers merge {"Content-Type" (or content-type
-                                                             (default-content-type body))})))
+                                                        (default-content-type body))})))
 
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]
@@ -220,8 +232,8 @@
     (satisfies? WriteableBodyAsync body) (let [chan (::resume-channel context (async/chan))]
                                            (send-response (assoc context ::resume-channel chan))
                                            chan)
-    true (do (send-response context)
-             context)))
+    :else (do (send-response context)
+              context)))
 
 (defn- terminator-inject
   [context]
@@ -373,7 +385,7 @@
             (log/debug :msg "Leaving servlet"
                        ;; This will be nil if the execution went async
                        :final-context final-context))
-          (catch EOFException e
+          (catch EOFException _
             (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
           (catch Throwable t
             (log/meter ::base-servlet-error)

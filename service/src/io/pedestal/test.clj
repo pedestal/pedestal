@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -25,28 +26,28 @@
            (java.util Enumeration NoSuchElementException)
            (java.nio.channels Channels ReadableByteChannel)))
 
-(defn- ^Servlet test-servlet
-  [interceptor-service-fn]
+(defn- test-servlet
+  ^Servlet [interceptor-service-fn]
   (servlets/servlet :service interceptor-service-fn))
 
 (defn parse-url
   [url]
-  (let [[all scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
+  (let [[_ scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
         [host port] (when raw-host (cstr/split raw-host #":"))]
-    {:scheme scheme
-     :host host
-     :port (if port
-             (Integer/parseInt port)
-             -1)
-     :path path
+    {:scheme       scheme
+     :host         host
+     :port         (if port
+                     (Integer/parseInt port)
+                     -1)
+     :path         path
      :query-string query-string}))
 
 (defn- enumerator
   [data kw]
   (let [data (atom (seq data))]
     (reify Enumeration
-      (hasMoreElements [this] (not (nil? (first @data))))
-      (nextElement [this]
+      (hasMoreElements [_] (not (nil? (first @data))))
+      (nextElement [_]
         (log/debug :in :enumerator/nextElement
                    :data @data
                    :hasMoreElements (not (nil? (first @data)))
@@ -69,9 +70,9 @@
     (proxy [ServletInputStream]
            []
       (read ([] -1)
-        ([^bytes b] -1)
-        ([^bytes b ^Integer off ^Integer len] -1))
-      (readLine [bytes off len] -1)))
+        ([^bytes _b] -1)
+        ([^bytes _b ^Integer _off ^Integer _len] -1))
+      (readLine [_bytes _off _len] -1)))
 
   String
   (->servlet-input-stream [string]
@@ -93,55 +94,55 @@
 (defn- test-servlet-request
   [verb url & args]
   (let [{:keys [scheme host port path query-string]} (parse-url url)
-        options (apply array-map args)
+        options       (apply array-map args)
         async-context (atom nil)
-        completion (promise)
-        meta-data {:completion completion}]
+        completion    (promise)
+        meta-data     {:completion completion}]
     (assert (every? some? (vals (:headers options)))
             (str "You called `response-for` with header values that were nil.
                  Nil header values don't conform to the Ring spec: " (pr-str (:headers options))))
     (with-meta
       (reify HttpServletRequest
-        (getMethod [this] (-> verb
-                              name
-                              cstr/upper-case))
-        (getRequestURL [this] (StringBuffer. url))
-        (getServerPort [this] port)
-        (getServerName [this] host)
-        (getRemoteAddr [this] "127.0.0.1")
-        (getRemotePort [this] 0)
-        (getRequestURI [this] (str "/" path))
-        (getServletPath [this] (.getRequestURI this))
-        (getContextPath [this] "")
-        (getQueryString [this] query-string)
-        (getScheme [this] scheme)
-        (getInputStream [this] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
-        (getProtocol [this] "HTTP/1.1")
-        (isAsyncSupported [this] true)
-        (isAsyncStarted [this] (some? @async-context))
-        (getAsyncContext [this] @async-context)
-        (startAsync [this]
+        (getMethod [_] (-> verb
+                           name
+                           cstr/upper-case))
+        (getRequestURL [_] (StringBuffer. url))
+        (getServerPort [_] port)
+        (getServerName [_] host)
+        (getRemoteAddr [_] "127.0.0.1")
+        (getRemotePort [_] 0)
+        (getRequestURI [_] (str "/" path))
+        (getServletPath [_] (.getRequestURI _))
+        (getContextPath [_] "")
+        (getQueryString [_] query-string)
+        (getScheme [_] scheme)
+        (getInputStream [_] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
+        (getProtocol [_] "HTTP/1.1")
+        (isAsyncSupported [_] true)
+        (isAsyncStarted [_] (some? @async-context))
+        (getAsyncContext [_] @async-context)
+        (startAsync [_]
           (compare-and-set! async-context
                             nil
                             (reify AsyncContext
-                              (complete [this]
+                              (complete [_]
                                 (deliver completion true)
                                 nil)
-                              (setTimeout [this n]
+                              (setTimeout [_ _timeout]
                                 nil)
-                              (start [this r]
+                              (start [_ _runnable]
                                 nil)))
           @async-context)
         ;; Needed for NIO testing (see Servlet Interceptor)
-        (getHeaderNames [this] (enumerator (keys (get options :headers)) ::getHeaderNames))
-        (getHeader [this header] (get-in options [:headers header]))
-        (getHeaders [this header] (enumerator [(get-in options [:headers header])] ::getHeaders))
-        (getContentLength [this] (Integer/parseInt (get-in options [:headers "Content-Length"] "0")))
-        (getContentLengthLong [this] (Long/parseLong (get-in options [:headers "Content-Length"] "0")))
-        (getContentType [this] (get-in options [:headers "Content-Type"] ""))
-        (getCharacterEncoding [this] "UTF-8")
-        (setAttribute [this s obj] nil)                     ;; Needed for NIO testing (see Servlet Interceptor)
-        (getAttribute [this attribute] nil))
+        (getHeaderNames [_] (enumerator (keys (get options :headers)) ::getHeaderNames))
+        (getHeader [_ _header] (get-in options [:headers _header]))
+        (getHeaders [_ _header] (enumerator [(get-in options [:headers _header])] ::getHeaders))
+        (getContentLength [_] (Integer/parseInt (get-in options [:headers "Content-Length"] "0")))
+        (getContentLengthLong [_] (Long/parseLong (get-in options [:headers "Content-Length"] "0")))
+        (getContentType [_] (get-in options [:headers "Content-Type"] ""))
+        (getCharacterEncoding [_] "UTF-8")
+        (setAttribute [_ _s _obj] nil)                      ;; Needed for NIO testing (see Servlet Interceptor)
+        (getAttribute [_ _attribute] nil))
       meta-data)))
 
 (defn- test-servlet-output-stream
@@ -156,47 +157,47 @@
         ([contents off len] (.write output-stream (bytes contents) (int off) (int len))))
       (meta [] {:output-stream output-stream}))))
 
-(defn ^HttpServletResponse test-servlet-response
+(defn test-servlet-response
   "Returns a mock servlet response with a ServletOutputStream over a
   ByteArrayOutputStream. Captures the ByteArrayOutputStream in
   metadata. All headers set will swap a headers map held in an atom,
   also held in metadata."
-  []
+  ^HttpServletResponse []
   (let [output-stream (test-servlet-output-stream)
-        headers-map (atom {})
-        status-val (atom nil)
-        committed (atom false)
-        meta-data {:output-stream (:output-stream (meta output-stream))
-                   :status status-val
-                   :headers-map headers-map}]
+        headers-map   (atom {})
+        status-val    (atom nil)
+        committed     (atom false)
+        meta-data     {:output-stream (:output-stream (meta output-stream))
+                       :status        status-val
+                       :headers-map   headers-map}]
     (with-meta (reify HttpServletResponse
-                 (getOutputStream [this] output-stream)
-                 (setStatus [this status] (reset! status-val status))
-                 (getStatus [this] @status-val)
-                 (getBufferSize [this] 1500)
-                 (setHeader [this header value] (swap! headers-map update :set-header assoc header value))
-                 (addHeader [this header value] (swap! headers-map update-in [:added-headers header] conj value))
-                 (setContentType [this content-type] (swap! headers-map assoc :content-type content-type))
-                 (setContentLength [this content-length] (swap! headers-map assoc :content-length content-length))
-                 (setContentLengthLong [this content-length] (swap! headers-map assoc :content-length content-length))
-                 (flushBuffer [this] (reset! committed true))
-                 (isCommitted [this] @committed)
-                 (sendError [this sc]
-                   (.sendError this sc "Server Error"))
-                 (sendError [this sc msg]
+                 (getOutputStream [_] output-stream)
+                 (setStatus [_ status] (reset! status-val status))
+                 (getStatus [_] @status-val)
+                 (getBufferSize [_] 1500)
+                 (setHeader [_ header value] (swap! headers-map update :set-header assoc header value))
+                 (addHeader [_ header value] (swap! headers-map update-in [:added-headers header] conj value))
+                 (setContentType [_ content-type] (swap! headers-map assoc :content-type content-type))
+                 (setContentLength [_ content-length] (swap! headers-map assoc :content-length content-length))
+                 (setContentLengthLong [_ content-length] (swap! headers-map assoc :content-length content-length))
+                 (flushBuffer [_] (reset! committed true))
+                 (isCommitted [_] @committed)
+                 (sendError [_ sc]
+                   (.sendError _ sc "Server Error"))
+                 (sendError [_ sc msg]
                    (reset! status-val sc)
                    (io/copy msg output-stream))
 
                  ;; Force all async NIO behaviors to be sync
                  container/WriteNIOByteBody
-                 (write-byte-channel-body [this body resume-chan context]
+                 (write-byte-channel-body [_ body resume-chan context]
                    (let [instream-body (Channels/newInputStream ^ReadableByteChannel body)]
                      (try (io/copy instream-body output-stream)
                           (async/put! resume-chan context)
                           (catch Throwable t
                             (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
                           (finally (async/close! resume-chan)))))
-                 (write-byte-buffer-body [this body resume-chan context]
+                 (write-byte-buffer-body [_ body resume-chan context]
                    (let [out-chan (Channels/newChannel ^java.io.OutputStream output-stream)]
                      (try (.write out-chan body)
                           (async/put! resume-chan context)
@@ -236,14 +237,14 @@
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure."
   [interceptor-service-fn verb url & args]
-  (let [servlet (test-servlet interceptor-service-fn)
-        servlet-request (apply test-servlet-request verb url args)
-        servlet-response (test-servlet-response)
-        context (.service servlet servlet-request servlet-response)]
+  (let [servlet          (test-servlet interceptor-service-fn)
+        servlet-request  (apply test-servlet-request verb url args)
+        servlet-response (test-servlet-response)]
+    (.service servlet servlet-request servlet-response)
     (when (.isAsyncStarted ^HttpServletRequest servlet-request)
       (-> servlet-request meta :completion deref))
-    {:status (test-servlet-response-status servlet-response)
-     :body (test-servlet-response-body servlet-response)
+    {:status  (test-servlet-response-status servlet-response)
+     :body    (test-servlet-response-body servlet-response)
      :headers (test-servlet-response-headers servlet-response)}))
 
 (defn raw-response-for

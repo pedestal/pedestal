@@ -1,3 +1,14 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 ;; This test file is a port of the official Ring jetty-adapter test
 ;; that works with Pedestal interceptors. The original version is
 ;; here:
@@ -6,6 +17,7 @@
 
 (ns io.pedestal.http.jetty-test
   (:require [clojure.test :refer [deftest is testing]]
+            [clojure.edn :as edn]
             [io.pedestal.http :as bootstrap]
             [clj-http.client :as http]
             [io.pedestal.http.route :as route]
@@ -185,7 +197,7 @@
                (let [response (http/get "http://localhost:4347/foo/bar/baz?surname=jones&age=123" {:body "hello"})]
                  (is (= (:status response) 200))
                  (is (= (:body response) "hello"))
-                 (let [request-map (clojure.edn/read-string
+                 (let [request-map (edn/read-string
                                      (get-in response [:headers "request-map"]))]
                    (is (= (:query-string request-map) "surname=jones&age=123"))
                    (is (= (:uri request-map) "/foo/bar/baz"))
@@ -247,7 +259,7 @@
                            (is (= (:body response) "Hello World"))
                            (is (= (url-for :hello) "/context/hello"))))))
 
-(defn hello-page2 [request]
+(defn hello-page2 [_request]
   {:status  200
    :headers {"Content-Type" "text/plain"}
    :body    (route/url-for :hello)})

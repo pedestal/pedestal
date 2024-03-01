@@ -131,7 +131,7 @@
 (defn- generate-route-entries
   "Return a list of route table entries based on the treeish structure
   of `route-map` and `dna`"
-  [dna {:keys [path verbs children] :as route-map}]
+  [dna {:keys [verbs children] :as route-map}]
   (let [current-dna (update-dna dna route-map)]
     (concat (map (partial generate-verb-terminal current-dna) verbs)
             (mapcat (partial generate-route-entries current-dna) children))))

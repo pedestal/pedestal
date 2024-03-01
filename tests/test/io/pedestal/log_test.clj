@@ -1,4 +1,4 @@
-; Copyright 2021-2023 Nubank NA
+; Copyright 2021-2024 Nubank NA
 ; Copyright 2018-2021 Relevance, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -23,14 +23,14 @@
                       (f)))
 
 (deftest mdc-context-set-correctly
-  (let [inner-value (atom nil)
+  (let [inner-value     (atom nil)
         unwrapped-value (atom nil)]
     (log/with-context {:a 1}
-      (log/with-context {:b 2}
-        (log/info :msg "See the MDC in action")
-        (reset! inner-value log/*mdc-context*))
-      (log/info :msg "More MDC goodness")
-      (reset! unwrapped-value log/*mdc-context*))
+                      (log/with-context {:b 2}
+                                        (log/info :msg "See the MDC in action")
+                                        (reset! inner-value log/*mdc-context*))
+                      (log/info :msg "More MDC goodness")
+                      (reset! unwrapped-value log/*mdc-context*))
     (is (= {:a 1 :b 2}
            @inner-value))
     (is (= {:a 1}
@@ -55,6 +55,8 @@
 
 
 (deftest honors-logger
+  ;; clj-kondo seems to be confused by the meta data, or the info macro
+  #_:clj-kondo/ignore
   ^{:line 8888} (log/info ::log/logger test-logger :key :value)
   (is (= [[:info
            "{:key :value, :line 8888}"]]
@@ -72,6 +74,7 @@
        string/upper-case))
 
 (deftest can-override-formatter
+  #_:clj-kondo/ignore
   (log/info ::log/logger test-logger
             ::log/formatter special-formatter
             :key :value

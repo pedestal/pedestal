@@ -1,3 +1,4 @@
+; Copyright 2024
 ; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -11,12 +12,8 @@
 
 (ns io.pedestal.http.jetty.util
   (:import (java.util EnumSet)
-           (jakarta.servlet Servlet Filter DispatcherType)
-           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)
-           (org.eclipse.jetty.server HttpConfiguration
-                                     SecureRequestCustomizer
-                                     ConnectionFactory
-                                     HttpConnectionFactory)))
+           (jakarta.servlet Filter DispatcherType)
+           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)))
 
 (def dispatch-types {:forward DispatcherType/FORWARD
                      :include DispatcherType/INCLUDE
@@ -24,13 +21,13 @@
                      :async DispatcherType/ASYNC
                      :error DispatcherType/ERROR})
 
-(defn ^EnumSet dispatcher-set
+(defn dispatcher-set
   "Return a dispatch EnumSet given one of:
    - an EnumSet (no-op)
    - servlet DispatcherType
    - a keyword representation of DispatcherType (see `dispatch-types`)
    - `:all` which generates an EnumSet of all DispatcherTypes"
-  [dispatches]
+  ^EnumSet [dispatches]
   (cond
     (instance? EnumSet dispatches) dispatches
     (instance? DispatcherType dispatches) (EnumSet/of dispatches)
@@ -44,20 +41,21 @@
               {:accepted-keywords (keys dispatch-types)
                :attempted dispatches}))))
 
-(defn ^FilterHolder filter-holder [^Filter servlet-filter init-params]
+(defn  filter-holder
+  ^FilterHolder  [^Filter servlet-filter init-params]
   (let [holder (FilterHolder. servlet-filter)]
     (doseq [[k v] init-params]
       (.setInitParameter holder k v))
     holder))
 
-(defn ^ServletContextHandler add-servlet-filter
+(defn  add-servlet-filter
   "Add a ServletFilter to a ServletContextHandler,
   given the context and a map that contains:
     :filter - A FilterHolder, Filter class, or a String of a Filter class
   and optionally contains:
     :path - The pathSpec string that applies to the filter; defaults to '/*'
     :dispatches - A keyword signaling the defaults to :request"
-  [^ServletContextHandler context filter-opts]
+  ^ServletContextHandler [^ServletContextHandler context filter-opts]
   (let [{servlet-filter :filter
          path :path
          dispatches :dispatches
@@ -72,8 +70,8 @@
       :else (.addFilter context servlet-filter path dispatch-set))
     context))
 
-(defn ^ServletContextHandler add-server-filters
-  [context & more-filter-opts]
+(defn add-server-filters
+  ^ServletContextHandler   [context & more-filter-opts]
   (doseq [filter-opts more-filter-opts]
     (add-servlet-filter context filter-opts)))
 

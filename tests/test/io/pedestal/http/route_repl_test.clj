@@ -41,7 +41,6 @@
 
 (deftest symbol-points-to-var
   (let [f          (routes-from sample-routes)
-        z          ::foo
         alt-routes #{["/bye" :get #'bye-handler :route-name ::bye]}]
     (is (fn? f))
 
@@ -78,17 +77,17 @@
 
 (deftest local-symbol-is-simply-wrapped-as-function
   (let [local-routes #{["/hi" :get #'hello-handler :route-name ::hi]}
-        f            (routes-from local-routes)]
-    (let [out-str (with-out-str
-                    (is (= (simplify (route/expand-routes local-routes))
-                           (simplify (f)))))]
-      (is (= "Routing table:
+        f            (routes-from local-routes)
+        out-str (with-out-str
+                  (is (= (simplify (route/expand-routes local-routes))
+                         (simplify (f)))))]
+    (is (= "Routing table:
 ┏━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Method ┃ Path ┃ Name                                 ┃
 ┣━━━━━━━━╋━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃ :get   ┃ /hi  ┃ :io.pedestal.http.route-repl-test/hi ┃
 ┗━━━━━━━━┻━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-" out-str)))))
+" out-str))))
 
 (deftest production-mode
   (let [output (with-redefs [dev-mode? false]

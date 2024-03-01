@@ -28,23 +28,23 @@
     (destroy-fn this))
   (service [this servlet-request servlet-response]
     (service-fn this servlet-request servlet-response))
-  (getServletConfig [this]
+  (getServletConfig [_]
     config)
-  (getServletInfo [this]
+  (getServletInfo [_]
     (str "FnServlet dispatching to " service-fn))
 
   ServletConfig
 
-  (getInitParameter [this name]
+  (getInitParameter [_ name]
     (when-not (nil? config)
       (.getInitParameter ^ServletConfig config name)))
-  (getInitParameterNames [this]
+  (getInitParameterNames [_]
     (when-not (nil? config)
       (.getInitParameterNames ^ServletConfig config)))
-  (getServletContext [this]
+  (getServletContext [_]
     (when-not (nil? config)
       (.getServletContext ^ServletConfig config)))
-  (getServletName [this]
+  (getServletName [_]
     (when-not (nil? config)
       (.getServletName ^ServletConfig config))))
 

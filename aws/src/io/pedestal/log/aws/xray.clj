@@ -1,9 +1,19 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.log.aws.xray
   (:require [io.pedestal.log :as log]
             [clojure.string :as string])
   (:import (com.amazonaws.xray AWSXRay
-                               AWSXRayRecorder
-                               AWSXRayRecorderBuilder)
+                               AWSXRayRecorder)
            (com.amazonaws.xray.entities Entity
                                         Segment
                                         Subsegment
@@ -21,39 +31,39 @@
     (AWSXRay/setGlobalRecorder t))
   (-span
     ([t operation-name]
-     (let [^String op-name (if (keyword? operation-name) (name operation-name) operation-name)
-           op-ns (when (keyword? operation-name) (namespace operation-name))
+     (let [^String op-name  (if (keyword? operation-name) (name operation-name) operation-name)
+           op-ns            (when (keyword? operation-name) (namespace operation-name))
            ^Segment segment (.beginSegment t op-name)]
-     ;; NOTE: this could smash a current running segment; It'll log if it does that
-     (if op-ns
-       (doto segment
-         (.setNamespace ^String op-ns))
-       segment)))
+       ;; NOTE: this could smash a current running segment; It'll log if it does that
+       (if op-ns
+         (doto segment
+           (.setNamespace ^String op-ns))
+         segment)))
     ([t operation-name parent]
      (let [^String op-name (if (keyword? operation-name) (name operation-name) operation-name)
-           op-ns (when (keyword? operation-name) (namespace operation-name))
+           op-ns           (when (keyword? operation-name) (namespace operation-name))
            ;; The X-Ray API manages Thread Local segments in the Recorder's Segment Context.
            ;;   We need to check if there is an active Entity,
            ;;     If there is, we should to start a subsegment
-           ^Entity entity (if-let [current-entity (try
-                                                    (.getTraceEntity t)
-                                                    (catch Exception e nil))]
-                            (.beginSubsegment t ^String op-name)
-                            (if parent
-                              (.beginSegment t
-                                             ^String op-name
-                                             ^TraceID (.getTraceId ^Entity parent)
-                                             ^String (.getId ^Entity parent))
-                              (.beginSegment t op-name)))]
+           ^Entity entity  (if-let [_ (try
+                                        (.getTraceEntity t)
+                                        (catch Exception _ nil))]
+                             (.beginSubsegment t ^String op-name)
+                             (if parent
+                               (.beginSegment t
+                                              ^String op-name
+                                              ^TraceID (.getTraceId ^Entity parent)
+                                              ^String (.getId ^Entity parent))
+                               (.beginSegment t op-name)))]
        (if op-ns
          (doto entity
            (.setNamespace ^String op-ns))
          entity)))
     ([t operation-name parent opts]
      (let [{:keys [initial-tags]
-            :or {initial-tags {}}} opts
+            :or   {initial-tags {}}} opts
            ^Entity entity (log/-span t operation-name parent)
-           _ (log/tag-span entity initial-tags)]
+           _              (log/tag-span entity initial-tags)]
        entity)))
   (-activate-span [t span]
     (.setTraceEntity t ^Entity span)
@@ -114,25 +124,25 @@
      (let [log-vec (log/span-baggage t :io.pedestal/log [])]
        (if (keyword? msg)
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event msg
-                                                            "time-musec" (quot ^long (System/nanoTime) 1000)}))
+                                                            "time-musec"       (quot ^long (System/nanoTime) 1000)}))
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event "info"
-                                                            log/span-log-msg msg
-                                                            "time-musec" (quot ^long (System/nanoTime) 1000)})))
+                                                            log/span-log-msg   msg
+                                                            "time-musec"       (quot ^long (System/nanoTime) 1000)})))
        t))
     ([t msg micros]
      (let [log-vec (log/span-baggage t :io.pedestal/log [])]
        (if (keyword? msg)
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event msg
-                                                            "time-musec" micros}))
+                                                            "time-musec"       micros}))
          (.putMetadata t "io.pedestal" "log" (conj log-vec {log/span-log-event "info"
-                                                            log/span-log-msg msg
-                                                            "time-musec" micros})))
+                                                            log/span-log-msg   msg
+                                                            "time-musec"       micros})))
        t)))
   (-error-span
     ([t throwable]
      (.addException t ^Throwable throwable)
      t)
-    ([t throwable micros]
+    ([t throwable _micros]
      ;; TODO: This call ignores `micros` for now
      (.addException t ^Throwable throwable))))
 
@@ -144,7 +154,7 @@
      (let [log-vec (log/span-baggage t :io.pedestal/log [])]
        (.putMetadata t "io.pedestal" "log" (conj log-vec msg-map))
        t))
-    ([t msg-map micros]
+    ([t msg-map _micros]
      ;; TODO: This call ignores `micros` for now
      (let [log-vec (log/span-baggage t :io.pedestal/log [])]
        (.putMetadata t "io.pedestal" "log" (conj log-vec msg-map))
@@ -159,14 +169,16 @@
       (.putMetadata t (log/format-name k) v)))
   (-get-baggage
     ([t k]
-     (let [k-ns (if (keyword? k) (or (namespace k) "default"))
-           k-str (if (keyword? k) (name k) (log/format-name k))
+     (let [k-ns        (when (keyword? k)
+                         (or (namespace k) "default"))
+           k-str       (if (keyword? k) (name k) (log/format-name k))
            meta-ns-map (.get ^Map (.getMetadata t) ^String k-ns)]
        (when meta-ns-map
          (.get ^Map meta-ns-map ^String k-str))))
     ([t k not-found]
-     (let [k-ns (if (keyword? k) (or (namespace k) "default"))
-           k-str (if (keyword? k) (name k) (log/format-name k))
+     (let [k-ns        (when (keyword? k)
+                         (or (namespace k) "default"))
+           k-str       (if (keyword? k) (name k) (log/format-name k))
            meta-ns-map (.get ^Map (.getMetadata t) ^String k-ns)]
        (when meta-ns-map
          (.getOrDefault ^Map meta-ns-map ^String k-str not-found)))))
@@ -195,7 +207,7 @@
    4. Nothing found - a new span/segment is created. "
   ([context]
    (span-resolver context (try (Class/forName "jakarta.servlet.HttpServletRequest")
-                                   (catch Exception _ nil))))
+                               (catch Exception _ nil))))
   ([context servlet-class]
    (try
      (let [servlet-req               (and servlet-class (:servlet-request context))
@@ -205,30 +217,30 @@
            ^Entity ent               (try
                                        ;; Defensively protect against span parse/extract errors,
                                        ;;  and on exception, just create a new span without a parent, tagged appropriately
-                                       (or ;; Is there already a span in the context?
-                                        (::log/span context)
-                                        ;; Is there an AWS X-Ray specific span/segment in the servlet request?
-                                        (when-let [span (and servlet-request
-                                                             (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))]
-                                          (.beginSubsegment recorder ^String operation-name))
-                                        ;; Is there an X-Ray Trace ID in the headers?
-                                        (when-let [header-str (or (get-in context [:request :headers trace-header-lower])
-                                                                  (get-in context [:request :headers TraceHeader/HEADER_KEY]))]
-                                          (let [^TraceHeader trace-header (TraceHeader/fromString ^String header-str)
-                                                ^TraceID trace-id         (.getRootTraceId trace-header)
-                                                ^String parent-id         (.getParentId trace-header)]
-                                            ;; Defend against the case where you're cycling back in on yourself,
-                                            ;; within the same thread.
-                                            (if-let [current-entity (try
-                                                                      (.getTraceEntity recorder)
-                                                                      (catch Exception e nil))]
-                                              (.beginSubsegment recorder ^String operation-name)
-                                              (.beginSegment recorder
-                                                             ^String operation-name
-                                                             ^TraceID trace-id
-                                                             ^String parent-id))))
-                                        ;; Otherwise, create a new span
-                                        (log/span operation-name))
+                                       (or                  ;; Is there already a span in the context?
+                                         (::log/span context)
+                                         ;; Is there an AWS X-Ray specific span/segment in the servlet request?
+                                         (when (and servlet-request
+                                                    (.getAttribute servlet-request "com.amazonaws.xray.entities.Entity"))
+                                           (.beginSubsegment recorder ^String operation-name))
+                                         ;; Is there an X-Ray Trace ID in the headers?
+                                         (when-let [header-str (or (get-in context [:request :headers trace-header-lower])
+                                                                   (get-in context [:request :headers TraceHeader/HEADER_KEY]))]
+                                           (let [^TraceHeader trace-header (TraceHeader/fromString ^String header-str)
+                                                 ^TraceID trace-id         (.getRootTraceId trace-header)
+                                                 ^String parent-id         (.getParentId trace-header)]
+                                             ;; Defend against the case where you're cycling back in on yourself,
+                                             ;; within the same thread.
+                                             (if (try
+                                                   (.getTraceEntity recorder)
+                                                   (catch Exception _ nil))
+                                               (.beginSubsegment recorder ^String operation-name)
+                                               (.beginSegment recorder
+                                                              ^String operation-name
+                                                              ^TraceID trace-id
+                                                              ^String parent-id))))
+                                         ;; Otherwise, create a new span
+                                         (log/span operation-name))
                                        (catch Exception e
                                          ;; Something happened during decoding a Span,
                                          ;; Create a new span and tag it accordingly

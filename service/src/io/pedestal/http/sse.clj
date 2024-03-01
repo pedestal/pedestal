@@ -16,14 +16,12 @@
   (:require [io.pedestal.metrics :as metrics]
             [ring.util.response :as ring-response]
             [clojure.core.async :as async]
-            [io.pedestal.http.servlet :refer :all]
             [io.pedestal.log :as log]
+            [io.pedestal.internal :as i]
             [io.pedestal.interceptor :as interceptor]
             [clojure.stacktrace]
             [clojure.string :as string])
-  (:import
-    [java.util.concurrent Executors ThreadFactory ScheduledExecutorService]
-    [com.fasterxml.jackson.core.util ByteArrayBuilder]))
+  (:import (com.fasterxml.jackson.core.util ByteArrayBuilder)))
 
 (def ^String UTF-8 "UTF-8")
 
@@ -35,23 +33,6 @@
 (def DATA_FIELD (get-bytes "data: "))
 (def COMMENT_FIELD (get-bytes ": "))
 (def ID_FIELD (get-bytes "id: "))
-
-;; Cloned from core.async.impl.concurrent
-(defn counted-thread-factory
-  "Create a ThreadFactory that maintains a counter for naming Threads.
-  name-format specifies thread names - use %d to include counter
-  daemon is a flag for whether threads are daemons or not"
-  [name-format daemon]
-  (let [counter (atom 0)]
-    (reify
-      ThreadFactory
-      (newThread [this runnable]
-        (doto (Thread. runnable)
-          (.setName (format name-format (swap! counter inc)))
-          (.setDaemon daemon))))))
-
-(def ^ThreadFactory daemon-thread-factory (counted-thread-factory "pedestal-sse-%d" true))
-(def ^ScheduledExecutorService scheduler (Executors/newScheduledThreadPool 1 daemon-thread-factory))
 
 (defn mk-data
   ([name data]
@@ -101,7 +82,7 @@
 
 (defn do-heartbeat
   ([channel] (do-heartbeat channel {}))
-  ([channel {:keys [on-client-disconnect]}]
+  ([channel _opts]
    (try
      (log/trace :msg "writing heartbeat to stream")
      (async/>!! channel CRLF)
@@ -115,8 +96,7 @@
 (defn end-event-stream
   "DEPRECATED. Given a `context`, clean up the event stream it represents."
   {:deprecated "0.4.0"}
-  [{end-fn ::end-event-stream}]
-  ;;(end-fn)
+  [_]
   )
 
 ;; This is extracted as a separate function mainly to support advanced
@@ -185,16 +165,16 @@
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n opts]
    (let [{:keys [on-client-disconnect]} opts
          response-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
-         response (-> (ring-response/response response-channel)
-                      (ring-response/content-type "text/event-stream")
-                      (ring-response/charset "UTF-8")
-                      (ring-response/header "Connection" "close")
-                      (ring-response/header "Cache-Control" "no-cache")
-                      (update :headers merge (:cors-headers context)))
-         event-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
-         context* (assoc context
-                    :response-channel response-channel
-                    :response response)]
+         response         (-> (ring-response/response response-channel)
+                              (ring-response/content-type "text/event-stream")
+                              (ring-response/charset "UTF-8")
+                              (ring-response/header "Connection" "close")
+                              (ring-response/header "Cache-Control" "no-cache")
+                              (update :headers merge (:cors-headers context)))
+         event-channel    (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         context*         (assoc context
+                                 :response-channel response-channel
+                                 :response response)]
      (async/thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel    event-channel
@@ -229,7 +209,8 @@
                (log/trace :msg "switching to sse")
                (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))
 
-(defn sse-setup
+(defn ^{:deprecated "0.7.0"} sse-setup
   "See start-event-stream. This function is for backward compatibility."
   [& args]
-  (apply start-event-stream args))
+  (i/deprecated `sse-setup
+    (apply start-event-stream args)))

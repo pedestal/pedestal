@@ -28,32 +28,32 @@
   (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
 
-
+#_
 (comment
   ;; Structure of a route. 'tree' returns a list of these.
-  {:route-name :new-user
-   :app-name   :example-app        ; optional
-   :path       "/user/:id/*blah"   ; like Ruby on Rails
-                                   ; (catch-all route is "/*path")
-   :method     :post               ; or :any, :get, :put, ...
-   :scheme     :https              ; optional
-   :host       "example.com"       ; optional
-   :port       "8080"              ; optional
-   :interceptors [...]             ; vector of interceptors to
-                                   ; be enqueued on the context
+  {:route-name        :new-user
+   :app-name          :example-app                          ; optional
+   :path              "/user/:id/*blah"                     ; like Ruby on Rails
+   ; (catch-all route is "/*path")
+   :method            :post                                 ; or :any, :get, :put, ...
+   :scheme            :https                                ; optional
+   :host              "example.com"                         ; optional
+   :port              "8080"                                ; optional
+   :interceptors      [...]                                 ; vector of interceptors to
+   ; be enqueued on the context
 
    ;; Generated for path-matching:
-   :path-re #"/\Quser\E/([^/]+)/(.+)"
-   :path-parts ["user" :id :blah]
-   :path-params [:id :blah]
-   :path-constraints {:id "([^/]+)"
-                      :blah "(.+)"}
-   :query-constraints {:name #".+"
+   :path-re           #"/\Quser\E/([^/]+)/(.+)"
+   :path-parts        ["user" :id :blah]
+   :path-params       [:id :blah]
+   :path-constraints  {:id   "([^/]+)"
+                       :blah "(.+)"}
+   :query-constraints {:name   #".+"
                        :search #"[0-9]+"}
 
    ;; Generated for routing:
-   :matcher (fn [request] ...)    ; returns map from path-params to string
-                                  ; values on match, nil on non-match
+   :matcher           (fn [request] ...)                    ; returns map from path-params to string
+   ; values on match, nil on non-match
    })
 
 ;;; Parsing URL query strings (RFC 3986)
@@ -97,32 +97,32 @@
                 returns value for the map, default does nothing."
   [^String string & options]
   (let [{:keys [key-fn value-fn]
-         :or {key-fn keyword
-              value-fn (fn [_ v] v)}} options]
-    (let [end (count string)]
-      (loop [i 0
-             m (transient {})
-             key nil
-             b (StringBuilder.)]
-        (if (= end i)
-          (persistent! (add! m key (value-fn key (decode-query-part (str b)))))
-          (let [c (.charAt string i)]
-            (cond
-             (and (= \= c) (not key)) ; unescaped = is allowed in values
-             (recur (inc i)
-                    m
-                    (key-fn (decode-query-part (str b)))
-                    (StringBuilder.))
-             (= \& c)
-             (recur (inc i)
-                    (add! m key (value-fn key (decode-query-part (str b))))
-                    nil
-                    (StringBuilder.))
-             :else
-             (recur (inc i)
-                    m
-                    key
-                    (.append b c)))))))))
+         :or   {key-fn   keyword
+                value-fn (fn [_ v] v)}} options
+        end (count string)]
+    (loop [i   0
+           m   (transient {})
+           key nil
+           b   (StringBuilder.)]
+      (if (= end i)
+        (persistent! (add! m key (value-fn key (decode-query-part (str b)))))
+        (let [c (.charAt string i)]
+          (cond
+            (and (= \= c) (not key))                        ; unescaped = is allowed in values
+            (recur (inc i)
+                   m
+                   (key-fn (decode-query-part (str b)))
+                   (StringBuilder.))
+            (= \& c)
+            (recur (inc i)
+                   (add! m key (value-fn key (decode-query-part (str b))))
+                   nil
+                   (StringBuilder.))
+            :else
+            (recur (inc i)
+                   m
+                   key
+                   (.append b c))))))))
 
 (defn- parse-query-string-params
   "Some platforms decode the query string automatically, providing a map of
@@ -131,8 +131,8 @@
   as parse-query-string"
   [params & options]
   (let [{:keys [key-fn value-fn]
-         :or {key-fn keyword
-              value-fn (fn [_ v] v)}} options]
+         :or   {key-fn   keyword
+                value-fn (fn [_ v] v)}} options]
     (persistent!
       (reduce-kv
         (fn [acc k v]
@@ -165,7 +165,7 @@
   "Dissociates an entry from a nested associative structure returning a new
   nested structure. keys is a sequence of keys. Any empty maps that result
   will not be present in the new structure."
-  [m [k & ks :as keys]]
+  [m [k & ks]]
   (if ks
     (if-let [nextmap (get m k)]
       (let [newmap (dissoc-in nextmap ks)]
@@ -203,7 +203,7 @@
         (dissoc :params)
         (update :path-params #(merge (:path-params request) params %))
         (update :query-params
-                   #(merge (apply dissoc params (:path-params route)) %)))))
+                #(merge (apply dissoc params (:path-params route)) %)))))
 
 (defn- merge-method-param
   "If the route's method is other than GET or POST and opts contains
@@ -225,17 +225,17 @@
       (merge-method-param route)))
 
 (defn- context-path
-  [{:keys [context request] :as opts}]
+  [{:keys [context request]}]
   (log/debug :in :context-path
              :context context
              :context-type (type context)
              :resolved-context (when (symbol? context) (resolve context))
              :request request)
   (when-let [context-str (cond
-                          (string? context) context
-                          (fn? context) (context)
-                          (symbol? context) ((resolve context))
-                          :else (:context-path request))]
+                           (string? context) context
+                           (fn? context) (context)
+                           (symbol? context) ((resolve context))
+                           :else (:context-path request))]
     (str/split context-str #"/")))
 
 (def ^{:private true} standard-scheme->port {:http  80
@@ -250,67 +250,66 @@
   given the route and opts. opts is a map as described in the
   docstring for 'url-for'."
   [route opts]
-  (let [{:keys [path-params
-                strict-path-params?
-                query-params
-                request
-                fragment
-                override
-                absolute?]
+  (let [{:keys           [path-params
+                          strict-path-params?
+                          query-params
+                          request
+                          fragment
+                          absolute?]
          override-host   :host
          override-port   :port
          override-scheme :scheme} opts
         {:keys [scheme host port path-parts path]} route
         context-path-parts (context-path opts)
-        path-parts (do (log/debug :in :link-str
-                                  :path-parts path-parts
-                                  :context-path-parts context-path-parts)
-                       (cond
-                         (and context-path-parts (= "" (first path-parts))) (concat context-path-parts (rest path-parts))
-                         context-path-parts (concat context-path-parts path-parts)
-                         :else path-parts))
-        _ (when (and (true? strict-path-params?)
-                     (or
-                      (not= (set (keys path-params)) ;; Do the params passed in...
-                            (set (seq (:path-params route))) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
-                            )
-                      ;; nils are not allowed.
-                      (reduce-kv #(if (nil? %3) (reduced true)  false) nil path-params)))
-            (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
+        path-parts         (do (log/debug :in :link-str
+                                          :path-parts path-parts
+                                          :context-path-parts context-path-parts)
+                               (cond
+                                 (and context-path-parts (= "" (first path-parts))) (concat context-path-parts (rest path-parts))
+                                 context-path-parts (concat context-path-parts path-parts)
+                                 :else path-parts))
+        _                  (when (and (true? strict-path-params?)
+                                      (or
+                                        (not= (set (keys path-params)) ;; Do the params passed in...
+                                              (set (seq (:path-params route))) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
+                                              )
+                                        ;; nils are not allowed.
+                                        (reduce-kv #(if (nil? %3) (reduced true) false) nil path-params)))
+                             (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
                             Either include all path-params (`nil` is not allowed), or if your URL actually contains ':' in the path, set :strict-path-params to false in the options"
-                            {:path-parts path-parts
-                             :path-params path-params
-                             :options opts
-                             :route route})))
-        path-chunk (str/join \/ (map #(get path-params % %) path-parts))
-        path (if (and (= \/ (last path))
-                      (not= \/ (last path-chunk)))
-               (str path-chunk "/")
-               path-chunk)
-        request-scheme (:scheme request)
-        request-host (:server-name request)
-        request-port (:server-port request)
-        scheme (or override-scheme scheme request-scheme)
-        host (or override-host host request-host)
-        port (or override-port port request-port)
-        scheme-mismatch (not= scheme request-scheme)
-        host-mismatch   (not= host   request-host)
-        port-mismatch   (not= port   request-port)]
+                                             {:path-parts  path-parts
+                                              :path-params path-params
+                                              :options     opts
+                                              :route       route})))
+        path-chunk         (str/join \/ (map #(get path-params % %) path-parts))
+        path               (if (and (= \/ (last path))
+                                    (not= \/ (last path-chunk)))
+                             (str path-chunk "/")
+                             path-chunk)
+        request-scheme     (:scheme request)
+        request-host       (:server-name request)
+        request-port       (:server-port request)
+        scheme             (or override-scheme scheme request-scheme)
+        host               (or override-host host request-host)
+        port               (or override-port port request-port)
+        scheme-mismatch    (not= scheme request-scheme)
+        host-mismatch      (not= host request-host)
+        port-mismatch      (not= port request-port)]
     (str
-     (when (or absolute? scheme-mismatch host-mismatch port-mismatch)
-       (str (when (or absolute? scheme-mismatch) (str (name scheme) \:))
-            "//"
-            host
-            (when (non-standard-port? scheme port) (str \: port))))
-     (str (when-not (.startsWith path "/") "/") path)
-     (when-not (str/blank? fragment) (str "#" fragment))
-     (when (seq query-params)
-       (str \?
-            (str/join \& (map (fn [[k v]]
-                                (str (encode-query-part (name k))
-                                     \=
-                                     (encode-query-part (str v))))
-                              query-params)))))))
+      (when (or absolute? scheme-mismatch host-mismatch port-mismatch)
+        (str (when (or absolute? scheme-mismatch) (str (name scheme) \:))
+             "//"
+             host
+             (when (non-standard-port? scheme port) (str \: port))))
+      (str (when-not (.startsWith path "/") "/") path)
+      (when-not (str/blank? fragment) (str "#" fragment))
+      (when (seq query-params)
+        (str \?
+             (str/join \& (map (fn [[k v]]
+                                 (str (encode-query-part (name k))
+                                      \=
+                                      (encode-query-part (str v))))
+                               query-params)))))))
 
 (defn- linker-map
   "Returns a map like {app-name {route-name route}}.
@@ -328,7 +327,7 @@
   (or (get-in m [app-name route-name])
       (get-in m [nil route-name])
       (throw (ex-info "Route not found"
-                      {:app-name app-name
+                      {:app-name   app-name
                        :route-name route-name}))))
 
 (defn url-for-routes
@@ -386,8 +385,8 @@
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
             default-app-name (:app-name default-opts)
-            route (find-route m (or app-name default-app-name) route-name)
-            opts (combine-opts options-map default-opts route)]
+            route            (find-route m (or app-name default-app-name) route-name)
+            opts             (combine-opts options-map default-opts route)]
         (link-str route opts)))))
 
 (def ^:private ^:dynamic *url-for*
@@ -423,8 +422,8 @@
   Built-in implementations map vectors to [[terse-routes]],
   sets to [[table-routes]], and maps to [[map-routes->vec-routes]]."
   (-expand-routes [expandable-route-spec]
-                  "Generate and return the routing table from a given expandable
-                  form of routing data."))
+    "Generate and return the routing table from a given expandable
+    form of routing data."))
 
 (extend-protocol ExpandableRoutes
   APersistentVector
@@ -452,11 +451,11 @@
   - Constraints are correctly ordered (most specific to least specific)
   - Route names are unique"
   [route-spec]
-  {:pre [(if-not (satisfies? ExpandableRoutes route-spec)
-           (throw (ex-info "You're trying to use something as a route specification that isn't supported by the protocol; Perhaps you need to extend it?"
-                           {:routes route-spec
-                            :type (type route-spec)}))
-           true)]
+  {:pre  [(if-not (satisfies? ExpandableRoutes route-spec)
+            (throw (ex-info "You're trying to use something as a route specification that isn't supported by the protocol; Perhaps you need to extend it?"
+                            {:routes route-spec
+                             :type   (type route-spec)}))
+            true)]
    :post [(seq? %)
           (every? (every-pred map? :path :route-name :method) %)]}
   (definition/ensure-routes-integrity (-expand-routes route-spec)))
@@ -478,7 +477,7 @@
     ;;  This is where path-params are added to the request.
     (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
           ;; Rarely used, potentially expensive to create, delay creation until needed.
-          linker (delay (url-for-routes routes :request request-with-path-params))]
+          linker                   (delay (url-for-routes routes :request request-with-path-params))]
       (-> context
           (assoc :route route
                  :request (assoc request-with-path-params :url-for linker)
@@ -494,7 +493,7 @@
   (router-spec [routing-table router-ctor]
     (let [router (router-ctor routing-table)]
       (interceptor/interceptor
-        {:name ::router
+        {:name  ::router
          :enter #(route-context % router routing-table)})))
 
   ;; The alternative is to pass in a no-arguments function that returns the expanded routes.
@@ -507,17 +506,17 @@
     ;; route specifications are caught at startup.
     (f)
     (interceptor/interceptor
-      {:name ::router
+      {:name  ::router
        :enter (fn [context]
                 (let [routing-table (f)
-                      router (router-ctor routing-table)]
+                      router        (router-ctor routing-table)]
                   (route-context context router routing-table)))})))
 
 (def router-implementations
   "Maps from the common router implementations (:map-tree, :prefix-tree, or :linear-search) to a router
   constructor function (which accepts expanded routes, and returns a Router instance)."
-  {:map-tree map-tree/router
-   :prefix-tree prefix-tree/router
+  {:map-tree      map-tree/router
+   :prefix-tree   prefix-tree/router
    :linear-search linear-search/router})
 
 (defn router
@@ -546,9 +545,9 @@
 (defn- attach-bad-request-response
   [context exception]
   (assoc context :response
-         {:status 400
+         {:status  400
           :headers {}
-          :body (str "Bad Request - " (.getMessage exception))}))
+          :body    (str "Bad Request - " (.getMessage exception))}))
 
 (def query-params
   "An interceptor which parses query-string parameters from an
@@ -558,7 +557,7 @@
   ;; This doesn't need to be a function but it's done that way for
   ;; consistency with 'method-param'
   (interceptor/interceptor
-    {:name ::query-params
+    {:name  ::query-params
      :enter (fn [ctx]
               (try
                 (update ctx :request parse-query-params)
@@ -576,19 +575,19 @@
   this interceptor in some routes, which could yield runtime exceptions
   and request failures if the interceptor is executed twice."
   (interceptor/interceptor
-   {:name ::path-params-decoder
-    :enter (fn [ctx]
-             ;; This isn't truly idempotent, as it does not account for
-             ;; some intermediate interceptor modifying the path parameters,
-             ;; but this addresses the needs in issue #776.
-             (if (::path-params-decoded? ctx)
-               ctx
-               (try
-                 (-> ctx
-                     (update :request parse-path-params)
-                     (assoc ::path-params-decoded? true))
-                 (catch IllegalArgumentException e
-                   (attach-bad-request-response ctx e)))))}))
+    {:name  ::path-params-decoder
+     :enter (fn [ctx]
+              ;; This isn't truly idempotent, as it does not account for
+              ;; some intermediate interceptor modifying the path parameters,
+              ;; but this addresses the needs in issue #776.
+              (if (::path-params-decoded? ctx)
+                ctx
+                (try
+                  (-> ctx
+                      (update :request parse-path-params)
+                      (assoc ::path-params-decoded? true))
+                  (catch IllegalArgumentException e
+                    (attach-bad-request-response ctx e)))))}))
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
@@ -604,15 +603,15 @@
 
   The path [:query-params :_method] is used by default."
   ([]
-     (method-param [:query-params :_method]))
+   (method-param [:query-params :_method]))
   ([query-param-or-param-path]
-     (let [param-path (if (vector? query-param-or-param-path)
-                        query-param-or-param-path
-                        [:query-params query-param-or-param-path])]
-       (interceptor/interceptor
-         {:name ::method-param
-          :enter (fn [ctx]
-                   (update ctx :request #(replace-method param-path %)))}))))
+   (let [param-path (if (vector? query-param-or-param-path)
+                      query-param-or-param-path
+                      [:query-params query-param-or-param-path])]
+     (interceptor/interceptor
+       {:name  ::method-param
+        :enter (fn [ctx]
+                 (update ctx :request #(replace-method param-path %)))}))))
 
 (defn form-action-for-routes
   "Like 'url-for-routes' but the returned function returns a map with the keys
@@ -635,7 +634,7 @@
                          method))}))))
 
 ;;; Help for debugging
-(defn  print-routes
+(defn print-routes
   "Prints a route table (from [[expand-routes]]) in an easier to read format."
   [expanded-routes]
   (internal/print-routing-table expanded-routes))
@@ -647,7 +646,7 @@
   Returns the matched route (a map from the routing table), or nil if routing was unsuccessful."
   [routing-table router-type path verb]
   (let [router  (router routing-table router-type)          ; create a disposable interceptor
-        context {:request {:path-info path
+        context {:request {:path-info      path
                            :request-method verb}}
         context ((:enter router) context)]
     (:route context)))

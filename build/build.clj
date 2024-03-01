@@ -16,6 +16,7 @@
             [net.lewisship.build :refer [requiring-invoke deploy-jar]]
             [clojure.tools.build.api :as b]
             [babashka.fs :as fs]
+            [clj-commons.ansi :as ansi]
             [net.lewisship.build.versions :as v]))
 
 
@@ -52,8 +53,8 @@
   (binding [b/*project-root* dir]
     (println "Reading" dir "...")
     (let [basis-opts {:override-deps overrides}
-          basis (b/create-basis basis-opts)
-          roots (:classpath-roots basis)]
+          basis      (b/create-basis basis-opts)
+          roots      (:classpath-roots basis)]
       (map (fn [path]
              (if (str/starts-with? path "/")
                path
@@ -124,12 +125,30 @@
                            ;; Pedestal is an odd duck, all the tests are in a sub-module that
                            ;; (of course) is not published along with the other modules.
                            "tests/test")
+        ;; Alternate idea is to locate all `deps.edn` files, and then find
+        ;; all `src` and `test` below. That will help cover examples and guides as well
+        ;; as modules.
         kondo-run!   (requiring-resolve 'clj-kondo.core/run!)
-        kondo-print! (requiring-resolve 'clj-kondo.core/print!)]
-    (println "Running clj-kondo ...")
-    (-> (kondo-run! (merge {:lint classpath}
-                           options))
-        kondo-print!)))
+        kondo-print! (requiring-resolve 'clj-kondo.core/print!)
+        results      (kondo-run! (merge {:lint   classpath
+                                         :config [{:output  {:progress    false
+                                                             :linter-name true}
+                                                   :lint-as '{io.pedestal.http.route-test/defhandler    clojure.core/defn
+                                                              io.pedestal.http.route-test/defon-request clojure.core/defn}
+                                                   :linters
+                                                   {:unresolved-symbol
+                                                    {:exclude '[(clojure.test/is [match?])]}
+                                                    :deprecated-var          {:level :off}
+                                                    :deprecated-namespace    {:level :off}
+                                                    :single-key-in           {:level :error}
+                                                    :used-underscore-binding {:level :error}}}]}
+                                        options))]
+    (kondo-print! results)
+    (when (pos? (get-in results [:summary :error] 0))
+      (ansi/pcompose [:bold.red "Linter found errors."])
+      (System/exit -1)))
+
+  (ansi/pcompose [:bold.green "clj-kondo approves 😉"]))
 
 (defn- workspace-dirty?
   []

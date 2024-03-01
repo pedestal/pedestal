@@ -166,7 +166,7 @@
              ;; execute (or execute-only) functions.
              (::error context) (dissoc context ::queue)
              (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-             true (recur (check-terminators context)))))))))
+             :else (recur (check-terminators context)))))))))
 
 (defn- process-all
   [context interceptor-key]
@@ -199,7 +199,7 @@
           (cond
             (channel? context) (go-async old-context context)
             (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-            true (recur context)))))))
+            :else (recur context)))))))
 
 (defn- process-any-errors
   "Establish the bindings present in `context` as thread local
@@ -242,7 +242,7 @@
           (cond
             (channel? context) (go-async old-context context)
             (not= (:bindings context) pre-bindings) (assoc context ::rebind true)
-            true (recur context)))))))
+            :else (recur context)))))))
 
 (defn- leave-all
   "Establish the bindings present in `context` as thread local

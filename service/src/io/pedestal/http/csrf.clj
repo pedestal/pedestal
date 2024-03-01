@@ -88,7 +88,7 @@
          stored-token
          (crypto/eq? user-token stored-token))))
 
-(defn- get-request? [{method :request-method :as request}]
+(defn- get-request? [{method :request-method}]
   (or (= :head method)
       (= :get method)))
 
@@ -139,7 +139,7 @@
          cookie-attrs   (:cookie-attrs options)
          error-response (:error-response options default-error-response)
          error-handler  (:error-handler options (fn [context]
-                                                  (assoc-in context [:response] error-response)))]
+                                                  (assoc context :response error-response)))]
      (interceptor
        {:name  ::anti-forgery
         :enter (fn [context]

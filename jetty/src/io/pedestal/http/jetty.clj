@@ -37,9 +37,9 @@
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
-(defn- ^SslContextFactory ssl-context-factory
+(defn- ssl-context-factory
   "Creates a new SslContextFactory instance from a map of options."
-  [options]
+  ^SslContextFactory [options]
   (or (:ssl-context-factory options)
       (let [{:keys [^KeyStore keystore key-password
                     ^KeyStore truststore

@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -16,6 +17,7 @@
             [ring.middleware.session.memory :as memory]
             [io.pedestal.interceptor.chain :as chain]
             [clojure.test :refer [deftest is]]
+            [ring.util.io :as rio]
             [ring.middleware.session.store :as store])
   (:import (java.util UUID)))
 
@@ -86,9 +88,9 @@
         flash-response   (-> {:response {:flash expected-message}}
                              flash-leave
                              :response)]
-    (is (= expected-message)                                ;
-        (-> (execute flash-response (m/flash))
-            (get-in [:request :flash])))))
+    (is (= expected-message
+           (-> (execute flash-response (m/flash))
+               (get-in [:request :flash]))))))
 
 (deftest head-is-valid
   (is (match?
@@ -125,7 +127,7 @@
         request   {:headers      {"content-type"   "multipart/form-data; boundary=XXXX"
                                   "content-length" (str (count form-body))}
                    :content-type "multipart/form-data; boundary=XXXX"
-                   :body         (ring.util.io/string-input-stream form-body)}]
+                   :body         (rio/string-input-stream form-body)}]
     (is (match?
           {:request
            {:multipart-params
@@ -158,21 +160,21 @@
         (execute {:query-string "a=1&b=2"} (m/params) app))))
 
 (deftest resource-is-valid
-  (is (= "<h1>WOOT!</h1>\n")
-      (-> (execute {:uri "/index.html"}
-                   (m/resource "/io/pedestal/public"))
-          :response
-          :body
-          slurp)))
+  (is (= "<h1>WOOT!</h1>\n"
+         (-> (execute {:uri "/index.html"}
+                      (m/resource "/io/pedestal/public"))
+             :response
+             :body
+             slurp))))
 
 (deftest fast-resource-is-valid
   (deftest resource-is-valid
-    (is (= "<h1>WOOT!</h1>\n")
-        (-> (execute {:uri "/index.html"}
-                     (m/fast-resource "/io/pedestal/public"))
-            :response
-            :body
-            slurp))))
+    (is (= "<h1>WOOT!</h1>\n"
+           (-> (execute {:uri "/index.html"}
+                        (m/fast-resource "/io/pedestal/public"))
+               :response
+               :body
+               slurp)))))
 
 (deftest fast-resource-passes-on-post
   (is (= nil

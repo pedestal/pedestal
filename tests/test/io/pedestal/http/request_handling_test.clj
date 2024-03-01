@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -15,7 +16,8 @@
   (:require [ring.util.response :as ring-response]
             [clojure.test :refer [deftest is are]]
             [io.pedestal.test :refer [response-for]]
-            [io.pedestal.http :as service]))
+            [io.pedestal.http :as service])
+  (:import (java.io File)))
 
 (defn terminator
   "An interceptor that creates a valid ring response and places it in
@@ -40,34 +42,36 @@
      ["/unterminated"
       ["/leaf" {:get [:leaf2 leaf-handler]}]]]])
 
-(let [file (java.io.File/createTempFile "request-handling-test" ".txt")]
-  (def tempfile-url
-    (->> file
-         .getName
-         (str "http://request-handling.pedestal/")))
-  (def tempdir
-    (.getParent file))
-  (spit file "some test data"))
-
-(defn make-app [options]
+(defn make-app
+  [options]
   (-> options
       service/default-interceptors
       service/service-fn
       ::service/service-fn))
 
-(def app (make-app {::service/routes        request-handling-routes
-                    ::service/resource-path "public"
-                    ::service/file-path     tempdir}))
+
+(defn make-app-for-dir
+  [dir]
+  (make-app {::service/routes        request-handling-routes
+             ::service/resource-path "public"
+             ::service/file-path     dir}))
 
 (deftest termination-test
-  (are [url body] (= body (->> url
-                               (response-for app :get)
-                               :body))
-    "http://request-handling.pedestal/terminated/leaf" "Terminated."
-    "http://request-handling.pedestal/unterminated/leaf" "Leaf handled!"
-    "http://request-handling.pedestal/unrouted" "Not Found"
-    "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
-    tempfile-url "some test data"))
+  (let [text-file (File/createTempFile "request-handling-test" ".txt")
+        text-url  (->> text-file
+                       .getName
+                       (str "http://request-handling.pedestal/"))
+        app       (make-app-for-dir (.getParent text-file))
+        content   "I endeavor, at all times, to be accurate."]
+    (spit text-file content)
+    (are [url body] (= body (->> url
+                                 (response-for app :get)
+                                 :body))
+      "http://request-handling.pedestal/terminated/leaf" "Terminated."
+      "http://request-handling.pedestal/unterminated/leaf" "Leaf handled!"
+      "http://request-handling.pedestal/unrouted" "Not Found"
+      "http://request-handling.pedestal/test.txt" "Text data on the classpath\n"
+      text-url content)))
 
 (def custom-not-found
   {:leave (fn [context]
@@ -79,20 +83,17 @@
     (is (= "Custom Not Found"
            (:body (response-for app :get "http://request-handling.pedestal/unrouted"))))))
 
-(let [file (java.io.File/createTempFile "request-handling-test" ".css")]
-  (def tempfile-url
-    (->> file
-         .getName
-         (str "http://request-handling.pedestal/")))
-  (def tempdir
-    (.getParent file))
-  (spit file "some test data"))
-
 (deftest content-type-test
-  (are [url content-type] (= content-type (get (->> url
-                                                    (response-for app :get)
-                                                    :headers)
-                                               "Content-Type"))
-    "http://request-handling.pedestal/test.html" "text/html"
-    "http://request-handling.pedestal/test.js" "text/javascript"
-    tempfile-url "text/css"))
+  (let [css-file (File/createTempFile "request-handling-test_" ".css")
+        css-url  (->> css-file
+                      .getName
+                      (str "http://request-handling.pedestal/"))
+        app      (make-app-for-dir (.getParent css-file))]
+    (spit css-file "body { bold }")
+    (are [url content-type] (= content-type (get (->> url
+                                                      (response-for app :get)
+                                                      :headers)
+                                                 "Content-Type"))
+      "http://request-handling.pedestal/test.html" "text/html"
+      "http://request-handling.pedestal/test.js" "text/javascript"
+      css-url "text/css")))

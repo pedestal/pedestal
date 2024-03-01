@@ -14,7 +14,7 @@
   {:deprecated "0.7.0"}
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.internal :refer [deprecated ]]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
   (:import (io.opentracing Tracer
                            SpanContext)
@@ -104,7 +104,7 @@
                    default-span-operation
                    span-postprocess]
             :or   {span-resolver          default-span-resolver
-                   trace-filter           (fn [ctx] true)
+                   trace-filter           (fn [_context] true)
                    uri-as-span-operation? true
                    default-span-operation "PedestalSpan"
                    span-postprocess       default-span-postprocess}} opts]

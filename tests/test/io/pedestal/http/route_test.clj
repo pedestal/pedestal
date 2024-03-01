@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,16 +14,18 @@
 (ns io.pedestal.http.route-test
   (:require [clojure.set :as set]
             [clojure.pprint :refer [pprint]]
-            matcher-combinators.clj-test
-            io.pedestal.http.route.prefix-tree
-            io.pedestal.http.route.router
             [io.pedestal.interceptor :refer [interceptor]]
             [clojure.test :refer [deftest is are testing]]
             [ring.middleware.resource]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.route :as route :refer [expand-routes]]
+            [io.pedestal.http.route.map-tree :as map-tree]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.definition.verbose :as verbose]
+            [io.pedestal.http.route.router :as router]
+            [io.pedestal.http.route.path :as path]
+            [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
             [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
 
@@ -41,38 +44,38 @@
                                   (f# (:request context#))))}))))
 
 (defhandler home-page
-  [request]
+  [_request]
   "home-page")
 
 (defhandler list-users
-  [request]
+  [_request]
   "list-users")
 (defhandler view-user
-  [request]
+  [_request]
   "view-user")
 (defhandler add-user
-  [request]
+  [_request]
   "add-user")
 (defhandler update-user
-  [request]
+  [_request]
   "update-user")
 (defhandler logout
-  [request]
+  [_request]
   "logout")
 (defhandler delete-user
-  [request]
+  [_request]
   "delete-user")
 (defhandler search-form
-  [request]
+  [_request]
   "search-form")
 (defhandler search-id
-  [request]
+  [_request]
   "search-id")
 (defhandler search-query
-  [request]
+  [_request]
   "search-query")
 (defhandler trailing-slash
-  [request]
+  [_request]
   "trailing-slash")
 
 (defhandler request-inspection
@@ -100,7 +103,7 @@
                (assoc-in context [:request ::interceptor-3] value))})))
 
 (defn site-demo [site-name]
-  (fn [req & more]
+  (fn [& _]
     (ring-response/response (str "demo page for " site-name))))
 
 ;; schemes, hosts, path, verb and maybe query string
@@ -1006,7 +1009,7 @@
 
 (defn ring-style
   "A ring style request handler."
-  [req]
+  [_request]
   {:status  200
    :body    "Oppa Ring Style!"
    :headers {}})
@@ -1047,14 +1050,14 @@
 
 (defn overridden-handler
   "A handler which will be overridden."
-  [req]
+  [_request]
   {:status  200
    :body    "Overridden"
    :headers {}})
 
 (defn overriding-handler
   "A handler which will override."
-  [req]
+  [_request]
   {:status  200
    :body    "Overriding"
    :headers {}})
@@ -1229,7 +1232,7 @@
   (are [routes] (= {:route-name ::trailing-slash :path "/child-path"}
                    (-> routes
                        (test-query-execute
-                         :prefix-tree
+                         router-impl-key
                          {:request {:request-method :get
                                     :path-info      "/child-path"}})
                        :route
@@ -1333,30 +1336,30 @@
         test-request      {:path-info "/app" :request-method :quux}
         test-bad-request  {:path-info "/app" :request-method :foo}
         expand-route-path (fn [route] (->> (:path route)
-                                           io.pedestal.http.route.path/parse-path
+                                           path/parse-path
                                            (merge route)
-                                           io.pedestal.http.route.path/merge-path-regex))
-        test-routers      [(io.pedestal.http.route.map-tree/router test-routes)
-                           (io.pedestal.http.route.prefix-tree/router test-routes)
-                           (io.pedestal.http.route.linear-search/router (mapv expand-route-path test-routes))]]
-    (is (every? some? (map #(io.pedestal.http.route.router/find-route % test-request) test-routers)))
-    (is (every? nil? (map #(io.pedestal.http.route.router/find-route % test-bad-request) test-routers)))))
+                                           path/merge-path-regex))
+        test-routers      [(map-tree/router test-routes)
+                           (prefix-tree/router test-routes)
+                           (linear-search/router (mapv expand-route-path test-routes))]]
+    (is (every? some? (map #(router/find-route % test-request) test-routers)))
+    (is (every? nil? (map #(router/find-route % test-bad-request) test-routers)))))
 
 (deftest verb-neutral-table-routes
   (let [test-routes      (table-routes {:verbs #{:walk :open :read :clunk :stat :wstat :version}}
                                        #{["/hello" :walk `home-page]})
         test-request     {:path-info "/hello" :request-method :walk}
         test-bad-request {:path-info "/hello" :request-method :clunk}
-        test-routers     [(io.pedestal.http.route.map-tree/router test-routes)
-                          (io.pedestal.http.route.prefix-tree/router test-routes)]]
-    (is (every? some? (map #(io.pedestal.http.route.router/find-route % test-request) test-routers)))
-    (is (every? nil? (map #(io.pedestal.http.route.router/find-route % test-bad-request) test-routers)))
+        test-routers     [(map-tree/router test-routes)
+                          (prefix-tree/router test-routes)]]
+    (is (every? some? (map #(router/find-route % test-request) test-routers)))
+    (is (every? nil? (map #(router/find-route % test-bad-request) test-routers)))
     (is (try
           ;; `thrown` won't work with Compiler/AssertionErrors
           (table-routes {:verbs #{:walk :open :read :clunk :stat :wstat :version}}
                         #{["/hello" :remove `home-page]})
           false
-          (catch java.lang.AssertionError ae
+          (catch AssertionError _
             true)))))
 
 (deftest url-for-concatenates-context-path-and-route-path-test

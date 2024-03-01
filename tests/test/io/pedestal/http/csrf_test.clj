@@ -1,3 +1,14 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.csrf-test
   (:require [io.pedestal.http :as service]
             [io.pedestal.http.ring-middlewares :as rm]
@@ -148,7 +159,7 @@
 
 (deftest custom-error-handler
   (let [error-response {:arbitrary :key}
-        error-handler  (fn [context] (assoc-in context [:response] error-response))
+        error-handler  (fn [context] (assoc context :response error-response))
         i              (standalone-anti-forgery-interceptor {:error-handler error-handler})]
     (testing "custom error-handler is respected on errors"
       (is (= error-response
@@ -157,7 +168,7 @@
 (deftest disallow-both-error-response-and-error-handler
   (is (thrown?
         AssertionError
-        (csrf/anti-forgery {:error-handler  (fn [request] {:status 500 :body "Handler"})
+        (csrf/anti-forgery {:error-handler  (fn [_request] {:status 500 :body "Handler"})
                             :error-response {:status 500 :body "Response"}}))))
 
 (deftest custom-read-token

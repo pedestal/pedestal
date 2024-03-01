@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2015-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -314,8 +315,10 @@
   )
 
 (defrecord PrefixTreeRouter [routes tree]
+
   router/Router
-  (find-route [this req]
+
+  (find-route [_ req]
     ;; find a result in the prefix-tree - payload could contains mutiple routes
     (when-let [{:keys [payload] :as result} (lookup tree (:path-info req))]
       ;; call payload function to find specific match based on method, host, scheme and port
@@ -334,7 +337,7 @@
   "Given a route, create a key path which will be used to insert this
   route into a nested map. Use ::any to indicate that we match any
   value."
-  [{:keys [method host scheme port] :as route-map}]
+  [{:keys [method host scheme port]}]
   [(if (not= method :any) method ::any)
    (or host ::any)
    (or scheme ::any)

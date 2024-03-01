@@ -247,8 +247,8 @@
                             (convert-metric-name {})))]
     (is (= "Invalid metric name type: clojure.lang.PersistentArrayMap"
            (ex-message e)))
-    (is (= {:metric-name {}})
-        (ex-data e))))
+    (is (= {:metric-name {}}
+           (ex-data e)))))
 
 (deftest invalid-tag-key
   (when-let [e (is (thrown-with-msg? Exception #"\QInvalid attribute key type: clojure.lang.PersistentArrayMap\E"

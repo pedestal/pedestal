@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2016-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -30,9 +31,10 @@
     {:field field
      :type t
      :subtype st
-     :params (update-in params [:q] #(Double/parseDouble %))}))
+     :params (update params :q #(Double/parseDouble %))}))
 
-(defn parse-accept-* [^String accept-str]
+(defn parse-accept-*
+  [accept-str]
   (let [accept-elems (string/split accept-str #",")
         elem-maps (mapv parse-accept-element accept-elems)]
     elem-maps))

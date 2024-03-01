@@ -105,8 +105,6 @@
   (and (map? resp)
        (integer? (:status resp))))
 
-(def ^:private not-found-meter-fn (metrics/counter ::not-found nil))
-
 (defn- response-interceptor
   [interceptor-name pred xform]
   (interceptor
@@ -121,7 +119,7 @@
   (response-interceptor
     ::not-found
     #(not (response? %))
-    (constantly (ring-response/not-found "Not Found"))))
+    (fn [_] (ring-response/not-found "Not Found"))))
 
 (defn- missing-content-type?
   [response]

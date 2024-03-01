@@ -1,8 +1,18 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.service-tools.war
   (:require [clojure.data.xml :as xml]
             [clojure.java.io :as io])
-  (:import (java.io ByteArrayInputStream
-                    FileOutputStream)
+  (:import (java.io ByteArrayInputStream InputStream)
            (java.util.jar Manifest
                           JarEntry
                           JarOutputStream)))
@@ -11,7 +21,7 @@
 ;; --------------------
 
 (defn app-server-ns [opts]
-  (or (:server-ns opts) ;; We need to do `or` to prevent a premature exit
+  (or (:server-ns opts)                                     ;; We need to do `or` to prevent a premature exit
       (do
         (println "ERROR: You need to specify a Pedestal :server-ns in your options"
                  (str "Your current Pedestal settings: " opts)
@@ -39,10 +49,10 @@
                   servlet-name
                   servlet-class
                   url-pattern]
-           :or {servlet-description "Pedestal HTTP Servlet"
-                servlet-name "PedestalServlet"
-                servlet-class "io.pedestal.servlet.ClojureVarServlet"
-                url-pattern "/*"}} opts]
+           :or   {servlet-description "Pedestal HTTP Servlet"
+                  servlet-name        "PedestalServlet"
+                  servlet-class       "io.pedestal.servlet.ClojureVarServlet"
+                  url-pattern         "/*"}} opts]
       (xml/indent-str
         (xml/sexp-as-element
           [:web-app {:xmlns              "http://java.sun.com/xml/ns/javaee"
@@ -72,23 +82,24 @@
 ;; ---------------------
 
 (def default-pedestal-manifest
-    {"Created-By" "Pedestal Service War Tooling"
-     "Built-By"  (System/getProperty "user.name")
-     "Build-Jdk"  (System/getProperty "java.version")})
+  {"Created-By" "Pedestal Service War Tooling"
+   "Built-By"   (System/getProperty "user.name")
+   "Build-Jdk"  (System/getProperty "java.version")})
 
 (defn manifest-str
   "Given a map of manifest keys/values,
   Return a string of the single Manifest contents"
   [manifest-map]
   (reduce
-     (fn [accumulated-manifest [k v]]
-       (str accumulated-manifest "\n" k ": " v))
-     "Manifest-Version: 1.0"
-     (merge default-pedestal-manifest manifest-map)))
+    (fn [accumulated-manifest [k v]]
+      (str accumulated-manifest "\n" k ": " v))
+    "Manifest-Version: 1.0"
+    (merge default-pedestal-manifest manifest-map)))
 
 ;; This is taken from Ring, it probably should be clojure.java.io
-(defn string-input-stream [^String s]
+(defn string-input-stream
   "Returns a ByteArrayInputStream for the given String."
+  ^InputStream [^String s]
   (ByteArrayInputStream. (.getBytes s)))
 
 (defn make-manifest
@@ -116,9 +127,9 @@
            (.relativize (.toURI file))
            (.getPath))))
 
-(defn write-entry [war war-path entry]
-    (.putNextEntry war (JarEntry. war-path))
-    (io/copy entry war))
+(defn write-entry [war ^String war-path entry]
+  (.putNextEntry war (JarEntry. war-path))
+  (io/copy entry war))
 
 (defn file-entry [war opts war-path file]
   (when (and (.exists file)
@@ -163,8 +174,8 @@
   ([opts]
    (war opts "PedestalService.war"))
   ([opts war-name-str]
-   (let [war-path (war-file-path (:taget-path opts ".") war-name-str)
-         app-ns (app-server-ns opts)]
+   (let [war-path (war-file-path (:taget-path opts ".") war-name-str)]
+     (app-server-ns opts)
      (write-war opts war-path)
      (println "Created" war-path)
      war-path)))

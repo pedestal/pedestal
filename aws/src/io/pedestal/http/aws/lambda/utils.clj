@@ -1,16 +1,19 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.aws.lambda.utils
   (:require [clojure.string :as string]
             [io.pedestal.interceptor.chain :as chain])
-  (:import (java.io ;InputStream
-                    ;OutputStream
-                    ;InputStreamReader
-                    ;PushbackReader
-                    ByteArrayInputStream
-                    ByteArrayOutputStream)
-           (com.amazonaws.services.lambda.runtime Context
-                                                  RequestHandler
-                                                  RequestStreamHandler)))
-
+  (:import (java.io ByteArrayInputStream)
+           (com.amazonaws.services.lambda.runtime Context)))
 
 (defn apigw-request-map
   "Given a parsed JSON event from API Gateway,
@@ -25,34 +28,35 @@
   ([apigw-event]
    (apigw-request-map apigw-event true))
   ([apigw-event process-headers?]
-   (let [path (get apigw-event "path" "/")
-         headers (get apigw-event "headers" {})
+   (let [path      (get apigw-event "path" "/")
+         headers   (get apigw-event "headers" {})
          [http-version host] (string/split (get headers "Via" "") #" ")
-         port (try (Integer/parseInt (get headers "X-Forwarded-Port" "")) (catch Throwable t 80))
+         port      (try (Integer/parseInt (get headers "X-Forwarded-Port" ""))
+                        (catch Throwable _ 80))
          source-ip (get-in apigw-event ["requestContext" "identity" "sourceIp"] "")]
-     {:server-port port
-      :server-name (or host "")
-      :remote-addr source-ip
-      :uri path
+     {:server-port         port
+      :server-name         (or host "")
+      :remote-addr         source-ip
+      :uri                 path
       ;:query-string query-string
       :query-string-params (get apigw-event "queryStringParameters")
-      :path-params (get apigw-event "pathParameters" {})
-      :scheme (get headers "X-Forwarded-Proto" "http")
-      :request-method (some-> (get apigw-event "httpMethod")
-                              string/lower-case
-                              keyword)
-      :headers (if process-headers?
-                 (persistent! (reduce (fn [hs [k v]]
-                                        (assoc! hs (string/lower-case k) v))
-                                      (transient {})
-                                      headers))
-                 headers)
+      :path-params         (get apigw-event "pathParameters" {})
+      :scheme              (get headers "X-Forwarded-Proto" "http")
+      :request-method      (some-> (get apigw-event "httpMethod")
+                                   string/lower-case
+                                   keyword)
+      :headers             (if process-headers?
+                             (persistent! (reduce (fn [hs [k v]]
+                                                    (assoc! hs (string/lower-case k) v))
+                                                  (transient {})
+                                                  headers))
+                             headers)
       ;:ssl-client-cert ssl-client-cert
-      :body (when-let [body (get apigw-event "body")]
-              (ByteArrayInputStream. (.getBytes ^String body "UTF-8")))
-      :path-info path
-      :protocol (str "HTTP/" (or http-version "1.1"))
-      :async-supported? false})))
+      :body                (when-let [body (get apigw-event "body")]
+                             (ByteArrayInputStream. (.getBytes ^String body "UTF-8")))
+      :path-info           path
+      :protocol            (str "HTTP/" (or http-version "1.1"))
+      :async-supported?    false})))
 
 (defn resolve-body-processor []
   ;;TODO:
@@ -63,16 +67,16 @@
    (apigw-response ring-response identity))
   ([ring-response body-process-fn]
    (let [{:keys [status body headers]} ring-response
-        processed-body (body-process-fn body)
-                       ;(if (string? body)
-                       ;  body
-                       ;  (->> (ByteArrayOutputStream.)
-                       ;       (servlet-utils/write-body-to-stream body)
-                       ;       (.toString)))
-                       ]
-    {"statusCode" (or status (if (string/blank? processed-body) 400 200))
-     "body" processed-body
-     "headers" headers})))
+         processed-body (body-process-fn body)
+         ;(if (string? body)
+         ;  body
+         ;  (->> (ByteArrayOutputStream.)
+         ;       (servlet-utils/write-body-to-stream body)
+         ;       (.toString)))
+         ]
+     {"statusCode" (or status (if (string/blank? processed-body) 400 200))
+      "body"       processed-body
+      "headers"    headers})))
 
 ;; --- Proxy doesn't have to be InputStream/OutputStream!
 ;;     It will perform the JSON parse automatically ---
@@ -90,35 +94,35 @@
   All additional conversion, coercion, writing, and extension should be handled by
   interceptors in the interceptor chain."
   [service-map]
-  (let [interceptors (:io.pedestal.http/interceptors service-map [])
+  (let [interceptors    (:io.pedestal.http/interceptors service-map [])
         default-context (get-in service-map [:io.pedestal.http/container-options :default-context] {})
-        body-processor (get-in service-map
-                               [:io.pedestal.http/container-options :body-processor]
-                               (resolve-body-processor))]
+        body-processor  (get-in service-map
+                                [:io.pedestal.http/container-options :body-processor]
+                                (resolve-body-processor))]
     (assoc service-map
            :io.pedestal.aws.lambda/apigw-handler
-           (fn [apigw-event ^Context context] ;[^InputStream input-stream ^OutputStream output-stream ^Context context]
+           (fn [apigw-event ^Context context]               ;[^InputStream input-stream ^OutputStream output-stream ^Context context]
              (let [;event (json/parse-stream
                    ;        (java.io.PushbackReader. (java.io.InputStreamReader. input-stream))
                    ;        nil
                    ;        nil)
-                   request (apigw-request-map apigw-event)
-                   initial-context (merge {;:aws.lambda/input-stream input-stream
-                                           ;:aws.lambda/output-stream output-stream
-                                           :aws.lambda/context context
-                                           :aws.apigw/event apigw-event
-                                           :request request
-                                           ::chain/terminators [#(let [resp (:response %)]
-                                                                   (and (map? resp)
-                                                                        (integer? (:status resp))
-                                                                        (map? (:headers resp))))
-                                                                #(map? (:apigw-response %))]}
-                                          default-context)
+                   request          (apigw-request-map apigw-event)
+                   initial-context  (merge {;:aws.lambda/input-stream input-stream
+                                            ;:aws.lambda/output-stream output-stream
+                                            :aws.lambda/context context
+                                            :aws.apigw/event    apigw-event
+                                            :request            request
+                                            ::chain/terminators [#(let [resp (:response %)]
+                                                                    (and (map? resp)
+                                                                         (integer? (:status resp))
+                                                                         (map? (:headers resp))))
+                                                                 #(map? (:apigw-response %))]}
+                                           default-context)
                    response-context (chain/execute initial-context interceptors)
-                   response-map (or (:apigw-response response-context)
-                                    ;; Use `or` to prevent evaluation
-                                    (some-> (:response response-context)
-                                            (apigw-response body-processor)))]
+                   response-map     (or (:apigw-response response-context)
+                                        ;; Use `or` to prevent evaluation
+                                        (some-> (:response response-context)
+                                                (apigw-response body-processor)))]
                response-map)))))
 
 

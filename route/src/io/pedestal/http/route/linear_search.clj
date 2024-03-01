@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -21,7 +22,7 @@
          (zipmap path-params (rest m)))))))
 
 (defn- matcher-components [route]
-  (let [{:keys [method scheme host port path query-constraints]} route]
+  (let [{:keys [method scheme host port query-constraints]} route]
     (list (when (and method (not= method :any)) #(= method (:request-method %)))
           (when host   #(= host (:server-name %)))
           (when port   #(= port (:server-port %)))
@@ -50,7 +51,7 @@
   (let [matcher-routes (mapv #(assoc % :matcher (matcher %)) routes)]
     (reify
       router/Router
-      (find-route [this request]
+      (find-route [_ request]
         (some (fn [{:keys [matcher] :as route}]
                 (when-let [path-params (matcher request)]
                   (assoc route :path-params path-params)))
