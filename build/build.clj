@@ -14,12 +14,10 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [net.lewisship.build :refer [requiring-invoke deploy-jar]]
-            [net.lewisship.trace :as trace :refer [trace]]
             [clojure.tools.build.api :as b]
             [babashka.fs :as fs]
             [net.lewisship.build.versions :as v]))
 
-(trace/setup-default)
 
 ;; General notes: have to do a *lot* of fighting with executing particular build commands from the root
 ;; rather than in each module's sub-directory.
@@ -53,7 +51,8 @@
   [dir overrides]
   (binding [b/*project-root* dir]
     (println "Reading" dir "...")
-    (let [basis (b/create-basis {:override-deps overrides})
+    (let [basis-opts {:override-deps overrides}
+          basis (b/create-basis basis-opts)
           roots (:classpath-roots basis)]
       (map (fn [path]
              (if (str/starts-with? path "/")
@@ -70,7 +69,7 @@
   [coll dir-name]
   (let [project-name (symbol (name group-name)
                              (str "pedestal." dir-name))
-        project-dir (canonical dir-name)]
+        project-dir  (canonical dir-name)]
     (assoc coll project-name {:local/root project-dir})))
 
 (defn- build-project-classpath
@@ -90,31 +89,47 @@
   "Generates combined Codox documentation for all sub-projects."
   [options]
   (let [{:keys [output-path]} options
-        classpath (build-full-classpath
-                    (build-project-classpath)
-                    (:classpath-roots (b/create-basis {:aliases [:codox]})))
-        codox-config (cond-> {:metadata {:doc/format :markdown}
-                              :name (str (name group-name) " libraries")
-                              :version version
-                              :source-paths (mapv #(str % "/src") module-dirs)
-                              :source-uri "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
-                             output-path (assoc :output-path output-path))
-        expression `(do
-                      ((requiring-resolve 'codox.main/generate-docs) ~codox-config)
-                      ;; Above returns the output directory name, "target/doc", which gets printed
-                      ;; by clojure.main, so override that to nil on success here.
-                      nil)
+        classpath      (build-full-classpath
+                         (build-project-classpath)
+                         (:classpath-roots (b/create-basis {:aliases [:codox]})))
+        codox-config   (cond-> {:metadata     {:doc/format :markdown}
+                                :name         (str (name group-name) " libraries")
+                                :version      version
+                                :source-paths (mapv #(str % "/src") module-dirs)
+                                :source-uri   "https://github.com/pedestal/pedestal/blob/{version}/{filepath}#L{line}"}
+                         output-path (assoc :output-path output-path))
+        expression     `(do
+                          ((requiring-resolve 'codox.main/generate-docs) ~codox-config)
+                          ;; Above returns the output directory name, "target/doc", which gets printed
+                          ;; by clojure.main, so override that to nil on success here.
+                          nil)
         ;;  The API version mistakenly requires :basis, so bypass it.
         process-params (requiring-invoke clojure.tools.build.tasks.process/java-command
-                                         {:cp classpath
-                                          :main "clojure.main"
+                                         {:cp        classpath
+                                          :main      "clojure.main"
                                           :main-args ["--eval" (pr-str expression)]})
-        _ (println "Starting codox ...")
+        _              (println "Starting codox ...")
         {:keys [exit]} (b/process process-params)]
     (when-not (zero? exit)
       (println "Codox process exited with status:" exit)
       (System/exit exit))))
 
+
+(defn lint
+  "Runs clj-kondo on all sources across all modules."
+  [options]
+  (let [classpath    (conj (->> (build-project-classpath)
+                                (remove #(str/ends-with? % ".jar"))
+                                (remove #(str/ends-with? % "/classes")))
+                           ;; Pedestal is an odd duck, all the tests are in a sub-module that
+                           ;; (of course) is not published along with the other modules.
+                           "tests/test")
+        kondo-run!   (requiring-resolve 'clj-kondo.core/run!)
+        kondo-print! (requiring-resolve 'clj-kondo.core/print!)]
+    (println "Running clj-kondo ...")
+    (-> (kondo-run! (merge {:lint classpath}
+                           options))
+        kondo-print!)))
 
 (defn- workspace-dirty?
   []
@@ -144,8 +159,8 @@
   (let [build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
         ;; We only care about the Leiningen service-template when either deploying, or
         ;; when changing the version number.
-        module-dirs' (conj module-dirs "service-template")
-        artifacts-data (mapv #(build-and-install % version) module-dirs')]
+        module-dirs'      (conj module-dirs "service-template")
+        artifacts-data    (mapv #(build-and-install % version) module-dirs')]
     (when-not dry-run
       (println "Deploying ...")
       (run! #(deploy-jar (assoc % :sign-key-id sign-key-id)) artifacts-data)))
@@ -161,7 +176,7 @@
   must also start clean
   :tag (boolean, default false) if true, then tag with the version number, after commit"
   [{:keys [version commit tag force]
-    :or {commit false}}]
+    :or   {commit false}}]
   (when (and commit
              (not force))
     (ensure-workspace-clean))
@@ -171,13 +186,13 @@
   (doseq [dir module-dirs]
     (requiring-invoke io.pedestal.build/update-version-in-deps (str dir "/deps.edn") version))
 
-   (doseq [path (->> (fs/glob "docs" "**/deps.edn")
-                     (map str))]
-     (requiring-invoke io.pedestal.build/update-version-in-deps path version))
+  (doseq [path (->> (fs/glob "docs" "**/deps.edn")
+                    (map str))]
+    (requiring-invoke io.pedestal.build/update-version-in-deps path version))
 
   (requiring-invoke io.pedestal.build/update-version-in-misc-files version)
 
-  (b/write-file {:path version-file
+  (b/write-file {:path   version-file
                  :string version})
 
   (println "Updated to version:" version)
@@ -228,10 +243,10 @@
   [options]
   (let [{:keys [level dry-run]} options
         advance-levels #{:major :minor :patch :release :snapshot :beta :rc}
-        _ (validate level advance-levels
-                    (str ":level must be one of: "
-                         (->> advance-levels (map name) (str/join ", "))))
-        new-version (-> version v/parse-version (v/advance (or level :patch)) v/unparse-version)]
+        _              (validate level advance-levels
+                                 (str ":level must be one of: "
+                                      (->> advance-levels (map name) (str/join ", "))))
+        new-version    (-> version v/parse-version (v/advance (or level :patch)) v/unparse-version)]
     (if dry-run
       (println "New version:" new-version)
       (update-version (-> options
