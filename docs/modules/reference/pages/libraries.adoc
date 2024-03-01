@@ -50,10 +50,6 @@ metrics and tracing functionality.]
 | pedestal.service, https://github.com/clojure/data.xml[org.clojure/data.xml],
   https://github.com/weavejester/ns-tracker[ns-tracker]
 
-| pedestal.aws
-| Use Pedestal for https://aws.amazon.com/lambda/[Amazon Web Service Lambdas]
-| pedestal.log, pedestal.interceptor, AWS, etc.
-
 |===
 
 == Artifact Coordinates
