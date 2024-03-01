@@ -8,7 +8,7 @@ server-sent events and WebSockets.
 
 Pedestal scales up with your needs.
 
-We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and *Simplicity*, to the Clojure web development.
+We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and *Simplicity*, to the domain of  Clojure web development.
 
 ++++
 <div class="features-section">
