@@ -13,25 +13,24 @@
 
 (ns io.pedestal.http.sse-test
   (:require [io.pedestal.interceptor.chain :as interceptor]
-            [io.pedestal.http.sse :refer :all]
+            [io.pedestal.http.sse :refer [start-event-stream]]
+            [clojure.test :refer [deftest is]]
             [io.pedestal.http.cors :as cors])
-  (:use [clojure.test]
-        [io.pedestal.test])
   (:import (clojure.core.async.impl.protocols Channel)))
 
 (deftest sse-start-stream
-  (let [fake-context {:request {:headers {"origin" "http://foo.com:8080"}}}
+  (let [fake-context        {:request {:headers {"origin" "http://foo.com:8080"}}}
         interceptor-context (interceptor/enqueue* fake-context
                                                   (cors/allow-origin ["http://foo.com:8080"])
                                                   ;; The `stream-ready-fn` takes the channel and the context
-                                                  (start-event-stream (fn [ch context] ch)))
-        {{body :body
-          {content-type "Content-Type"
-           connection "Connection"
+                                                  (start-event-stream (fn [ch _context] ch)))
+        {{body                                          :body
+          {content-type  "Content-Type"
+           connection    "Connection"
            cache-control "Cache-Control"
-           allow-origin "Access-Control-Allow-Origin"} :headers
-          status :status} :response
-          :as context} (interceptor/execute interceptor-context)]
+           allow-origin  "Access-Control-Allow-Origin"} :headers
+          status                                        :status} :response
+         } (interceptor/execute interceptor-context)]
     (is body "Response has a body")
     (is (instance? Channel body) "Response body is a channel")
     (is (= 200 status)

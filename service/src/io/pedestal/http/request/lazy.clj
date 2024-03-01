@@ -1,5 +1,17 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
 (ns io.pedestal.http.request.lazy
-  (:require [io.pedestal.http.request :as request]))
+  (:require [io.pedestal.http.request :as request])
+  (:import (clojure.lang Associative Counted IFn IMapEntry IPersistentCollection IPersistentMap Seqable)
+           (java.util Iterator)))
 
 ;; TODO: Consider wrapping everything in a delay on entry to the map
 (defn- derefing-delays
@@ -12,16 +24,16 @@
 
 ;; MapEntry implementation that deref's values that are delays.
 (deftype DerefingMapEntry [k v]
-  clojure.lang.IMapEntry
-  (key [this] k)
-  (val [this] (derefing-delays v))
+  IMapEntry
+  (key [_] k)
+  (val [_] (derefing-delays v))
 
   Object
-  (getKey [this] k)
-  (getValue [this] (derefing-delays v))
+  (getKey [_] k)
+  (getValue [_] (derefing-delays v))
   ;; TODO: provide facilities for equiv a la MapEntry (which extends AMapEntry)
 
-  clojure.lang.Seqable
+  Seqable
   (seq [this] (lazy-seq [(key this) (val this)])))
 
 (defn derefing-map-entry
@@ -44,25 +56,25 @@
   "Utilities for manipulating/realizing lazy data structures."
   (touch [this] "Realize all portions of the underlying data structure. Returns this."))
 
-(deftype LazyRequest [^clojure.lang.IPersistentMap m]
+(deftype LazyRequest [^IPersistentMap m]
 
   clojure.lang.ILookup
   ;; Upon lookup, transparently deref delayed values.
-  (valAt [this key]
+  (valAt [_ key]
     (let [val (get m key)]
       (derefing-delays val)))
-  (valAt [this key not-found]
+  (valAt [_ key not-found]
     (let [val (get m key ::not-found)]
       (if (= val ::not-found)
         not-found
         (derefing-delays val))))
 
   RawAccess
-  (raw [this] m)
+  (raw [_] m)
 
   LazyDatastructure
   (touch [this]
-    (doseq [[k v] m]
+    (doseq [[_k v] m]
       (derefing-delays v))
     this)
 
@@ -70,55 +82,55 @@
   (realized [this]
     (into {} this))
 
-  clojure.lang.Associative
-  (containsKey [this key]
+  Associative
+  (containsKey [_ key]
     (contains? m key))
-  (entryAt [this key]
+  (entryAt [_ key]
     (get m key))
-  (assoc [this key val]
+  (assoc [_ key val]
     (LazyRequest. (assoc m key val)))
 
-  clojure.lang.IFn
+  IFn
   (invoke [this k] (get this k))
   (invoke [this k default] (get this k default))
 
-  clojure.lang.IPersistentMap
-  (without [this key]
+  IPersistentMap
+  (without [_ key]
     (LazyRequest. (dissoc m key)))
   ;; TODO: No assocEx -- what does it used for?
 
-  clojure.lang.Counted
-  clojure.lang.IPersistentCollection
-  (count [this] (count m))
-  (cons [this o] (LazyRequest. (.cons m o)))
-  (empty [this] (LazyRequest. {}))
+  Counted
+  IPersistentCollection
+  (count [_] (count m))
+  (cons [_ o] (LazyRequest. (.cons m o)))
+  (empty [_] (LazyRequest. {}))
   ;; Equality exists only between LazyRequest's with the same underlying map.
   ;; If you want deeper equality, use RawAccess's `raw` or `realized`
-  (equiv [this o]
+  (equiv [_ o]
     (if (instance? LazyRequest o)
       (= m (raw o))
       false))
 
-  clojure.lang.Seqable
-  (seq [this]
+  Seqable
+  (seq [_]
     (map derefing-map-entry m))
 
-  java.lang.Iterable
+  Iterable
   ;; Quite similar to map's implementation, but turn `next`
   ;; MapEntry into a DerefingMapEntry
-  (iterator [this]
-    (let [it ^java.util.Iterator (.iterator ^java.lang.Iterable m)]
-      (reify java.util.Iterator
+  (iterator [_]
+    (let [it (.iterator ^Iterable m)]
+      (reify Iterator
         (hasNext [_] (.hasNext it))
-        (next [_]    (derefing-map-entry (.next it)))
-        (remove [_]  (throw (UnsupportedOperationException.)))))))
+        (next [_] (derefing-map-entry (.next it)))
+        (remove [_] (throw (UnsupportedOperationException.)))))))
 
 (defprotocol IntoLazyRequest
-  (-lazy-request [t] "Create a lazy request"))
+  (-lazy-request [_] "Create a lazy request"))
 
 (extend-protocol IntoLazyRequest
 
-  clojure.lang.IPersistentMap
+  IPersistentMap
   (-lazy-request [t] (->LazyRequest t))
 
   java.util.HashMap
@@ -138,32 +150,32 @@
   (-lazy-request m))
 
 (defn classify-keys
- "Classify key-value pair based on whether its value is
- delayed, realized, or normal."
- [[k v]]
- (cond
-   (not (delay? v))          :normal
-   (and (delay? v)
-        (realized? v))       :realized
-   (and (delay? v)
-        (not (realized? v))) :delayed))
+  "Classify key-value pair based on whether its value is
+  delayed, realized, or normal."
+  [[_k v]]
+  (cond
+    (not (delay? v)) :normal
+    (and (delay? v)
+         (realized? v)) :realized
+    (and (delay? v)
+         (not (realized? v))) :delayed))
 
 ;; Override LazyRequest printing to inhibit eager realiziation
 ;; of delayed keys
 (defmethod print-method LazyRequest [lazy-request ^java.io.Writer w]
-  (let [m                                 (raw lazy-request)
+  (let [m             (raw lazy-request)
         {:keys [normal delayed realized]} (group-by classify-keys m)
-        delayed-keys                      (map key delayed)
-        normal-keys                       (map key normal)
-        realized-keys                     (map key realized)
-        normal-map                        (select-keys m normal-keys)
-        realized-map                      (->> (select-keys m realized-keys)
-                                               (map (fn [[k v]] [k (deref v)]))
-                                               (into {}))
-        all-realized                      (merge normal-map realized-map)]
-  (.write w (str "#<LazyRequest delayed keys: "
-                 (pr-str delayed-keys)
-                 " realized map: "
-                 (pr-str all-realized)
-                 ">"))))
+        delayed-keys  (map key delayed)
+        normal-keys   (map key normal)
+        realized-keys (map key realized)
+        normal-map    (select-keys m normal-keys)
+        realized-map  (->> (select-keys m realized-keys)
+                           (map (fn [[k v]] [k (deref v)]))
+                           (into {}))
+        all-realized  (merge normal-map realized-map)]
+    (.write w (str "#<LazyRequest delayed keys: "
+                   (pr-str delayed-keys)
+                   " realized map: "
+                   (pr-str all-realized)
+                   ">"))))
 

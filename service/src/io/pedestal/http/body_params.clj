@@ -56,7 +56,7 @@
 (defn- convert-middleware
   "Turn a ring middleware into a parser. If a content type is given, return a parser
    that will ensure that the handler sees that content type in the request"
-  ([wrap-fn] (fn [request] (wrap-fn identity)))
+  ([wrap-fn] (fn [_request] (wrap-fn identity)))
   ([wrap-fn expected-content-type]
    (let [parser (wrap-fn identity)]
      (fn [request]

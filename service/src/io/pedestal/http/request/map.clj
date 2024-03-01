@@ -1,7 +1,18 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.request.map
   (:require [io.pedestal.http.request :as request])
-  (:import (jakarta.servlet Servlet ServletConfig ServletRequest)
-           (jakarta.servlet.http HttpServletRequest HttpServletResponse)))
+  (:import (jakarta.servlet Servlet)
+           (jakarta.servlet.http HttpServletRequest)))
 
 (defn add-content-type [req-map ^HttpServletRequest servlet-req]
   (if-let [ctype (.getContentType servlet-req)]
@@ -11,7 +22,7 @@
     req-map))
 
 (defn add-content-length [req-map ^HttpServletRequest servlet-req]
-  (let [c (.getContentLengthLong servlet-req)
+  (let [c       (.getContentLengthLong servlet-req)
         headers (:headers req-map)]
     (if (neg? c)
       req-map
@@ -38,7 +49,5 @@
       (assoc! :servlet servlet)
       (assoc! :servlet-request servlet-req)
       (assoc! :servlet-response servlet-resp)
-      ;(assoc! :servlet-context (.getServletContext ^ServletConfig servlet))
-      (assoc! :context-path (.getContextPath servlet-req)) ;; This is used in some scenarios with multiple-apps on the same server
-      ;(assoc! :servlet-path (.getServletPath servlet-req))
+      (assoc! :context-path (.getContextPath servlet-req))  ;; This is used in some scenarios with multiple-apps on the same server
       persistent!))

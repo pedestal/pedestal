@@ -190,7 +190,7 @@
                               (list n))
           [enter-fn-form args] [(infer-first-interceptor-function args)
                                 (infer-rest-interceptor-function args)]
-          [leave-fn-form args] [(infer-first-interceptor-function args)
+          [leave-fn-form _args] [(infer-first-interceptor-function args)
                                 (infer-rest-interceptor-function args)]
           interceptor-name# (keyword (name (ns-name *ns*)) (name n))]
       `(definterceptor ~@prefix-list
@@ -346,7 +346,7 @@
                               (list n))
           [enter-fn-form args] [(infer-first-interceptor-function args)
                                 (infer-rest-interceptor-function args)]
-          [leave-fn-form args] [(infer-first-interceptor-function args)
+          [leave-fn-form _args] [(infer-first-interceptor-function args)
                                 (infer-rest-interceptor-function args)]
           interceptor-name# (keyword (name (ns-name *ns*)) (name n))]
       `(definterceptor ~@prefix-list

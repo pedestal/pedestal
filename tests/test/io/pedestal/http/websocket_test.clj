@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2023 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -19,12 +20,13 @@
     [net.lewisship.trace :refer [trace]]
     [io.pedestal.websocket :as websocket])
   (:import (jakarta.websocket CloseReason CloseReason$CloseCodes)
+           #_:clj-kondo/ignore
            (java.net.http WebSocket)
            (java.nio ByteBuffer)))
 
 (def ws-uri "ws://localhost:8080/ws")
 
-(def events-chan nil)
+ (def events-chan nil)
 
 (defn events-chan-fixture [f]
   (with-redefs [events-chan (chan 10)]
@@ -181,13 +183,13 @@
                                                          (trace :event :on-close
                                                                 :reason reason)
                                                          (put! events-chan [:close (.getCloseCode reason)]))})}
-    (let [session @(ws/websocket ws-uri {:on-message (fn [ws data last?]
+    (let [session @(ws/websocket ws-uri {:on-message (fn [_ws data last?]
                                                        (put! events-chan [:client-message data last?]))
-                                         :on-error (fn [ws err]
+                                         :on-error (fn [_ws err]
                                                      ;; Doesn't get called when socket closed by server
                                                      (trace :event :client-error
                                                             :error err))
-                                         :on-close (fn [ws status-code reason]
+                                         :on-close (fn [_ws status-code reason]
                                                      (trace :event :client-on-close
                                                             :reason reason)
                                                      ;; Client on-close handler does not appear to be

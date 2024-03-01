@@ -1,6 +1,18 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.request.zerocopy
   (:require [io.pedestal.http.request :as request])
-  (:import (java.util Map)))
+  (:import (clojure.lang Associative Counted IFn ILookup IPersistentCollection IPersistentMap MapEntry Seqable)
+           (java.util Iterator Map)))
 
 
 ;; Containers optimize the data structure behind request objects,
@@ -17,14 +29,14 @@
 ;; and proxies all Ring-like map lookups to the containers request data structure.
 ;; Care is given to uphold all value semantics.
 
-(deftype CallThroughRequest [base-request ;; This should be a ContainerRequest
-                             ^clojure.lang.IPersistentMap user-data]
+(deftype CallThroughRequest [base-request                   ;; This should be a ContainerRequest
+                             ^IPersistentMap user-data]
 
-  clojure.lang.ILookup
+  ILookup
   ;; Upon lookup, transparently dispatch to the container's request.
-  (valAt [this k]
+  (valAt [_ k]
     (user-data k ((request/ring-dispatch k request/nil-fn) base-request)))
-  (valAt [this k not-found]
+  (valAt [_ k not-found]
     (let [v (user-data k ::not-found)]
       (if (= v ::not-found)
         (let [v (request/ring-dispatch k ::not-found)]
@@ -34,59 +46,61 @@
         v)))
 
   request/ProxyDatastructure
-  (realized [this]
+
+  (realized [_]
     (persistent!
       (reduce-kv (fn [m k v]
                    (assoc! m k (v base-request)))
                  (transient user-data)
                  request/ring-dispatch)))
 
-  clojure.lang.Associative
-  (containsKey [this k]
+  Associative
+
+  (containsKey [_ k]
     (or (contains? request/ring-dispatch k)
         (contains? user-data k)))
-  (entryAt [this k]
+  (entryAt [_ k]
     (or (.entryAt user-data k)
         (and (contains? request/ring-dispatch k)
-             (clojure.lang.MapEntry. k ((request/ring-dispatch k) base-request)))
+             (MapEntry. k ((request/ring-dispatch k) base-request)))
         nil))
-  (assoc [this k v]
+  (assoc [_ k v]
     (CallThroughRequest. base-request (assoc user-data k v)))
 
-  clojure.lang.IFn
+  IFn
   (invoke [this k] (.valAt this k))
   (invoke [this k default] (.valAt this k default))
 
-  clojure.lang.IPersistentMap
+  IPersistentMap
   (without [this k]
     (dissoc (request/realized this) k))
 
-  clojure.lang.Counted
-  (count [this] (unchecked-add (if (nil? base-request) 0 (count request/ring-dispatch))
-                               (count user-data)))
+  Counted
+  (count [_] (unchecked-add (if (nil? base-request) 0 (count request/ring-dispatch))
+                            (count user-data)))
 
-  clojure.lang.IPersistentCollection
-  (cons [this o] (CallThroughRequest. base-request (.cons user-data o)))
+  IPersistentCollection
+  (cons [_ o] (CallThroughRequest. base-request (.cons user-data o)))
 
-  (empty [this] (CallThroughRequest. nil {}))
+  (empty [_] (CallThroughRequest. nil {}))
 
   ;; Equality is java.util.Map equality, against the fully realized map
   (equiv [this o]
     (.equals this o))
 
-  clojure.lang.Seqable
+  Seqable
   (seq [this]
     (seq (request/realized this)))
 
-  java.lang.Iterable
+  Iterable
   (iterator [this]
-    (let [it ^java.util.Iterator (.iterator ^java.lang.Iterable (seq this))]
-      (reify java.util.Iterator
+    (let [it (.iterator ^Iterable (seq this))]
+      (reify Iterator
         (hasNext [_] (.hasNext it))
-        (next [_]    (.next it))
-        (remove [_]  (throw (UnsupportedOperationException.))))))
+        (next [_] (.next it))
+        (remove [_] (throw (UnsupportedOperationException.))))))
 
-  java.util.Map
+  Map
   (containsValue [this v]
     (contains? (set (.values this)) v))
   (entrySet [this]
@@ -98,7 +112,7 @@
       false))
   (get [this k]
     (.valAt this k))
-  (isEmpty [this]
+  (isEmpty [_]
     (and (nil? base-request) (empty? user-data)))
   (keySet [this]
     (.keySet ^Map (request/realized this)))
@@ -106,10 +120,10 @@
     (.count this))
   (values [this]
     (vals (request/realized this)))
-  (clear [this] (throw (UnsupportedOperationException.)))
-  (put [this k v] (throw (UnsupportedOperationException.)))
-  (putAll [this m] (throw (UnsupportedOperationException.)))
-  (remove [this k] (throw (UnsupportedOperationException.))))
+  (clear [_] (throw (UnsupportedOperationException.)))
+  (put [_ _k _v] (throw (UnsupportedOperationException.)))
+  (putAll [_ _m] (throw (UnsupportedOperationException.)))
+  (remove [_ _k] (throw (UnsupportedOperationException.))))
 
 (defn call-through-request
   ([container-req]

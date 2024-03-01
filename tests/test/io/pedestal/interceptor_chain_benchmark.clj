@@ -1,4 +1,4 @@
-; Copyright 2023 Nubank NA
+; Copyright 2023-2024 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -12,13 +12,13 @@
 (ns io.pedestal.interceptor-chain-benchmark
   "Basic benchmarks for the executing the interceptor chain."
   (:require [criterium.core :as c]
+            #_:clj-kondo/ignore
             [net.lewisship.trace :refer [trace]]
             [cheshire.core :as cheshire]
             [io.pedestal.http :as service]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.body-params :refer [body-params]]
-            [io.pedestal.test :refer [response-for]]
-            [io.pedestal.http :as http]))
+            [io.pedestal.test :refer [response-for]]))
 
 ;; Going to create a simple, default application with two cases:
 ;; 1. A simple POST request to a handler that succeeds
@@ -46,7 +46,7 @@
     ["/fail" :get [eat-exception fail-handler] :route-name ::fail]})
 
 (def service-fn
-  (-> {::http/routes routes}
+  (-> {::service/routes routes}
       service/default-interceptors
       service/service-fn
       ::service/service-fn))

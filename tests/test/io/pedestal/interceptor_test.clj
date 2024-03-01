@@ -12,10 +12,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor-test
-  (:require [clojure.core.async :as async]
-            [clojure.test :refer (deftest is testing)]
+  (:require [clojure.test :refer (deftest is testing)]
             [io.pedestal.internal :as i]
-            [clojure.core.async :refer [<! >! go chan timeout <!! >!!]]
+            [clojure.core.async :as async
+             :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
@@ -29,11 +29,11 @@
 
 (defn thrower [name]
   (assoc (tracer name)
-         :enter (fn [context] (throw (ex-info "Boom!" {:from name})))))
+         :enter (fn [_context] (throw (ex-info "Boom!" {:from name})))))
 
 (defn leave-thrower [name]
   (assoc (tracer name)
-         :leave (fn [context] (throw (ex-info "Boom!" {:from name})))))
+         :leave (fn [_context] (throw (ex-info "Boom!" {:from name})))))
 
 (defn catcher [name]
   (assoc (tracer name)
@@ -55,7 +55,7 @@
 
 (defn failed-channeler [name]
   (assoc (tracer name)
-         :enter (fn [context]
+         :enter (fn [_context]
                   (go
                     (<! (timeout 100))
                     (throw (ex-info "This gets swallowed and the channel produced by `go` is closed"
@@ -202,8 +202,8 @@
   (is (chain/queue (enqueue {} [(tracer :a) (tracer :b)]))
       "enqueue multiple interceptors to empty queue")
   (is (chain/queue (-> {}
-                         (enqueue [(tracer :a)])
-                         (enqueue [(tracer :b)])))
+                       (enqueue [(tracer :a)])
+                       (enqueue [(tracer :b)])))
       "enqueue to non-empty queue")
   (is (thrown? AssertionError
                (-> {}
@@ -213,7 +213,7 @@
 
 (deftest t-two-channels
   (let [result-chan (chan)
-        res         (execute (enqueue {}
+        _•           (execute (enqueue {}
                                       [(deliverer result-chan)
                                        (tracer :a)
                                        (channeler :b)
@@ -236,7 +236,7 @@
 
 (deftest t-two-channels-with-error
   (let [result-chan (chan)
-        res         (execute (enqueue {}
+        _           (execute (enqueue {}
                                       [(deliverer result-chan)
                                        (tracer :a)
                                        (catcher :b)
@@ -291,7 +291,7 @@
 
 (deftest one-way-async-channel-enter
   (let [result-chan (chan)
-        res         (execute-only (enqueue {}
+        _           (execute-only (enqueue {}
                                            [(tracer :a)
                                             (channeler :b)
                                             (channeler :c)
@@ -401,19 +401,19 @@
 (def failing-interceptor
   (interceptor
     {:name  ::failing-interceptor
-     :enter (fn [ctx]
+     :enter (fn [_ctx]
               (/ 1 0))}))
 
 (def rethrowing-error-handling-interceptor
   (interceptor
     {:name  ::rethrowing-error-handling-interceptor
-     :error (fn [ctx ex]
+     :error (fn [_ctx ex]
               (throw (:exception (ex-data ex))))}))
 
 (def throwing-error-handling-interceptor
   (interceptor
     {:name  ::throwing-error-handling-interceptor
-     :error (fn [ctx ex]
+     :error (fn [_ctx _ex]
               (throw (Exception. "Just testing the error-handler, this is not a real exception")))}))
 
 (def error-handling-interceptor

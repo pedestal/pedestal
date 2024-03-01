@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2016-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -23,8 +24,10 @@
 ;; and port.
 
 (defrecord MapRouter [routes tree-map]
+
   router/Router
-  (find-route [this req]
+
+  (find-route [_ req]
     ;; find a result in the prefix-tree - payload could contains mutiple routes
     (when-let [match-fn (tree-map (:path-info req))]
       ;; call payload function to find specific match based on method, host, scheme and port

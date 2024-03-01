@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -11,14 +12,13 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.body-params-test
-  (:use io.pedestal.http.body-params
-        clojure.pprint
-        clojure.test
-        clojure.repl)
-  (:require [clojure.instant :as inst]))
+  (:require [clojure.instant :as inst]
+            [io.pedestal.http.body-params :refer [body-params default-parser-map]]
+            [clojure.test :refer [deftest is]])
+  (:import (java.io ByteArrayInputStream)))
 
 (defn byte-context [content-type ^bytes body-bytes]
-  (let [body-reader (java.io.ByteArrayInputStream. body-bytes)]
+  (let [body-reader (ByteArrayInputStream. body-bytes)]
     {:request {:content-type content-type
                :headers {"content-type" content-type}
                :body body-reader}}))
@@ -67,7 +67,7 @@
            (json-params [options] (:json-params (json-request (json-context) options)))]
     (is (= (json-params {})
            {:a [1 2 3]}))
-    (is (= (json-params {:array-coerce-fn (fn [name] #{})})
+    (is (= (json-params {:array-coerce-fn (fn [_] #{})})
            {:a #{1 2 3}}))))
 
 (deftest parses-form-data

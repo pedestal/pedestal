@@ -14,7 +14,7 @@
   {:no-doc true}
   (:require [io.pedestal.internal :as i])
   (:import (clojure.lang Keyword Symbol)
-           (io.opentelemetry.api.common AttributeType Attributes AttributeKey AttributesBuilder)))
+           (io.opentelemetry.api.common Attributes AttributeKey AttributesBuilder)))
 
 (defprotocol AttributeKVPair
 

@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -16,7 +17,8 @@
 
 ;;; Parsing pattern strings to match URI paths
 
-(defn- parse-path-token [out string]
+(defn- parse-path-token
+  [out string]
   (condp re-matches string
     #"^:(.+)$" :>> (fn [[_ token]]
                      (let [key (keyword token)]
@@ -42,7 +44,8 @@
                (str/split path #"/")))
      (throw (ex-info "Routes must start from the root, so they must begin with a '/'" {:pattern pattern})))))
 
-(defn path-regex [{:keys [path-parts path-constraints] :as route}]
+(defn path-regex
+  [{:keys [path-parts path-constraints]}]
   (let [[pp & pps] path-parts
         path-parts (if (and (seq pps) (string? pp) (empty? pp)) pps path-parts)]
     (re-pattern

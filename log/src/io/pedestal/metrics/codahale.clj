@@ -58,7 +58,7 @@
   (let [timer (.timer registry (prepare-metric-name metric-name))]
     (fn start-timer []
       (let [context (.time timer)
-            *first?     (atom true)]
+            *first? (atom true)]
         (fn stop-timer []
           ;; Only the first call to the stop timer fn does anything, extra calls are ignored.
           ;; Needed? This is more than the underlying API does!
@@ -70,12 +70,9 @@
   (swap! *cache assoc k v)
   v)
 
-(defn- default-time-source
-  []
-  (System/nanoTime))
 
-(defn ^MetricSource wrap-registry
-  [^MetricRegistry registry]
+(defn wrap-registry
+  ^MetricSource [^MetricRegistry registry]
   (let [*counters (atom {})
         *gauges   (atom #{})
         *timers   (atom {})]

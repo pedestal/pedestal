@@ -79,7 +79,7 @@
   [^Span span]
   (.end span))
 
-(defn ^Span rename-span
+(defn rename-span
   ^Span [^Span span span-name]
   (.updateName span span-name))
 

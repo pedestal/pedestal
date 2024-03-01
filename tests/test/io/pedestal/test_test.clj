@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -11,8 +12,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.test-test
-  (:require [clojure.test :refer :all]
-            [io.pedestal.test :refer :all]))
+  (:require [clojure.test :refer [deftest is testing]]
+            [io.pedestal.test :refer [parse-url test-servlet-response test-servlet-response-body test-servlet-response-status]]))
 
 (deftest parse-url-test
   (testing "non-root url parses query-string correctly"

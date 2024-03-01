@@ -65,21 +65,21 @@
          ::keys [span otel-context-cleanup prior-otel-context]} context
         {:keys [status]} response
         status-code (when status
-                      (if (<= status 299) :ok :error))]
-    (let [context' (-> context
-                       (update-span-if-routed)
-                       (dissoc ::span ::otel-context-cleanup ::otel-context ::prior-otel-context)
-                       (chain/unbind tracing/*context*))]
-      (-> span
-          (cond->
-            status (tracing/add-attribute :http.response.status_code status)
-            status-code (tracing/set-status-code status-code))
-          tracing/end-span)
-      (otel-context-cleanup)
-      ;; This assumes that a nil context represents an unbound value, so on nil, return it to the unbound state.
-      (if prior-otel-context
-        (chain/bind context' tracing/*context* prior-otel-context)
-        (chain/unbind context' tracing/*context*)))))
+                      (if (<= status 299) :ok :error))
+        context'    (-> context
+                        (update-span-if-routed)
+                        (dissoc ::span ::otel-context-cleanup ::otel-context ::prior-otel-context)
+                        (chain/unbind tracing/*context*))]
+    (-> span
+        (cond->
+          status (tracing/add-attribute :http.response.status_code status)
+          status-code (tracing/set-status-code status-code))
+        tracing/end-span)
+    (otel-context-cleanup)
+    ;; This assumes that a nil context represents an unbound value, so on nil, return it to the unbound state.
+    (if prior-otel-context
+      (chain/bind context' tracing/*context* prior-otel-context)
+      (chain/unbind context' tracing/*context*))))
 
 (defn- trace-error
   [context error]

@@ -143,22 +143,22 @@
      (.error t (format-body body) ^Throwable throwable)))
 
   nil
-  (-level-enabled? [t level-key] false)
+  (-level-enabled? [_ _level-key] false)
   (-trace
-    ([t body] nil)
-    ([t body throwable] nil))
+    ([_ _body] nil)
+    ([_ _body _throwable] nil))
   (-debug
-    ([t body] nil)
-    ([t body throwable] nil))
+    ([_ _body] nil)
+    ([_ _body _throwable] nil))
   (-info
-    ([t body] nil)
-    ([t body throwable] nil))
+    ([_ _body] nil)
+    ([_ _body _throwable] nil))
   (-warn
-    ([t body] nil)
-    ([t body throwable] nil))
+    ([_ _body] nil)
+    ([_ _body _throwable] nil))
   (-error
-    ([t body] nil)
-    ([t body throwable] nil)))
+    ([_ _body] nil)
+    ([_ _body _throwable] nil)))
 
 (extend-protocol LoggingMDC
   MDCAdapter
@@ -188,12 +188,12 @@
 
   nil
   (-get-mdc
-    ([t k] nil)
-    ([t k not-found] nil))
-  (-put-mdc [t k v] nil)
-  (-remove-mdc [t k] nil)
-  (-clear-mdc [t] nil)
-  (-set-mdc [t m] nil))
+    ([_t _k] nil)
+    ([_t _k _not-found] nil))
+  (-put-mdc [_t _k _v] nil)
+  (-remove-mdc [_t _k] nil)
+  (-clear-mdc [_t] nil)
+  (-set-mdc [_t _m] nil))
 
 (def override-logger
   "Override of the default logger source, from symbol property io.pedestal.log.overrideLogger
@@ -351,7 +351,7 @@
   ;; org.slf4j/jul-to-slf4j
   (when-let [bridge (try (.. Thread currentThread getContextClassLoader
                              (loadClass "org.slf4j.bridge.SLF4JBridgeHandler"))
-                         (catch Throwable t
+                         (catch Throwable _
                            nil))]
     (.. ^Class bridge
         (getMethod "removeHandlersForRootLogger" (make-array Class 0))
@@ -489,7 +489,7 @@
       (.register registry ^String metric-name (reify Gauge
                                         (getValue [_] (value-fn))))
       value-fn
-      (catch IllegalArgumentException iae
+      (catch IllegalArgumentException _
         nil)))
 
   (-histogram [registry metric-name value]
@@ -515,13 +515,13 @@
   ;  (f :meter metric-name n-events))
 
   nil
-  (-counter [t m d]
+  (-counter [_ _m _d]
     nil)
-  (-gauge [t m vfn]
+  (-gauge [_ _m _vfn]
     nil)
-  (-histogram [t m v]
+  (-histogram [_ _m _v]
     nil)
-  (-meter [t m v]
+  (-meter [_ _m _v]
     nil))
 
 ;; Utility/Auxiliary metric functions
@@ -563,7 +563,7 @@
                          (System/getenv "PEDESTAL_METRICS_RECORDER"))]
     (if (= "nil" ns-fn-str)
       nil
-      (let [[ns-str fn-str] (string/split ns-fn-str #"/")]
+      (let [[ns-str] (string/split ns-fn-str #"/")]
         (info :msg "Setting up a new metrics recorder; Requiring necessary namespace"
               :ns ns-str)
         (require (symbol ns-str))
@@ -727,11 +727,11 @@
 
 (extend-protocol TraceSpan
   nil
-  (-set-operation-name [t operation-name] nil)
-  (-tag-span [t tag-key tag-value] nil)
+  (-set-operation-name [_ _operation-name] nil)
+  (-tag-span [_ _tag-key _tag-value] nil)
   (-finish-span
-    ([t] nil)
-    ([t micros] nil))
+    ([_] nil)
+    ([_ _micros] nil))
 
   Span
   (-set-operation-name [t operation-name]
@@ -751,11 +751,11 @@
 (extend-protocol TraceSpanLog
   nil
   (-log-span
-    ([t msg] nil)
-    ([t msg micros] nil))
+    ([_ _msg] nil)
+    ([_ _msg _micros] nil))
   (-error-span
-    ([t throwable] nil)
-    ([t throwable micros] nil))
+    ([_ _throwable] nil)
+    ([_ _throwable _micros] nil))
 
   Span
   (-log-span
@@ -786,8 +786,8 @@
 (extend-protocol TraceSpanLogMap
   nil
   (-log-span-map
-    ([t msg-map] nil)
-    ([t msg-map micros] nil))
+    ([_ _msg-map] nil)
+    ([_ _msg-map _micros] nil))
 
   Span
   (-log-span-map
@@ -810,11 +810,11 @@
 
 (extend-protocol TraceSpanBaggage
   nil
-  (-set-baggage [t k v] nil)
+  (-set-baggage [_ _k _v] nil)
   (-get-baggage
-    ([t k] nil)
-    ([t k not-found] not-found))
-  (-get-baggage-map [t] {})
+    ([_ _k] nil)
+    ([_ _k not-found] not-found))
+  (-get-baggage-map [_] {})
 
   Span
   (-set-baggage [t k v]
@@ -830,13 +830,13 @@
 
 (extend-protocol TraceOrigin
   nil
-  (-register [t] nil)
+  (-register [_] nil)
   (-span
-    ([t operation-name] nil)
-    ([t operation-name parent] nil)
-    ([t operation-name parent opts] nil))
-  (-activate-span [t span] nil)
-  (-active-span [t] nil)
+    ([_ _operation-name] nil)
+    ([_ _operation-name _parent] nil)
+    ([_ _operation-name _parent _opts] nil))
+  (-activate-span [_ _span] nil)
+  (-active-span [_] nil)
 
   Tracer
   (-register [t]
@@ -1003,7 +1003,7 @@
                          (System/getenv "PEDESTAL_TRACER"))]
     (if (= "nil" ns-fn-str)
       nil
-      (let [tracer (let [[ns-str fn-str] (string/split ns-fn-str #"/")]
+      (let [tracer (let [[ns-str] (string/split ns-fn-str #"/")]
                      (info :msg "Setting up a new tracer; Requiring necessary namespace"
                            :ns ns-str)
                      (require (symbol ns-str))

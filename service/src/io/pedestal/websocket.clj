@@ -41,17 +41,17 @@
                                                            .getUserProperties
                                                            (.get session-object-key))]
                                     (f session-object session event-value))))
-        full-on-open (fn [^Session session ^EndpointConfig config]
-                       (let [session-object (when on-open
-                                              (on-open session config))]
-                         ;; Store this for on-close, on-error
-                         (-> session .getUserProperties (.put session-object-key session-object))
+        full-on-open          (fn [^Session session ^EndpointConfig config]
+                                (let [session-object (when on-open
+                                                       (on-open session config))]
+                                  ;; Store this for on-close, on-error
+                                  (-> session .getUserProperties (.put session-object-key session-object))
 
-                         (when on-text
-                           (.addMessageHandler session String (message-handler session-object on-text)))
+                                  (when on-text
+                                    (.addMessageHandler session String (message-handler session-object on-text)))
 
-                         (when on-binary
-                           (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
+                                  (when on-binary
+                                    (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
     (fn [event-type ^Session session event-value]
       (case event-type
         :on-open (full-on-open session event-value)
@@ -90,8 +90,8 @@
   "
   [^ServerContainer container ^String path ws-endpoint-map]
   (let [callback (make-endpoint-delegate-callback ws-endpoint-map)
-        config ^ServerEndpointConfig (-> (ServerEndpointConfig$Builder/create FnEndpoint path)
-                                         .build)]
+        config   ^ServerEndpointConfig (-> (ServerEndpointConfig$Builder/create FnEndpoint path)
+                                           .build)]
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
     (.addEndpoint container config)))
 
@@ -122,8 +122,8 @@
     "Sends `msg` to `remote-endpoint`. Returns a
      promise channel from which the result can be taken."))
 
-(defn- ^SendHandler send-handler
-  [chan]
+(defn- send-handler
+  ^SendHandler [chan]
   (reify SendHandler
     (onResult [_ result]
       (if (.isOK result)

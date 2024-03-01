@@ -31,7 +31,6 @@
 
 (def ^:private known-options [:app-name :host :port :scheme :verbs])
 (def ^:private default-verbs #{:any :get :put :post :delete :patch :options :head})
-(def ^:private default-port  {:http 80 :https 443})
 
 (defn make-parse-context
   [opts row route]
@@ -101,7 +100,7 @@
 
 (defn parse-constraints
   [{:keys [constraints path-params] :as ctx}]
-  (let [path-param?                          (fn [[k v]] (some #{k} path-params))
+  (let [path-param?                          (fn [[k _]] (some #{k} path-params))
         [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
     (-> ctx
         (update :path-constraints  merge (into {} (map route-definition/capture-constraint path-constraints)))

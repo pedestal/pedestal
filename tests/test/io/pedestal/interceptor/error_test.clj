@@ -10,8 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor.error-test
-  (:require [clojure.test :refer :all]
-            [io.pedestal.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
+            [io.pedestal.test :refer [response-for]]
             [io.pedestal.http :as service]
             [ring.util.response :as ring-resp]
             [io.pedestal.interceptor.error :as error-int]))
@@ -26,11 +26,11 @@
 
 
 (defn bad-page
-  [request]
+  [_request]
   (ring-resp/response (str "Bad division: " (/ 3 0))))
 
 (defn drop-through
-  [request]
+  [_request]
   (throw (Exception. "Just testing the error-handler, this is not a real exception")))
 
 (def request-handling-routes

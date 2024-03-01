@@ -1,7 +1,17 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.jetty-util-test
-  (:use clojure.test
-        io.pedestal.http.jetty)
-  (:require [clj-http.client :as http]
+  (:require [clojure.test :refer [deftest is testing]]
+            [clj-http.client :as http]
             [io.pedestal.http.jetty.util :as jetty-util]
             [io.pedestal.http.jetty-test :as test-util])
   (:import (org.eclipse.jetty.servlets DoSFilter)
@@ -42,8 +52,8 @@
   (testing "A FilterHolder (also DoS)"
     (test-util/with-server test-util/hello-world {:port 4347
                                                   :container-options {:context-configurator #(jetty-util/add-servlet-filter % {:filter custom-dos})}}
-      (let [response (http/get "http://localhost:4347")
-            response2 (http/get "http://localhost:4347")]
+      (let [response (http/get "http://localhost:4347")]
+        (http/get "http://localhost:4347")
         (is (= (:status response) 200))
         (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))

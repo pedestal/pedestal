@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -25,7 +26,7 @@
 (defn- invalid-handler [handler original]
   (format "While parsing a verb map, found a %s as a handler. It must be a symbol that resolves to an interceptor or an actual interceptor. The full vector is %s" (type handler) original))
 
-(defn- missing-handler [handler original]
+(defn- missing-handler [_handler _original]
   (format "When parsing a verb map, tried in vain to find a handler (as the first symbol that resolves to an interceptor or interceptor map in a vector). Looking in %s" vector))
 
 (defn- leftover-declarations [vector original]
@@ -35,9 +36,9 @@
 (declare expand-query-constraint)
 
 (defmulti expand-constraint
-  "Expand into additional nodes which reflect `constraints` and apply
-  them to specs. "
-  (fn [[constraint & specs]] (type constraint)))
+          "Expand into additional nodes which reflect `constraints` and apply
+          them to specs. "
+          (fn [[constraint]] (type constraint)))
 
 (defmethod expand-constraint String [path-spec]
   (expand-path path-spec))
@@ -55,9 +56,9 @@
   (expand-verb-action [expandable-verb-action]
     "Expand `expandable-verb-action` into a verbose-form verb-map."))
 
-(def valid-handler?      (some-fn seq? symbol? interceptor/interceptor?))
+(def valid-handler? (some-fn seq? symbol? interceptor/interceptor?))
 (def interceptor-vector? (every-pred vector? (comp :interceptors meta)))
-(def constraint-map?     (every-pred map?    (comp :constraints  meta)))
+(def constraint-map? (every-pred map? (comp :constraints meta)))
 
 (extend-protocol ExpandableVerbAction
   clojure.lang.Symbol
@@ -72,7 +73,7 @@
     ;; messages. Exceptions from destructuring are opaque to users.
     (let [original     vector
           route-name   (when (keyword? (first vector)) (first vector))
-          vector       (if   (keyword? (first vector)) (next vector) vector)
+          vector       (if (keyword? (first vector)) (next vector) vector)
           interceptors (vec (apply concat (filter interceptor-vector? vector)))
           vector       (remove interceptor-vector? vector)
           handler      (first vector)
@@ -105,10 +106,10 @@
         verbs        (reduce merge {} (filter (comp not :constraints meta) maps))
         constraints  (reduce merge {} (filter constraint-map? specs))]
     (cond-> routing-tree-node
-            (not (empty? verbs)) (assoc :verbs (expand-verbs verbs))
-            (not (empty? constraints)) (assoc :constraints constraints)
-            (not (empty? interceptors)) (assoc :interceptors (vec (apply concat interceptors)))
-            (not (empty? children)) (assoc :children (map expand-constraint children)))))
+      (seq verbs) (assoc :verbs (expand-verbs verbs))
+      (seq constraints) (assoc :constraints constraints)
+      (seq interceptors) (assoc :interceptors (vec (apply concat interceptors)))
+      (seq children) (assoc :children (map expand-constraint children)))))
 
 (defn- expand-path
   "Expand a path node in the routing tree to a node specifying its
@@ -161,21 +162,22 @@
   return Pedestal's terse, vector-based routes, with interceptors correctly setup.
   These generated routes can be consumed by `expand-routes`"
   [route-map]
-  (reduce (fn [acc [k v :as route]]
-            (let [verbs (select-keys v [:get :post :put :delete :any])
-                  interceptors (:interceptors v)
-                  constraints (:constraints v)
-                  subroutes (map #(apply hash-map %) (select-keys v (filter string? (keys v))))
-                  subroute-vecs (mapv map-routes->vec-routes subroutes)]
+  (reduce (fn [acc [path route-description]]
+            (let [verbs     (select-keys route-description [:get :post :put :delete :any])
+                  {:keys [interceptors constraints]} route-description
+                  subroutes (->> (select-keys route-description
+                                              (filter string? (keys route-description)))
+                                 (map #(apply hash-map %))
+                                 (mapv map-routes->vec-routes))]
               (into acc (filter seq (into
-                                      [k verbs
-                                      (when (seq interceptors)
-                                          (with-meta interceptors
-                                                     {:interceptors true}))
-                                      (when (seq constraints)
-                                        (with-meta constraints
-                                                   {:constraints true}))]
-                                      subroute-vecs)))))
+                                      [path verbs
+                                       (when (seq interceptors)
+                                         (with-meta interceptors
+                                                    {:interceptors true}))
+                                       (when (seq constraints)
+                                         (with-meta constraints
+                                                    {:constraints true}))]
+                                      subroutes)))))
           [] route-map))
 
 (defn dissoc-when
@@ -193,9 +195,9 @@
     (assert (count routes) "There should be at least one route in the application vector")
     (log/debug :app-name (extract-app-name preamble) :route-count (count routes))
     (->> {:app-name (extract-app-name preamble)
-          :host     (extract-host     preamble)
-          :scheme   (extract-scheme   preamble)
-          :port     (extract-port     preamble)}
+          :host     (extract-host preamble)
+          :scheme   (extract-scheme preamble)
+          :port     (extract-port preamble)}
          (dissoc-when nil?)
          (add-children routes))))
 

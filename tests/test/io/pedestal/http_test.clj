@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -11,13 +12,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [clojure.core.async :as async]
             [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.test :refer :all]
+            [io.pedestal.test :refer [response-for]]
             [io.pedestal.http :as service]
             [io.pedestal.http.impl.servlet-interceptor]
-            [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.http.route :as route]
+            [cheshire.core :as cheshire]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
@@ -27,7 +29,7 @@
 (defn about-page
   [_request]
   (ring-resp/response (format "Yeah, this is a self-link to %s"
-                              (io.pedestal.http.route/url-for :about))))
+                              (route/url-for :about))))
 
 (defn hello-page
   [_request]
@@ -40,7 +42,7 @@
 (defn hello-plaintext-page [request]
   (-> request hello-page (ring-resp/content-type "text/plain")))
 
-(defn hello-byte-buffer-page [request]
+(defn hello-byte-buffer-page [_request]
   (assoc-in (ring-resp/response (ByteBuffer/wrap (.getBytes "HELLO" "UTF-8")))
             [:headers "Content-Type"]
             "text/plain"))
@@ -87,7 +89,7 @@
 (def clobberware
   {:leave #(update % :response assoc :body
                    (format "You must go to %s!"
-                           (io.pedestal.http.route/url-for :about)))})
+                           (route/url-for :about)))})
 
 (def add-binding
   {:enter #(chain/bind % *req* {:a 1})})
@@ -142,23 +144,23 @@
            (:headers response)))))
 
 (deftest plaintext-body-with-html-interceptor-test
-  "Explicit request for plain-text content-type is honored by html-body interceptor."
+  ;; Explicit request for plain-text content-type is honored by html-body interceptor.
   (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest plaintext-body-with-no-interceptors-test
-  "Requests without a content type are served as text/plain"
+  ;; Requests without a content type are served as text/plain
   (let [response (response-for app :get "/plaintext-body-no-interceptors")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest plaintext-from-byte-buffer
-  "Response bodies that are ByteBuffers toggle async behavior in supported containers"
+  ;; Response bodies that are ByteBuffers toggle async behavior in supported containers
   (let [response (response-for app :get "/bytebuffer")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
 
 (deftest plaintext-from-byte-channel
-  "Response bodies that are ReadableByteChannels toggle async behavior in supported containers"
+  ;; Response bodies that are ReadableByteChannels toggle async behavior in supported containers
   (let [response (response-for app :get "/bytechannel")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
@@ -168,7 +170,7 @@
     (is (= "application/json;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
 
 (deftest plaintext-body-with-json-interceptor-test
-  "Explicit request for plain-text content-type is honored by json-body interceptor."
+  ;; Explicit request for plain-text content-type is honored by json-body interceptor.
   (let [response (response-for app :get "/plaintext-body-with-json-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
@@ -185,7 +187,7 @@
     (is (= "{:a 1}" (:body response)) response)))
 
 (deftest plaintext-body-with-transit-interceptor-test
-  "Explicit request for plain-text content-type is honored by transit-body interceptor."
+  ;; Explicit request for plain-text content-type is honored by transit-body interceptor.
   (let [response (response-for app :get "/plaintext-body-with-transit-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
@@ -214,7 +216,7 @@
            (:body resp)))))
 
 (deftest response-for-nil-headers
-  (is (thrown? java.lang.AssertionError
+  (is (thrown? AssertionError
                (response-for app :get "/" :headers {"cookie" nil}))))
 
 (deftest adding-a-binding-to-context-appears-in-user-request
@@ -272,7 +274,7 @@
 (deftest json-response-test
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
-    (is (= (cheshire.core/generate-string obj)
+    (is (= (cheshire/generate-string obj)
            (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
                  (-> obj
                      service/json-response
@@ -297,7 +299,7 @@
                (slurp-output-stream output-stream))))
     (is (thrown? IOException
                  ;; This is JVM implementation specific;
-                 ;;   If it breaks down, we'll needed a decorated body-stream
+                 ;;   If it breaks down, we'll need a decorated body-stream
                  (.available body-stream)))))
 
 (deftest file-body-test

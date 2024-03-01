@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -16,7 +17,7 @@
 
 (extend-protocol ProxyDatastructure
   nil
-  (realized [t] nil))
+  (realized [_] nil))
 
 (defprotocol ContainerRequest
   (server-port [x])
@@ -37,21 +38,21 @@
 
 (extend-protocol ContainerRequest
   nil
-  (server-port [x] nil)
-  (server-name [x] nil)
-  (remote-addr [x] nil)
-  (uri [x] nil)
-  (query-string [x] nil)
-  (scheme [x] nil)
-  (request-method [x] nil)
-  (protocol [x] nil)
-  (headers [x] nil)
-  (header [x header-string] nil)
-  (ssl-client-cert [x] nil)
-  (body [x] nil)
-  (path-info [x] nil)
-  (async-supported? [x] false)
-  (async-started? [x] false))
+  (server-port [_] nil)
+  (server-name [_] nil)
+  (remote-addr [_] nil)
+  (uri [_] nil)
+  (query-string [_] nil)
+  (scheme [_] nil)
+  (request-method [_] nil)
+  (protocol [_] nil)
+  (headers [_] nil)
+  (header [_ _header-string] nil)
+  (ssl-client-cert [_] nil)
+  (body [_] nil)
+  (path-info [_] nil)
+  (async-supported? [_] false)
+  (async-started? [_] false))
 
 (defprotocol ResponseBuffer
   (response-buffer-size [x]))

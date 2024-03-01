@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -12,7 +13,7 @@
 
 (ns io.pedestal.http.params-test
   (:require [io.pedestal.http.params :as params]
-            [clojure.test :refer :all]))
+            [clojure.test :refer [deftest is are]]))
 
 (defn valid-interceptor? [interceptor]
   (and (every? fn? (remove nil? (vals (select-keys interceptor [:enter :leave :error]))))
