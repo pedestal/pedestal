@@ -52,6 +52,8 @@ jobs:
         if: false # temporary
         id: cve-check
         run: clojure -T:build cve-check
+      - name: Lint with clj-kondo
+        run: clojure -T:build lint
       - name: Upload cve-check-results.html
         if: false # temporary, ${{ !cancelled() && steps.cve-check.conclusion }}
         uses: actions/upload-artifact@v4.3.1
