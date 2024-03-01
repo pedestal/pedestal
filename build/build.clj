@@ -158,7 +158,7 @@
 (defn- ensure-workspace-clean
   []
   (when (workspace-dirty?)
-    (println "Error: workspace contains changes, those must be committed first")
+    (ansi/pcompose [:red [:bold "ERROR: "] "workspace contains changes, those must be committed first"])
     (System/exit 1)))
 
 (defn deploy-all
