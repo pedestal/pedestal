@@ -67,9 +67,14 @@ peripheral
 ├── dev
 │   ├── dev.clj
 │   └── user.clj
+│   └── com
+│       └── blueant
+│           └── peripheral
+│               └── telemetry_test_init.clj
 ├── doc
 │   └── intro.md
 ├── resources
+│   └── pedestal-config.edn
 │   └── public
 │       └── index.html
 ├── src
@@ -77,6 +82,7 @@ peripheral
 │       └── blueant
 │           └── peripheral
 │               ├── routes.clj
+│               └── telemetry_init.clj
 │               └── service.clj
 ├── test
 │   └── com
@@ -85,8 +91,9 @@ peripheral
 │               └── service_test.clj
 └── test-resources
     └── logback-test.xml
+    └── pedestal-test-config.edn
 
-14 directories, 13 files
+17 directories, 17 files
 >
 ```
 
@@ -131,15 +138,15 @@ user=>
 From another window, you can open http://localhost:8080/index.html, to see
 a brief welcoming page.
 
-The `dev` namespace provides the functions `go`, 'start', and 'stop'.
+The `dev` namespace provides the functions `go`, `start`, and `stop`.
 
-The `:test` alias sets up the classpath so that the `dev` namespace is
+The :test alias sets up the classpath so that the `dev` namespace is
 available.
 
-The `:dev-mode` alias enables
+The :dev-mode alias enables
 xref:live-repl.adoc[REPL oriented development mode], including
 the output of the routing table as the service started.
 
 The template provides a tiny amount of structure and examples; it's a seed
 from which you can grow a full project, but small as it is, it's worth
-exploring it in more detail.
+exploring in more detail.
