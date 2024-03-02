@@ -1,6 +1,7 @@
 {:paths ["src"
          "resources"]
  :deps {org.clojure/clojure            {:mvn/version "1.11.1"}
+        io.pedestal/pedestal.service   {:mvn/version "0.7.0-SNAPSHOT"}
         io.pedestal/pedestal.jetty     {:mvn/version "0.7.0-SNAPSHOT"}
         ch.qos.logback/logback-classic {:mvn/version "1.4.14"}}
  :aliases
@@ -30,5 +31,7 @@
   { :jvm-opts ["-Dio.pedestal.dev-mode=true"]}
 
   :build {:deps {io.github.clojure/tools.build {:mvn/version "0.9.6"}
-                 slipset/deps-deploy           {:mvn/version "0.2.0"}}
+                 slipset/deps-deploy           {:mvn/version "0.2.0"}
+                 org.clj-commons/pretty        {:mvn/version "2.2.1"}
+                 clj-kondo/clj-kondo           {:mvn/version "2024.02.12"}}
           :ns-default build}}}

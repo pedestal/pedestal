@@ -214,6 +214,35 @@ Even then, without the Java agent, you will not get the most accurate measuremen
 covering the span of time Pedestal was handling the request.
 ====
 
+## Other build commands
+
+The `lint` command uses link:https://github.com/clj-kondo/clj-kondo[clj-kondo] to identify problems in your source code:
+
+```
+> clj -T:build lint
+WARNING: update-vals already refers to: #'clojure.core/update-vals in namespace: clj-kondo.impl.analysis.java, being replaced by: #'clj-kondo.impl.utils/update-vals
+linting took 137ms, errors: 0, warnings: 0
+clj-kondo approves ☺️
+>
+```
+
+The `lint` command will exit with a -1 status code if there are linter errors; this aligns well with
+using it inside a CI/CD pipeline.
+
+The `jar` command builds a Maven POM file, and a JAR for the project:
+
+```
+> clj -T:build jar
+Writing pom.xml...
+Copying source...
+
+Building JAR target/com.blueant/peripheral-0.1.0-SNAPSHOT.jar ...
+>
+```
+
+There's also an `install` command to install the JAR to your local Maven repository, and a `deploy`
+command, to deploy the JAR to link:https://clojars.org/[Clojars].
+
 
 ## Conclusion
 
