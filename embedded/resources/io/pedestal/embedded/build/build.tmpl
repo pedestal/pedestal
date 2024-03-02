@@ -5,8 +5,8 @@
 
 (def lib '{{group/id}}/{{artifact/id}})
 (def version "{{version}}")
-#_ ; alternatively, use MAJOR.MINOR.COMMITS:
-(def version (format "1.0.%s" (b/git-count-revs nil)))
+;; alternatively, use MAJOR.MINOR.COMMITS:
+#_ (def version (format "1.0.%s" (b/git-count-revs nil)))
 (def class-dir "target/classes")
 
 (defn test

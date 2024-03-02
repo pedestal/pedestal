@@ -58,23 +58,22 @@ Example:
 Resolving io.github.pedestal/pedestal as a git dependency
 Creating project from io.pedestal/embedded in peripheral
 > tree peripheral
-peripheral
 ├── CHANGELOG.md
 ├── LICENSE
 ├── README.md
 ├── build.clj
 ├── deps.edn
 ├── dev
+│   ├── com
+│   │   └── blueant
+│   │       └── peripheral
+│   │           └── telemetry_test_init.clj
 │   ├── dev.clj
 │   └── user.clj
-│   └── com
-│       └── blueant
-│           └── peripheral
-│               └── telemetry_test_init.clj
 ├── doc
 │   └── intro.md
 ├── resources
-│   └── pedestal-config.edn
+│   ├── pedestal-config.edn
 │   └── public
 │       └── index.html
 ├── src
@@ -82,18 +81,20 @@ peripheral
 │       └── blueant
 │           └── peripheral
 │               ├── routes.clj
+│               ├── service.clj
 │               └── telemetry_init.clj
-│               └── service.clj
+├── start-jaeger.sh
 ├── test
 │   └── com
 │       └── blueant
 │           └── peripheral
 │               └── service_test.clj
 └── test-resources
-    └── logback-test.xml
+    ├── logback-test.xml
     └── pedestal-test-config.edn
 
-17 directories, 17 files
+17 directories, 18 files
+
 >
 ```
 
@@ -146,6 +147,76 @@ available.
 The :dev-mode alias enables
 xref:live-repl.adoc[REPL oriented development mode], including
 the output of the routing table as the service started.
+
+## Gathering Telemetry
+
+The template includes very basic support for {otel} telemetry.  For local work, this is best accomplished
+by running a Docker container with the link:https://www.jaegertracing.io/[Jaeger] server running; the container
+will collect telemetry from the running application, and also provides a user interface to examine
+the traces produced by the application.
+
+The template includes a script, `start-jaeger.sh` that downloads the necessary files and starts
+the container, and opens your web browser to the Jaeger UI:
+
+```
+> ./start-jaeger.sh
+Downloading Open Telemetry Java Agent to target directory ...
+f7296a450ab2bfad684451ed7e0ed22125c0743f79e9675c4e15f593570986de
+Jaeger is running, execute `docker stop jaeger` to stop it.
+>
+```
+
+Stop your old REPL session, if necessary, and start a new one:
+
+```
+> clj -A:test:dev-mode:otel-agent
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[otel.javaagent 2024-03-01 16:32:45:144 -0800] [main] INFO io.opentelemetry.javaagent.tooling.VersionLogger - opentelemetry-javaagent - version: 2.1.0
+Clojure 1.11.1
+user=> (use 'dev)
+nil
+user=> (go)
+Routing table:
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃ Path   ┃ Name                                 ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+#:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl ...
+>
+```
+
+The :otel-agent alias enables the Open Telementry Java Agent; a Java Agent is a special library that "hooks into"
+the Java Virtual Machine, and can instrument classes as they are loaded from disk, or from JAR files.  In this
+case, the agent will add code that initializes open telemetry in our application, and instrument the Jetty classes
+to capture the real times when requests arrive and responses are sent.
+
+In a separate window, you can open http://localhost:8080/hello or http://localhost:8080/index.html.  Your application
+will handle the requests while gathering and sending tracing data to the Jaeger server running inside the Docker container.
+
+After that, go back to the Jaeger UI, and select `com.blueant/peripheral` in the Service drop-down list footnote:[If `com.blueant/peripheral` isn't present,
+you will need to refresh the browser so that it can populate the list of services.], then click "Find Traces".
+
+image::jaeger-ui-search.png[]
+
+You can then select a specific trace to get more details about it:
+
+image::jaeger-ui-trace.png[]
+
+You'll notice that the single _request_ has two overallaping _traces_; the outer trace was started and ended by the
+Open Telemetry java agent; the inner trace is just the part that Pedestal (not Jetty) is responsible for.
+
+[NOTE]
+====
+You don't _need_ to run your application with the Java agent in order to gather and send traces; however, the alternative
+involves quite a bit more setup, and many additional dependencies for all the necessary Open Telemetry libraries.
+Even then, without the Java agent, you will not get the most accurate measurements as you'll only get the _inner_ measurement
+covering the span of time Pedestal was handling the request.
+====
+
+
+## Conclusion
+
 
 The template provides a tiny amount of structure and examples; it's a seed
 from which you can grow a full project, but small as it is, it's worth
