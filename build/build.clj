@@ -37,7 +37,6 @@
    "route"
    "service"
    ;; And then the others:
-   "aws"
    "jetty"
    "service-tools"
    "embedded"])

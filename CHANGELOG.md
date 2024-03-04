@@ -8,9 +8,10 @@
 
 - Library pedestal.immutant has been removed
 - Library pedestal.tomcat has been removed
+- Library pedestal.aws has been removed
 - Namespace io.pedestal.http.jetty.websockets has been removed, and replaced with io.pedestal.http.websockets
 - Namespace io.pedestal.interceptor.error has been moved to a new library, io.pedestal/pedestal.error
-- Library pedestal.service no longer has a dependency on org.clojure/core.match; the pedestal.error library has that dependency
+- Library pedestal.service no longer has a dependency on org.clojure/core.match; the new pedestal.error library has that dependency
 
 Other changes:
 
