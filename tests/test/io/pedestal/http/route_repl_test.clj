@@ -13,6 +13,7 @@
   "Tests for dev-mode related macros in io.pedestal.http.route."
   (:require [clojure.test :refer [deftest is]]
             [io.pedestal.http.route :as route :refer [routes-from]]
+            [io.pedestal.http.route.internal :as i]
             [io.pedestal.environment :refer [dev-mode?]]))
 
 (deftest dev-mode-enabled
@@ -78,9 +79,9 @@
 (deftest local-symbol-is-simply-wrapped-as-function
   (let [local-routes #{["/hi" :get #'hello-handler :route-name ::hi]}
         f            (routes-from local-routes)
-        out-str (with-out-str
-                  (is (= (simplify (route/expand-routes local-routes))
-                         (simplify (f)))))]
+        out-str      (with-out-str
+                       (is (= (simplify (route/expand-routes local-routes))
+                              (simplify (f)))))]
     (is (= "Routing table:
 ┏━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Method ┃ Path ┃ Name                                 ┃
@@ -104,4 +105,32 @@
     ;; The routing spec fn is invoked immediately, even before a
     ;; request is routed.
     (is (= 1 @*invoke-count))))
+
+(deftest outputs-extra-columns-when-different
+  (let [routes  (concat
+                  (route/expand-routes #{{:app-name :main
+                                          :host     "main"
+                                          :scheme   :https
+                                          :port     8080}
+                                         ["/" :get identity :route-name :root-page]})
+                  (route/expand-routes #{{:app-name :admin
+                                          :host     "internal"
+                                          :scheme   :http
+                                          :port     9090}
+                                         ["/status" :get identity :route-name :status]
+                                         ["/reset" :post identity :route-name :reset]}))
+
+        out-str (with-out-str
+                  (println)
+                  (i/print-routing-table routes))]
+    ;; Note: sorted by path
+    (is (= "
+┏━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ App name ┃ Scheme ┃ Host     ┃ Port ┃ Method ┃ Path    ┃ Name       ┃
+┣━━━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━╋━━━━━━╋━━━━━━━━╋━━━━━━━━━╋━━━━━━━━━━━━┫
+┃ :main    ┃ :https ┃ main     ┃ 8080 ┃ :get   ┃ /       ┃ :root-page ┃
+┃ :admin   ┃ :http  ┃ internal ┃ 9090 ┃ :post  ┃ /reset  ┃ :reset     ┃
+┃ :admin   ┃ :http  ┃ internal ┃ 9090 ┃ :get   ┃ /status ┃ :status    ┃
+┗━━━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━┻━━━━━━┻━━━━━━━━┻━━━━━━━━━┻━━━━━━━━━━━━┛
+" out-str))))
 
