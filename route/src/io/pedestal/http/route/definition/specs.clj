@@ -82,25 +82,21 @@
 
 (s/def ::terse-route-entry
   (s/and vector?
-         (s/cat
-           :path-segment (s/? ::path-segment)
-           :early-clarifications (s/* ::terse-clarification)
-           ;; Sometimes, verbs omitted at a tree node, but handled at leaf
-           :verbs (s/* ::terse-verbs)
-           :late-clarifications (s/* ::terse-clarification)
-           :routes (s/* ::terse-route-entry))))
+         (s/+
+           ;; The use of alt allows for variations in ordering, which we see in the test data.
+           ;; However, it also allows for multiples of the values (only :route should allow multiple).
+           ;; If terse syntax was written today, I suspect it would be slightly more constrained so that
+           ;; we could use s/cat here instead.
+           (s/alt
+             :path-segment ::path-segment
+             :interceptors ::terse-interceptors
+             :constraints ::terse-constraints
+             :verbs ::terse-verbs
+             :route ::terse-route-entry))))
 
 (s/def ::path-segment
   (s/and string?
          #(string/starts-with? % "/")))
-
-;; Broken out this way because some examples (in tests) have
-;; constraints before the verb map.
-
-(s/def ::terse-clarification
-  (s/or :interceptors ::terse-interceptors
-        :constraints ::terse-constraints))
-
 
 (s/def ::terse-interceptors
   (s/and (has-meta? :interceptors)
@@ -138,8 +134,11 @@
 ;; --- EXPANDED ROUTING TABLE ---
 
 (s/def ::routing-table (s/coll-of ::routing-entry))
+;; Shouldn't :port be in here?
 (s/def ::routing-entry (s/keys
-                         :req-un [::path
+                         :req-un [::app-name
+                                  ::port
+                                  ::path
                                   ::method
                                   ::path-re
                                   ::path-parts

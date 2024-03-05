@@ -36,6 +36,12 @@
 (stest/instrument `verbose/expand-verbose-routes)
 (stest/instrument `terse/terse-routes)
 
+(comment
+  (s/conform :io.pedestal.http.route.definition.specs/terse-route-entry
+             ["/foo" ^:interceptors [map] {:get `bar}
+              ["/bar" {:post conj}]
+              ["/baz" {:delete into}]])
+  )
 
 (defn- expound-output
   [f]
