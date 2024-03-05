@@ -274,7 +274,7 @@ It's not very desirable to have to keep two separate start functions, one for pr
 development ... especially given how badly throughput will be affected if the local REPL version leaks through to
 production.
 
-So simplify things, the startup code can be changed to use the
+So to simplify things, the startup code can be changed to use the
 api:routes-from[ns=io.pedestal.http.route] macro:
 
 [source,clojure]

@@ -203,7 +203,7 @@ You can then select a specific trace to get more details about it:
 
 image::jaeger-ui-trace.png[]
 
-You'll notice that the single _request_ has two overallaping _traces_; the outer trace was started and ended by the
+You'll notice that the single _request_ has two overlapping _traces_; the outer trace was started and ended by the
 Open Telemetry java agent; the inner trace is just the part that Pedestal (not Jetty) is responsible for.
 
 [NOTE]
