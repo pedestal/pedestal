@@ -2,15 +2,18 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# Temporary script to generate an example, used when debugging the
+# Script to generate an example, used when debugging the
 # template itself.
 
-rm -rf target/out
+if [ -d target/out ]; then
+  rm -rf target/out/*
+fi
 
 clj -Sdeps '{:deps {io.pedestal/pedestal.embedded {:local/root "."}}}' \
   -Tnew \
   create :template io.pedestal/embedded \
   :name com.blueant/peripheral \
-  :target-dir target/out
+  :target-dir target/out \
+  :overwrite true
 
-  tree target/out
+tree target/out

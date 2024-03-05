@@ -3,8 +3,7 @@
 image::animated-front-page-sample.gif[float="right",width=300]
 
 Pedestal is a set of libraries that we use to build web services and applications. Pedestal runs in the back-end and can handle
-anything from tiny static web sites, to traditional page oriented applications, to dynamic single page applications built using
-server-sent events and WebSockets.
+anything from tiny static web sites, to traditional page oriented applications, to dynamic single page applications utilizing server-sent events and WebSockets.
 
 Pedestal scales up with your needs.
 
@@ -17,36 +16,49 @@ We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and
   <div class="main-feature-row">
     <div class="main-feature">
       <h3>Ready for Production</h3>
-      <div class="paragraph">Pedestal works with a huge variety of containers and deployment options. Deploy applications or microservices on unikernels, Docker containers, or as stand-alone JAR files, or a servlet-container WAR files.</div>
+      <div class="paragraph">Pedestal runs where Java runs: Applications can be deployed as standalone Clojure applications, or WAR files in a servlet container.
+Pedestal integrates with
+<a href="https://opentelemetry.io/">Open Telemetry</a> to give you visibility into your running services.</div>
     </div>
     <div class="main-feature">
       <h3>Secure by Default</h3>
-      <div class="paragraph">Pedestal automatically uses secure headers, CSRF-protection, and other best practices. It works with CORS to allow secure front end applications.</div>
+      <div class="paragraph">Pedestal automatically uses secure headers, enables
+        <a href="https://en.wikipedia.org/wiki/Cross-site_request_forgery">
+cross site request forgery</a> protection, and other best practices. It works with
+<a href="https://en.wikipedia.org/wiki/Cross-origin_resource_sharing">cross-origin resource sharing</a>
+to allow secure front end applications.</div>
+    </div>
+  </div>
+
+  <div class="main-feature-row">
+    <div class="main-feature">
+      <h3>Easy Ramp Up</h3>
+      <div class="paragraph">
+A simple Pedestal app fits into a few lines of Clojure; Pedestal includes
+a <a href="https://github.com/seancorfield/deps-new">deps-new</a> template for getting you started.
+</div>
+    </div>
+
+    <div class="main-feature">
+      <h3>Testable</h3>
+      <div class="paragraph">Pedestal's core interceptor model breaks request processing into small pieces that are simple, often free of side effects, and therefore easy to
+test; then lets you stack those pieces up to form your full application.</div>
     </div>
   </div>
 
   <div class="main-feature-row">
     <div class="main-feature">
       <h3>Streaming</h3>
-      <div class="paragraph">Pedestal lets you create dynamic applications with server-sent events and WebSockets. It leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.</div>
+      <div class="paragraph">Pedestal supports creating dynamic applications with server-sent events and WebSockets. Pedestal leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.</div>
     </div>
-    <div class="main-feature">
-      <h3>Late Binding</h3>
-      <div class="paragraph">Routers and Interceptors let Pedestal services apply different behavior based on each incoming request, rather than statically wrapping everything up during initialization.</div>
-    </div>
-  </div>
+</div>
 
-  <div class="main-feature-row">
     <div class="main-feature">
-      <h3>Composable</h3>
+      <h3>Composable and Extensible</h3>
       <div class="paragraph">Pedestal is built from pieces that connect via protocols, giving you the flexibility to swap out any part with something
 customized to your application.</div>
     </div>
-    <div class="main-feature">
-      <h3>Testable</h3>
-      <div class="paragraph">Pedestal's core interceptor model breaks request processing into small pieces that are simple, often purely functional, and easy to
-test; then lets you stack those pieces up to form your full application.</div>
-    </div>
+
   </div>
 
 </div>

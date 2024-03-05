@@ -63,15 +63,14 @@ We can extend this approach to test coordination across multiple interceptors as
 
 The value in exercising the end-to-end operation of your service endpoints is
 that it provides quick feedback that you've wired things up correctly. Pedestal
-provides the test helper
-api:response-for[ns=io.pedestal.test]
-utility function to facilitate testing of services without having to spin up an
-http server.
+provides the test helper function
+api:response-for[ns=io.pedestal.test], which makes it possible to fully test a route
+without starting up an HTTP service.
 
 This style of testing ensures that routing is correct, and it fully exercises routing, interceptors,
 and any business logic.
 
-The `response-for` helper function is specific to servlet-based
+The `response-for` function is specific to servlet-based
 services and simulates the receipt of a servlet request and creation
 of a servlet response - but does so without the overhead of an actual HTTP connection, which
 ensures your tests are fast.
@@ -187,4 +186,4 @@ Here's an example:
 
 Nothing special needs to be done when testing routes which include
 async interactions. The `response-for` helper forces asynchronous
-request processing to synchronous processing for test purposes.
+request processing to complete before returning a value.
