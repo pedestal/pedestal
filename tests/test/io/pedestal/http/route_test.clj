@@ -17,6 +17,7 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.interceptor :refer [interceptor]]
             [clojure.test :refer [deftest is are testing use-fixtures]]
             [ring.middleware.resource]
@@ -33,8 +34,6 @@
             [io.pedestal.http.route.definition.terse :as terse :refer [map-routes->vec-routes]])
   (:import (clojure.lang ExceptionInfo)))
 
-(stest/instrument `verbose/expand-verbose-routes)
-(stest/instrument `terse/terse-routes)
 
 (comment
   (s/conform :io.pedestal.http.route.definition.specs/terse-route-entry
@@ -43,13 +42,19 @@
               ["/baz" {:delete into}]])
   )
 
-(defn- expound-output
+(defn- enable-expound-fixture
   [f]
   (with-redefs [s/explain     expound/expound
                 s/explain-str expound/expound-str]
-    (f)))
+    (try
+      (stest/instrument [`verbose/expand-verbose-routes
+                         `terse/terse-routes
+                         `table/table-routes])
+      (f)
+      (finally
+        (stest/unstrument)))))
 
-(use-fixtures :once expound-output)
+(use-fixtures :once enable-expound-fixture)
 
 (defn handler
   [name request-fn]

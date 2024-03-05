@@ -12,8 +12,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.definition.table
-  (:require [io.pedestal.interceptor :as interceptor]
+  (:require [clojure.spec.alpha :as s]
+            [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.route.definition :as route-definition]
+            [io.pedestal.http.route.definition.specs :as specs]
             [io.pedestal.http.route.path :as path])
   (:import (java.util List)))
 
@@ -72,20 +74,20 @@
   (let [[handlers & more] (:remaining ctx)]
     (if (vector? handlers)
       (assert (every? #(satisfies? interceptor/IntoInterceptor %) handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
-      (assert (satisfies? interceptor/IntoInterceptor handlers)             (syntax-error ctx "the handler" "an interceptor" handlers)))
+      (assert (satisfies? interceptor/IntoInterceptor handlers) (syntax-error ctx "the handler" "an interceptor" handlers)))
     (let [original-handlers (if (vector? handlers) (vec handlers) [handlers])
-          handlers (mapv interceptor/interceptor original-handlers)]
+          handlers          (mapv interceptor/interceptor original-handlers)]
       (assoc ctx :interceptors handlers
-                 :remaining more
-                 :last-handler (last original-handlers)))))
+             :remaining more
+             :last-handler (last original-handlers)))))
 
-(def attach-route-name  (partial take-next-pair :route-name  keyword? "a keyword"))
+(def attach-route-name (partial take-next-pair :route-name keyword? "a keyword"))
 
 (defn parse-route-name
   [{:keys [route-name interceptors last-handler] :as ctx}]
   (if route-name
     ctx
-    (let [last-interceptor (some-> interceptors last)
+    (let [last-interceptor   (some-> interceptors last)
           default-route-name (cond
                                (:name last-interceptor) (:name last-interceptor)
                                (symbol? last-handler) (route-definition/symbol->keyword last-handler)
@@ -100,10 +102,10 @@
 
 (defn parse-constraints
   [{:keys [constraints path-params] :as ctx}]
-  (let [path-param?                          (fn [[k _]] (some #{k} path-params))
+  (let [path-param? (fn [[k _]] (some #{k} path-params))
         [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
     (-> ctx
-        (update :path-constraints  merge (into {} (map route-definition/capture-constraint path-constraints)))
+        (update :path-constraints merge (into {} (map route-definition/capture-constraint path-constraints)))
         (update :query-constraints merge query-constraints)
         remove-empty-constraints)))
 
@@ -142,8 +144,8 @@
 
 (defn ensure-unique-route-names [routes]
   (loop [seen-route-names #{}
-         rname (route-name (first routes))
-         rroutes (rest routes)]
+         rname            (route-name (first routes))
+         rroutes          (rest routes)]
     (when rname
       (assert (nil? (seen-route-names rname)) (str "Route name or handler appears more than once in the route spec: " rname))
       (recur (conj seen-route-names rname) (route-name (first rroutes)) (rest rroutes)))))
@@ -159,6 +161,19 @@
    (ensure-unique-route-names routes)
    (route-definition/ensure-routes-integrity
      (if (sequential? routes)
-       (map-indexed (partial route-table-row opts) routes)
+       (map-indexed #(route-table-row opts %1 %2) routes)
        (map #(route-table-row opts nil %) routes)))))
 
+;; Tricky, because of the optional leading options map which can (instead)
+;; be embedded in the routes map.
+
+(s/fdef table-routes
+        :args (s/or
+                :informal (s/*
+                            (s/or
+                              :options ::specs/table-options
+                              :route ::specs/table-route))
+                :proper (s/cat
+                          :options (s/? ::specs/table-options)
+                          :routes ::specs/table-routes))
+        :ret ::specs/routing-table)

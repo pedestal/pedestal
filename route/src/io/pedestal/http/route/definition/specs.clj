@@ -47,7 +47,7 @@
 (s/def ::port (s/and integer? pos?))
 (s/def ::path string?)
 (s/def ::verbs (s/map-of ::verb ::verb-action))
-(s/def ::verb #{:any :get :post :put :delete})
+(s/def ::verb #{:any :get :put :post :delete :path :options :head})
 (s/def ::verb-action (s/or
                        ;; A symbol here is resolved via IntoInterceptor
                        :symbol symbol?
@@ -65,6 +65,57 @@
 
 (s/def ::constaints (s/map-of simple-keyword? ::constraint))
 (s/def ::constraint is-re?)
+
+;; --- TABLE ROUTES ---
+
+(s/def ::table-options (s/keys
+                         :opt-un [::app-name
+                                  ::host
+                                  ::port
+                                  ::scheme
+                                  :io.pedestal.http.route.definition.table/verbs]))
+
+;; TODO: Can define optional allowed verbs in the options, which can include custom verbs,
+;; and that should be applied as a constraint when defining verbs in individual routes.
+
+(s/def :io.pedestal.http.route.definition.table/verbs (s/coll-of keyword?))
+
+(s/def ::table-routes (s/coll-of ::table-route))
+
+(s/def ::table-route
+  (s/cat
+    :path ::path
+    :verb keyword?                                          ;; This should be constrained based on options
+    :handler ::table-handler
+    :options (s/* ::table-route-options)))
+
+(s/def ::table-handler
+  (s/or
+    :symbol symbol?
+    :interceptor ::i/interceptor
+    :interceptors ::i/interceptors))
+
+(s/def ::table-route-options
+  (s/or
+    :route-name ::table-route-name-clause
+    :interceptors ::table-interceptors-clause))
+
+(s/def ::table-route-name-clause
+  (s/cat :k #(= :route-name %)
+         :route-name ::route-name))
+
+(s/def ::table-interceptors-clause
+  (s/cat :k #(= :interceptors %)
+         :interceptors ::i/interceptors))
+(comment
+  (s/explain ::table-route
+             ["/foo" :get identity :route-name :foo]
+
+             )
+
+  (s/explain ::table-route ["/path" :get identity :route-name :foo])
+
+  )
 
 ;; --- TERSE ROUTES ---
 
@@ -116,7 +167,7 @@
 (s/def ::full-terse-verb-action
   (s/cat :route-name ::route-name
          ;; Sometimes, ^:interceptors [] comes between route name and the handler/interceptor.
-         :interceptor (s/? ::terse-interceptors)
+         :interceptors (s/? ::terse-interceptors)
          :interceptor ::i/interceptor))
 
 
@@ -125,11 +176,10 @@
   (s/conform ::terse-route-entry ["/root" ["/child" {:get [:foo-bar-route map]}]])
   (let [input [:my-app :http "example.org" 999 ["/foo" {}
                                                 ^:interceptors []]]]
-    (s/conform ::terse-routes
+    (s/conform ::terse-route
                input))
 
   )
-
 
 ;; --- EXPANDED ROUTING TABLE ---
 
@@ -137,7 +187,7 @@
 ;; Shouldn't :port be in here?
 (s/def ::routing-entry (s/keys
                          :req-un [::app-name
-                                  ::port
+                                  ;; ::port Should this be here?
                                   ::path
                                   ::method
                                   ::path-re
