@@ -14,8 +14,11 @@
 (ns io.pedestal.http.route-test
   (:require [clojure.set :as set]
             [clojure.pprint :refer [pprint]]
+            [clojure.spec.test.alpha :as stest]
+            [clojure.spec.alpha :as s]
+            [expound.alpha :as expound]
             [io.pedestal.interceptor :refer [interceptor]]
-            [clojure.test :refer [deftest is are testing]]
+            [clojure.test :refer [deftest is are testing use-fixtures]]
             [ring.middleware.resource]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.chain :as interceptor.chain]
@@ -27,7 +30,20 @@
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
-            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
+            [io.pedestal.http.route.definition.terse :as terse :refer [map-routes->vec-routes]])
+  (:import (clojure.lang ExceptionInfo)))
+
+(stest/instrument `verbose/expand-verbose-routes)
+(stest/instrument `terse/terse-routes)
+
+
+(defn- expound-output
+  [f]
+  (with-redefs [s/explain     expound/expound
+                s/explain-str expound/expound-str]
+    (f)))
+
+(use-fixtures :once expound-output)
 
 (defn handler
   [name request-fn]
@@ -206,7 +222,9 @@
         ["/intercepted" ^:interceptors [interceptor-2]
          {:get [:hierarchical-intercepted request-inspection]}]]
        ["/terminal/intercepted"
-        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]]))
+        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+
+  )
 
 (def map-routes
   ;; One limitation is you can't control hostname or protocol
@@ -1114,7 +1132,7 @@
         "Route names for all routing syntaxes match")))
 
 (deftest url-for-without-*url-for*-should-error-properly
-  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"\*url-for\* not bound"
+  (is (thrown-with-msg? ExceptionInfo #"\*url-for\* not bound"
                         (route/url-for :my-route))))
 
 (deftest method-param-test
@@ -1167,14 +1185,14 @@
              (get-in (ex-data (try (url-for-admin ::delete-user
                                                   :strict-path-params? true
                                                   :path-params {:user-id nil})
-                                   (catch clojure.lang.ExceptionInfo e
+                                   (catch ExceptionInfo e
                                      e)))
                      [:route :path-params]))
           "Should throw when nil.")
       (is (= [:user-id]
              (get-in (ex-data (try (url-for-admin ::delete-user
                                                   :strict-path-params? true)
-                                   (catch clojure.lang.ExceptionInfo e
+                                   (catch ExceptionInfo e
                                      e)))
                      [:route :path-params]))
           "Should throw when missing."))))

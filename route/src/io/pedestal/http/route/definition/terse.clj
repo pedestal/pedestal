@@ -15,6 +15,8 @@
   (:require [io.pedestal.http.route.definition :as route.definition]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.http.route.definition.specs :as specs]
+            [clojure.spec.alpha :as s]
             [io.pedestal.log :as log]))
 
 (defn- unexpected-vector-in-route [spec]
@@ -201,6 +203,10 @@
          (dissoc-when nil?)
          (add-children routes))))
 
-(defn terse-routes [route-spec]
+(defn terse-routes
+  [route-spec]
   (verbose/expand-verbose-routes (map flatten-terse-app-routes route-spec)))
 
+(s/fdef terse-routes
+        :args (s/cat :routes ::specs/terse-routes)
+        :ret ::specs/routing-table)

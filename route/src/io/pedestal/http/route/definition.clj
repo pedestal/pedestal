@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -10,7 +11,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.route.definition)
+(ns io.pedestal.http.route.definition
+  (:require [io.pedestal.internal :as i]))
 
 (def schemes #{:http :https})
 (def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
@@ -75,9 +77,10 @@
 
 
 ;; TODO: Remove and refactor across the codebase
-(defmacro defroutes
+(defmacro ^{:deprecated "0.5.1"} defroutes
   "Deprecated. -- Prefer `def` and program against ExpandableRoutes
   Define a routing table from the terse routing syntax."
   [name route-spec]
-  `(def ~name (io.pedestal.http.route/expand-routes (quote ~route-spec))))
+  (i/deprecated `defroutes
+    `(def ~name (io.pedestal.http.route/expand-routes (quote ~route-spec)))))
 

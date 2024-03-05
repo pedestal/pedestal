@@ -72,6 +72,8 @@
     n))
 
 (defn interceptor?
+  "Returns true if object o is an instance of the Interceptor record; the result of
+  invoking [[interceptor]]."
   [o]
   (= (type o) Interceptor))
 
