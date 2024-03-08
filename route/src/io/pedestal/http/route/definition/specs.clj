@@ -63,7 +63,7 @@
 ;; (which is considered a handler function, and is wrapped into an interceptor).
 (s/def ::handler ::i/interceptor)
 
-(s/def ::constaints (s/map-of simple-keyword? ::constraint))
+(s/def ::constraints (s/map-of simple-keyword? ::constraint))
 (s/def ::constraint is-re?)
 
 ;; --- TABLE ROUTES ---
@@ -87,35 +87,12 @@
     :path ::path
     :verb keyword?                                          ;; This should be constrained based on options
     :handler ::table-handler
-    :options (s/* ::table-route-options)))
+    :clauses  (s/keys* :opt-un [::route-name ::constraints])))
 
 (s/def ::table-handler
   (s/or
-    :symbol symbol?
     :interceptor ::i/interceptor
     :interceptors ::i/interceptors))
-
-(s/def ::table-route-options
-  (s/or
-    :route-name ::table-route-name-clause
-    :interceptors ::table-interceptors-clause))
-
-(s/def ::table-route-name-clause
-  (s/cat :k #(= :route-name %)
-         :route-name ::route-name))
-
-(s/def ::table-interceptors-clause
-  (s/cat :k #(= :interceptors %)
-         :interceptors ::i/interceptors))
-(comment
-  (s/explain ::table-route
-             ["/foo" :get identity :route-name :foo]
-
-             )
-
-  (s/explain ::table-route ["/path" :get identity :route-name :foo])
-
-  )
 
 ;; --- TERSE ROUTES ---
 
@@ -155,7 +132,7 @@
 
 (s/def ::terse-constraints
   (s/and (has-meta? :constraints)
-         ::constaints))
+         ::constraints))
 
 (s/def ::terse-verbs
   (s/map-of ::verb ::terse-verb-action))
@@ -170,34 +147,39 @@
          :interceptors (s/? ::terse-interceptors)
          :interceptor ::i/interceptor))
 
-
-(comment
-  (require '[expound.alpha :as expound])
-  (s/conform ::terse-route-entry ["/root" ["/child" {:get [:foo-bar-route map]}]])
-  (let [input [:my-app :http "example.org" 999 ["/foo" {}
-                                                ^:interceptors []]]]
-    (s/conform ::terse-route
-               input))
-
-  )
-
 ;; --- EXPANDED ROUTING TABLE ---
 
 (s/def ::routing-table (s/coll-of ::routing-entry))
-;; Shouldn't :port be in here?
+
 (s/def ::routing-entry (s/keys
-                         :req-un [::app-name
-                                  ;; ::port Should this be here?
-                                  ::path
+                         :req-un [::path
                                   ::method
                                   ::path-re
                                   ::path-parts
-                                  ::host
                                   ::i/interceptors
                                   ::route-name
-                                  ::path-params]))
+                                  ::path-params
+                                  ::path-constraints
+                                  ::query-constraints]
+                         :opt-un [::app-name
+                                  ::scheme
+                                  ::host
+                                  ::port
+                                  ::matcher]))
 
+;; An RE that matches a path, and also defines capture groups for the :path-params
 (s/def ::path-re is-re?)
 (s/def ::method ::verb)
-(s/def ::path-parts (s/coll-of string?))
-(s/def ::path-params (s/coll-of string?))                   ;; Maybe?
+(s/def ::path-parts (s/coll-of ::path-part))
+(s/def ::path-part (s/or :literal string?
+                         :param keyword?))
+;; The params defined in the path as keywords; used to build a map of keyword to path parameter
+;; when matched.
+(s/def ::path-params (s/coll-of keyword?))
+
+;; Constraints from the definition are split up; those that match a part parameter
+;; go in :path-constraints, the rest go in :query-constraints.
+
+(s/def ::path-constraints ::constraints)
+(s/def ::query-constraints ::constraints)
+

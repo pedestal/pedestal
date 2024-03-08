@@ -12,11 +12,13 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route
-  (:require [clojure.string :as str]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.log :as log]
             [io.pedestal.http.route.definition :as definition]
+            [io.pedestal.http.route.definition.specs :as specs]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
@@ -27,34 +29,6 @@
             [io.pedestal.http.route.internal :as internal])
   (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
-
-#_
-(comment
-  ;; Structure of a route. 'tree' returns a list of these.
-  {:route-name        :new-user
-   :app-name          :example-app                          ; optional
-   :path              "/user/:id/*blah"                     ; like Ruby on Rails
-   ; (catch-all route is "/*path")
-   :method            :post                                 ; or :any, :get, :put, ...
-   :scheme            :https                                ; optional
-   :host              "example.com"                         ; optional
-   :port              "8080"                                ; optional
-   :interceptors      [...]                                 ; vector of interceptors to
-   ; be enqueued on the context
-
-   ;; Generated for path-matching:
-   :path-re           #"/\Quser\E/([^/]+)/(.+)"
-   :path-parts        ["user" :id :blah]
-   :path-params       [:id :blah]
-   :path-constraints  {:id   "([^/]+)"
-                       :blah "(.+)"}
-   :query-constraints {:name   #".+"
-                       :search #"[0-9]+"}
-
-   ;; Generated for routing:
-   :matcher           (fn [request] ...)                    ; returns map from path-params to string
-   ; values on match, nil on non-match
-   })
 
 ;;; Parsing URL query strings (RFC 3986)
 
@@ -459,6 +433,10 @@
    :post [(seq? %)
           (every? (every-pred map? :path :route-name :method) %)]}
   (definition/ensure-routes-integrity (-expand-routes route-spec)))
+
+(s/fdef expand-routes
+        :args (s/cat :spec ::route-specification)
+        :ret ::specs/routing-table)
 
 (defprotocol RouterSpecification
   (router-spec [routing-table router-ctor]
