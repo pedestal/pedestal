@@ -11,10 +11,18 @@
 
 (ns io.pedestal.http.route-repl-test
   "Tests for dev-mode related macros in io.pedestal.http.route."
-  (:require [clojure.test :refer [deftest is]]
+  (:require [clojure.test :refer [deftest is use-fixtures]]
+            [clj-commons.ansi :as ansi]
             [io.pedestal.http.route :as route :refer [routes-from]]
             [io.pedestal.http.route.internal :as i]
             [io.pedestal.environment :refer [dev-mode?]]))
+
+;; pretty uses some fonts unless we prevent that
+
+(use-fixtures :once
+              (fn [f]
+                (binding [ansi/*color-enabled* false]
+                  (f))))
 
 (deftest dev-mode-enabled
   ;; Sanity check that dev-mode is enabled when running tests or a REPL.
@@ -50,9 +58,9 @@
                            (simplify (f)))))]
       (is (= "Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path   ┃ Name                                    ┃
+┃ Method ┃   Path ┃ Name                                    ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
+┃   :get ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 " out-str))
       )
@@ -71,7 +79,7 @@
 ┏━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Method ┃ Path ┃ Name                                  ┃
 ┣━━━━━━━━╋━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /bye ┃ :io.pedestal.http.route-repl-test/bye ┃
+┃   :get ┃ /bye ┃ :io.pedestal.http.route-repl-test/bye ┃
 ┗━━━━━━━━┻━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 " out-str))
         ))))
@@ -86,7 +94,7 @@
 ┏━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Method ┃ Path ┃ Name                                 ┃
 ┣━━━━━━━━╋━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /hi  ┃ :io.pedestal.http.route-repl-test/hi ┃
+┃   :get ┃  /hi ┃ :io.pedestal.http.route-repl-test/hi ┃
 ┗━━━━━━━━┻━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 " out-str))))
 
@@ -126,11 +134,11 @@
     ;; Note: sorted by path
     (is (= "
 ┏━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┓
-┃ App name ┃ Scheme ┃ Host     ┃ Port ┃ Method ┃ Path    ┃ Name       ┃
+┃ App name ┃ Scheme ┃     Host ┃ Port ┃ Method ┃    Path ┃ Name       ┃
 ┣━━━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━╋━━━━━━╋━━━━━━━━╋━━━━━━━━━╋━━━━━━━━━━━━┫
-┃ :main    ┃ :https ┃ main     ┃ 8080 ┃ :get   ┃ /       ┃ :root-page ┃
-┃ :admin   ┃ :http  ┃ internal ┃ 9090 ┃ :post  ┃ /reset  ┃ :reset     ┃
-┃ :admin   ┃ :http  ┃ internal ┃ 9090 ┃ :get   ┃ /status ┃ :status    ┃
+┃    :main ┃ :https ┃     main ┃ 8080 ┃   :get ┃       / ┃ :root-page ┃
+┃   :admin ┃  :http ┃ internal ┃ 9090 ┃  :post ┃  /reset ┃ :reset     ┃
+┃   :admin ┃  :http ┃ internal ┃ 9090 ┃   :get ┃ /status ┃ :status    ┃
 ┗━━━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━┻━━━━━━┻━━━━━━━━┻━━━━━━━━━┻━━━━━━━━━━━━┛
 " out-str))))
 

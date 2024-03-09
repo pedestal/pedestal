@@ -13,6 +13,7 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.1"}
         org.clojure/core.async {:mvn/version "1.6.673"}
+        org.clj-commons/pretty {:mvn/version "2.3.0"}
         io.pedestal/pedestal.log {:mvn/version "0.7.0-SNAPSHOT"}
         io.pedestal/pedestal.interceptor {:mvn/version "0.7.0-SNAPSHOT"}}
  :aliases

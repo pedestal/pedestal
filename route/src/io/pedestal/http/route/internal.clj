@@ -13,7 +13,7 @@
   "Internal utilities, not for reuse, subject to change at any time."
   {:no-doc true
    :added  "0.7.0"}
-  (:require [io.pedestal.http.route.tabularize :as t]))
+  (:require [clj-commons.format.table :as t]))
 
 (defn- uniform?
   "Are all values of the projection of k onto coll the same?"
@@ -50,7 +50,6 @@
   (let [new-routes' (->> new-routes
                          ;; Ignore keys that aren't needed (and cause comparison problems).
                          (map #(select-keys % [:app-name :scheme :host :port :method :path :route-name]))
-                         ;; TODO: Sort
                          set)]
     (when (not= @*prior-routes new-routes')
       (println "Routing table:")
