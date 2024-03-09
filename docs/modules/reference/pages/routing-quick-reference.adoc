@@ -122,22 +122,22 @@ The expanded routing table is a list of maps, each with the following specific s
 (table-routes #{{:app-name :example-app
                  :scheme   :https
                  :host     "example.com"}
-                ["/department/:id" :get []
+                ["/department/:id/employees" :get []
                  :route-name :org.example.app/employee-search
                  :constraints {:name  #".+"
                                :order #"(asc|desc)"}]})
 =>
 ({:route-name :org.example.app/employee-search <1>
    :app-name   :example-app  <2>
-   :path       "/department/:id/" <3>
+   :path       "/department/:id/employees" <3>
    :method     :get <4>
    :scheme     :https <5>
    :host       "example.com" <6>
    :port       8080 <7>
    :interceptors [...] <8>
 
-   :path-re           #"/\Qdepartment\E/([^/]+)/(.+)" <9>
-   :path-parts        ["department" :id] <10>
+   :path-re #"/\Qdepartment\E/([^/]+)/\Qemployees\E" <9>
+   :path-parts        ["department" :id "employees"] <10>
    :path-params       [:id] <11>
    :path-constraints  {:id "([^/]+)"} <12>
    :query-constraints {:name #".+" <13>
@@ -162,9 +162,14 @@ The expanded routing table is a list of maps, each with the following specific s
 <13> Query constraints, which maps keywords corresponding to query parameters to regular expressions
      used to match the parameters.
 
-This ficticious example defines a URI that includes an id in the path, but also
+This ficticious example defines a URI that includes an id in the request path, but has also defined query parameters
+constraints.
 
 The api:routing-table[] specification exhaustively defines what is allowed in a routing table.
+
+A path parameter will normally match a single name with in the path, delimited by `/` characters; an alternate form
+is the wildcard,, which starts with `*` and must come at the end of the path:  `["/accounts/*ids :get ...]` would
+provide a path parameter named :ids, and will contain anything on the URL after `/accounts/`, including any slashes.
 
 == Builtin Routers
 
