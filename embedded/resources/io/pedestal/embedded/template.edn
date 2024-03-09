@@ -19,7 +19,8 @@
  :transform
  [["build" ""
    {"build.tmpl" "build.clj"
-    "deps.tmpl"  "deps.edn"}
+    "deps.tmpl"  "deps.edn"
+    "start-jaeger.sh" "start-jaeger.sh"}
    :only]
   ["dev" "dev"
    {"user.tmpl"           "user.clj"

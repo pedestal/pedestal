@@ -35,13 +35,16 @@ link:https://github.com/ring-clojure/ring[Ring]; Ring has a very simple model:
 - The response map is used to generate an HTTP response
 
 Cross-cutting concerns, such as logging and authentication, are handled in Ring via
-_middleware_.  Middleware is a function that takes a handler function, wraps it with new
+_middleware_.  Middleware is a special class of function with a particular purpose. A middleware
+function accepts a handler function, wraps it with new
 behavior, and returns a new handler function.
+
+For example, a middleware function could parse the :body key of the request (which starts as a Java InputStream) and pass it though a JSON parser, replacing :body with the parsed content.  Any handlers _downstream_ of that middleware can expect the :body key to be parsed JSON.
 
 Because a Ring handler is a stack of functions that invoke functions{empty}footnote:[Ring has, more recently, itself started to
 support asynchronous flows and WebSockets.] there's no room to support asynchronous flows.
 The essence of an asynchronous flow is that a function can
-_return_ early, and later, _resume_ from where they left off - a significant challenge for a language
+_return_ early, and later, _resume_ from where it left off - a significant challenge for a language
 that doesn't support this concept, such as Java.
 
 As we'll see shortly, interceptors provide a different model where the return early and resume later is more explicit.
@@ -94,8 +97,8 @@ A callback function, passed the context map and an exception, returns a possibly
 [sidebar]
 .Why not a Protocol?
 This may look like a situation where a Clojure Protocol would make sense. However,
-a Protocol would have to define all four parts (a method for :name, :enter, :leave, and :error).
-This would be cumbersome, and would prevent some optimizations that occur inside Pedestal.
+a Protocol would have to define all four parts (a method corresponding to each of :name, :enter, :leave, and :error).
+This would not only be cumbersome, but would prevent some optimizations that occur inside Pedestal.
 
 So the context map flows through each interceptor; first through the enter phase, then later
 through the leave phase:
@@ -229,7 +232,7 @@ The same approach could be used for any number of other purposes, including:
 - Transforming a document
 - Sending an outgoing HTTP request and processing the response
 
-The man differences are:
+The main differences are:
 
 - What data is stored in the initial context map
 - What are the termination conditions of the enter phase (via the api:terminate-when[ns=io.pedestal.interceptor.chain] function)

@@ -1,6 +1,6 @@
 # Pedestal Changelog
 
-**NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
+**NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
 ## 0.7.0 - UNRELEASED
 
@@ -29,6 +29,7 @@ Other changes:
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
 - Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
+- Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 
