@@ -20,7 +20,7 @@
   [o]
   (instance? Pattern o))
 
-(defn has-meta?
+(defn- has-meta?
   [k]
   (fn [v]
     (contains? (meta v) k)))
