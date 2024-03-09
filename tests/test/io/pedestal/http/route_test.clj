@@ -17,7 +17,6 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
-            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.interceptor :refer [interceptor]]
             [clojure.test :refer [deftest is are testing use-fixtures]]
             [ring.middleware.resource]
@@ -49,7 +48,7 @@
     (try
       (stest/instrument [`verbose/expand-verbose-routes
                          `terse/terse-routes
-                         `table/table-routes])
+                         `table-routes])
       (f)
       (finally
         (stest/unstrument)))))
