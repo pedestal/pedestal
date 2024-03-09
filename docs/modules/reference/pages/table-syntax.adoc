@@ -26,6 +26,11 @@
      ]))
 ----
 
+The specs api:table-options[ns=io.pedestal.http.route.definition.specs] and
+api:table-routes[ns=io.pedestal.http.route.definition.specs] define the arguments
+to `table-routes`.
+
+
 === Syntax for api:expand-routes[ns=io.pedestal.http.route]
 
 [source,clojure]

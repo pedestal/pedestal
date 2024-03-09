@@ -66,29 +66,12 @@ take a few minutes to set it up.
 == A Note About Routing Syntax
 
 Since Pedestal was first unveiled, we've gone through a couple of
-iterations on the routing syntax. So far, these iterations have all
-been additive. Prior to release 0.5.0, guides and samples all used the
-"terse" syntax, which is written as a triply-nested vector. The terse
-syntax is powerful but not easy.
+iterations on the routing syntax. So far, these iterations have all been additive.
 
-Release 0.5.0 introduced a new syntax we call the "table"
-syntax. It is more wordy and has some repetition from row to row, but
-it also has some advantages:
+Some of the older examples may still use the older, "terse", syntax.
+All newer examples, such as this one, use the table syntax; it's much simpler, and easier to understand at a glance.
 
-1. The parser is simpler and produces better error messages when
-the input is not right. (This includes some work to make stack
-traces more helpful.)
-2. The table does not have hierarchical nesting, so the rows are
-independent.
-3. The input is just data, so you can read it from an EDN file or
-compose it with regular functions. No more syntax-quoting to
-create interceptors with parameters.
-
-The "terse" and "verbose" syntax are both still supported, until we
-hear from the community. We've also put some effort into better error
-messages when dealing with the terse format.
-
-See the xref:reference:routing-quick-reference.adoc[] for full details.
+The older syntaxes (yes, there's an even older one called "verbose") are still supported; if you come across very old code, check the xref:reference:routing-quick-reference.adoc[] for full details.
 
 == Defining a Route: The Bare Minimum
 
@@ -374,7 +357,7 @@ order is as follows
 
    1. Path - String
    2. Verb - keyword (e.g., :get)
-   3. Interceptors - vector
+   3. Interceptors - interceptor, handler function, or vector of interceptors
    4. Route name clause (:route-name _your-route-name_)
    5. Constraints clause (:constraints _constraint-map_)
 
@@ -385,8 +368,8 @@ You'll notice that most of the examples above omit the
 Pedestal will pick one for you. It uses the :name of the last
 interceptor in the interceptor vector.
 
-When you reuse interceptors, or when you supply a handler _function_ as the
-final interceptor, you'll need to explicitly specify the route name.
+Route names must be unique, so if you use the same interceptor in the last position in multiple routes, you'll  have to
+supply the route name.
 
 === Using Route Names to Distinguish Handlers
 
@@ -397,14 +380,14 @@ make multiple rows in a table, you will get errors:
 
 [source,clojure]
 ----
-;;; This won't work in table syntax. Both rows get the same automatic
-;;; route name.
+;;; This won't work; both rows get the same automatic
+;;; route name and an exception is thrown.
 ["/users" :get user-api-handler]
 ["/users" :post user-api-handler]
 ----
 
-You have a couple of options. To stick with table syntax, you can use
-route names to distinguish the rows:
+The best approach is to simply provide a unique route name to each route that shares
+the handler.
 
 [source,clojure]
 ----
@@ -412,21 +395,10 @@ route names to distinguish the rows:
 ["/users" :post user-api-handler :route-name :user-create]
 ----
 
-The route names are enough to make each row unique.
-
-With terse syntax, one path has a map that allows multiple verbs. Each
-verb can use the same handler as long as they specify different route names:
-
-[source,clojure]
-----
-["/users" {:get user-api-handler
-           :post [:user-create user-api-handler]}]
-----
-
 == Generating URLs
 
-In addition to routing, route tables are also used for URL
-generation. You can request a URL for a given route by name and
+In addition to routing incoming requests, the routing data is also
+available URL generation. You can request a URL for a given route by name and
 specify parameter values to fill in. This section describes URL
 generation, starting with how routes are named.
 
@@ -434,8 +406,11 @@ generation, starting with how routes are named.
 
 The
 api:url-for-routes[ns=io.pedestal.http.route]
-function takes the *parsed* route table and returns a URL generating
-function. The generator accepts a route name and optional arguments
+function takes the *expanded* routing table footnote:[This is
+what's returned from api:table-routes[ns=io.pedestal.http.route.definition.table].]
+and creates and returns a function that uses the data to craft URL strings.
+
+The function accepts a route name and optional arguments
 and returns a URL that can be used in a hyperlink.
 
 [source,clojure]

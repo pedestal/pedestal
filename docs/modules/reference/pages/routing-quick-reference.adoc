@@ -1,4 +1,23 @@
 = Routing Quick Reference
+::default_api_ns: io.pedestal.http.route.definition.specs
+
+_Routing_ is the process by which an incoming request is analyzed to determine how it
+will be processed by Pedestal.
+
+Routing is based on comparing any of a number of factors from the request, including:
+
+- The request path (including matching wild cards in the path)
+- The HTTP method used (GET, POST, etc.)
+- The HTTP scheme used in the request
+- The name of host in the request
+- The port number
+
+It's natural to understand why path and method are involved in routing; less obvious for
+the other factors. Essentially, a single Pedestal application may host two or more concurrent
+applications inside the same server - incoming requests are differentiated most often by port, but
+can also be differentiated by the host.  A somewhat common example is an outward-facing consumer
+application exposed outside a company's firewall, and an inward-facing admin application
+that is only available inside the firewall.
 
 == Library
 
@@ -8,12 +27,17 @@ routers. It can be used independently of the pedestal-service library.
 
 == Route Specifications vs. Routers vs. Routing Interceptor
 
-Routing is the process of recognizing an incoming request, and matching it to a particular behavior.
-A route identifies a particular request path and request method (such as :get or :post) and identifies
-corresponding behavior in terms of a handler function, or a list of interceptors to execute.
+Pedestal is data driven, and the routing information starts in one form (as data) and is then
+transformed in a couple of stages to reach a final result that can be used to route incoming requests.
 
-A _route specification_ is data that can be transformed and linked with a specific routing algorithm
-to form a routing interceptor:
+The start is the route specification.
+Pedestal has three built-in formats for route specification:
+table, terse, and verbose.  Table is the newest format (but still old - it dates back to 2016)
+and is the preferred format; the others are maintained for compatibility.
+
+For each of the built-in formats, there is a function that can convert that specific format
+into a _routing table_ (also known as expanded routes).  Pedestal can often figure out which
+function to invoke based on the kind of data: set, vector, or map:
 
 [mermaid]
 ....
@@ -32,8 +56,10 @@ _Route specifications_ are the data values that spell out the possible routes.
 These are normalized and expanded into a routing table.
 
 A _Router Constructor_ function is provided with the routing table, and applies a specific strategy to match incoming requests
-to the provided routes; there are a few different built-in Router implementations, with different limitations
-and trade-offs. The constructor returns a
+to the provided routes; there are a few different constructor functions, each
+with different limitations and trade-offs.
+
+The constructor returns a
 api:Router[ns=io.pedestal.http.route.router] instance encapsulating the routing table and the
 strategy.
 
@@ -58,13 +84,12 @@ function converts any kind of specification into a routing table:
 | Argument to `expand-routes` | Syntax used
 
 | Set
-| xref:table-syntax.adoc[] - most recent and straight forward; trades some redundancy for simplicity,
-  and is recommended in most cases.
-
+| xref:table-syntax.adoc[] - Most recent (2016), easier than terse format,
+  recommended for new projects.
 
 | Vector
 | xref:terse-syntax.adoc[] - improvement on the verbose syntax, with an emphasis on avoiding
-  redundancy.
+  redundancy, but can be hard to read and write, since its deeply nested maps.
 
 | Map
 | xref:verbose-syntax.adoc[] - oldest format.
@@ -74,43 +99,72 @@ This mapping from value type to specification type is the responsibility of the
 api:ExpandableRoutes[ns=io.pedestal.http.route] protocol, which is
 extended on Map, Set, and Vector.
 
+[sidebar]
+`ExpandableRoutes` is only needed when Pedestal is provided with routes but doesn't know what
+format they are in.  It is also perfectly valid to build the routes explicitly, by directly
+calling api:table-routes[ns=io.pedestal.http.route.definition.table], and then building
+your own routing interceptor.
+
+It's not impossible that your application has specific needs that can't be met by any of the
+built-in formats and, as is often the case in Pedestal.
 To support a new syntax, come up with a syntax that resolves to new record type that implements the
 ExpandableRoutes protocol.
 
-=== Routing Table
+== Routing Table
 
-The expanded routing table is a list of maps, each with the following structure:
+The expanded routing table is a list of maps, each with the following specific structure:
+
+
+
 
 [source,clojure]
 ----
-  {:route-name :org.example.app/new-user
-   :app-name   :example-app        ; optional
-   :path       "/user/:id/*blah"   ; like Ruby on Rails
-                                   ; (catch-all route is "/*path")
-   :method     :post               ; or :any, :get, :put, ...
-   :scheme     :https              ; optional
-   :host       "example.com"       ; optional
-   :port       "8080"              ; optional
-   :interceptors [...]             ; vector of interceptors to be enqueued on the context
+(table-routes #{{:app-name :example-app
+                 :scheme   :https
+                 :host     "example.com"}
+                ["/department/:id" :get []
+                 :route-name :org.example.app/employee-search
+                 :constraints {:name  #".+"
+                               :order #"(asc|desc)"}]})
+=>
+({:route-name :org.example.app/employee-search <1>
+   :app-name   :example-app  <2>
+   :path       "/department/:id/" <3>
+   :method     :get <4>
+   :scheme     :https <5>
+   :host       "example.com" <6>
+   :port       8080 <7>
+   :interceptors [...] <8>
 
-   ;; Generated for path-matching:
-   :path-re           #"/\Quser\E/([^/]+)/(.+)"
-   :path-parts        ["user" :id :blah]
-   :path-params       [:id :blah]
-   :path-constraints  {:id "([^/]+)"
-                       :blah "(.+)"}
-   :query-constraints {:name #".+"
-                       :search #"[0-9]+"}
-   }
+   :path-re           #"/\Qdepartment\E/([^/]+)/(.+)" <9>
+   :path-parts        ["department" :id] <10>
+   :path-params       [:id] <11>
+   :path-constraints  {:id "([^/]+)"} <12>
+   :query-constraints {:name #".+" <13>
+                       :order #"(asc|desc)"}
+   })
 ----
+<1> :route-name is required and must be a keyword; often a qualified keyword. The route name must
+    be unique within the table.
+<2> Optional, used for documentation only.
+<3> Must start with a leading slash; terms with a leading `:` identify _path parameters_, or
+    a leading `*` identifies a wildcard.
+<4> HTTP method to match against, or :any to match any HTTP method.
+<5> Optional for matching, must be :http or :http.
+<6> Optional for matching.
+<7> Optional for matching.
+<8> A vector of interceptors (or values that can be converted to interceptors)
+<9> A regular expression, generated from the path, that can match an incoming path
+    and provide capture groups for path parameters.
+<10> The parts of the path, as strings or keywords.
+<11> The path parameters, in the order they appear in the path.
+<12> Path constraints{empty}footnote:[Not clear why this is here.]
+<13> Query constraints, which maps keywords corresponding to query parameters to regular expressions
+     used to match the parameters.
 
-:route-name must be unique; typically it is a qualified keyword to ensure uniqueness.
+This ficticious example defines a URI that includes an id in the path, but also
 
-The keys :path-re, :path-parts, :path-params, and
-:path-constraints are derived from the :path.
-
-Users will not generally write routes directly in verbose format.
-Use of the table format is encouraged.
+The api:routing-table[] specification exhaustively defines what is allowed in a routing table.
 
 == Builtin Routers
 
@@ -134,25 +188,23 @@ When the value of :io.pedestal.http/router is a keyword, it selects
 one of the built-in algorithms:
 
 |===
-| Keyword | Router | Performance | Scaling in # Routes | Limitations
+| Keyword | Router | Performance
 
 | :map-tree
 | xref:map-tree-router.adoc[Map Tree]  (default)
 | Very fast
-| Constant
-| Applies when all routes are static (no wild cards). Falls back to prefix tree if any routes have path parameters or wildcards.
+
 
 | :prefix-tree
 | xref:prefix-tree-router.adoc[Prefix Tree]
 | High performance, space efficient
-| Log32(N)
-| Wildcard routes always win over explicit paths in the same subtree. E.g., `/path/:wild` will always match, even if `/path/user` is defined
+
+
 
 | :linear-search
 | xref:linear-search-router.adoc[Linear Search]
 | Lowest performance
-| O(N)
-| Routes are checked in order. Precedence is precise.
+
 |===
 
 == Custom Router

@@ -5,14 +5,29 @@ describing routes. When the argument to
 api:expand-routes[ns=io.pedestal.http.route]
 is a *vector*, it will be expanded using the terse syntax.
 
-Unlike the Table or Verbose syntax, it allows for the nesting
-of route definitions where each nested route vector adds a path segment.
+In essense, the terse syntax is nested maps; the nesting supplies the structure of the
+path and each nested map contains keyword keys to identify handlers (by method), or string keys
+to describe further nested paths.
 
-Unlike the Table syntax, any verb can be specified without verb whitelisting.
+This is all a bit complex and hard to describe, thus the move to
+xref:table-syntax.adoc[table routes].
+
+Unlike the table syntax, any verb can be specified without verb whitelisting.
 
 A route table is a vector of nested vectors. Top-level
 vector(s) are termed _application_ vectors. Nested vectors are termed _route_
 vectors.
+
+The spec api:terse-routes[ns=io.pedestal.http.route.definition.specs] defines the terse
+table format.
+
+[NOTE]
+====
+There's an intermediate step hidden in the terse syntax; the map format
+is quietly converted into the proper terse format; the map
+is keyed on path name and the value is a route description, which may define sub-routes.
+These are flattened into a non-nested sequence of routes.
+====
 
 == Quick Reference
 
