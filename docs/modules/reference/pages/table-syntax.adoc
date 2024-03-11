@@ -26,8 +26,8 @@
      ]))
 ----
 
-The specs api:table-options[ns=io.pedestal.http.route.definition.specs] and
-api:table-routes[ns=io.pedestal.http.route.definition.specs] define the arguments
+The specs api:table-options[ns=io.pedestal.http.route.specs] and
+api:table-routes[ns=io.pedestal.http.route.specs] define the arguments
 to `table-routes`.
 
 

@@ -12,14 +12,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route-test
-  (:require [clojure.set :as set]
+  (:require [clojure.test :refer [deftest is use-fixtures are testing]]
+            [clojure.set :as set]
             [clojure.pprint :refer [pprint]]
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [io.pedestal.interceptor :refer [interceptor]]
-            [clojure.test :refer [deftest is are testing use-fixtures]]
-            [ring.middleware.resource]
+            io.pedestal.http.route.specs
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.route :as route :refer [expand-routes]]
@@ -131,6 +131,16 @@
 (defn site-demo [site-name]
   (fn [& _]
     (ring-response/response (str "demo page for " site-name))))
+
+(deftest specs-are-enforced
+  ;; Sanity check that specs are enforced from within test functions
+  (when-let [e (is (thrown? ExceptionInfo
+                            (table-routes [{:path "not leading slash"}])))]
+    (is (= "Call to io.pedestal.http.route.definition.table/table-routes did not conform to spec."
+           (ex-message e)))
+    (is (match?
+          {::s/args '([{:path "not leading slash"}])}
+          (ex-data e)))))
 
 ;; schemes, hosts, path, verb and maybe query string
 (def verbose-routes                                         ;; the verbose hierarchical data structure

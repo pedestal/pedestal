@@ -18,7 +18,7 @@ A route table is a vector of nested vectors. Top-level
 vector(s) are termed _application_ vectors. Nested vectors are termed _route_
 vectors.
 
-The spec api:terse-routes[ns=io.pedestal.http.route.definition.specs] defines the terse
+The spec api:terse-routes[ns=io.pedestal.http.route.specs] defines the terse
 table format.
 
 [NOTE]

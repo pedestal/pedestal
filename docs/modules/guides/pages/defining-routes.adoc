@@ -397,10 +397,9 @@ the handler.
 
 == Generating URLs
 
-In addition to routing incoming requests, the routing data is also
-available URL generation. You can request a URL for a given route by name and
-specify parameter values to fill in. This section describes URL
-generation, starting with how routes are named.
+In addition to routing incoming requests, the routing data is also available to the application for URL generation.
+You can request a URL for a given route by name and specify parameter values to fill in.
+This section describes URL generation, starting with how routes are named.
 
 === URL generation
 

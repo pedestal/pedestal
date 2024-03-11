@@ -12,10 +12,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.definition.table
-  (:require [clojure.spec.alpha :as s]
-            [io.pedestal.interceptor :as interceptor]
+  (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.route.definition :as route-definition]
-            [io.pedestal.http.route.definition.specs :as specs]
             [io.pedestal.http.route.path :as path])
   (:import (java.util List)))
 
@@ -164,16 +162,3 @@
        (map-indexed #(route-table-row opts %1 %2) routes)
        (map #(route-table-row opts nil %) routes)))))
 
-;; Tricky, because of the optional leading options map which can (instead)
-;; be embedded in the routes map.
-
-(s/fdef table-routes
-        :args (s/or
-                :informal (s/*
-                            (s/or
-                              :options ::specs/table-options
-                              :route ::specs/table-route))
-                :proper (s/cat
-                          :options (s/? ::specs/table-options)
-                          :routes ::specs/table-routes))
-        :ret ::specs/routing-table)

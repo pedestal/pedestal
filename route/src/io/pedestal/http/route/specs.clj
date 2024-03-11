@@ -9,11 +9,18 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.route.definition.specs
-  "Clojure spec definitions related to routing descriptions and routing tables."
+(ns io.pedestal.http.route.specs
+  "Clojure spec definitions related to routing descriptions and routing tables.
+
+  This namespace includes function specifications for a number of routing-related functions;
+  specs are optional unless this namespace is required."
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [io.pedestal.interceptor :as i])
+            [io.pedestal.interceptor :as i]
+            [io.pedestal.http.route.definition.table :as table]
+            [io.pedestal.http.route.definition.terse :as terse]
+            [io.pedestal.http.route.definition.verbose :as verbose]
+            [io.pedestal.http.route :as route])
   (:import (java.util.regex Pattern)))
 
 (defn- is-re?
@@ -45,12 +52,11 @@
 (s/def ::scheme #{:http :https})
 (s/def ::children (s/coll-of ::verbose-route))
 (s/def ::port (s/and integer? pos?))
-(s/def ::path string?)
+(s/def ::path (s/and string?
+                     #(string/starts-with? % "/")))
 (s/def ::verbs (s/map-of ::verb ::verb-action))
 (s/def ::verb #{:any :get :put :post :delete :path :options :head})
 (s/def ::verb-action (s/or
-                       ;; A symbol here is resolved via IntoInterceptor
-                       :symbol symbol?
                        :handler ::handler
                        :map ::handler-map))
 
@@ -183,3 +189,32 @@
 (s/def ::path-constraints ::constraints)
 (s/def ::query-constraints ::constraints)
 
+;; --- FUNCTION SPECIFICATIONS ----
+
+;; Tricky, because of the optional leading options map which can (instead)
+;; be embedded in the routes map.
+
+(s/fdef table/table-routes
+        :args (s/or
+                :informal (s/*
+                            (s/or
+                              :options ::table-options
+                              :route ::table-route))
+                :proper (s/cat
+                          :options (s/? ::table-options)
+                          :routes ::table-routes))
+        :ret ::routing-table)
+
+(s/fdef terse/terse-routes
+        :args (s/cat :routes ::terse-routes)
+        :ret ::routing-table)
+
+(s/fdef verbose/expand-verbose-routes
+        :args (s/cat :routes ::verbose-routes)
+        :ret ::routing-table)
+
+(s/def ::route-specification #(satisfies? route/ExpandableRoutes %))
+
+(s/fdef route/expand-routes
+        :args (s/cat :spec ::route-specification)
+        :ret ::routing-table)

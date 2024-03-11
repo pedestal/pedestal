@@ -12,13 +12,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route
-  (:require [clojure.spec.alpha :as s]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.log :as log]
             [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.http.route.definition.specs :as specs]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
@@ -433,10 +431,6 @@
    :post [(seq? %)
           (every? (every-pred map? :path :route-name :method) %)]}
   (definition/ensure-routes-integrity (-expand-routes route-spec)))
-
-(s/fdef expand-routes
-        :args (s/cat :spec ::route-specification)
-        :ret ::specs/routing-table)
 
 (defprotocol RouterSpecification
   (router-spec [routing-table router-ctor]

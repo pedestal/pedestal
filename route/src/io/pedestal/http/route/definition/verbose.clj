@@ -13,10 +13,8 @@
 
 (ns io.pedestal.http.route.definition.verbose
   (:require [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.http.route.definition.specs :as specs]
             [io.pedestal.http.route.path :as path]
             [io.pedestal.interceptor :refer [interceptor?] :as i]
-            [clojure.spec.alpha :as s]
             [clojure.string :as string])
   (:import (clojure.lang IPersistentMap)))
 
@@ -140,7 +138,3 @@
   (->> route-maps
        (mapcat (partial generate-route-entries default-dna))
        definition/ensure-routes-integrity))
-
-(s/fdef expand-verbose-routes
-        :args (s/cat :routes ::specs/verbose-routes)
-        :ret ::specs/routing-table)

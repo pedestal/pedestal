@@ -1,5 +1,5 @@
 = Routing Quick Reference
-::default_api_ns: io.pedestal.http.route.definition.specs
+::default_api_ns: io.pedestal.http.route.specs
 
 _Routing_ is the process by which an incoming request is analyzed to determine how it
 will be processed by Pedestal.
@@ -114,9 +114,6 @@ ExpandableRoutes protocol.
 
 The expanded routing table is a list of maps, each with the following specific structure:
 
-
-
-
 [source,clojure]
 ----
 (table-routes #{{:app-name :example-app
@@ -150,7 +147,7 @@ The expanded routing table is a list of maps, each with the following specific s
 <3> Must start with a leading slash; terms with a leading `:` identify _path parameters_, or
     a leading `*` identifies a wildcard.
 <4> HTTP method to match against, or :any to match any HTTP method.
-<5> Optional for matching, must be :http or :http.
+<5> Optional for matching, must be :http or :https.
 <6> Optional for matching.
 <7> Optional for matching.
 <8> A vector of interceptors (or values that can be converted to interceptors)
