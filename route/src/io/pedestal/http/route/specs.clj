@@ -162,7 +162,7 @@
                                   ::method
                                   ::path-re
                                   ::path-parts
-                                  ::i/interceptors
+                                  ::interceptors
                                   ::route-name
                                   ::path-params
                                   ::path-constraints
@@ -182,6 +182,10 @@
 ;; The params defined in the path as keywords; used to build a map of keyword to path parameter
 ;; when matched.
 (s/def ::path-params (s/coll-of keyword?))
+
+;; In an expanded routing entry, the interceptors should also be expanded
+;; (into Interceptor records).
+(s/def ::interceptors (s/coll-of ::i/interceptor))
 
 ;; Constraints from the definition are split up; those that match a part parameter
 ;; go in :path-constraints, the rest go in :query-constraints.
