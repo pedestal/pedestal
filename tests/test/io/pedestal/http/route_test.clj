@@ -134,10 +134,9 @@
 
 (deftest specs-are-enforced
   ;; Sanity check that specs are enforced from within test functions
-  (when-let [e (is (thrown? ExceptionInfo
+  ;; Clojure 1.10 includes the #' in the message, Clojure 1.11 does not.
+  (when-let [e (is (thrown-with-msg? ExceptionInfo #"\QCall to \E(#')?\Qio.pedestal.http.route.definition.table/table-routes did not conform to spec.\E"
                             (table-routes [{:path "not leading slash"}])))]
-    (is (= "Call to io.pedestal.http.route.definition.table/table-routes did not conform to spec."
-           (ex-message e)))
     (is (match?
           {::s/args '([{:path "not leading slash"}])}
           (ex-data e)))))
