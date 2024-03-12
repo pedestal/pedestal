@@ -10,10 +10,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         io.pedestal/pedestal.service {:mvn/version "0.7.0-SNAPSHOT"}
 
-        org.clojure/data.xml {:mvn/version "0.2.0-alpha8"}
+        org.clojure/data.xml {:mvn/version "0.2.0-alpha9"}
 
         ;; Auto-reload changes
         ns-tracker/ns-tracker {:mvn/version "0.4.0"}
@@ -21,9 +21,9 @@
         ;; Logging
         ch.qos.logback/logback-classic {:mvn/version "1.4.8"}
 
-        org.slf4j/jul-to-slf4j {:mvn/version "2.0.7"}
-        org.slf4j/jcl-over-slf4j {:mvn/version "2.0.7"}
-        org.slf4j/log4j-over-slf4j {:mvn/version "2.0.7"}}
+        org.slf4j/jul-to-slf4j {:mvn/version "2.0.12"}
+        org.slf4j/jcl-over-slf4j {:mvn/version "2.0.12"}
+        org.slf4j/log4j-over-slf4j {:mvn/version "2.0.12"}}
 
  :aliases
  {:dev

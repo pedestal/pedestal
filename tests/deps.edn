@@ -17,13 +17,13 @@
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
  :deps {criterium/criterium {:mvn/version "0.4.6"}
 
-        nubank/matcher-combinators {:mvn/version "3.8.8"}
+        nubank/matcher-combinators {:mvn/version "3.9.1"}
         nubank/mockfn {:mvn/version "0.7.0"}
         expound/expound {:mvn/version "0.9.0"}
 
-        org.clojure/java.classpath {:mvn/version "1.0.0"}
-        org.clojure/tools.namespace {:mvn/version "1.4.4"}
-        org.clojure/data.json {:mvn/version "2.4.0"}
+        org.clojure/java.classpath {:mvn/version "1.1.0"}
+        org.clojure/tools.namespace {:mvn/version "1.5.0"}
+        org.clojure/data.json {:mvn/version "2.5.0"}
         ;; TODO: clj-http 3.10.0 is available but
         ;; gzip compression test fails. Even though
         ;; `accept-encoding: gzip, deflate` is set by clj-http
@@ -40,7 +40,7 @@
         ;; https://github.com/AsyncHttpClient/async-http-client
         ;; So benchmarking should be updated to use that.
         com.ning/async-http-client {:mvn/version "1.8.13"}
-        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.18"}
+        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.20"}
 
         ;; Include *all* the other modules
         io.pedestal/pedestal.log {:local/root "../log"}
@@ -54,7 +54,7 @@
         io.pedestal/pedestal.common {:local/root "../common"}
         io.pedestal/pedestal.error {:local/root "../error"}
 
-        io.github.hlship/trace {:mvn/version "v1.0"}
+        io.github.hlship/trace {:mvn/version "1.1"}
 
         ;; This is primarily to pick up the logging dependencies it provides.
         io.pedestal/pedestal.service-tools {:local/root "../service-tools"}
@@ -69,7 +69,7 @@
  :aliases
  {
   :1.12
-  {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha7"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha9"}}}
 
   :1.10
   {:override-deps {org.clojure/clojure {:mvn/version "1.10.1"}}}
@@ -85,11 +85,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.35.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.35.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.35.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.35.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.35.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.36.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.36.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.36.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.36.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.36.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

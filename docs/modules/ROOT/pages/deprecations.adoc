@@ -35,6 +35,10 @@ This is termed a deferred interceptor and has also been deprecated.
 
 Handler functions are _not_ deprecated.
 
+=== Service Tools
+
+The entire pedestal/pedestal.service-tools library has been deprecated.
+
 === Interceptor Chain
 
 The api:execute-only[ns=io.pedestal.interceptor.chain] function has been deprecated;
