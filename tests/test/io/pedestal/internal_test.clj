@@ -11,14 +11,18 @@
 
 (ns io.pedestal.internal-test
   (:require [clojure.string :as string]
+            [io.pedestal.test-common :as tc]
             [io.pedestal.internal :refer [resolve-var-from]]
-            [clojure.test :refer [deftest is]])
+            [clojure.test :refer [deftest is use-fixtures]])
   (:import (java.io StringWriter)))
 
 (def test-overridden ::test-value)
 (def prod-not-overridden ::prod-value)
 (def via-string-key ::string-key-value)
 (def via-default ::via-default)
+
+(use-fixtures :once
+              tc/no-ansi-fixture)
 
 (defmacro capture-output [stream & body]
   `(let [s# (StringWriter.)]

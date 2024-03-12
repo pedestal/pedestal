@@ -13,20 +13,12 @@
   "Internal utilities, not for reuse, subject to change at any time."
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [clj-commons.ansi :refer [perr]]))
 
 (defn vec-conj
   [v value]
   (conj (or v []) value))
-
-(defn into-vec
-  [v coll]
-  (into (or v []) coll))
-
-(defn println-err
-  [& s]
-  (binding [*out* *err*]
-    (apply println s)))
 
 (defn- read-config
   [resource-path]
@@ -42,9 +34,9 @@
     (nil? val) nil
 
     (string? val)
-    (let [slashx     (string/index-of val "/")
-          ns-str     (when slashx
-                       (subs val 0 slashx))
+    (let [slashx (string/index-of val "/")
+          ns-str (when slashx
+                   (subs val 0 slashx))
           symbol-str (if slashx
                        (subs val (inc slashx))
                        val)]
@@ -65,14 +57,18 @@
         (let [v (requiring-resolve sym)]
           (if v
             @v
-            (println-err (format "WARNING: Symbol %s (%s) does not exist"
-                                 (str sym)
-                                 value-source))))
+            (perr [:yellow
+                   [:bold "WARNING: "]
+                   (format "Symbol %s (%s) does not exist"
+                           (str sym)
+                           value-source)])))
         (catch Exception e
-          (println-err (format "ERROR: Could not resolve symbol %s (%s): %s"
-                               (str sym)
-                               value-source
-                               (ex-message e))))))))
+          (perr [:red
+                 [:bold "ERROR: "]
+                 (format "Could not resolve symbol %s (%s): %s"
+                         (str sym)
+                         value-source
+                         (ex-message e))]))))))
 
 (defn resolve-var-from
   "Resolves a var based on a JVM property, environment variable, or a default.
@@ -99,8 +95,11 @@
   [label]
   (when-not (contains? @*deprecations label)
     (swap! *deprecations conj label)
-    (println-err (str "WARNING: " label
-                      " is deprecated and may be removed in a future release"))))
+    (perr
+      [:yellow
+       [:bold "WARNING: "]
+       label
+       " is deprecated and may be removed in a future release"])))
 
 (defmacro deprecated
   [label & body]

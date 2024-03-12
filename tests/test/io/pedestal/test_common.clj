@@ -1,5 +1,5 @@
 ; Copyright 2024 Nubank NA
-
+;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
 ; which can be found in the file epl-v10.html at the root of this distribution.
@@ -9,5 +9,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:deps {org.clojure/clojure    {:mvn/version "1.11.1"}
-        org.clj-commons/pretty {:mvn/version "2.3.0"}}}
+(ns io.pedestal.test-common
+  (:require [clj-commons.ansi :as ansi]))
+
+(defn no-ansi-fixture
+  [f]
+  (binding [ansi/*color-enabled* false]
+    (f)))
