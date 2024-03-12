@@ -15,10 +15,10 @@
   {:ns-default build
    :paths ["build" "tests/resources"]
    :deps {io.github.hlship/build-tools {:git/tag "0.10.1" :git/sha "7ecff5b"}
-          io.github.hlship/trace {:mvn/version "v1.0"}
+          io.github.hlship/trace {:mvn/version "1.1"}
           io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.7"}
-          clj-kondo/clj-kondo {:mvn/version "2024.02.12"}
+          clj-kondo/clj-kondo {:mvn/version "2024.03.05"}
           org.clj-commons/pretty {:mvn/version "2.3.0"}
           babashka/fs {:mvn/version "0.5.20"}}}
 

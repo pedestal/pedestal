@@ -1,3 +1,2 @@
 * xref:contributing.adoc[]
 * xref:privacy.adoc[]
-* xref:todo.adoc[]

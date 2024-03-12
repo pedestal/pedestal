@@ -1,4 +1,4 @@
-= Developer Mode
+= Development Mode
 
 Pedestal can operate in two different modes: production, and local development.
 
@@ -13,13 +13,14 @@ From the command line, this can be accomplished by using the `-J` switch:
 
 Alternately, you can update your `deps.edn` file, associating a JVM option with an alias:
 
-```
+[source]
+----
    ...
    :aliases
      {:dev-mode
        {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}
    ...
-```
+----
 
 You can then reference the alias when starting a REPL session:
 

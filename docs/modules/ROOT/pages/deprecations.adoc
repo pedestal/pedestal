@@ -1,0 +1,62 @@
+= Deprecations
+
+
+== 0.7.0
+
+In _most_ cases, Pedestal can now emit a warning the first time a deprecated function, macro,
+or other bit of functionality is used; these warnings are printed to the console (not logged).
+
+Example:
+
+[source]
+----
+WARNING: io.pedestal.http.route.definition/defroutes is deprecated and may be removed in a future release
+
+----
+
+The following sections are a non-exhaustive list of deprecations.
+
+=== Interceptors
+
+Release 0.7.0 saw the introduction of the
+api:routes-from[ns=io.pedestal.http.route] macro, a new and preferred way of supporting
+xref:guides:live-repl.adoc[live code changes at the REPL].
+
+Previously, it was possible to convert a function call into an interceptor; the point of this
+was to defer invoking the function until when the route specification was converted to a router
+(which can happen on every request when in
+xref:reference:dev-mode.adoc[development mode]); however, this relied on the use of
+clj:eval[], and is of no real utility with development mode and live REPL reloading and has been deprecated.
+
+Normally, a function in an interceptor list is treated as a handler (rather than an interceptor).
+Alternately, a function with the :interceptor or :interceptorfn metadata would be invoked
+and expected to return an interceptor (or some other object that could convert to an interceptor).
+This is termed a deferred interceptor and has also been deprecated.
+
+Handler functions are _not_ deprecated.
+
+=== Service Tools
+
+The entire pedestal/pedestal.service-tools library has been deprecated.
+
+=== Interceptor Chain
+
+The api:execute-only[ns=io.pedestal.interceptor.chain] function has been deprecated;
+it is not believed this function is used outside of Pedestal's test suite.  Removing it
+opens up some options for optimizing chain execution in a later release.
+
+Likewise, the newly added api:queue[ns=io.pedestal.interceptor.chain] function replaces accessing
+the interceptor execution queue using the :io.pedestal.interceptor.chain/queue key; this
+will also allow future optimizations to chain execution.
+
+=== Tracing and Metrics
+
+The namespace api:*[ns=io.pedestal.interceptor.trace] was
+deprecated along with many related functions and protocols in the
+api:*[ns=io.pedestal.log] namespace related to metrics and tracing; these have been
+replaced with a new library, pedestal.telemetry.
+
+== 0.6.0
+
+The entire api:*[ns=io.pedestal.interceptor.helpers] namespace was deprecated; this had
+been retained since 2016 for backwards compatibility.

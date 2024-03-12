@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service-tools.war
+(ns ^{:deprecated "0.7.0"} io.pedestal.service-tools.war
   (:require [clojure.data.xml :as xml]
             [clojure.java.io :as io])
   (:import (java.io ByteArrayInputStream InputStream)

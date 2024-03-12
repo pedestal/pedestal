@@ -1,2 +1,4 @@
 * xref:index.adoc[]
+* xref:deprecations.adoc[]
 * xref:terms.adoc[]
+
