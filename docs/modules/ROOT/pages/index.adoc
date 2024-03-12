@@ -36,6 +36,7 @@ to allow secure front end applications.</div>
       <div class="paragraph">
 A simple Pedestal app fits into a few lines of Clojure; Pedestal includes
 a <a href="https://github.com/seancorfield/deps-new">deps-new</a> template for getting you started.
+When you need more power, it's ready for you.
 </div>
     </div>
 
@@ -46,17 +47,18 @@ test; then lets you stack those pieces up to form your full application.</div>
     </div>
   </div>
 
+
   <div class="main-feature-row">
     <div class="main-feature">
       <h3>Streaming</h3>
       <div class="paragraph">Pedestal supports creating dynamic applications with server-sent events and WebSockets. Pedestal leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.</div>
     </div>
-</div>
 
-    <div class="main-feature">
+<div class="main-feature">
       <h3>Composable and Extensible</h3>
-      <div class="paragraph">Pedestal is built from pieces that connect via protocols, giving you the flexibility to swap out any part with something
+      <div class="paragraph">Pedestal is built from components that connect via protocols, giving you the flexibility to swap out any part with something
 customized to your application.</div>
+</div>
     </div>
 
   </div>

@@ -28,34 +28,6 @@
   (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
 
-#_
-(comment
-  ;; Structure of a route. 'tree' returns a list of these.
-  {:route-name        :new-user
-   :app-name          :example-app                          ; optional
-   :path              "/user/:id/*blah"                     ; like Ruby on Rails
-   ; (catch-all route is "/*path")
-   :method            :post                                 ; or :any, :get, :put, ...
-   :scheme            :https                                ; optional
-   :host              "example.com"                         ; optional
-   :port              "8080"                                ; optional
-   :interceptors      [...]                                 ; vector of interceptors to
-   ; be enqueued on the context
-
-   ;; Generated for path-matching:
-   :path-re           #"/\Quser\E/([^/]+)/(.+)"
-   :path-parts        ["user" :id :blah]
-   :path-params       [:id :blah]
-   :path-constraints  {:id   "([^/]+)"
-                       :blah "(.+)"}
-   :query-constraints {:name   #".+"
-                       :search #"[0-9]+"}
-
-   ;; Generated for routing:
-   :matcher           (fn [request] ...)                    ; returns map from path-params to string
-   ; values on match, nil on non-match
-   })
-
 ;;; Parsing URL query strings (RFC 3986)
 
 ;; Java's URLEncoder/URLDecoder are only correct when applied on

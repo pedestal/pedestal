@@ -12,11 +12,14 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route-test
-  (:require [clojure.set :as set]
+  (:require [clojure.test :refer [deftest is use-fixtures are testing]]
+            [clojure.set :as set]
             [clojure.pprint :refer [pprint]]
+            [clojure.spec.test.alpha :as stest]
+            [clojure.spec.alpha :as s]
+            [expound.alpha :as expound]
             [io.pedestal.interceptor :refer [interceptor]]
-            [clojure.test :refer [deftest is are testing]]
-            [ring.middleware.resource]
+            io.pedestal.http.route.specs
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.route :as route :refer [expand-routes]]
@@ -27,7 +30,30 @@
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
-            [io.pedestal.http.route.definition.terse :refer [map-routes->vec-routes]]))
+            [io.pedestal.http.route.definition.terse :as terse :refer [map-routes->vec-routes]])
+  (:import (clojure.lang ExceptionInfo)))
+
+
+(comment
+  (s/conform :io.pedestal.http.route.definition.specs/terse-route-entry
+             ["/foo" ^:interceptors [map] {:get `bar}
+              ["/bar" {:post conj}]
+              ["/baz" {:delete into}]])
+  )
+
+(defn- enable-expound-fixture
+  [f]
+  (with-redefs [s/explain     expound/expound
+                s/explain-str expound/expound-str]
+    (try
+      (stest/instrument [`verbose/expand-verbose-routes
+                         `terse/terse-routes
+                         `table-routes])
+      (f)
+      (finally
+        (stest/unstrument)))))
+
+(use-fixtures :once enable-expound-fixture)
 
 (defn handler
   [name request-fn]
@@ -105,6 +131,15 @@
 (defn site-demo [site-name]
   (fn [& _]
     (ring-response/response (str "demo page for " site-name))))
+
+(deftest specs-are-enforced
+  ;; Sanity check that specs are enforced from within test functions
+  ;; Clojure 1.10 includes the #' in the message, Clojure 1.11 does not.
+  (when-let [e (is (thrown-with-msg? ExceptionInfo #"\QCall to \E(#')?\Qio.pedestal.http.route.definition.table/table-routes did not conform to spec.\E"
+                            (table-routes [{:path "not leading slash"}])))]
+    (is (match?
+          {::s/args '([{:path "not leading slash"}])}
+          (ex-data e)))))
 
 ;; schemes, hosts, path, verb and maybe query string
 (def verbose-routes                                         ;; the verbose hierarchical data structure
@@ -206,7 +241,9 @@
         ["/intercepted" ^:interceptors [interceptor-2]
          {:get [:hierarchical-intercepted request-inspection]}]]
        ["/terminal/intercepted"
-        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]]))
+        {:get [:terminal-intercepted ^:interceptors [interceptor-1 interceptor-2] request-inspection]}]]])
+
+  )
 
 (def map-routes
   ;; One limitation is you can't control hostname or protocol
@@ -1114,7 +1151,7 @@
         "Route names for all routing syntaxes match")))
 
 (deftest url-for-without-*url-for*-should-error-properly
-  (is (thrown-with-msg? clojure.lang.ExceptionInfo #"\*url-for\* not bound"
+  (is (thrown-with-msg? ExceptionInfo #"\*url-for\* not bound"
                         (route/url-for :my-route))))
 
 (deftest method-param-test
@@ -1167,14 +1204,14 @@
              (get-in (ex-data (try (url-for-admin ::delete-user
                                                   :strict-path-params? true
                                                   :path-params {:user-id nil})
-                                   (catch clojure.lang.ExceptionInfo e
+                                   (catch ExceptionInfo e
                                      e)))
                      [:route :path-params]))
           "Should throw when nil.")
       (is (= [:user-id]
              (get-in (ex-data (try (url-for-admin ::delete-user
                                                   :strict-path-params? true)
-                                   (catch clojure.lang.ExceptionInfo e
+                                   (catch ExceptionInfo e
                                      e)))
                      [:route :path-params]))
           "Should throw when missing."))))

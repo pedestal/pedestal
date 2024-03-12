@@ -12,7 +12,7 @@ tradeoff is acceptable to your service.
 
 == How to use it?
 
-Add the key :io.pedestal.http/router to the service map with the
+Add the key :io.pedestal.http/router to the xref:service-map.adoc[] with the
 value :linear-search.
 
 == Caveats
@@ -24,4 +24,8 @@ This implementation routes requests in linear time, so it's the simplest and slo
 Pedestal's first router implementation. 
 
 Query and path constraints are used in routing decisions unlike the
-xref:prefix-tree-router.adoc[] or xref:map-tree-router.adoc[].
+xref:prefix-tree-router.adoc[] or xref:map-tree-router.adoc[].  That is, if a route
+is considered (based on path, method, and so forth) but the path or query parameters
+violate the constraints defined in the route, then the search will continue.
+For the other routers, a route is matched and then either used, or (if constraints
+do not match) the entire request is treated as unrouted.

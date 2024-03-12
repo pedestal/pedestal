@@ -201,6 +201,6 @@
          (dissoc-when nil?)
          (add-children routes))))
 
-(defn terse-routes [route-spec]
+(defn terse-routes
+  [route-spec]
   (verbose/expand-verbose-routes (map flatten-terse-app-routes route-spec)))
-

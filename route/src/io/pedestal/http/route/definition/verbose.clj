@@ -15,7 +15,8 @@
   (:require [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.path :as path]
             [io.pedestal.interceptor :refer [interceptor?] :as i]
-            [clojure.string :as string]))
+            [clojure.string :as string])
+  (:import (clojure.lang IPersistentMap)))
 
 (defn- handler->interceptor
   [name request-fn]
@@ -35,17 +36,7 @@
 (defn resolve-interceptor [interceptor name]
   (if (interceptor? interceptor)
     (handler-interceptor interceptor name)
-    (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) name)
-
-    ;(symbol? interceptor) (if (-> (resolve interceptor)
-    ;                              fn?)
-    ;                        (handler-interceptor ((resolve interceptor)) name)
-    ;                        (handler-interceptor @(resolve interceptor) name))
-    ;(seq? interceptor) (handler-interceptor (eval interceptor) name)
-
-    ))
-
-
+    (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) name)))
 
 (defn handler-map [m]
   (cond
@@ -53,8 +44,8 @@
     (let [handler-name (definition/symbol->keyword m)]
       {:route-name handler-name
        :handler    (resolve-interceptor m handler-name)})
-    ;(isa? (type m) clojure.lang.APersistentMap)
-    (instance? clojure.lang.IPersistentMap m)
+
+    (instance? IPersistentMap m)
     (let [{:keys [route-name handler interceptors]} m
           handler-name     (cond
                              (symbol? handler) (definition/symbol->keyword handler)
@@ -133,8 +124,8 @@
   of `route-map` and `dna`"
   [dna {:keys [verbs children] :as route-map}]
   (let [current-dna (update-dna dna route-map)]
-    (concat (map (partial generate-verb-terminal current-dna) verbs)
-            (mapcat (partial generate-route-entries current-dna) children))))
+    (concat (map #(generate-verb-terminal current-dna %) verbs)
+            (mapcat #(generate-route-entries current-dna %) children))))
 
 (def default-dna
   {:path-parts   []
@@ -147,4 +138,3 @@
   (->> route-maps
        (mapcat (partial generate-route-entries default-dna))
        definition/ensure-routes-integrity))
-

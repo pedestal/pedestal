@@ -14,7 +14,7 @@ parameters and wildcards) are required. The prefix tree router operates in logar
 
 == How to use it?
 
-Add the key :io.pedestal.http/router to the service map with the
+Add the key :io.pedestal.http/router to the xref:service-map.adoc[] with the
 value :prefix-tree.
 
 == Caveats

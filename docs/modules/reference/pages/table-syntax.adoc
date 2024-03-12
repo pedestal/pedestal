@@ -26,6 +26,11 @@
      ]))
 ----
 
+The specs api:table-options[ns=io.pedestal.http.route.specs] and
+api:table-routes[ns=io.pedestal.http.route.specs] define the arguments
+to `table-routes`.
+
+
 === Syntax for api:expand-routes[ns=io.pedestal.http.route]
 
 [source,clojure]
@@ -90,14 +95,12 @@ mind that wildcard fallback routes are not recommended since they tend to
 increase the complexity of handler logic.
 
 
-
-
 === HTTP Verb
 
-By default, The verb must be one of the keywords in `#{:any, :get, :put, :post,
-:delete, :patch, :options, :head}`. However, you can override the verbs by
+By default, The verb must be one of the keywords in :any, :get, :put, :post,
+:delete, :patch, :options, or :head. However, you can override the allowed verbs by
 including an options map with the keyword :verb in your route definition. The
-value of :verb is the `set` of verb keywords you wish to support. It is
+value of :verb is the a set of verb keywords you wish to support in the routes. It is
 through this facility that you can specify custom verbs.
 
 ==== Syntax for specifying verbs

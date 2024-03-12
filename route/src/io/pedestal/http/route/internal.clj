@@ -12,60 +12,35 @@
 (ns io.pedestal.http.route.internal
   "Internal utilities, not for reuse, subject to change at any time."
   {:no-doc true
-   :added  "0.7.0"})
+   :added  "0.7.0"}
+  (:require [io.pedestal.http.route.tabularize :as t]))
 
-(defn- column-width
-  [title-width k values]
-  (reduce max title-width (map #(-> % k str count) values)))
-
-(defn- padded [s width ^String p]
-  (let [b (StringBuilder. (str s))]
-    (while (< (.length b) width)
-      (.append b p))
-    (.toString b)))
+(defn- uniform?
+  "Are all values of the projection of k onto coll the same?"
+  [k coll]
+  (->> coll
+       (map k)
+       distinct
+       count
+       (>= 1)))
 
 (defn print-routing-table
-  [expanded-routes]
-  (let [path-width   (column-width 4 :path expanded-routes)
-        name-width   (column-width 4 :route-name expanded-routes)
-        method-width (column-width 6 :method expanded-routes)]
-    (println (str "┏━"
-                  (padded nil method-width "━")
-                  "━┳━"
-                  (padded nil path-width "━")
-                  "━┳"
-                  (padded nil name-width "━")
-                  "━━┓"))
-    (println (str "┃ "
-                  (padded "Method" method-width " ")
-                  " ┃ "
-                  (padded "Path" path-width " ")
-                  " ┃ "
-                  (padded "Name" name-width " ")
-                  " ┃"))
-    (println (str "┣━"
-                  (padded nil method-width "━")
-                  "━╋━"
-                  (padded nil path-width "━")
-                  "━╋━"
-                  (padded nil name-width "━")
-                  "━┫"))
-    (doseq [{:keys [method path route-name]} (sort-by :path expanded-routes)]
-      (println (str "┃ "
-                    (padded method method-width " ")
-                    " ┃ "
-                    (padded path path-width " ")
-                    " ┃ "
-                    (padded route-name name-width " ")
-                    " ┃"
-                    )))
-    (println (str "┗━"
-                  (padded nil method-width "━")
-                  "━┻━"
-                  (padded nil path-width "━")
-                  "━┻"
-                  (padded nil name-width "━")
-                  "━━┛"))))
+  [routes]
+  ;; Omit the first few columns which may be missing, or may be entirely uniform
+  (let [columns [(when-not (uniform? :app-name routes)
+                   :app-name)
+                 (when-not (uniform? :scheme routes)
+                   :scheme)
+                 (when-not (uniform? :host routes)
+                   :host)
+                 (when-not (uniform? :port routes)
+                   :port)
+                 :method
+                 :path
+                 {:key   :route-name
+                  :title "Name"}]]
+    (t/print-table (remove nil? columns)
+                   (sort-by :path routes))))
 
 
 (defn print-routing-table-on-change
@@ -74,7 +49,8 @@
   [*prior-routes new-routes]
   (let [new-routes' (->> new-routes
                          ;; Ignore keys that aren't needed (and cause comparison problems).
-                         (map #(select-keys % [:method :path :route-name]))
+                         (map #(select-keys % [:app-name :scheme :host :port :method :path :route-name]))
+                         ;; TODO: Sort
                          set)]
     (when (not= @*prior-routes new-routes')
       (println "Routing table:")
