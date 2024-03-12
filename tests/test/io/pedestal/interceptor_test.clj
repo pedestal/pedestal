@@ -213,7 +213,7 @@
 
 (deftest t-two-channels
   (let [result-chan (chan)
-        _•           (execute (enqueue {}
+        _           (execute (enqueue {}
                                       [(deliverer result-chan)
                                        (tracer :a)
                                        (channeler :b)

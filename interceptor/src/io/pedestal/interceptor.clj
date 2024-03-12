@@ -14,7 +14,8 @@
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
-  (:require [clojure.spec.alpha :as s])
+  (:require [clojure.spec.alpha :as s]
+            [io.pedestal.internal :as i])
   (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
            (java.io Writer)))
 
@@ -42,17 +43,26 @@
   (-interceptor [t]
     (let [int-meta (meta t)]
       ;; To some degree, support backwards compatibility
+      ;; But deprecated in 0.7.0
       (if (or (:interceptor int-meta)
               (:interceptorfn int-meta))
-        (-interceptor (t))
+        (i/deprecated
+          "deferred interceptors (via ^:interceptor metadata)"
+          (-interceptor (t)))
+        ;; This is the standard case, the handler function (which really should only
+        ;; be allowed in the terminal position of a list of interceptors).
         (-interceptor {:enter (fn [context]
                                (assoc context :response (t (:request context))))}))))
 
   IPersistentList
-  (-interceptor [t] (-interceptor (eval t)))
+  (-interceptor [t]
+    (i/deprecated "conversion of expressions to interceptors"
+      (-interceptor (eval t))))
 
   Cons
-  (-interceptor [t] (-interceptor (eval t)))
+  (-interceptor [t]
+    (i/deprecated "conversion of expressions to interceptors"
+      (-interceptor (eval t))))
 
   Symbol
   (-interceptor [t] (-interceptor (resolve t)))
