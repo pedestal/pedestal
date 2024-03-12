@@ -41,7 +41,7 @@ The api:execute-only[ns=io.pedestal.interceptor.chain] function has been depreca
 it is not believed this function is used outside of Pedestal's test suite.  Removing it
 opens up some options for optimizing chain execution in a later release.
 
-Likewise, the new function, api:queue[ns=io.pedestal.interceptor.chain], replaces accessing
+Likewise, the newly added api:queue[ns=io.pedestal.interceptor.chain] function replaces accessing
 the interceptor execution queue using the :io.pedestal.interceptor.chain/queue key; this
 will also allow future optimizations to chain execution.
 
