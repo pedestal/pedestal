@@ -74,6 +74,7 @@
  {:coverage
   {:paths      ["test" "resources"]
    :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
+   :jvm-opts   ["-Dio.pedestal.dev-mode=true"]
    :main-opts  ["--main" "cloverage.coverage"
                 "-s" "test"
                 "-n" "\\Qio.pedestal.\\E.*"
