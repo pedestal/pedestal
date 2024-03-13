@@ -9,8 +9,7 @@
 (repl/install-pretty-exceptions)
 (trace/setup-default)
 
-(trace/trace :tracing-enabled true
-             :dev-mode? dev-mode?)
+(trace/trace :dev-mode? dev-mode?)
 
 (trace/set-enable-trace! false)
 

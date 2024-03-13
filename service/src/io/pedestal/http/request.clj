@@ -13,6 +13,9 @@
 (ns io.pedestal.http.request)
 
 (defprotocol ProxyDatastructure
+  "A lazy proxy around a fully-realized data structure.
+
+  This is deprecated in 0.7.0 and will likely be removed in the future."
   (realized [this] "Return fully-realized version of underlying data structure."))
 
 (extend-protocol ProxyDatastructure

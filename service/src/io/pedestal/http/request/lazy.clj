@@ -9,9 +9,11 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 (ns io.pedestal.http.request.lazy
-  (:require [io.pedestal.http.request :as request])
-  (:import (clojure.lang Associative Counted IFn IMapEntry IPersistentCollection IPersistentMap Seqable)
-           (java.util Iterator)))
+  {:deprecated "0.7.0"}
+  (:require [io.pedestal.http.request :as request]
+            [io.pedestal.internal :as i])
+  (:import (clojure.lang Associative Counted IFn ILookup IMapEntry IPersistentCollection IPersistentMap Seqable)
+           (java.util HashMap Iterator)))
 
 ;; TODO: Consider wrapping everything in a delay on entry to the map
 (defn- derefing-delays
@@ -58,7 +60,7 @@
 
 (deftype LazyRequest [^IPersistentMap m]
 
-  clojure.lang.ILookup
+  ILookup
   ;; Upon lookup, transparently deref delayed values.
   (valAt [_ key]
     (let [val (get m key)]
@@ -133,7 +135,7 @@
   IPersistentMap
   (-lazy-request [t] (->LazyRequest t))
 
-  java.util.HashMap
+  HashMap
   (-lazy-request [t] (->LazyRequest (into {} t))))
 
 (defn lazy-request
@@ -147,7 +149,8 @@
   underlying map, but not to raw maps. Use `raw` or `realized` to return plain
   maps of original key-vals or realized key-vals, respectively."
   [m]
-  (-lazy-request m))
+  (i/deprecated `lazy-request
+    (-lazy-request m)))
 
 (defn classify-keys
   "Classify key-value pair based on whether its value is

@@ -10,7 +10,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.request.zerocopy
-  (:require [io.pedestal.http.request :as request])
+  {:deprecated "0.7.0"}
+  (:require [io.pedestal.http.request :as request]
+            [io.pedestal.internal :as i])
   (:import (clojure.lang Associative Counted IFn ILookup IPersistentCollection IPersistentMap MapEntry Seqable)
            (java.util Iterator Map)))
 
@@ -129,5 +131,6 @@
   ([container-req]
    (->CallThroughRequest container-req {}))
   ([container-req override-map]
-   (->CallThroughRequest container-req override-map)))
+   (i/deprecated `call-through-request
+     (->CallThroughRequest container-req override-map))))
 

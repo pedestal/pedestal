@@ -33,7 +33,13 @@ Alternately, a function with the :interceptor or :interceptorfn metadata would b
 and expected to return an interceptor (or some other object that could convert to an interceptor).
 This is termed a deferred interceptor and has also been deprecated.
 
-Handler functions are _not_ deprecated.
+Handler functions are _not_ deprecated, and are quite useful.
+
+=== Service
+
+The api:*[ns=io.pedestal.http.request.lazy] and
+api:*[ns=io.pedestal.http.request.zerocopy]
+namespaces have been deprecated; neither is used by Pedestal.
 
 === Service Tools
 

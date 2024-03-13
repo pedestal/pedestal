@@ -1,5 +1,6 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
-
+;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
 ; which can be found in the file epl-v10.html at the root of this distribution.
@@ -10,7 +11,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.request.servlet-support
-  (:require [io.pedestal.http.request :as request])
+  "Extends the ContainerRequest and ResponseBuffer protocols to the Jakarta Servlet interfaces."
+  (:require [clojure.string :as string]
+            [io.pedestal.http.request :as request])
   (:import (jakarta.servlet.http HttpServletRequest HttpServletResponse)))
 
 (defn servlet-request-headers [^HttpServletRequest servlet-req]
@@ -18,7 +21,7 @@
          names (enumeration-seq (.getHeaderNames servlet-req))]
     (if (seq names)
       (let [^String key (first names)
-            hdrstr      (java.lang.String/join "," ^clojure.lang.EnumerationSeq (enumeration-seq (.getHeaders servlet-req key)))]
+            hdrstr      (string/join "," (enumeration-seq (.getHeaders servlet-req key)))]
         (recur (assoc! out (.toLowerCase key) hdrstr)
                (rest names)))
       (persistent! out))))
@@ -51,4 +54,5 @@
 (extend-protocol request/ResponseBuffer
   HttpServletResponse
   (response-buffer-size [resp]
+
     (.getBufferSize ^HttpServletResponse resp)))
