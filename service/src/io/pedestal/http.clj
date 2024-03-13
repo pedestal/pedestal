@@ -300,9 +300,7 @@
   "Add [[dev-allow-origin]] and [[exception-debug]] interceptors to facilitate local development."
   [service-map]
   (update service-map ::interceptors
-          #(vec (->> %
-                     (cons cors/dev-allow-origin)
-                     (cons servlet-interceptor/exception-debug)))))
+          #(into [cors/dev-allow-origin servlet-interceptor/exception-debug] %)))
 
 ;; TODO: Make the next three functions a provider
 (defn service-fn

@@ -74,11 +74,13 @@
  {:coverage
   {:paths      ["test" "resources"]
    :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
-   :jvm-opts   ["-Dio.pedestal.dev-mode=true"]
+   :jvm-opts   ["-Dio.pedestal.dev-mode=true"
+                "-Dcollecting-coverage=true"]
    :main-opts  ["--main" "cloverage.coverage"
-                "-s" "test"
-                "-n" "\\Qio.pedestal.\\E.*"
-                "-e" ".*test"]}
+                "--test-ns-path" "test"
+                "--ns-regex" "\\Qio.pedestal.\\E.*"
+                "--test-ns-regex" ".*-test"
+                "--ns-exclude-regex" ".*test"]}
 
 
   :1.12
