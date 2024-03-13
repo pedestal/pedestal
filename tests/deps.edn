@@ -64,10 +64,22 @@
         incanter/incanter-charts {:mvn/version "1.9.3"}
 
         ;; only used for tracing test
-        io.jaegertracing/jaeger-client {:mvn/version "1.0.0"}}
+        io.jaegertracing/jaeger-client {:mvn/version "1.0.0"}
+
+        io.github.cognitect-labs/test-runner
+        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+
 
  :aliases
- {
+ {:coverage
+  {:paths      ["test" "resources"]
+   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
+   :main-opts  ["--main" "cloverage.coverage"
+                "-s" "test"
+                "-n" "\\Qio.pedestal.\\E.*"
+                "-e" ".*test"]}
+
+
   :1.12
   {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha9"}}}
 
@@ -76,12 +88,10 @@
 
   ;; clj -X:test
   :test
-  {:extra-deps {io.github.cognitect-labs/test-runner
-                {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-   :jvm-opts   ["-Dio.pedestal.dev-mode=true"]              ;; Needed for io.pedestal.http.route-repl-test
+  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]                ;; Needed for io.pedestal.http.route-repl-test
 
    ;; Need extra test runner to avoid test hangs
-   :exec-fn    io.pedestal.test-runner/test}
+   :exec-fn  io.pedestal.test-runner/test}
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
