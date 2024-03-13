@@ -28,8 +28,7 @@
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
             io.pedestal.http.route
-            io.pedestal.http.request.servlet-support
-            io.pedestal.http.request.zerocopy)
+            io.pedestal.http.request.servlet-support)
   (:import (clojure.core.async.impl.protocols Channel)
            (clojure.lang Fn IPersistentCollection)
            (jakarta.servlet Servlet ServletRequest)
