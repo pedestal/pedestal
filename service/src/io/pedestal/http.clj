@@ -297,7 +297,9 @@
       service-map)))
 
 (defn dev-interceptors
-  "Add [[dev-allow-origin]] and [[exception-debug]] interceptors to facilitate local development."
+  "Add [[dev-allow-origin]] and [[exception-debug]] interceptors to facilitate local development.
+
+  This should normally be invoked after [[default-interceptors]]."
   [service-map]
   (update service-map ::interceptors
           #(into [cors/dev-allow-origin servlet-interceptor/exception-debug] %)))

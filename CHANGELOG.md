@@ -14,8 +14,9 @@
 - Library pedestal.service no longer has a dependency on org.clojure/core.match; the new pedestal.error library has that dependency
 
 Other changes:
-
-- pedestal.logging: SLF4J dependency changed to 2.0.7 
+- When using io.pedestal.http/dev-interceptors, uncaught exceptions are now formatted
+  [clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
+- pedestal.logging: SLF4J dependency changed to 2.0.12
 - Pedestal is now compatible with Clojure 1.10.1 and above
 - In `io.pedestal.interceptor.chain`:
     - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
@@ -25,7 +26,8 @@ Other changes:
   - Support handling of uncaught exceptions
   - May now specify an initial context map
   - May now specify an interceptor responsible for request tracing
-- There is now a clojure.spec specification for the structure of the service map
+- There is now a clojure.spec specification for the structure of the service map, and for
+  the structure of the different route specifications and the expanded routing table
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
 - Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)

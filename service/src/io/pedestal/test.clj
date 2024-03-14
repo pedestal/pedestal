@@ -92,7 +92,7 @@
   ([input] (->servlet-input-stream input)))
 
 (defn- test-servlet-request
-  [verb url & args]
+  [verb ^String url & args]
   (let [{:keys [scheme host port path query-string]} (parse-url url)
         options       (apply array-map args)
         async-context (atom nil)

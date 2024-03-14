@@ -1,4 +1,4 @@
-(ns metrics-playground
+(ns playground
   (:require [io.pedestal.metrics :as m]
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
@@ -11,6 +11,9 @@
 
 (defonce server nil)
 
+(defn fail-handler
+  [request]
+  (throw (ex-info "Bad handler." {:path (:uri request)})))
 
 (defn status-handler
   [request]
@@ -46,7 +49,8 @@
 
 (def routes
   #{["/status" :get status-handler :route-name ::status]
-    ["/async" :get async :route-name ::async]})
+    ["/async" :get async :route-name ::async]
+    ["/fail" :get fail-handler :route-name ::fail]})
 
 (defn- create-and-start-server
   [_]
@@ -54,6 +58,8 @@
         ::http/type   :jetty
         ::http/join?  false
         ::http/routes (route/routes-from routes)}
+       http/default-interceptors
+       http/dev-interceptors
        http/create-server
        http/start))
 

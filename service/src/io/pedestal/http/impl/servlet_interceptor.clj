@@ -14,8 +14,8 @@
 (ns io.pedestal.http.impl.servlet-interceptor
   "Interceptors for adapting the Java HTTP Servlet interfaces."
   (:require [clojure.java.io :as io]
+            [clj-commons.format.exceptions :as exceptions]
             [clojure.pprint :as pprint]
-            [clojure.stacktrace :as stacktrace]
             [clojure.core.async :as async]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
@@ -332,6 +332,11 @@
     {:name  ::terminator-injector
      :enter terminator-inject}))
 
+(defn- format-exception
+  [exception]
+  (binding [exceptions/*fonts* nil]
+    (exceptions/format-exception exception)))
+
 (defn- error-debug
   "When an error propagates to this interceptor error fn, trap it,
   print it to the output stream of the HTTP request, and do not
@@ -343,7 +348,7 @@
          :response (-> (ring-response/response
                          (with-out-str (println "Error processing request!")
                                        (println "Exception:\n")
-                                       (stacktrace/print-cause-trace exception)
+                                       (println (format-exception exception))
                                        (println "\nContext:\n")
                                        (pprint/pprint context)))
                        (ring-response/status 500))))
@@ -391,8 +396,7 @@
             (error-metric-fn)
             (log/error :msg "Servlet code threw an exception"
                        :throwable t
-                       :cause-trace (with-out-str
-                                      (stacktrace/print-cause-trace t))))
+                       :cause-trace (format-exception t)))
           (finally
             (log/counter :io.pedestal/active-servlet-calls -1)
             (swap! *active-calls dec)))))))
