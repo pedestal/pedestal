@@ -119,7 +119,7 @@ The expanded routing table is a list of maps, each with the following specific s
 (table-routes #{{:app-name :example-app
                  :scheme   :https
                  :host     "example.com"}
-                ["/department/:id/employees" :get []
+                ["/department/:id/employees" :get [...]
                  :route-name :org.example.app/employee-search
                  :constraints {:name  #".+"
                                :order #"(asc|desc)"}]})
@@ -150,7 +150,7 @@ The expanded routing table is a list of maps, each with the following specific s
 <5> Optional for matching, must be :http or :https.
 <6> Optional for matching.
 <7> Optional for matching.
-<8> A vector of interceptors (or values that can be converted to interceptors)
+<8> A vector of interceptors (converted via api:IntoInterceptor[ns=io.pedestal.interceptor])
 <9> A regular expression, generated from the path, that can match an incoming path
     and provide capture groups for path parameters.
 <10> The parts of the path, as strings or keywords.
