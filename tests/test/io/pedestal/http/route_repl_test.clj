@@ -12,12 +12,15 @@
 (ns io.pedestal.http.route-repl-test
   "Tests for dev-mode related macros in io.pedestal.http.route."
   (:require [clojure.test :refer [deftest is use-fixtures]]
+            [io.pedestal.http.route.internal :as internal]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.http.route :as route :refer [routes-from]]
-            [io.pedestal.http.route.internal :as i]
+            [io.pedestal.http.route :as route :as route]
             [io.pedestal.environment :refer [dev-mode?]]))
 
-(use-fixtures :once tc/no-ansi-fixture)
+(use-fixtures :once tc/no-ansi-fixture
+              (fn [f]
+                (with-redefs [dev-mode? true]
+                  (f))))
 
 (deftest dev-mode-enabled
   ;; Sanity check that dev-mode is enabled when running tests or a REPL.
@@ -38,76 +41,39 @@
 (def sample-routes
   #{["/hello" :get [#'hello-handler] :route-name ::hello]})
 
-(defn- simplify
+(defn- exercise
   [expanded-routes]
   ;; These two keys do not compare well.
   (mapv #(dissoc % :path-re :interceptors) expanded-routes))
 
+(defmacro routes-from
+  [expr]
+  (internal/routes-from-expr expr &env `route/expand-routes))
+
 (deftest symbol-points-to-var
-  (let [f (routes-from sample-routes)
+  (let [f          (routes-from sample-routes)
         alt-routes #{["/bye" :get #'bye-handler :route-name ::bye]}]
     (is (fn? f))
 
-    (let [out-str (with-out-str
-                    (is (= (simplify (route/expand-routes sample-routes))
-                           (simplify (f)))))]
-      (is (= "Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃   Path ┃ Name                                    ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃   :get ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-" out-str))
-      )
-
-    (let [out-str (with-out-str (f))]
-      ;; Unchanged routing table, no output.
-      (is (= "" out-str)))
+    (is (= (exercise (route/expand-routes sample-routes))
+           (exercise (f))))
 
     ;; Test that the function de-refs the Var, rather than capturing the value
     ;; at macro expansion time.
     (with-redefs [sample-routes alt-routes]
-      (let [out-str (with-out-str
-                      (is (= (simplify (route/expand-routes alt-routes))
-                             (simplify (f)))))]
-        (is (= "Routing table:
-┏━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path ┃ Name                                  ┃
-┣━━━━━━━━╋━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃   :get ┃ /bye ┃ :io.pedestal.http.route-repl-test/bye ┃
-┗━━━━━━━━┻━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-" out-str))
-        ))))
+      (is (= (exercise (route/expand-routes alt-routes))
+             (exercise (f)))))))
 
 (deftest local-symbol-is-simply-wrapped-as-function
   (let [local-routes #{["/hi" :get #'hello-handler :route-name ::hi]}
-        f (routes-from local-routes)
-        out-str (with-out-str
-                  (is (= (simplify (route/expand-routes local-routes))
-                         (simplify (f)))))]
-    (is (= "Routing table:
-┏━━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path ┃ Name                                 ┃
-┣━━━━━━━━╋━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃   :get ┃  /hi ┃ :io.pedestal.http.route-repl-test/hi ┃
-┗━━━━━━━━┻━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-" out-str))))
+        f            (routes-from local-routes)]
+    (is (= (exercise (route/expand-routes local-routes))
+           (exercise (f))))))
 
 (deftest production-mode
   (let [output (with-redefs [dev-mode? false]
-                 (eval `(routes-from sample-routes)))]
+                 (eval `(route/routes-from sample-routes)))]
     (is (identical? sample-routes output))))
-
-(deftest fn-router-invokes-fn-at-creation
-  (let [*invoke-count (atom 0)
-        f (fn []
-            (swap! *invoke-count inc)
-            (route/expand-routes sample-routes))]
-    ; Create a router interceptor
-    (route/router f)
-    ;; The routing spec fn is invoked immediately, even before a
-    ;; request is routed.
-    (is (= 1 @*invoke-count))))
 
 (deftest outputs-extra-columns-when-different
   (let [routes (concat
@@ -125,7 +91,7 @@
 
         out-str (with-out-str
                   (println)
-                  (i/print-routing-table routes))]
+                  (internal/print-routing-table routes))]
     ;; Note: sorted by path
     (is (= "
 ┏━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┓
@@ -136,4 +102,57 @@
 ┃   :admin ┃  :http ┃ internal ┃ 9090 ┃   :get ┃ /status ┃ :status    ┃
 ┗━━━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━┻━━━━━━┻━━━━━━━━┻━━━━━━━━━┻━━━━━━━━━━━━┛
 " out-str))))
+
+(deftest static-routes-printed-once
+  (let [expanded-routes (route/expand-routes sample-routes)
+        out-str         (with-out-str
+                          (println)
+                          (is (= expanded-routes
+                                 (internal/wrap-routing-table expanded-routes))))]
+    (is (= "
+Routing table:
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃   Path ┃ Name                                    ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃   :get ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+" out-str))))
+
+(deftest dynamic-routes-printed-at-startup-and-when-changed
+  (let [expanded-routes (route/expand-routes sample-routes)
+        *routes         (atom expanded-routes)
+        *wrapped        (atom nil)
+        f               (fn []
+                          @*routes)
+        out-str         (with-out-str
+                          (println)
+                          (reset! *wrapped
+                                  (internal/wrap-routing-table f)))
+        wrapped         @*wrapped
+        _               (is (= "
+Routing table:
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃   Path ┃ Name                                    ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃   :get ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+" out-str))
+        out-str         (with-out-str
+                          (is (= expanded-routes (wrapped))))
+        ;; No change, no output
+        _               (is (= out-str ""))
+        new-routes      (route/expand-routes #{["/login" :post hello-handler :route-name ::login]})
+        _               (reset! *routes new-routes)
+        out-str         (with-out-str
+                          (println)
+                          (is (= new-routes (wrapped))))]
+    (is (= out-str "
+Routing table:
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃   Path ┃ Name                                    ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃  :post ┃ /login ┃ :io.pedestal.http.route-repl-test/login ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+"))))
+
 

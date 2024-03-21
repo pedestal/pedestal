@@ -473,10 +473,6 @@
   ;; without restarting the running application, but it is slow.
   Fn
   (router-spec [f router-ctor]
-    ;; Force evaluation of the table now, so that (when using routes-for), the
-    ;; routing table is output to the console. This also ensures that invalid
-    ;; route specifications are caught at startup.
-    (f)
     (interceptor/interceptor
       {:name  ::router
        :enter (fn [context]
@@ -511,8 +507,10 @@
                    (keys router-implementations)))
    (let [router-ctor (if (fn? router-type)
                        router-type
-                       (router-type router-implementations))]
-     (router-spec routing-table router-ctor))))
+                       (router-type router-implementations))
+         routing-table' (cond-> routing-table
+                          dev-mode? internal/wrap-routing-table)]
+     (router-spec routing-table' router-ctor))))
 
 (defn- attach-bad-request-response
   [context exception]
@@ -638,22 +636,8 @@
  to avoid capturing the Var's value, the expansion de-references the named Var before passing it to expand-routes."
   {:added "0.7.0"}
   [route-spec-expr]
-  (cond
-    (not dev-mode?)
+  (if-not dev-mode?
     route-spec-expr
-
-    (and (symbol? route-spec-expr)
-         (not (contains? &env route-spec-expr)))
-    `(let [*prior-routes# (atom nil)]
-       (fn [] (->> (var ~route-spec-expr)
-                   deref
-                   expand-routes
-                   (internal/print-routing-table-on-change *prior-routes#))))
-
-    ;; Either an inline route, a reference to a local symbol, or a function call.
-    :else
-    `(let [*prior-routes# (atom nil)]
-       (fn [] (->> ~route-spec-expr
-                   expand-routes
-                   (internal/print-routing-table-on-change *prior-routes#))))))
+    ;; Internals awkwardly broken out for testing purposes
+    (internal/routes-from-expr route-spec-expr &env `expand-routes)))
 

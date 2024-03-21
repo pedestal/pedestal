@@ -13,7 +13,8 @@
   "Internal utilities, not for reuse, subject to change at any time."
   {:no-doc true
    :added  "0.7.0"}
-  (:require [clj-commons.format.table :as t]))
+  (:require [clj-commons.format.table :as t])
+  (:import (clojure.lang Fn Sequential)))
 
 (defn- uniform?
   "Are all values of the projection of k onto coll the same?"
@@ -43,16 +44,55 @@
                    (sort-by :path routes))))
 
 
-(defn print-routing-table-on-change
-  "Checks if the routing table has changed visibly and prints it if so. Returns the new routing
-  table."
-  [*prior-routes new-routes]
-  (let [new-routes' (->> new-routes
-                         ;; Ignore keys that aren't needed (and cause comparison problems).
-                         (map #(select-keys % [:app-name :scheme :host :port :method :path :route-name]))
-                         set)]
-    (when (not= @*prior-routes new-routes')
-      (println "Routing table:")
-      (print-routing-table new-routes')
-      (reset! *prior-routes new-routes')))
-  new-routes)
+(defn- print-routing-table-with-header
+  [routing-table]
+  (println "Routing table:")
+  (print-routing-table routing-table))
+
+(defprotocol RoutingTableDevMode
+
+  "Wraps a routing table (or a function that returns a routing table)
+  in development mode to print out the table at startup, and when it
+  changes in a visible way."
+
+  (wrap-routing-table [routing-table]))
+
+
+(extend-protocol RoutingTableDevMode
+
+  Sequential
+  (wrap-routing-table [routing-table]
+    (print-routing-table-with-header routing-table)
+    routing-table)
+
+  Fn
+  (wrap-routing-table [routing-table-fn]
+    (let [*prior-routes (atom nil)
+          wrapped-fn    (fn []
+                          (let [new-routes  (routing-table-fn)
+                                new-routes' (->> new-routes
+                                                 ;; Ignore keys that aren't needed (and cause comparison problems).
+                                                 (map #(select-keys % [:app-name :scheme :host :port :method :path :route-name]))
+                                                 set)]
+                            (when (not= new-routes' @*prior-routes)
+                              (print-routing-table-with-header new-routes')
+                              (reset! *prior-routes new-routes'))
+                            new-routes))]
+      ;; Execute once now to get the routing table displayed at startup.
+      (wrapped-fn)
+      ;; And return it to be used when building a Router
+      wrapped-fn)))
+
+
+(defn routes-from-expr
+  "Core of the route/routes-from macro."
+  [route-spec-expr env expand-routes]
+  (if (and (symbol? route-spec-expr)
+           (not (contains? env route-spec-expr)))
+    `(fn []
+       (->> (var ~route-spec-expr)
+            deref
+            ~expand-routes))
+    ;; Either an inline route, a reference to a local symbol, or a function call.
+    `(fn []
+       (~expand-routes ~route-spec-expr))))
