@@ -12,6 +12,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.body-params
+  "Provides interceptors and support for parsing the body of a request, generally according to
+  the content type header.  This results in new keys on the request map, depending on the type
+  of data parsed."
   (:require [clojure.edn :as edn]
             [cheshire.core :as json]
             [cheshire.parse :as parse]
@@ -65,6 +68,11 @@
          (set-content-type parsed-request (:content-type request)))))))
 
 (defn add-parser
+  "Adds a parser to the parser map; content type can either be a string (to exactly match the content type),
+  or a regular expression.
+
+  The parser-fn is passed the request map and returns a modified request map with an appropriate key and parsed value.
+  For example, the default JSON parser adds a :json-params key."
   [parser-map content-type parser-fn]
   (let [content-pattern (if (instance? Pattern content-type)
                           content-type
@@ -94,9 +102,12 @@
                              PushbackReader.
                              (->> (edn/read edn-options))))))))
 
-(def edn-parser
-  "Take a request and parse its body as edn."
-  (custom-edn-parser))
+(def ^{:deprecated "0.7.0"} edn-parser
+  "Take a request and parse its body as edn.
+
+  Invoke [[custom-edn-parser]] instead."
+  (i/deprecated `edn-parser
+    (custom-edn-parser)))
 
 (defn- json-read
   "Parse json stream, supports parser-options with key-val pairs:
@@ -130,9 +141,12 @@
                       ^String encoding)
                     options)))))
 
-(def json-parser
-  "Take a request and parse its body as json."
-  (custom-json-parser))
+(def ^{:deprecated "0.7.0"} json-parser
+  "Take a request and parse its body as JSON.
+
+  Use [[custom-json-parser]] instead."
+  (i/deprecated `json-parser
+    (custom-json-parser)))
 
 (defn custom-transit-parser
   "Return a transit-parser fn that, given a request, will read the
@@ -159,8 +173,11 @@
         transit-params (assoc :transit-params transit-params)))))
 
 (def ^{:deprecated "0.7.0"} transit-parser
-  "Take a request and parse its body as JSON transit."
-  (custom-transit-parser :json))
+  "Take a request and parse its body as JSON transit.
+
+  Use [[custom-transit-parser]] instead."
+  (i/deprecated `transit-parser
+    (custom-transit-parser :json)))
 
 (defn form-parser
   "Take a request and parse its body as a form."
@@ -202,6 +219,18 @@
      #"^application/transit\+msgpack"      (apply custom-transit-parser :msgpack transit-options)}))
 
 (defn body-params
+  "Returns an interceptor that will parse the body of the request according to the content type.
+  The normal rules are provided by [[default-parser-map]] which maps a regular expression identifying a content type
+  to a parsing function for that type.
+
+  Parameters parsed from the body are added as a new key to the request map dependending on
+  which parser does the work; for the default parsers, one of the following will be used:
+
+  - :json-params
+  - :edn-params
+  - :form-params
+  - :transit-params
+  "
   ([] (body-params (default-parser-map)))
   ([parser-map]
    (interceptor
