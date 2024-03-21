@@ -237,7 +237,11 @@
   * :path-params-decoder: An interceptor to decode path params. Default [[path-params-decoder]].
      If nil, this interceptor is not added.
   * :tracing: An interceptor to handle telemetry request tracing; this is added as the first interceptor. Defaults
-    to [[request-tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0)."
+    to [[request-tracing-interceptor]] and can be set to nil to eliminate entirely (added in 0.7.0).
+
+
+  Note that none of the default interceptors will parse the content of the request body (for POST or other requests);
+  individual _routes_ that are of type POST should include the [[body-params]] interceptor to do so."
   [service-map]
   (let [{interceptors          ::interceptors
          request-logger        ::request-logger
@@ -337,6 +341,8 @@
 
 ;;TODO: Make this a multimethod
 (defn interceptor-chain-provider
+  "Called from [[create-provider]], uses the ::chain-provider or ::type key of the service map
+  to create the chain provider. "
   [service-map]
   (let [{::keys [chain-provider type]} service-map]
     (cond
@@ -350,8 +356,8 @@
                           "Try setting :type to :jetty in your service map."))))))
 
 (defn create-provider
-  "Creates the base Interceptor Chain provider, connecting a backend to the interceptor
-  chain."
+  "Applies [[default-interceptors]] (if not already applied) and creates the interceptor chain
+  provider (the basis for starting an embedded servlet container)."
   [service-map]
   (-> service-map
       default-interceptors

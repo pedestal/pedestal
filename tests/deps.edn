@@ -54,7 +54,7 @@
         io.pedestal/pedestal.common {:local/root "../common"}
         io.pedestal/pedestal.error {:local/root "../error"}
 
-        io.github.hlship/trace {:mvn/version "1.1"}
+        io.github.hlship/trace {:mvn/version "1.2"}
 
         ;; This is primarily to pick up the logging dependencies it provides.
         io.pedestal/pedestal.service-tools {:local/root "../service-tools"}
@@ -74,8 +74,7 @@
  {:coverage
   {:paths      ["test" "resources"]
    :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
-   :jvm-opts   ["-Dio.pedestal.dev-mode=true"
-                "-Dcollecting-coverage=true"]
+   :jvm-opts   ["-Dcollecting-coverage=true"]
    :main-opts  ["--main" "cloverage.coverage"
                 "--test-ns-path" "test"
                 "--ns-regex" "\\Qio.pedestal.\\E.*"
@@ -91,10 +90,9 @@
 
   ;; clj -X:test
   :test
-  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]                ;; Needed for io.pedestal.http.route-repl-test
-
+  {
    ;; Need extra test runner to avoid test hangs
-   :exec-fn  io.pedestal.test-runner/test}
+   :exec-fn io.pedestal.test-runner/test}
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
