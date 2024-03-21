@@ -15,7 +15,6 @@
             [io.pedestal.http.route.internal :as internal]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.route :as route :as route]
-            [io.pedestal.http.route.internal :as i]
             [io.pedestal.environment :refer [dev-mode?]]))
 
 (use-fixtures :once tc/no-ansi-fixture
@@ -92,7 +91,7 @@
 
         out-str (with-out-str
                   (println)
-                  (i/print-routing-table routes))]
+                  (internal/print-routing-table routes))]
     ;; Note: sorted by path
     (is (= "
 ┏━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┓
