@@ -17,6 +17,7 @@
             [ring.middleware.session.memory :as memory]
             [io.pedestal.interceptor.chain :as chain]
             [clojure.test :refer [deftest is]]
+            [io.pedestal.http.tracing :refer [mark-routed]]
             [ring.util.io :as rio]
             [ring.middleware.session.store :as store])
   (:import (java.util UUID)))
@@ -63,13 +64,28 @@
                  m/cookies
                  app))))
 
+(defn mock-mark-routed
+  [*route-name]
+  (fn [context route-name]
+    (reset! *route-name route-name)
+    context))
+
+(defmacro with-mark-routed
+  [expected-route-name & body]
+  `(let [*route-name# (atom nil)]
+     (with-redefs [mark-routed (mock-mark-routed *route-name#)]
+       ~@body)
+     (is (= ~expected-route-name @*route-name#))))
+
 (deftest file-is-valid
-  (is (= "<h1>WOOT!</h1>\n"
-         (-> (execute {:uri "/"}
-                      (m/file "test/io/pedestal/public")
-                      app)
-             (get-in [:response :body])
-             slurp))))
+  (with-mark-routed
+    :file
+    (is (= "<h1>WOOT!</h1>\n"
+           (-> (execute {:uri "/"}
+                        (m/file "test/io/pedestal/public")
+                        app)
+               (get-in [:response :body])
+               slurp)))))
 
 (deftest file-info-is-valid
   (is (match?
@@ -160,28 +176,30 @@
         (execute {:query-string "a=1&b=2"} (m/params) app))))
 
 (deftest resource-is-valid
-  (is (= "<h1>WOOT!</h1>\n"
-         (-> (execute {:uri "/index.html"}
-                      (m/resource "/io/pedestal/public"))
-             :response
-             :body
-             slurp))))
+  (with-mark-routed :resource
+                    (is (= "<h1>WOOT!</h1>\n"
+                           (-> (execute {:uri "/index.html"}
+                                        (m/resource "/io/pedestal/public"))
+                               :response
+                               :body
+                               slurp)))))
 
 (deftest fast-resource-is-valid
-  (deftest resource-is-valid
-    (is (= "<h1>WOOT!</h1>\n"
-           (-> (execute {:uri "/index.html"}
-                        (m/fast-resource "/io/pedestal/public"))
-               :response
-               :body
-               slurp)))))
+  (with-mark-routed :fast-resource
+                    (is (= "<h1>WOOT!</h1>\n"
+                           (-> (execute {:uri "/index.html"}
+                                        (m/fast-resource "/io/pedestal/public"))
+                               :response
+                               :body
+                               slurp)))))
 
 (deftest fast-resource-passes-on-post
-  (is (= nil
-         (-> (execute {:uri            "/index.html"
-                       :request-method :post}
-                      (m/fast-resource "/io/pedestal/public"))
-             :response))))
+  (with-mark-routed nil
+                    (is (= nil
+                           (-> (execute {:uri            "/index.html"
+                                         :request-method :post}
+                                        (m/fast-resource "/io/pedestal/public"))
+                               :response)))))
 
 (deftest session-is-valid
   (let [session-key    (str (UUID/randomUUID))

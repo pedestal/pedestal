@@ -17,18 +17,33 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]))
 
+(defn mark-routed
+  "Marks the currently active span as routed, using route-name as the
+  name of the route  and path.  Does nothing if there is no span in the context.
+
+  The path defaults to the :uri of the request.
+
+  Returns the context."
+  ([context route-name]
+   (mark-routed context route-name nil))
+  ([context route-name path]
+   (let [{::keys [span]} context
+         path' (or path (get-in context [:request :uri]))]
+     (when span
+       (let [;; Recompute the method name in case there was verb-smuggling
+             method-name (-> context :request :request-method name string/upper-case)
+             span-name   (str method-name " " path')]
+         (-> span
+             (tracing/rename-span span-name)
+             (tracing/add-attribute :http.route path')
+             (tracing/add-attribute :route.name route-name)))))
+   context))
+
 (defn- update-span-if-routed
   [context]
   (when-let [route (:route context)]
-    (let [{:keys [path route-name]} route
-          {::keys [span]} context
-          ;; Recompute the method name in case there was verb-smuggling
-          method-name (-> context :request :request-method name string/upper-case)
-          span-name   (str method-name " " path)]
-      (-> span
-          (tracing/rename-span span-name)
-          (tracing/add-attribute :http.route path)
-          (tracing/add-attribute :route.name route-name))))
+    (let [{:keys [route-name path]} route]
+      (mark-routed context route-name path)))
   context)
 
 

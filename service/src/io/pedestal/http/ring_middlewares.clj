@@ -17,7 +17,7 @@
   Ring provides a trove of useful and familiar functionality; this namespace exposes that functionality
   as interceptors that work with Pedestal.
 
-  In some cases, the Ring middleware has been reimplemented here."
+  In some cases, some or all of the Ring middleware has been reimplemented here."
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.http.request :as request]
@@ -35,7 +35,8 @@
             [ring.middleware.session :as session]
             [ring.util.mime-type :as mime]
             [ring.util.codec :as codec]
-            [ring.util.response :as ring-resp])
+            [ring.util.response :as ring-resp]
+            [io.pedestal.http.tracing :as tracing])
   (:import (java.nio.channels FileChannel)
            (java.nio.file OpenOption
                           StandardOpenOption)
@@ -137,6 +138,8 @@
 
   The :body key of the response will be a java.io.File.
 
+  If succesful, marks the current tracing span as routed, with a route-name of :file.
+
   Options are specified as key/value pairs after the root-path.
 
   Common options are :index-files? (defaults to true) which maps directory requests to requests for
@@ -147,8 +150,11 @@
     {:name  ::file
      :enter (fn [context]
               (let [response (file/file-request (:request context) root-path opts)]
-                (cond-> context
-                  response (assoc :response response))))}))
+                (if-not response
+                  context
+                  (-> context
+                      (assoc :response response)
+                      (tracing/mark-routed :file)))))}))
 
 (defn file-info
   "An interceptor that, on :leave, will check the request's \"if-modified-since\" headed
@@ -234,6 +240,8 @@
 
   This is a wrapper around ring.middleware.resource/resource-request.
 
+  If succesful, marks the current tracing span as routed, with a route-name of :resource
+
   The response :body may be a java.io.InputStream or a java.io.File depending on the request and the classpath."
   [root-path]
   (interceptor
@@ -241,8 +249,11 @@
      :enter (fn [context]
               (let [{:keys [request]} context
                     response (resource/resource-request request root-path)]
-                (cond-> context
-                  response (assoc :response response))))}))
+                (if-not response
+                  context
+                  (-> context
+                      (assoc :response response)
+                      (tracing/mark-routed :resource)))))}))
 
 (defn fast-resource
   "Fast access to static resources from the classpath; essentially works like the [[resource]] interceptor, but
@@ -252,6 +263,7 @@
   A file is large if it is larger than the HTTP buffer size, which is calculated via
   [[io.pedestal.http.request/response-buffer-size]] and defaults to 1460 bytes.
 
+  If succesful, marks the current tracing span as routed, with a route-name of :fast-resource.
 
   If your container doesn't recognize FileChannel response bodies, this interceptor will cause errors.
 
@@ -268,8 +280,8 @@
    (let [{:keys [loader]} opts]
      (interceptor
        {:name  ::fast-resource
-        :enter (fn [ctx]
-                 (let [{:keys [request]} ctx
+        :enter (fn [context]
+                 (let [{:keys [request]} context
                        {:keys [servlet-response uri path-info request-method]} request]
                    (if (#{:head :get} request-method)
                      (let [buffer-size-bytes (if servlet-response
@@ -296,9 +308,11 @@
                                                            :body (FileChannel/open (.toPath ^File (:body file-resp))
                                                                                    (into-array OpenOption [StandardOpenOption/READ])))))]
                        (if response
-                         (assoc ctx :response response)
-                         ctx))
-                     ctx)))}))))
+                         (-> context
+                             (assoc :response response)
+                             (tracing/mark-routed :fast-resource))
+                         context))
+                     context)))}))))
 
 ;; Ugly access to private function:
 
