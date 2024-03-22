@@ -14,7 +14,8 @@
             [clj-http.client :as http]
             [io.pedestal.http.jetty.util :as jetty-util]
             [io.pedestal.http.jetty-test :as test-util])
-  (:import (org.eclipse.jetty.servlets DoSFilter)
+  (:import (org.eclipse.jetty.servlet ServletContextHandler)
+           (org.eclipse.jetty.servlets DoSFilter)
            (org.eclipse.jetty.server.handler.gzip GzipHandler)))
 
 ;; NOTE:
@@ -26,13 +27,13 @@
 (deftest simple-gzip-handler
   (testing "A Simple GZip Handler"
     (test-util/with-server test-util/hello-world {:port 4347
-                                                  :container-options {:context-configurator (fn [c]
+                                                  :container-options {:context-configurator (fn [ ^ServletContextHandler c]
                                                                                               (let [gzip-handler (GzipHandler.)]
-                                                                                                (.setGzipHandler c gzip-handler)
+                                                                                                (.insertHandler c gzip-handler)
                                                                                                 c))}}
-      (let [response (http/get "http://localhost:4347")]
-        (is (= (:status response) 200))
-        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                           (let [response (http/get "http://localhost:4347")]
+                             (is (= (:status response) 200))
+                             (is (.startsWith ^String (get-in response [:headers "content-type"])
                          "text/plain"))
         (is (.startsWith ^String (:orig-content-encoding response) "gzip"))
         (is (= (:body response) "Hello World"))))))
