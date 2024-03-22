@@ -94,8 +94,7 @@
   constraint's key identifies a path-param."
   [{path-params :path-params :as dna} constraints verbs]
   (if (empty? verbs)
-    (update dna :path-constra
-            ints merge (map definition/capture-constraint constraints))
+    (update dna :path-constraints merge (map definition/capture-constraint constraints))
     (let [path-param? (fn [[k _]] (some #{k} path-params))
           [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
       (-> dna
