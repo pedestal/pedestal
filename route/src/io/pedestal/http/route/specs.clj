@@ -16,7 +16,7 @@
   specs are optional unless this namespace is required."
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [io.pedestal.interceptor :as i]
+            [io.pedestal.interceptor.specs :as i]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.verbose :as verbose]
