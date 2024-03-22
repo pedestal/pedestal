@@ -1,5 +1,50 @@
 = Verbose Syntax
 
-== Placeholder
+The verbose syntax is the oldest routing specification format used in Pedestal and should not generally be used,
+though it may be of use when generating a route specification from code.  It is very close in format
+to the expanded routing table.
 
-*Pull requests welcomed!*
+Verbose syntax is composed of a sequence of maps; each map defines a single route.
+
+[source,clojure]
+----
+{:app-name <string>  <1>
+ :scheme <:http or :https>
+ :host <string>
+ :port <number>
+ :constraints <map> <2>
+ :interceptors <vector> <3>
+ :path <string> <4>
+ :verbs <map> <5>
+ :children <vector> <6>
+}
+----
+<1> :app-name, :schema, :host, and :port are optional. They define the values for this route and any children.
+<2> :constraints is a map of keyword (matching a path or query parameter) to a regular expression; this is merged into the containing routes constraints
+<3> :interceptors is a vector ???; this is appended to the containing route's interceptors
+<4> :path is required, and must start with a slash; this is appended to the containing routes path
+<5> :verbs is a mapping from keyword (:get, :post, etc.) to handler
+<6> :children is an optional list of routes nested within this route
+
+Handlers, the values in the :verbs map, can be a symbol or a map.
+
+A symbol will be resolved to a Var; the value in the Var will be converted to an Interceptor record.
+In cases where the interceptor is anonymous (has no :name), the symbol is converted to a keyword and used as the :name.
+
+The :name of the interceptor becomes the name of the route.
+
+When a handler is a map, it has the following keys:
+
+[source,clojure]
+----
+{:route-name <string> <1>
+ :handler <...> <2>
+ :interceptors <vector> <3>
+}
+----
+<1> :route-name is optional and will be derived from the handler.
+<2> The handler may be either a symbol or an interceptor.
+<3> :interceptors is optional and identifies interceptors appended to the containing route's interceptors
+
+Ultimately, the handler (converted to an interceptor) is appended to the list of interceptors.
+

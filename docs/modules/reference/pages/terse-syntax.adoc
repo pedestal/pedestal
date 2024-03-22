@@ -58,15 +58,18 @@ footnote:current-and-child[Applies to the current route and any child routes.]
 
 (def routes
   [[:hello-world :http
-    ["/order" {:get  `list-orders
-               :post [:post-without-id `create-order]}
-     ["/:id"
+    ["/order" {:get  `list-orders <1>
+               :post [:post-without-id `create-order]} <2>
+     ["/:id" <3>
       ^:interceptors [load-order-from-db]
       ^:constraints  {:id #"[0-9]+"}
       {:get `view-order
        :put `update-order
        :post [:post-by-id `create-order]}]]]])
 ----
+<1> Pedestal will convert the symbol `myapp.service/list-orders` to a keyword and use that as the route name
+<2> The route name will be :post-without-id
+<3> Nested routes inherit a path prefix from the containing route; this will match on `/order/:id`.
 
 == Detailed Reference
 
