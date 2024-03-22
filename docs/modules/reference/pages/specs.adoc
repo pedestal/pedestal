@@ -1,0 +1,22 @@
+= Specs
+
+Limited parts of Pedestal are described using
+link:https://clojure.org/guides/spec[Clojure specs].
+
+This includes the structure of the
+xref:service-map.adoc[], and the various kinds of
+xref:routing-quick-reference.adoc[route specifications].
+
+Use of spec is entirely optional; specs are confined to their own namespaces
+which are not loaded by the library itself.  You can, in your own application's tests, load these namespaces and instrument functions as appropriate.
+
+Spec namespaces:
+
+* api:*[ns=io.pedestal.interceptor.specs]
+* api:*[ns=io.pedestal.route.specs]
+* api:*[ns=io.pedestal.http.impl.servlet-interceptor.specs]
+* api:*[ns=io.pedestal.http.specs]
+* api:*[ns=io.pedestal.websocket.specs]
+
+
+
