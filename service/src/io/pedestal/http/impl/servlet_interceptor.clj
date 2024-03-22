@@ -24,7 +24,6 @@
             [io.pedestal.http.request :as request]
             [io.pedestal.http.request.map :as request-map]
             [ring.util.response :as ring-response]
-            [clojure.spec.alpha :as s]
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
             io.pedestal.http.route
@@ -401,14 +400,11 @@
             (log/counter :io.pedestal/active-servlet-calls -1)
             (swap! *active-calls dec)))))))
 
-(s/def ::http-interceptor-service-fn-options
-  (s/keys :opt-un [::exception-analyzer]))
-
-(s/def ::exception-analyzer fn?)
 
 (defn http-interceptor-service-fn
   "Returns a function which can be used as an implementation of the
-  Servlet.service method. It executes the interceptors on an initial
+  Servlet.service method. It executes the interceptors (which must be
+  already converted into Interceptor records) on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
   and :servlet-response. The [[stylobate]] and [[ring-response]] interceptors
   are prepended to the sequence of interceptors.

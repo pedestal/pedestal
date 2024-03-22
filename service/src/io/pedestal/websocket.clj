@@ -11,7 +11,6 @@
 
 (ns io.pedestal.websocket
   (:require [clojure.core.async :as async :refer [go-loop put!]]
-            [clojure.spec.alpha :as s]
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
            (jakarta.websocket EndpointConfig SendHandler Session MessageHandler$Whole RemoteEndpoint$Async)
@@ -95,21 +94,6 @@
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
     (.addEndpoint container config)))
 
-(s/def ::endpoint-map (s/keys :opt-un [::on-open
-                                       ::on-close
-                                       ::on-error
-                                       ::on-text
-                                       ::on-binary]))
-
-;; TODO: Expand these as fspec's
-(s/def ::on-open fn?)
-(s/def ::on-close fn?)
-(s/def ::on-error fn?)
-(s/def ::on-text fn?)
-(s/def ::on-binary fn?)
-
-(s/def ::websockets-map
-  (s/map-of string? ::endpoint-map))
 
 (defn add-endpoints
   "Adds all websocket endpoints in the path-map."

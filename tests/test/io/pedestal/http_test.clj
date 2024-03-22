@@ -12,19 +12,31 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [clojure.spec.test.alpha :as stest]
+            [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :as async]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.test :refer [response-for]]
             [io.pedestal.http :as service]
-            [io.pedestal.http.impl.servlet-interceptor]
+            [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.http.route :as route]
             [cheshire.core :as cheshire]
             [io.pedestal.http.body-params :refer [body-params]]
-            [ring.util.response :as ring-resp])
+            [ring.util.response :as ring-resp]
+    ;; Force specs to load
+            io.pedestal.http.specs)
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
+
+
+(use-fixtures :once
+              (fn [f]
+                (stest/instrument)
+                (try (f)
+                     (finally
+                       (stest/unstrument)))))
+
 
 (defn about-page
   [_request]
@@ -127,10 +139,12 @@
       service/service-fn
       ::service/service-fn))
 
-(def app (make-app app-interceptors))
+(defn app
+  []
+  (make-app app-interceptors))
 
 (deftest html-body-test
-  (let [response (response-for app :get "/text-as-html")]
+  (let [response (response-for (app) :get "/text-as-html")]
     (is (= "text/html;charset=UTF-8" (get-in response [:headers "Content-Type"])))
     ;; Ensure secure headers by default
     (is (= {"Content-Type"                      "text/html;charset=UTF-8"
@@ -145,42 +159,42 @@
 
 (deftest plaintext-body-with-html-interceptor-test
   ;; Explicit request for plain-text content-type is honored by html-body interceptor.
-  (let [response (response-for app :get "/plaintext-body-with-html-interceptor")]
+  (let [response (response-for (app) :get "/plaintext-body-with-html-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest plaintext-body-with-no-interceptors-test
   ;; Requests without a content type are served as text/plain
-  (let [response (response-for app :get "/plaintext-body-no-interceptors")]
+  (let [response (response-for (app) :get "/plaintext-body-no-interceptors")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest plaintext-from-byte-buffer
   ;; Response bodies that are ByteBuffers toggle async behavior in supported containers
-  (let [response (response-for app :get "/bytebuffer")]
+  (let [response (response-for (app) :get "/bytebuffer")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
 
 (deftest plaintext-from-byte-channel
   ;; Response bodies that are ReadableByteChannels toggle async behavior in supported containers
-  (let [response (response-for app :get "/bytechannel")]
+  (let [response (response-for (app) :get "/bytechannel")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
 
 (deftest json-body-test
-  (let [response (response-for app :get "/data-as-json")]
+  (let [response (response-for (app) :get "/data-as-json")]
     (is (= "application/json;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
 
 (deftest plaintext-body-with-json-interceptor-test
   ;; Explicit request for plain-text content-type is honored by json-body interceptor.
-  (let [response (response-for app :get "/plaintext-body-with-json-interceptor")]
+  (let [response (response-for (app) :get "/plaintext-body-with-json-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest transit-response-body-test
-  (let [response (response-for app :get "/data-as-transit")]
+  (let [response (response-for (app) :get "/data-as-transit")]
     (is (= "application/transit+json;charset=UTF-8" (get-in response [:headers "Content-Type"])))
     (is (= "[\"^ \",\"~:a\",1]" (:body response)))))
 
 (deftest transit-request-body-test
-  (let [response (response-for app :post "/transit-params"
+  (let [response (response-for (app) :post "/transit-params"
                                :headers {"Content-Type" "application/transit+json"}
                                :body "[\"^ \",\"~:a\",1]")]
     (is (= 200 (:status response)))
@@ -188,41 +202,41 @@
 
 (deftest plaintext-body-with-transit-interceptor-test
   ;; Explicit request for plain-text content-type is honored by transit-body interceptor.
-  (let [response (response-for app :get "/plaintext-body-with-transit-interceptor")]
+  (let [response (response-for (app) :get "/plaintext-body-with-transit-interceptor")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))))
 
 (deftest enter-linker-generates-correct-link
   (is (= "Yeah, this is a self-link to /about"
          (->> "/about"
-              (response-for app :get)
+              (response-for (app) :get)
               :body))))
 
 (deftest leave-linker-generates-correct-link
   (is (= "You must go to /about!"
          (->> "/hello"
-              (response-for app :get)
+              (response-for (app) :get)
               :body))))
 
 (deftest response-with-only-status-works
   (is (= 200
          (->> "/just-status"
-              (response-for app :get)
+              (response-for (app) :get)
               :status))))
 
 (deftest response-with-bad-query
-  (let [resp (response-for app :get "/just-status?q=%")]
+  (let [resp (response-for (app) :get "/just-status?q=%")]
     (is (= 400 (:status resp)))
     (is (= "Bad Request - URLDecoder: Incomplete trailing escape (%) pattern"
            (:body resp)))))
 
 (deftest response-for-nil-headers
   (is (thrown? AssertionError
-               (response-for app :get "/" :headers {"cookie" nil}))))
+               (response-for (app) :get "/" :headers {"cookie" nil}))))
 
 (deftest adding-a-binding-to-context-appears-in-user-request
   (is (= ":req was bound to {:a 1}"
          (->> "/with-binding"
-              (response-for app :get)
+              (response-for (app) :get)
               :body))))
 
 ;; data response fn tests
@@ -266,7 +280,7 @@
                (slurp-output-stream output-stream))))))
 
 (deftest default-edn-response-test
-  (let [edn-resp (response-for app :get "/edn")]
+  (let [edn-resp (response-for (app) :get "/edn")]
     (is (= "{:a 1}" (:body edn-resp))
         #_(= "application/edn"
              (headers "Content-Type")))))
@@ -291,11 +305,11 @@
 (deftest input-stream-body-test
   (let [body-content  "Hello Input Stream"
         body-stream   (-> body-content
-                          create-temp-file
+                          ^File create-temp-file
                           FileInputStream.)
         output-stream (ByteArrayOutputStream.)]
     (is (= body-content
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-stream output-stream)
+           (do (si/write-body-to-stream body-stream output-stream)
                (slurp-output-stream output-stream))))
     (is (thrown? IOException
                  ;; This is JVM implementation specific;
@@ -307,17 +321,19 @@
         body-file     (create-temp-file body-content)
         output-stream (ByteArrayOutputStream.)]
     (is (= body-content
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream body-file output-stream)
+           (do (si/write-body-to-stream body-file output-stream)
                (slurp-output-stream output-stream))))))
 
 (def anti-forgery-app-interceptors
   (service/default-interceptors {::service/routes      app-routes
                                  ::service/enable-csrf {}}))
 
-(def af-app (make-app anti-forgery-app-interceptors))
+(defn af-app
+  []
+  (make-app anti-forgery-app-interceptors))
 
 (deftest html-body-test-csrf-token
-  (let [response (response-for af-app :get "/token")
+  (let [response (response-for (af-app) :get "/token")
         body     (:body response)]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (> (count body) 5))

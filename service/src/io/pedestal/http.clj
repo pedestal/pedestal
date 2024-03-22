@@ -26,7 +26,7 @@
             [io.pedestal.http.csrf :as csrf]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.interceptor :as interceptor :refer [interceptor]]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
@@ -36,9 +36,7 @@
             [clojure.string :as string]
             [cheshire.core :as json]
             [cognitect.transit :as transit]
-            [io.pedestal.log :as log]
-            [io.pedestal.websocket :as ws]
-            [clojure.spec.alpha :as s])
+            [io.pedestal.log :as log])
   (:import (jakarta.servlet Servlet)
            (java.io OutputStreamWriter
                     OutputStream)))
@@ -282,9 +280,9 @@
       (assoc service-map ::interceptors
              (cond-> []
                (some? tracing) (conj tracing)
-               (some? request-logger) (conj (interceptor/interceptor request-logger))
+               (some? request-logger) (conj (interceptor request-logger))
                (some? allowed-origins) (conj (cors/allow-origin allowed-origins))
-               (some? not-found-interceptor) (conj (interceptor/interceptor not-found-interceptor))
+               (some? not-found-interceptor) (conj (interceptor not-found-interceptor))
                (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
                (some? enable-csrf) (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
                                           (csrf/anti-forgery enable-csrf)])
@@ -377,72 +375,6 @@
   server map)."
   [server-map]
   (into {} (map (fn [[k v]] [(keyword "io.pedestal.http" (name k)) v]) server-map)))
-
-(s/def ::service-map
-  (s/keys :req [::port]
-          :opt [::type
-                ::host
-                ::join?
-                ::container-options
-                ::websockets
-                ::interceptors
-                ;; These are placed here when the service is created (e.g., io.pedestal.jetty/service)
-                ::start-fn
-                ::stop-fn
-                ;; From here down is essentially just what the default-interceptors function needs
-                ::request-logger
-                ::router
-                ::file-path
-                ::resource-path
-                ::method-param-name
-                ::allowed-origins
-                ::not-found-interceptor
-                ::mime-types
-                ::enable-session
-                ::enable-csrf
-                ::secure-headers
-                ::path-params-decoder
-                ::initial-context
-                ::service-fn-options
-                ::tracing]))
-
-(s/def ::port pos-int?)
-(s/def ::type (s/or :fn fn?
-                    :kw simple-keyword?))
-(s/def ::host string?)
-(s/def ::join? boolean?)
-;; Each container will define its own container-options schema:
-(s/def ::container-options map?)
-(s/def ::websockets ::ws/websockets-map)
-(s/def ::interceptors ::interceptor/interceptors)
-
-(s/def ::request-logger ::interceptor/interceptor)
-(s/def ::routes (s/or :protocol #(satisfies? route/ExpandableRoutes %)
-                      :fn fn?
-                      :nil nil?
-                      ;; TODO: Shouldn't this be caught by the ExpandableRoutes check?
-                      :maps (s/coll-of map?)))
-(s/def ::resource-path string?)
-(s/def ::method-param-name string?)
-(s/def ::allowed-origins (s/or :strings (s/coll-of string?)
-                               :fn fn?
-                               ;; io.pedestal.http.cors/allow-origin has more details
-                               :map map?))
-(s/def ::not-found-interceptor ::interceptor/interceptor)
-(s/def ::mime-types (s/map-of string? string?))
-;; See io.pedestal.http.ring-middlewares/session for more details
-(s/def ::enable-session map?)
-;; See io.pedestal.http.body-params/body-params for more details
-(s/def ::enable-csrf map?)
-;; See io.pedestal.http.secure-headers/secure-headers for more details
-(s/def ::secure-headers map?)
-(s/def ::path-params-decoder ::interceptor/interceptor)
-(s/def ::initial-context map?)
-(s/def ::tracing ::interceptor/interceptor)
-
-(s/def ::service-fn-options ::servlet-interceptor/http-interceptor-service-fn-options)
-(s/def ::start-fn fn?)
-(s/def ::stop-fn fn?)
 
 (defn server
   "Converts a service map to a server map.

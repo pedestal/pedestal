@@ -14,8 +14,7 @@
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
-  (:require [clojure.spec.alpha :as s]
-            [io.pedestal.internal :as i])
+  (:require [io.pedestal.internal :as i])
   (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
            (java.io Writer)))
 
@@ -108,5 +107,3 @@
    :post [(valid-interceptor? %)]}
   (-interceptor t))
 
-(s/def ::interceptor #(satisfies? IntoInterceptor %))
-(s/def ::interceptors (s/coll-of ::interceptor))
