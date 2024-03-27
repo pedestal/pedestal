@@ -102,12 +102,13 @@
                              PushbackReader.
                              (->> (edn/read edn-options))))))))
 
-(def ^{:deprecated "0.7.0"} edn-parser
+(defn ^{:deprecated "0.7.0"} edn-parser
   "Take a request and parse its body as edn.
 
   Invoke [[custom-edn-parser]] instead."
+  [& args]
   (i/deprecated `edn-parser
-    (custom-edn-parser)))
+    (apply custom-edn-parser args)))
 
 (defn- json-read
   "Parse json stream, supports parser-options with key-val pairs:
@@ -127,9 +128,9 @@
       (json/parse-stream (PushbackReader. reader) key-fn array-coerce-fn))))
 
 (defn custom-json-parser
-  "Return a json-parser fn that, given a request, will read the body of that
-  request with `json/read`. options are key-val pairs that will be passed along
-  to `json/read`."
+  "Return a json-parser fn that, given a request, will read the body of the
+  request with `json/parse-stream`. options are key-val pairs that will be passed along
+  to `json/parse-stream`."
   [& options]
   (fn [request]
     (let [encoding (or (:character-encoding request) "UTF-8")]
@@ -141,12 +142,13 @@
                       ^String encoding)
                     options)))))
 
-(def ^{:deprecated "0.7.0"} json-parser
+(defn ^{:deprecated "0.7.0"} json-parser
   "Take a request and parse its body as JSON.
 
   Use [[custom-json-parser]] instead."
+  [& args]
   (i/deprecated `json-parser
-    (custom-json-parser)))
+    (apply custom-json-parser args)))
 
 (defn custom-transit-parser
   "Return a transit-parser fn that, given a request, will read the
@@ -172,12 +174,13 @@
       (cond-> request
         transit-params (assoc :transit-params transit-params)))))
 
-(def ^{:deprecated "0.7.0"} transit-parser
+(defn ^{:deprecated "0.7.0"} transit-parser
   "Take a request and parse its body as JSON transit.
 
   Use [[custom-transit-parser]] instead."
+  [& args]
   (i/deprecated `transit-parser
-    (custom-transit-parser :json)))
+    (apply custom-transit-parser :json args)))
 
 (defn form-parser
   "Take a request and parse its body as a form."
