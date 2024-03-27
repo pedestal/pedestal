@@ -8,6 +8,7 @@
 (def ^:dynamic *server* nil)
 
 (use-fixtures :once
+              test/disable-routing-table-output-fixture
               (fn [f]
                 (let [server (-> (service-map nil)
                                  http/create-server

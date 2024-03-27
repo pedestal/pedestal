@@ -9,7 +9,7 @@
   {:extra-paths ["test"
                  "test-resources"
                  "dev"]
-   :jvm-opts ["-Dclj-commons.ansi.enabled=false"]
+   :jvm-opts ["-Dio.pedestal.dev-mode=true"]
    :extra-deps {org.clojure/test.check     {:mvn/version "1.1.1"}
                 nubank/matcher-combinators {:mvn/version "3.9.1"}
                 io.github.cognitect-labs/test-runner
@@ -26,11 +26,8 @@
               ;; https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
               "-javaagent:target/opentelemetry-javaagent.jar"]}
 
-  :dev-mode
-  { :jvm-opts ["-Dio.pedestal.dev-mode=true"]}
-
   :build {:deps {io.github.clojure/tools.build {:mvn/version "0.9.6"}
                  slipset/deps-deploy           {:mvn/version "0.2.0"}
-                 org.clj-commons/pretty        {:mvn/version "2.3.0"}
+                 org.clj-commons/pretty        {:mvn/version "2.4.0"}
                  clj-kondo/clj-kondo           {:mvn/version "2024.03.13"}}
           :ns-default build}}}

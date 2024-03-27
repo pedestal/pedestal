@@ -17,7 +17,11 @@
             [io.pedestal.http.route :as route :as route]
             [io.pedestal.environment :refer [dev-mode?]]))
 
-(use-fixtures :once tc/no-ansi-fixture
+(use-fixtures :once
+              tc/no-ansi-fixture
+              (fn [f]
+                (binding [route/*print-routing-table* true]
+                  (f)))
               (fn [f]
                 (with-redefs [dev-mode? true]
                   (f))))
@@ -95,7 +99,7 @@
     ;; Note: sorted by path
     (is (= "
 ┏━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━┳━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━┓
-┃ App name ┃ Scheme ┃     Host ┃ Port ┃ Method ┃    Path ┃ Name       ┃
+┃ App name ┃ Scheme ┃   Host   ┃ Port ┃ Method ┃   Path  ┃    Name    ┃
 ┣━━━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━╋━━━━━━╋━━━━━━━━╋━━━━━━━━━╋━━━━━━━━━━━━┫
 ┃    :main ┃ :https ┃     main ┃ 8080 ┃   :get ┃       / ┃ :root-page ┃
 ┃   :admin ┃  :http ┃ internal ┃ 9090 ┃  :post ┃  /reset ┃ :reset     ┃
@@ -112,7 +116,7 @@
     (is (= "
 Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃   Path ┃ Name                                    ┃
+┃ Method ┃  Path  ┃                   Name                  ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃   :get ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
@@ -132,7 +136,7 @@ Routing table:
         _               (is (= "
 Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃   Path ┃ Name                                    ┃
+┃ Method ┃  Path  ┃                   Name                  ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃   :get ┃ /hello ┃ :io.pedestal.http.route-repl-test/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
@@ -149,7 +153,7 @@ Routing table:
     (is (= out-str "
 Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃   Path ┃ Name                                    ┃
+┃ Method ┃  Path  ┃                   Name                  ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃  :post ┃ /login ┃ :io.pedestal.http.route-repl-test/login ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
