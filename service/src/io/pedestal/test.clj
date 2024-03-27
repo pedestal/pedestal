@@ -13,10 +13,12 @@
 
 (ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
   io.pedestal.test
-  (:require [io.pedestal.http.servlet :as servlets]
+  (:require [io.pedestal.http.route :as route]
+            [io.pedestal.http.servlet :as servlets]
             [io.pedestal.log :as log]
             [clojure.string :as cstr]
             [clojure.java.io :as io]
+            [clj-commons.ansi :as ansi]
             [clojure.core.async :as async]
             [io.pedestal.http.container :as container])
   (:import (jakarta.servlet.http HttpServletRequest HttpServletResponse)
@@ -283,3 +285,13 @@
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
       (update :body #(.toString ^ByteArrayOutputStream % "UTF-8"))))
+
+(defn disable-routing-table-output-fixture
+  "A test fixture that disables printing of the routing table, even when development mode
+   is enabled.  It also disables ANSI colors in any Pedestal console output
+   (such as deprecation warnings)."
+  {:added "0.7.0"}
+  [f]
+  (binding [route/*print-routing-table* false
+            ansi/*color-enabled*        false]
+    (f)))

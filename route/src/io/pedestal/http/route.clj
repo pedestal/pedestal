@@ -28,6 +28,13 @@
   (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
 
+(def ^{:added "0.7.0"
+       :dynamic true} *print-routing-table*
+  "If true, then the routing table is printed to the console at startup, and when it changes.
+
+  Defaults to [[dev-mode?]]."
+  dev-mode?)
+
 ;;; Parsing URL query strings (RFC 3986)
 
 ;; Java's URLEncoder/URLDecoder are only correct when applied on
@@ -509,7 +516,7 @@
                        router-type
                        (router-type router-implementations))
          routing-table' (cond-> routing-table
-                          dev-mode? internal/wrap-routing-table)]
+                          *print-routing-table* internal/wrap-routing-table)]
      (router-spec routing-table' router-ctor))))
 
 (defn- attach-bad-request-response
@@ -524,8 +531,6 @@
   HTTP request into a map. Keys in the map are query-string parameter
   names, as keywords, and values are strings. The map is assoc'd into
   the request at :query-params."
-  ;; This doesn't need to be a function but it's done that way for
-  ;; consistency with 'method-param'
   (interceptor/interceptor
     {:name  ::query-params
      :enter (fn [ctx]

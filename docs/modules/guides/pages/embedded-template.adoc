@@ -121,14 +121,14 @@ You can also fire up a REPL and start the service:
 
 
 ```
-> clj -A:test:dev-mode
+> clj -A:test
 Clojure 1.11.1
 user=> (use 'dev)
 nil
 user=> (go)
 Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path   ┃ Name                                 ┃
+┃ Method ┃  Path  ┃                 Name                 ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
@@ -142,9 +142,7 @@ a brief welcoming page.
 The `dev` namespace provides the functions `go`, `start`, and `stop`.
 
 The :test alias sets up the classpath so that the `dev` namespace is
-available.
-
-The :dev-mode alias enables
+available, and enables
 xref:live-repl.adoc[REPL oriented development mode], including
 the output of the routing table as the service started.
 
@@ -169,7 +167,7 @@ Jaeger is running, execute `docker stop jaeger` to stop it.
 Stop your old REPL session, if necessary, and start a new one:
 
 ```
-> clj -A:test:dev-mode:otel-agent
+> clj -A:test:otel-agent
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 [otel.javaagent 2024-03-01 16:32:45:144 -0800] [main] INFO io.opentelemetry.javaagent.tooling.VersionLogger - opentelemetry-javaagent - version: 2.1.0
 Clojure 1.11.1
@@ -178,7 +176,7 @@ nil
 user=> (go)
 Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path   ┃ Name                                 ┃
+┃ Method ┃  Path  ┃                 Name                 ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
