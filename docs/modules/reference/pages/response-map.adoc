@@ -2,10 +2,20 @@
 :reftext: response map
 :navtitle: Response Map
 
-The response map is attached to the xref:context-map.adoc by any
-interceptor in the interceptor chain. The response map describes the outgoing
+The response map is attached to the xref:context-map.adoc[] by any
+xref:interceptors.adoc[interceptor] in the interceptor chain. The response map describes the outgoing
 HTTP response. If no response map is attached to the context by the time
-processing is done or if the attached response map is not valid Pedestal generates a 404 response.
+processing is done, then Pedestal generates a 404 response.
+
+When an interceptor attaches a response map (or a handler function returns a response map), the map is validated:
+
+- Must be a map
+- Must contain a positive integer value for the :status
+
+If the response fails the above validations, an exception is thrown. footnote:[Prior to Pedestal 0.7,
+an invalid :response would be ignored instead, and the https://github.com/pedestal/pedestal/issues/830[execution would continue], subverting the developer's expectations.]
+
+The function api:respond-with[] is the easiest way to add a response map to the interceptor context.
 
 [cols="s,d,d,d", options="header", grid="rows"]
 |===
@@ -32,10 +42,3 @@ WARNING: Application code that returns a header should use the proper case versi
 to lower case, outgoing response headers are left as-is, and some standard interceptors expects
 certain headers to be present with the correct name (such as `Content-Type`).
 
-## Response Validity
-
-Response validity has different semantics depending on the Pedestal layer in question.
-Pedestal's core HTTP processing layer only requires the :status key for a response to be considered valid.
-This is the semantic used by the default `not-found` interceptor.
-Meanwhile, Pedestal's lower-level servlet-specific termination check abides by the Ring response specification,
-requiring  :status and :headers keys with valid values.

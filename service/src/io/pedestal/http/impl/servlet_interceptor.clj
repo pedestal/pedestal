@@ -17,6 +17,7 @@
             [clj-commons.format.exceptions :as exceptions]
             [clojure.pprint :as pprint]
             [clojure.core.async :as async]
+            [io.pedestal.internal :as i]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
@@ -233,9 +234,29 @@
     :else (do (send-response context)
               context)))
 
+(defn- terminate-when-response
+  [{:keys [response]}]
+  (cond
+    (nil? response) false
+
+    (not (map? response))
+    (throw (ex-info "Interceptor attached a :response that is not a map"
+                    {:response response}))
+
+    (let [status (:status response)]
+      (not (and (int? status)
+                (pos? status))))
+    (throw (ex-info "Response map must have positive integer value for :status"
+                    {:response response}))
+
+    ;; Explicitly do *not* check for :headers or :body
+
+    :else
+    true))
+
 (defn- terminator-inject
   [context]
-  (interceptor.chain/terminate-when context #(ring-response/response? (:response %))))
+  (interceptor.chain/terminate-when context terminate-when-response))
 
 (defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
@@ -329,7 +350,9 @@
   interceptor is no longer used. "
   (interceptor
     {:name  ::terminator-injector
-     :enter terminator-inject}))
+     :enter (fn [context]
+              (i/deprecated `terminator-injector
+                (terminator-inject context)))}))
 
 (defn- format-exception
   [exception]

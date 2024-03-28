@@ -16,6 +16,7 @@
             [io.pedestal.internal :as i]
             [clojure.core.async :as async
              :refer [<! >! go chan timeout <!! >!!]]
+            [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
@@ -539,12 +540,6 @@
                                 (step :e)
                                 (step :f)])))))
 
-(defn <!!?
-  [ch]
-  (async/alt!!
-    ch ([context] context)
-
-    (async/timeout 75) ::timed-out))
 
 (deftest interceptor-leave-ordering-after-a-change-in-bindings-async
   (let [step     (fn [interceptor-name]
