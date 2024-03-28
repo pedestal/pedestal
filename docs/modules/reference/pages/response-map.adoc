@@ -12,7 +12,7 @@ When an interceptor attaches a response map (or a handler function returns a res
 - Must be a map
 - Must contain a positive integer value for the :status
 
-If the response fails this above validations, an exception is thrown. footnote:[Prior to Pedestal 0.7,
+If the response fails the above validations, an exception is thrown. footnote:[Prior to Pedestal 0.7,
 an invalid :response would be ignored instead, and the https://github.com/pedestal/pedestal/issues/830[execution would continue], subverting the developer's expectations.]
 
 The function api:respond-with[] is the easiest way to add a response map to the interceptor context.
