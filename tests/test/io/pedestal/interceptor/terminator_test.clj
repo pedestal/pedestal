@@ -5,6 +5,7 @@
             [io.pedestal.interceptor.chain :as chain]
             [clojure.core.async :refer [go >! chan]]
             [io.pedestal.test-common :refer [<!!?]]
+            [io.pedestal.http :refer [respond-with]]
             [io.pedestal.http.impl.servlet-interceptor :as si])
   (:import (clojure.lang ExceptionInfo)))
 
@@ -14,11 +15,12 @@
       (chain/execute context (mapv interceptor interceptors)))))
 
 (def tail
-  {:name  :taild
-   :enter #(assoc % :response {:status 401 :body "TAIL"})})
+  {:name  :tail
+   :enter #(respond-with % 401 {"Content-Type" "text/plain"} "TAIL")})
 
 (deftest fall-through-to-last
   (is (match? {:status 401
+               :headers {"Content-Type" "text/plain"}
                :body "TAIL"}
               (execute {:name  :do-nothing
                         :enter identity}
@@ -27,7 +29,7 @@
 (deftest valid-response-map
   (is (= {:status 303}
          (execute {:name  :valid
-                   :enter #(assoc % :response {:status 303})}
+                   :enter #(respond-with % 303)}
                   tail))))
 
 (deftest not-a-map
@@ -67,8 +69,7 @@
       {:name  :valid=async
        :enter (fn [context]
                 (go
-                  (assoc context :response {:status 303
-                                            :body   "ASYNC"})))}
+                  (respond-with context 303 "ASYNC")))}
       tail)
     (is (match?
           {:status 303

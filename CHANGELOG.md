@@ -34,6 +34,7 @@ Other changes:
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
 - Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
 - Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files
+- New function `io.pedestal.http/respond-with` to streamline adding a :response to the interceptor context
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 

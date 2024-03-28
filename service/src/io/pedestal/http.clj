@@ -469,3 +469,16 @@
 
 (defn servlet-service [service servlet-req servlet-resp]
   (.service ^Servlet (::servlet service) servlet-req servlet-resp))
+
+(defn respond-with
+  "Utility function to add a :response map to the interceptor context."
+  {:added "0.7.0"}
+  ([context status]
+   (assoc context :response {:status status}))
+  ([context status body]
+   (assoc context :response {:status status
+                             :body   body}))
+  ([context status headers body]
+   (assoc context :response {:status  status
+                             :headers headers
+                             :body    body})))
