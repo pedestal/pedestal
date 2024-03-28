@@ -12,6 +12,8 @@
 - Namespace io.pedestal.http.jetty.websockets has been removed, and replaced with io.pedestal.http.websockets
 - Namespace io.pedestal.interceptor.error has been moved to a new library, io.pedestal/pedestal.error
 - Library pedestal.service no longer has a dependency on org.clojure/core.match; the new pedestal.error library has that dependency
+- Interceptors that attach an invalid :response value (not a map, for example) will now cause an exception to be thrown
+- Interceptors may now attach a partial :response map, containing just a :status key
 
 Other changes:
 - When using io.pedestal.http/dev-interceptors, uncaught exceptions are now formatted using

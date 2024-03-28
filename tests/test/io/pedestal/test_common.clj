@@ -10,9 +10,17 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.test-common
-  (:require [clj-commons.ansi :as ansi]))
+  (:require [clj-commons.ansi :as ansi]
+            [clojure.core.async :as async]))
 
 (defn no-ansi-fixture
   [f]
   (binding [ansi/*color-enabled* false]
     (f)))
+
+(defn <!!?
+  [ch]
+  (async/alt!!
+    ch ([context] context)
+
+    (async/timeout 75) ::timed-out))
