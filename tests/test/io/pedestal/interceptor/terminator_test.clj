@@ -66,7 +66,7 @@
                 (go
                   (>! ch (:response context))
                   context))}
-      {:name  :valid=async
+      {:name  :valid-async
        :enter (fn [context]
                 (go
                   (respond-with context 303 "ASYNC")))}
@@ -75,6 +75,34 @@
           {:status 303
            :body   "ASYNC"}
           (<!!? ch)))))
+
+(deftest async-termination-invalid-response
+  (let [response-ch (chan 1)
+        error-ch    (chan 1)]
+    (execute
+      {:name  :capture
+       :leave (fn [context]
+                (go
+                  (>! response-ch (:response context))
+                  context))}
+      {:name  :capture-error
+       :error (fn [context err]
+                (go
+                  (>! error-ch err)
+                  (respond-with context 599)))}
+      {:name  :invalid-async
+       :enter (fn [context]
+                (go
+                  (assoc context :response :invalid)))}
+      tail)
+
+    (is (match? {:status 599}
+                (<!!? response-ch)))
+
+    (let [e (<!!? error-ch)]
+      (is (match? {:interceptor :invalid-async
+                   :response    :invalid}
+                  (ex-data e))))))
 
 
 
