@@ -1,7 +1,7 @@
 name: pedestal
 title: Pedestal
 version: 0.7
-prerelease: true
+prerelease: false
 nav:
   - modules/ROOT/nav.adoc
   - modules/guides/nav.adoc
