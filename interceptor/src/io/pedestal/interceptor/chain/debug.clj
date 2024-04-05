@@ -104,6 +104,7 @@
   |---             |---              |---
   | :omit          | set or function | Identifies key paths, as vectors, to omit in the description.
   | :changes-only? | boolean         | If true, then log only when the context changes.
+  | :tap?          | boolean         | If true, the data is sent to `tap>` rather than logged.
 
   The :omit option is used to prevent certain key paths from appearing in the result delta; the value
   for these is replaced with `...`.  It is typically a set, but can also be a function that accepts
@@ -114,16 +115,21 @@
   ([]
    (debug-observer nil))
   ([options]
-   (let [{:keys [omit changes-only?]} options
+   (let [{:keys [omit changes-only? tap?]} options
          always? (not changes-only?)]
      (fn [event]
        (let [{:keys [execution-id stage interceptor-name context-in context-out]} event
-             changes? (not= context-in context-out)]
-         (when (or always? changes?)
-           (log/debug
-             :interceptor interceptor-name
-             :stage stage
-             :execution-id execution-id
-             :context-changes (when changes?
-                                (delta omit context-in context-out)))))))))
+             changes (when (not= context-in context-out)
+                       (delta omit context-in context-out))]
+         (when (or always? changes)
+           (if tap?
+             (tap> {:interceptor     interceptor-name
+                    :stage           stage
+                    :execution-id    execution-id
+                    :context-changes changes})
+             (log/debug
+               :interceptor interceptor-name
+               :stage stage
+               :execution-id execution-id
+               :context-changes changes))))))))
 
