@@ -146,9 +146,33 @@ available, and enables
 xref:live-repl.adoc[REPL oriented development mode], including
 the output of the routing table as the service started.
 
+Because the application is running in debug mode,
+Pedestal has enabled extra logging output about the execution of each interceptor, and how the interceptor changed the
+context map.
+
+```
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.cors/dev-allow-origin, :stage :enter, :execution-id 1, :context-changes {:added {[:request :headers "origin"] ""}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.tracing/tracing, :stage :enter, :execution-id 1, :context-changes {:added {[:bindings] ..., [:io.pedestal.http.tracing/otel-context-cleanup] ..., [:io.pedestal.http.tracing/prior-otel-context] ..., [:io.pedestal.http.tracing/otel-context] ..., [:io.pedestal.http.tracing/span] ...}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http/log-request, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/query-params, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/method-param, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.ring-middlewares/resource, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/router, :stage :enter, :execution-id 1, :context-changes {:added {[:request :url-for] ..., [:request :path-params] [], [:route] ..., [:url-for] ...}, :changed {[:bindings] ..., [:io.pedestal.interceptor.chain/queue] ...}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/path-params-decoder, :stage :enter, :execution-id 1, :context-changes {:changed {[:request :path-params] {:from [], :to {}}}, :added {[:io.pedestal.http.route/path-params-decoded?] true}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor "#Interceptor{}", :stage :enter, :execution-id 1, :context-changes {:added {[:response] {:status 200, :body ...}}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.secure-headers/secure-headers, :stage :leave, :execution-id 1, :context-changes {:added {[:response :headers] {"Strict-Transport-Security" "max-age=31536000; includeSubdomains", "X-Frame-Options" "DENY", "X-Content-Type-Options" "nosniff", "X-XSS-Protection" "1; mode=block", "X-Download-Options" "noopen", "X-Permitted-Cross-Domain-Policies" "none", "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.ring-middlewares/content-type-interceptor, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http/not-found, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.tracing/tracing, :stage :leave, :execution-id 1, :context-changes {:changed {[:bindings] ...}, :removed {[:io.pedestal.http.tracing/otel-context-cleanup] ..., [:io.pedestal.http.tracing/prior-otel-context] ..., [:io.pedestal.http.tracing/otel-context] ..., [:io.pedestal.http.tracing/span] ...}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl.servlet-interceptor/ring-response, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl.servlet-interceptor/stylobate, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+```
+
+
 ## Gathering Telemetry
 
-The template includes very basic support for {otel} telemetry.  For local work, this is best accomplished
+The template includes very basic support for  gathering and reporting telementry using {otel}.
+For local work, this is best accomplished
 by running a Docker container with the link:https://www.jaegertracing.io/[Jaeger] server running; the container
 will collect telemetry from the running application, and also provides a user interface to examine
 the traces produced by the application.

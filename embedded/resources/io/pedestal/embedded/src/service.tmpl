@@ -9,7 +9,7 @@
   "Creates a service map for the {{name}} service.
 
   Options:
-    dev-mode: enables dev-interceptors if true, defaults from
+    dev-mode: enables dev-interceptors and interceptor logging if true, defaults from
     Pedestal's development mode."
   [opts]
   (let [{:keys [dev-mode]
@@ -21,5 +21,6 @@
          ::http/resource-path "public"
          ::http/join? false}
          http/default-interceptors
-         (cond-> dev-mode http/dev-interceptors))))
+         (cond-> dev-mode (-> http/dev-interceptors
+                              http/enable-debug-interceptor-observer)))))
 
