@@ -66,32 +66,6 @@
   (fixup-version "docs/antora.yml"
                  (fn [line]
                    (when (str/includes? line "libs_version")
-                     (str "    libs_version: " version))))
-  (fixup-version "service-template/project.clj"
-                 (fn [line]
-                   (when-let [[_ prefix suffix] (re-matches #"(?x)
-                   (\s*
-                    \(defproject \s+
-                    .+?    # project name
-                    \s+ \" # quote before version
-                   )       # end of prefix
-                   .+?
-                   (\"     # start of suffix
-                    .*)"
-                                                            line)]
-                     (str prefix version suffix))))
-  (fixup-version "service-template/src/leiningen/new/pedestal_service/project.clj"
-                 (fn [line]
-                   (when-let [[_ prefix suffix] (re-matches #"(?x)
-
-                   (.*?
-                    io\.pedestal/.+?
-                    \s+
-                    \")
-                   .+?
-                   (\" .*)
-                   "
-                                                            line)]
-                     (str prefix version suffix)))))
+                     (str "    libs_version: " version)))))
 
 
