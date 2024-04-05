@@ -23,7 +23,9 @@ Other changes:
 - In `io.pedestal.interceptor.chain`:
     - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
-    - New function `queue` is used to peek at what interceptors remain on the queue 
+    - New function `queue` is used to peek at what interceptors remain on the queue
+    - New function `add-observer` to add a callback after each interceptor executes in each stage
+- New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe changes to the context made by interceptors 
 - New service map keys have been introduced:
   - Support handling of uncaught exceptions
   - May now specify an initial context map
@@ -33,7 +35,7 @@ Other changes:
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
 - Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
-- Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files
+- Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files to inform clj-kondo about their macros
 - New function `io.pedestal.http/respond-with` to streamline adding a :response to the interceptor context
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)

@@ -16,6 +16,8 @@
             [io.pedestal.interceptor.chain.debug :as debug]
             [clojure.core.async :refer [chan go close!]]
             [io.pedestal.log :as log]
+            [mockfn.macros :as mock]
+            [mockfn.matchers :as m]
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :refer [interceptor]]))
 
@@ -172,31 +174,50 @@
       (swap! *events conj (edn/read-string body)))))
 
 (deftest debug-observer
-  (let [make-logger log/make-logger]
-    (with-redefs [log/make-logger (fn [logger-name]
-                                    (if (= logger-name "io.pedestal.interceptor.chain.debug")
-                                      capture-logger
-                                      (make-logger logger-name)))]
-      (execute (chain/add-observer nil (debug/debug-observer))
-               {:name  ::content-type
-                :leave #(assoc-in % [:response :headers "Content-Type"] "application/edn")}
-               {:name  ::change-status
-                :leave #(assoc-in % [:response :status] 303)}
-               {:name  ::rewrite-body
-                :leave #(assoc-in % [:response :body] "XXX")}
-               {:name  ::handler
-                :enter #(assoc % :response {:status 200 :body {:message "OK"}})})
-      (is (match?
-            '[{:interceptor     ::handler
-               :stage           :enter
-               :context-changes {:added {[:response] {:status 200
-                                                      :body   ...}}}}
-              {:interceptor     ::rewrite-body
-               :context-changes {:changed {[:response :body] ...}}}
-              {:interceptor     ::change-status
-               :stage           :leave
-               :context-changes {:changed {[:response :status] {:from 200 :to 303}}}}
-              {:interceptor     ::content-type
-               :stage           :leave
-               :context-changes {:added {[:response :headers] {"Content-Type" "application/edn"}}}}]
-            @*events)))))
+  (mock/providing [(log/make-logger "io.pedestal.interceptor.chain.debug") capture-logger
+                   (log/make-logger (m/any)) mock/fall-through]
+    (execute (chain/add-observer nil (debug/debug-observer))
+             {:name  ::content-type
+              :leave #(assoc-in % [:response :headers "Content-Type"] "application/edn")}
+             {:name  ::change-status
+              :leave #(assoc-in % [:response :status] 303)}
+             {:name  ::do-nothing
+              :leave identity}
+             {:name  ::rewrite-body
+              :leave #(assoc-in % [:response :body] "XXX")}
+             {:name  ::handler
+              :enter #(assoc % :response {:status 200 :body {:message "OK"}})})
+    (is (match?
+          '[{:interceptor     ::handler
+             :stage           :enter
+             :context-changes {:added {[:response] {:status 200
+                                                    :body   ...}}}}
+            {:interceptor     ::rewrite-body
+             :stage           :leave
+             :context-changes {:changed {[:response :body] ...}}}
+            {:interceptor     ::do-nothing
+             :stage           :leave
+             :context-changes nil}
+            {:interceptor     ::change-status
+             :stage           :leave
+             :context-changes {:changed {[:response :status] {:from 200 :to 303}}}}
+            {:interceptor     ::content-type
+             :stage           :leave
+             :context-changes {:added {[:response :headers] {"Content-Type" "application/edn"}}}}]
+          @*events))))
+
+(deftest debug-observer-changes-only
+  (mock/providing [(log/make-logger "io.pedestal.interceptor.chain.debug") capture-logger
+                   (log/make-logger (m/any)) mock/fall-through]
+    (execute (chain/add-observer nil (debug/debug-observer {:changes-only? true}))
+             {:name  ::first
+              :enter #(assoc % :active :first)}
+             {:name  ::second
+              :enter identity}
+             {:name  ::third
+              :enter #(assoc % :active :third)})
+    (is (match? [{:interceptor     ::first
+                  :context-changes {:added {[:active] :first}}}
+                 {:interceptor     ::third
+                  :context-changes {:changed {[:active] {:from :first
+                                                         :to   :third}}}}] @*events))))

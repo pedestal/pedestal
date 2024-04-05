@@ -100,10 +100,10 @@
 
   Options map:
 
-  | Key   | Type            | Description
-  |---    |---              |---
-  | :omit | set or function | Identifies key paths, as vectors, to omit in the description.
-
+  | Key            | Type            | Description
+  |---             |---              |---
+  | :omit          | set or function | Identifies key paths, as vectors, to omit in the description.
+  | :changes-only? | boolean         | If true, then log only when the context changes.
 
   The :omit option is used to prevent certain key paths from appearing in the result delta; the value
   for these is replaced with `...`.  It is typically a set, but can also be a function that accepts
