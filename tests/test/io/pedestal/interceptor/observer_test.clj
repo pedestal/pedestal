@@ -1,6 +1,8 @@
 (ns io.pedestal.interceptor.observer-test
   (:require [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.interceptor.chain :as chain]
+            [clojure.core.async :refer [chan go close!]]
+            [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :refer [interceptor]]))
 
 (def *events (atom []))
@@ -38,6 +40,32 @@
           [::outer :leave]]
          (names-and-stages))))
 
+(deftest observer-each-stage-async
+  (let [done-ch        (chan)
+        async-identity (fn [context]
+                         (go context))]
+    (execute (chain/add-observer nil event-observer)
+             {:name  ::terminate
+              :leave (fn [context]
+                       (close! done-ch)
+                       context)}
+             {:name  ::outer
+              :enter async-identity
+              :leave async-identity}
+             {:name  ::middle
+              :leave async-identity}
+             {:name  ::inner
+              :enter async-identity})
+
+    (is (nil? (<!!? done-ch)))
+
+    (is (= [[::outer :enter]
+            [::inner :enter]
+            [::middle :leave]
+            [::outer :leave]
+            [::terminate :leave]]
+           (names-and-stages)))))
+
 (deftest observes-errors
   (execute (chain/add-observer nil event-observer)
            {:name  ::outer
@@ -71,13 +99,13 @@
       (names-and-stages))
 
   (is (match?
-        [{:new-context {:foo :bar}}
-         {:old-context {:foo :bar}
-          :new-context {:foo  :bar
+        [{:context-out {:foo :bar}}
+         {:context-in  {:foo :bar}
+          :context-out {:foo  :bar
                         :gnip :gnop}}
-         {:old-context {:foo  :bar
+         {:context-in  {:foo  :bar
                         :gnip :gnop}
-          :new-context {:foo  :bar
+          :context-out {:foo  :bar
                         :gnip :gnop}}]
         @*events)))
 

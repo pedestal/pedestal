@@ -61,16 +61,16 @@
     context))
 
 (defn- notify-observer
-  [interceptor stage old-context new-context]
-  (let [{::keys [observer-fn execution-id]} new-context]
+  [interceptor stage context-in context-out]
+  (let [{::keys [observer-fn execution-id]} context-out]
     (when observer-fn
       (let [event {:stage            stage
                    :execution-id     execution-id
                    :interceptor-name (name-for interceptor)
-                   :old-context      old-context
-                   :new-context      new-context}]
+                   :context-in       context-in
+                   :context-out      context-out}]
         (observer-fn event))))
-  new-context)
+  context-out)
 
 (defn- try-f
   "If f is not nil, invokes it on context. If f throws an exception,
@@ -79,17 +79,20 @@
   [context interceptor stage]
   (let [execution-id (::execution-id context)]
     (if-let [f (get interceptor stage)]
-      (try (log/debug :interceptor (name-for interceptor)
+      (try
+        (log/debug :interceptor (name-for interceptor)
                       :stage stage
                       :execution-id execution-id
                       :fn f)
-           (let [context' (f context)
-                 terminator-check? (and (map? context) (= :enter stage))]
-             (cond->> (notify-observer interceptor stage context context')
-                      terminator-check? (check-terminators interceptor)))
-           (catch Throwable t
-             (log/debug :throw t :execution-id execution-id)
-             (assoc context ::error (throwable->ex-info t execution-id interceptor stage))))
+        (let [context-out (f context)]
+          (if (map? context-out)
+            (cond->> (notify-observer interceptor stage context context-out)
+                     (= stage :enter) (check-terminators interceptor))
+            ;; Should be a channel
+            context-out))
+        (catch Throwable t
+          (log/debug :throw t :execution-id execution-id)
+          (assoc context ::error (throwable->ex-info t execution-id interceptor stage))))
       (do (log/trace :interceptor (name-for interceptor)
                      :skipped? true
                      :stage stage
@@ -145,15 +148,13 @@
   (prepare-for-async old-context)
   (go
     (if-let [new-context (<! context-channel)]
-      (let [new-context' (if (= stage :enter)
-                           (try
-                             (cond->> (notify-observer interceptor stage old-context new-context)
-                                      (= stage :enter) (check-terminators interceptor))
-                             (catch Throwable t
-                               (let [{:keys [execution-id]} new-context]
-                                 (log/debug :throw t :execution-id execution-id)
-                                 (assoc new-context ::error (throwable->ex-info t execution-id interceptor stage)))))
-                           new-context)]
+      (let [new-context' (try
+                           (cond->> (notify-observer interceptor stage old-context new-context)
+                                    (= stage :enter) (check-terminators interceptor))
+                           (catch Throwable t
+                             (let [{:keys [execution-id]} new-context]
+                               (log/debug :throw t :execution-id execution-id)
+                               (assoc new-context ::error (throwable->ex-info t execution-id interceptor stage)))))]
         (execute (dissoc new-context' ::enter-async)))
       (execute (assoc (dissoc old-context ::queue ::enter-async)
                       ::stack stack
@@ -237,7 +238,7 @@
                               (try-error context' interceptor)
                               context')]
             (if (channel? new-context)
-              (go-async interceptor :error stack' context new-context)
+              (go-async interceptor :error stack' context' new-context)
               (recur new-context))))))))
 
 (defn- process-any-errors
@@ -489,8 +490,8 @@
   :execution-id     | integer           | Unique per-process id for the execution
   :stage            | :enter, :leave, or :error
   :interceptor-name | keyword or string | The interceptor that was invoked (either its :name or a string)
-  :old-context      | map               | The context before invoking the interceptor
-  :new-context      | map               | The context immediately after invoking the interceptor
+  :context-in       | map               | The context passed to the interceptor
+  :context-out      | map               | The context returned from the interceptor
 
   The observer is only notified about interceptor _executions_; when an interceptor does not provide a callback
   for a stage, it is not invoked, and no notification is sent.
