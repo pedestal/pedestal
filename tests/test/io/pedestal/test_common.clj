@@ -19,8 +19,10 @@
     (f)))
 
 (defn <!!?
-  [ch]
-  (async/alt!!
-    ch ([context] context)
-
-    (async/timeout 75) ::timed-out))
+  "<!! with a timeout to keep tests from hanging."
+  ([ch]
+   (<!!? ch 1000))
+  ([ch timeout]
+   (async/alt!!
+     ch ([val _] val)
+     (async/timeout timeout) ::timeout)))

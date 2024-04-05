@@ -32,6 +32,8 @@
             [io.pedestal.http.cors :as cors]
             [io.pedestal.metrics :as metrics]
             [io.pedestal.http.tracing :as tracing]
+            [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.interceptor.chain.debug :as chain.debug]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
@@ -305,6 +307,38 @@
   [service-map]
   (update service-map ::interceptors
           #(into [cors/dev-allow-origin servlet-interceptor/exception-debug] %)))
+
+(defn ^{:added "0.7.0"} default-debug-observer-omit
+  "Default for key paths to ignore when using [[debug-observer]].  This is primarily the
+  request and response bodies, anything private to the io.pedestal.interceptor.chain namespaces,
+  and a few routing-related keys (that produce non-useful logged output)."
+  [key-path]
+  (or (some->> key-path first namespace (contains? #{"io.pedestal.interceptor.chain"
+                                                     "io.pedestal.http.tracing"}))
+      (contains? #{[:bindings]
+                   [:response :body]
+                   [:request :body]
+                   [:request :url-for]
+                   [:url-for]
+                   [:route]}
+                 key-path)))
+
+(defn ^{:added "0.7.0"}
+  enable-debug-interceptor-observer
+  "Enables [[debug-observer]] for all request executions.  By default, uses
+  [[default-debug-observer-omit]] to omit internal or overly verbose context map
+  keys.
+
+  The debug observer should not be enabled in production: it is somewhat expensive
+  to identify changes to the context, and some data in the context that might be
+  logged can be verbose, sensitive, or both.
+
+  This modifies the ::initial-context key of the service map."
+  ([service-map]
+   (enable-debug-interceptor-observer service-map {:omit default-debug-observer-omit}))
+  ([service-map debug-observer-options]
+   (update service-map ::initial-context
+           chain/add-observer (chain.debug/debug-observer debug-observer-options))))
 
 ;; TODO: Make the next three functions a provider
 (defn service-fn

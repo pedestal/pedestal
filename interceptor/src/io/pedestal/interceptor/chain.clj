@@ -60,6 +60,18 @@
       (dissoc context ::queue))
     context))
 
+(defn- notify-observer
+  [interceptor stage context-in context-out]
+  (let [{::keys [observer-fn execution-id]} context-out]
+    (when observer-fn
+      (let [event {:stage            stage
+                   :execution-id     execution-id
+                   :interceptor-name (name-for interceptor)
+                   :context-in       context-in
+                   :context-out      context-out}]
+        (observer-fn event))))
+  context-out)
+
 (defn- try-f
   "If f is not nil, invokes it on context. If f throws an exception,
   assoc's it on to context as ::error.  Returns the context map, or
@@ -67,17 +79,20 @@
   [context interceptor stage]
   (let [execution-id (::execution-id context)]
     (if-let [f (get interceptor stage)]
-      (try (log/debug :interceptor (name-for interceptor)
+      (try
+        (log/debug :interceptor (name-for interceptor)
                       :stage stage
                       :execution-id execution-id
                       :fn f)
-           (let [context' (f context)]
-             (cond->> context'
-                      (and (map? context')
-                           (= :enter stage)) (check-terminators interceptor)))
-           (catch Throwable t
-             (log/debug :throw t :execution-id execution-id)
-             (assoc context ::error (throwable->ex-info t execution-id interceptor stage))))
+        (let [context-out (f context)]
+          (if (map? context-out)
+            (cond->> (notify-observer interceptor stage context context-out)
+                     (= stage :enter) (check-terminators interceptor))
+            ;; Should be a channel
+            context-out))
+        (catch Throwable t
+          (log/debug :throw t :execution-id execution-id)
+          (assoc context ::error (throwable->ex-info t execution-id interceptor stage))))
       (do (log/trace :interceptor (name-for interceptor)
                      :skipped? true
                      :stage stage
@@ -90,11 +105,15 @@
   [context interceptor]
   (let [execution-id (::execution-id context)]
     (if-let [error-fn (get interceptor :error)]
-      (let [ex (::error context)]
+      (let [ex (::error context)
+            ;; Hide the old error from the observer, if any.
+            ;; The old-context is what is passed to the interceptor, so that's fair.
+            old-context (dissoc context ::error)]
         (log/debug :interceptor (name-for interceptor)
                    :stage :error
                    :execution-id execution-id)
-        (try (error-fn (dissoc context ::error) ex)
+        (try (->> (error-fn old-context ex)
+                  (notify-observer interceptor :error old-context))
              (catch Throwable t
                (if (identical? (type t) (-> ex ex-data :exception type))
                  (do (log/debug :rethrow t :execution-id execution-id)
@@ -129,14 +148,13 @@
   (prepare-for-async old-context)
   (go
     (if-let [new-context (<! context-channel)]
-      (let [new-context' (if (= stage :enter)
-                           (try
-                             (check-terminators interceptor new-context)
-                             (catch Throwable t
-                               (let [{:keys [execution-id]} new-context]
-                                 (log/debug :throw t :execution-id execution-id)
-                                 (assoc new-context ::error (throwable->ex-info t execution-id interceptor stage)))))
-                           new-context)]
+      (let [new-context' (try
+                           (cond->> (notify-observer interceptor stage old-context new-context)
+                                    (= stage :enter) (check-terminators interceptor))
+                           (catch Throwable t
+                             (let [{:keys [execution-id]} new-context]
+                               (log/debug :throw t :execution-id execution-id)
+                               (assoc new-context ::error (throwable->ex-info t execution-id interceptor stage)))))]
         (execute (dissoc new-context' ::enter-async)))
       (execute (assoc (dissoc old-context ::queue ::enter-async)
                       ::stack stack
@@ -220,7 +238,7 @@
                               (try-error context' interceptor)
                               context')]
             (if (channel? new-context)
-              (go-async interceptor :error stack' context new-context)
+              (go-async interceptor :error stack' context' new-context)
               (recur new-context))))))))
 
 (defn- process-any-errors
@@ -452,3 +470,40 @@
   [context]
   (::queue context))
 
+(defn- merge-observer
+  [old-fn new-fn]
+  (if old-fn
+    (fn [event]
+      (old-fn event)
+      (new-fn event))
+    new-fn))
+
+(defn ^{:added "0.7.0"} add-observer
+  "Adds an observer function to the execution; observer functions are notified after each interceptor
+  executes.  If the interceptor is asynchronous, the notification occurs once the new context
+  is conveyed through the returned channel.
+
+  The function is passed an event map:
+
+  Key               | Type              | Description
+  ---               | ---               | ---
+  :execution-id     | integer           | Unique per-process id for the execution
+  :stage            | :enter, :leave, or :error
+  :interceptor-name | keyword or string | The interceptor that was invoked (either its :name or a string)
+  :context-in       | map               | The context passed to the interceptor
+  :context-out      | map               | The context returned from the interceptor
+
+  The observer is only invoked for interceptor _executions_; when an interceptor does not provide a callback
+  for a stage, the interceptor is not invoked, and so the observer is not invoked.
+
+  The value returned by the observer is ignored.
+
+  If an observer throws an exception, it is associated with the interceptor, exactly as if the interceptor
+  had thrown the exception.
+
+  When multiple observer functions are added, they are invoked in an unspecified order.
+
+  The [[debug-observer]] function is a useful observer provided by Pedesta, which identifies
+  interceptors and how they each modified the context."
+  [context observer-fn]
+  (update context ::observer-fn merge-observer observer-fn))

@@ -17,6 +17,7 @@
             [clojure.core.async :as async
              :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.test-common :refer [<!!?]]
+            [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
@@ -260,15 +261,6 @@
     (is (= 1
            (-> thread-ids distinct count)))))
 
-(defn <!!!
-  "<!! with a timeout to keep tests from hanging."
-  ([ch]
-   (<!!! ch 1000))
-  ([ch timeout]
-   (async/alt!!
-     ch ([val _] val)
-     (async/timeout timeout) ::timeout)))
-
 (deftest failed-channel-produces-error
   (println "This test will produce an uncaught exception, which can be ignored.")
   (let [result-chan (chan)
@@ -288,7 +280,7 @@
                           [:enter :b]
                           [:error :b :from nil]
                           [:leave :a]]}
-                (<!!! result-chan)))))
+                (<!!? result-chan)))))
 
 (deftest one-way-async-channel-enter
   (let [result-chan (chan)
@@ -319,7 +311,7 @@
                                             (two-channeler :c)
                                             (tracer :d)])
                                   :leave)
-        result      (<!!! result-chan)
+        result      (<!!? result-chan)
         thread-ids  (result ::thread-ids)]
     (is (match? {::trace [[:leave :d]
                           [:leave :c]
@@ -465,7 +457,7 @@
                       (observer :d :enter false)
                       (observer :e :leave true)]]
     (execute {} interceptors)
-    (is (nil? (<!!! chan)))
+    (is (nil? (<!!? chan)))
 
     (is (match? [{:name :a :stage :enter :value :default}
                  ;; :first
