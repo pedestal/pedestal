@@ -11,5 +11,6 @@
     </root>
 
     <logger name="org.eclipse.jetty.servlets.DoSFilter" level="ERROR"/>
+    <logger name="io.pedestal.interceptor.chain.debug" level="debug"/>
 
 </configuration>

@@ -1,7 +1,21 @@
+; Copyright 2024 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0
+; which can be found in the file epl-v10.html at the root of this distri
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.interceptor.observer-test
-  (:require [clojure.test :refer [deftest is use-fixtures]]
+  (:require [clojure.edn :as edn]
+            [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.interceptor.chain.debug :as debug]
             [clojure.core.async :refer [chan go close!]]
+            [io.pedestal.log :as log]
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :refer [interceptor]]))
 
@@ -148,3 +162,41 @@
           [::middle :leave]
           [::outer :leave]]
          (names-and-stages))))
+
+(def capture-logger
+  (reify log/LoggerSource
+
+    (-level-enabled? [_ level] (= level :debug))
+
+    (-debug [_ body]
+      (swap! *events conj (edn/read-string body)))))
+
+(deftest debug-observer
+  (let [make-logger log/make-logger]
+    (with-redefs [log/make-logger (fn [logger-name]
+                                    (if (= logger-name "io.pedestal.interceptor.chain.debug")
+                                      capture-logger
+                                      (make-logger logger-name)))]
+      (execute (chain/add-observer nil (debug/debug-observer))
+               {:name  ::content-type
+                :leave #(assoc-in % [:response :headers "Content-Type"] "application/edn")}
+               {:name  ::change-status
+                :leave #(assoc-in % [:response :status] 303)}
+               {:name  ::rewrite-body
+                :leave #(assoc-in % [:response :body] "XXX")}
+               {:name  ::handler
+                :enter #(assoc % :response {:status 200 :body {:message "OK"}})})
+      (is (match?
+            '[{:interceptor     ::handler
+               :stage           :enter
+               :context-changes {:added {[:response] {:status 200
+                                                      :body   ...}}}}
+              {:interceptor     ::rewrite-body
+               :context-changes {:changed {[:response :body] ...}}}
+              {:interceptor     ::change-status
+               :stage           :leave
+               :context-changes {:changed {[:response :status] {:from 200 :to 303}}}}
+              {:interceptor     ::content-type
+               :stage           :leave
+               :context-changes {:added {[:response :headers] {"Content-Type" "application/edn"}}}}]
+            @*events)))))

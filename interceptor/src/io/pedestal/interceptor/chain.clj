@@ -502,6 +502,8 @@
   had thrown the exception.
 
   When multiple observer functions are added, they are invoked in an unspecified order.
+
+  The [[debug-observer]] function is a useful example.
   "
   [context observer-fn]
   (update context ::observer-fn merge-observer observer-fn))
