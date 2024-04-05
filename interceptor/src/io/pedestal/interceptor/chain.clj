@@ -493,8 +493,8 @@
   :context-in       | map               | The context passed to the interceptor
   :context-out      | map               | The context returned from the interceptor
 
-  The observer is only notified about interceptor _executions_; when an interceptor does not provide a callback
-  for a stage, it is not invoked, and no notification is sent.
+  The observer is only invoked for interceptor _executions_; when an interceptor does not provide a callback
+  for a stage, the interceptor is not invoked, and so the observer is not invoked.
 
   The value returned by the observer is ignored.
 
@@ -503,7 +503,7 @@
 
   When multiple observer functions are added, they are invoked in an unspecified order.
 
-  The [[debug-observer]] function is a useful example.
-  "
+  The [[debug-observer]] function is a useful observer provided by Pedesta, which identifies
+  interceptors and how they each modified the context."
   [context observer-fn]
   (update context ::observer-fn merge-observer observer-fn))
