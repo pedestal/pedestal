@@ -25,7 +25,8 @@ Other changes:
     - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
     - New function `queue` is used to peek at what interceptors remain on the queue
     - New function `add-observer` to add a callback after each interceptor executes in each stage
-- New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe changes to the context made by interceptors 
+- New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe changes to the context made by interceptors
+- New function `io.pedestal.http/enable-debug-interceptor-observer` to setup `debug-observer`
 - New service map keys have been introduced:
   - Support handling of uncaught exceptions
   - May now specify an initial context map

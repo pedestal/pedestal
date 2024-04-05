@@ -176,7 +176,7 @@
 (deftest debug-observer
   (mock/providing [(log/make-logger "io.pedestal.interceptor.chain.debug") capture-logger
                    (log/make-logger (m/any)) mock/fall-through]
-    (execute (chain/add-observer nil (debug/debug-observer))
+    (execute (chain/add-observer nil (debug/debug-observer {:omit #{[:response :body]}}))
              {:name  ::content-type
               :leave #(assoc-in % [:response :headers "Content-Type"] "application/edn")}
              {:name  ::change-status

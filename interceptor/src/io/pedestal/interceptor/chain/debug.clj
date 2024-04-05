@@ -19,12 +19,6 @@
 
 (def ^:private omitted-value '...)
 
-(def default-omit-set
-  "The default key paths to be omitted when producing delta output."
-  #{[:response :body]
-    [:request :body]})
-
-
 (defn- omit-values
   [omit-set key-path value]
   (cond
@@ -43,29 +37,36 @@
 
 (defn- delta-maps
   [omit-set deltas key-path original modified]
-  (let [o-keys      (-> original keys set)
-        m-keys      (-> modified keys set)
-        shared-keys (set/intersection o-keys m-keys)]
-    (reduce (fn [m k]
-              (cond
-                (and (contains? shared-keys k))
-                (delta* omit-set
-                        m
-                        (conj key-path k)
-                        (get original k)
-                        (get modified k))
+  ;; If a key-path is omitted, then don't recurse over the keys.
+  ;; Instead, check if there are changes and add a :changed, or otherwise,
+  ;; just stop working on this pair of maps.
+  (if (omit-set key-path)
+    (if (not= original modified)
+      (assoc-in deltas [:changed key-path] omitted-value)
+      deltas)
+    (let [o-keys      (-> original keys set)
+          m-keys      (-> modified keys set)
+          shared-keys (set/intersection o-keys m-keys)]
+      (reduce (fn [m k]
+                (cond
+                  (and (contains? shared-keys k))
+                  (delta* omit-set
+                          m
+                          (conj key-path k)
+                          (get original k)
+                          (get modified k))
 
-                (contains? m-keys k)
-                (let [key-path' (conj key-path k)]
-                  (assoc-in m [:added key-path']
-                            (omit-values omit-set key-path' (get modified k))))
+                  (contains? m-keys k)
+                  (let [key-path' (conj key-path k)]
+                    (assoc-in m [:added key-path']
+                              (omit-values omit-set key-path' (get modified k))))
 
-                :else
-                (let [key-path' (conj key-path k)]
-                  (assoc-in m [:removed key-path']
-                            (omit-values omit-set key-path' (get original k))))))
-            deltas
-            (set/union o-keys m-keys))))
+                  :else
+                  (let [key-path' (conj key-path k)]
+                    (assoc-in m [:removed key-path']
+                              (omit-values omit-set key-path' (get original k))))))
+              deltas
+              (set/union o-keys m-keys)))))
 
 (defn- delta*
   [omit-set deltas key-path original modified]
@@ -86,7 +87,7 @@
 (defn- delta
   "Return map with keys :added, :removed, and :changed ..."
   [omit-set original modified]
-  (delta* (or omit-set default-omit-set) {} [] original modified))
+  (delta* (or omit-set #{}) {} [] original modified))
 
 (defn debug-observer
   "Returns an observer function that logs, at debug level, the interceptor name, stage, execution id,
@@ -108,10 +109,7 @@
 
   The :omit option is used to prevent certain key paths from appearing in the result delta; the value
   for these is replaced with `...`.  It is typically a set, but can also be a function that accepts
-  a key path vector.
-
-  The default for :omit is `#{[:response :body] [:request :body]}`. This omits data that can be both
-  sensitive and verbose."
+  a key path vector.  It is commonly used to omit large, insecure values such as `[:response :body]`."
   ([]
    (debug-observer nil))
   ([options]
@@ -132,4 +130,5 @@
                :stage stage
                :execution-id execution-id
                :context-changes changes))))))))
+
 
