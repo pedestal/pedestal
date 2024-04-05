@@ -60,6 +60,18 @@
       (dissoc context ::queue))
     context))
 
+(defn- notify-observer
+  [interceptor stage old-context new-context]
+  (let [{::keys [observer-fn execution-id]} new-context]
+    (when observer-fn
+      (let [event {:stage            stage
+                   :execution-id     execution-id
+                   :interceptor-name (name-for interceptor)
+                   :old-context      old-context
+                   :new-context      new-context}]
+        (observer-fn event))))
+  new-context)
+
 (defn- try-f
   "If f is not nil, invokes it on context. If f throws an exception,
   assoc's it on to context as ::error.  Returns the context map, or
@@ -71,10 +83,10 @@
                       :stage stage
                       :execution-id execution-id
                       :fn f)
-           (let [context' (f context)]
-             (cond->> context'
-                      (and (map? context')
-                           (= :enter stage)) (check-terminators interceptor)))
+           (let [context' (f context)
+                 terminator-check? (and (map? context) (= :enter stage))]
+             (cond->> (notify-observer interceptor stage context context')
+                      terminator-check? (check-terminators interceptor)))
            (catch Throwable t
              (log/debug :throw t :execution-id execution-id)
              (assoc context ::error (throwable->ex-info t execution-id interceptor stage))))
@@ -90,11 +102,15 @@
   [context interceptor]
   (let [execution-id (::execution-id context)]
     (if-let [error-fn (get interceptor :error)]
-      (let [ex (::error context)]
+      (let [ex (::error context)
+            ;; Hide the old error from the observer, if any.
+            ;; The old-context is what is passed to the interceptor, so that's fair.
+            old-context (dissoc context ::error)]
         (log/debug :interceptor (name-for interceptor)
                    :stage :error
                    :execution-id execution-id)
-        (try (error-fn (dissoc context ::error) ex)
+        (try (->> (error-fn old-context ex)
+                  (notify-observer interceptor :error old-context))
              (catch Throwable t
                (if (identical? (type t) (-> ex ex-data :exception type))
                  (do (log/debug :rethrow t :execution-id execution-id)
@@ -131,7 +147,8 @@
     (if-let [new-context (<! context-channel)]
       (let [new-context' (if (= stage :enter)
                            (try
-                             (check-terminators interceptor new-context)
+                             (cond->> (notify-observer interceptor stage old-context new-context)
+                                      (= stage :enter) (check-terminators interceptor))
                              (catch Throwable t
                                (let [{:keys [execution-id]} new-context]
                                  (log/debug :throw t :execution-id execution-id)
@@ -452,3 +469,38 @@
   [context]
   (::queue context))
 
+(defn- merge-observer
+  [old-fn new-fn]
+  (if old-fn
+    (fn [event]
+      (old-fn event)
+      (new-fn event))
+    new-fn))
+
+(defn ^{:added "0.7.0"} add-observer
+  "Adds an observer function to the execution; observer functions are notified after each interceptor
+  executes.  If the interceptor is asynchronous, the notification occurs once the new context
+  is conveyed through the returned channel.
+
+  The function is passed an event map:
+
+  Key               | Type              | Description
+  ---               | ---               | ---
+  :execution-id     | integer           | Unique per-process id for the execution
+  :stage            | :enter, :leave, or :error
+  :interceptor-name | keyword or string | The interceptor that was invoked (either its :name or a string)
+  :old-context      | map               | The context before invoking the interceptor
+  :new-context      | map               | The context immediately after invoking the interceptor
+
+  The observer is only notified about interceptor _executions_; when an interceptor does not provide a callback
+  for a stage, it is not invoked, and no notification is sent.
+
+  The value returned by the observer is ignored.
+
+  If an observer throws an exception, it is associated with the interceptor, exactly as if the interceptor
+  had thrown the exception.
+
+  When multiple observer functions are added, they are invoked in an unspecified order.
+  "
+  [context observer-fn]
+  (update context ::observer-fn merge-observer observer-fn))
