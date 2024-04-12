@@ -524,7 +524,7 @@
   (assoc context :response
          {:status  400
           :headers {}
-          :body    (str "Bad Request - " (.getMessage exception))}))
+          :body    (str "Bad Request - " (ex-message exception))}))
 
 (def query-params
   "An interceptor which parses query-string parameters from an

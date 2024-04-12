@@ -88,7 +88,8 @@
   ^Attributes [attributes]
   (if-not (seq attributes)
     (Attributes/empty)
-    (->> (reduce-kv (fn [^AttributesBuilder b k v]
+    (->> ^AttributesBuilder
+         (reduce-kv (fn [^AttributesBuilder b k v]
                       (let [[k' v'] (kv->pair k v)]
                         (.put b ^AttributeKey k' v')))
                     (Attributes/builder)
