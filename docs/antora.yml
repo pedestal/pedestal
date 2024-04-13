@@ -16,4 +16,4 @@ asciidoc:
     # For api: inline macro
     default_api_ns: io.pedestal.http@  # @ signals it can be overridden by pages
     api_doc_root: http://pedestal.io/api/0.6
-
+    page-api_doc_root: "{api_doc_root}"
