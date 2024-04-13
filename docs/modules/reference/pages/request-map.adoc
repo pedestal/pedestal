@@ -44,50 +44,20 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | String
 | Present if sent by client. Character encoding applicable to request body.
 
-| :edn-params
-| N
-| Any
-| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/edn"
-
-| :form-params
-| N
-| Map of Keyword -> String
-| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/x-www-form-urlencoded". Some keys may be left as strings, if they contain characters that would make them invalid as Clojure keywords.
-
 | :headers
 | Y
 | Map of String -> String
 | Request headers sent by the client. Header names are all converted to lower case.
-
-| :json-params
-| N
-| Map of Keyword -> Any footnote:[Based on the coercion of any link:https://www.w3schools.com/js/js_json_objects.asp[valid] JSON data type]
-| Present if the  api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/json"
-
-| :params
-| N
-| Map of Keyword or String -> String or Keyword -> String
-| More info: xref:parameters.adoc[].
 
 | :path-info
 | Y
 | String
 | Request path, below the context path. Always at least "/", never an empty string.
 
-| :path-params
-| N
-| Map of Keyword -> String
-| Present if the router found any path parameters.
-
 | :protocol
 | Y
 | String
 | Name and version of the protocol with which the request was sent.
-
-| :query-params
-| N
-| Map of Keyword -> String
-| Present if the api:query-params[ns=io.pedestal.http.route] interceptor has executed.
 
 | :query-string
 | Y
@@ -124,13 +94,12 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | java.security.cert.X509Certificate[]
 | Present if sent by client. Array of certificates that identify the client.
 
-| :transit-params
-| N
-| Any
-| Present if the api:body-params[ns=io.pedestal.http.body-params] interceptor has executed _and_ the client sent content type "application/transit+json" or "application/transit+msgpack"
-
 | :uri
 | Y
 | String
 | The part of this request's URL from the protocol name up to the query string in the first line of the HTTP request
 |===
+
+Many more keys are added to the request map by the
+xref:default-interceptors.adoc[default interceptors], many of the new keys are related to parsing query parameters and the
+request body; this is described more fully in xref:parameters.adoc[the parameters reference].

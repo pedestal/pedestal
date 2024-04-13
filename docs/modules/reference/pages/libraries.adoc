@@ -36,7 +36,7 @@ metrics and tracing functionality.]
 
 | pedestal.service
 | Container-agnostic HTTP service support
-| pedestal.log, pedestal.metrics, pedestal.interceptor, pedestal.route, {core_async},
+| pedestal.log, pedestal.telemetry, pedestal.interceptor, pedestal.route, {core_async},
   Java Servlet API, Java WebSocket API,
   https://github.com/ring-clojure/ring[ring/ring-core],
   several others
@@ -73,20 +73,20 @@ For Clojure Deps, add this key and value to the :deps map inside your `deps.edn`
 
 [subs="attributes"]
 ----
-   io.pedestal/pedestal.jetty {:mvn/version "{libs_version}"}
+ io.pedestal/pedestal.jetty {:mvn/version "{libs_version}"}
 ----
 
 == Git Artifact Coordinates
 
 Pedestal is built using Clojure Deps; this means that it is possible to
-get access bleeding-edge versions of the libraries
+get access to bleeding-edge versions of the libraries
 https://clojure.org/reference/deps_and_cli#_dependencies[directly from the GitHub repository].
 
----
-   io.pedestal/pedestal.jetty {:git/url "https://github.com/pedestal/pedestal.git"
-                               :git/sha "a0b6a0f7e57710ba6b9f0aa3a62dd1f68e278f43"
-                               :deps/root "jetty"}
----
+----
+  io.pedestal/pedestal.jetty {:git/url "https://github.com/pedestal/pedestal.git"
+                              :git/sha "a0b6a0f7e57710ba6b9f0aa3a62dd1f68e278f43"
+                              :deps/root "jetty"}
+----
 
 All Pedestal libraries are in the same repository, :deps/root is used to select
 the sub-directory containing the library's code (this matches the library name,

@@ -8,7 +8,11 @@ xref:service-map.adoc[], and the various kinds of
 xref:routing-quick-reference.adoc[route specifications].
 
 Use of spec is entirely optional; specs are confined to their own namespaces
-which are not loaded by the library itself.  You can, in your own application's tests, load these namespaces and instrument functions as appropriate.
+which are not explicitly loaded by any of Pedestal's other namespaces.
+
+You can, in your own application's tests, load these namespaces and instrument functions as appropriate,
+using Clojure's built-in
+link:https://clojure.org/guides/spec#_instrumentation_and_testing[instrumention and testing support].
 
 Spec namespaces:
 

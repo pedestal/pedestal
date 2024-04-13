@@ -9,6 +9,8 @@ Pedestal scales up with your needs.
 
 We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and *Simplicity*, to the domain of  Clojure web development.
 
+This documentation is for Pedestal version *{libs_version}*.
+
 ++++
 <div class="features-section">
   <h2>Features</h2>

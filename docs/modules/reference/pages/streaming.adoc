@@ -56,7 +56,7 @@ responses.
 == Using a Function as the Response
 
 When the body is a function, the servlet-interceptor calls that
-function with a single argument: a `javax.servlet.ServletOutputStream`.
+function with a single argument: a `jakarta.servlet.ServletOutputStream`.
 
 The response status code and headers will already be written to the
 stream before calling the function.
