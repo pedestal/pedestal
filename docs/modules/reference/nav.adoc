@@ -45,4 +45,6 @@
 *** xref:metrics-0.6.adoc[]
 
 ** xref:libraries.adoc[]
+** link:{api_doc_root}[API Docs]
+
 

@@ -242,7 +242,7 @@ Pedestal function that returns an interceptor.
 `view-user` is a request-handling function.
 
 When a request matches this route, the whole vector of interceptors
-gets pushed onto the context.
+gets queued into the context for later execution (after any interceptors already in the queue).
 
 === Common interceptors
 
@@ -253,7 +253,9 @@ feature, but still allows you to compose interceptors:
 [source,clojure]
 ----
 ;; Make a var with the common stuff
-(def common-interceptors [inject-connection auth-required (body-params/body-params)])
+(def common-interceptors [inject-connection
+                          auth-required
+                          (body-params/body-params)])
 
 ;; inside a call to table-routes
 ["/user/:user-id/private" :post (conj common-interceptors view-user)]
@@ -297,8 +299,8 @@ literal in the route vector:
 
 The thing about constraints is that they are not used to distinguish
 between otherwise identical routes. They are not for disambiguation.
-Rather, constraints are used to _reject_ requests match the rest of the route but
-don't match the constraints.
+Rather, constraints are used to _reject_ requests that _do_ match the rest of the route but
+_do not_ match the constraints.
 
 What happens after such a rejection depends on which router is being used.
 
@@ -336,7 +338,7 @@ As an alternative to using path constraints, you could define a validating inter
 ----
 
 This interceptor could be placed into the interceptor list for any route that has a user-id
-in the path, and will abort any request (with a 400 Bad Request status code) if the user-id
+in the path, and will uniformly abort any request (with a 400 Bad Request status code) if the user-id
 is not numeric.
 
 == Route names
@@ -491,101 +493,8 @@ or when it is invoked.
 
 == Using Routes in a Service
 
-Up until now, we've looked at individual routes or a small handful of
-them. Now let's see how to connect them to a Pedestal service.
-
-Well, that means we probably need a service to put them in. Time to
-fire up leiningen. Pedestal provides a leiningen template to generate
-new projects. Find a nice spot to keep your work and run
-
-WARNING: The Pedestal Leiningen template has changed over time and may not exactly match this.
-
-----
-$ lein new pedestal-service myapp
-Retrieving pedestal-service/lein-template/0.5.1/lein-template-0.5.1.pom from clojars
-Retrieving pedestal-service/lein-template/0.5.1/lein-template-0.5.1.jar from clojars
-Generating a pedestal-service application called myapp.
-$ cd myapp
-$ ls
-Capstanfile Dockerfile  README.md   config      project.clj src         test
-----
-
-Looks like the template generated some good stuff. `project.clj`
-defines the new service's dependencies and build
-instructions. `Dockerfile` lets you package this service as a Docker
-container. `Capstanfile` is a similar thing to compile this service
-into a unikernel application with OSv.
-
-For now, the parts we really want to see are under `src/myapp`.
-
-----
-$ ls src/myapp
-server.clj  service.clj
-----
-
-These two source files define a production-ready Pedestal service. All
-it serves right now as an "About" page, so we need to make some
-improvements before we ship it.
-
-`server.clj` supplies the main entry point. `service.clj` defines the
-behavior of the service itself. These are starting points,
-though. Over time, you will certainly add more files and factor
-behavior out of these two. For now, we need to open up `service.clj`
-and make some changes.
-
-Here is what the template generated for us (as of version 0.5.1, at
-least. Details may differ slightly in yours.)
-
-[source,clojure]
-.src/myapp/service.clj
-----
-include::example$myapp/src/myapp/service.clj[tags=original-routes]
-----
-
-We will make this look more like the route table from
-xref:your-first-api.adoc[].
-
-
-[source,clojure]
-.src/myapp/service.clj
-----
-include::example$myapp/src/myapp/service.clj[tags=yfa-routes]
-----
-
-Notice the use of :list-id and :item to extract parts of the
-URL. Right now, each of those can contain any sequence of
-characters. Anything at all. Suppose we need to restrict them to
-numbers. That means we need to add constraints.
-
-
-[source,clojure]
-.src/myapp/service.clj
-----
-include::example$myapp/src/myapp/service.clj[tags=yfa-routes-constrained]
-----
-
-Here we've added a constraints clause to each of the routes with
-parameters. To make sure all the routes obey the same rules, we can
-factor those rules out into a value that we attach to each route.
-
-One thing we haven't demonstrated so far is the ability to match _all_
-of a URL's string. You might do this if you need to create a URL
-hierarchy with arbitrary depth. That is the purpose of a wildcard URL like this:
-
-
-[source,clojure]
-.src/myapp/service.clj
-----
-include::example$myapp/src/myapp/service.clj[tags=with-wildcard]
-----
-
-Maybe this is for a manager to see every single TODO ever assigned to
-anyone in the organization. Seems perfectly reasonable.
-
-This wildcard route will match anything that starts with
-`/org/`. Interceptors will receive a request with the path parameter
-:todos bound to everything that followed `/org/`. It is up to those
-interceptors to parse and interpret the URL.
+The xref:your-first-api.adoc[] guide goes inot create detail about routes inside a Pedestal application, showing
+how to build up a number of routes, using different paths and HTTP methods, into a consistent, REST API.
 
 == Restrictions on Wildcards and Path Parameters
 

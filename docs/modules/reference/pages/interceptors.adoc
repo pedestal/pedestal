@@ -110,7 +110,7 @@ represents anything that can be used as an interceptor. Pedestal extends that pr
 | Type | Interpretation
 
 | Map
-| The :enter, :leave, and :name keys are used directly.
+| The :enter, :leave, :error, and :name keys are used directly.
 
 | Function
 | The function is interpreted as a link:#_handlers[handler] (or, rarely, as
@@ -118,10 +118,10 @@ an link:#_indirect_interceptors[indirect interceptor].)
 
 | List
 | The list is evaluated and its result is used as an interceptor. footnote:[This is supported behavior
-  related to the xref:table-syntax.adoc[table router syntax], but is no longer commonly used.]
+  related to the xref:table-syntax.adoc[table router syntax], but is no longer commonly used and is deprecated.]
 
 | Cons
-| Same as List
+| Same as List (and also deprecated)
 
 | Symbol
 | The symbol is resolved and its target is converted to an interceptor.

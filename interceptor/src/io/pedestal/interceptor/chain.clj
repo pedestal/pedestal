@@ -414,14 +414,15 @@
    (execute-only (enqueue context interceptors) interceptor-key)))
 
 (defn execute
-  "Executes a queue of Interceptors attached to the context. Context
+  "Executes a queue of [[Interceptor]]s attached to the context. Context
   must be a map, Interceptors are added with 'enqueue'.
 
-  An Interceptor is a map or map-like object with the keys :enter,
+  An Interceptor is record with the keys :enter,
   :leave, and :error. The value of each key is a function; missing
   keys or nil values are ignored. When executing a context, first all
   the :enter functions are invoked in order. As this happens, the
-  Interceptors are pushed on to a stack.
+  Interceptors are pushed on to a stack.  Interceptor may also have a :name,
+  which is used when logging.
 
   When execution reaches the end of the queue, it begins popping
   Interceptors off the stack and calling their :leave functions.
@@ -444,6 +445,10 @@
   asynchronous process.  When this happens, the initial call to
   execute returns nil immediately, with the process exepected to write
   an updated context into the channel when its work completes.
+
+  The function [[on-enter-async]] is used to provide a callback for
+  when an interceptor chain execution first switches from in-thread to
+  asynchronous execution.
 
   Processing continues in core.async threads - including even when
   a later interceptor returns an immediate context, rather than
@@ -486,7 +491,7 @@
   The function is passed an event map:
 
   Key               | Type              | Description
-  ---               | ---               | ---
+  ---               |---                |---
   :execution-id     | integer           | Unique per-process id for the execution
   :stage            | :enter, :leave, or :error
   :interceptor-name | keyword or string | The interceptor that was invoked (either its :name or a string)
@@ -503,7 +508,8 @@
 
   When multiple observer functions are added, they are invoked in an unspecified order.
 
-  The [[debug-observer]] function is a useful observer provided by Pedesta, which identifies
-  interceptors and how they each modified the context."
+  The [[debug-observer]] function is used to create an observer function; this observer
+  can be used to log each interceptor that executes, in what phase it executes,
+  and how it modifies the context map.."
   [context observer-fn]
   (update context ::observer-fn merge-observer observer-fn))

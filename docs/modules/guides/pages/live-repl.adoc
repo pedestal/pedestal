@@ -296,7 +296,7 @@ which is just what we want in production.
 
 However, in local development mode, `(route/routes-from routes)` expands (approximately) to `#(expand-routes (deref (var routes)))` ... the same code we used above, to delay route evaluation.
 
-Further,in local development mode, `routes-from` will print the formatted routing table to the console at startup, and at any later time that the routing table changes:
+Further, in local development mode, Pedestal will write a formatted routing table to the console at startup, and at any later time that the routing table changes:
 
 ```
 Routing table:

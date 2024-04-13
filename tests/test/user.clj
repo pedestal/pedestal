@@ -13,11 +13,10 @@
 
 (trace/set-enable-trace! false)
 
-(set! *warn-on-reflection* true)
-
 (comment
 
 
   (trace/set-enable-trace! true)
   (trace/set-compile-trace! false)
   )
+

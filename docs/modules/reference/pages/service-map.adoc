@@ -128,7 +128,7 @@ from another container on the same host) will be network, not localhost, connect
 | ::http/routes
 | Y
 | Function, `ExpandableRoutes`, or sequence of maps
-| Something that satisfies the api:expand-routes[ns=io.pedestal.http.route] as the full route map contains some redundancies to make processing easier which `expand-routes` adds automatically.
+| A route specification that can be processed by api:expand-routes[ns=io.pedestal.http.route] into a routing table.
 
 | ::http/secure-headers
 | N
@@ -278,7 +278,7 @@ keys and string values for the security headers. Any other keys will be ignored.
 
 The api:server[] function converts the service map to a server map; much of this is
 the responsibility of the container-specific `server` function, such as
-api:.server[ns=io.pedestal.http.jetty] - the function is determined from the ::http/type key of the service map.
+api:server[ns=io.pedestal.http.jetty] - the function is determined from the ::http/type key of the service map.
 
 This function is passed the full service map, and a set of server options; these options
 are a subset of the service map keys: :host, :port, :join?, :container-options, and :websockets (each
@@ -296,5 +296,6 @@ and stop the server instance.
 The service map can grow quite complex, with options controlling everything from routing, to
 security, to container-specific options.
 
-The service map may be validated via {clojure_spec}; the ::io.pedestal.http/service-map spec identifies
-the possible keys and values.
+The service map may be validated via {clojure_spec}; this involves loading the
+appropriate xref:specs.adoc[spec namespaces] and using
+Clojure's built-in link:https://clojure.org/guides/spec#_instrumentation_and_testing[instrumention and testing support].

@@ -14,12 +14,38 @@ party may send messages to the other party - this unleashes truly unbounded poss
 Websocket requests are not routed the way HTTP requests are; instead, the mapping from incoming requests
 to Websocket handlers is defined in the xref:service-map.adoc[].
 
-In the service map, the :io.pedestal.http/websockets key{empty}footnote:[The {clojure_spec} :io.pedestal.websocket/websockets-map specifies the structure of this option.]
-maps string routes to _endpoint maps_{empty}footnote:[The {clojure_spec}
-:io.pedestal.websocket/endpoint-map specifies the structure of an endpoint map.].
+In the service map, the :io.pedestal.http/websockets key
+maps string routes to endpoint maps.
 
 The endpoint map is a set of callbacks.  The path and endpoint map are ultimately passed to the api:add-endpoint[] function, which describes
 in detail how the callbacks are used.
+
+|===
+| Key | Signature | Description
+
+| :on-open
+| (Session, EndpointConfig) -> Object
+| Invoked when the client first opens a connection.
+  The returned value is retained and passed as the first argument of the remaining callbacks.
+
+| :on-close
+| (Object, Session, CloseReason) -> nil
+| Invoked when the socket is closed, allowing any resources to be freed.
+
+| :on-error
+| (Object, Session, Throwable) -> nil
+| Passed any unexpected exception.
+
+| :on-text
+| (Object, String) -> nil
+| Passed a text message from the client, as a single String.
+
+| :on-binary
+| (Object, ByteBuffer) -> nil
+| Passed a binary message, as a single ByteBuffer.
+
+
+|===
 
 Essentially, the :on-open callback is invoked when the client initiates the connection.
 

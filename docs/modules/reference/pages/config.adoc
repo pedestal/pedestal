@@ -32,9 +32,9 @@ a need for these subsystems.
 
 The intent is that a Pedestal application will typically include a `pedestal-config.edn` on the classpath (packaged with
 the application's sources or compiled classes, typically stored in `resources`); the `pedestal-test-config.edn` will
-only be on the classpath (typically, stored in `test-resources`).
+only be on the classpath during local testing (typically, stored in `test-resources`).
 
-When necessary, these values can be further overrridden when deployed to a staging or production deployment using
+When necessary, these values can be overrridden when deployed to a staging or production deployment using
 environment variables or JVM system properties.
 
 == EDN Configuration Files

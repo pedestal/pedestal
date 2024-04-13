@@ -317,43 +317,23 @@
       [route-name & options]
   ```
 
-  Where `options` are key-value pairs from:
+  Where `options` are key-value pairs:
 
-     :app-name      Application name specified for this route
-
-     :request       The original request; it will be merged into the
-                    generated link.
-
-     :params        A map of all parameters; any params not used as
-                    path parameters will be added to the query string
-
-     :path-params   A map of path parameters only
-
-     :strict-path-params? A boolean, when true will throw an exception
-                          if all path-params aren't fulfilled for the url
-
-     :query-params  A map of query-string parameters only
-
-     :method-param  Keyword naming the query-string parameter in which
-                    to place the HTTP method name, if it is neither
-                    GET nor POST. If nil, the HTTP method name will
-                    not be included in the query string. Default is nil.
-
-     :context       A string, function that returns a string, or symbol
-                    that resolves to a function that returns a string
-                    that specifies a root context for the URL. Default
-                    is nil.
-
-     :fragment      A string for the fragment part of the url.
-
-     :absolute?     Boolean, whether to force an absolute URL
-
-     :scheme        Keyword (:http | :https) used to override the scheme
-                    portion of the url.
-
-     :host          A string used to override the host portion of the URL.
-
-     :port          An integer used to override the port in the URL.
+  Key           | Value           | Description
+  ---           |---              |---
+  :app-name     | String          | Application name specified for this route
+  :request      | Map             | The original request; it will be merged into the generated link
+  :params       | Map             | A map of all parameters; any params not used as path parameters will be added to the query string
+  :path-params  | Map             | A map of path parameters only
+  :strict-path-params? | Boolean  | When true will throw an exception if all path-params aren't fulfilled for the URL
+  :query-params | Map             | A map of query-string parameters only
+  :method-param | Keyword         | Names the query-string parameter in which to place the HTTP method name (used when not :get or :post)
+  :context      | varied          | String, function that returns a string, or symbol that resolves to a function; specifies root context for the URL
+  :fragment     | String          | The fragment part of the URL
+  :absolute?    | Boolean         | True to force an absolute URL
+  :scheme       | :http or :https | Used to override the scheme portion of the URL
+  :host         | String          | Used to override the host portion of the URL
+  :port         | Integer         | Used to override the port in the URL
 
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned
@@ -524,7 +504,7 @@
   (assoc context :response
          {:status  400
           :headers {}
-          :body    (str "Bad Request - " (.getMessage exception))}))
+          :body    (str "Bad Request - " (ex-message exception))}))
 
 (def query-params
   "An interceptor which parses query-string parameters from an
