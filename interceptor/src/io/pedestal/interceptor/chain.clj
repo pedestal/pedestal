@@ -20,7 +20,8 @@
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong
-           (clojure.core.async.impl.protocols Channel)))
+           (clojure.core.async.impl.protocols Channel)
+           (clojure.lang PersistentQueue)))
 
 (declare ^:private execute-continue)
 
@@ -48,14 +49,20 @@
                     (ex-data t))
              t)))
 
-(defn- adjust-queue
-  [stage context]
-  ;; In :enter phase, the queue-index was incremented before invoking the interceptor.
-  ;; Back that out before switching to the :leave stage. This ensures that the :leave of the interceptor
-  ;; that invoked terminate will be executed (if present).
-  (when (= :enter stage)
-    (swap! (::*queue-index context) dec))
-  context)
+(defn- begin-new-stage
+  [context current-stage new-stage]
+  (let [context' (if (= :enter current-stage)
+                   (let [{::keys [stack]} context]
+                     (-> context
+                         (assoc ::queue (reverse stack))
+                         (dissoc ::stack))))]
+    (assoc context' ::stage new-stage)))
+
+(defn- begin-error
+  [context current-stage error]
+  (-> context
+      (begin-new-stage current-stage :error)
+      (assoc ::error error)))
 
 (defn terminate
   "Removes all remaining interceptors from context's execution queue.
@@ -66,8 +73,7 @@
   (let [{::keys [stage]} context]
     (assert (= :enter stage)
             "terminate may only be called when in execution stage :enter")
-    (adjust-queue :enter context)
-    (assoc context ::stage :leave)))
+    (begin-new-stage context :enter :leave)))
 
 (defn- check-terminators
   "Invokes each predicate in ::terminators on context. If any predicate
@@ -113,10 +119,7 @@
           context-out))
       (catch Throwable t
         (log/debug :throw t :execution-id execution-id)
-        (adjust-queue stage context)
-        (assoc context
-               ::error (throwable->ex-info t execution-id interceptor stage)
-               ::stage :error)))
+        (begin-error context stage (throwable->ex-info t execution-id interceptor stage))))
     (do (log/trace :interceptor (name-for interceptor)
                    :skipped? true
                    :stage stage
@@ -134,8 +137,9 @@
       (log/debug :interceptor (name-for interceptor)
                  :stage :error
                  :execution-id execution-id)
-      (try (->> (callback context-in ex)
-                (notify-observer execution-id interceptor :error context-in))
+      (try (let [context-out (callback context-in ex)]
+             (cond->> context-out
+                      (map? context-out) (notify-observer execution-id interceptor :error context-in)))
            (catch Throwable t
              (if (identical? (type t) (-> ex ex-data :exception type))
                (do (log/debug :rethrow t :execution-id execution-id)
@@ -166,18 +170,13 @@
                (= stage :enter) (check-terminators execution-id interceptor))
       (catch Throwable t
         (log/debug :throw t :execution-id execution-id)
-        (adjust-queue stage new-context)
-        (assoc new-context
-               ::stage :error
-               ::error (throwable->ex-info t execution-id interceptor stage))))
-    (let [error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                         {:execution-id   (::execution-id old-context)
-                          :stage          stage
-                          :interceptor    (name-for interceptor)
-                          :exception-type :PedestalChainAsyncPrematureClose})]
-      ;; As elsewhere, when switching from :enter to :leave or :error, have to adjust the queue index
-      (adjust-queue stage old-context)
-      (assoc old-context ::stage :error ::error error))))
+        (begin-error new-context stage
+                     (throwable->ex-info t execution-id interceptor stage))))
+    (begin-error old-context stage (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                                            {:execution-id   (::execution-id old-context)
+                                             :stage          stage
+                                             :interceptor    (name-for interceptor)
+                                             :exception-type :PedestalChainAsyncPrematureClose}))))
 
 (defn- go-async
   "When presented with a channel as the return value of an enter function,
@@ -195,31 +194,25 @@
                        execute-continue))]
     ;; Wait for the new context to be conveyed.  Don't execute on this thread; we want this thread
     ;; to go back to the servlet container immediately.
-    (async/take! context-channel callback) false)
+    (async/take! context-channel callback false))
   ;; This nil will propagate all the way up, causing an immediate return from
   ;; chain/execute (which will return nil), while the actual processing continues in go threads.
   nil)
 
 (defn- execute-interceptors-with-bindings
-  [execution-id initial-context initial-bindings *queue-index]
+  [execution-id initial-context initial-bindings]
   (loop [context initial-context]
-    (let [queue-index   @*queue-index
-          {::keys [stage queue]} context
+    (let [{::keys [stage queue]} context
           enter?        (= :enter stage)
-          is-exhausted? (if enter?
-                          (<= (count queue) queue-index)
-                          (or (< queue-index 0)
-                              (zero? (count queue))))]
+          interceptor   (peek queue)
+          is-exhausted? (nil? interceptor)]
       (cond
 
-        (and enter? is-exhausted?)
-        (do
-          ;; Exhausted :enter stage, start working backwards
-          (swap! *queue-index dec)
-          (recur (assoc context ::stage :leave)))
-
         is-exhausted?
-        (assoc context ::complete? true)
+        (if enter?
+          ;; Exhausted :enter stage, start working backwards
+          (recur (begin-new-stage context stage :leave))
+          (assoc context ::complete? true))
 
         ;; When an interceptor changes the bindings, we must jump up a level
         ;; so that with-bindings can be called with the new bindings map.
@@ -231,24 +224,25 @@
         (recur (assoc context ::stage :leave))
 
         :else
-        (let [interceptor (get queue queue-index)
-              context'    (do
-                            ;; Advance to next interceptor
-                            (swap! *queue-index (if enter? inc dec))
-                            (if (not= :error stage)
-                              (try-stage execution-id context interceptor stage)
-                              (try-error execution-id context interceptor)))]
-          (if (channel? context')
-            (go-async execution-id interceptor stage context context')
-            (recur context')))))))
+        (let [context'    (cond-> (update context ::queue pop)
+                            enter? (update ::stack conj interceptor))
+              ;; Possible optimizations:
+              ;; - only push interceptor to stack if has :leave or :error
+              ;; - only invoke try-stage/try-error if non-nil
+              context-out (if (not= :error stage)
+                            (try-stage execution-id context' interceptor stage)
+                            (try-error execution-id context' interceptor))]
+          (if (channel? context-out)
+            (go-async execution-id interceptor stage context context-out)
+            (recur context-out)))))))
 
 (defn- execute-interceptors
   [initial-context]
-  (let [{::keys [*queue-index execution-id]} initial-context]
+  (let [{::keys [execution-id]} initial-context]
     (loop [context initial-context]
       (let [{:keys [bindings]} context
             context' (with-bindings (or bindings {})
-                       (execute-interceptors-with-bindings execution-id context bindings *queue-index))]
+                       (execute-interceptors-with-bindings execution-id context bindings))]
         ;; execute-inner may return early just to force a rebind when the :bindings
         ;; change, or may return nil if execution switched to async.
         (if (and (some? context')
@@ -258,7 +252,7 @@
 
 (defn- into-queue
   [queue values]
-  (into (or queue []) values))
+  (into (or queue PersistentQueue/EMPTY) values))
 
 (defn enqueue
   "Adds interceptors to the end of context's execution queue. Creates
@@ -299,7 +293,7 @@
 (defn- setup-execution
   [context]
   (assoc context
-         ::*queue-index (atom 0)
+         ::stack PersistentQueue/EMPTY
          ::stage :enter))
 
 (defn- end

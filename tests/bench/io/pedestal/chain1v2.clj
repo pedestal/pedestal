@@ -59,6 +59,16 @@
     {:name  :queue-bound-reader
      :enter #(chain2/enqueue* % bound-reader)}))
 
+(def exception-catcher
+  (interceptor {:name  :catcher
+                :error (fn [context error]
+                         (update context :events conj [:catcher]))}))
+
+(def exception-thrower
+  (interceptor {:name  :thrower
+                :enter (fn [context]
+                         (throw (IllegalStateException.)))}))
+
 (def interceptors
   (map make-interceptor
        names
@@ -89,7 +99,10 @@
                          (if (= execute-fn chain1/execute)
                            queue-bound-reader-v1
                            queue-bound-reader-v2)]
-                        (drop half-count interceptors))]
+                        (drop half-count interceptors)
+                        [exception-catcher
+                         exception-thrower])]
+    []
     (execute execute-fn interceptors')))
 
 
