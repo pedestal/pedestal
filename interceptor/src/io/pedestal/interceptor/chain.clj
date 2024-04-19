@@ -239,7 +239,7 @@
         (recur (assoc context ::stage :leave))
 
         :else
-        (let [interceptor (nth queue queue-index)
+        (let [interceptor (get queue queue-index)
               context'    (do
                             ;; Advance to next interceptor
                             (swap! *queue-index (if enter? inc dec))
