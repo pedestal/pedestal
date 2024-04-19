@@ -15,7 +15,7 @@
   "The implementation of the interceptor pattern, where a context map is passed through
   callbacks supplied by an extensible queue of interceptors, with provisions for
   error handling, observations, asynchronous executions, and other factors."
-  (:require [clojure.core.async :refer [<! go]]
+  (:require [clojure.core.async :as async]
             [io.pedestal.internal :as i]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
@@ -158,6 +158,27 @@
   (doseq [enter-async-fn enter-async]
     (enter-async-fn context)))
 
+(defn- process-async-context
+  [execution-id interceptor stage old-context new-context]
+  (if new-context
+    (try
+      (cond->> (notify-observer execution-id interceptor stage old-context new-context)
+               (= stage :enter) (check-terminators execution-id interceptor))
+      (catch Throwable t
+        (log/debug :throw t :execution-id execution-id)
+        (adjust-queue stage new-context)
+        (assoc new-context
+               ::stage :error
+               ::error (throwable->ex-info t execution-id interceptor stage))))
+    (let [error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
+                         {:execution-id   (::execution-id old-context)
+                          :stage          stage
+                          :interceptor    (name-for interceptor)
+                          :exception-type :PedestalChainAsyncPrematureClose})]
+      ;; As elsewhere, when switching from :enter to :leave or :error, have to adjust the queue index
+      (adjust-queue stage old-context)
+      (assoc old-context ::stage :error ::error error))))
+
 (defn- go-async
   "When presented with a channel as the return value of an enter function,
   wait for the channel to return a new-context (via a go block). When a new
@@ -168,28 +189,13 @@
   further execution on this thread)."
   [execution-id interceptor stage old-context context-channel]
   (prepare-for-async old-context)
-  (go
-    (let [continue-context
-          (if-let [new-context (<! context-channel)]
-            (let [new-context' (try
-                                 (cond->> (notify-observer execution-id interceptor stage old-context new-context)
-                                          (= stage :enter) (check-terminators execution-id interceptor))
-                                 (catch Throwable t
-                                   (log/debug :throw t :execution-id execution-id)
-                                   (adjust-queue stage new-context)
-                                   (assoc new-context
-                                          ::stage :error
-                                          ::error (throwable->ex-info t execution-id interceptor stage))))]
-              new-context')
-            (let [error (ex-info "Async Interceptor closed Context Channel before delivering a Context"
-                                 {:execution-id   (::execution-id old-context)
-                                  :stage          stage
-                                  :interceptor    (name-for interceptor)
-                                  :exception-type :PedestalChainAsyncPrematureClose})]
-              ;; As elsewhere, when switching from :enter to :leave or :error, have to adjust the queue index
-              (adjust-queue stage old-context)
-              (assoc old-context ::stage :error ::error error)))]
-      (execute-continue (dissoc continue-context ::enter-async))))
+  (let [callback (fn [new-context]
+                   (-> (process-async-context execution-id interceptor stage old-context new-context)
+                       (dissoc ::enter-async)
+                       execute-continue))]
+    ;; Wait for the new context to be conveyed.  Don't execute on this thread; we want this thread
+    ;; to go back to the servlet container immediately.
+    (async/take! context-channel callback) false)
   ;; This nil will propagate all the way up, causing an immediate return from
   ;; chain/execute (which will return nil), while the actual processing continues in go threads.
   nil)
