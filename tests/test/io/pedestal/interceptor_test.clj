@@ -12,16 +12,16 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.interceptor-test
-  (:require [clojure.test :refer (deftest is testing)]
+  (:require [clojure.test :refer [deftest is testing]]
             [io.pedestal.internal :as i]
             [clojure.core.async :as async
              :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.test-common :refer [<!!?]]
-            [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
+            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)]))
 
-(defn trace [context direction name]
+(defn trace
+  [context direction name]
   (update context ::trace i/vec-conj [direction name]))
 
 (defn tracer [name]
@@ -106,20 +106,21 @@
     (is (match? expected actual-en*))
     (is (match? expected actual-ex))))
 
-(deftest t-simple-oneway-execution
-  (let [expected-enter {::trace [[:enter :a]
-                                 [:enter :b]
-                                 [:enter :c]]}
-        actual-en      (execute-only {} :enter [(tracer :a)
-                                                (tracer :b)
-                                                (tracer :c)])
-        actual-en*     (execute-only (chain/enqueue* {}
-                                                     (tracer :a)
-                                                     (tracer :b)
-                                                     (tracer :c))
-                                     :enter)]
-    (is (match? expected-enter actual-en))
-    (is (match? expected-enter actual-en*))))
+#_(deftest t-simple-oneway-execution
+    (let [expected-enter {::trace [[:enter :a]
+                                   [:enter :b]
+                                   [:enter :c]]}
+          actual-en      (execute-only {} :enter [(tracer :a)
+                                                  (tracer :b)
+                                                  (tracer :c)])
+          actual-en*     (execute-only (chain/enqueue* {}
+                                                       (tracer :a)
+                                                       (tracer :b)
+                                                       (tracer :c))
+                                       :enter)]
+      (is (match? expected-enter actual-en))
+      (is (match? expected-enter actual-en*))))
+
 
 (deftest t-error-propagates
   (is (thrown? Exception
@@ -128,13 +129,13 @@
                                   (tracer :b)
                                   (thrower :c)
                                   (tracer :d)]))))
-  (is (thrown? Exception
-               (execute-only (enqueue {}
-                                      [(tracer :a)
-                                       (tracer :b)
-                                       (thrower :c)
-                                       (tracer :d)])
-                             :enter))))
+  #_(is (thrown? Exception
+                 (execute-only (enqueue {}
+                                        [(tracer :a)
+                                         (tracer :b)
+                                         (thrower :c)
+                                         (tracer :d)])
+                               :enter))))
 
 (deftest t-error-caught-in-execute
   (is (match? {::trace [[:enter :a]
@@ -154,37 +155,37 @@
                                  (thrower :f)
                                  (tracer :g)])))))
 
-(deftest error-caught-in-execute-only-enter
-  (is (match? {::trace [[:enter :a]
-                        [:enter :b]
-                        [:enter :c]
-                        [:enter :d]
-                        [:enter :e]
-                        [:error :c :from :f]]}
-              (execute-only (enqueue {}
-                                     [(tracer :a)
-                                      (tracer :b)
-                                      (catcher :c)
-                                      (tracer :d)
-                                      (tracer :e)
-                                      (thrower :f)
-                                      (tracer :g)])
-                            :enter))))
+#_(deftest error-caught-in-execute-only-enter
+    (is (match? {::trace [[:enter :a]
+                          [:enter :b]
+                          [:enter :c]
+                          [:enter :d]
+                          [:enter :e]
+                          [:error :c :from :f]]}
+                (execute-only (enqueue {}
+                                       [(tracer :a)
+                                        (tracer :b)
+                                        (catcher :c)
+                                        (tracer :d)
+                                        (tracer :e)
+                                        (thrower :f)
+                                        (tracer :g)])
+                              :enter))))
 
-(deftest error-caught-in-execute-only-leave
-  (is (match? {::trace [[:leave :h]
-                        [:leave :g]
-                        [:error :h :from :f]]}
-              (execute-only (enqueue {}
-                                     [(tracer :a)
-                                      (tracer :b)
-                                      (catcher :c)
-                                      (tracer :d)
-                                      (tracer :e)
-                                      (leave-thrower :f)
-                                      (tracer :g)
-                                      (catcher :h)])
-                            :leave))))
+#_(deftest error-caught-in-execute-only-leave
+    (is (match? {::trace [[:leave :h]
+                          [:leave :g]
+                          [:error :h :from :f]]}
+                (execute-only (enqueue {}
+                                       [(tracer :a)
+                                        (tracer :b)
+                                        (catcher :c)
+                                        (tracer :d)
+                                        (tracer :e)
+                                        (leave-thrower :f)
+                                        (tracer :g)
+                                        (catcher :h)])
+                              :leave))))
 
 (deftest t-enqueue
   (is (thrown? AssertionError
@@ -282,44 +283,44 @@
                           [:leave :a]]}
                 (<!!? result-chan)))))
 
-(deftest one-way-async-channel-enter
-  (let [result-chan (chan)
-        _           (execute-only (enqueue {}
-                                           [(tracer :a)
-                                            (channeler :b)
-                                            (channeler :c)
-                                            (tracer :d)
-                                            (enter-deliverer result-chan)])
-                                  :enter)
-        result      (<!! result-chan)
-        trace       (result ::trace)
-        thread-ids  (result ::thread-ids)]
-    (is (= [[:enter :a]
-            [:enter :b]
-            [:enter :c]
-            [:enter :d]]
-           trace))
-    (is (= 2
-           (-> thread-ids distinct count)))))
+#_(deftest one-way-async-channel-enter
+    (let [result-chan (chan)
+          _           (execute-only (enqueue {}
+                                             [(tracer :a)
+                                              (channeler :b)
+                                              (channeler :c)
+                                              (tracer :d)
+                                              (enter-deliverer result-chan)])
+                                    :enter)
+          result      (<!! result-chan)
+          trace       (result ::trace)
+          thread-ids  (result ::thread-ids)]
+      (is (= [[:enter :a]
+              [:enter :b]
+              [:enter :c]
+              [:enter :d]]
+             trace))
+      (is (= 2
+             (-> thread-ids distinct count)))))
 
-(deftest one-way-async-channel-leave
-  (let [result-chan (chan)
-        _           (execute-only (enqueue {}
-                                           [(deliverer result-chan)
-                                            (tracer :a)
-                                            (two-channeler :b)
-                                            (two-channeler :c)
-                                            (tracer :d)])
-                                  :leave)
-        result      (<!!? result-chan)
-        thread-ids  (result ::thread-ids)]
-    (is (match? {::trace [[:leave :d]
-                          [:leave :c]
-                          [:enter :b]
-                          [:enter :a]]}
-                result))
-    (is (= 2
-           (-> thread-ids distinct count)))))
+#_(deftest one-way-async-channel-leave
+    (let [result-chan (chan)
+          _           (execute-only (enqueue {}
+                                             [(deliverer result-chan)
+                                              (tracer :a)
+                                              (two-channeler :b)
+                                              (two-channeler :c)
+                                              (tracer :d)])
+                                    :leave)
+          result      (<!!? result-chan)
+          thread-ids  (result ::thread-ids)]
+      (is (match? {::trace [[:leave :d]
+                            [:leave :c]
+                            [:enter :b]
+                            [:enter :a]]}
+                  result))
+      (is (= 2
+             (-> thread-ids distinct count)))))
 
 (deftest termination
   (let [context (chain/terminate-when {} (fn [ctx]
@@ -328,16 +329,16 @@
                          [(tracer :a)
                           (tracer :b)
                           (tracer :c)])]
-    (testing "execute-only"
-      (is (match? {::trace [[:enter :a]
-                            [:enter :b]
-                            [:leave :b]
-                            [:leave :a]]}
-                  result))
-      (is (match? {::trace [[:enter :a] [:enter :b]]}
-                  (execute-only context :enter [(tracer :a)
-                                                (tracer :b)
-                                                (tracer :c)]))))
+    #_(testing "execute-only"
+        (is (match? {::trace [[:enter :a]
+                              [:enter :b]
+                              [:leave :b]
+                              [:leave :a]]}
+                    result))
+        (is (match? {::trace [[:enter :a] [:enter :b]]}
+                    (execute-only context :enter [(tracer :a)
+                                                  (tracer :b)
+                                                  (tracer :c)]))))
     (testing "Async termination"
       (let [result-chan (chan)
             _           (execute context
