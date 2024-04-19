@@ -200,24 +200,16 @@
   ;; chain/execute (which will return nil), while the actual processing continues in go threads.
   nil)
 
-
-(defn- exhausted?
-  [is-enter-stage? queue-index queue]
-  (if is-enter-stage?
-    ;; Really, should never get beyond =
-    (<= (count queue) queue-index)
-    ;; For :leave/:error, when we hit -1 (or if the queue is empty, a
-    ;; degenerate case).
-    (or (< queue-index 0)
-        (zero? (count queue)))))
-
-(defn- execute-inner
+(defn- execute-interceptors-with-bindings
   [execution-id initial-context initial-bindings *queue-index]
   (loop [context initial-context]
     (let [queue-index   @*queue-index
           {::keys [stage queue]} context
           enter?        (= :enter stage)
-          is-exhausted? (exhausted? enter? queue-index queue)]
+          is-exhausted? (if enter?
+                          (<= (count queue) queue-index)
+                          (or (< queue-index 0)
+                              (zero? (count queue))))]
       (cond
 
         (and enter? is-exhausted?)
@@ -231,7 +223,7 @@
 
         ;; When an interceptor changes the bindings, we must jump up a level
         ;; so that with-bindings can be called with the new bindings map.
-        (not= (:bindings context) initial-bindings)
+        (not (identical? (:bindings context) initial-bindings))
         context
 
         (and (= :error stage)
@@ -250,15 +242,13 @@
             (go-async execution-id interceptor stage context context')
             (recur context')))))))
 
-(defn- apply-bindings
+(defn- execute-interceptors
   [initial-context]
   (let [{::keys [*queue-index execution-id]} initial-context]
     (loop [context initial-context]
       (let [{:keys [bindings]} context
-            context' (if (seq bindings)
-                       (with-bindings bindings
-                         (execute-inner execution-id context bindings *queue-index))
-                       (execute-inner execution-id context bindings *queue-index))]
+            context' (with-bindings (or bindings {})
+                       (execute-interceptors-with-bindings execution-id context bindings *queue-index))]
         ;; execute-inner may return early just to force a rebind when the :bindings
         ;; change, or may return nil if execution switched to async.
         (if (and (some? context')
@@ -354,7 +344,7 @@
   "This is where things pick back up after going async."
   [context]
   (let [context' (some-> context
-                         apply-bindings
+                         execute-interceptors
                          end)]
     ;; Note that in async case, throwing an exception will occur in a core.async thread
     ;; with no hope of it being caught. Generally, it is expected that the interceptor chain
@@ -374,7 +364,8 @@
   Each Interceptor may also have a :name, which is used when logging.
   This is encouraged.
 
-  When executing a context, first all\n  the :enter functions are invoked in order.
+  When executing a context, first all
+  the :enter functions are invoked in order.
 
   When :enter execution reaches the end of the queue, it switches
   to the :leave stage.  Each Interceptor's :leave function is invoked,
