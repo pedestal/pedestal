@@ -78,22 +78,22 @@
 (defn- check-terminators
   "Invokes each predicate in ::terminators on context. If any predicate
   returns truthy, terminates :enter stage execution."
-  [execution-id interceptor context]
+  [interceptor context]
   (if (some #(% context) (::terminators context))
     (do (log/debug :in 'check-terminators
                    :interceptor (name-for interceptor)
                    :terminate? true
-                   :execution-id execution-id)
+                   :execution-id (::execution-id context))
         (terminate context))
     context))
 
 (defn- notify-observer
-  [execution-id interceptor stage context-in context-out]
+  [interceptor stage context-in context-out]
   (when (map? context-out)
     (let [{::keys [observer-fn]} context-out]
       (when observer-fn
         (let [event {:stage            stage
-                     :execution-id     execution-id
+                     :execution-id     (::execution-id context-in)
                      :interceptor-name (name-for interceptor)
                      :context-in       context-in
                      :context-out      context-out}]
@@ -102,44 +102,46 @@
 
 (defn- try-stage
   "Extracts the callback from an interceptor and invokes it if non-nil."
-  [execution-id context interceptor stage]
-  (if-let [callback (get interceptor stage)]
-    (try
-      (log/debug :interceptor (name-for interceptor)
-                 :stage stage
-                 :execution-id execution-id
-                 :fn callback)
-      (let [context-out (callback context)]
-        ;; TODO: returning nil violates the interceptor contract; we could check here.
-        (if (map? context-out)
-          (cond->> (notify-observer execution-id interceptor stage context context-out)
-                   ;; This step is duplicated in go-async:
-                   (= stage :enter) (check-terminators execution-id interceptor))
-          ;; Should be a channel
-          context-out))
-      (catch Throwable t
-        (log/debug :throw t :execution-id execution-id)
-        (begin-error context stage (throwable->ex-info t execution-id interceptor stage))))
-    (do (log/trace :interceptor (name-for interceptor)
-                   :skipped? true
+  [context interceptor stage]
+  (let [execution-id (::execution-id context)]
+    (if-let [callback (get interceptor stage)]
+      (try
+        (log/debug :interceptor (name-for interceptor)
                    :stage stage
-                   :execution-id execution-id)
-        context)))
+                   :execution-id execution-id
+                   :fn callback)
+        (let [context-out (callback context)]
+          ;; TODO: returning nil violates the interceptor contract; we could check here.
+          (if (map? context-out)
+            (cond->> (notify-observer interceptor stage context context-out)
+                     ;; This step is duplicated in go-async:
+                     (= stage :enter) (check-terminators interceptor))
+            ;; Should be a channel
+            context-out))
+        (catch Throwable t
+          (log/debug :throw t :execution-id execution-id)
+          (begin-error context stage (throwable->ex-info t execution-id interceptor stage))))
+      (do (log/trace :interceptor (name-for interceptor)
+                     :skipped? true
+                     :stage stage
+                     :execution-id execution-id)
+          context))))
 
 (defn- try-error
   "Invokes the :error callback of an interceptor if non-nil."
-  [execution-id context interceptor]
+  [context interceptor]
   (if-let [callback (get interceptor :error)]
-    (let [ex         (::error context)
+    (let [ex           (::error context)
+          execution-id (::excecution-id context)
           ;; Hide the old error from the observer, if any.
           ;; The old-context is what is passed to the interceptor, so that's fair.
-          context-in (dissoc context ::error)]
+          context-in   (dissoc context ::error)]
       (log/debug :interceptor (name-for interceptor)
                  :stage :error
                  :execution-id execution-id)
       (try (let [context-out (callback context-in ex)]
              (cond->> context-out
-                      (map? context-out) (notify-observer execution-id interceptor :error context-in)))
+                      (map? context-out) (notify-observer interceptor :error context-in)))
            (catch Throwable t
              (if (identical? (type t) (-> ex ex-data :exception type))
                (do (log/debug :rethrow t :execution-id execution-id)
@@ -151,7 +153,7 @@
     (do (log/trace :interceptor (name-for interceptor)
                    :skipped? true
                    :stage :error
-                   :execution-id execution-id)
+                   :execution-id (::execution-id context))
         context)))
 
 (defn- prepare-for-async
@@ -163,15 +165,16 @@
     (enter-async-fn context)))
 
 (defn- process-async-context
-  [execution-id interceptor stage old-context new-context]
+  [interceptor stage old-context new-context]
   (if new-context
     (try
-      (cond->> (notify-observer execution-id interceptor stage old-context new-context)
-               (= stage :enter) (check-terminators execution-id interceptor))
+      (cond->> (notify-observer interceptor stage old-context new-context)
+               (= stage :enter) (check-terminators interceptor))
       (catch Throwable t
-        (log/debug :throw t :execution-id execution-id)
-        (begin-error new-context stage
-                     (throwable->ex-info t execution-id interceptor stage))))
+        (let [execution-id (::excecution-id new-context)]
+          (log/debug :throw t :execution-id execution-id)
+          (begin-error new-context stage
+                       (throwable->ex-info t execution-id interceptor stage)))))
     (begin-error old-context stage (ex-info "Async Interceptor closed Context Channel before delivering a Context"
                                             {:execution-id   (::execution-id old-context)
                                              :stage          stage
@@ -186,10 +189,10 @@
 
   This function is non-blocking, returning nil immediately (a signal to halt
   further execution on this thread)."
-  [execution-id interceptor stage old-context context-channel]
+  [interceptor stage old-context context-channel]
   (prepare-for-async old-context)
   (let [callback (fn [new-context]
-                   (-> (process-async-context execution-id interceptor stage old-context new-context)
+                   (-> (process-async-context interceptor stage old-context new-context)
                        (dissoc ::enter-async)
                        execute-continue))]
     ;; Wait for the new context to be conveyed.  Don't execute on this thread; we want this thread
@@ -200,9 +203,10 @@
   nil)
 
 (defn- execute-interceptors-with-bindings
-  [execution-id initial-context initial-bindings]
+  [initial-context initial-bindings]
   (loop [context initial-context]
-    (let [{::keys [stage queue]} context
+    (let [queue         (::queue context)
+          stage         (::stage context)
           enter?        (= :enter stage)
           interceptor   (peek queue)
           is-exhausted? (nil? interceptor)]
@@ -230,25 +234,24 @@
               ;; - only push interceptor to stack if has :leave or :error
               ;; - only invoke try-stage/try-error if non-nil
               context-out (if (not= :error stage)
-                            (try-stage execution-id context' interceptor stage)
-                            (try-error execution-id context' interceptor))]
+                            (try-stage context' interceptor stage)
+                            (try-error context' interceptor))]
           (if (channel? context-out)
-            (go-async execution-id interceptor stage context context-out)
+            (go-async interceptor stage context context-out)
             (recur context-out)))))))
 
 (defn- execute-interceptors
   [initial-context]
-  (let [{::keys [execution-id]} initial-context]
-    (loop [context initial-context]
-      (let [{:keys [bindings]} context
-            context' (with-bindings (or bindings {})
-                       (execute-interceptors-with-bindings execution-id context bindings))]
-        ;; execute-inner may return early just to force a rebind when the :bindings
-        ;; change, or may return nil if execution switched to async.
-        (if (and (some? context')
-                 (not (::complete? context')))
-          (recur context')
-          context')))))
+  (loop [context initial-context]
+    (let [{:keys [bindings]} context
+          context' (with-bindings (or bindings {})
+                     (execute-interceptors-with-bindings context bindings))]
+      ;; execute-inner may return early just to force a rebind when the :bindings
+      ;; change, or may return nil if execution switched to async.
+      (if (and (some? context')
+               (not (::complete? context')))
+        (recur context')
+        context'))))
 
 (defn- into-queue
   [queue values]
@@ -337,9 +340,9 @@
 (defn- execute-continue
   "This is where things pick back up after going async."
   [context]
-  (let [context' (some-> context
-                         execute-interceptors
-                         end)]
+  (let [context' (-> context
+                     execute-interceptors
+                     end)]
     ;; Note that in async case, throwing an exception will occur in a core.async thread
     ;; with no hope of it being caught. Generally, it is expected that the interceptor chain
     ;; has at least one interceptor to handle otherwise uncaught exceptions.
