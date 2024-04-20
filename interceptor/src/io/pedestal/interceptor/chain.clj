@@ -121,11 +121,12 @@
         (catch Throwable t
           (log/debug :throw t :execution-id execution-id)
           (begin-error context stage (throwable->ex-info t execution-id interceptor stage))))
-      (do (log/trace :interceptor (name-for interceptor)
-                     :skipped? true
-                     :stage stage
-                     :execution-id execution-id)
-          context))))
+      (do
+        (log/trace :interceptor (name-for interceptor)
+                   :skipped? true
+                   :stage stage
+                   :execution-id execution-id)
+        context))))
 
 (defn- try-error
   "Invokes the :error callback of an interceptor if non-nil."
@@ -139,22 +140,24 @@
       (log/debug :interceptor (name-for interceptor)
                  :stage :error
                  :execution-id execution-id)
-      (try (let [context-out (callback context-in ex)]
-             (cond->> context-out
-                      (map? context-out) (notify-observer interceptor :error context-in)))
-           (catch Throwable t
-             (if (identical? (type t) (-> ex ex-data :exception type))
-               (do (log/debug :rethrow t :execution-id execution-id)
-                   context)
-               (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
-                   (-> context
-                       (assoc ::error (throwable->ex-info t execution-id interceptor :error))
-                       (update ::suppressed conj ex)))))))
-    (do (log/trace :interceptor (name-for interceptor)
-                   :skipped? true
-                   :stage :error
-                   :execution-id (::execution-id context))
-        context)))
+      (try
+        (let [context-out (callback context-in ex)]
+          (cond->> context-out
+                   (map? context-out) (notify-observer interceptor :error context-in)))
+        (catch Throwable t
+          (if (identical? (type t) (-> ex ex-data :exception type))
+            (do (log/debug :rethrow t :execution-id execution-id)
+                context)
+            (do (log/debug :throw t :suppressed (:exception-type ex) :execution-id execution-id)
+                (-> context
+                    (assoc ::error (throwable->ex-info t execution-id interceptor :error))
+                    (update ::suppressed conj ex)))))))
+    (do
+      (log/trace :interceptor (name-for interceptor)
+                 :skipped? true
+                 :stage :error
+                 :execution-id (::execution-id context))
+      context)))
 
 (defn- prepare-for-async
   "Calls each of the :enter-async functions in a context. The purpose of these
@@ -233,8 +236,11 @@
               ;; Possible optimizations:
               ;; - only push interceptor to stack if has :leave or :error
               ;; - only invoke try-stage/try-error if non-nil
-              context-out (if (not= :error stage)
+              context-out (case stage
+                            (:enter :leave)
                             (try-stage context' interceptor stage)
+
+                            :error
                             (try-error context' interceptor))]
           (if (channel? context-out)
             (go-async interceptor stage context context-out)
