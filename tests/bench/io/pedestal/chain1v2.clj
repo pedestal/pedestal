@@ -116,8 +116,11 @@
             (execute chain2/execute interceptors)))
 
 
-  (bench-for [async? [true false]
-              count [10 50 100]]
+  (bench-for
+    {:quick? false
+     :progress? true}
+    [async? [false true]
+              count [5 10 50 100]]
              (example chain1/execute async? count)
              (example chain2/execute async? count))
 

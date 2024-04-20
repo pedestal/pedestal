@@ -11,6 +11,9 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
+;; NOTE: This is the original implementation and has been rewritten.
+;; This copy is being kept for comparison purposes only.
+
 (ns io.pedestal.interceptor.chain1
   "Interceptor pattern. Executes a chain of Interceptor functions on a
   common \"context\" map, maintaining a virtual \"stack\", with error
@@ -52,11 +55,11 @@
   returns true, removes ::queue from context."
   [interceptor context]
   (if (some #(% context) (::terminators context))
-    (let [execution-id (::execution-id context)]
+    (do
       (log/debug :in 'check-terminators
                  :interceptor (name-for interceptor)
                  :terminate? true
-                 :execution-id execution-id)
+                 :execution-id (::execution-id context))
       (dissoc context ::queue))
     context))
 
