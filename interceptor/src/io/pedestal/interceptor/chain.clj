@@ -438,7 +438,6 @@
   Prior to 0.7.0, this was achieved by accessing the :io.pedestal.interceptor.chain/queue key;
   future enhancements may change how the interceptor queue and stack are stored."
   [context]
-  ;; TODO: Return nil unless :enter, drop leading values (that have already executed)
   (::queue context))
 
 (defn- merge-observer
