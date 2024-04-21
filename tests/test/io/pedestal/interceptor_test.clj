@@ -17,7 +17,6 @@
             [clojure.core.async :as async
              :refer [<! >! go chan timeout <!! >!!]]
             [io.pedestal.test-common :refer [<!!?]]
-            [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain :refer (execute execute-only enqueue)]))
 
