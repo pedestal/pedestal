@@ -129,12 +129,13 @@
 
 
   (bench-for
-    {:quick? false
-     :progress? true}
+    {:quick?       true
+     :progress?    false
+     :round-robin? false}
     [async? [false true]
-              count [5 10 50 100]]
-             (example chain1/execute async? count)
-             (example chain2/execute async? count))
+     count [5 10 50 100]]
+    (example chain1/execute async? count)
+    (example chain2/execute async? count))
 
   )
 
