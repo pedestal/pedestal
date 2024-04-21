@@ -49,7 +49,7 @@
           shared-keys (set/intersection o-keys m-keys)]
       (reduce (fn [m k]
                 (cond
-                  (and (contains? shared-keys k))
+                  (contains? shared-keys k)
                   (delta* omit-set
                           m
                           (conj key-path k)

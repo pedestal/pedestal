@@ -234,7 +234,7 @@
 (deftest termination
   (let [context (chain/terminate-when {} (fn [ctx]
                                            (some #{[:enter :b]} (::trace ctx))))
-        result  (execute context
+        _       (execute context
                          [(tracer :a)
                           (tracer :b)
                           (tracer :c)])]

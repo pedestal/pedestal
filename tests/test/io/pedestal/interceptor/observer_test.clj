@@ -111,8 +111,8 @@
 
   (is (= [[::outer :enter]
           [::inner :leave]
-          [::outer :leave]])
-      (names-and-stages))
+          [::outer :leave]]
+         (names-and-stages)))
 
   (is (match?
         [{:context-out {:foo :bar}}
