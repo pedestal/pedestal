@@ -69,11 +69,12 @@
   returns truthy, terminates :enter stage execution."
   [interceptor context]
   (if (some #(% context) (::terminators context))
-    (do (log/debug :in 'check-terminators
-                   :interceptor (name-for interceptor)
-                   :terminate? true
-                   :execution-id (::execution-id context))
-        (terminate context))
+    (do
+      (log/debug :in 'check-terminators
+                 :interceptor (name-for interceptor)
+                 :terminate? true
+                 :execution-id (::execution-id context))
+      (terminate context))
     context))
 
 (defn- notify-observer
@@ -132,8 +133,9 @@
           (notify-observer interceptor :error context-in context-out))
         (catch Throwable t
           (if (identical? (type t) (-> error ex-data :exception type))
-            (do (log/debug :rethrow t :execution-id (::excecution-id context))
-                context)
+            (do
+              (log/debug :rethrow t :execution-id (::excecution-id context))
+              context)
             (let [execution-id (::excecution-id context)]
               (log/debug :throw t :suppressed (:exception-type error) :execution-id execution-id)
               (-> context
@@ -223,7 +225,7 @@
                                        (if (channel? context-out)
                                          (go-async interceptor :enter context context-out)
                                          (recur context-out)))))))] ;; recur inner loop
-        ;; inner function may return early just to force a rebind when the :bindings
+        ;; inner loop may return exit just to force a rebind when the :bindings
         ;; change, or may return nil if execution switched to async.
         (if (::rebind? context')
           (recur (dissoc context' ::rebind?))               ;; recur outer loop]
@@ -257,7 +259,7 @@
                                      (if (channel? context-out)
                                        (go-async interceptor :leave context context-out)
                                        (recur context-out)))))))] ;; recur inner loop
-      ;; inner function may return early just to force a rebind when the :bindings
+      ;; inner loop may return exit just to force a rebind when the :bindings
       ;; change, or may return nil if execution switched to async.
       (if (::rebind? context')
         (recur (dissoc context' ::rebind?))                 ;; recur outer loop
