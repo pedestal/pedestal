@@ -186,69 +186,79 @@
   ;; through to the :leave stage.
   (if-not (-> initial-context ::queue seq)
     initial-context
-    (loop [binding-context initial-context]
-      (let [initial-bindings (:bindings binding-context)
-            context'         (with-bindings (or initial-bindings {})
-                               (loop [context binding-context]
-                                 (let [queue       (::queue context)
-                                       interceptor (peek queue)]
-                                   (cond
-                                     (nil? interceptor)
-                                     (dissoc context ::queue)
+    (let [*rebind? (volatile! false)]
+      (loop [binding-context initial-context]               ;; outer loop
+        (let [initial-bindings (:bindings binding-context)
+              context'         (with-bindings (or initial-bindings {})
+                                 (loop [context binding-context] ;; inner loop
+                                   (let [queue       (::queue context)
+                                         interceptor (peek queue)]
+                                     (cond
+                                       (nil? interceptor)
+                                       (dissoc context ::queue)
 
-                                     ;; When an interceptor changes the bindings, we must jump up a level
-                                     ;; so that with-bindings can be called with the new bindings map.
-                                     (not (identical? (:bindings context) initial-bindings))
-                                     (assoc context ::rebind? true)
+                                       ;; When an interceptor changes the bindings, we must jump up a level
+                                       ;; so that with-bindings can be called with the new bindings map.
+                                       (not (identical? (:bindings context) initial-bindings))
+                                       (do
+                                         (vreset! *rebind? true)
+                                         context)
 
-                                     :else
-                                     (let [stack       (::stack context)
-                                           context'    (assoc context
-                                                              ::queue (pop queue)
-                                                              ::stack (conj stack interceptor))
-                                           context-out (try-stage context' interceptor :enter)]
-                                       (if (channel? context-out)
-                                         (go-async interceptor :enter context context-out)
-                                         (recur context-out)))))))] ;; recur inner loop
-        ;; inner loop may return early just to force a rebind when the :bindings
-        ;; change, or may return nil if execution switched to async.
-        (if (::rebind? context')
-          (recur (dissoc context' ::rebind?))               ;; recur outer loop]
-          context')))))
+                                       :else
+                                       (let [stack       (::stack context)
+                                             context'    (assoc context
+                                                                ::queue (pop queue)
+                                                                ::stack (conj stack interceptor))
+                                             context-out (try-stage context' interceptor :enter)]
+                                         (if (channel? context-out)
+                                           (go-async interceptor :enter context context-out)
+                                           (recur context-out)))))))] ;; recur inner loop
+          ;; inner loop may return early just to force a rebind when the :bindings
+          ;; change, or may return nil if execution switched to async.
+          (if @*rebind?
+            (do
+              (vreset! *rebind? false)
+              (recur context'))                             ;; recur outer loop
+            context'))))))
 
 (defn- execute-leave
   "Invoked when :enter phase completes, either due to a terminator, the natural end of the queue,
   or when an exception is thrown."
   [initial-context]
-  (loop [binding-context initial-context]
-    (let [initial-bindings (:bindings binding-context)
-          context'         (with-bindings (or initial-bindings {})
-                             (loop [context binding-context]
-                               (let [queue       (::leave-queue context)
-                                     interceptor (peek queue)]
-                                 (cond
-                                   (nil? interceptor)
-                                   context
+  (let [*rebind? (volatile! false)]
+    (loop [binding-context initial-context]                 ;; outer loop
+      (let [initial-bindings (:bindings binding-context)
+            context'         (with-bindings (or initial-bindings {})
+                               (loop [context binding-context] ;; inner loop
+                                 (let [queue       (::leave-queue context)
+                                       interceptor (peek queue)]
+                                   (cond
+                                     (nil? interceptor)
+                                     context
 
-                                   ;; When an interceptor changes the bindings, we must jump up a level
-                                   ;; so that with-bindings can be called with the new bindings map.
-                                   (not (identical? (:bindings context) initial-bindings))
-                                   (assoc context ::rebind? true)
+                                     ;; When an interceptor changes the bindings, we must jump up a level
+                                     ;; so that with-bindings can be called with the new bindings map.
+                                     (not (identical? (:bindings context) initial-bindings))
+                                     (do
+                                       (vreset! *rebind? true)
+                                       context)
 
-                                   :else
-                                   (let [context'    (assoc context ::leave-queue (pop queue))
-                                         error       (::error context)
-                                         context-out (if error
-                                                       (try-error context' interceptor error)
-                                                       (try-stage context' interceptor :leave))]
-                                     (if (channel? context-out)
-                                       (go-async interceptor :leave context context-out)
-                                       (recur context-out)))))))] ;; recur inner loop
-      ;; inner loop may return early just to force a rebind when the :bindings
-      ;; change, or may return nil if execution switched to async.
-      (if (::rebind? context')
-        (recur (dissoc context' ::rebind?))                 ;; recur outer loop
-        context'))))
+                                     :else
+                                     (let [context'    (assoc context ::leave-queue (pop queue))
+                                           error       (::error context)
+                                           context-out (if error
+                                                         (try-error context' interceptor error)
+                                                         (try-stage context' interceptor :leave))]
+                                       (if (channel? context-out)
+                                         (go-async interceptor :leave context context-out)
+                                         (recur context-out)))))))] ;; recur inner loop
+        ;; inner loop may return early just to force a rebind when the :bindings
+        ;; change, or may return nil if execution switched to async.
+        (if @*rebind?
+          (do
+            (vreset! *rebind? false)
+            (recur context'))                               ;; recur outer loop
+          context')))))
 
 (defn- prepare-for-leave
   [context]
