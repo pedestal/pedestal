@@ -10,28 +10,25 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.2"}
-        io.pedestal/pedestal.service {:mvn/version "0.7.0-beta-1"}
+ :deps  {org.clojure/clojure            {:mvn/version "1.11.3"}
+         io.pedestal/pedestal.service   {:mvn/version "0.7.0-beta-1"}
 
-        org.clojure/data.xml {:mvn/version "0.2.0-alpha9"}
+         org.clojure/data.xml           {:mvn/version "0.2.0-alpha9"}
 
-        ;; Auto-reload changes
-        ns-tracker/ns-tracker {:mvn/version "0.4.0"}
+         ;; Auto-reload changes
+         ns-tracker/ns-tracker          {:mvn/version "0.4.0"}
 
-        ;; Logging
-        ch.qos.logback/logback-classic {:mvn/version "1.4.8"}
+         ;; Logging
+         ch.qos.logback/logback-classic {:mvn/version "1.5.6"}
 
-        org.slf4j/jul-to-slf4j {:mvn/version "2.0.12"}
-        org.slf4j/jcl-over-slf4j {:mvn/version "2.0.12"}
-        org.slf4j/log4j-over-slf4j {:mvn/version "2.0.12"}}
+         org.slf4j/jul-to-slf4j         {:mvn/version "2.0.13"}
+         org.slf4j/jcl-over-slf4j       {:mvn/version "2.0.13"}
+         org.slf4j/log4j-over-slf4j     {:mvn/version "2.0.13"}}
 
  :aliases
- {:dev
-  {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
-
-  :local
-  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
-                   io.pedestal/pedestal.common {:local/root "../common"}
-                   io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
+ {:local
+  {:override-deps {io.pedestal/pedestal.log         {:local/root "../log"}
+                   io.pedestal/pedestal.common      {:local/root "../common"}
+                   io.pedestal/pedestal.telemetry   {:local/root "../telemetry"}
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
-                   io.pedestal/pedestal.service {:local/root "../service"}}}}}
+                   io.pedestal/pedestal.service     {:local/root "../service"}}}}}

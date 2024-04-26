@@ -130,8 +130,7 @@
 
   (bench-for
     {:quick?       true
-     :progress?    false
-     :round-robin? false}
+     :progress?    false}
     [async? [false true]
      count [5 10 50 100]]
     (example chain1/execute async? count)
