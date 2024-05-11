@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         io.pedestal/pedestal.log {:mvn/version "0.6.3"}
         io.pedestal/pedestal.service {:mvn/version "0.6.3"}
         org.eclipse.jetty/jetty-server {:mvn/version "9.4.54.v20240208"}
@@ -24,7 +24,7 @@
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}
  :aliases
  {:clj11
-  {:override-deps {org.clojure/clojure {:mvn/version "1.11.1"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.11.2"}}}
 
   ;; clj -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
   :nvd

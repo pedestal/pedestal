@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         ;; logging
         org.slf4j/slf4j-api {:mvn/version "1.7.35"}
         ;; metrics

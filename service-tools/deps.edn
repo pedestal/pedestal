@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         io.pedestal/pedestal.service {:mvn/version "0.6.3"}
 
         org.clojure/data.xml {:mvn/version "0.2.0-alpha5"}
