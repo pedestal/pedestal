@@ -2,6 +2,12 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
+## 0.6.4 -- 14 May 2024
+
+This release is just to provide dependency upgrades to address CVEs in Jetty and Clojure.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/16?closed=1)
+
 ## 0.6.3 -- 30 Nov 2023
 
 A change has been made to the `path-params-decoder` to address the breaking change in 0.6.0; by
