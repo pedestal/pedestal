@@ -16,7 +16,10 @@
                                        ::on-close
                                        ::on-error
                                        ::on-text
-                                       ::on-binary]))
+                                       ::on-binary
+                                       ::configure
+                                       ::subprotocols
+                                       ::idle-timeout-ms]))
 
 ;; TODO: Expand these as fspec's
 (s/def ::on-open fn?)
@@ -24,6 +27,10 @@
 (s/def ::on-error fn?)
 (s/def ::on-text fn?)
 (s/def ::on-binary fn?)
+(s/def ::configure fn?)
+(s/def ::idle-timeout-ms pos-int?)
+
+(s/def ::subprotocols (s/coll-of string? :kind vector?))
 
 (s/def ::websockets-map
   (s/map-of string? ::endpoint-map))

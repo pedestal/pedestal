@@ -66,6 +66,9 @@
         ;; only used for tracing test
         io.jaegertracing/jaeger-client {:mvn/version "1.0.0"}
 
+        ;; For proper reloading of code in REPL
+        io.github.tonsky/clj-reload {:mvn/version "0.5.0"}
+
         io.github.cognitect-labs/test-runner
         {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
 

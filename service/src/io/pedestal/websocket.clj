@@ -14,7 +14,7 @@
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
            (jakarta.websocket EndpointConfig SendHandler Session MessageHandler$Whole RemoteEndpoint$Async)
-           (jakarta.websocket.server ServerContainer ServerEndpointConfig ServerEndpointConfig$Builder)
+           (jakarta.websocket.server ServerContainer ServerEndpointConfig$Builder)
            (java.nio ByteBuffer)))
 
 (defn- message-handler
@@ -32,25 +32,29 @@
   (let [{:keys [on-open
                 on-close
                 on-error
-                on-text                                     ;; TODO: rename to `on-string`?
-                on-binary]} ws-map
+                on-text
+                on-binary
+                idle-timeout-ms]} ws-map
         maybe-invoke-callback (fn [f ^Session session event-value]
                                 (when f
                                   (let [session-object (-> session
                                                            .getUserProperties
                                                            (.get session-object-key))]
                                     (f session-object session event-value))))
-        full-on-open          (fn [^Session session ^EndpointConfig config]
-                                (let [session-object (when on-open
-                                                       (on-open session config))]
-                                  ;; Store this for on-close, on-error
-                                  (-> session .getUserProperties (.put session-object-key session-object))
+        full-on-open (fn [^Session session ^EndpointConfig config]
+                       (let [session-object (when on-open
+                                              (on-open session config))]
+                         ;; Store this for on-close, on-error
+                         (-> session .getUserProperties (.put session-object-key session-object))
 
-                                  (when on-text
-                                    (.addMessageHandler session String (message-handler session-object on-text)))
+                         (when idle-timeout-ms
+                           (.setMaxIdleTimeout session (long idle-timeout-ms)))
 
-                                  (when on-binary
-                                    (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
+                         (when on-text
+                           (.addMessageHandler session String (message-handler session-object on-text)))
+
+                         (when on-binary
+                           (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
     (fn [event-type ^Session session event-value]
       (case event-type
         :on-open (full-on-open session event-value)
@@ -84,13 +88,27 @@
   :on-binary (Object, java.nio.ByteBuffer)
   : Passed a binary message as a single ByteBuffer.
 
+  :configure (jakarta.websocket.server.ServerEndpointConfig.Builder)
+  : Called at initialization time to perform any extra configuration of the endpoint (optional)
+
+  :subprotocols (vector of String, optional)
+  : Configures the subprotocols of the endpoint
+
+  :idle-timeout-ms (long)
+  : Time in milliseconds before an idle websocket is automatically closed.
+
   All callbacks are optional.  The :on-open callback is critical, as it performs all the one-time setup
-  for the WebSocket connection. The [[on-open-start-ws-connection]] function is a good starting place.
-  "
+  for the WebSocket connection. The [[on-open-start-ws-connection]] function is a good starting place."
   [^ServerContainer container ^String path ws-endpoint-map]
   (let [callback (make-endpoint-delegate-callback ws-endpoint-map)
-        config   ^ServerEndpointConfig (-> (ServerEndpointConfig$Builder/create FnEndpoint path)
-                                           .build)]
+        {:keys [subprotocols configure]} ws-endpoint-map
+        builder (ServerEndpointConfig$Builder/create FnEndpoint path)
+        _ (do
+            (when subprotocols
+              (.subprotocols builder subprotocols))
+            (when configure
+              (configure builder)))
+        config (.build builder)]
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
     (.addEndpoint container config)))
 
@@ -132,7 +150,8 @@
 
   Returns a channel used to send messages to the client.
 
-  The values written to the channel are either a payload (a String, ByteBuffer, or some object
+  The values written to the channel are either
+  a payload (a String, ByteBuffer, or some object
   that satisfies the WebSocketSendAsync protocol) or is a tuple of a payload and a response channel.
 
   When the response channel is non-nil, the result of the message send is written to it:
@@ -143,8 +162,8 @@
   "
   [^Session ws-session opts]
   (let [{:keys [send-buffer-or-n]
-         :or   {send-buffer-or-n 10}} opts
-        send-ch      (async/chan send-buffer-or-n)
+         :or {send-buffer-or-n 10}} opts
+        send-ch (async/chan send-buffer-or-n)
         async-remote (.getAsyncRemote ws-session)]
     (go-loop []
       (if-let [payload (and (.isOpen ws-session)
