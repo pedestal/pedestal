@@ -14,7 +14,7 @@
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
            (jakarta.websocket EndpointConfig SendHandler Session MessageHandler$Whole RemoteEndpoint$Async)
-           (jakarta.websocket.server ServerContainer  ServerEndpointConfig$Builder)
+           (jakarta.websocket.server ServerContainer ServerEndpointConfig$Builder)
            (java.nio ByteBuffer)))
 
 (defn- message-handler
@@ -41,20 +41,20 @@
                                                            .getUserProperties
                                                            (.get session-object-key))]
                                     (f session-object session event-value))))
-        full-on-open          (fn [^Session session ^EndpointConfig config]
-                                (let [session-object (when on-open
-                                                       (on-open session config))]
-                                  ;; Store this for on-close, on-error
-                                  (-> session .getUserProperties (.put session-object-key session-object))
+        full-on-open (fn [^Session session ^EndpointConfig config]
+                       (let [session-object (when on-open
+                                              (on-open session config))]
+                         ;; Store this for on-close, on-error
+                         (-> session .getUserProperties (.put session-object-key session-object))
 
-                                  (when idle-timeout-ms
-                                    (.setMaxIdleTimeout session (long idle-timeout-ms)))
+                         (when idle-timeout-ms
+                           (.setMaxIdleTimeout session (long idle-timeout-ms)))
 
-                                  (when on-text
-                                    (.addMessageHandler session String (message-handler session-object on-text)))
+                         (when on-text
+                           (.addMessageHandler session String (message-handler session-object on-text)))
 
-                                  (when on-binary
-                                    (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
+                         (when on-binary
+                           (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
     (fn [event-type ^Session session event-value]
       (case event-type
         :on-open (full-on-open session event-value)
@@ -101,15 +101,14 @@
   for the WebSocket connection. The [[on-open-start-ws-connection]] function is a good starting place."
   [^ServerContainer container ^String path ws-endpoint-map]
   (let [callback (make-endpoint-delegate-callback ws-endpoint-map)
-        {:keys [subprotocols
-                configure]} #trace/result ws-endpoint-map
-        builder  (ServerEndpointConfig$Builder/create FnEndpoint path)
-        _        (do
-                   (when subprotocols
-                     (.subprotocols builder subprotocols))
-                   (when configure
-                     (configure builder)))
-        config   (.build builder)]
+        {:keys [subprotocols configure]} ws-endpoint-map
+        builder (ServerEndpointConfig$Builder/create FnEndpoint path)
+        _ (do
+            (when subprotocols
+              (.subprotocols builder subprotocols))
+            (when configure
+              (configure builder)))
+        config (.build builder)]
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
     (.addEndpoint container config)))
 
@@ -163,8 +162,8 @@
   "
   [^Session ws-session opts]
   (let [{:keys [send-buffer-or-n]
-         :or   {send-buffer-or-n 10}} opts
-        send-ch      (async/chan send-buffer-or-n)
+         :or {send-buffer-or-n 10}} opts
+        send-ch (async/chan send-buffer-or-n)
         async-remote (.getAsyncRemote ws-session)]
     (go-loop []
       (if-let [payload (and (.isOpen ws-session)
