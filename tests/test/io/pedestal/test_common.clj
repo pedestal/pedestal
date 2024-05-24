@@ -11,7 +11,8 @@
 
 (ns io.pedestal.test-common
   (:require [clj-commons.ansi :as ansi]
-            [clojure.core.async :as async]))
+            [clojure.core.async :as async]
+            [clojure.spec.test.alpha :as stest]))
 
 (defn no-ansi-fixture
   [f]
@@ -26,3 +27,11 @@
    (async/alt!!
      ch ([val _] val)
      (async/timeout timeout) ::timeout)))
+
+(defn instrument-specs-fixture
+  [f]
+  (require 'io.pedestal.http.specs)
+  (stest/instrument)
+  (try (f)
+       (finally
+         (stest/unstrument))))
