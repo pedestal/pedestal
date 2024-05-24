@@ -34,14 +34,13 @@
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]
+            [io.pedestal.http.response :as response]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
-            [cognitect.transit :as transit]
+            [io.pedestal.internal :as i]
             [io.pedestal.log :as log])
-  (:import (jakarta.servlet Servlet)
-           (java.io OutputStreamWriter
-                    OutputStream)))
+  (:import (jakarta.servlet Servlet)))
 
 ;; This is the majority case; attempting to require it here helps with applications that AOT.
 (try
@@ -50,34 +49,24 @@
 
 ;; edn and json response formats
 
-(defn- print-fn
-  [prn-fn]
-  (fn [output-stream]
-    (with-open [writer (OutputStreamWriter. output-stream)]
-      (binding [*out* writer]
-        (prn-fn))
-      (.flush writer))))
-
-(defn- data-response
-  [f content-type]
-  (ring-response/content-type
-    (ring-response/response (print-fn f))
-    content-type))
-
-(defn edn-response
+(defn  edn-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
   [obj]
-  (data-response #(pr obj) "application/edn;charset=UTF-8"))
+  (response/data-response #(pr obj) "application/edn;charset=UTF-8"))
 
-(defn json-print
+(defn ^{:deprecated "0.7.0"} json-print
   "Print object as JSON to *out*"
   [obj]
-  (json/generate-stream obj *out*))
+  (i/deprecated `json-print
+    (json/generate-stream obj *out*)))
 
 (defn json-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format."
   [obj]
-  (data-response #(json-print obj) "application/json;charset=UTF-8"))
+  (ring-response/content-type
+    (ring-response/response
+      (response/stream-json obj))
+    "application/json;charset=UTF-8"))
 
 ;; Interceptors
 ;; ------------
@@ -144,7 +133,7 @@
     (fn [response]
       (-> response
           (ring-response/content-type "application/json;charset=UTF-8")
-          (assoc :body (print-fn #(-> response :body json-print)))))))
+          (assoc :body response/stream-json)))))
 
 (defn transit-body-interceptor
   "Returns an interceptor which sets the Content-Type header to the
@@ -170,10 +159,7 @@
      (fn [response]
        (-> response
            (ring-response/content-type default-content-type)
-           (assoc :body (fn [^OutputStream output-stream]
-                          (transit/write
-                            (transit/writer output-stream transit-format transit-opts) (:body response))
-                          (.flush output-stream))))))))
+           (update :body response/stream-transit transit-format transit-opts))))))
 
 (def transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
@@ -286,8 +272,8 @@
                (some? allowed-origins) (conj (cors/allow-origin allowed-origins))
                (some? not-found-interceptor) (conj (interceptor not-found-interceptor))
                (or enable-session enable-csrf) (conj (middlewares/session (or enable-session {})))
-               (some? enable-csrf) (into [(body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
-                                          (csrf/anti-forgery enable-csrf)])
+               (some? enable-csrf) (conj (body-params/body-params (:body-params enable-csrf (body-params/default-parser-map)))
+                                         (csrf/anti-forgery enable-csrf))
                true (conj (middlewares/content-type {:mime-types ext-mime-types}))
                true (conj route/query-params)
                true (conj (route/method-param method-param-name))

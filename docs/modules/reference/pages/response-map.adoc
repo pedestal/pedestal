@@ -32,8 +32,8 @@ The function api:respond-with[] is the easiest way to add a response map to the 
 
 | :body
 | N
-| String, ISeq, File, InputStream
-| The body of the response sent to the client.
+| String, ISeq, File, InputStream, etc.
+| The body of the response sent to the client; see xref:response-bodies.adoc[] for more details.
 |===
 
 
