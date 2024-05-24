@@ -12,31 +12,22 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http-test
-  (:require [clojure.spec.test.alpha :as stest]
-            [clojure.test :refer [deftest is use-fixtures]]
+  (:require [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :as async]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.test :refer [response-for]]
+            [io.pedestal.test-common :as tc]
             [io.pedestal.http :as service]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.http.route :as route]
             [cheshire.core :as cheshire]
             [io.pedestal.http.body-params :refer [body-params]]
-            [ring.util.response :as ring-resp]
-    ;; Force specs to load
-            io.pedestal.http.specs)
+            [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
-
-(use-fixtures :once
-              (fn [f]
-                (stest/instrument)
-                (try (f)
-                     (finally
-                       (stest/unstrument)))))
-
+(use-fixtures :once tc/instrument-specs-fixture)
 
 (defn about-page
   [_request]
