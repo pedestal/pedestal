@@ -32,6 +32,7 @@
   [f]
   (require 'io.pedestal.http.specs)
   (stest/instrument)
-  (try (f)
-       (finally
-         (stest/unstrument))))
+  (try
+    (f)
+    (finally
+      (stest/unstrument))))
