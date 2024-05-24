@@ -22,6 +22,7 @@
             [io.pedestal.http.route :as route]
             [cheshire.core :as cheshire]
             [io.pedestal.http.body-params :refer [body-params]]
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
            (java.nio ByteBuffer)
@@ -241,7 +242,7 @@
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+           (do (servlet-interceptor/write-body-to-stream
                  (-> obj
                      service/edn-response
                      :body)
@@ -252,7 +253,7 @@
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+           (do (servlet-interceptor/write-body-to-stream
                  (-> obj
                      service/edn-response
                      :body)
@@ -263,7 +264,7 @@
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+           (do (servlet-interceptor/write-body-to-stream
                  (-> obj
                      ring-resp/response
                      :body)
@@ -279,13 +280,13 @@
 (deftest json-response-test
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
+    (servlet-interceptor/write-body-to-stream
+      (-> obj
+          service/json-response
+          :body)
+      output-stream)
     (is (= (cheshire/generate-string obj)
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
-                 (-> obj
-                     service/json-response
-                     :body)
-                 output-stream)
-               (slurp-output-stream output-stream))))))
+           (slurp-output-stream output-stream)))))
 
 (defn- create-temp-file [content]
   (let [f (File/createTempFile "pedestal-" nil)]
