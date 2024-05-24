@@ -16,6 +16,7 @@
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
     [io.pedestal.http.jetty :as jetty]
+    [io.pedestal.test-common :as tc]
     [clojure.core.async :refer [chan put! close!] :as async]
     [net.lewisship.trace :refer [trace]]
     [io.pedestal.websocket :as websocket])
@@ -32,6 +33,7 @@
   (with-redefs [events-chan (chan 10)]
     (f)))
 
+(use-fixtures :once tc/instrument-specs-fixture)
 (use-fixtures :each
               events-chan-fixture)
 
