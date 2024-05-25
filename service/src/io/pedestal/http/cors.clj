@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -59,19 +60,16 @@
 (defn allow-origin
   "Returns a CORS interceptor that allows calls from the specified `allowed-origins`, which is one of the following:
 
-  - a sequence of strings
+  * a sequence of strings
+  * a function of one argument that returns a truthy value when an origin is allowed
+  * a map
 
-  - a function of one argument that returns a truthy value when an origin is allowed
-
-  - a map containing the following keys and values
-
-    :allowed-origins - either sequence of strings or a function as above
-
-    :creds - true or false, indicates whether client is allowed to send credentials
-
-    :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
-
-    :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
+  For a map, the expected keys are:
+  
+  * :allowed-origins - either sequence of strings or a function as above
+  * :creds - true or false, indicates whether client is allowed to send credentials
+  * :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
+  * :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
   "
   [allowed-origins]
   (let [{:keys [creds allowed-origins] :as args} (normalize-args allowed-origins)
@@ -115,7 +113,10 @@
                   context))})))
 
 (def dev-allow-origin
-  "Provides a default origin header as a blank string, if not supplied in the incoming request."
+  "An interceptor that provides a default origin header as a blank string, if not supplied in the incoming request.
+
+  This is used in development, and added by default by the
+  [[dev-interceptors]] function."
   (interceptor
     {:name ::dev-allow-origin
      :enter (fn [context]

@@ -10,6 +10,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.websocket
+  "Utilities needed by Pedestal container adapters (such as [[io.pedestal.jetty]]) to implement
+  WebSocket support using default Servlet API functionality, as well as utilities
+  for applications that make use Pedestal's websocket support."
+  {:added "0.7.0"}
   (:require [clojure.core.async :as async :refer [go-loop put!]]
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
@@ -158,7 +162,9 @@
   Either the keyword :success, or an Exception thrown when attempting to send the message.
 
   Options:
-     :send-buffer-or-n - used to create the channel, defaults to 10.
+
+  :send-buffer-or-n
+  : Used to create the channel, defaults to 10
   "
   [^Session ws-session opts]
   (let [{:keys [send-buffer-or-n]
