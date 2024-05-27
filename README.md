@@ -22,7 +22,7 @@ You can stand up a basic Pedestal server in just a few lines of code
 as your application matures and expands.
 
 See the [full documentation](https://pedestal.io) for far more detail about
-using Pedestal, it's design, and it's philosophy.
+using Pedestal, its design, and its philosophy.
 
 Pedestal requires Clojure 1.10 or later, and works with Servlet API 4.0 and Java 11 and up.
 
