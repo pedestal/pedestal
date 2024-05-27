@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/pedestal/pedestal/workflows/CI/badge.svg)
 [![Clojars Project](https://img.shields.io/clojars/v/io.pedestal/pedestal.service.svg)](https://clojars.org/io.pedestal/pedestal.service)
-[![Home Page](https://img.shields.io/badge/Docs-Documentation-blue)](https://pedestal.io)
+[![Home Page](https://img.shields.io/badge/Docs-Documentation-blue)](http://pedestal.io)
 
 
 Pedestal is a set of libraries written in Clojure that aims to bring
@@ -21,7 +21,7 @@ You can stand up a basic Pedestal server in just a few lines of code
 (see the tutorials in the documentation), but Pedestal is designed to grow with you, 
 as your application matures and expands.
 
-See the [full documentation](https://pedestal.io) for far more detail about
+See the [full documentation](http://pedestal.io) for far more detail about
 using Pedestal, its design, and its philosophy.
 
 Pedestal requires Clojure 1.10 or later, and works with Servlet API 4.0 and Java 11 and up.
