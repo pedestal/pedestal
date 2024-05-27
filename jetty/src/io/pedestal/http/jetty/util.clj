@@ -1,4 +1,4 @@
-; Copyright 2024
+; Copyright 2024 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -69,9 +69,4 @@
       (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set)
       :else (.addFilter context servlet-filter path dispatch-set))
     context))
-
-(defn add-server-filters
-  ^ServletContextHandler   [context & more-filter-opts]
-  (doseq [filter-opts more-filter-opts]
-    (add-servlet-filter context filter-opts)))
 

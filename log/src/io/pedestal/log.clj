@@ -17,7 +17,8 @@
 
   Over time, this namespace has also accumulated other visibility-related functionality,
   including metrics (via the Codahale library) and telemetry (via OpenTelemetry) - these protocols and
-  functions have been deprecated in 0.7.0 and will be removed in the future."
+  functions have been deprecated in 0.7.0 and will be removed in the future in favor of new implementations
+  in the io.pedestal/pedestal-telemetry library (see [[io.pedestal.metrics]] and [[io.pedestal.telemetry]])."
   (:require [clojure.string :as string]
             [io.pedestal.internal :as i :refer [deprecated]])
   (:import (org.slf4j Logger
@@ -196,8 +197,8 @@
   (-set-mdc [_t _m] nil))
 
 (def override-logger
-  "Override of the default logger source, from symbol property io.pedestal.log.overrideLogger
-  or environment variable PEDESTAL_LOGGER."
+  "Override of the default logger source, from symbol property `io.pedestal.log.overrideLogger`
+  or environment variable `PEDESTAL_LOGGER`."
   (i/resolve-var-from "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))
 
 (def ^:private override-logger-delay
@@ -210,7 +211,7 @@
              (i/resolve-var-from "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))))
 
 (defn make-logger
-  "Returns a logger which satisfies the LoggerSource protocol."
+  "Returns a logger which satisfies the [[LoggerSource]] protocol."
   [^String logger-name]
   (or (when-let [override-logger @override-logger-delay]
         (override-logger logger-name))
@@ -225,72 +226,78 @@
   "Returns the default formatter (used to convert the event map to a string) used when the
   :io.pedestal.log/formatter key is not present in the log event.  The default is `pr-str`, but
   can be overridden via JVM property io.pedestal.log.formatter or
-  environment variable PEDESTAL_LOG_FORMATTER."
-  {:since "0.7.0"}
+  environment variable `PEDESTAL_LOG_FORMATTER`."
+  {:added "0.7.0"}
   []
   @*default-formatter)
 
-(def log-level-dispatch
+(def ^{:deprecated "0.7.0"} log-level-dispatch
+  "Used internally by the logging macros to map from a level keyword to a protocol method on
+  [[LoggerSource]]."
   {:trace -trace
    :debug -debug
    :info  -info
-   :warn  -warn
-   :error -error})
+   :warn  :error
+   -warn  -error})
 
-(defn log
+(defn ^{:deprecated "0.7.0"} log
   "This function provides basic/core logging functionality as a function.
   You may prefer to use this if you need custom logging functionality beyond
   what is offered by the standard Pedestal logging macros (which in turn just call the protocols).
 
+  Deprecated with no replacement; the [[LoggerSource]] protocol and various configurable options
+  for the main logging macros should be sufficient.
+
   Given a map of logging information,
-    and optionally a default log-level keyword (if not found in the map) -- default is :info,
+  and optionally a default log-level keyword (if not found in the map) -- default is :info,
   Determine the appropriate logger to use,
-   determine if logging-level is enabled,
-   format the logging message,
-  And return the result of calling the appropriate logging function, dispatched to the logging protocols.
+  determine if logging-level is enabled,
+  format the logging message, and return the result of calling the appropriate logging function, dispatched to the logging protocols.
 
   Special keys within the log message:
-   :level -- A keyword, the log level to use for this message, defaults to `default-level`
-   :exception -- A Throwable/Exception to log
-   :io.pedestal.log/logger -- The logger to use for this message,
-                              defaults to the `override-logger` or the SLF4J logger
-   :io.pedestal.log/logger-name -- A String, the loggerName to use if SLF4J logger is used,
-                                   defaults to `*ns*` which may be 'clojure.core' depending on execution,
-   :io.pedestal.log/formatter -- A single-arg function that when given a map, returns a String for logging,
-                                 defaults to `pr-str`
+
+  Key           | Value            | Description
+  ---           |---               |---
+  :level        | keyword          | Log level to use for this message, defaults to `default-level`
+  :exception    | Throwable        |
+  ::logger      | [[LoggerSource]] | The logger to use for this message, defaults to the [[override-logger]] or the SLF4J logger
+  ::logger-name | String           | Logger name to use, defaults to `*ns*`, which may be `clojure.core` depending on execution, so explicit is desired
+  ::formatter   | Function         | A single argument function that converts a map to a loggable String; defaults to `pr-str`, via [[default-formatter]]
 
   If using this function within a macro, you're encouraged to merge all 'meta' information
   (like line info) into the log message map.
+
   For example:
 
-  (defmacro log-macro [log-map]
-  (let [named-log-map (if (::logger-name log-map)
-                        log-map
-                        (assoc log-map ::logger-name (name (ns-name *ns*))))
-        final-log-map (assoc named-log-map :line (:line (meta &form)))]
-    `(log ~final-log-map :info)))
+      (defmacro log-macro [log-map]
+        (let [named-log-map (if (::logger-name log-map)
+                              log-map
+                              (assoc log-map ::logger-name (name (ns-name *ns*))))
+              final-log-map (assoc named-log-map :line (:line (meta &form)))]
+          `(log ~final-log-map :info)))
   "
   ([keyvals]
    (log keyvals :info))
   ([keyvals default-level]
-   (let [keyvals-map (if (map? keyvals) keyvals (apply array-map keyvals))
-         level (:level keyvals-map default-level)
-         logger-name (or ^String (::logger-name keyvals-map)
-                         ^String (name (ns-name *ns*)))
-         logger (or (::logger keyvals-map)
-                    (make-logger logger-name))]
-     (when (-level-enabled? logger level)
-       (let [exception (:exception keyvals-map)
-             formatter (or (::formatter keyvals-map) (default-formatter))
-             ;; You/Users have full control over binding *print-length*, use it wisely please
-             msg (formatter (dissoc keyvals-map
-                                    :exception ::logger ::logger-name ::formatter :level))
-             ;; In order to get to here, `level` has to be enabled,
-             ;;  so it should be safe to look-up in the dispatch
-             log-fn (get log-level-dispatch level)]
-         (if exception
-           (log-fn logger ^String msg ^Throwable exception)
-           (log-fn logger msg)))))))
+   (i/deprecated `log
+                 (let [keyvals-map (if (map? keyvals) keyvals (apply array-map keyvals))
+                       level (:level keyvals-map default-level)
+                       logger-name (or ^String (::logger-name keyvals-map)
+                                       ^String (name (ns-name *ns*)))
+                       logger (or (::logger keyvals-map)
+                                  (make-logger logger-name))]
+                   (when (-level-enabled? logger level)
+                     (let [exception (:exception keyvals-map)
+                           formatter (or (::formatter keyvals-map) (default-formatter))
+                           ;; You/Users have full control over binding *print-length*, use it wisely please
+                           msg (formatter (dissoc keyvals-map
+                                                  :exception ::logger ::logger-name ::formatter :level))
+                           ;; In order to get to here, `level` has to be enabled,
+                           ;;  so it should be safe to look-up in the dispatch
+                           log-fn (get log-level-dispatch level)]
+                       (if exception
+                         (log-fn logger ^String msg ^Throwable exception)
+                         (log-fn logger msg))))))))
 
 (defn- log-expr [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
@@ -309,8 +316,8 @@
                ~string' (binding [*print-length* 80]
                           (formatter# ~(assoc (dissoc keyvals-map
                                                  :exception
-                                                 :io.pedestal.log/logger
-                                                 :io.pedestal.log/formatter)
+                                                 ::logger
+                                                 ::formatter)
                                          :line (:line (meta form)))))]
            ~(if exception'
               `(~log-method' ~logger'
@@ -374,7 +381,7 @@
   {})
 
 (def mdc-context-key
-  "The key to use when formatting [*mdc-context*] for storage into the
+  "The key to use when formatting [[*mdc-context*]] for storage into the
   MDC (via [[-put-mdc]]).  io.pedestal.log uses only this single key of the
   underlying LoggingMDC implementation."
   "io.pedestal")
@@ -416,10 +423,12 @@
 
 
   Options:
-   :io.pedestal.log/formatter - a single-arg function that when given the map, returns a formatted string
-                                Default (via [[default-formatter]]) is `pr-str`
-   :io.pedestal.log/mdc - An object that satisfies the LoggingMDC protocol
-                          Defaults to the SLF4J MDC."
+
+  Key | Value | Description
+  --- |---    |---
+  ::formatter | Function | Converts map to loggable value (a String), default via [[default-formatter]] is `pr-str`
+  ::mdc | [[LoggingMDC]] | Defaults to the SLFJ MDC.
+  "
   [ctx-map & body]
   (if (empty? ctx-map)                                      ;; Optimize for the code-gen/dynamic case where the map may be empty
       `(do
@@ -444,9 +453,10 @@
   under the 'io.pedestal' key (via `io.pedestal.log/mdc-context-key`) using the
   formatter (from the :io.pedestal.log/formatter option, or [[default-formatter]].
 
-  This macro has been deprecated, use [[with-context]] instead:
-  - This macro expands to nil if the provided k is nil; this is likely a day-1 bug
-  - This macro bypasses the LoggingMDC protocol, invoking SLF4J methods directly"
+  This macro has been deprecated, use [[with-context]] instead.
+
+  * This macro expands to nil if the provided k is nil; this is likely a day-1 bug
+  * This macro bypasses the LoggingMDC protocol, invoking SLF4J methods directly"
   {:deprecated "0.7.0"}
   [k v & body]
   (deprecated `with-context-kv
@@ -553,8 +563,8 @@
 
 (def ^{:deprecated "0.7.0"} default-recorder
   "This is the default recorder of all metrics.
-  This value is configured by setting the JVM Property 'io.pedestal.log.defaultMetricsRecorder'
-  or the environment variable 'PEDESTAL_METRICS_RECORDER'.
+  This value is configured by setting the JVM Property `io.pedestal.log.defaultMetricsRecorder`
+  or the environment variable `PEDESTAL_METRICS_RECORDER`.
   The value of the setting should be a namespaced symbol
   that resolves to a 0-arity function or nil.
   That function should return something that satisfies the MetricRecorder protocol.
@@ -993,8 +1003,8 @@
 
 (def ^{:deprecated "0.7.0"} default-tracer
   "This is the default Tracer, registered as the OpenTracing's GlobalTracer.
-  This value is configured by setting the JVM Property 'io.pedestal.log.defaultTracer'
-  or the environment variable 'PEDESTAL_TRACER'.
+  This value is configured by setting the JVM Property `io.pedestal.log.defaultTracer`
+  or the environment variable `PEDESTAL_TRACER`.
   The value of the setting should be a namespaced symbol
   that resolves to a 0-arity function or nil.
   That function should return something that satisfies the TracerOrigin protocol.

@@ -1,4 +1,4 @@
-; Copyright 2023 Nubank NA
+; Copyright 2023-2024 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -12,7 +12,7 @@
 
 (ns io.pedestal.metrics.spi
   "Service Provider Interface for metrics providers; protocols that providers should expose and implement."
-  {:since "0.7.0"})
+  {:added "0.7.0"})
 
 (defprotocol MetricSource
 

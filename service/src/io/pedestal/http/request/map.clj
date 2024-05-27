@@ -10,6 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.request.map
+  "Responsible for converting incoming HttpServletRequest into
+  a Ring-compatible request map."
   (:require [io.pedestal.http.request :as request])
   (:import (jakarta.servlet Servlet)
            (jakarta.servlet.http HttpServletRequest)))

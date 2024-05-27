@@ -315,7 +315,7 @@
   (update context ::queue into-queue interceptors))
 
 (defn enqueue*
-  "Like 'enqueue' but vararg.
+  "Like [[enqueue]] but accepting a variable number of arguments.
   If the last argument is itself a sequence of interceptors,
   they're unpacked and added to the context's execution queue."
   [context & interceptors-and-seq]

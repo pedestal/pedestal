@@ -11,7 +11,7 @@
 
 (ns io.pedestal.metrics.otel
   "Default metrics implementation based on OpenTelemetry."
-  {:since "0.7.0"}
+  {:added "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.telemetry.internal :as i])
   (:import (io.opentelemetry.api.common Attributes)

@@ -38,6 +38,10 @@ Other changes:
 - Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
 - Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files to inform clj-kondo about their macros
 - New function `io.pedestal.http/respond-with` to streamline adding a :response to the interceptor context
+- Easier application configuration: logger, metrics, and tracing configuration can
+  occur inside a `pedestal-config.edn` file (or `pedestal-test-config.edn` for tests),
+  as well as via JVM system properties and environment variables
+- Improvements to REPL-based development, including printing the expanded routing table at startup (when in development mode)
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 
