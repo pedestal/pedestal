@@ -12,8 +12,8 @@
 
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.2"}
-        io.pedestal/pedestal.common {:mvn/version "0.7.0-beta-1"}
-        io.pedestal/pedestal.telemetry {:mvn/version "0.7.0-beta-1"}
+        io.pedestal/pedestal.common {:mvn/version "0.7.0-beta-3"}
+        io.pedestal/pedestal.telemetry {:mvn/version "0.7.0-beta-3"}
         ;; logging
         org.slf4j/slf4j-api {:mvn/version "2.0.12"}
         ;; old-metrics support, to be removed in 0.8 perhaps
