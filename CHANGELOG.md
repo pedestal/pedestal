@@ -17,7 +17,7 @@
 
 Other changes:
 - When using io.pedestal.http/dev-interceptors, uncaught exceptions are now formatted using
-  [clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
+  [org.clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
 - pedestal.logging: SLF4J dependency changed to 2.0.12
 - Pedestal is now compatible with Clojure 1.10.1 and above
 - In `io.pedestal.interceptor.chain`:
