@@ -63,9 +63,6 @@
         incanter/incanter-core {:mvn/version "1.9.3"}
         incanter/incanter-charts {:mvn/version "1.9.3"}
 
-        ;; only used for tracing test
-        io.jaegertracing/jaeger-client {:mvn/version "1.0.0"}
-
         ;; For proper reloading of code in REPL
         io.github.tonsky/clj-reload {:mvn/version "0.5.0"}
 

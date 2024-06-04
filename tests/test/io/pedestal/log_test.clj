@@ -36,11 +36,6 @@
     (is (= {:a 1}
            @unwrapped-value))))
 
-(deftest nil-trace-origin
-  (is (nil? (log/-span nil "operation-name")))
-  (is (nil? (log/-span nil "operation-name" nil)))
-  (is (nil? (log/-span nil "operation-name" nil nil))))
-
 (defn event [& data]
   (swap! *events conj (vec data))
   nil)

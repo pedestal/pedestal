@@ -42,7 +42,7 @@
               :requested-headers requested-headers
               :headers (:headers request)
               :cors-headers cors-headers)
-    (log/meter ::preflight)
+    (metrics/increment-counter ::preflight nil)
     (assoc context :response {:status 200
                               :headers cors-headers})))
 
@@ -90,8 +90,7 @@
 
                     ;; origin is allowed and this is real
                     (and origin allowed (not preflight-request))
-                    (do (log/meter ::origin-real)
-                        (origin-real-fn)
+                    (do (origin-real-fn)
                         (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
                                                             (when creds {"Access-Control-Allow-Credentials" (str creds)}))))
 

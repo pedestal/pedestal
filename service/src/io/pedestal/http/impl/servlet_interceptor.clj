@@ -130,8 +130,7 @@
                 (log/warn :msg "The pipe closed while async writing to the client; Client most likely disconnected."
                           :exception t
                           :src-chan body)
-                (do (log/meter ::async-write-errors)
-                    (async-write-errors-fn)
+                (do (async-write-errors-fn)
                     (log/error :msg "An error occurred when async writing to the client"
                                :throwable t
                                :src-chan body)))
@@ -404,7 +403,6 @@
                                         :request (request-map/servlet-request-map servlet servlet-request servlet-response)))]
         (log/debug :in :interceptor-service-fn
                    :context context)
-        (log/counter :io.pedestal/active-servlet-calls 1)
         (swap! *active-calls inc)
         (try
           (let [final-context (interceptor.chain/execute context interceptors)]
@@ -414,13 +412,11 @@
           (catch EOFException _
             (log/warn :msg "Servlet code caught EOF; The client most likely disconnected mid-response"))
           (catch Throwable t
-            (log/meter ::base-servlet-error)
             (error-metric-fn)
             (log/error :msg "Servlet code threw an exception"
                        :throwable t
                        :cause-trace (format-exception t)))
           (finally
-            (log/counter :io.pedestal/active-servlet-calls -1)
             (swap! *active-calls dec)))))))
 
 

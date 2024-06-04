@@ -69,7 +69,6 @@
               :name name
               :data data
               :id id)
-   (log/histogram ::payload-size (count data))
    (payload-size-fn (count data))
    (try
      (put-fn channel (mk-data name data id))
@@ -114,7 +113,6 @@
   (let [*active-streams (atom 0)]
     (metrics/gauge ::active-streams nil #(deref *active-streams))
     (async/go
-      (log/counter ::active-streams 1)
       (swap! *active-streams inc)
       (try
         (loop []
@@ -143,7 +141,6 @@
         (finally
           (async/close! event-channel)
           (async/close! response-channel)
-          (log/counter ::active-streams -1)
           (swap! *active-streams dec)
           (when on-client-disconnect (on-client-disconnect)))))))
 
