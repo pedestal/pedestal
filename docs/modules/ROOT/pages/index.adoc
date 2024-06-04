@@ -1,4 +1,5 @@
 = What is Pedestal?
+:page-role: -toc
 
 image::animated-front-page-sample.gif[float="right",width=300]
 
@@ -11,59 +12,40 @@ We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and
 
 This documentation is for Pedestal version *{libs_version}*.
 
-++++
-<div class="features-section">
-  <h2>Features</h2>
+== Features
 
-  <div class="main-feature-row">
-    <div class="main-feature">
-      <h3>Ready for Production</h3>
-      <div class="paragraph">Pedestal runs where Java runs: Applications can be deployed as standalone Clojure applications, or WAR files in a servlet container.
-Pedestal integrates with
-<a href="https://opentelemetry.io/">Open Telemetry</a> to give you visibility into your running services.</div>
-    </div>
-    <div class="main-feature">
-      <h3>Secure by Default</h3>
-      <div class="paragraph">Pedestal automatically uses secure headers, enables
-        <a href="https://en.wikipedia.org/wiki/Cross-site_request_forgery">
-cross site request forgery</a> protection, and other best practices. It works with
-<a href="https://en.wikipedia.org/wiki/Cross-origin_resource_sharing">cross-origin resource sharing</a>
-to allow secure front end applications.</div>
-    </div>
-  </div>
+=== Ready for Production
 
-  <div class="main-feature-row">
-    <div class="main-feature">
-      <h3>Easy Ramp Up</h3>
-      <div class="paragraph">
-A simple Pedestal app fits into a few lines of Clojure; Pedestal includes
-a <a href="https://github.com/seancorfield/deps-new">deps-new</a> template for getting you started.
+Pedestal runs where Java runs: Applications can be deployed as standalone Clojure applications, or as WAR files in a servlet container.
+Pedestal integrates with {otel} to give you visibility into your running services.
+
+=== Secure By Default
+
+Pedestal automatically uses secure headers,
+enables https://en.wikipedia.org/wiki/Cross-site_request_forgery[cross site request forgery] protection,
+and other best practices.
+
+It works with https://en.wikipedia.org/wiki/Cross-origin_resource_sharing[cross-origin resource sharing] to
+allow secure front end applications.
+
+=== Easy Ramp Up
+
+A simple Pedestal app fits into a few lines of Clojure; Pedestal includes a
+xref:guides:embedded-template.adoc[deps-new template] for getting you started.
 When you need more power, it's ready for you.
-</div>
-    </div>
 
-    <div class="main-feature">
-      <h3>Testable</h3>
-      <div class="paragraph">Pedestal's core interceptor model breaks request processing into small pieces that are simple, often free of side effects, and therefore easy to
-test; then lets you stack those pieces up to form your full application.</div>
-    </div>
-  </div>
+=== Testable
+
+Pedestal's core interceptor model breaks request processing into small pieces that are simple, often free of side effects, and therefore easy to
+test; then lets you stack those pieces up to form your full application.
 
 
-  <div class="main-feature-row">
-    <div class="main-feature">
-      <h3>Streaming</h3>
-      <div class="paragraph">Pedestal supports creating dynamic applications with server-sent events and WebSockets. Pedestal leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.</div>
-    </div>
+=== Streaming
 
-<div class="main-feature">
-      <h3>Composable and Extensible</h3>
-      <div class="paragraph">Pedestal is built from components that connect via protocols, giving you the flexibility to swap out any part with something
-customized to your application.</div>
-</div>
-    </div>
+Pedestal supports creating dynamic applications with server-sent events and WebSockets.
+Pedestal leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.
 
-  </div>
+=== Composable and Extensible
 
-</div>
-++++
+Pedestal is built from components that connect via protocols, giving you the flexibility to swap out any part with something
+customized to your application.
