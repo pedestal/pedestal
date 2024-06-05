@@ -14,7 +14,8 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as string]
-            [clj-commons.ansi :refer [perr]]))
+            [clj-commons.ansi :refer [perr]]
+            [clj-commons.format.exceptions :as e]))
 
 (defn vec-conj
   [v value]
@@ -34,9 +35,9 @@
     (nil? val) nil
 
     (string? val)
-    (let [slashx (string/index-of val "/")
-          ns-str (when slashx
-                   (subs val 0 slashx))
+    (let [slashx     (string/index-of val "/")
+          ns-str     (when slashx
+                       (subs val 0 slashx))
           symbol-str (if slashx
                        (subs val (inc slashx))
                        val)]
@@ -89,6 +90,27 @@
        (when default-var-name
          (resolver nil nil default-var-name)))))
 
+(defn- truncate-to
+  [limit coll]
+  (let [n (count coll)]
+    (if (<= n limit)
+      coll
+      (drop (- n limit) coll))))
+
+(defn- call-stack
+  [t limit]
+  (let [elements (->> (e/expand-stack-trace t)
+                      (drop-while #(string/starts-with? (:name %) "io.pedestal.internal/")))
+        names    (->> (#'e/transform-stack-trace-elements
+                        elements nil)
+                      (remove :omitted)
+                      (map #'e/format-stack-frame)
+                      (map :name)
+                      distinct
+                      reverse
+                      (truncate-to limit))]
+    (interpose " -> " names)))
+
 (def *deprecations (atom #{}))
 
 (defn deprecation-warning
@@ -99,7 +121,10 @@
       [:yellow
        [:bold "WARNING: "]
        label
-       " is deprecated and may be removed in a future release"])))
+       " is deprecated and may be removed in a future release"]
+
+      "\nCall stack: ... "
+      (call-stack (RuntimeException.) 4))))
 
 (defmacro deprecated
   [label & body]
@@ -111,3 +136,6 @@
   []
   (swap! *deprecations empty))
 
+(comment
+
+  (reset-deprecations))

@@ -12,6 +12,7 @@
 (ns io.pedestal.metrics.otel-test
   (:require [io.pedestal.internal :as i]
             [io.pedestal.metrics :as metrics]
+            [io.pedestal.metrics.spi :as spi]
             [matcher-combinators.matchers :as m]
             [io.pedestal.metrics.otel :as otel]
             [io.pedestal.telemetry.internal :refer [convert-key]]
@@ -186,7 +187,7 @@
 
 (deftest increment-counter
   (let [metric-name :test.counter
-        attributes        {:domain "clojure"}]
+        attributes  {:domain "clojure"}]
     (metrics/increment-counter metric-name attributes)
 
     (is (match? [[:build-counter "test.counter"]
@@ -201,7 +202,7 @@
 
 (deftest advance-counter
   (let [metric-name :test.counter
-        attributes        {:domain "clojure"}]
+        attributes  {:domain "clojure"}]
     (metrics/advance-counter metric-name attributes 7)
 
     (is (match? [[:build-counter "test.counter"]
@@ -253,7 +254,7 @@
 (deftest invalid-tag-key
   (when-let [e (is (thrown-with-msg? Exception #"\QInvalid attribute key type: clojure.lang.PersistentArrayMap\E"
                                      (convert-key {37 :long})))]
-    (is (= {:key        {37 :long}}
+    (is (= {:key {37 :long}}
            (ex-data e)))))
 
 (defn- extract-callback [events]
@@ -340,17 +341,34 @@
                 (events)))))
 
 (deftest histogram
-  (let [update-fn (metrics/histogram :histogram.test {:domain "clojure"
+  (let [update-fn (metrics/histogram :histogram.test {:domain               "clojure"
                                                       ::metrics/description "histogram description"
-                                                      ::metrics/unit "laughs"})]
-      (is (match? [[:ofLongs "histogram.test"]
-                   [:setDescription "histogram.test" "histogram description"]
-                   [:setUnit "histogram.test" "laughs"]
-                   [:build "histogram.test"]]
-                  (events)))
+                                                      ::metrics/unit        "laughs"})]
+    (is (match? [[:ofLongs "histogram.test"]
+                 [:setDescription "histogram.test" "histogram description"]
+                 [:setUnit "histogram.test" "laughs"]
+                 [:build "histogram.test"]]
+                (events)))
 
-      (update-fn 42)
+    (update-fn 42)
 
-      (is (match? [[:record "histogram.test" 42 clojure-domain-attributes]]
-                   (events)))))
+    (is (match? [[:record "histogram.test" 42 clojure-domain-attributes]]
+                (events)))))
 
+
+(deftest counter-with-nil-source-is-noop
+  (is (nil?
+        ((spi/counter nil nil nil)))))
+
+(deftest gauge-with-nil-source-is-nil
+  (is (nil?
+        (spi/gauge nil nil nil nil))))
+
+(deftest histogram-with-nil-source-is-noop
+  (is (nil?
+        ((spi/histogram nil nil nil)))))
+
+(deftest timer-with-nil-source-is-noop
+  (let [start-fn (spi/timer nil nil nil)
+        stop-fn  (start-fn)]
+    (is (nil? (stop-fn)))))
