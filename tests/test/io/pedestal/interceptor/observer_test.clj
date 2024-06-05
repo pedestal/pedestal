@@ -128,9 +128,9 @@
 (deftest calls-multiple-observers
   (let [*events-1 (atom [])
         *events-2 (atom [])
-        context (-> {}
-                    (chain/add-observer #(swap! *events-1 conj %))
-                    (chain/add-observer #(swap! *events-2 conj %)))]
+        context   (-> {}
+                      (chain/add-observer #(swap! *events-1 conj %))
+                      (chain/add-observer #(swap! *events-2 conj %)))]
     (execute context
              {:name  ::outer
               :enter identity
@@ -176,13 +176,21 @@
 (deftest debug-observer
   (mock/providing [(log/make-logger "io.pedestal.interceptor.chain.debug") capture-logger
                    (log/make-logger (m/any)) mock/fall-through]
-    (execute (chain/add-observer nil (debug/debug-observer {:omit #{[:response :body]}}))
+    (execute (chain/add-observer nil (debug/debug-observer {:omit #{[:response :body]
+                                                                    [:sensitive]}}))
              {:name  ::content-type
               :leave #(assoc-in % [:response :headers "Content-Type"] "application/edn")}
              {:name  ::change-status
               :leave #(assoc-in % [:response :status] 303)}
              {:name  ::do-nothing
               :leave identity}
+             ;; A bunch of changes to the body which is omitted
+             {:name  ::restore-body
+              :leave #(assoc-in % [:response :body] "ZZZ")}
+             {:name  ::delete-body
+              :leave #(update % :response dissoc :body)}
+             {:name  ::rewrite-body-again
+              :leave #(assoc-in % [:response :body] "YYY")}
              {:name  ::rewrite-body
               :leave #(assoc-in % [:response :body] "XXX")}
              {:name  ::handler
@@ -195,6 +203,15 @@
             {:interceptor     ::rewrite-body
              :stage           :leave
              :context-changes {:changed {[:response :body] ...}}}
+            {:interceptor     ::rewrite-body-again
+             :stage           :leave
+             :context-changes {:changed {[:response :body] ...}}}
+            {:interceptor     ::delete-body
+             :stage           :leave
+             :context-changes {:removed {[:response :body] ...}}}
+            {:interceptor     ::restore-body
+             :stage           :leave
+             :context-changes {:added {[:response :body] ...}}}
             {:interceptor     ::do-nothing
              :stage           :leave
              :context-changes nil}
@@ -204,7 +221,7 @@
             {:interceptor     ::content-type
              :stage           :leave
              :context-changes {:added {[:response :headers] {"Content-Type" "application/edn"}}}}]
-          @*events))))
+          #trace/result @*events))))
 
 (deftest debug-observer-changes-only
   (mock/providing [(log/make-logger "io.pedestal.interceptor.chain.debug") capture-logger
@@ -221,3 +238,36 @@
                  {:interceptor     ::third
                   :context-changes {:changed {[:active] {:from :first
                                                          :to   :third}}}}] @*events))))
+(def delta #'debug/delta)
+
+(deftest debug-reports-ommitted-on-change
+  (is (match? '{:changed {[:sensitive] ...}}
+              (delta #{[:sensitive]}
+                     {:sensitive {:value :from}}
+                     {:sensitive {:value :to}}))))
+
+(deftest omitted-ignore-if-not-changed
+  (is (match? '{:changed {[:other] {:from :before :to :after}}}
+              (delta #{[:sensitive]}
+                     {:sensitive {:value :stable}
+                      :other     :before}
+                     {:sensitive {:value :stable}
+                      :other     :after}))))
+
+(deftest observe-via-tap
+  (let [*taps (atom [])
+        tap   (fn [v] (swap! *taps conj v))]
+    (with-redefs [tap> tap]
+      (let [observer (debug/debug-observer {:tap? true})]
+        (observer {:execution-id     ::id
+                   :stage            ::stage
+                   :interceptor-name ::interceptor
+                   :context-in       {}
+                   :context-out      {::key ::value}})
+        (is (match?
+              [{:execution-id    ::id
+                :stage           ::stage
+                :interceptor     ::interceptor
+                :context-changes {:added {[::key] ::value}}
+                }]
+              @*taps))))))
