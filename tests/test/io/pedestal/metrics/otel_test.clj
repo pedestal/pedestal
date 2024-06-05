@@ -14,13 +14,11 @@
             [io.pedestal.metrics :as metrics]
             [matcher-combinators.matchers :as m]
             [io.pedestal.metrics.otel :as otel]
-            [io.pedestal.tracing.spi :as tracing.spi]
             [io.pedestal.telemetry.internal :refer [convert-key]]
             [clojure.test :refer [deftest is are use-fixtures]])
   (:import (clojure.lang ExceptionInfo)
            (io.opentelemetry.api.metrics DoubleGaugeBuilder DoubleHistogramBuilder LongCounter LongCounterBuilder LongGaugeBuilder LongHistogram LongHistogramBuilder Meter
                                          ObservableLongGauge ObservableLongMeasurement)
-           (io.opentelemetry.api.trace Span SpanBuilder)
            (java.util.function Consumer)))
 
 (def *now (atom 0))
@@ -356,6 +354,3 @@
       (is (match? [[:record "histogram.test" 42 clojure-domain-attributes]]
                    (events)))))
 
-(deftest span-with-nil-tracing-source
-  (is (instance? SpanBuilder
-                 (tracing.spi/create-span nil nil nil))))

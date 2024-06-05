@@ -14,9 +14,11 @@
             [mockfn.macros :refer [verifying]]
             [mockfn.matchers :refer [exactly any]]
             [io.pedestal.tracing :as t]
+            [io.pedestal.tracing.spi :as spi]
             [io.pedestal.http.tracing :refer [request-tracing-interceptor]]
             [io.pedestal.interceptor :as i]
-            [io.pedestal.interceptor.chain :as chain]))
+            [io.pedestal.interceptor.chain :as chain])
+  (:import (io.opentelemetry.api.trace SpanBuilder)))
 
 (defn- execute
   [context & interceptors]
@@ -172,5 +174,6 @@
         (is (= thrown-exception
                (ex-cause e)))))))
 
-
-
+(deftest span-with-nil-tracing-source
+  (is (instance? SpanBuilder
+                 (spi/create-span nil nil nil))))
