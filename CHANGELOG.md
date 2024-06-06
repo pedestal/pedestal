@@ -9,20 +9,19 @@
 - Library pedestal.immutant has been removed
 - Library pedestal.tomcat has been removed
 - Library pedestal.aws has been removed
-- Namespace io.pedestal.http.jetty.websockets has been removed, and replaced with io.pedestal.http.websockets
-- Namespace io.pedestal.interceptor.error has been moved to a new library, io.pedestal/pedestal.error
+- Namespace `io.pedestal.http.jetty.websockets` has been removed, and replaced with `io.pedestal.http.websockets`
+- Namespace `io.pedestal.interceptor.error` has been moved to a new library, io.pedestal/pedestal.error
 - Library pedestal.service no longer has a dependency on org.clojure/core.match; the new pedestal.error library has that dependency
 - Interceptors that attach an invalid :response value (not a map, for example) will now cause an exception to be thrown
 - Interceptors may now attach a partial :response map, containing just a :status key
 
 Other changes:
-- When using io.pedestal.http/dev-interceptors, uncaught exceptions are now formatted using
+- When using `io.pedestal.http/dev-interceptors`, uncaught exceptions are now formatted using
   [org.clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
-- pedestal.logging: SLF4J dependency changed to 2.0.12
 - Pedestal is now compatible with Clojure 1.10.1 and above
 - In `io.pedestal.interceptor.chain`:
     - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
-    - New function `on-enter-async` is used to register a callback from when execution first goes asynchronous
+    - New function `on-enter-async` is used to register a callback invoked when execution first goes asynchronous
     - New function `queue` is used to peek at what interceptors remain on the queue
     - New function `add-observer` to add a callback after each interceptor executes in each stage
 - New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe changes to the context made by interceptors
