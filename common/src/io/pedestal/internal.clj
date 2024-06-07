@@ -98,18 +98,19 @@
       (drop (- n limit) coll))))
 
 (defn- call-stack
-  [t limit]
-  (let [elements (->> (e/expand-stack-trace t)
-                      (drop-while #(string/starts-with? (:name %) "io.pedestal.internal/")))
-        names    (->> (#'e/transform-stack-trace-elements
-                        elements nil)
-                      (remove :omitted)
-                      (map #'e/format-stack-frame)
-                      (map :name)
-                      distinct
-                      reverse
-                      (truncate-to limit))]
-    (interpose " -> " names)))
+  [limit]
+  (->> (Thread/currentThread)
+       .getStackTrace
+       (drop 1)                                             ;; call to .getStackTrace()
+       e/transform-stack-trace
+       e/filter-stack-trace-maps
+       (remove :omitted)
+       (drop-while #(string/starts-with? (:name %) "io.pedestal.internal/"))
+       (map e/format-stack-frame)
+       (map :name)
+       reverse                                              ;; outermost -> innermost
+       (truncate-to limit)
+       (interpose " -> ")))
 
 (def *deprecations (atom #{}))
 
@@ -122,9 +123,8 @@
        [:bold "WARNING: "]
        label
        " is deprecated and may be removed in a future release"]
-
-      "\nCall stack: ... "
-      (call-stack (RuntimeException.) 4))))
+      [:bold "\nCall stack: ... "]
+      (call-stack 4))))
 
 (defmacro deprecated
   [label & body]
