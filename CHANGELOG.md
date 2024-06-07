@@ -2,6 +2,13 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
+## 0.8.0 - UNRELEASED
+
+**BREAKING CHANGES:**
+
+- Many APIs deprecated in Pedestal 0.7.0 have been removed outright
+- The `io.pedestal/pedestal.service-tools` library has been removed
+
 ## 0.7.0 - UNRELEASED
 
 **BREAKING CHANGES:**

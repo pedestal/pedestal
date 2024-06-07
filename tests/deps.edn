@@ -56,9 +56,6 @@
 
         io.github.hlship/trace {:mvn/version "1.2"}
 
-        ;; This is primarily to pick up the logging dependencies it provides.
-        io.pedestal/pedestal.service-tools {:local/root "../service-tools"}
-
         ;; only used for route-bench - remove when no longer needed
         incanter/incanter-core {:mvn/version "1.9.3"}
         incanter/incanter-charts {:mvn/version "1.9.3"}

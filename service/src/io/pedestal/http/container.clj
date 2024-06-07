@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -11,8 +12,6 @@
 
 (ns io.pedestal.http.container
   "Deeper Pedestal<->Container integration and cooperation for HTTP handling")
-
-;; TODO: This should be its own module, unless Tim says it's fine for jetty to directly depend on Service
 
 ;; Below are protocols and functions used to tune, tweak, and enhance Pedestal
 ;; with Container/Servlet Engine specific hooks.
