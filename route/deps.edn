@@ -13,9 +13,9 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         org.clojure/core.async {:mvn/version "1.6.681"}
-        org.clj-commons/pretty {:mvn/version "2.5.1"}
-        io.pedestal/pedestal.log {:mvn/version "0.7.0-beta-3"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.7.0-beta-3"}}
+        org.clj-commons/pretty {:mvn/version "3.0.0"}
+        io.pedestal/pedestal.log {:mvn/version "0.7.0-rc-1"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.7.0-rc-1"}}
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}

@@ -92,7 +92,7 @@
                         (get-in context [:request :database])
                         db-id))]
        (cond-> context
-         the-list (assoc context :result the-list))))})
+         the-list (assoc :result the-list))))})
 
 (def list-item-view
   {:name :list-item-view

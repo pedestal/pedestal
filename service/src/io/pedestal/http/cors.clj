@@ -25,6 +25,8 @@
   [header-names]
   (str/join ", " (map convert-header-name header-names)))
 
+(def ^:private preflight-fn (metrics/counter ::preflight nil))
+
 (defn- preflight
   [{request :request :as context} origin {:keys [creds max-age methods]}]
   (let [requested-headers (get-in request [:headers "access-control-request-headers"])
@@ -42,7 +44,7 @@
               :requested-headers requested-headers
               :headers (:headers request)
               :cors-headers cors-headers)
-    (metrics/increment-counter ::preflight nil)
+    (preflight-fn)
     (assoc context :response {:status 200
                               :headers cors-headers})))
 

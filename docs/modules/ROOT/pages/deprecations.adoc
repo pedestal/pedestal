@@ -4,17 +4,23 @@
 == 0.7.0
 
 In _most_ cases, Pedestal can now emit a warning the first time a deprecated function, macro,
-or other bit of functionality is used; these warnings are printed to the console (not logged).
+or other bit of functionality is used.
 
 Example:
 
 [source]
 ----
-WARNING: io.pedestal.http.route.definition/defroutes is deprecated and may be removed in a future release
-
+WARNING: io.pedestal.interceptor.chain/execute-only is deprecated and may be removed in a future release
+Call stack: ... clojure.test/test-var -> clojure.test/test-var/fn -> io.pedestal.interceptor-test/fn -> io.pedestal.interceptor.chain/execute-only
 ----
 
-The following sections are a non-exhaustive list of deprecations.
+The warning is followed by the last few stack frames leading up to the deprecated function, to assist you in finding
+the code that needs to be changed.
+
+This output is printed to the console (standard error), and is not logged.
+
+The following sections are a non-exhaustive list of code and functionality deprecated in 0.7.0
+that may be removed in 0.8.0 or a later release:
 
 === Interceptors
 
@@ -26,11 +32,12 @@ Previously, it was possible to convert a function call into an interceptor; the 
 was to defer invoking the function until when the route specification was converted to a router
 (which can happen on every request when in
 xref:reference:dev-mode.adoc[development mode]); however, this relied on the use of
-clj:eval[], and is of no real utility with development mode and live REPL reloading and has been deprecated.
+clj:eval[], and is of no real utility given the addition of development mode and live REPL reloading improcements, and
+so has been deprecated.
 
 Normally, a function in an interceptor list is treated as a handler (rather than an interceptor).
 Alternately, a function with the :interceptor or :interceptorfn metadata would be invoked
-and expected to return an interceptor (or some other object that could convert to an interceptor).
+and expected to return an interceptor (or some other object that could be converted to an interceptor).
 This is termed a deferred interceptor and has also been deprecated.
 
 Handler functions are _not_ deprecated, and are quite useful.
