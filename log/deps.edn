@@ -10,7 +10,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:paths ["src"]
+{:paths ["src"
+         "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         io.pedestal/pedestal.common {:mvn/version "0.7.0-rc-1"}
         io.pedestal/pedestal.telemetry {:mvn/version "0.7.0-rc-1"}
