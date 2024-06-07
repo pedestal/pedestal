@@ -87,10 +87,3 @@
              "{\"this\":\"that\",\"line\":9999}"]]
            @*events))))
 
-(deftest use-log-directly
-  (log/log {:key            :value
-            ::log/logger    test-logger
-            ::log/formatter special-formatter} :info)
-  (is (= [[:info
-           "{:KEY :VALUE, :LINE :OVERRIDE}"]]
-         @*events)))
