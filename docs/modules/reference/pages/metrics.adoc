@@ -66,14 +66,3 @@ A gauge of the number of active streams sending server-sent messages.
 
 A counter of the number of times that the asynchrounous pipe to a client closed during delivery of a streaming
 response.
-
-== Compatibility
-
-Where Pedestal emits metrics, it emits them both using
-xref:metrics-0.6.adoc[the deprecated 0.6 metrics support], and the new pedestal.telemetry implementation.
-
-In addition, there is support for the Drop Wizard metrics library as an alternative to Open Telemetry, via
-api:default-registry[ns=io.pedestal.metrics.codahale]; this is to provide a migration path from Pedestal 0.6 to Pedestal 0.7 when your application is making use of the deprecated metrics support.
-
-WARNING: In a future Pedestal release, the deprecated metrics support
-in the api:*[ns=io.pedestal.log] namespace will be removed entirely from Pedestal.
