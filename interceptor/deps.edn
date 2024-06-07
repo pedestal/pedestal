@@ -13,8 +13,8 @@
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         org.clojure/core.async {:mvn/version "1.6.681"}
-        io.pedestal/pedestal.log {:mvn/version "0.7.0-rc-1"}
-        io.pedestal/pedestal.common {:mvn/version "0.7.0-rc-1"}}
+        io.pedestal/pedestal.log {:mvn/version "0.7.0-rc-2"}
+        io.pedestal/pedestal.common {:mvn/version "0.7.0-rc-2"}}
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log    {:local/root "../log"}
