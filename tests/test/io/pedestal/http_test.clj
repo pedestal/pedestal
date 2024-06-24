@@ -172,7 +172,10 @@
 
 (deftest json-body-test
   (let [response (response-for (app) :get "/data-as-json")]
-    (is (= "application/json;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
+    (is (match?
+          {:headers {"Content-Type" "application/json;charset=UTF-8"}
+           :body "{\"a\":1}"}
+          response))))
 
 (deftest plaintext-body-with-json-interceptor-test
   ;; Explicit request for plain-text content-type is honored by json-body interceptor.

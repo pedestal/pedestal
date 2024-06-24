@@ -133,7 +133,7 @@
     (fn [response]
       (-> response
           (ring-response/content-type "application/json;charset=UTF-8")
-          (assoc :body response/stream-json)))))
+          (update :body response/stream-json)))))
 
 (defn transit-body-interceptor
   "Returns an interceptor which sets the Content-Type header to the
