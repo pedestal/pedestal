@@ -73,6 +73,7 @@ Creating project from io.pedestal/embedded in peripheral
 ├── doc
 │   └── intro.md
 ├── resources
+│   ├── logback.xml
 │   ├── pedestal-config.edn
 │   └── public
 │       └── index.html
@@ -80,6 +81,7 @@ Creating project from io.pedestal/embedded in peripheral
 │   └── com
 │       └── blueant
 │           └── peripheral
+│               ├── main.clj
 │               ├── routes.clj
 │               ├── service.clj
 │               └── telemetry_init.clj
@@ -93,8 +95,7 @@ Creating project from io.pedestal/embedded in peripheral
     ├── logback-test.xml
     └── pedestal-test-config.edn
 
-17 directories, 18 files
-
+17 directories, 20 files
 >
 ```
 
@@ -168,6 +169,23 @@ DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl.servlet-interceptor/stylobate, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
 ```
 
+## Starting the service
+
+Alternately, you can start the service directly without starting a REPL:
+
+```
+> clj -X:run
+INFO  com.blueant.peripheral.main - {:msg "Service com.blueant/peripheral startup", :port 8080, :line 9}
+```
+
+At this point, the service is running; you can use another window to execute HTTP requests. If you open
+a browser window to http://localhost:8080/index.html, you'll see the following logged to the service's console:
+
+```
+INFO  io.pedestal.http - {:msg "GET /index.html", :line 83}
+INFO  io.pedestal.http - {:msg "GET /favicon.ico", :line 83}
+```
+
 
 ## Gathering Telemetry
 
@@ -204,6 +222,7 @@ Routing table:
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
 #:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl ...
 >
 ```

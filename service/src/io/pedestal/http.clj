@@ -463,6 +463,9 @@
   "Given a server map, as returned by [[server]] (usually via [[create-server]]),
    starts the server. The server may later be stopped via [[stop]].
 
+  Note that if the ::join? option is true, then this function will block until the
+  started server stops.
+
   Returns the server map unchanged."
   [server-map]
   ((::start-fn server-map))

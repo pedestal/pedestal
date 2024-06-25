@@ -1,0 +1,19 @@
+(ns {{top/ns}}.{{main/ns}}.main
+  "Runs the {{name}} service."
+  (:require [io.pedestal.http :as http]
+            [io.pedestal.log :as log]
+            [{{top/ns}}.{{main/ns}}.service :as service]))
+
+(defn- log-startup
+  [service-map]
+  (log/info :msg "Service {{name}} startup"
+            :port (::http/port service-map))
+  service-map)
+
+(defn start-service
+  [_]
+  (-> (service/service-map {:join? true})
+      http/create-server
+      log-startup
+      http/start))
+

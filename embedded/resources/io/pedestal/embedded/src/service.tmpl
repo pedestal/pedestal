@@ -9,17 +9,19 @@
   "Creates a service map for the {{name}} service.
 
   Options:
-    dev-mode: enables dev-interceptors and interceptor logging if true, defaults from
-    Pedestal's development mode."
+  - dev-mode: enables dev-interceptors and interceptor logging if true, defaults from
+    Pedestal's development mode.
+  - join?: if true, then the current thread will block when the service is started (default is false)."
   [opts]
-  (let [{:keys [dev-mode]
-         :or {dev-mode dev-mode?}} opts]
+  (let [{:keys [dev-mode join?]
+         :or {dev-mode dev-mode?
+              join? false}} opts]
     (-> {::http/port 8080
          ::http/type :jetty
          ::http/routes (routes-from (routes/routes))
          ;; Serve classpath resources under the public folder:
          ::http/resource-path "public"
-         ::http/join? false}
+         ::http/join? join?}
          http/default-interceptors
          (cond-> dev-mode (-> http/dev-interceptors
                               http/enable-debug-interceptor-observer)))))
