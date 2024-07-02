@@ -2,7 +2,7 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
-## 0.7.0 - UNRELEASED
+## 0.7.0 - 2 Jul 2024
 
 **BREAKING CHANGES:**
 
