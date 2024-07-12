@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.7
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -20,7 +20,7 @@ jobs:
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@12.5
         with:
-          cli: 1.11.2.1446
+          cli: 1.11.2.1463
 
       - name: Cache Clojure dependencies
         uses: actions/cache@v4
@@ -59,7 +59,7 @@ jobs:
         run: clojure -T:build lint
       - name: Upload cve-check-results.html
         if: false # temporary, ${{ !cancelled() && steps.cve-check.conclusion }}
-        uses: actions/upload-artifact@v4.3.1
+        uses: actions/upload-artifact@v4.3.4
         with:
           name: cve-check-results.html
           path: target/nvd/dependency-check-report.html
