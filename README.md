@@ -24,7 +24,7 @@ as your application matures and expands.
 See the [full documentation](http://pedestal.io) for far more detail about
 using Pedestal, its design, and its philosophy.
 
-Pedestal requires Clojure 1.10 or later, and works with Servlet API 4.0 and Java 11 and up.
+Pedestal requires Clojure 1.10 or later, and works with Servlet API 5.0 and Java 11 and up.
 
 ## Support
 
