@@ -24,7 +24,7 @@
 
   ;; Invoked via clj -T:build cve-check
   :nvd
-  {:deps {nvd-clojure/nvd-clojure {:mvn/version "3.6.0"}}
+  {:deps {nvd-clojure/nvd-clojure {:mvn/version "4.0.0"}}
    :paths ["cve-check-resources"]
    :jvm-opts ["-Dclojure.main.report=stderr"]
    :exec-fn nvd.task/check}
