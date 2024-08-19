@@ -38,6 +38,7 @@
    "service"
    ;; And then the others:
    "jetty"
+   "jetty-12-ee10"
    "service-tools"
    "embedded"])
 
