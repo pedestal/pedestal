@@ -25,7 +25,7 @@ This will compile a few Java classes, including ClojureVarServlet.
 
 If you're working on Pedestal itself, you can test everything
 
-From the `tests` directory, execute `clj -X:test`.
+From the `tests` directory, execute `clj -T:tests run`.
 
 == Contributing to Pedestal
 
@@ -103,7 +103,7 @@ everything. Here is the workflow we recommend:
 1. Fork the https://github.com/pedestal/pedestal[repo] and clone your fork.
 2. Create a branch for your feature/bugfix.
 3. Make your changes and add tests.
-4. Run `clj -X:test` from the `tests` directory.
+4. Run `clj -T:tests run` from the `tests` directory.
 5. Commit, push, and submit a pull request.
 
 == Contributor's Agreement

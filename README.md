@@ -36,7 +36,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
 
 ### Running the tests
 
-From the `tests` subdirectory, execute `clj -X:test`.
+From the `tests` subdirectory, execute `clj -T:tests run`.
 
 ---
 
