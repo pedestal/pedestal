@@ -38,6 +38,8 @@
    "service"
    ;; And then the others:
    "jetty"
+   "jetty12"
+   "service-tools"
    "embedded"])
 
 ;; Working around this problem (bug)?
