@@ -19,7 +19,7 @@
           io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.8"}
           clj-kondo/clj-kondo {:mvn/version "2024.05.24"}
-          org.clj-commons/pretty {:mvn/version "3.0.0"}
+          org.clj-commons/pretty {:mvn/version "3.1.1"}
           babashka/fs {:mvn/version "0.5.21"}}}
 
   ;; Invoked via clj -T:build cve-check

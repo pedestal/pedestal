@@ -39,7 +39,7 @@
         ;; Furthermore, the project has been moved to
         ;; https://github.com/AsyncHttpClient/async-http-client
         ;; So benchmarking should be updated to use that.
-        com.ning/async-http-client {:mvn/version "1.8.13"}
+        com.ning/async-http-client {:mvn/version "1.9.40"}
         org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.20"}
 
         ;; Include *all* the other modules
@@ -54,7 +54,7 @@
         io.pedestal/pedestal.common {:local/root "../common"}
         io.pedestal/pedestal.error {:local/root "../error"}
 
-        io.github.hlship/trace {:mvn/version "1.2"}
+        io.github.hlship/trace {:mvn/version "1.3"}
 
         ;; only used for route-bench - remove when no longer needed
         incanter/incanter-core {:mvn/version "1.9.3"}
@@ -93,11 +93,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.36.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.36.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.36.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.36.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.36.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.37.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.37.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.37.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.37.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.37.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

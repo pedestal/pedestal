@@ -13,7 +13,7 @@
 {:paths ["src"
          "java"
          "target/classes"]
- :deps {org.clojure/clojure {:mvn/version "1.11.2"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.3"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.telemetry {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-SNAPSHOT"}
@@ -22,9 +22,9 @@
         org.clojure/core.async {:mvn/version "1.6.681"}
 
         ;; Ring 1.11 is the first version to support Servlet API 4.0
-        ring/ring-core {:mvn/version "1.12.0"}
-        cheshire/cheshire {:mvn/version "5.12.0"}
-        org.clojure/tools.reader {:mvn/version "1.4.1"}
+        ring/ring-core {:mvn/version "1.12.1"}
+        cheshire/cheshire {:mvn/version "5.13.0"}
+        org.clojure/tools.reader {:mvn/version "1.4.2"}
         com.cognitect/transit-clj {:mvn/version "1.0.333"}
         commons-codec/commons-codec {:mvn/version "1.16.1"}
         crypto-random/crypto-random {:mvn/version "1.2.1"
@@ -56,5 +56,5 @@
   {:extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}
                 org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}}
   ;; clj -T:build <command>
-  :build {:deps {io.github.hlship/build-tools {:git/tag "0.10.1" :git/sha "7ecff5b"}}
+  :build {:deps {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
           :ns-default build}}}
