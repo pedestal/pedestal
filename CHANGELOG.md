@@ -2,13 +2,19 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
+## 0.8.0 - UNRELEASED
+
+**BREAKING CHANGES:**
+
+- Many APIs deprecated in Pedestal 0.7.0 have been removed outright
+- The `io.pedestal/pedestal.service-tools` library has been removed
+
 ## 0.7.1 -- UNRELEASED
  
 Changes:
 - Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
 
-
-https://github.com/pedestal/pedestal/milestone/19?closed=1
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/19?closed=1)
 
 ## 0.7.0 - 2 Jul 2024
 
