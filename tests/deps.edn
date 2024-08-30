@@ -40,7 +40,7 @@
         ;; https://github.com/AsyncHttpClient/async-http-client
         ;; So benchmarking should be updated to use that.
         com.ning/async-http-client {:mvn/version "1.9.40"}
-        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.20"}
+        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.23"}
 
         ;; Include *all* the other modules
         io.pedestal/pedestal.log {:local/root "../log"}
@@ -61,7 +61,7 @@
         incanter/incanter-charts {:mvn/version "1.9.3"}
 
         ;; For proper reloading of code in REPL
-        io.github.tonsky/clj-reload {:mvn/version "0.5.0"}
+        io.github.tonsky/clj-reload {:mvn/version "0.7.1"}
 
         io.github.cognitect-labs/test-runner
         {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
@@ -80,10 +80,10 @@
 
 
   :1.12
-  {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-beta1"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-rc2"}}}
 
   :1.10
-  {:override-deps {org.clojure/clojure {:mvn/version "1.10.1"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-rc2"}}}
 
   ;; clj -X:test
   :test
@@ -93,11 +93,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.37.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.37.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.37.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.37.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.37.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.41.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.41.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.41.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.41.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.41.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

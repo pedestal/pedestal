@@ -9,5 +9,5 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:deps {org.clojure/clojure    {:mvn/version "1.11.3"}
+{:deps {org.clojure/clojure    {:mvn/version "1.11.4"}
         org.clj-commons/pretty {:mvn/version "3.1.1"}}}

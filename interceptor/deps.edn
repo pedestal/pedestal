@@ -11,7 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.3"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
         org.clojure/core.async {:mvn/version "1.6.681"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.common {:mvn/version "0.8.0-SNAPSHOT"}}
