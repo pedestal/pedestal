@@ -15,6 +15,8 @@ This documentation is for Pedestal version *{libs_version}*.
 image:https://github.com/pedestal/pedestal/workflows/CI/badge.svg[CI]
 link:https://clojars.org/io.pedestal/pedestal.service[image:https://img.shields.io/clojars/v/io.pedestal/pedestal.service.svg[]]
 
+Pedestal requires Clojure 1.10 or later, and works with Servlet API 5.0 and Java 11 and up.
+
 == Features
 
 === Ready for Production

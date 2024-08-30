@@ -80,7 +80,7 @@
          ::keys [span otel-context-cleanup prior-otel-context]} context
         {:keys [status]} response
         status-code (when status
-                      (if (<= status 299) :ok :error))
+                      (if (<= status 499) :unset :error))
         context'    (-> context
                         (update-span-if-routed)
                         (dissoc ::span ::otel-context-cleanup ::otel-context ::prior-otel-context)
@@ -98,7 +98,7 @@
 
 (defn- trace-error
   [context error]
-  ;; If an exception is trown inside trace-enter, trace-error will be called with the
+  ;; If an exception is thrown inside trace-enter, trace-error will be called with the
   ;; unmodified context, which does not have a context.
   (let [{:keys [::span]} context]
     (if-not span
