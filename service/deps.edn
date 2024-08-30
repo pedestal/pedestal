@@ -13,7 +13,7 @@
 {:paths ["src"
          "java"
          "target/classes"]
- :deps {org.clojure/clojure {:mvn/version "1.11.3"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.telemetry {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-SNAPSHOT"}
@@ -22,11 +22,11 @@
         org.clojure/core.async {:mvn/version "1.6.681"}
 
         ;; Ring 1.11 is the first version to support Servlet API 4.0
-        ring/ring-core {:mvn/version "1.12.1"}
+        ring/ring-core {:mvn/version "1.12.2"}
         cheshire/cheshire {:mvn/version "5.13.0"}
-        org.clojure/tools.reader {:mvn/version "1.4.2"}
+        org.clojure/tools.reader {:mvn/version "1.5.0"}
         com.cognitect/transit-clj {:mvn/version "1.0.333"}
-        commons-codec/commons-codec {:mvn/version "1.16.1"}
+        commons-codec/commons-codec {:mvn/version "1.17.1"}
         crypto-random/crypto-random {:mvn/version "1.2.1"
                                      :exclusions [commons-code/commons-codec]}
         crypto-equality/crypto-equality {:mvn/version "1.0.1"}}

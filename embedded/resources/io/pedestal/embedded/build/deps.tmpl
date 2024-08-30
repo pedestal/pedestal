@@ -1,9 +1,9 @@
 {:paths ["src"
          "resources"]
- :deps {org.clojure/clojure            {:mvn/version "1.11.3"}
+ :deps {org.clojure/clojure            {:mvn/version "1.11.4"}
         io.pedestal/pedestal.service   {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.jetty     {:mvn/version "0.8.0-SNAPSHOT"}
-        ch.qos.logback/logback-classic {:mvn/version "1.5.6"}}
+        ch.qos.logback/logback-classic {:mvn/version "1.5.7"}}
  :aliases
  {:test
   {:extra-paths ["test"
@@ -29,8 +29,8 @@
               ;; https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
               "-javaagent:target/opentelemetry-javaagent.jar"]}
 
-  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.4"}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.5"}
                  slipset/deps-deploy           {:mvn/version "0.2.2"}
-                 org.clj-commons/pretty        {:mvn/version "3.0.0"}
-                 clj-kondo/clj-kondo           {:mvn/version "2024.05.24"}}
+                 org.clj-commons/pretty        {:mvn/version "3.1.1"}
+                 clj-kondo/clj-kondo           {:mvn/version "2024.08.29"}}
           :ns-default build}}}
