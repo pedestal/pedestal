@@ -1,5 +1,6 @@
 (ns {{top/ns}}.{{main/ns}}.service-test
   (:require [clojure.test :refer [deftest is use-fixtures]]
+            [cheshire.core :as json]
             [matcher-combinators.matchers :as m]
             [io.pedestal.http :as http]
             [io.pedestal.test :as test]
@@ -10,7 +11,7 @@
 (use-fixtures :once
               test/disable-routing-table-output-fixture
               (fn [f]
-                (let [server (-> (service-map nil)
+                (let [server (-> (service-map {:dev-mode false})
                                  http/create-server
                                  http/start)]
                   (try
@@ -32,3 +33,11 @@
   (is (match? {:status 200
                :body (m/regex #"\QThis is the root index file for the {{name}} project.\E")}
               (response-for :get "/index.html"))))
+
+(deftest can-access-greet
+  (is (match? {:status 200
+               :body "Hello, Pedestal User."}
+              (response-for :post "/hello"
+                :body (json/generate-string {:name "Pedestal User"})
+                :headers {"Content-Type" "application/json"}))))
+
