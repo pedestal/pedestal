@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - 0.6-maint
+      - 0.7-maint
 
 jobs:
   notify-pedestal-io:

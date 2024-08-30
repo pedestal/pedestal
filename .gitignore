@@ -27,9 +27,11 @@ tmp/
 *.tmp
 *.bak
 .clj-kondo/.cache/
+.cpcache/
 
 # Editors (IntelliJ / Eclipse)
-*/.idea
+.idea/
+*.iml
 */.classpath
 */.project
 */.settings

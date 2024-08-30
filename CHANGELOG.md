@@ -2,10 +2,29 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
-## 0.7.0 - UNRELEASED
+## 0.7.1 -- UNRELEASED
+ 
+Changes:
+- Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
 
-**BREAKING CHANGES:**
 
+https://github.com/pedestal/pedestal/milestone/19?closed=1
+
+## 0.7.0 - 2 Jul 2024
+
+This release marks significant improvements to Pedestal, while laying the cornerstones for further improvements.
+The primary focus has been upgrading from Jetty 9 to Jetty 11 (and from Servlet API 3.1 to 5); much additional effort
+has been invested in improving the developer experience, rewriting support for application observability,
+enhancements to performance, deprecation of unused (or unsupported) code, as well as an intense focus on documentation improvements.
+
+Although this release does include unavoidable breaking changes, we hope that for most applications, the upgrade process will
+be as simple as changing the version number. Applications that made direct use of Jetty APIs, or servlet APIs (using the javax.servlet namespace),
+will require additional scrutiny to upgrade, as will applications that make extensive use of the (now deprecated)
+observability functions provided by the io.pedestal/pedestal.log library.
+
+*BREAKING CHANGES:*
+
+- Library pedestal.jetty has been upgraded from Jetty 9 to Jetty 11
 - Library pedestal.immutant has been removed
 - Library pedestal.tomcat has been removed
 - Library pedestal.aws has been removed
@@ -16,30 +35,26 @@
 - Interceptors may now attach a partial :response map, containing just a :status key
 
 Other changes:
-- When using `io.pedestal.http/dev-interceptors`, uncaught exceptions are now formatted using
-  [org.clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
+- When using `io.pedestal.http/dev-interceptors`, uncaught exceptions are now formatted using [org.clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
 - Pedestal is now compatible with Clojure 1.10.1 and above
 - In `io.pedestal.interceptor.chain`:
-    - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors 
+    - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors
     - New function `on-enter-async` is used to register a callback invoked when execution first goes asynchronous
     - New function `queue` is used to peek at what interceptors remain on the queue
     - New function `add-observer` to add a callback after each interceptor executes in each stage
-- New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe changes to the context made by interceptors
+- New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe and log changes to the context made by interceptors
 - New function `io.pedestal.http/enable-debug-interceptor-observer` to setup `debug-observer`
 - New service map keys have been introduced:
-  - Support handling of uncaught exceptions
-  - May now specify an initial context map
-  - May now specify an interceptor responsible for request tracing
-- There is now a clojure.spec specification for the structure of the service map, and for
-  the structure of the different route specifications and the expanded routing table
+    - Support handling of uncaught exceptions
+    - May now specify an initial context map
+    - May now specify an interceptor responsible for request tracing
+- There is now a clojure.spec specification for the structure of the service map, and for the structure of the different route specifications and the expanded routing table
 - Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
 - Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
 - Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
 - Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files to inform clj-kondo about their macros
 - New function `io.pedestal.http/respond-with` to streamline adding a :response to the interceptor context
-- Easier application configuration: logger, metrics, and tracing configuration can
-  occur inside a `pedestal-config.edn` file (or `pedestal-test-config.edn` for tests),
-  as well as via JVM system properties and environment variables
+- Easier application configuration: logger, metrics, and tracing configuration can occur inside a `pedestal-config.edn` file (or `pedestal-test-config.edn` for tests), as well as via JVM system properties and environment variables
 - Improvements to REPL-based development, including printing the expanded routing table at startup (when in development mode)
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
