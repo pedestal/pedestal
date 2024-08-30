@@ -1,5 +1,4 @@
 ; Copyright 2024 Nubank NA
-; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,13 +9,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:paths ["src"
-         "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.11.3"}
-        io.pedestal/pedestal.common {:mvn/version "0.8.0-SNAPSHOT"}
-        ;; logging
-        org.slf4j/slf4j-api {:mvn/version "2.0.13"}}
- :aliases
- {:local
-  {:override-deps
-   {io.pedestal/pedestal.common  {:local/root "../common"}}}}}
+{:hooks
+ {:analyze-call
+  {io.pedestal.log/trace hooks.io.pedestal.log/log-expr
+   io.pedestal.log/debug hooks.io.pedestal.log/log-expr
+   io.pedestal.log/info  hooks.io.pedestal.log/log-expr
+   io.pedestal.log/warn  hooks.io.pedestal.log/log-expr
+   io.pedestal.log/error hooks.io.pedestal.log/log-expr}}}

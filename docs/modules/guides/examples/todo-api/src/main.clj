@@ -112,7 +112,7 @@
                         (get-in context [:request :database])
                         db-id))]
        (cond-> context                                      ;; <4>
-         the-list (assoc context :result the-list))))})
+         the-list (assoc :result the-list))))})
 ;; end::list_view[]
 
 

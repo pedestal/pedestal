@@ -1,3 +1,4 @@
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -24,6 +25,8 @@
   [header-names]
   (str/join ", " (map convert-header-name header-names)))
 
+(def ^:private preflight-fn (metrics/counter ::preflight nil))
+
 (defn- preflight
   [{request :request :as context} origin {:keys [creds max-age methods]}]
   (let [requested-headers (get-in request [:headers "access-control-request-headers"])
@@ -41,7 +44,7 @@
               :requested-headers requested-headers
               :headers (:headers request)
               :cors-headers cors-headers)
-    (log/meter ::preflight)
+    (preflight-fn)
     (assoc context :response {:status 200
                               :headers cors-headers})))
 
@@ -59,19 +62,16 @@
 (defn allow-origin
   "Returns a CORS interceptor that allows calls from the specified `allowed-origins`, which is one of the following:
 
-  - a sequence of strings
+  * a sequence of strings
+  * a function of one argument that returns a truthy value when an origin is allowed
+  * a map
 
-  - a function of one argument that returns a truthy value when an origin is allowed
-
-  - a map containing the following keys and values
-
-    :allowed-origins - either sequence of strings or a function as above
-
-    :creds - true or false, indicates whether client is allowed to send credentials
-
-    :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
-
-    :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
+  For a map, the expected keys are:
+  
+  * :allowed-origins - either sequence of strings or a function as above
+  * :creds - true or false, indicates whether client is allowed to send credentials
+  * :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
+  * :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
   "
   [allowed-origins]
   (let [{:keys [creds allowed-origins] :as args} (normalize-args allowed-origins)
@@ -92,8 +92,7 @@
 
                     ;; origin is allowed and this is real
                     (and origin allowed (not preflight-request))
-                    (do (log/meter ::origin-real)
-                        (origin-real-fn)
+                    (do (origin-real-fn)
                         (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
                                                             (when creds {"Access-Control-Allow-Credentials" (str creds)}))))
 
@@ -115,7 +114,10 @@
                   context))})))
 
 (def dev-allow-origin
-  "Provides a default origin header as a blank string, if not supplied in the incoming request."
+  "An interceptor that provides a default origin header as a blank string, if not supplied in the incoming request.
+
+  This is used in development, and added by default by the
+  [[dev-interceptors]] function."
   (interceptor
     {:name ::dev-allow-origin
      :enter (fn [context]

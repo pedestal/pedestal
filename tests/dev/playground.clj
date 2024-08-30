@@ -15,6 +15,7 @@
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.tracing :as tel]
+            [io.pedestal.internal :as i]
             [net.lewisship.trace :refer [trace]]
             [clojure.core.async :refer [go <! timeout]]
             [io.pedestal.tracing :as t])
@@ -94,9 +95,17 @@
     :not-running))
 
 
+(defn deprecated-fn
+  []
+  (i/deprecated (random-uuid))
+  :done)
+
 (comment
   (start)
   (stop)
+
+  (deprecated-fn)
+  (i/reset-deprecations)
 
 
   (m/increment-counter ::hit-rate nil)

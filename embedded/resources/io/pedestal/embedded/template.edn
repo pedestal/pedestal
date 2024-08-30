@@ -27,12 +27,14 @@
     "dev.tmpl"            "dev.clj"
     "telemetry_test_init.tmpl" "{{top/file}}/{{main/file}}/telemetry_test_init.clj"}]
   ["config" "resources"
-   {"pedestal-config.tmpl" "pedestal-config.edn"}]
+   {"pedestal-config.tmpl" "pedestal-config.edn"
+    "logback.tmpl" "logback.xml"}]
   ["test-config" "test-resources"
    {"pedestal-test-config.tmpl" "pedestal-test-config.edn"}]
   ["src" "src/{{top/file}}"
    {"service.tmpl"   "{{main/file}}/service.clj"
     "routes.tmpl"    "{{main/file}}/routes.clj"
+    "main.tmpl"      "{{main/file}}/main.clj"
     "telemetry_init.tmpl" "{{main/file}}/telemetry_init.clj"}]
   ["test" "test/{{top/file}}"
    {"service_test.tmpl" "{{main/file}}/service_test.clj"}]]}

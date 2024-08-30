@@ -12,31 +12,22 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http-test
-  (:require [clojure.spec.test.alpha :as stest]
-            [clojure.test :refer [deftest is use-fixtures]]
+  (:require [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :as async]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.test :refer [response-for]]
+            [io.pedestal.test-common :as tc]
             [io.pedestal.http :as service]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.http.route :as route]
             [cheshire.core :as cheshire]
             [io.pedestal.http.body-params :refer [body-params]]
-            [ring.util.response :as ring-resp]
-    ;; Force specs to load
-            io.pedestal.http.specs)
+            [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
-
-(use-fixtures :once
-              (fn [f]
-                (stest/instrument)
-                (try (f)
-                     (finally
-                       (stest/unstrument)))))
-
+(use-fixtures :once tc/instrument-specs-fixture)
 
 (defn about-page
   [_request]
@@ -181,7 +172,10 @@
 
 (deftest json-body-test
   (let [response (response-for (app) :get "/data-as-json")]
-    (is (= "application/json;charset=UTF-8" (get-in response [:headers "Content-Type"])))))
+    (is (match?
+          {:headers {"Content-Type" "application/json;charset=UTF-8"}
+           :body "{\"a\":1}"}
+          response))))
 
 (deftest plaintext-body-with-json-interceptor-test
   ;; Explicit request for plain-text content-type is honored by json-body interceptor.
@@ -250,7 +244,7 @@
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+           (do (si/write-body-to-stream
                  (-> obj
                      service/edn-response
                      :body)
@@ -261,7 +255,7 @@
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+           (do (si/write-body-to-stream
                  (-> obj
                      service/edn-response
                      :body)
@@ -272,7 +266,7 @@
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (is (= (with-out-str (pr obj))
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
+           (do (si/write-body-to-stream
                  (-> obj
                      ring-resp/response
                      :body)
@@ -288,13 +282,13 @@
 (deftest json-response-test
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
+    (si/write-body-to-stream
+      (-> obj
+          service/json-response
+          :body)
+      output-stream)
     (is (= (cheshire/generate-string obj)
-           (do (io.pedestal.http.impl.servlet-interceptor/write-body-to-stream
-                 (-> obj
-                     service/json-response
-                     :body)
-                 output-stream)
-               (slurp-output-stream output-stream))))))
+           (slurp-output-stream output-stream)))))
 
 (defn- create-temp-file [content]
   (let [f (File/createTempFile "pedestal-" nil)]

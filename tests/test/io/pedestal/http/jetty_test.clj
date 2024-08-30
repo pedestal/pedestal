@@ -16,7 +16,7 @@
 ;; https://github.com/ring-clojure/ring/blob/master/ring-jetty-adapter/test/ring/adapter/test/jetty.clj
 
 (ns io.pedestal.http.jetty-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [clojure.edn :as edn]
             [io.pedestal.http :as bootstrap]
             [clj-http.client :as http]
@@ -24,12 +24,15 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.test-common :as tc]
             [io.pedestal.http.jetty :as jetty])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
+
+(use-fixtures :once tc/instrument-specs-fixture)
 
 (defn hello-world
   [_request]

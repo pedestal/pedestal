@@ -153,11 +153,12 @@
   return an interceptor that will parse client-request response formats,
   and add an `:accept` key on the request, of the most acceptable response format.
 
-  The format of the `:accept` value is a map containing :field, :type, and :subtype - all strings
+  The format of the `:accept` value is a map containing keys :field, :type, and :subtype - all strings
 
   Additional options:
-   :no-match-fn - A function that takes a context; Called when no acceptable format/mime-type is found
-   :content-param-paths - a vector of vectors; paths into the context to find 'accept' format strings"
+
+   * :no-match-fn - A function that takes a context; Called when no acceptable format/mime-type is found
+   * :content-param-paths - a vector of vectors; paths into the context to find 'accept' format strings"
   ([supported-type-strs]
    (negotiate-content supported-type-strs {}))
   ([supported-type-strs opts-map]

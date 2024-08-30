@@ -21,14 +21,13 @@ a WAR] and deploy into Jetty, or another servlet container).
 
 You will need the very latest version of this, version 0.7.0; you should re-execute the above command to ensure you have the latest.
 
-
 You will also https://github.com/seancorfield/deps-new#more-general-usage[need some scaffolding] in your `~/.clojure/deps.edn`; add the following
 to the :aliases map:
 
-    :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-alpha5"}}}
+    :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-beta1"}}}
 
 TIP: This step is only necessary if Clojure 1.12 is not your default; at the time
-of writing, 1.12 was still in alpha.
+of writing, 1.12 was still in beta.
 
 
 == Creating a project
@@ -48,7 +47,7 @@ clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.p
 ```
 
 TIP: The `-A:1.12` option references the global alias you set up earlier and, again,
-is only needed if Clojure 1.12 is not your default.
+is only needed if Clojure 1.12 is not your default.  Clojure 1.12 is only needed to initially construct your project, to build or run your project, Clojure 1.10 or above is all that's needed.
 
 Example:
 
@@ -73,6 +72,7 @@ Creating project from io.pedestal/embedded in peripheral
 ├── doc
 │   └── intro.md
 ├── resources
+│   ├── logback.xml
 │   ├── pedestal-config.edn
 │   └── public
 │       └── index.html
@@ -80,6 +80,7 @@ Creating project from io.pedestal/embedded in peripheral
 │   └── com
 │       └── blueant
 │           └── peripheral
+│               ├── main.clj
 │               ├── routes.clj
 │               ├── service.clj
 │               └── telemetry_init.clj
@@ -93,8 +94,7 @@ Creating project from io.pedestal/embedded in peripheral
     ├── logback-test.xml
     └── pedestal-test-config.edn
 
-17 directories, 18 files
-
+17 directories, 20 files
 >
 ```
 
@@ -112,7 +112,7 @@ Running tests in #{"test"}
 
 Testing com.blueant.peripheral.service-test
 
-Ran 2 tests containing 2 assertions.
+Ran 3 tests containing 3 assertions.
 0 failures, 0 errors.
 >
 ```
@@ -130,7 +130,8 @@ Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Method ┃  Path  ┃                 Name                 ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
+┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
+┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__17265 0x6853bae "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__17265@6853bae"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__17934 0x26714a4a "io.pedestal.http.jetty$server$fn__17934@26714a4a"], :resource-path "public", :interceptors [#Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/exception-debug} #Interceptor{:name :io.pedestal.http.cors/dev-allow-origin} #Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.ring-middlewares/resource} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes #object[com.blueant.peripheral.service$service_map$fn__17845 0x7589371f "com.blueant.peripheral.service$service_map$fn__17845@7589371f"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x46a4eecd "io.pedestal.http.servlet.FnServlet@46a4eecd"], :server #object[org.eclipse.jetty.server.Server 0x1cc1ddad "Server@1cc1ddad{STARTED}[11.0.18,sto=0]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__17936 0x6953f5fc "io.pedestal.http.jetty$server$fn__17936@6953f5fc"]}
 user=>
@@ -168,6 +169,46 @@ DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl.servlet-interceptor/stylobate, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
 ```
 
+You can also use `curl` or link:https://github.com/httpie/cli[http] to make a request:
+
+```
+> http --json post :8080/hello name="Pedestal User"
+HTTP/1.1 200 OK
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: text/plain
+Date: Fri, 12 Jul 2024 18:52:06 GMT
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+Transfer-Encoding: chunked
+X-Content-Type-Options: nosniff
+X-Download-Options: noopen
+X-Frame-Options: DENY
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 1; mode=block
+
+Hello, Pedestal User.
+
+
+>
+```
+
+
+## Starting the service
+
+Alternately, you can start the service directly without starting a REPL:
+
+```
+> clj -X:run
+INFO  com.blueant.peripheral.main - {:msg "Service com.blueant/peripheral startup", :port 8080, :line 9}
+```
+
+At this point, the service is running; you can use another window to execute HTTP requests. If you open
+a browser window to http://localhost:8080/index.html, you'll see the following logged to the service's console:
+
+```
+INFO  io.pedestal.http - {:msg "GET /index.html", :line 83}
+INFO  io.pedestal.http - {:msg "GET /favicon.ico", :line 83}
+```
+
 
 ## Gathering Telemetry
 
@@ -202,7 +243,8 @@ Routing table:
 ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Method ┃  Path  ┃                 Name                 ┃
 ┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
+┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
+┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl ...
 >

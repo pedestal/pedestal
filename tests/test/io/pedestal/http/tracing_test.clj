@@ -14,9 +14,11 @@
             [mockfn.macros :refer [verifying]]
             [mockfn.matchers :refer [exactly any]]
             [io.pedestal.tracing :as t]
+            [io.pedestal.tracing.spi :as spi]
             [io.pedestal.http.tracing :refer [request-tracing-interceptor]]
             [io.pedestal.interceptor :as i]
-            [io.pedestal.interceptor.chain :as chain]))
+            [io.pedestal.interceptor.chain :as chain])
+  (:import (io.opentelemetry.api.trace SpanBuilder)))
 
 (defn- execute
   [context & interceptors]
@@ -29,12 +31,14 @@
             (assoc context :response {:status 404}))})
 
 (defn routed
-  [path route-name]
-  {:enter (fn [context]
-            (assoc context
-                   :route {:path       path
-                           :route-name route-name}
-                   :response {:status 200}))})
+  ([path route-name]
+   (routed path route-name 200))
+  ([path route-name status]
+   {:enter (fn [context]
+             (assoc context
+               :route {:path       path
+                       :route-name route-name}
+               :response {:status status}))}))
 
 (def base-request {:server-port    9999
                    :request-method :get
@@ -71,7 +75,7 @@
               (t/make-span-context span) ::context once
               (t/make-context-current ::context) context-cleanup once
               (t/add-attribute span :http.response.status_code 404) span once
-              (t/set-status-code span :error) span once
+              (t/set-status-code span :unset) span once
               (t/end-span span) nil once]
     (execute base-context
              request-tracing
@@ -88,7 +92,7 @@
               (t/make-span-context span) ::context once
               (t/make-context-current ::context) context-cleanup once
               (t/add-attribute span :http.response.status_code 404) span once
-              (t/set-status-code span :error) span once
+              (t/set-status-code span :unset) span once
               (t/end-span span) nil once]
     (execute (update base-context :request assoc
                      :scheme :http
@@ -110,13 +114,53 @@
               (t/add-attribute span :http.route "/status") span once
               (t/add-attribute span :route.name ::status) span once
               (t/add-attribute span :http.response.status_code 200) span once
-              (t/set-status-code span :ok) span once
+              (t/set-status-code span :unset) span once
               (t/end-span span) nil once]
     (execute base-context
              request-tracing
              (routed "/status" ::status))
 
     (is (= 1 @*cleanup-invoked))))
+
+(deftest routed-request-400-response-status-code
+  (verifying [(t/create-span "unrouted" {:http.request.method "GET"
+                                         :scheme              "unknown"
+                                         :server.port         9999}) span-builder once
+              (t/with-kind span-builder :server) span-builder once
+              (t/start span-builder) span once
+              (t/make-span-context span) ::context once
+              (t/make-context-current ::context) context-cleanup once
+              (t/rename-span span "GET /status") span once
+              (t/add-attribute span :http.route "/status") span once
+              (t/add-attribute span :route.name ::status) span once
+              (t/add-attribute span :http.response.status_code 400) span once
+              (t/set-status-code span :unset) span once
+              (t/end-span span) nil once]
+             (execute base-context
+                      request-tracing
+                      (routed "/status" ::status 400))
+
+             (is (= 1 @*cleanup-invoked))))
+
+(deftest routed-request-500-response-status-code
+  (verifying [(t/create-span "unrouted" {:http.request.method "GET"
+                                         :scheme              "unknown"
+                                         :server.port         9999}) span-builder once
+              (t/with-kind span-builder :server) span-builder once
+              (t/start span-builder) span once
+              (t/make-span-context span) ::context once
+              (t/make-context-current ::context) context-cleanup once
+              (t/rename-span span "GET /status") span once
+              (t/add-attribute span :http.route "/status") span once
+              (t/add-attribute span :route.name ::status) span once
+              (t/add-attribute span :http.response.status_code 500) span once
+              (t/set-status-code span :error) span once
+              (t/end-span span) nil once]
+             (execute base-context
+                      request-tracing
+                      (routed "/status" ::status 500))
+
+             (is (= 1 @*cleanup-invoked))))
 
 (deftest smuggled-verb
   (verifying [(t/create-span "unrouted" {:http.request.method "GET"
@@ -130,7 +174,7 @@
               (t/add-attribute span :http.route "/kill/:id") span once
               (t/add-attribute span :route.name ::kill) span once
               (t/add-attribute span :http.response.status_code 200) span once
-              (t/set-status-code span :ok) span once
+              (t/set-status-code span :unset) span once
               (t/end-span span) nil once]
     (execute base-context
              request-tracing
@@ -172,5 +216,6 @@
         (is (= thrown-exception
                (ex-cause e)))))))
 
-
-
+(deftest span-with-nil-tracing-source
+  (is (instance? SpanBuilder
+                 (spi/create-span nil nil nil))))

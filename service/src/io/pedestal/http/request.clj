@@ -10,7 +10,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.request)
+(ns io.pedestal.http.request
+  "Proxies around container data; under-utilized and to be removed in
+  a future release."
+  {:deprecated "0.7.0"})
 
 (defprotocol ProxyDatastructure
   "A lazy proxy around a fully-realized data structure.

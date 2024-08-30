@@ -102,7 +102,7 @@
   This performs that calculation.  This is used to ensure an appropriate
   number of threads are created for the server."
   ([]
-   (let [cores (.availableProcessors (Runtime/getRuntime))
+   (let [cores     (.availableProcessors (Runtime/getRuntime))
          ;; TODO: Is this still accurate for Jetty 11?
          ;; The Jetty docs claim acceptors is 1.5 the number of cores available,
          ;; but the code says:  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
@@ -118,7 +118,7 @@
   with [:container-options :thread-pool] in options. max-threads is
   ignored if the pool is overridden."
   [{{:keys [max-threads thread-pool]
-     :or {max-threads (max 50 (needed-pool-size))}}
+     :or   {max-threads (max 50 (needed-pool-size))}}
     :container-options}]
   (or thread-pool
       (QueuedThreadPool. ^Integer max-threads)))
@@ -131,54 +131,54 @@
         {:keys [ssl? ssl-port
                 h2? h2c? connection-factory-fns
                 context-configurator context-path configurator daemon? reuse-addr?]
-         :or {configurator identity
-              context-path "/"
-              h2c? true
-              reuse-addr? true}} container-options
+         :or   {configurator identity
+                context-path "/"
+                h2c?         true
+                reuse-addr?  true}} container-options
         ^ThreadPool thread-pool (thread-pool options)
-        server (Server. thread-pool)
-        _ (when-not (string/starts-with? context-path "/")
-            (throw (IllegalArgumentException. "context-path must begin with a '/'")))
-        _ (when (and h2? (not ssl-port))
-            (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
-        _ (when (and (nil? port) (not (or ssl? ssl-port h2?)))
-            (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but no SSL config was supplied.  Please set an HTTP port or configure SSL")))
-        _ (when (and (nil? port) (true? h2c?))
-            (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but you attempted to turn on HTTP2-Cleartext.  Please set an HTTP port or set `h2c?` to false in your service config")))
-        http-conf (http-configuration container-options)
-        http (HttpConnectionFactory. http-conf)
-        http2c (when h2c? (HTTP2CServerConnectionFactory. http-conf))
-        http2 (when h2? (HTTP2ServerConnectionFactory. http-conf))
-        alpn (when h2?
-               ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
-               (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
-                 (.setDefaultProtocol "http/1.1")))
-        ssl (when (or ssl? ssl-port h2?)
-              (ssl-conn-factory (assoc options :alpn alpn)))
-        http-connector (when port
-                         (doto (ServerConnector. server (into-array ConnectionFactory
+        server                  (Server. thread-pool)
+        _                       (when-not (string/starts-with? context-path "/")
+                                  (throw (IllegalArgumentException. "context-path must begin with a '/'")))
+        _                       (when (and h2? (not ssl-port))
+                                  (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
+        _                       (when (and (nil? port) (not (or ssl? ssl-port h2?)))
+                                  (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but no SSL config was supplied.  Please set an HTTP port or configure SSL")))
+        _                       (when (and (nil? port) (true? h2c?))
+                                  (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but you attempted to turn on HTTP2-Cleartext.  Please set an HTTP port or set `h2c?` to false in your service config")))
+        http-conf               (http-configuration container-options)
+        http                    (HttpConnectionFactory. http-conf)
+        http2c                  (when h2c? (HTTP2CServerConnectionFactory. http-conf))
+        http2                   (when h2? (HTTP2ServerConnectionFactory. http-conf))
+        alpn                    (when h2?
+                                  ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
+                                  (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
+                                    (.setDefaultProtocol "http/1.1")))
+        ssl                     (when (or ssl? ssl-port h2?)
+                                  (ssl-conn-factory (assoc options :alpn alpn)))
+        http-connector          (when port
+                                  (doto (ServerConnector. server (into-array ConnectionFactory
 
-                                                                    (remove nil? [http http2c])))
-                           (.setReuseAddress reuse-addr?)
-                           (.setPort port)
-                           (.setHost host)))
-        ssl-connector (when ssl
-                        (doto (ServerConnector. server
-                                                (into-array ConnectionFactory
-                                                            (remove nil?
-                                                                    (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]
-                                                                          (map (fn [ffn] (ffn options http-conf)) connection-factory-fns)))))
-                          (.setReuseAddress reuse-addr?)
-                          (.setPort ssl-port)
-                          (.setHost host)))
-        service-context-handler (doto (ServletContextHandler. server context-path)
+                                                                             (remove nil? [http http2c])))
+                                    (.setReuseAddress reuse-addr?)
+                                    (.setPort port)
+                                    (.setHost host)))
+        ssl-connector           (when ssl
+                                  (doto (ServerConnector. server
+                                                          (into-array ConnectionFactory
+                                                                      (remove nil?
+                                                                              (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]
+                                                                                    (map (fn [ffn] (ffn options http-conf)) connection-factory-fns)))))
+                                    (.setReuseAddress reuse-addr?)
+                                    (.setPort ssl-port)
+                                    (.setHost host)))
+        servlet-context-handler (doto (ServletContextHandler. server context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when websockets
-      (JakartaWebSocketServletContainerInitializer/configure service-context-handler
+      (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
                                                              (reify JakartaWebSocketServletContainerInitializer$Configurator
 
-                                                             (^void accept [_this ^ServletContext _context
-                                                                        ^ServerContainer container]
+                                                               (^void accept [_this ^ServletContext _context
+                                                                              ^ServerContainer container]
                                                                  (ws/add-endpoints container websockets)))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
@@ -189,7 +189,7 @@
     (when ssl-connector
       (.addConnector server ssl-connector))
     (when context-configurator
-      (context-configurator service-context-handler))
+      (context-configurator servlet-context-handler))
     (configurator server)))
 
 
@@ -222,9 +222,9 @@
   ([service-map] (server service-map {}))
   ([service-map options]
    (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
-     {:server server
+     {:server   server
       :start-fn #(-start server options)
-      :stop-fn #(-stop server)})))
+      :stop-fn  #(-stop server)})))
 
 
 ;; TODO: spec all this

@@ -50,15 +50,15 @@
 
 (defn servlet
   "Returns an instance of jakarta.servlet.Servlet using provided
-  functions for its implementation. Arguments are key-value pairs of:
+  functions for its implementation.
 
-    :init      optional, initialization function taking two arguments:
+  Options:
+
+  * :init      optional, initialization function taking two arguments:
                the Servlet and its ServletConfig
-
-    :service   required, handler function taking three arguments: the
+  * :service   required, handler function taking three arguments: the
                Servlet, ServletRequest, and ServletResponse
-
-    :destroy   optional, shutdown function taking one argument: the
+  * :destroy   optional, shutdown function taking one argument: the
                Servlet
 
   The :init, :service, and :destroy options correspond to the Servlet

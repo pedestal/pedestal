@@ -17,9 +17,10 @@ to Websocket handlers is defined in the xref:service-map.adoc[].
 In the service map, the :io.pedestal.http/websockets key
 maps string routes to endpoint maps.
 
-The endpoint map is a set of callbacks.  The path and endpoint map are ultimately passed to the api:add-endpoint[] function, which describes
+The endpoint map is a set of callbacks and configuration.  The path and endpoint map are ultimately passed to the api:add-endpoint[] function, which describes
 in detail how the callbacks are used.
 
+.Callbacks
 |===
 | Key | Signature | Description
 
@@ -44,7 +45,24 @@ in detail how the callbacks are used.
 | (Object, ByteBuffer) -> nil
 | Passed a binary message, as a single ByteBuffer.
 
+| :configure
+| (ServerEndpointConfig$Builder) -> nil
+| Allows additional configuration using an instance of `jakarta.websocket.server.ServerEndpointConfig.Builder`.
 
+
+|===
+
+.Configuration
+|===
+| Key | Type | Description
+
+| :subprotocols
+| vector of String
+| Optional, specifies sub-protocols for the websocket connection
+
+| :idle-timeout-ms
+| long
+| Sets the max idle timeout for the websocket to a fixed value.
 |===
 
 Essentially, the :on-open callback is invoked when the client initiates the connection.
@@ -55,7 +73,7 @@ It is the responsibility of the :on-open callback to create such a process.
 One common option is to use the api:on-open-start-ws-connection[] function to create the callback, or
 construct the :on-open callback around the api:start-ws-connection[] function.
 
-The :on-string and :on-binary callbacks are invoked when a text or binary message from the client
+The :on-text and :on-binary callbacks are invoked when a text or binary message from the client
 is received.
 
 

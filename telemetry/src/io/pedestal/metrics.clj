@@ -11,7 +11,7 @@
 
 (ns io.pedestal.metrics
   "Metrics functionality, built on the metrics SPI (service provider interface)."
-  {:since "0.7.0"}
+  {:added "0.7.0"}
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.telemetry.internal :as internal]))
 
