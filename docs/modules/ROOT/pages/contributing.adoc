@@ -8,6 +8,19 @@ All the code is in one repository, with subprojects for the different
 modules. Just clone https://github.com/pedestal/pedestal and you are
 good to go.
 
+
+=== First Time
+
+It's well known that transitive dependencies are the devil, and Pedestal has many internal
+and external dependencies.
+
+The first time you work on Pedestal, especially a version that has never yet been uploaded to Clojars, you must perform an initialization step; if you fail to do so, you may see tests fails with a
+ClassNotFoundException exception, related to io.pedestal.servlet.ClojureVarServlet.
+
+From the `service` directory, execute `clj -T:build compile-java :aliases '[:local :servlet-api]'.
+
+This will compile a few Java classes, including ClojureVarServlet.
+
 === Testing Pedestal Itself
 
 If you're working on Pedestal itself, you can test everything
