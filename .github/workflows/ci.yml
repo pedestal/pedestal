@@ -36,6 +36,8 @@ jobs:
         run: |
           clojure -version
           clojure -M -e '*clojure-version*'
+      - name: Local Install
+        run: clojure deploy-all :dry-run true
       - name: Dependencies and Prep
         working-directory: service
         run: clojure -X:deps:local prep
