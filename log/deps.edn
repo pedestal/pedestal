@@ -14,17 +14,9 @@
          "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.11.2"}
         io.pedestal/pedestal.common {:mvn/version "0.8.0-SNAPSHOT"}
-        io.pedestal/pedestal.telemetry {:mvn/version "0.8.0-SNAPSHOT"}
         ;; logging
-        org.slf4j/slf4j-api {:mvn/version "2.0.12"}
-        ;; old-metrics support, to be removed in 0.8 perhaps
-        io.dropwizard.metrics/metrics-core {:mvn/version "4.2.19"}
-        io.dropwizard.metrics/metrics-jmx {:mvn/version "4.2.19"}
-        ;; tracing
-        io.opentracing/opentracing-api {:mvn/version "0.33.0"}
-        io.opentracing/opentracing-util {:mvn/version "0.33.0"}}
+        org.slf4j/slf4j-api {:mvn/version "2.0.12"}}
  :aliases
  {:local
   {:override-deps
-   {io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
-    io.pedestal/pedestal.common  {:local/root "../common"}}}}}
+   {io.pedestal/pedestal.common  {:local/root "../common"}}}}}

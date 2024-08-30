@@ -83,7 +83,6 @@
                 (log/info :msg (format "%s %s"
                                        (-> request-method name string/upper-case)
                                        uri))
-                (log/meter ::request)
                 (request-meter-fn)
                 context))}))
 
