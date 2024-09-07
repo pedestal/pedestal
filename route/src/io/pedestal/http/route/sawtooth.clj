@@ -55,6 +55,7 @@
 (defn- guard-min-length
   [min-length next-fn]
   (fn min-length-guard [remaining-path-terms params-map]
+    #trace/result remaining-path-terms
     (when (<= min-length (count remaining-path-terms))
       (next-fn remaining-path-terms params-map))))
 
@@ -119,7 +120,7 @@
 (defn- matcher-from-path
   [path]
   (let [{:keys [unmatched-tokens unmatched-terms route]} path
-        has-wild? (= :wild (last unmatched-terms))
+        has-wild? (= :wild (last unmatched-tokens))
         path-matcher (build-matcher-stack unmatched-tokens
                                           unmatched-terms
                                           route)
@@ -157,6 +158,9 @@
     (string? path-part)
     {:token path-part}
 
+    ;; TODO: Change the routing table spec to make this explicit, rather
+    ;; than working it out this way.
+
     (= (get path-constraints path-part) "(.*)")
     {:token    :wild
      :param-id path-part}
@@ -179,18 +183,14 @@
      :unmatched-terms  path-terms
      :route            route}))
 
-(defn- nth-token
-  [wrapped-route i]
-  (-> wrapped-route :tokens (nth i)))
-
 (defn- drop-first-in-path [path]
   (-> path
       (update :unmatched-tokens subvec 1)
       (update :unmatched-terms subvec 1)))
 
-(defn- subdivide-by-terms
+(defn- subdivide-by-path
   [paths]
-  (let [by-first-token #trace/result (group-by #(-> % :unmatched-tokens first) paths)
+  (let [by-first-token  (group-by #(-> % :unmatched-tokens first) paths)
         {params :param
          wilds  :wild} by-first-token
         ;; wilds is plural *but* should not ever be more than 1
@@ -204,7 +204,7 @@
                                  matcher (if (= 1 (count paths-for-token'))
                                            ;; TODO: Maybe need to drop-first-in-path on this?
                                            (-> paths-for-token' first matcher-from-path)
-                                           (subdivide-by-terms paths-for-token'))]
+                                           (subdivide-by-path paths-for-token'))]
                              (assoc m first-token matcher)))
                          {}
                          by-first-token')
@@ -218,6 +218,9 @@
                              wilds (into (mapv matcher-from-path wilds)))]
     (combine-matchers all-matchers)))
 
+
+;; Temporary testing
+
 (def x-matcher
   (->> [{:path-parts       ["api" "repos" :id]
          :path-constraints {:id "([^/]+)"}
@@ -229,14 +232,14 @@
         {:path-parts ["api" "stats"]
          :route-name :stats}]
        (map route->path)
-       subdivide-by-terms))
+       subdivide-by-path))
 
 (defn x [path]
-  (x-matcher (->> (string/split path #"/")
-                  (drop 1)
+  (x-matcher (->> (string/split (subs path 1) #"/")
                   vec)
              nil))
 
 (comment
-  (x "/api/repos/foo/content/bar")
+  (x "/api/repos/foo/content/bar/baz/biff")
+  (x "/api/stats")
   )
