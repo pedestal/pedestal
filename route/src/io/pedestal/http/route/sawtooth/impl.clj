@@ -1,4 +1,16 @@
+; Copyright 2024 Nubank NA
+;
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns ^:no-doc io.pedestal.http.route.sawtooth.impl
+  {:added "0.8.0"}
   (:require [clojure.string :as string]))
 
 ;; Routes are wrapped as Paths
@@ -198,6 +210,59 @@
                              params (into (mapv matcher-from-path params))
                              wilds (into (mapv matcher-from-path wilds)))]
     (combine-matchers all-matchers)))
+
+
+(defn- match-by-path
+  [routes]
+  (let [paths (mapv route->path routes)
+        matcher (subdivide-by-path paths)]
+    (fn match-on-path [{:keys [path-info]}]
+      (let [path-terms (->> (subs path-info 1)              ; strip leading slash
+                            (string/split #"/")
+                            vec)]
+        (matcher path-terms nil)))))
+
+(defn- subdivide-by-request-key
+  ([routes]
+   (subdivide-by-request-key
+     [[:server-port :port nil]
+      [:server-name :host nil]
+      [:scheme :scheme nil]
+      [:request-method :method :any]]
+     routes))
+  ([filters routes]
+   (if-not (seq filters)
+     (match-by-path routes)
+     (let [[[request-key route-key match-any-value] & more-filters] filters
+           grouped (group-by route-key routes)
+           grouped' (dissoc grouped match-any-value)
+           match-any-routes (get grouped match-any-value [])
+           match-any-matcher (if (seq match-any-routes)
+                               (subdivide-by-request-key more-filters match-any-routes)
+                               (fn [_request] nil))]
+       (if-not (seq grouped')
+         match-any-matcher
+         (let [dispatch-map (reduce-kv
+                              (fn [m match-value routes-for-value]
+                                (let [all-routes (into match-any-routes routes-for-value)
+                                      matcher (subdivide-by-request-key more-filters all-routes)]
+                                  (assoc m match-value matcher)))
+                              {}
+                              grouped')]
+           (fn match-request-key [request]
+             (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
+               (matcher request)))))))))
+
+(defn create-matcher-from-routes
+  "Given a routing table, returns a function that can be passed a request map,
+  and returns a tuple of [route params-map] or nil if no match."
+  [routes]
+  (subdivide-by-request-key
+    [[:server-port :port nil]
+     [:server-name :host nil]
+     [:scheme :scheme nil]
+     [:request-method :method :any]]
+    routes))
 
 
 ;; Temporary testing
