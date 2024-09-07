@@ -60,8 +60,7 @@
       (next-fn remaining-path-terms params-map))))
 
 ;; Path
-;; {:unmatched-tokens ["api" "repo" :param :param "scan"]
-;;    :unmatched-terms [{:token "api" :type :string} ...]
+;; { :unmatched-terms [{:token "api" :type :string} ...]
 ;;   :route ...}
 
 (defn- prefix-length
@@ -78,20 +77,12 @@
         :else
         i))))
 
-(comment
-  (prefix-length string? [])                                ; 0
-  (prefix-length string? ["foo"])                           ; 1
-  (prefix-length string? ["foo" :bar])                      ; 1
-  (prefix-length string? ["foo" "bar" :baz])                ; 2
-  (prefix-length string? [:baz])                            ; 0
-
-  )
-
 (defn- build-matcher-stack
   "Recursively build the stack of functions that match a vector of
   path strings (from the request :uri) to a route and map of params."
-  [unmatched-tokens unmatched-terms route]
-  (let [n-leading-string (prefix-length string? unmatched-tokens)]
+  [unmatched-terms route]
+  (let [unmatched-tokens (mapv :token unmatched-terms)
+        n-leading-string (prefix-length string? unmatched-tokens)]
     (cond
       (= (count unmatched-tokens) n-leading-string)
       (literal-matcher unmatched-tokens route)
@@ -99,7 +90,6 @@
       (pos? n-leading-string)
       (literal-prefix-matcher (subvec unmatched-tokens 0 n-leading-string)
                               (build-matcher-stack
-                                (subvec unmatched-tokens n-leading-string)
                                 (subvec unmatched-terms n-leading-string)
                                 route))
       :else
@@ -113,18 +103,16 @@
 
           :else
           (param-matcher param-id
-                         (build-matcher-stack (subvec unmatched-tokens 1)
-                                              (subvec unmatched-terms 1)
+                         (build-matcher-stack (subvec unmatched-terms 1)
                                               route)))))))
 
 (defn- matcher-from-path
   [path]
-  (let [{:keys [unmatched-tokens unmatched-terms route]} path
-        has-wild? (= :wild (last unmatched-tokens))
-        path-matcher (build-matcher-stack unmatched-tokens
-                                          unmatched-terms
+  (let [{:keys [unmatched-terms route]} path
+        has-wild? (-> unmatched-terms last :token (= :wild))
+        path-matcher (build-matcher-stack unmatched-terms
                                           route)
-        n (count unmatched-tokens)]
+        n (count unmatched-terms)]
     (if has-wild?
       ;; The wild has to match at least one path term
       (guard-min-length n path-matcher)
@@ -179,18 +167,16 @@
   [route]
   (let [{:keys [path-parts path-constraints]} route
         path-terms (mapv #(path-part->term route % path-constraints) path-parts)]
-    {:unmatched-tokens (mapv :token path-terms)
-     :unmatched-terms  path-terms
-     :route            route}))
+    {:unmatched-terms path-terms
+     :route           route}))
 
-(defn- drop-first-in-path [path]
-  (-> path
-      (update :unmatched-tokens subvec 1)
-      (update :unmatched-terms subvec 1)))
+(defn- drop-first-in-path
+  [path]
+  (update path :unmatched-terms subvec 1))
 
 (defn- subdivide-by-path
   [paths]
-  (let [by-first-token  (group-by #(-> % :unmatched-tokens first) paths)
+  (let [by-first-token (group-by #(-> % :unmatched-terms first :token) paths)
         {params :param
          wilds  :wild} by-first-token
         ;; wilds is plural *but* should not ever be more than 1
@@ -198,19 +184,19 @@
         ;; TODO: This is where we can do some checks for when
         ;; params and wilds conflict with others.
         ;; TODO: Is there a special case for by-first-token' w/ count == 1 ?
-        token->matcher (reduce
-                         (fn [m [first-token paths-for-token]]
-                           (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
-                                 matcher (if (= 1 (count paths-for-token'))
-                                           ;; TODO: Maybe need to drop-first-in-path on this?
-                                           (-> paths-for-token' first matcher-from-path)
-                                           (subdivide-by-path paths-for-token'))]
-                             (assoc m first-token matcher)))
-                         {}
-                         by-first-token')
+        literal-term->matcher (reduce
+                                (fn [m [literal-token paths-for-token]]
+                                  (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
+                                        matcher (if (= 1 (count paths-for-token'))
+                                                  ;; TODO: Maybe need to drop-first-in-path on this?
+                                                  (-> paths-for-token' first matcher-from-path)
+                                                  (subdivide-by-path paths-for-token'))]
+                                    (assoc m literal-token matcher)))
+                                {}
+                                by-first-token')
         literal-matcher (fn [remaining-path-terms params-map]
-                          (let [first-token (first remaining-path-terms)
-                                matcher (token->matcher first-token)]
+                          (let [first-term (first remaining-path-terms)
+                                matcher (literal-term->matcher first-term)]
                             (when matcher
                               (matcher (subvec remaining-path-terms 1) params-map))))
         all-matchers (cond-> [literal-matcher]
@@ -233,6 +219,7 @@
          :route-name :stats}]
        (map route->path)
        subdivide-by-path))
+
 
 (defn x [path]
   (x-matcher (->> (string/split (subs path 1) #"/")
