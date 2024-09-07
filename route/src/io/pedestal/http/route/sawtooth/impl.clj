@@ -1,4 +1,4 @@
-(ns io.pedestal.http.route.sawtooth
+(ns ^:no-doc io.pedestal.http.route.sawtooth.impl
   (:require [clojure.string :as string]))
 
 ;; Routes are wrapped as Paths
@@ -10,6 +10,35 @@
 ;; As terms are matched, they are removed from the front using subvec
 ;; param-map is a map from keyword param id to a string value (for :param and :wild)
 
+(defn- path-part->term
+  [route path-part path-constraints]
+  (cond
+    (string? path-part)
+    {:token path-part}
+
+    ;; TODO: Change the routing table spec to make this explicit, rather
+    ;; than working it out this way.
+
+    (= (get path-constraints path-part) "(.*)")
+    {:token    :wild
+     :param-id path-part}
+
+
+    (= (get path-constraints path-part) "([^/]+)")
+    {:token    :param
+     :param-id path-part}
+
+    :else
+    (throw (ex-info "Path constraints not supported by sawtooth router"
+                    {:route      route
+                     :constraint path-part}))))
+
+(defn- route->path
+  [route]
+  (let [{:keys [path-parts path-constraints]} route
+        path-terms (mapv #(path-part->term route % path-constraints) path-parts)]
+    {:unmatched-terms path-terms
+     :route           route}))
 
 (defn- literal-matcher
   "Used when all the path terms are literals (no :param or :wild)."
@@ -58,10 +87,6 @@
     #trace/result remaining-path-terms
     (when (<= min-length (count remaining-path-terms))
       (next-fn remaining-path-terms params-map))))
-
-;; Path
-;; { :unmatched-terms [{:token "api" :type :string} ...]
-;;   :route ...}
 
 (defn- prefix-length
   [pred coll]
@@ -139,36 +164,6 @@
                     (reduced result)))
                 nil
                 matchers)))))
-
-(defn- path-part->term
-  [route path-part path-constraints]
-  (cond
-    (string? path-part)
-    {:token path-part}
-
-    ;; TODO: Change the routing table spec to make this explicit, rather
-    ;; than working it out this way.
-
-    (= (get path-constraints path-part) "(.*)")
-    {:token    :wild
-     :param-id path-part}
-
-
-    (= (get path-constraints path-part) "([^/]+)")
-    {:token    :param
-     :param-id path-part}
-
-    :else
-    (throw (ex-info "Path constraints not supported by sawtooth router"
-                    {:route      route
-                     :constraint path-part}))))
-
-(defn- route->path
-  [route]
-  (let [{:keys [path-parts path-constraints]} route
-        path-terms (mapv #(path-part->term route % path-constraints) path-parts)]
-    {:unmatched-terms path-terms
-     :route           route}))
 
 (defn- drop-first-in-path
   [path]
