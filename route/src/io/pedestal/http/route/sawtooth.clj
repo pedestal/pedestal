@@ -14,15 +14,18 @@
   (:require [io.pedestal.http.route.sawtooth.impl :as impl]
             [io.pedestal.http.route.router :as router]))
 
+(defn- -find-route [matcher request]
+  (when-let [[route params] (matcher request)]
+    ;; This is an ugly part of the Router protocol, that there
+    ;; isn't a way to return the route and the path-params separately.
+    ;; Inside io.pedestal.http.route/route-context, the :path-params
+    ;; are assoc'ed into the request map.  This also means that the
+    ;; route no longer follows its spec.
+    (assoc route :path-parms params)))
+
 (defn router
   [routes]
   (let [matcher (impl/create-matcher-from-routes routes)]
     (reify router/Router
       (find-route [_ request]
-        (when-let [[route params] (matcher request)]
-          ;; This is an ugly part of the Router protocol, that there
-          ;; isn't a way to return the route and the path-params separately.
-          ;; Inside io.pedestal.http.route/route-context, the :path-params
-          ;; are assoc'ed into the request map.  This also means that the
-          ;; route no longer follows its spec.
-          (assoc route :path-parms params))))))
+        (-find-route matcher request)))))

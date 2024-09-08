@@ -11,7 +11,8 @@
 
 (ns ^:no-doc io.pedestal.http.route.sawtooth.impl
   {:added "0.8.0"}
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [net.lewisship.trace :refer [trace]]))
 
 ;; Routes are wrapped as Paths
 ;; we then recursively subdivide Paths by prefix
@@ -35,20 +36,25 @@
     {:token    :wild
      :param-id path-part}
 
-
     (= (get path-constraints path-part) "([^/]+)")
     {:token    :param
      :param-id path-part}
 
     :else
-    (throw (ex-info "Path constraints not supported by sawtooth router"
+    (throw (ex-info "Path constraints not supported by the sawtooth router"
                     {:route      route
                      :constraint path-part}))))
 
 (defn- route->path
   [route]
   (let [{:keys [path-parts path-constraints]} route
-        path-terms (mapv #(path-part->term route % path-constraints) path-parts)]
+        path-terms (->> path-parts
+                        ;; During testing, found that when there's a root route, children of the route route
+                        ;; (when using terse or verbose routes) would have a leading empty string in the
+                        ;; :path-parts (e.g., ["/"] and ["" "child-path"].  Maybe that's a bug elsewhere,
+                        ;; but we can adapt to that here.
+                        (drop-while #(= "" %))
+                        (mapv #(path-part->term route % path-constraints)))]
     {:unmatched-terms path-terms
      :route           route}))
 
@@ -96,7 +102,6 @@
 (defn- guard-min-length
   [min-length next-fn]
   (fn min-length-guard [remaining-path-terms params-map]
-    #trace/result remaining-path-terms
     (when (<= min-length (count remaining-path-terms))
       (next-fn remaining-path-terms params-map))))
 
@@ -179,10 +184,15 @@
 
 (defn- drop-first-in-path
   [path]
-  (update path :unmatched-terms subvec 1))
+  (try
+    (update path :unmatched-terms subvec 1)
+    (catch Throwable t
+      (trace :path path)
+      (throw t))))
 
 (defn- subdivide-by-path
   [paths]
+  #_ (trace :paths (mapv #(update % :route :route-name) paths))
   (let [by-first-token (group-by #(-> % :unmatched-terms first :token) paths)
         {params :param
          wilds  :wild} by-first-token
@@ -214,11 +224,23 @@
 
 (defn- match-by-path
   [routes]
+  ;; Special case here for matching a route that is just "/"
+  ;; TODO: Or should we generalize to handle case where route ends with "/"?
   (let [paths (mapv route->path routes)
-        matcher (subdivide-by-path paths)]
+        {empty-paths     true
+         non-empty-paths false} (group-by #(-> % :unmatched-terms empty?) paths)
+        empty-matcher (when-some [empty-route (-> empty-paths first :route)]
+                        ;; TODO: Check for conflicts!
+                        (guard-exact-length 0
+                                            (fn [_ path-params]
+                                              [empty-route path-params])))
+        non-empty-matcher (subdivide-by-path non-empty-paths)
+        matcher (if empty-matcher
+                  (combine-matchers [empty-matcher non-empty-matcher])
+                  non-empty-matcher)]
     (fn match-on-path [{:keys [path-info]}]
-      (let [path-terms (->> (subs path-info 1)              ; strip leading slash
-                            (string/split #"/")
+      (let [path-terms (->> (string/split path-info #"/")
+                            (drop 1)                        ; leading slash
                             vec)]
         (matcher path-terms nil)))))
 
@@ -265,28 +287,3 @@
     routes))
 
 
-;; Temporary testing
-
-(def x-matcher
-  (->> [{:path-parts       ["api" "repos" :id]
-         :path-constraints {:id "([^/]+)"}
-         :route-name       :get-repo}
-        {:path-parts       ["api" "repos" :id "content" :path]
-         :path-constraints {:id   "([^/]+)"
-                            :path "(.*)"}
-         :route-name       :get-repo-content}
-        {:path-parts ["api" "stats"]
-         :route-name :stats}]
-       (map route->path)
-       subdivide-by-path))
-
-
-(defn x [path]
-  (x-matcher (->> (string/split (subs path 1) #"/")
-                  vec)
-             nil))
-
-(comment
-  (x "/api/repos/foo/content/bar/baz/biff")
-  (x "/api/stats")
-  )
