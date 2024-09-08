@@ -100,8 +100,10 @@ increase the complexity of handler logic.
 By default, The verb must be one of the keywords in :any, :get, :put, :post,
 :delete, :patch, :options, or :head. However, you can override the allowed verbs by
 including an options map with the keyword :verb in your route definition. The
-value of :verb is the a set of verb keywords you wish to support in the routes. It is
+value of :verb is a set of verb keywords you wish to support in the routes. It is
 through this facility that you can specify custom verbs.
+
+When using custom verbs, you will want to configure your interceptors to support xref:guides:defining-routes.adoc#_verb_smuggling[verb smuggling].
 
 ==== Syntax for specifying verbs
 
@@ -114,22 +116,26 @@ through this facility that you can specify custom verbs.
 ----
 
 NOTE: :any is a wildcard verb. During request routing, :any will match
-all requests.
+all requests for any verb.
 
 === Handler or Interceptors
 
-The "handler position" be anything that satisfies the api:IntoInterceptor[ns=io.pedestal.interceptor] protocol. This includes:
+The "handler position" can be anything that satisfies the api:IntoInterceptor[ns=io.pedestal.interceptor] protocol. This includes:
 
 - Function value
 - Symbol
 - Var
 - Map
-- List
+- List (of the above)
 
 === Route Name Clause
 
 A route name clause is the keyword :route-name followed by a keyword. Route names must be unique.
+Route name is required unless route name can be deduced from the handler, or final interceptor.
 
 === Constraint Clause
 
 A constraint clause is the keyword :constraints followed by a map.
+
+Note that support for constraints exists today only for backwards compatibility;
+use of path parameter and query parameter constraints is xref:guides:defining-routes.adoc#_considering_constraints[no longer advised].
