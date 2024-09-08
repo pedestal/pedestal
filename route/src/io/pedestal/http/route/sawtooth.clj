@@ -21,7 +21,7 @@
     ;; Inside io.pedestal.http.route/route-context, the :path-params
     ;; are assoc'ed into the request map.  This also means that the
     ;; route no longer follows its spec.
-    (assoc route :path-parms params)))
+    (assoc route :path-params params)))
 
 (defn router
   [routes]

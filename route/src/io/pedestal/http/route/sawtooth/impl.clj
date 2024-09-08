@@ -14,6 +14,20 @@
   (:require [clojure.string :as string]
             [net.lewisship.trace :refer [trace]]))
 
+(defn- simplify-route
+  [route]
+  (select-keys route [:path :method :port :host :scheme]))
+
+(defn- simplify-path
+  [path]
+  (update path :route simplify-route))
+
+(defn- divide-by
+  [pred coll]
+  (let [{true-values  true
+         false-values false} (group-by pred coll)]
+    [true-values false-values]))
+
 ;; Routes are wrapped as Paths
 ;; we then recursively subdivide Paths by prefix
 ;; once we've reduced the Paths for a given prefix to a minimum (usually, because of :param or :wild tokens),
@@ -24,44 +38,44 @@
 ;; param-map is a map from keyword param id to a string value (for :param and :wild)
 
 (defn- path-part->term
-  [route path-part path-constraints]
+  [path-part]
   (cond
-    (string? path-part)
-    {:token path-part}
-
-    ;; TODO: Change the routing table spec to make this explicit, rather
-    ;; than working it out this way.
-
-    (= (get path-constraints path-part) "(.*)")
+    ;; This should only be at the end position
+    ;; TODO: Does anything else ensure this?
+    (string/starts-with? path-part "*")
     {:token    :wild
-     :param-id path-part}
+     :param-id (-> path-part (subs 1) keyword)}
 
-    (= (get path-constraints path-part) "([^/]+)")
+    (string/starts-with? path-part ":")
     {:token    :param
-     :param-id path-part}
+     :param-id (-> path-part (subs 1) keyword)}
 
     :else
-    (throw (ex-info "Path constraints not supported by the sawtooth router"
-                    {:route      route
-                     :constraint path-part}))))
+    {:token path-part}))
 
 (defn- route->path
   [route]
-  (let [{:keys [path-parts path-constraints]} route
-        path-terms (->> path-parts
-                        ;; During testing, found that when there's a root route, children of the route route
-                        ;; (when using terse or verbose routes) would have a leading empty string in the
-                        ;; :path-parts (e.g., ["/"] and ["" "child-path"].  Maybe that's a bug elsewhere,
-                        ;; but we can adapt to that here.
+  (let [{:keys [path]} route
+        ;; The :path-terms in the route are insufficient:
+        ;; - weird case for a root path ("/")
+        ;; - weird case for path below a root path
+        ;; - hard to tell if a param is for a single term or wild
+        ;; So we redo that work here, and beef it up a little (redundant slashes
+        ;; are treated as one).
+        path-terms (->> (string/split path #"/+")
                         (drop-while #(= "" %))
-                        (mapv #(path-part->term route % path-constraints)))]
+                        (mapv path-part->term))]
     {:unmatched-terms path-terms
      :route           route}))
 
-(defn- literal-matcher
+(comment
+  (route->path {:path "///user/:id/contents/*path"})
+  )
+
+(defn- literal-suffix-matcher
   "Used when all the path terms are literals (no :param or :wild)."
   [expected-terms route]
-  (fn match-literals [remaining-path-terms params-map]
+  (fn match-literal-suffix [remaining-path-terms params-map]
     (when (= remaining-path-terms expected-terms)
       [route params-map])))
 
@@ -93,6 +107,9 @@
   (fn match-wild [remaining-path-terms params-map]
     [route (assoc params-map param-id (string/join "/" remaining-path-terms))]))
 
+;; guards are matchers that check for a particular state
+;; before delegating to another matcher.
+
 (defn- guard-exact-length
   [expected-length next-fn]
   (fn exact-length-guard [remaining-path-terms params-map]
@@ -121,13 +138,13 @@
 
 (defn- build-matcher-stack
   "Recursively build the stack of functions that match a vector of
-  path strings (from the request :uri) to a route and map of params."
+  path strings (from the request :path-info) to a route and map of params."
   [unmatched-terms route]
   (let [unmatched-tokens (mapv :token unmatched-terms)
         n-leading-string (prefix-length string? unmatched-tokens)]
     (cond
       (= (count unmatched-tokens) n-leading-string)
-      (literal-matcher unmatched-tokens route)
+      (literal-suffix-matcher unmatched-tokens route)
 
       (pos? n-leading-string)
       (literal-prefix-matcher (subvec unmatched-tokens 0 n-leading-string)
@@ -149,7 +166,9 @@
                                               route)))))))
 
 (defn- matcher-from-path
-  [path]
+  [matched path]
+  (trace :matched matched
+         :path (simplify-path path))
   (let [{:keys [unmatched-terms route]} path
         has-wild? (-> unmatched-terms last :token (= :wild))
         path-matcher (build-matcher-stack unmatched-terms
@@ -162,14 +181,15 @@
       (guard-exact-length n path-matcher))))
 
 (defn- combine-matchers
-  [matchers]
-  (let [n (count matchers)]
+  [matched matcher-fns]
+  (let [n (count matcher-fns)]
     (case n
-      0 (throw (IllegalStateException.))
-      1 (first matchers)
+      0 (throw (ex-info "Sanity check: no matchers"
+                        {:matched matched}))
+      1 (first matcher-fns)
 
       ;; Maybe do 3, 4, 5 as well?  Or is even this overkill?
-      2 (let [[m1 m2] matchers]
+      2 (let [[m1 m2] matcher-fns]
           (fn match-one-of-two [remaining-path-terms params-map]
             (or (m1 remaining-path-terms params-map)
                 (m2 remaining-path-terms params-map))))
@@ -180,7 +200,7 @@
                   (when-some [result (matcher remaining-path-terms params-map)]
                     (reduced result)))
                 nil
-                matchers)))))
+                matcher-fns)))))
 
 (defn- drop-first-in-path
   [path]
@@ -191,52 +211,64 @@
       (throw t))))
 
 (defn- subdivide-by-path
-  [paths]
-  #_ (trace :paths (mapv #(update % :route :route-name) paths))
-  (let [by-first-token (group-by #(-> % :unmatched-terms first :token) paths)
+  [matched paths]
+  (trace :matched matched
+         :paths (mapv simplify-path paths))
+  (let [[empty-paths non-empty-paths] (divide-by #(-> % :unmatched-terms empty?) paths)
+        ;; This is the case where you have a route that is complete, and other routes that
+        ;; extend from it: i.e. "/user" and "/user/:id".  The first will be an empty path
+        ;; (once "user" is matched) and it is handled here, "/user/:id" will be handled as part
+        ;; of by-first-token
+        empty-paths-matcher (when (seq empty-paths)
+                              ;; TODO: Check that there's exactly one empty path
+                              (let [route (-> empty-paths first :route)
+                                    match-terminal (fn [_ params-map]
+                                                     [route params-map])]
+                                (guard-exact-length 0 match-terminal)))
+        by-first-token (group-by #(-> % :unmatched-terms first :token) non-empty-paths)
         {params :param
          wilds  :wild} by-first-token
         ;; wilds is plural *but* should not ever be more than 1
         by-first-token' (dissoc by-first-token :param :wild)
         ;; TODO: This is where we can do some checks for when
         ;; params and wilds conflict with others.
-        ;; TODO: Is there a special case for by-first-token' w/ count == 1 ?
         literal-term->matcher (reduce
                                 (fn [m [literal-token paths-for-token]]
                                   (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
+                                        matched' (conj matched literal-token)
                                         matcher (if (= 1 (count paths-for-token'))
-                                                  ;; TODO: Maybe need to drop-first-in-path on this?
-                                                  (-> paths-for-token' first matcher-from-path)
-                                                  (subdivide-by-path paths-for-token'))]
+                                                  (->> paths-for-token' first (matcher-from-path matched'))
+                                                  (subdivide-by-path matched' paths-for-token'))]
                                     (assoc m literal-token matcher)))
                                 {}
                                 by-first-token')
-        literal-matcher (fn [remaining-path-terms params-map]
-                          (let [first-term (first remaining-path-terms)
-                                matcher (literal-term->matcher first-term)]
-                            (when matcher
-                              (matcher (subvec remaining-path-terms 1) params-map))))
-        all-matchers (cond-> [literal-matcher]
-                             params (into (mapv matcher-from-path params))
-                             wilds (into (mapv matcher-from-path wilds)))]
-    (combine-matchers all-matchers)))
-
+        literal-matcher (when (seq literal-term->matcher)
+                          (fn [remaining-path-terms params-map]
+                            (let [first-term (first remaining-path-terms)
+                                  matcher (literal-term->matcher first-term)]
+                              (when matcher
+                                (matcher (subvec remaining-path-terms 1) params-map)))))
+        all-matchers (cond-> []
+                             empty-paths-matcher (conj empty-paths-matcher)
+                             literal-matcher (conj literal-matcher)
+                             params (into (mapv #(matcher-from-path matched %) params))
+                             wilds (into (mapv #(matcher-from-path matched %) wilds)))]
+    (combine-matchers matched all-matchers)))
 
 (defn- match-by-path
-  [routes]
-  ;; Special case here for matching a route that is just "/"
-  ;; TODO: Or should we generalize to handle case where route ends with "/"?
+  [matched routes]
+  (trace :matched matched
+         :routes (mapv simplify-route routes))
   (let [paths (mapv route->path routes)
-        {empty-paths     true
-         non-empty-paths false} (group-by #(-> % :unmatched-terms empty?) paths)
+        [empty-paths non-empty-paths] (divide-by #(-> % :unmatched-terms empty?) paths)
         empty-matcher (when-some [empty-route (-> empty-paths first :route)]
                         ;; TODO: Check for conflicts!
                         (guard-exact-length 0
                                             (fn [_ path-params]
                                               [empty-route path-params])))
-        non-empty-matcher (subdivide-by-path non-empty-paths)
+        non-empty-matcher (subdivide-by-path matched non-empty-paths)
         matcher (if empty-matcher
-                  (combine-matchers [empty-matcher non-empty-matcher])
+                  (combine-matchers matched [empty-matcher non-empty-matcher])
                   non-empty-matcher)]
     (fn match-on-path [{:keys [path-info]}]
       (let [path-terms (->> (string/split path-info #"/")
@@ -245,35 +277,42 @@
         (matcher path-terms nil)))))
 
 (defn- subdivide-by-request-key
-  ([routes]
-   (subdivide-by-request-key
-     [[:server-port :port nil]
-      [:server-name :host nil]
-      [:scheme :scheme nil]
-      [:request-method :method :any]]
-     routes))
-  ([filters routes]
-   (if-not (seq filters)
-     (match-by-path routes)
-     (let [[[request-key route-key match-any-value] & more-filters] filters
-           grouped (group-by route-key routes)
-           grouped' (dissoc grouped match-any-value)
-           match-any-routes (get grouped match-any-value [])
-           match-any-matcher (if (seq match-any-routes)
-                               (subdivide-by-request-key more-filters match-any-routes)
-                               (fn [_request] nil))]
-       (if-not (seq grouped')
-         match-any-matcher
-         (let [dispatch-map (reduce-kv
-                              (fn [m match-value routes-for-value]
-                                (let [all-routes (into match-any-routes routes-for-value)
-                                      matcher (subdivide-by-request-key more-filters all-routes)]
-                                  (assoc m match-value matcher)))
-                              {}
-                              grouped')]
-           (fn match-request-key [request]
-             (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
-               (matcher request)))))))))
+  [filters matched routes]
+  (if-not (seq filters)
+    (match-by-path matched routes)
+    (let [[first-filter & more-filters] filters
+          [request-key route-key match-any-value] first-filter
+          grouped (group-by route-key routes)
+          grouped' (dissoc grouped match-any-value)
+          match-any-routes (get grouped match-any-value [])
+          ;; TODO: No longer sure we need this case at all
+          ;; So, normally, the match-any-matcher is a matcher for all the routes that don't specify
+          ;; the route-key.  So the way things work is that if a request comes in with a specific value
+          ;; for the corresponding request-key, the routes that have that matching route-key value will be used
+          ;; along with the routes that don't specify.  If a value comes in that doesn't match any specified route's value,
+          ;; then the match-any-matcher will be used.  However, for :method, we use a different sentinel value, :any,
+          ;; and that will never be incoming request value, so don't even try to build that matcher.
+          match-any-matcher (if (and (not= route-key :method)
+                                     (seq match-any-routes))
+                              (subdivide-by-request-key more-filters
+                                                        (conj matched [route-key match-any-value])
+                                                        match-any-routes)
+                              (fn [_request] nil))]
+      (if-not (seq grouped')
+        match-any-matcher
+        (let [dispatch-map (reduce-kv
+                             (fn [m match-value routes-for-value]
+                               (let [all-routes (into match-any-routes routes-for-value)
+                                     matcher (subdivide-by-request-key
+                                               more-filters
+                                               (conj matched [route-key match-value])
+                                               all-routes)]
+                                 (assoc m match-value matcher)))
+                             {}
+                             grouped')]
+          (fn match-request-key [request]
+            (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
+              (matcher request))))))))
 
 (defn create-matcher-from-routes
   "Given a routing table, returns a function that can be passed a request map,
@@ -284,6 +323,7 @@
      [:server-name :host nil]
      [:scheme :scheme nil]
      [:request-method :method :any]]
+    []
     routes))
 
 

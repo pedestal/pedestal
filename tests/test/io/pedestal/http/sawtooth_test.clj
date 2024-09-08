@@ -1,170 +1,78 @@
 (ns io.pedestal.http.sawtooth-test
   (:require [clojure.set :as set]
             [clojure.test :refer [deftest is]]
-            [io.pedestal.http.route.definition.verbose :as verbose]
+            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
-            [io.pedestal.http.route.map-tree :as map-tree]
+            [com.walmartlabs.test-reporting :refer [reporting]]
             [io.pedestal.http.route.sawtooth :as sawtooth]))
 
 ;; Placeholders for handlers in the routing table
 
-(defn home-page [])
-(defn list-users [])
-(defn trailing-slash [])
-(defn update-user [])
-(defn view-user [])
-(defn site-demo [])
-(defn delete-user [])
-(defn logout [])
-(defn search-form [])
-(defn request-inspection [])
-(defn add-user [])
+(defn- get-users [])
+(defn- get-user [])
+(defn- create-user [])
+(defn- get-user-collection [])
+(defn- stats [])
+(defn- get-resource [])
+(defn- head-resource [])
+(defn- shutdown [])
 
-;; Adapted from route-tests
 (def routing-table
-  (verbose/expand-verbose-routes
-    [{:app-name :public                                     ;; :app-name is documentation, not used for any kind of routing
-      :host     "example.com"
-      :children [{:path     "/"
-                  :verbs    {:get `home-page}
-                  ;; NOTE: This route will have :path-parts as ["" "child-path"] which may be a bug
-                  ;; but we kind of have to live with it.
-                  :children [{:path  "/child-path"
-                              :verbs {:get `trailing-slash}}]}
-                 {:path     "/user"
-                  :verbs    {:get  `list-users
-                             :post `add-user}
-                  :children [{:path     "/:user-id"
-                              :verbs    {:put `update-user}
-                              :children [{:verbs {:get `view-user}}]}]}]}
-     {:app-name :admin
-      :scheme   :https
-      :host     "admin.example.com"
-      :port     9999
-      :children [{:path  "/demo/site/*site-path"
-                  :verbs {:get {:route-name ::site-demo
-                                :handler    site-demo}}}
-                 {:path  "/user/:user-id/delete"
-                  :verbs {:delete `delete-user}}]}
-     {:children [{:path  "/logout"
-                  :verbs {:any `logout}}
-                 {:path  "/search"
-                  :verbs {:get `search-form}}
-                 {:path  "/intercepted"
-                  :verbs {:get {:route-name :intercepted
-                                :handler    request-inspection}}}
-                 {:path     "/trailing-slash/"
-                  :children [{:path  "/child-path"
-                              :verbs {:get {:route-name :admin-trailing-slash
-                                            :handler    trailing-slash}}}]}
-                 {:path     "/hierarchical"
-                  :children [{:path  "/intercepted"
-                              :verbs {:get {:route-name :hierarchical-intercepted
-                                            :handler    request-inspection}}}]}
-                 {:path  "/terminal/intercepted"
-                  :verbs {:get {:route-name :terminal-intercepted
-                                :handler    request-inspection}}}]}]))
+  (concat
+    (table/table-routes
+      {:host "example.com" :scheme :https}
+      [["/user" :get `get-users]
+       ["/user/:user-id" :get `get-user]
+       ["/user/:user-id" :post `create-user]
+       ["/user/:user-id/collection" :get `get-user-collection]])
+    (table/table-routes
+      [["/api/stats" :get `stats]
+       ["/api/shutdown" :post `shutdown]
+       ["/resources/*path" :get `get-resource]
+       ["/resources/*path" :head `head-resource]])))
 
 (deftest routing-table-as-expected
-  (is (= [{:path        "/"
-           :method      :get
-           :app-name    :public
-           :path-parts  [""]
-           :host        "example.com"
-           :route-name  ::home-page
-           :path-params []}
-          {:path        "/child-path"
-           :method      :get
-           :app-name    :public
-           :path-parts  ["" "child-path"]                   ;; See above note
-           :host        "example.com"
-           :route-name  ::trailing-slash
-           :path-params []}
-          {:path        "/user"
-           :method      :get
-           :app-name    :public
-           :path-parts  ["user"]
-           :host        "example.com"
-           :route-name  ::list-users
-           :path-params []}
-          {:path        "/user"
-           :method      :post
-           :app-name    :public
-           :path-parts  ["user"]
-           :host        "example.com"
-           :route-name  ::add-user
-           :path-params []}
-          {:path             "/user/:user-id"
-           :method           :put
-           :path-constraints {:user-id "([^/]+)"}
-           :app-name         :public
-           :path-parts       ["user" :user-id]
-           :host             "example.com"
-           :route-name       ::update-user
-           :path-params      [:user-id]}
-          {:path             "/user/:user-id"
-           :method           :get
-           :path-constraints {:user-id "([^/]+)"}
-           :app-name         :public
-           :path-parts       ["user" :user-id]
-           :host             "example.com"
-           :route-name       ::view-user
-           :path-params      [:user-id]}
-          {:path             "/demo/site/*site-path"
-           :method           :get
-           :path-constraints {:site-path "(.*)"}
-           :app-name         :admin
-           :path-parts       ["demo" "site" :site-path]
-           :port             9999
-           :host             "admin.example.com"
-           :route-name       ::site-demo
-           :path-params      [:site-path]
-           :scheme           :https}
-          {:path             "/user/:user-id/delete"
-           :method           :delete
-           :path-constraints {:user-id "([^/]+)"}
-           :app-name         :admin
-           :path-parts       ["user" :user-id "delete"]
-           :port             9999
-           :host             "admin.example.com"
-           :route-name       ::delete-user
-           :path-params      [:user-id]
-           :scheme           :https}
-          {:path-parts  ["logout"]
-           :path-params []
-           :path        "/logout"
-           :method      :any
-           :route-name  ::logout}
-          {:path-parts  ["search"]
-           :path-params []
-           :path        "/search"
-           :method      :get
-           :route-name  ::search-form}
-          {:path-parts  ["intercepted"]
-           :path-params []
-           :path        "/intercepted"
-           :method      :get
-           :route-name  :intercepted}
-          {:path-parts  ["trailing-slash" "child-path"]
-           :path-params []
-           :path        "/trailing-slash/child-path"
-           :method      :get
-           :route-name  :admin-trailing-slash}
-          {:path-parts  ["hierarchical" "intercepted"]
-           :path-params []
-           :path        "/hierarchical/intercepted"
-           :method      :get
-           :route-name  :hierarchical-intercepted}
-          {:path-parts  ["terminal" "intercepted"]
-           :path-params []
-           :path        "/terminal/intercepted"
-           :method      :get
-           :route-name  :terminal-intercepted}]
-         (mapv #(dissoc % :interceptors :path-re) routing-table))))
+  (is (= [{:host       "example.com"
+           :method     :post
+           :path       "/user/:user-id"
+           :route-name :io.pedestal.http.sawtooth-test/create-user
+           :scheme     :https}
+          {:method     :get
+           :path       "/resources/*path"
+           :route-name :io.pedestal.http.sawtooth-test/get-resource}
+          {:host       "example.com"
+           :method     :get
+           :path       "/user/:user-id"
+           :route-name :io.pedestal.http.sawtooth-test/get-user
+           :scheme     :https}
+          {:host       "example.com"
+           :method     :get
+           :path       "/user/:user-id/collection"
+           :route-name :io.pedestal.http.sawtooth-test/get-user-collection
+           :scheme     :https}
+          {:host       "example.com"
+           :method     :get
+           :path       "/user"
+           :route-name :io.pedestal.http.sawtooth-test/get-users
+           :scheme     :https}
+          {:method     :head
+           :path       "/resources/*path"
+           :route-name :io.pedestal.http.sawtooth-test/head-resource}
+          {:method     :post
+           :path       "/api/shutdown"
+           :route-name :io.pedestal.http.sawtooth-test/shutdown}
+          {:method     :get
+           :path       "/api/stats"
+           :route-name :io.pedestal.http.sawtooth-test/stats}]
+         (->> routing-table
+              (mapv #(select-keys % [:host :method :path :scheme :port :route-name]))
+              (sort-by :route-name)
+              vec))))
 
 (defn- request
   [method path & {:as kvs}]
   (merge {:request-method method
+          :scheme         :http
           :path-info      path}
          (set/rename-keys kvs {:host :server-name
                                :port :server-port})))
@@ -174,13 +82,25 @@
   )
 
 (def requests
-  [(request :get "/user/9999" :host "example.com")])
+  [(request :get "/user/9999" :host "example.com") nil
+   (request :get "/user/9999" :host "example.com" :scheme :https) [::get-user {:user-id "9999"}]
+   (request :get "/resources") nil
+   (request :get "/resources/assets/style.css") [::get-resource {:path "assets/style.css"}]
+   ])
 
-(deftest sawtooth-matches-map-tree
-  (let [map-tree (map-tree/router routing-table)
-        sawtooth (sawtooth/router routing-table)]
-    (doseq [request requests]
-      (prn request "...")
-      (is (= (router/find-route map-tree request)
-             (router/find-route sawtooth request))))))
+(defn attempt-request
+  [router request]
+  (when-let [matched (router/find-route router request)]
+    [(:route-name matched) (:path-params matched)]))
+
+;; TODO: Get sawtooth to compare with prefix-tree, if we can get that working.
+;; prefix-tree keeps blowing up on what looks like valid input.
+;; Need this to get timing comparison!
+
+(deftest sawtooth-queries
+  (let [sawtooth (sawtooth/router routing-table)]
+    (doseq [[request expected] (partition 2 requests)]
+      (reporting request
+                 (is (= expected
+                        (attempt-request sawtooth request)))))))
 
