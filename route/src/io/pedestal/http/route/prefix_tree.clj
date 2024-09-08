@@ -92,16 +92,16 @@
   [segment o]
   (map->Node
     (cond (wild-param? segment)
-          {:wild? true
+          {:wild?   true
            :segment segment
-           :param (keyword (subs segment 1))
+           :param   (keyword (subs segment 1))
            :payload (when o (->Payload [o]))}
 
           (catch-all-param? segment)
           {:catch-all? true
-           :segment segment
-           :param (keyword (subs segment 1))
-           :payload (when o (->Payload [o]))}
+           :segment    segment
+           :param      (keyword (subs segment 1))
+           :payload    (when o (->Payload [o]))}
 
           :else
           {:segment segment
@@ -206,17 +206,17 @@
               (let [path-spec (subs path-spec (inc lcs))]
                 (insert-child node (subs path-spec 0 1) path-spec o))
               (throw (ex-info "route conflict"
-                              {:node node
+                              {:node      node
                                :path-spec path-spec
-                               :segment segment}))))
+                               :segment   segment}))))
 
           ;; in the case where path-spec is a catch-all, node should always be nil.
           ;; getting here means we have an invalid route specification
           (catch-all-param? path-spec)
           (throw (ex-info "route conflict"
-                          {:node node
+                          {:node      node
                            :path-spec path-spec
-                           :segment segment}))
+                           :segment   segment}))
 
           :else
           (let [lcs (calc-lcs segment path-spec)]
@@ -230,10 +230,10 @@
   "Construct and return a lookup result."
   ([node path-params]
    {:path-params path-params
-    :payload (:payload node)})
+    :payload     (:payload node)})
   ([node path-params path]
    {:path-params (assoc path-params (:param node) path)
-    :payload (:payload node)}))
+    :payload     (:payload node)}))
 
 (defn- get-child
   "Given a node, a request path and a segment size (the lcs index of
@@ -314,18 +314,20 @@
 
   )
 
+(defn- -find-route [tree request]
+  ;; find a result in the prefix-tree - payload could contain multiple routes
+  (when-let [{:keys [payload] :as result} (lookup tree (:path-info request))]
+    ;; call payload function to find specific match based on method, host, scheme and port
+    (when-let [route (when payload (payload request))]
+      ;; return a match only if path and query constraints are satisfied
+      (when ((::satisfies-constraints? route) request (:path-params result))
+        (assoc route :path-params (:path-params result))))))
+
 (defrecord PrefixTreeRouter [routes tree]
 
   router/Router
 
-  (find-route [_ req]
-    ;; find a result in the prefix-tree - payload could contains mutiple routes
-    (when-let [{:keys [payload] :as result} (lookup tree (:path-info req))]
-      ;; call payload function to find specific match based on method, host, scheme and port
-      (when-let [route (when payload (payload req))]
-        ;; return a match only if path and query constraints are satisfied
-        (when ((::satisfies-constraints? route) req (:path-params result))
-          (assoc route :path-params (:path-params result)))))))
+  (find-route [_ req] (-find-route tree req)))
 
 ;; The prefix tree is used to find a collection of routes which are
 ;; indexed by method, host, scheme and port, in that order. This is
@@ -367,10 +369,10 @@
               [:x :y :z])
   ;;=> 42
 
-  (best-match {:x {:y {:a nil}
-                   ::any {:c nil}}
-               ::any {:y {:b nil}
-                      ::any {:d nil
+  (best-match {:x    {:y    {:a nil}
+                      ::any {:c nil}}
+               ::any {:y    {:b nil}
+                      ::any {:d    nil
                              ::any 42}}}
               [:x :y :z])
   ;;=> 42
