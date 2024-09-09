@@ -285,19 +285,16 @@
           grouped (group-by route-key routes)
           grouped' (dissoc grouped match-any-value)
           match-any-routes (get grouped match-any-value [])
-          ;; TODO: No longer sure we need this case at all
-          ;; So, normally, the match-any-matcher is a matcher for all the routes that don't specify
-          ;; the route-key.  So the way things work is that if a request comes in with a specific value
-          ;; for the corresponding request-key, the routes that have that matching route-key value will be used
-          ;; along with the routes that don't specify.  If a value comes in that doesn't match any specified route's value,
-          ;; then the match-any-matcher will be used.  However, for :method, we use a different sentinel value, :any,
-          ;; and that will never be incoming request value, so don't even try to build that matcher.
-          match-any-matcher (if (and (not= route-key :method)
-                                     (seq match-any-routes))
+          ;; match-any-matcher is what matches when the value from the request does not match
+          ;; any value for any route.
+          match-any-matcher (if (seq match-any-routes)
                               (subdivide-by-request-key more-filters
                                                         (conj matched [route-key match-any-value])
                                                         match-any-routes)
                               (fn [_request] nil))]
+      ;; So, if none of the routes care about this particular request key, then we can optimize:
+      ;; we can skip right to the match-any-matcher as if we looked it up in the dispatch-map
+      ;; and did not find a match.
       (if-not (seq grouped')
         match-any-matcher
         (let [dispatch-map (reduce-kv
