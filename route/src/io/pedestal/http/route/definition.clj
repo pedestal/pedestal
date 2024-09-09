@@ -11,8 +11,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.route.definition
-  (:require [io.pedestal.internal :as i]))
+(ns io.pedestal.http.route.definition)
 
 (def schemes #{:http :https})
 (def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
@@ -75,12 +74,4 @@
       prioritize-constraints
       verify-unique-route-names))
 
-
-;; TODO: Remove and refactor across the codebase
-(defmacro ^{:deprecated "0.5.1"} defroutes
-  "Deprecated. -- Prefer `def` and program against ExpandableRoutes
-  Define a routing table from the terse routing syntax."
-  [name route-spec]
-  (i/deprecated `defroutes
-    `(def ~name (io.pedestal.http.route/expand-routes (quote ~route-spec)))))
 
