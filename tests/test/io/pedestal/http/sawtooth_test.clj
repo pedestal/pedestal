@@ -1,7 +1,17 @@
+; Copyright 2024 Nubank NA
+;
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.saw
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.sawtooth-test
   (:require [clojure.set :as set]
             [clojure.test :refer [deftest is]]
-            [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
             [com.walmartlabs.test-reporting :refer [reporting]]
@@ -19,15 +29,16 @@
 (defn- shutdown [])
 (defn- internal [])
 (defn- monitor [])
+(defn- root [])
 
 (def routing-table
   (concat
     (table/table-routes
       {:host "example.com" :scheme :https}
       [["/user" :get `get-users]
-       ["/user/:user-id" :get `get-user]
-       ["/user/:user-id" :post `create-user]
-       ["/user/:user-id/collection" :get `get-user-collection]])
+       ["/user/:user-id" :get `get-user :constraints {:user-id #"[0-9]+"}]
+       ["/user/:user-id" :post `create-user  :constraints {:user-id #"[0-9]+"}]
+       ["/user/:user-id/collection" :get `get-user-collection  :constraints {:user-id #"[0-9]+"}]])
     (table/table-routes
       [["/api/stats" :get `stats]
        ["/api/shutdown" :post `shutdown]
@@ -35,7 +46,8 @@
        ["/resources/*path" :head `head-resource]])
     (table/table-routes
       {:port 9999}
-      [["/internal" :get `internal]
+      [["/" :get `root]
+       ["/internal" :get `internal]
        ["/internal/monitor" :any `monitor]])))
 
 (deftest routing-table-as-expected
@@ -73,6 +85,10 @@
            :path       "/internal/monitor"
            :port       9999
            :route-name :io.pedestal.http.sawtooth-test/monitor}
+          {:method     :get
+           :path       "/"
+           :port       9999
+           :route-name :io.pedestal.http.sawtooth-test/root}
           {:method     :post
            :path       "/api/shutdown"
            :route-name :io.pedestal.http.sawtooth-test/shutdown}
@@ -92,15 +108,15 @@
          (set/rename-keys kvs {:host :server-name
                                :port :server-port})))
 
-(comment
-  (request :get "/foo" :host "example.com")
-  )
-
 (def requests
   [(request :get "/user/9999" :host "example.com") nil      ; wrong scheme
    (request :get "/user/9999" :host "example.com" :scheme :https) [::get-user {:user-id "9999"}]
    (request :head "/user/9999" :host "example.com" :scheme :https) nil ; wrong method
+   (request :get "/user/fred" :host "example.com" :scheme :https) nil ; violates path constraint
    (request :get "/resources") nil                          ; incomplete path
+   (request :get "/resources/") nil
+   (request :get "/") nil                                   ; wrong port
+   (request :get "/" :port 9999) [::root nil]
    (request :get "/resources/assets/style.css") [::get-resource {:path "assets/style.css"}]
    (request :head "/resources/assets/site.js") [::head-resource {:path "assets/site.js"}]
    (request :get "/api/stats") [::stats nil]
@@ -109,8 +125,7 @@
    (request :get "/internal" :port 9999) [::internal nil]   ; correct port
    (request :get "/internal/other" :port 9999) nil
    (request :patch "/internal/monitor" :port 9999) [::monitor nil]
-   (request ::anything "/internal/monitor" :port 9999) [::monitor nil]
-   ])
+   (request ::anything "/internal/monitor" :port 9999) [::monitor nil]])
 
 (defn- attempt-request
   [router request]
@@ -127,12 +142,4 @@
       (reporting request
                  (is (= expected
                         (attempt-request sawtooth request)))))))
-
-(comment
-  (let [routing-table (route/expand-routes
-                       #{["/internal/monitor" :any `monitor]})
-        sawtooth (sawtooth/router routing-table)]
-    (attempt-request sawtooth (request :head "/internal/monitor"))) ; => nil, not expected
-
-  )
 

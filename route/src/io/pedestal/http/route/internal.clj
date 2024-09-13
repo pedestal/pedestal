@@ -96,3 +96,56 @@
     ;; Either an inline route, a reference to a local symbol, or a function call.
     `(fn []
        (~expand-routes ~route-spec-expr))))
+
+(defn- satisfies-query-constraints
+  "Given a map of query constraints, return a predicate function of
+  the request which will return true if the request satisfies the
+  constraints."
+  [query-constraints]
+  (fn [request]
+    (let [{:keys [query-params]} request]
+      (every? (fn [[k re]]
+                (when-let [v (get query-params k)]
+                  (re-matches re v)))
+              query-constraints))))
+
+(defn- satisfies-path-constraints
+  "Given a map of path constraints, return a predicate function of
+  the request which will return true if the request satisfies the
+  constraints."
+  [path-constraints]
+  (let [path-constraints (zipmap (keys path-constraints)
+                                 (mapv re-pattern (vals path-constraints)))]
+    (fn [path-param-values]
+      (every? (fn [[k re]]
+                (when-let [v (get path-param-values k)]
+                  (re-matches re v)))
+              path-constraints))))
+
+(defn add-satisfies-constraints?
+  "Given a route, add a function of the request which returns true if
+  the request satisfies all path and query constraints."
+  {:added "0.8.0"}
+  [{:keys [query-constraints path-constraints] :as route}]
+  (let [qc? (satisfies-query-constraints query-constraints)
+        pc? (satisfies-path-constraints path-constraints)
+        satisfies-constraints? (cond (and query-constraints path-constraints)
+                                     (fn [request path-param-values]
+                                       (and (qc? request) (pc? path-param-values)))
+                                     query-constraints
+                                     (fn [request _]
+                                       (qc? request))
+                                     path-constraints
+                                     (fn [_ path-param-values]
+                                       (pc? path-param-values))
+                                     :else
+                                     (fn [_ _] true))]
+    (assoc route ::satisfies-constraints? satisfies-constraints?)))
+
+(defn satisfies-constraints?
+  "Used at the end of routing to see if the selected route's query constraints, if any,
+  are satisfied."
+  {:added "0.8.0"}
+  [request route path-param-values]
+  (let [f (::satisfies-constraints? route)]
+    (f request path-param-values)))

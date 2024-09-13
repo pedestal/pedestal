@@ -11,8 +11,7 @@
 
 (ns ^:no-doc io.pedestal.http.route.sawtooth.impl
   {:added "0.8.0"}
-  (:require [clojure.string :as string]
-            [net.lewisship.trace :refer [trace]]))
+  (:require [clojure.string :as string]))
 
 (defn- simplify-route
   [route]
@@ -166,9 +165,7 @@
                                               route)))))))
 
 (defn- matcher-from-path
-  [matched path]
-  (trace :matched matched
-         :path (simplify-path path))
+  [_matched path]
   (let [{:keys [unmatched-terms route]} path
         has-wild? (-> unmatched-terms last :token (= :wild))
         path-matcher (build-matcher-stack unmatched-terms
@@ -204,16 +201,10 @@
 
 (defn- drop-first-in-path
   [path]
-  (try
-    (update path :unmatched-terms subvec 1)
-    (catch Throwable t
-      (trace :path path)
-      (throw t))))
+  (update path :unmatched-terms subvec 1))
 
 (defn- subdivide-by-path
   [matched paths]
-  (trace :matched matched
-         :paths (mapv simplify-path paths))
   (let [[empty-paths non-empty-paths] (divide-by #(-> % :unmatched-terms empty?) paths)
         ;; This is the case where you have a route that is complete, and other routes that
         ;; extend from it: i.e. "/user" and "/user/:id".  The first will be an empty path
@@ -250,15 +241,13 @@
                                 (matcher (subvec remaining-path-terms 1) params-map)))))
         all-matchers (cond-> []
                              empty-paths-matcher (conj empty-paths-matcher)
-                             literal-matcher (conj literal-matcher)
+                              literal-matcher (conj literal-matcher)
                              params (into (mapv #(matcher-from-path matched %) params))
                              wilds (into (mapv #(matcher-from-path matched %) wilds)))]
     (combine-matchers matched all-matchers)))
 
 (defn- match-by-path
   [matched routes]
-  (trace :matched matched
-         :routes (mapv simplify-route routes))
   (let [paths (mapv route->path routes)
         [empty-paths non-empty-paths] (divide-by #(-> % :unmatched-terms empty?) paths)
         empty-matcher (when-some [empty-route (-> empty-paths first :route)]
@@ -278,8 +267,14 @@
 
 (defn- subdivide-by-request-key
   [filters matched routes]
+  ;; matched here is a map, which becomes the first element in a vector once
+  ;; we start matching by path (the other elements are terms from the path).
+  ;; This isn't actually needed at all for the logic, but it's very handy
+  ;; for debugging. It "costs" very little, and that cost is only during the
+  ;; construction of the routing function, with no cost during execution of that
+  ;; function.
   (if-not (seq filters)
-    (match-by-path matched routes)
+    (match-by-path [matched] routes)
     (let [[first-filter & more-filters] filters
           [request-key route-key match-any-value] first-filter
           grouped (group-by route-key routes)
@@ -289,7 +284,7 @@
           ;; any value for any route.
           match-any-matcher (if (seq match-any-routes)
                               (subdivide-by-request-key more-filters
-                                                        (conj matched [route-key match-any-value])
+                                                        (assoc matched route-key match-any-value)
                                                         match-any-routes)
                               (fn [_request] nil))]
       ;; So, if none of the routes care about this particular request key, then we can optimize:
@@ -302,7 +297,7 @@
                                (let [all-routes (into match-any-routes routes-for-value)
                                      matcher (subdivide-by-request-key
                                                more-filters
-                                               (conj matched [route-key match-value])
+                                               (assoc matched route-key match-value)
                                                all-routes)]
                                  (assoc m match-value matcher)))
                              {}
@@ -320,7 +315,7 @@
      [:server-name :host nil]
      [:scheme :scheme nil]
      [:request-method :method :any]]
-    []
+    {}
     routes))
 
 
