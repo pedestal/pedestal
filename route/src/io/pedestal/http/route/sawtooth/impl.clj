@@ -13,15 +13,7 @@
   {:added "0.8.0"}
   (:require [clojure.string :as string]))
 
-(defn- simplify-route
-  [route]
-  (select-keys route [:path :method :port :host :scheme]))
-
-(defn- simplify-path
-  [path]
-  (update path :route simplify-route))
-
-(defn- divide-by
+(defn- categorize-by
   [pred coll]
   (let [{true-values  true
          false-values false} (group-by pred coll)]
@@ -58,18 +50,11 @@
         ;; The :path-terms in the route are insufficient:
         ;; - weird case for a root path ("/")
         ;; - weird case for path below a root path
-        ;; - hard to tell if a param is for a single term or wild
-        ;; So we redo that work here, and beef it up a little (redundant slashes
-        ;; are treated as one).
         path-terms (->> (string/split path #"/+")
                         (drop-while #(= "" %))
                         (mapv path-part->term))]
     {:unmatched-terms path-terms
      :route           route}))
-
-(comment
-  (route->path {:path "///user/:id/contents/*path"})
-  )
 
 (defn- literal-suffix-matcher
   "Used when all the path terms are literals (no :param or :wild)."
@@ -205,13 +190,12 @@
 
 (defn- subdivide-by-path
   [matched paths]
-  (let [[empty-paths non-empty-paths] (divide-by #(-> % :unmatched-terms empty?) paths)
+  (let [[empty-paths non-empty-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
         ;; This is the case where you have a route that is complete, and other routes that
         ;; extend from it: i.e. "/user" and "/user/:id".  The first will be an empty path
         ;; (once "user" is matched) and it is handled here, "/user/:id" will be handled as part
         ;; of by-first-token
         empty-paths-matcher (when (seq empty-paths)
-                              ;; TODO: Check that there's exactly one empty path
                               (let [route (-> empty-paths first :route)
                                     match-terminal (fn [_ params-map]
                                                      [route params-map])]
@@ -221,8 +205,6 @@
          wilds  :wild} by-first-token
         ;; wilds is plural *but* should not ever be more than 1
         by-first-token' (dissoc by-first-token :param :wild)
-        ;; TODO: This is where we can do some checks for when
-        ;; params and wilds conflict with others.
         literal-term->matcher (reduce
                                 (fn [m [literal-token paths-for-token]]
                                   (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
@@ -249,9 +231,8 @@
 (defn- match-by-path
   [matched routes]
   (let [paths (mapv route->path routes)
-        [empty-paths non-empty-paths] (divide-by #(-> % :unmatched-terms empty?) paths)
+        [empty-paths non-empty-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
         empty-matcher (when-some [empty-route (-> empty-paths first :route)]
-                        ;; TODO: Check for conflicts!
                         (guard-exact-length 0
                                             (fn [_ path-params]
                                               [empty-route path-params])))
