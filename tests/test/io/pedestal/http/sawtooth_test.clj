@@ -117,16 +117,16 @@
    (request :get "/resources") nil                          ; incomplete path
    (request :get "/resources/") nil
    (request :get "/") nil                                   ; wrong port
-   (request :get "/" :port 9999) [::root nil]
+   (request :get "/" :port 9999) [::root {}]
    (request :get "/resources/assets/style.css") [::get-resource {:path "assets/style.css"}]
    (request :head "/resources/assets/site.js") [::head-resource {:path "assets/site.js"}]
-   (request :get "/api/stats") [::stats nil]
-   (request :get "/api/stats" :host "other.org" :scheme :https :port 9997) [::stats nil] ; Agnostic to all that
+   (request :get "/api/stats") [::stats {}]
+   (request :get "/api/stats" :host "other.org" :scheme :https :port 9997) [::stats {}] ; Agnostic to all that
    (request :get "/internal") nil                           ; wrong port
-   (request :get "/internal" :port 9999) [::internal nil]   ; correct port
+   (request :get "/internal" :port 9999) [::internal {}]   ; correct port
    (request :get "/internal/other" :port 9999) nil
-   (request :patch "/internal/monitor" :port 9999) [::monitor nil]
-   (request ::anything "/internal/monitor" :port 9999) [::monitor nil]])
+   (request :patch "/internal/monitor" :port 9999) [::monitor {}]
+   (request ::anything "/internal/monitor" :port 9999) [::monitor {}]])
 
 (defn- attempt-request
   [router request]

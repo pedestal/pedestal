@@ -489,6 +489,7 @@
 
 (deftest fire-interceptors
   (test-fire-interceptors :prefix-tree)
+  (test-fire-interceptors :sawtooth)
   (test-fire-interceptors :map-tree)                        ;; This should fallback to PrefixTree
   (test-fire-interceptors :linear-search)
   (test-fire-interceptors :sawtooth))
@@ -514,6 +515,7 @@
 
 (deftest fire-hierarchical-interceptors
   (test-fire-hierarchical-interceptors :prefix-tree)
+  (test-fire-hierarchical-interceptors :sawtooth)
   (test-fire-hierarchical-interceptors :prefix-tree)        ;; This should fallback to PrefixTree
   (test-fire-hierarchical-interceptors :linear-search))
 
@@ -538,6 +540,7 @@
 
 (deftest fire-terminal-interceptors
   (test-fire-terminal-interceptors :prefix-tree)
+  (test-fire-terminal-interceptors :sawtooth)
   (test-fire-terminal-interceptors :linear-search))
 
 ;; TODO: This is no longer supported - *ALL* symbols that resolve to fns are treated like handlers
@@ -578,6 +581,7 @@
 
 (deftest fire-interceptor-fn-list
   (test-fire-interceptor-fn-list :prefix-tree)
+  (test-fire-interceptor-fn-list :sawtooth)
   (test-fire-interceptor-fn-list :linear-search))
 
 (defn test-match-root [router-impl-key]
@@ -588,6 +592,7 @@
 
 (deftest match-root
   (test-match-root :prefix-tree)
+  (test-match-root :sawtooth)
   (test-match-root :linear-search))
 
 (defn test-match-update-user [router-impl-key]
@@ -603,6 +608,7 @@
 
 (deftest match-update-user
   (test-match-update-user :prefix-tree)
+  (test-match-update-user :sawtooth)
   (test-match-update-user :linear-search))
 
 (defn test-match-logout [router-impl-key]
@@ -617,6 +623,7 @@
 
 (deftest match-logout
   (test-match-logout :prefix-tree)
+  (test-match-logout :sawtooth)
   (test-match-logout :linear-search))
 
 (defn test-match-non-root-trailing-slash [router-impl-key]
@@ -638,6 +645,7 @@
 
 (deftest match-non-root-trailing-slash
   (test-match-non-root-trailing-slash :prefix-tree)
+  (test-match-non-root-trailing-slash :sawtooth)
   (test-match-non-root-trailing-slash :linear-search))
 
 (defn test-match-root-trailing-slash [router-impl-key]
@@ -659,6 +667,7 @@
 
 (deftest match-root-trailing-slash
   (test-match-root-trailing-slash :prefix-tree)
+  (test-match-root-trailing-slash :sawtooth)
   (test-match-root-trailing-slash :linear-search))
 
 (defn test-check-host [router-impl-key]
@@ -673,6 +682,7 @@
 
 (deftest check-host
   (test-check-host :prefix-tree)
+  (test-check-host :sawtooth)
   (test-check-host :linear-search))
 
 (defn test-match-demo-one [router-impl-key]
@@ -691,6 +701,7 @@
 
 (deftest match-demo-one
   (test-match-demo-one :prefix-tree)
+  (test-match-demo-one :sawtooth)
   (test-match-demo-one :linear-search))
 
 (defn test-match-user-constraints [router-impl-key]
@@ -737,6 +748,7 @@
 
 (deftest match-user-constraints
   (test-match-user-constraints :prefix-tree)
+  (test-match-user-constraints :sawtooth)
   (test-match-user-constraints :linear-search))
 
 (comment

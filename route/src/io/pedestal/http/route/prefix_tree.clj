@@ -321,7 +321,7 @@
     ;; call payload function to find specific match based on method, host, scheme and port
     (when-let [route (when payload (payload request))]
       ;; return a match only if path and query constraints are satisfied
-      (when (internal/satisfies-constraints? request result  (:path-params result))
+      (when (internal/satisfies-constraints? request route (:path-params result))
         (assoc route :path-params (:path-params result))))))
 
 (defrecord PrefixTreeRouter [routes tree]
