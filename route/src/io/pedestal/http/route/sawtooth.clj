@@ -27,7 +27,7 @@
 
 (defn router
   [routes]
-  (let [matcher (impl/create-matcher-from-routes (mapv internal/add-satisfies-constraints? routes))]
+  (let [[matcher _conflicts] (impl/create-matcher-from-routes (mapv internal/add-satisfies-constraints? routes))]
     (reify router/Router
       (find-route [_ request]
         (-find-route matcher request)))))

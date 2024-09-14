@@ -15,7 +15,8 @@
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
             [com.walmartlabs.test-reporting :refer [reporting]]
-            [io.pedestal.http.route.sawtooth :as sawtooth]))
+            [io.pedestal.http.route.sawtooth :as sawtooth]
+            [io.pedestal.http.route.sawtooth.impl :as impl]))
 
 ;; Placeholders for handlers in the routing table
 
@@ -37,8 +38,8 @@
       {:host "example.com" :scheme :https}
       [["/user" :get `get-users]
        ["/user/:user-id" :get `get-user :constraints {:user-id #"[0-9]+"}]
-       ["/user/:user-id" :post `create-user  :constraints {:user-id #"[0-9]+"}]
-       ["/user/:user-id/collection" :get `get-user-collection  :constraints {:user-id #"[0-9]+"}]])
+       ["/user/:user-id" :post `create-user :constraints {:user-id #"[0-9]+"}]
+       ["/user/:user-id/collection" :get `get-user-collection :constraints {:user-id #"[0-9]+"}]])
     (table/table-routes
       [["/api/stats" :get `stats]
        ["/api/shutdown" :post `shutdown]
@@ -142,4 +143,49 @@
       (reporting request
                  (is (= expected
                         (attempt-request sawtooth request)))))))
+
+(defn- route
+  [route-name method path & {:as kvs}]
+  (merge {:route-name route-name
+          :path       path
+          :method     method} kvs))
+
+(defn- conflicts
+  [& routes]
+  (let [[_ conflicts] (impl/create-matcher-from-routes routes)]
+    conflicts))
+
+
+(deftest literal-paths-no-conflict
+  (is (=
+        nil
+        (conflicts
+          (route :get-users :get "/users")
+          (route :get-pages :get "/pages")
+          ;; Not a conflict, not same method
+          (route :new-user :post "/users")))))
+
+(deftest literal-path-conflicts
+
+  (is (=
+        {:get-users #{:get-pages}}
+        (conflicts
+          (route :get-users :get "/users")
+          (route :get-pages :get "/users")
+          ;; Not a conflict, not same method
+          (route :new-user :post "/users")))))
+
+(deftest param-path-vs-literal-path-no-conflict
+  (is (=
+        {:get-user #{:get-user-stats}
+         :get-page #{:get-page-stats}}
+        (conflicts
+          (route :get-users :get "/users")
+          (route :get-user :get "/users/:id")
+          (route :get-user-stats :get "/users/stats")
+          (route :get-page :get "/pages/:id")
+          (route :get-page-stats :get "/pages/stats")
+          ; Not conflicts, different methods:
+          (route :new-user :post "/users")
+          (route :update-user :post "/users/:id")))))
 
