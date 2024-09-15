@@ -87,6 +87,7 @@
   ;; clj -X:test
   :test
   {
+   :jvm-opts ["-Djdk.attach.allowAttachSelf"]
    ;; Need extra test runner to avoid test hangs
    :exec-fn io.pedestal.test-runner/test}
 

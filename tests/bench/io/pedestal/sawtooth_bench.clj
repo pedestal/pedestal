@@ -5,6 +5,7 @@
             [net.lewisship.bench :as bench]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth :as sawtooth]
+            [clj-async-profiler.core :as prof]
             [io.pedestal.http.sawtooth-test :refer [routing-table]]))
 
 (def all-routes (vec routing-table))
@@ -66,11 +67,16 @@
 
 (
   comment
-  (time (execute :small :sawtooth))
+  (time (execute :large :sawtooth))
 
   (bench/bench-for {:progress? true}
                    [size [:small :medium :large]
                     router (keys routers)]
                    (execute size router))
+
+  (prof/profile
+    (dotimes [_ 1000] (execute :large :sawtooth)))
+
+  (prof/serve-ui 8080)
 
   )
