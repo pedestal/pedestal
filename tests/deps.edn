@@ -56,10 +56,8 @@
 
         io.github.hlship/trace {:mvn/version "1.3"}
         com.walmartlabs/test-reporting {:mvn/version "1.2"}
+        com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.3.0"}
 
-        ;; only used for route-bench - remove when no longer needed
-        incanter/incanter-core {:mvn/version "1.9.3"}
-        incanter/incanter-charts {:mvn/version "1.9.3"}
 
         ;; For proper reloading of code in REPL
         io.github.tonsky/clj-reload {:mvn/version "0.7.1"}
@@ -118,17 +116,4 @@
   ;; Runs a benchmark of io.pedestal.log (~ 44ns), then clojure.tools.logging (~ 57 ns),
   ;; then SL4J with pr-str (~ 28 ns) -- this takes several minutes.
   :bench-log
-  {:exec-fn io.pedestal.log-bench/run-benchmarks}
-
-  ;; clj -X:bench-service
-  ;; AFAIK this starts a service that can then be benchmarked using
-  ;; an external tool, such as ab (Apache Benchmark Tool).  This starts and joins
-  ;; the service, so the JVM doesn't exit so that the server can handler requests.
-  :bench-service
-  {:exec-fn io.pedestal.niotooling.server/run-benchmarks}
-
-  ;; clj -X:bench-route
-  ;; Runs a series of routing requests to compare linear vs. prefix tree,
-  ;; updates the nanoseconds-per-request.png file with the results.
-  :bench-route
-  {:exec-fn io.pedestal.route.route-bench/run-benchmarks}}}
+  {:exec-fn io.pedestal.log-bench/run-benchmarks}}}
