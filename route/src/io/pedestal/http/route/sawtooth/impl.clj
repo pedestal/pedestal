@@ -368,6 +368,8 @@
   [routes]
   (let [*conflicts (volatile! nil)
         matcher-fn (subdivide-by-request-key
+                     ;; Could be that some analysis of the routes would identify an optimum order
+                     ;; for these.
                      [[:server-port :port nil]
                       [:server-name :host nil]
                       [:scheme :scheme nil]
