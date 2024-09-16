@@ -238,11 +238,16 @@
                         {:matched matched}))
       1 (first matcher-fns)
 
-      ;; Maybe do 3, 4, 5 as well?  Or is even this overkill?
       2 (let [[m1 m2] matcher-fns]
           (fn match-one-of-two [remaining-path params-map]
             (or (m1 remaining-path params-map)
                 (m2 remaining-path params-map))))
+
+      3 (let [[m1 m2 m3] matcher-fns]
+          (fn match-one-of-three [remaining-path params-map]
+            (or (m1 remaining-path params-map)
+                (m2 remaining-path params-map)
+                (m3 remaining-path params-map))))
 
       ;; Default, general case
       (fn [remaining-path params-map]
