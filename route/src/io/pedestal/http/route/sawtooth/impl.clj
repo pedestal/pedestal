@@ -13,6 +13,21 @@
   {:added "0.8.0"}
   (:require [clojure.string :as string]))
 
+(defn- nice [paths]
+  (mapv #(get-in % [:route :route-name]) paths))
+
+(defmacro with-split-path
+  [path [path-term remaining-path] & body]
+  `(let [^String path# ~path
+         slashx#       (.indexOf path# "/")
+         at-end?#      (< slashx# 0)
+         ~path-term (if at-end?#
+                      path#
+                      (.substring path# 0 slashx#))
+         ~remaining-path (when-not at-end?#
+                           (.substring path# (inc slashx#)))]
+     ~@body))
+
 (defn- categorize-by
   [pred coll]
   (let [{true-values  true
@@ -53,7 +68,7 @@
      :route           route
      :category        category}))
 
-(defn- conj-nil
+(defn- conj-set
   [set v]
   (conj (or set #{}) v))
 
@@ -107,7 +122,7 @@
   (reduce (fn [conflicts other-path]
             (if (path-conflicts? path other-path)
               (update conflicts (-> path :route :route-name)
-                      conj-nil (-> other-path :route :route-name))
+                      conj-set (-> other-path :route :route-name))
               conflicts))
           conflicts
           other-paths))
@@ -129,52 +144,42 @@
 (defn- literal-suffix-matcher
   "Used when all the path terms are literals (no :param or :wild)."
   [expected-terms route]
-  (fn match-literal-suffix [remaining-path-terms params-map]
-    (when (= remaining-path-terms expected-terms)
-      [route params-map])))
+  (let [expected-path (when (seq expected-terms)
+                        (string/join "/" expected-terms))]
+    (fn match-literal-suffix [remaining-path params-map]
+      (when (= remaining-path expected-path)
+        [route params-map]))))
 
 (defn- literal-prefix-matcher
   "Matches some literal path terms before delegating to another path matcher."
   [expected-terms-prefix next-fn]
-  (let [n (count expected-terms-prefix)]
-    (fn match-literal-prefix [remaining-path-terms params-map]
-      (when (= expected-terms-prefix (subvec remaining-path-terms 0 n))
-        (next-fn (subvec remaining-path-terms n) params-map)))))
+  (let [expected-prefix (str (string/join "/" expected-terms-prefix) "/")
+        n               (count expected-prefix)]
+    (fn match-literal-prefix [remaining-path params-map]
+      (when (string/starts-with? remaining-path expected-prefix)
+        (next-fn (subs remaining-path n) params-map)))))
 
 (defn- tail-param-matcher
   [param-id route]
-  (fn match-tail-param [remaining-path-terms params-map]
-    ;; Assumes a wrapping function checked the length, so that there's only exactly one
-    ;; term left.
-    [route (assoc params-map param-id (first remaining-path-terms))]))
+  (fn match-tail-param [remaining-path params-map]
+    (with-split-path remaining-path [term more-path]
+                     (when (nil? more-path)
+                       [route (assoc params-map param-id term)]))))
 
 (defn- param-matcher
   [param-id next-fn]
-  (fn match-param [remaining-path-terms params-map]
-    (let [term (first remaining-path-terms)]
-      (next-fn (subvec remaining-path-terms 1)
-               (assoc params-map param-id term)))))
+  (fn match-param [remaining-path params-map]
+    (with-split-path remaining-path [term more-path]
+                     (when more-path
+                       (next-fn more-path (assoc params-map param-id term))))))
 
 (defn- wild-matcher
   ;; Wild is always at the end
   [param-id route]
-  (fn match-wild [remaining-path-terms params-map]
-    [route (assoc params-map param-id (string/join "/" remaining-path-terms))]))
-
-;; guards are matchers that check for a particular state
-;; before delegating to another matcher.
-
-(defn- guard-exact-length
-  [expected-length next-fn]
-  (fn exact-length-guard [remaining-path-terms params-map]
-    (when (= expected-length (count remaining-path-terms))
-      (next-fn remaining-path-terms params-map))))
-
-(defn- guard-min-length
-  [min-length next-fn]
-  (fn min-length-guard [remaining-path-terms params-map]
-    (when (<= min-length (count remaining-path-terms))
-      (next-fn remaining-path-terms params-map))))
+  (fn match-wild [remaining-path params-map]
+    ; #trace/result remaining-path
+    (when (pos? (count remaining-path))
+      [route (assoc params-map param-id remaining-path)])))
 
 (defn- prefix-length
   [pred coll]
@@ -219,18 +224,11 @@
                          (build-matcher-stack (subvec unmatched-terms 1)
                                               route)))))))
 
+
 (defn- matcher-from-path
   [_matched path]
-  (let [{:keys [unmatched-terms route]} path
-        has-wild?    (-> unmatched-terms last :token (= :wild))
-        path-matcher (build-matcher-stack unmatched-terms
-                                          route)
-        n            (count unmatched-terms)]
-    (if has-wild?
-      ;; The wild has to match at least one path term
-      (guard-min-length n path-matcher)
-      ;; Must match exactly as many terms (no more or less)
-      (guard-exact-length n path-matcher))))
+  (let [{:keys [unmatched-terms route]} path]
+    (build-matcher-stack unmatched-terms route)))
 
 (defn- combine-matchers
   [matched matcher-fns]
@@ -242,14 +240,14 @@
 
       ;; Maybe do 3, 4, 5 as well?  Or is even this overkill?
       2 (let [[m1 m2] matcher-fns]
-          (fn match-one-of-two [remaining-path-terms params-map]
-            (or (m1 remaining-path-terms params-map)
-                (m2 remaining-path-terms params-map))))
+          (fn match-one-of-two [remaining-path params-map]
+            (or (m1 remaining-path params-map)
+                (m2 remaining-path params-map))))
 
       ;; Default, general case
-      (fn [remaining-path-terms params-map]
+      (fn [remaining-path params-map]
         (reduce (fn match-one-of-several [_ matcher]
-                  (when-some [result (matcher remaining-path-terms params-map)]
+                  (when-some [result (matcher remaining-path params-map)]
                     (reduced result)))
                 nil
                 matcher-fns)))))
@@ -260,62 +258,54 @@
 
 (defn- subdivide-by-path
   [matched paths]
-  (let [[empty-paths non-empty-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
+  (let [[completed-paths other-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
         ;; This is the case where you have a route that is complete, and other routes that
         ;; extend from it: i.e. "/user" and "/user/:id".  The first will be an empty path
         ;; (once "user" is matched) and it is handled here, "/user/:id" will be handled as part
         ;; of by-first-token
-        empty-paths-matcher   (when (seq empty-paths)
-                                (let [route          (-> empty-paths first :route)
-                                      match-terminal (fn [_ params-map]
-                                                       [route params-map])]
-                                  (guard-exact-length 0 match-terminal)))
-        by-first-token        (group-by #(-> % :unmatched-terms first :token) non-empty-paths)
+        completed-paths-matcher (when (seq completed-paths)
+                                  ;; TODO: Should only be one, right? Unless conflicts.
+                                  (let [route (-> completed-paths first :route)]
+                                    (fn match-completed [remaining-path params-map]
+                                      (when (or (nil? remaining-path)
+                                                ;; This will only be true for a root path
+                                                (= "" remaining-path))
+                                        [route params-map]))))
+        by-first-token          (group-by #(-> % :unmatched-terms first :token) other-paths)
         {params :param
          wilds  :wild} by-first-token
         ;; wilds is plural *but* should not ever be more than 1
-        by-first-token'       (dissoc by-first-token :param :wild)
-        literal-term->matcher (reduce
-                                (fn [m [literal-token paths-for-token]]
-                                  (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
-                                        matched'         (conj matched literal-token)
-                                        matcher          (if (= 1 (count paths-for-token'))
-                                                           (->> paths-for-token' first (matcher-from-path matched'))
-                                                           (subdivide-by-path matched' paths-for-token'))]
-                                    (assoc m literal-token matcher)))
-                                {}
-                                by-first-token')
-        literal-matcher       (when (seq literal-term->matcher)
-                                (fn [remaining-path-terms params-map]
-                                  (let [first-term (first remaining-path-terms)
-                                        matcher    (literal-term->matcher first-term)]
-                                    (when matcher
-                                      (matcher (subvec remaining-path-terms 1) params-map)))))
-        all-matchers          (cond-> []
-                                empty-paths-matcher (conj empty-paths-matcher)
-                                literal-matcher (conj literal-matcher)
-                                params (into (mapv #(matcher-from-path matched %) params))
-                                wilds (into (mapv #(matcher-from-path matched %) wilds)))]
+        by-first-token'         (dissoc by-first-token :param :wild)
+        literal-term->matcher   (reduce
+                                  (fn [m [literal-token paths-for-token]]
+                                    (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
+                                          matched'         (conj matched literal-token)
+                                          matcher          (if (= 1 (count paths-for-token'))
+                                                             (->> paths-for-token' first (matcher-from-path matched'))
+                                                             (subdivide-by-path matched' paths-for-token'))]
+                                      (assoc m literal-token matcher)))
+                                  {}
+                                  by-first-token')
+        literal-matcher         (when (seq literal-term->matcher)
+                                  (fn [remaining-path params-map]
+                                    (with-split-path remaining-path [first-term more-path]
+                                                     (when-let [matcher (literal-term->matcher first-term)]
+                                                       (matcher more-path params-map)))))
+        all-matchers            (cond-> []
+                                  completed-paths-matcher (conj completed-paths-matcher)
+                                  literal-matcher (conj literal-matcher)
+                                  params (into (mapv #(matcher-from-path matched %) params))
+                                  wilds (into (mapv #(matcher-from-path matched %) wilds)))]
     (combine-matchers matched all-matchers)))
 
 (defn- match-by-path
   [*conflicts matched routes]
-  (let [paths             (mapv route->path routes)
-        [empty-paths non-empty-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
-        empty-matcher     (when-some [empty-route (-> empty-paths first :route)]
-                            (guard-exact-length 0
-                                                (fn [_ path-params]
-                                                  [empty-route path-params])))
-        non-empty-matcher (subdivide-by-path matched non-empty-paths)
-        matcher           (if empty-matcher
-                            (combine-matchers matched [empty-matcher non-empty-matcher])
-                            non-empty-matcher)]
+  (let [paths   (mapv route->path routes)
+        matcher (subdivide-by-path matched paths)]
     (collect-conflicts *conflicts paths)                    ; Side effect
     (fn match-on-path [{:keys [path-info]}]
-      (let [path-terms (->> (string/split path-info #"/")
-                            (drop 1)                        ; leading slash
-                            vec)]
-        (matcher path-terms nil)))))
+      ;; Strip off the leading slash and start matching
+      (matcher (subs path-info 1) nil))))
 
 (defn- subdivide-by-request-key
   [filters matched routes *conflicts]
@@ -356,6 +346,8 @@
                                  (assoc m match-value matcher)))
                              {}
                              grouped')]
+          ;; TODO: If there are only 1 or 2 keys in dispatch-map, may be better to just
+          ;; or build something based on actual comparison rather than a very empty hash map.
           (fn match-request-key [request]
             (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
               (matcher request))))))))

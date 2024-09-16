@@ -13,13 +13,15 @@
 (defn route->request
   [route]
   (let [{:keys [method port path host scheme]} route
-        path' (->> (string/split path #"/")
-                   (map (fn [s]
-                          (cond
-                            (string/starts-with? s ":") (-> (hash s) abs str)
-                            (string/starts-with? s "*") "alpha/beta/gamma"
-                            :else s)))
-                   (string/join "/"))]
+        path' (if (= path "/")
+                path
+                (->> (string/split path #"/")
+                     (map (fn [s]
+                            (cond
+                              (string/starts-with? s ":") (-> (hash s) abs str)
+                              (string/starts-with? s "*") "alpha/beta/gamma"
+                              :else s)))
+                     (string/join "/")))]
     (cond-> {:server-name    "default.host"
              :scheme         :http
              :request-method :get
@@ -48,7 +50,10 @@
 (defn- execute
   [batch-size router-name]
   (let [r (routers router-name)]
-    (run! #(router/find-route r %) (requests batch-size))))
+    (run! (fn [request]
+            #_ (prn request)
+            (router/find-route r request))
+          (requests batch-size))))
 
 
 ;; 14 Sep 2024
@@ -64,6 +69,27 @@
 ;┃     (execute :large :sawtooth) ┃ 113.50 ms ┃  ± 2.55 ms ┃ (slowest)
 ;┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━━┛
 
+;; Using (execute :large :sawtooth), time/req for sawtooth
+;; is 1.13 µs.
+
+;; 16 Sep 2024
+
+;┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┓
+;┃           Expression           ┃    Mean   ┃     Var    ┃
+;┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━━┫
+;┃  (execute :small :prefix-tree) ┃  99.07 µs ┃  ± 5.12 µs ┃ (fastest)
+;┃     (execute :small :sawtooth) ┃ 104.05 µs ┃  ± 5.02 µs ┃
+;┃ (execute :medium :prefix-tree) ┃   1.02 ms ┃ ± 56.25 µs ┃
+;┃    (execute :medium :sawtooth) ┃   1.06 ms ┃ ± 53.26 µs ┃
+;┃  (execute :large :prefix-tree) ┃  96.05 ms ┃  ± 3.90 ms ┃
+;┃     (execute :large :sawtooth) ┃ 106.28 ms ┃  ± 5.26 ms ┃ (slowest)
+;┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━━┛
+
+;; Ah, benchmarking. prefix-tree implementation didn't change,
+;; yet it's faster today.  For the :large tree, the delta
+;; has shifted from 18.82ms to 10.23ms.  Remember, that's
+;; the time to route 100000 requests, so the time/request
+;; for sawtooth is now 1.06 µs.
 
 (
   comment

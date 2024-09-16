@@ -16,6 +16,7 @@
             [io.pedestal.http.route.router :as router]
             [com.walmartlabs.test-reporting :refer [reporting]]
             [io.pedestal.http.route.sawtooth :as sawtooth]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth.impl :as impl]))
 
 ;; Placeholders for handlers in the routing table
@@ -105,7 +106,9 @@
   [method path & {:as kvs}]
   (merge {:request-method method
           :scheme         :http
-          :path-info      path}
+          :path-info      path
+          :server-name "not-specified"
+          :server-port 8080}
          (set/rename-keys kvs {:host :server-name
                                :port :server-port})))
 
@@ -133,16 +136,30 @@
   (when-let [matched (router/find-route router request)]
     [(:route-name matched) (:path-params matched)]))
 
-;; TODO: Get sawtooth to compare with prefix-tree, if we can get that working.
-;; prefix-tree keeps blowing up on what looks like valid input.
-;; Need this to get timing comparison!
-
 (deftest sawtooth-queries
   (let [sawtooth (sawtooth/router routing-table)]
     (doseq [[request expected] (partition 2 requests)]
       (reporting request
                  (is (= expected
                         (attempt-request sawtooth request)))))))
+
+(deftest sawtooth-matches-prefix-tree
+  (let [sawtooth (sawtooth/router routing-table)
+        prefix-tree (prefix-tree/router routing-table)]
+    (doseq [[request _] (partition 2 requests)]
+      (reporting request
+                 (is (= (attempt-request prefix-tree request)
+                        (attempt-request sawtooth request)))))))
+
+
+(comment
+  (def sawtooth-router (sawtooth/router routing-table))
+  (def prefix-router (prefix-tree/router routing-table))
+
+  (attempt-request sawtooth-router    (request :get "/internal" :port 9999) )
+
+  (attempt-request sawtooth-router (request :get "/" :port 9999 ))
+  )
 
 (defn- route
   [route-name method path & {:as kvs}]

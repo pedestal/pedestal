@@ -13,7 +13,8 @@
 (ns io.pedestal.http.route.prefix-tree
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
-            [io.pedestal.http.route.internal :as internal]
+            [io.pedestal.internal :as internal]
+            [io.pedestal.http.route.internal :as route.internal]
             [io.pedestal.http.route.router :as router]))
 
 ;; The Node record is only used as a faster map
@@ -321,14 +322,14 @@
     ;; call payload function to find specific match based on method, host, scheme and port
     (when-let [route (when payload (payload request))]
       ;; return a match only if path and query constraints are satisfied
-      (when (internal/satisfies-constraints? request route (:path-params result))
+      (when (route.internal/satisfies-constraints? request route (:path-params result))
         (assoc route :path-params (:path-params result))))))
 
 (defrecord PrefixTreeRouter [routes tree]
 
   router/Router
 
-  (find-route [_ req] (-find-route tree req)))
+  (find-route [_ request] (-find-route tree request)))
 
 ;; The prefix tree is used to find a collection of routes which are
 ;; indexed by method, host, scheme and port, in that order. This is
@@ -450,13 +451,14 @@
   the request satisfies all path and query constraints."
   {:deprecated "0.8.0"}
   [route]
-  (internal/add-satisfies-constraints? route))
+  (internal/deprecated `add-satisfies-constraints?
+    (route.internal/add-satisfies-constraints? route)))
 
 (defn router
   "Given a sequence of routes, return a router which satisfies the
   io.pedestal.http.route.router/Router protocol."
   [routes]
-  (let [tree (->> (map internal/add-satisfies-constraints? routes)
+  (let [tree (->> (map route.internal/add-satisfies-constraints? routes)
                   (reduce (fn [tree route]
                             (insert tree (:path route) route))
                           nil)
