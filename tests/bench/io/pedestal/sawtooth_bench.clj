@@ -51,7 +51,7 @@
   [batch-size router-name]
   (let [r (routers router-name)]
     (run! (fn [request]
-            #_ (prn request)
+            #_(prn request)
             (router/find-route r request))
           (requests batch-size))))
 
@@ -91,8 +91,26 @@
 ;; the time to route 100000 requests, so the time/request
 ;; for sawtooth is now 1.06 µs.
 
-(
-  comment
+;; 16 Sep 2024 - #2
+
+;┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+;┃           Expression           ┃    Mean   ┃     Var     ┃
+;┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━━━┫
+;┃  (execute :small :prefix-tree) ┃  91.16 µs ┃   ± 2.04 µs ┃ (fastest)
+;┃     (execute :small :sawtooth) ┃  91.58 µs ┃   ± 1.65 µs ┃
+;┃ (execute :medium :prefix-tree) ┃ 947.39 µs ┃  ± 19.93 µs ┃
+;┃    (execute :medium :sawtooth) ┃ 971.17 µs ┃  ± 19.25 µs ┃
+;┃  (execute :large :prefix-tree) ┃  92.41 ms ┃   ± 1.70 ms ┃
+;┃     (execute :large :sawtooth) ┃  95.13 ms ┃ ± 494.08 µs ┃ (slowest)
+;┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━━━┛
+
+;; Each benchmark is running with different random data, so the numbers
+;; do keep shifting.  The latest main optimization is identifying
+;; sub-selections where there are no more parameters and, much like
+;; the map-tree router, using a map to look up the route from the remaining path.
+
+(comment
+
   (time (execute :large :sawtooth))
 
   (bench/bench-for {:progress? true}

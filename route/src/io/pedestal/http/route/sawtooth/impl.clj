@@ -261,6 +261,45 @@
   [path]
   (update path :unmatched-terms subvec 1))
 
+(declare subdivide-by-path)
+
+(defn- match-via-lookup
+  [paths]
+  (let [path->route (reduce (fn [m path]
+                              (assoc m
+                                     (->> path :unmatched-terms (map :token) (string/join "/"))
+                                     (:route path)))
+                            {}
+                            paths)]
+    (fn match-by-remaining-path [remaining-path path-params]
+      (when-let [route (get path->route remaining-path)]
+        [route path-params]))))
+
+(defn- matcher-by-first-token
+  [matched token->paths]
+  (let [all-paths     (->> token->paths
+                           vals
+                           (reduce into []))
+        all-literals? (and (seq all-paths)
+                           (every? #(= :literal (:category %)) all-paths))]
+    (if all-literals?
+      (match-via-lookup all-paths)
+      (let [literal-term->matcher (reduce
+                                    (fn [m [literal-token paths-for-token]]
+                                      (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
+                                            matched'         (conj matched literal-token)
+                                            matcher          (if (= 1 (count paths-for-token'))
+                                                               (->> paths-for-token' first (matcher-from-path matched'))
+                                                               (subdivide-by-path matched' paths-for-token'))]
+                                        (assoc m literal-token matcher)))
+                                    {}
+                                    token->paths)]
+        (when (seq literal-term->matcher)
+          (fn [remaining-path params-map]
+            (with-split-path remaining-path [first-term more-path]
+                             (when-let [matcher (literal-term->matcher first-term)]
+                               (matcher more-path params-map)))))))))
+
 (defn- subdivide-by-path
   [matched paths]
   (let [[completed-paths other-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
@@ -283,21 +322,7 @@
          wilds  :wild} by-first-token
         ;; wilds is plural *but* should not ever be more than 1
         by-first-token'         (dissoc by-first-token :param :wild)
-        literal-term->matcher   (reduce
-                                  (fn [m [literal-token paths-for-token]]
-                                    (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
-                                          matched'         (conj matched literal-token)
-                                          matcher          (if (= 1 (count paths-for-token'))
-                                                             (->> paths-for-token' first (matcher-from-path matched'))
-                                                             (subdivide-by-path matched' paths-for-token'))]
-                                      (assoc m literal-token matcher)))
-                                  {}
-                                  by-first-token')
-        literal-matcher         (when (seq literal-term->matcher)
-                                  (fn [remaining-path params-map]
-                                    (with-split-path remaining-path [first-term more-path]
-                                                     (when-let [matcher (literal-term->matcher first-term)]
-                                                       (matcher more-path params-map)))))
+        literal-matcher         (matcher-by-first-token matched by-first-token')
         all-matchers            (cond-> []
                                   completed-paths-matcher (conj completed-paths-matcher)
                                   literal-matcher (conj literal-matcher)

@@ -30,7 +30,6 @@
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
-            [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.http.route.definition.terse :as terse :refer [map-routes->vec-routes]])
   (:import (clojure.lang ExceptionInfo)))
 
@@ -496,7 +495,7 @@
 (deftest fire-interceptors-map-tree
   (test-fire-interceptors :map-tree))                       ;; This should fallback to prefix-tree
 
-(deftest fire-interceptors-linear-search                    ;; This should fallback to PrefixTree
+(deftest fire-interceptors-linear-search
   (test-fire-interceptors :linear-search))
 
 (defn test-fire-hierarchical-interceptors [router-impl-key]
