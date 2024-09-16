@@ -271,11 +271,13 @@
         completed-paths-matcher (when (seq completed-paths)
                                   ;; TODO: Should only be one, right? Unless conflicts.
                                   (let [route (-> completed-paths first :route)]
-                                    (fn match-completed [remaining-path params-map]
-                                      (when (or (nil? remaining-path)
-                                                ;; This will only be true for a root path
-                                                (= "" remaining-path))
-                                        [route params-map]))))
+                                    (if (= "/" (:path route))
+                                      (fn root-match-completed [remaining-path params-map]
+                                        (when (= "" remaining-path)
+                                          [route params-map]))
+                                      (fn match-completed [remaining-path params-map]
+                                        (when (nil? remaining-path)
+                                          [route params-map])))))
         by-first-token          (group-by #(-> % :unmatched-terms first :token) other-paths)
         {params :param
          wilds  :wild} by-first-token

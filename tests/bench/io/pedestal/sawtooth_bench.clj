@@ -101,7 +101,7 @@
                    (execute size router))
 
   (prof/profile
-    (dotimes [_ 1000] (execute :large :sawtooth)))
+    (dotimes [_ 100000] (execute :large :sawtooth)))
 
   (prof/serve-ui 8080)
 
