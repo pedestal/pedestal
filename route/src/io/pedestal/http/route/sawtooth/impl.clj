@@ -11,7 +11,8 @@
 
 (ns ^:no-doc io.pedestal.http.route.sawtooth.impl
   {:added "0.8.0"}
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [clj-commons.ansi :refer [perr]]))
 
 (defn- nice [paths]
   (mapv #(get-in % [:route :route-name]) paths))
@@ -404,3 +405,36 @@
     [matcher-fn @*conflicts]))
 
 
+(defn- format-route
+  [{:keys [route-name method path]}]
+  (list [:bold route-name]
+        " ("
+        (if (= :any method)
+          [:italic "ANY"]
+          (-> method name string/upper-case))
+        " " path ")"))
+
+(defn report-conflicts
+  [conflicts routes]
+  (perr [:bold.yellow "Conflicting routes were identified:"])
+  ;; May need to do some work if route's reflect each other (A conflicts with B, B conflicts with A).
+  ;; Haven't seen a way to provoke that, yet, so hopefully not a problem.
+  (let [name->route (reduce (fn [m route]
+                              (assoc m (:route-name route) route))
+                            {}
+                            routes)]
+    (doseq [route-name (-> conflicts keys sort)
+            :let [route    (name->route route-name)
+                  others   (->> (conflicts route-name)
+                                (map name->route)
+                                (sort-by :route-name))
+                  n-others (count others)]]
+      (perr [:yellow
+             (format-route route)
+             " conflicts with "
+             (if (= 1 n-others)
+               "route"
+               (list n-others " routes"))
+             ":"])
+      (doseq [other others]
+        (perr [:yellow " - " (format-route other)])))))
