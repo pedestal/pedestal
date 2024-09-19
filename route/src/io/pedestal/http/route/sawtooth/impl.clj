@@ -14,8 +14,12 @@
   (:require [clojure.string :as string]
             [clj-commons.ansi :refer [perr]]))
 
-(defn- nice [paths]
-  (mapv #(get-in % [:route :route-name]) paths))
+(def ^:dynamic *squash-conflicts-report* false)
+(def ^:dynamic *squash-conflicts-report* false)
+(def ^:dynamic *squash-conflicts-report* false)
+(def ^:dynamic *squash-conflicts-report* false)
+(def ^:dynamic *squash-conflicts-report* false)
+(def ^:dynamic *squash-conflicts-report* false)
 
 (defmacro with-split-path
   [path [path-term remaining-path] & body]
@@ -277,6 +281,8 @@
         [route path-params]))))
 
 (defn- matcher-by-first-token
+  "Creates a matcher function covering all the cases where the first token is not a parameter.
+  The paths may all be literal, or may contain parameters."
   [matched token->paths]
   (let [all-paths     (->> token->paths
                            vals
@@ -295,11 +301,10 @@
                                         (assoc m literal-token matcher)))
                                     {}
                                     token->paths)]
-        (when (seq literal-term->matcher)
-          (fn [remaining-path params-map]
-            (with-split-path remaining-path [first-term more-path]
-                             (when-let [matcher (literal-term->matcher first-term)]
-                               (matcher more-path params-map)))))))))
+        (fn [remaining-path params-map]
+          (with-split-path remaining-path [first-term more-path]
+                           (when-let [matcher (literal-term->matcher first-term)]
+                             (matcher more-path params-map))))))))
 
 (defn- subdivide-by-path
   [matched paths]
@@ -321,9 +326,9 @@
         by-first-token          (group-by #(-> % :unmatched-terms first :token) other-paths)
         {params :param
          wilds  :wild} by-first-token
-        ;; wilds is plural *but* should not ever be more than 1
-        by-first-token'         (dissoc by-first-token :param :wild)
-        literal-matcher         (matcher-by-first-token matched by-first-token')
+        ;; wilds is technically plural *but* should not ever be more than 1 (unless conflicts exist)
+        by-first-literal-token  (dissoc by-first-token :param :wild)
+        literal-matcher         (matcher-by-first-token matched by-first-literal-token)
         all-matchers            (cond-> []
                                   completed-paths-matcher (conj completed-paths-matcher)
                                   literal-matcher (conj literal-matcher)
@@ -416,25 +421,26 @@
 
 (defn report-conflicts
   [conflicts routes]
-  (perr [:bold.yellow "Conflicting routes were identified:"])
-  ;; May need to do some work if route's reflect each other (A conflicts with B, B conflicts with A).
-  ;; Haven't seen a way to provoke that, yet, so hopefully not a problem.
-  (let [name->route (reduce (fn [m route]
-                              (assoc m (:route-name route) route))
-                            {}
-                            routes)]
-    (doseq [route-name (-> conflicts keys sort)
-            :let [route    (name->route route-name)
-                  others   (->> (conflicts route-name)
-                                (map name->route)
-                                (sort-by :route-name))
-                  n-others (count others)]]
-      (perr [:yellow
-             (format-route route)
-             " conflicts with "
-             (if (= 1 n-others)
-               "route"
-               (list n-others " routes"))
-             ":"])
-      (doseq [other others]
-        (perr [:yellow " - " (format-route other)])))))
+  (when-not *squash-conflicts-report*
+    (perr [:bold.yellow "Conflicting routes were identified:"])
+    ;; May need to do some work if route's reflect each other (A conflicts with B, B conflicts with A).
+    ;; Haven't seen a way to provoke that, yet, so hopefully not a problem.
+    (let [name->route (reduce (fn [m route]
+                                (assoc m (:route-name route) route))
+                              {}
+                              routes)]
+      (doseq [route-name (-> conflicts keys sort)
+              :let [route    (name->route route-name)
+                    others   (->> (conflicts route-name)
+                                  (map name->route)
+                                  (sort-by :route-name))
+                    n-others (count others)]]
+        (perr [:yellow
+               (format-route route)
+               " conflicts with "
+               (if (= 1 n-others)
+                 "route"
+                 (list n-others " routes"))
+               ":"])
+        (doseq [other others]
+          (perr [:yellow " - " (format-route other)]))))))

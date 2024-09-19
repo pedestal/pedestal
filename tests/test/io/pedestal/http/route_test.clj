@@ -18,6 +18,7 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [io.pedestal.http.route.sawtooth.impl :as impl]
             [io.pedestal.interceptor :refer [interceptor]]
             io.pedestal.http.route.specs
             [ring.util.response :as ring-response]
@@ -53,7 +54,10 @@
       (finally
         (stest/unstrument)))))
 
-(use-fixtures :once enable-expound-fixture)
+(use-fixtures :once enable-expound-fixture
+              (fn [f]
+                (binding [impl/*squash-conflicts-report* true]
+                  (f))))
 
 (defn handler
   [name request-fn]
@@ -178,6 +182,7 @@
                    :verbs {:any logout}}
                   {:path     "/search"
                    :verbs    {:get search-form}
+                   ;; This is a conflict for any router except linear-matcher
                    :children [{:constraints {:id #"[0-9]+"}
                                :verbs       {:get search-id}}
                               {:constraints {:q #".+"}
