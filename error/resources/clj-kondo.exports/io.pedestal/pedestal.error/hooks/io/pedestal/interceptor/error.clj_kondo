@@ -17,7 +17,7 @@
   to (fn [ctx ex] (case [ctx ex] match-forms)) keeping spirit of
   error-dispatch per clj-kondo examples."
   [{:keys [:node]}]
-  (let [[binding-vec & match-forms] (rest (:children node))]
+  (let [[_ binding-vec & match-forms] (:children node)]
     (when-not (= 2 (count (:children binding-vec)))
       (throw (ex-info "error-dispatch only takes ctx and ex." {})))
     {:node (api/list-node [(api/token-node 'fn)
