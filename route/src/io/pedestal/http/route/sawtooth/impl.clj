@@ -15,11 +15,6 @@
             [clj-commons.ansi :refer [perr]]))
 
 (def ^:dynamic *squash-conflicts-report* false)
-(def ^:dynamic *squash-conflicts-report* false)
-(def ^:dynamic *squash-conflicts-report* false)
-(def ^:dynamic *squash-conflicts-report* false)
-(def ^:dynamic *squash-conflicts-report* false)
-(def ^:dynamic *squash-conflicts-report* false)
 
 (defmacro with-split-path
   [path [path-term remaining-path] & body]

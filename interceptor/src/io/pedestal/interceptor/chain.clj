@@ -74,7 +74,7 @@
 (defn- check-terminators
   "Invokes each predicate in ::terminators on context. If any predicate
   returns truthy, terminates :enter stage execution."
-  [interceptor context]
+  [_interceptor context]
   (if (some #(% context) (::terminators context))
     (terminate context)
     context))
