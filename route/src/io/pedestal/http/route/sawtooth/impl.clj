@@ -20,7 +20,7 @@
   [path [path-term remaining-path] & body]
   `(let [^String path# ~path
          slashx#       (.indexOf path# "/")
-         at-end?#      (< slashx# 0)
+         at-end?#      (neg? slashx#)
          ~path-term (if at-end?#
                       path#
                       (.substring path# 0 slashx#))
@@ -177,7 +177,6 @@
   ;; Wild is always at the end
   [param-id route]
   (fn match-wild [remaining-path params-map]
-    ; #trace/result remaining-path
     (when (pos? (count remaining-path))
       [route (assoc params-map param-id remaining-path)])))
 
