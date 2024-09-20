@@ -201,7 +201,9 @@ one of the built-in algorithms:
 | xref:prefix-tree-router.adoc[Prefix Tree]
 | High performance, space efficient
 
-
+| :sawtooth
+| xref:sawtooth-router.adoc[Sawtooth]
+| High performance, reports conflicts
 
 | :linear-search
 | xref:linear-search-router.adoc[Linear Search]

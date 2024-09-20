@@ -1,0 +1,36 @@
+= Sawtooth Router
+
+== Motivation
+
+Provide a router that can detect and report route conflicts.
+
+== Why use it?
+
+Sawtooth is similar to xref:prefix-tree-router.adoc[Prefix Tree] in how it generally operates,
+and is nearly as fast -- within 5 to 10%  of prefix-tree in benchmarks, and on the order a micro- (not milli-)
+second to route a request.
+
+Sawtooth's distinguishing characteristic is that it will, at startup, write (to standard error)
+a report describing any conflicting routes.
+This gives you, as the developer, feedback about routing problems.
+
+image::sawtooth-report.png[]
+
+== How to use it?
+
+Add the key :io.pedestal.http/router to the xref:service-map.adoc[] with the
+value :sawtooth.
+
+== Caveats
+
+The behavior of Sawtooth is not defined when there _are_ route conflicts.
+
+== Additional Notes
+
+Like the xref:map-tree-router.adoc[], query and path
+constraints are not used in routing decisions. They are only used to
+invalidate a route match.
+
+== References
+
+- link:{repo_root}/pull/828[Pedestal PR #868]

@@ -31,6 +31,7 @@
 **** xref:verbose-syntax.adoc[]
 *** xref:routing-changes.adoc[]
 *** Routers
+**** xref:sawtooth-router.adoc[]
 **** xref:map-tree-router.adoc[]
 **** xref:linear-search-router.adoc[]
 **** xref:prefix-tree-router.adoc[]
