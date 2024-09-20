@@ -6,9 +6,4 @@ In most cases, the new logic is a drop-in replacement for the old.
 If you are upgrading from 0.7 or earlier, and _you implement your own routers or routing specifications_,
 you will need to be aware of these changes.
 
-== path constraints
-
-Previously, query constraints were specified as regular expressions, but path constraints were
-specified as strings (that were then converted internally to regular expressions). Starting in 0.8,
-you may specify path constraints as either strings or regular expressions.
 
