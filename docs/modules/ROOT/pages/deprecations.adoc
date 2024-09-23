@@ -1,5 +1,8 @@
 = Deprecations
 
+== 0.8.0
+
+Many functions, macros, and even namespaces deprecated in 0.7.0 have been fully removed in 0.8.0.
 
 == 0.7.0
 
@@ -32,8 +35,7 @@ Previously, it was possible to convert a function call into an interceptor; the 
 was to defer invoking the function until when the route specification was converted to a router
 (which can happen on every request when in
 xref:reference:dev-mode.adoc[development mode]); however, this relied on the use of
-clj:eval[], and is of no real utility given the addition of development mode and live REPL reloading improcements, and
-so has been deprecated.
+clj:eval[], and is of no real utility given the addition of development mode and live REPL reloading improvements, and so has been deprecated.
 
 Normally, a function in an interceptor list is treated as a handler (rather than an interceptor).
 Alternately, a function with the :interceptor or :interceptorfn metadata would be invoked

@@ -136,7 +136,7 @@ The expanded routing table is a list of maps, each with the following specific s
    :path-re #"/\Qdepartment\E/([^/]+)/\Qemployees\E" <9>
    :path-parts        ["department" :id "employees"] <10>
    :path-params       [:id] <11>
-   :path-constraints  {:id "([^/]+)"} <12>
+   :path-constraints  {:id #"([^/]+)"} <12>
    :query-constraints {:name #".+" <13>
                        :order #"(asc|desc)"}
    })
@@ -155,7 +155,7 @@ The expanded routing table is a list of maps, each with the following specific s
     and provide capture groups for path parameters.
 <10> The parts of the path, as strings or keywords.
 <11> The path parameters, in the order they appear in the path.
-<12> Path constraints{empty}footnote:[Not clear why this is here.]
+<12> Path constraints which are used when constructing the full :path-re property.
 <13> Query constraints, which maps keywords corresponding to query parameters to regular expressions
      used to match the parameters.
 
@@ -201,7 +201,9 @@ one of the built-in algorithms:
 | xref:prefix-tree-router.adoc[Prefix Tree]
 | High performance, space efficient
 
-
+| :sawtooth
+| xref:sawtooth-router.adoc[Sawtooth]
+| High performance, reports conflicts
 
 | :linear-search
 | xref:linear-search-router.adoc[Linear Search]

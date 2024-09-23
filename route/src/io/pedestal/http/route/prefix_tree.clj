@@ -13,6 +13,8 @@
 (ns io.pedestal.http.route.prefix-tree
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
+            [io.pedestal.internal :as internal]
+            [io.pedestal.http.route.internal :as route.internal]
             [io.pedestal.http.route.router :as router]))
 
 ;; The Node record is only used as a faster map
@@ -92,16 +94,16 @@
   [segment o]
   (map->Node
     (cond (wild-param? segment)
-          {:wild? true
+          {:wild?   true
            :segment segment
-           :param (keyword (subs segment 1))
+           :param   (keyword (subs segment 1))
            :payload (when o (->Payload [o]))}
 
           (catch-all-param? segment)
           {:catch-all? true
-           :segment segment
-           :param (keyword (subs segment 1))
-           :payload (when o (->Payload [o]))}
+           :segment    segment
+           :param      (keyword (subs segment 1))
+           :payload    (when o (->Payload [o]))}
 
           :else
           {:segment segment
@@ -206,17 +208,17 @@
               (let [path-spec (subs path-spec (inc lcs))]
                 (insert-child node (subs path-spec 0 1) path-spec o))
               (throw (ex-info "route conflict"
-                              {:node node
+                              {:node      node
                                :path-spec path-spec
-                               :segment segment}))))
+                               :segment   segment}))))
 
           ;; in the case where path-spec is a catch-all, node should always be nil.
           ;; getting here means we have an invalid route specification
           (catch-all-param? path-spec)
           (throw (ex-info "route conflict"
-                          {:node node
+                          {:node      node
                            :path-spec path-spec
-                           :segment segment}))
+                           :segment   segment}))
 
           :else
           (let [lcs (calc-lcs segment path-spec)]
@@ -230,10 +232,10 @@
   "Construct and return a lookup result."
   ([node path-params]
    {:path-params path-params
-    :payload (:payload node)})
+    :payload     (:payload node)})
   ([node path-params path]
    {:path-params (assoc path-params (:param node) path)
-    :payload (:payload node)}))
+    :payload     (:payload node)}))
 
 (defn- get-child
   "Given a node, a request path and a segment size (the lcs index of
@@ -314,18 +316,20 @@
 
   )
 
+(defn- -find-route [tree request]
+  ;; find a result in the prefix-tree - payload could contain multiple routes
+  (when-let [{:keys [payload] :as result} (lookup tree (:path-info request))]
+    ;; call payload function to find specific match based on method, host, scheme and port
+    (when-let [route (when payload (payload request))]
+      ;; return a match only if path and query constraints are satisfied
+      (when (route.internal/satisfies-constraints? request route (:path-params result))
+        (assoc route :path-params (:path-params result))))))
+
 (defrecord PrefixTreeRouter [routes tree]
 
   router/Router
 
-  (find-route [_ req]
-    ;; find a result in the prefix-tree - payload could contains mutiple routes
-    (when-let [{:keys [payload] :as result} (lookup tree (:path-info req))]
-      ;; call payload function to find specific match based on method, host, scheme and port
-      (when-let [route (when payload (payload req))]
-        ;; return a match only if path and query constraints are satisfied
-        (when ((::satisfies-constraints? route) req (:path-params result))
-          (assoc route :path-params (:path-params result)))))))
+  (find-route [_ request] (-find-route tree request)))
 
 ;; The prefix tree is used to find a collection of routes which are
 ;; indexed by method, host, scheme and port, in that order. This is
@@ -367,10 +371,10 @@
               [:x :y :z])
   ;;=> 42
 
-  (best-match {:x {:y {:a nil}
-                   ::any {:c nil}}
-               ::any {:y {:b nil}
-                      ::any {:d nil
+  (best-match {:x    {:y    {:a nil}
+                      ::any {:c nil}}
+               ::any {:y    {:b nil}
+                      ::any {:d    nil
                              ::any 42}}}
               [:x :y :z])
   ;;=> 42
@@ -442,55 +446,19 @@
                      node))
                  tree))
 
-(defn- satisfies-query-constraints
-  "Given a map of query constraints, return a predicate function of
-  the request which will return true if the request satisfies the
-  constraints."
-  [query-constraints]
-  (fn [request]
-    (let [params (:query-params request)]
-      (every? (fn [[k re]]
-                (and (contains? params k)
-                     (re-matches re (get params k))))
-              query-constraints))))
-
-(defn- satisfies-path-constraints
-  "Given a map of path constraints, return a predicate function of
-  the request which will return true if the request satisfies the
-  constraints."
-  [path-constraints]
-  (let [path-constraints (zipmap (keys path-constraints)
-                                 (mapv #(re-pattern %) (vals path-constraints)))]
-    (fn [path-params]
-      (every? (fn [[k re]]
-                (and (contains? path-params k)
-                     (re-matches re (get path-params k))))
-              path-constraints))))
-
 (defn add-satisfies-constraints?
   "Given a route, add a function of the request which returns true if
   the request satisfies all path and query constraints."
-  [{:keys [query-constraints path-constraints] :as route}]
-  (let [qc? (satisfies-query-constraints query-constraints)
-        pc? (satisfies-path-constraints path-constraints)
-        satisfies-constraints? (cond (and query-constraints path-constraints)
-                                     (fn [request path-params]
-                                       (and (qc? request) (pc? path-params)))
-                                     query-constraints
-                                     (fn [request _]
-                                       (qc? request))
-                                     path-constraints
-                                     (fn [_ path-params]
-                                       (pc? path-params))
-                                     :else
-                                     (constantly true))]
-    (assoc route ::satisfies-constraints? satisfies-constraints?)))
+  {:deprecated "0.8.0"}
+  [route]
+  (internal/deprecated `add-satisfies-constraints?
+    (route.internal/add-satisfies-constraints? route)))
 
 (defn router
   "Given a sequence of routes, return a router which satisfies the
   io.pedestal.http.route.router/Router protocol."
   [routes]
-  (let [tree (->> (map add-satisfies-constraints? routes)
+  (let [tree (->> (map route.internal/add-satisfies-constraints? routes)
                   (reduce (fn [tree route]
                             (insert tree (:path route) route))
                           nil)

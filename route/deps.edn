@@ -10,7 +10,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:paths ["src"]
+{:paths ["src"
+         "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.11.4"}
         org.clojure/core.async {:mvn/version "1.6.681"}
         org.clj-commons/pretty {:mvn/version "3.1.1"}

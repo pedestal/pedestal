@@ -65,12 +65,15 @@
                                       ::i/interceptors]))
 
 (s/def ::route-name keyword?)
+
 ;; ::i/interceptor is anything that can be converted to an interceptor, including a function
 ;; (which is considered a handler function, and is wrapped into an interceptor).
+
 (s/def ::handler ::i/interceptor)
 
 (s/def ::constraints (s/map-of simple-keyword? ::constraint))
-(s/def ::constraint is-re?)
+(s/def ::constraint (s/or :string string?
+                          :re is-re?))
 
 ;; --- TABLE ROUTES ---
 
@@ -179,8 +182,10 @@
 (s/def ::path-parts (s/coll-of ::path-part))
 (s/def ::path-part (s/or :literal string?
                          :param keyword?))
+
 ;; The params defined in the path as keywords; used to build a map of keyword to path parameter
-;; when matched.
+;; when matched.  Note that in 0.7 and earlier, this would get overridden in a route matched by
+;; a router with a map of path parameters to string values.
 (s/def ::path-params (s/coll-of keyword?))
 
 ;; In an expanded routing entry, the interceptors should also be expanded

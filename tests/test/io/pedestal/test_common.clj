@@ -12,7 +12,8 @@
 (ns io.pedestal.test-common
   (:require [clj-commons.ansi :as ansi]
             [clojure.core.async :as async]
-            [clojure.spec.test.alpha :as stest]))
+            [clojure.spec.test.alpha :as stest])
+  (:import (java.io StringWriter)))
 
 (defn no-ansi-fixture
   [f]
@@ -36,3 +37,13 @@
     (f)
     (finally
       (stest/unstrument))))
+
+(defmacro with-err-str
+  "Evaluates exprs in a context in which *err* is bound to a fresh
+  StringWriter.  Returns the string created by any nested printing
+  calls."
+  [& body]
+  `(let [s# (new StringWriter)]
+     (binding [*err* s#]
+       ~@body
+       (str s#))))

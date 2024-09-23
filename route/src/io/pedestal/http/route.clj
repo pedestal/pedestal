@@ -23,12 +23,13 @@
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.map-tree :as map-tree]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
+            [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.environment :refer [dev-mode?]]
             [io.pedestal.http.route.internal :as internal])
   (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
            (java.net URLEncoder URLDecoder)))
 
-(def ^{:added "0.7.0"
+(def ^{:added   "0.7.0"
        :dynamic true} *print-routing-table*
   "If true, then the routing table is printed to the console at startup, and when it changes.
 
@@ -79,10 +80,10 @@
          :or   {key-fn   keyword
                 value-fn (fn [_ v] v)}} options
         end (count string)]
-    (loop [i   0
-           m   (transient {})
+    (loop [i 0
+           m (transient {})
            key nil
-           b   (StringBuilder.)]
+           b (StringBuilder.)]
       (if (= end i)
         (persistent! (add! m key (value-fn key (decode-query-part (str b)))))
         (let [c (.charAt string i)]
@@ -240,40 +241,40 @@
          override-scheme :scheme} opts
         {:keys [scheme host port path-parts path]} route
         context-path-parts (context-path opts)
-        path-parts         (do (log/debug :in :link-str
-                                          :path-parts path-parts
-                                          :context-path-parts context-path-parts)
-                               (cond
-                                 (and context-path-parts (= "" (first path-parts))) (concat context-path-parts (rest path-parts))
-                                 context-path-parts (concat context-path-parts path-parts)
-                                 :else path-parts))
-        _                  (when (and (true? strict-path-params?)
-                                      (or
-                                        (not= (set (keys path-params)) ;; Do the params passed in...
-                                              (set (seq (:path-params route))) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
-                                              )
-                                        ;; nils are not allowed.
-                                        (reduce-kv #(if (nil? %3) (reduced true) false) nil path-params)))
-                             (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
+        path-parts (do (log/debug :in :link-str
+                                  :path-parts path-parts
+                                  :context-path-parts context-path-parts)
+                       (cond
+                         (and context-path-parts (= "" (first path-parts))) (concat context-path-parts (rest path-parts))
+                         context-path-parts (concat context-path-parts path-parts)
+                         :else path-parts))
+        _ (when (and (true? strict-path-params?)
+                     (or
+                       (not= (set (keys path-params))       ;; Do the params passed in...
+                             (set (seq (:path-params route))) ;; match the params from the route?  `seq` is used to handle cases where no `path-params` are required
+                             )
+                       ;; nils are not allowed.
+                       (reduce-kv #(if (nil? %3) (reduced true) false) nil path-params)))
+            (throw (ex-info "Attempted to create a URL with `url-for`, but missing required :path-params - :strict-path-params was set to true.
                             Either include all path-params (`nil` is not allowed), or if your URL actually contains ':' in the path, set :strict-path-params to false in the options"
-                                             {:path-parts  path-parts
-                                              :path-params path-params
-                                              :options     opts
-                                              :route       route})))
-        path-chunk         (str/join \/ (map #(get path-params % %) path-parts))
-        path               (if (and (= \/ (last path))
-                                    (not= \/ (last path-chunk)))
-                             (str path-chunk "/")
-                             path-chunk)
-        request-scheme     (:scheme request)
-        request-host       (:server-name request)
-        request-port       (:server-port request)
-        scheme             (or override-scheme scheme request-scheme)
-        host               (or override-host host request-host)
-        port               (or override-port port request-port)
-        scheme-mismatch    (not= scheme request-scheme)
-        host-mismatch      (not= host request-host)
-        port-mismatch      (not= port request-port)]
+                            {:path-parts  path-parts
+                             :path-params path-params
+                             :options     opts
+                             :route       route})))
+        path-chunk (str/join \/ (map #(get path-params % %) path-parts))
+        path (if (and (= \/ (last path))
+                      (not= \/ (last path-chunk)))
+               (str path-chunk "/")
+               path-chunk)
+        request-scheme (:scheme request)
+        request-host (:server-name request)
+        request-port (:server-port request)
+        scheme (or override-scheme scheme request-scheme)
+        host (or override-host host request-host)
+        port (or override-port port request-port)
+        scheme-mismatch (not= scheme request-scheme)
+        host-mismatch (not= host request-host)
+        port-mismatch (not= port request-port)]
     (str
       (when (or absolute? scheme-mismatch host-mismatch port-mismatch)
         (str (when (or absolute? scheme-mismatch) (str (name scheme) \:))
@@ -344,8 +345,8 @@
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
             default-app-name (:app-name default-opts)
-            route            (find-route m (or app-name default-app-name) route-name)
-            opts             (combine-opts options-map default-opts route)]
+            route (find-route m (or app-name default-app-name) route-name)
+            opts (combine-opts options-map default-opts route)]
         (link-str route opts)))))
 
 (def ^:private ^:dynamic *url-for*
@@ -436,7 +437,7 @@
     ;;  This is where path-params are added to the request.
     (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
           ;; Rarely used, potentially expensive to create, delay creation until needed.
-          linker                   (delay (url-for-routes routes :request request-with-path-params))]
+          linker (delay (url-for-routes routes :request request-with-path-params))]
       (-> context
           (assoc :route route
                  :request (assoc request-with-path-params :url-for linker)
@@ -464,15 +465,16 @@
       {:name  ::router
        :enter (fn [context]
                 (let [routing-table (f)
-                      router        (router-ctor routing-table)]
+                      router (router-ctor routing-table)]
                   (route-context context router routing-table)))})))
 
 (def router-implementations
-  "Maps from the common router implementations (:map-tree, :prefix-tree, or :linear-search) to a router
-  constructor function (which accepts expanded routes, and returns a Router instance)."
+  "Maps from the common router implementations (:map-tree, :prefix-tree, :sawtooth,
+  or :linear-search) to a router constructor function (which accepts a routing table, and returns a Router instance)."
   {:map-tree      map-tree/router
    :prefix-tree   prefix-tree/router
-   :linear-search linear-search/router})
+   :linear-search linear-search/router
+   :sawtooth      sawtooth/router})
 
 (defn router
   "Given the expanded routing table and, optionally, what kind of router to construct,
@@ -496,15 +498,15 @@
                        router-type
                        (router-type router-implementations))
          routing-table' (cond-> routing-table
-                          *print-routing-table* internal/wrap-routing-table)]
+                                *print-routing-table* internal/wrap-routing-table)]
      (router-spec routing-table' router-ctor))))
 
 (defn- attach-bad-request-response
   [context exception]
   (assoc context :response
-         {:status  400
-          :headers {}
-          :body    (str "Bad Request - " (ex-message exception))}))
+                 {:status  400
+                  :headers {}
+                  :body    (str "Bad Request - " (ex-message exception))}))
 
 (def query-params
   "An interceptor which parses query-string parameters from an
@@ -600,7 +602,7 @@
 
   Returns the matched route (a map from the routing table), or nil if routing was unsuccessful."
   [routing-table router-type path verb]
-  (let [router  (router routing-table router-type)          ; create a disposable interceptor
+  (let [router (router routing-table router-type)           ; create a disposable interceptor
         context {:request {:path-info      path
                            :request-method verb}}
         context ((:enter router) context)]

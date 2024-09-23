@@ -18,6 +18,7 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [io.pedestal.http.route.sawtooth.impl :as impl]
             [io.pedestal.interceptor :refer [interceptor]]
             io.pedestal.http.route.specs
             [ring.util.response :as ring-response]
@@ -53,7 +54,10 @@
       (finally
         (stest/unstrument)))))
 
-(use-fixtures :once enable-expound-fixture)
+(use-fixtures :once enable-expound-fixture
+              (fn [f]
+                (binding [impl/*squash-conflicts-report* true]
+                  (f))))
 
 (defn handler
   [name request-fn]
@@ -136,7 +140,7 @@
   ;; Sanity check that specs are enforced from within test functions
   ;; Clojure 1.10 includes the #' in the message, Clojure 1.11 does not.
   (when-let [e (is (thrown-with-msg? ExceptionInfo #"\QCall to \E(#')?\Qio.pedestal.http.route.definition.table/table-routes did not conform to spec.\E"
-                            (table-routes [{:path "not leading slash"}])))]
+                                     (table-routes [{:path "not leading slash"}])))]
     (is (match?
           {::s/args '([{:path "not leading slash"}])}
           (ex-data e)))))
@@ -178,6 +182,7 @@
                    :verbs {:any logout}}
                   {:path     "/search"
                    :verbs    {:get search-form}
+                   ;; This is a conflict for any router except linear-matcher
                    :children [{:constraints {:id #"[0-9]+"}
                                :verbs       {:get search-id}}
                               {:constraints {:q #".+"}
@@ -486,9 +491,16 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest fire-interceptors
-  (test-fire-interceptors :prefix-tree)
-  (test-fire-interceptors :map-tree)                        ;; This should fallback to PrefixTree
+(deftest fire-interceptors-prefix-tree
+  (test-fire-interceptors :prefix-tree))
+
+(deftest fire-interceptor-sawtooth
+  (test-fire-interceptors :sawtooth))
+
+(deftest fire-interceptors-map-tree
+  (test-fire-interceptors :map-tree))                       ;; This should fallback to prefix-tree
+
+(deftest fire-interceptors-linear-search
   (test-fire-interceptors :linear-search))
 
 (defn test-fire-hierarchical-interceptors [router-impl-key]
@@ -512,6 +524,7 @@
 
 (deftest fire-hierarchical-interceptors
   (test-fire-hierarchical-interceptors :prefix-tree)
+  (test-fire-hierarchical-interceptors :sawtooth)
   (test-fire-hierarchical-interceptors :prefix-tree)        ;; This should fallback to PrefixTree
   (test-fire-hierarchical-interceptors :linear-search))
 
@@ -534,8 +547,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest fire-terminal-interceptors
-  (test-fire-terminal-interceptors :prefix-tree)
+(deftest fire-terminal-interceptors-prefix-tree
+  (test-fire-terminal-interceptors :prefix-tree))
+
+(deftest fire-terminal-interceptors-sawtooth
+  (test-fire-terminal-interceptors :sawtooth))
+
+(deftest fire-terminal-interceptors-linear-search
   (test-fire-terminal-interceptors :linear-search))
 
 ;; TODO: This is no longer supported - *ALL* symbols that resolve to fns are treated like handlers
@@ -574,8 +592,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest fire-interceptor-fn-list
-  (test-fire-interceptor-fn-list :prefix-tree)
+(deftest fire-interceptor-fn-list-prefix-tree
+  (test-fire-interceptor-fn-list :prefix-tree))
+
+(deftest fire-interceptor-fn-list-sawtooth
+  (test-fire-interceptor-fn-list :sawtooth))
+
+(deftest fire-interceptor-fn-list-linear-search
   (test-fire-interceptor-fn-list :linear-search))
 
 (defn test-match-root [router-impl-key]
@@ -584,8 +607,13 @@
     verbose-routes
     terse-routes))
 
-(deftest match-root
-  (test-match-root :prefix-tree)
+(deftest match-root-prefix-tree
+  (test-match-root :prefix-tree))
+
+(deftest match-root-sawtooth
+  (test-match-root :sawtooth))
+
+(deftest match-root-linear-search
   (test-match-root :linear-search))
 
 (defn test-match-update-user [router-impl-key]
@@ -599,8 +627,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest match-update-user
-  (test-match-update-user :prefix-tree)
+(deftest match-update-user-prefix-tree
+  (test-match-update-user :prefix-tree))
+
+(deftest match-update-user-sawtooth
+  (test-match-update-user :sawtooth))
+
+(deftest match-update-user-linear-search
   (test-match-update-user :linear-search))
 
 (defn test-match-logout [router-impl-key]
@@ -613,8 +646,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest match-logout
-  (test-match-logout :prefix-tree)
+(deftest match-logout-prefix-tree
+  (test-match-logout :prefix-tree))
+
+(deftest match-logout-sawtooth
+  (test-match-logout :sawtooth))
+
+(deftest match-logout-linear-search
   (test-match-logout :linear-search))
 
 (defn test-match-non-root-trailing-slash [router-impl-key]
@@ -634,8 +672,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest match-non-root-trailing-slash
-  (test-match-non-root-trailing-slash :prefix-tree)
+(deftest match-non-root-trailing-slash-prefix-tree
+  (test-match-non-root-trailing-slash :prefix-tree))
+
+(deftest match-non-root-trailing-slash-sawtooth
+  (test-match-non-root-trailing-slash :sawtooth))
+
+(deftest match-non-root-trailing-slash-linear-search
   (test-match-non-root-trailing-slash :linear-search))
 
 (defn test-match-root-trailing-slash [router-impl-key]
@@ -655,8 +698,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest match-root-trailing-slash
-  (test-match-root-trailing-slash :prefix-tree)
+(deftest match-root-trailing-slash-prefix-tree
+  (test-match-root-trailing-slash :prefix-tree))
+
+(deftest match-root-trailing-slash-sawtooth
+  (test-match-root-trailing-slash :sawtooth))
+
+(deftest match-root-trailing-slash-linear
   (test-match-root-trailing-slash :linear-search))
 
 (defn test-check-host [router-impl-key]
@@ -669,9 +717,16 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest check-host
-  (test-check-host :prefix-tree)
+(deftest check-host-prefix-tree
+  (test-check-host :prefix-tree))
+
+
+(deftest check-host-sawtooth
+  (test-check-host :sawtooth))
+
+(deftest check-host-linear-search
   (test-check-host :linear-search))
+
 
 (defn test-match-demo-one [router-impl-key]
   (are [routes] (= {:route-name  :site-one-demo
@@ -687,8 +742,13 @@
     tabular-routes
     quoted-tabular-routes))
 
-(deftest match-demo-one
-  (test-match-demo-one :prefix-tree)
+(deftest match-demo-one-prefix-tree
+  (test-match-demo-one :prefix-tree))
+
+(deftest match-demo-one-sawtooth
+  (test-match-demo-one :sawtooth))
+
+(deftest match-demo-one-linear-search
   (test-match-demo-one :linear-search))
 
 (defn test-match-user-constraints [router-impl-key]
@@ -733,8 +793,13 @@
     quoted-tabular-routes
     tabular-routes))
 
-(deftest match-user-constraints
-  (test-match-user-constraints :prefix-tree)
+(deftest match-user-constraints-prefix-tree
+  (test-match-user-constraints :prefix-tree))
+
+(deftest match-user-constraints-sawtooth
+  (test-match-user-constraints :sawtooth))
+
+(deftest match-user-constraints-linear-search
   (test-match-user-constraints :linear-search))
 
 (comment
@@ -1081,8 +1146,13 @@
     "/verbatim"
     "/returned"))
 
-(deftest ring-adapting
-  (test-ring-adapting :prefix-tree)
+(deftest ring-adapting-prefix-tree
+  (test-ring-adapting :prefix-tree))
+
+(deftest ring-adapting-sawtooth
+  (test-ring-adapting :sawtooth))
+
+(deftest ring-adapting-linear-search
   (test-ring-adapting :linear-search))
 
 (defn overridden-handler
@@ -1134,8 +1204,13 @@
                               :body)))
         "When the overridden-routes have their binding overridden, routing dispatches to the overridden binding")))
 
-(deftest overriding-routes-test
-  (test-overriding-routes :prefix-tree)
+(deftest overriding-routes-test-prefix-tree
+  (test-overriding-routes :prefix-tree))
+
+(deftest overriding-routes-test-sawtooth
+  (test-overriding-routes :sawtooth))
+
+(deftest overriding-routes-test-linear-search
   (test-overriding-routes :linear-search))
 
 (deftest route-names-match-test
@@ -1277,9 +1352,15 @@
     map-routes
     data-map-routes))
 
-(deftest match-root-trailing-slash-map
-  (test-match-root-trailing-slash-map :prefix-tree)
+(deftest match-root-trailing-slash-map-prefix-tree
+  (test-match-root-trailing-slash-map :prefix-tree))
+
+(deftest match-root-trailing-slash-map-sawtooth
+  (test-match-root-trailing-slash-map :sawtooth))
+
+(deftest match-root-trailing-slash-map-linear-searc
   (test-match-root-trailing-slash-map :linear-search))
+
 
 (deftest match-update-map
   (are [routes] (= {:route-name  ::update-user

@@ -12,11 +12,12 @@
 
 (ns io.pedestal.http.route.map-tree
   (:require [io.pedestal.http.route.prefix-tree :as prefix-tree]
+            [io.pedestal.http.route.internal                :as internal]
             [io.pedestal.http.route.router :as router]))
 
 ;; This router is optimized for applications with static routes only.
 ;; If your application contains path-params or wildcard routes,
-;; the router fallsback onto a prefix-tree, via the prefix-tree router.
+;; the router falls back onto a prefix-tree, via the prefix-tree router.
 
 ;; This router places routes in a map, keyed by URI path.
 ;; A route path is matched only by map-lookup.
@@ -28,12 +29,12 @@
   router/Router
 
   (find-route [_ req]
-    ;; find a result in the prefix-tree - payload could contains mutiple routes
+    ;; find a result in the prefix-tree - payload could contain multiple routes
     (when-let [match-fn (tree-map (:path-info req))]
       ;; call payload function to find specific match based on method, host, scheme and port
       (when-let [route (match-fn req)]
         ;; return a match only if query constraints are satisfied
-        (when ((::prefix-tree/satisfies-constraints? route) req nil) ;; the `nil` here is "path-params"
+        (when (internal/satisfies-constraints? req route nil) ;; the `nil` here is "path-params"
           route)))))
 
 (defn matching-route-map
@@ -45,7 +46,7 @@
   [routes]
   {:pre [(not (some prefix-tree/contains-wilds? (map :path routes)))]}
   (let [initial-tree-map (group-by :path
-                                   (map prefix-tree/add-satisfies-constraints? routes))]
+                                   (map internal/add-satisfies-constraints? routes))]
     (reduce (fn [tree [path related-routes]]
               (assoc tree path (prefix-tree/create-payload-fn related-routes)))
             {}

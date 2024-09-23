@@ -14,8 +14,7 @@
 (ns io.pedestal.log
   "A logging wrapper around SLF4J (but adaptable to other logging systems).
   Primary macros are [[trace]], [[debug]], [[info]], [[warn]], and [[error]]."
-  (:require [clojure.string :as string]
-            [io.pedestal.internal :as i :refer [deprecated]])
+  (:require [io.pedestal.internal :as i])
   (:import (org.slf4j Logger
                       LoggerFactory
                       MDC)
