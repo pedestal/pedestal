@@ -2,7 +2,7 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
-## 0.7.1 -- UNRELEASED
+## 0.7.1 -- 27 Sep 2024
  
 Changes:
 - Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
