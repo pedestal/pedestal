@@ -52,7 +52,7 @@
 
 (defmacro routes-from
   [expr]
-  (internal/routes-from-expr expr &env `route/expand-routes))
+  (internal/create-routes-from-fn [expr] &env `route/expand-routes))
 
 (deftest symbol-points-to-var
   (let [f          (routes-from sample-routes)
@@ -77,7 +77,12 @@
 (deftest production-mode
   (let [output (with-redefs [dev-mode? false]
                  (eval `(route/routes-from sample-routes)))]
-    (is (identical? sample-routes output))))
+    ;; Close as we can get to "routing table" rather than a function that
+    ;; evaluates to a routing table.
+    (is (= true
+           (and (seq output)
+                (every? map? output))))))
+
 
 (deftest outputs-extra-columns-when-different
   (let [routes (concat

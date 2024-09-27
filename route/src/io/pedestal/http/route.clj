@@ -620,21 +620,21 @@
 
 
 (defmacro routes-from
-  "Wraps around an expression that provides the routing specification.
+  "Wraps around one or more expressions that each provide a [[RoutingFragment]].
 
- In production mode (the default) evaluates to the expression, unchanged.
+ In production mode (the default) evaluates to a call to [[expand-routes]].
 
- In development mode (see [[dev-mode?]]), evaluates to a function that, when invoked, returns the expression
- passed through [[expand-routes]]; this
+ In development mode (see [[dev-mode?]]), evaluates to a function that, when invoked, returns the expressions
+ passed to [[expand-routes]]; this
  is to support a REPL workflow. This works in combination with the extension of [[RouterSpecification]]
  onto Fn, which requires that the returned routing specification be expanded.
 
  Further, when the expression is a non-local symbol, it is assumed to identify a Var holding the unexpanded routing specification;
  to avoid capturing the Var's value, the expansion de-references the named Var before passing it to expand-routes."
   {:added "0.7.0"}
-  [route-spec-expr]
+  [& route-exprs]
   (if-not dev-mode?
-    route-spec-expr
+    `(expand-routes ~@route-exprs)
     ;; Internals awkwardly broken out for testing purposes
-    (internal/routes-from-expr route-spec-expr &env `expand-routes)))
+    (internal/create-routes-from-fn route-exprs &env `expand-routes)))
 

@@ -1,5 +1,5 @@
 = Routing Changes in 0.8
-::default_api_ns: io.pedestal.http.route
+:default_api_ns: io.pedestal.http.route
 
 A significant part of the 0.8 development cycle has been to improve and upgrade routers.
 In most cases, the new logic is a drop-in replacement for the old.
@@ -39,6 +39,8 @@ api:expand-verbose-routes[ns=io.pedestal.http.route.definition.verbose]) have be
 previously they returned a seq of route maps; they now return a
 api:RoutingFragment[ns=io.pedestal.http.route.types] (essentially, a wrapper around a seq
 of route maps).
+
+Likewise, the api:routes-from[] macro now accepts a variable number of expressions.
 
 == ExpandableRoutes
 

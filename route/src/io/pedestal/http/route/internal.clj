@@ -85,18 +85,17 @@
       wrapped-fn)))
 
 
-(defn routes-from-expr
+(defn create-routes-from-fn
   "Core of the route/routes-from macro."
-  [route-spec-expr env expand-routes]
-  (if (and (symbol? route-spec-expr)
-           (not (contains? env route-spec-expr)))
+  [route-spec-exprs env expand-routes]
+  (let [exprs (map (fn [expr]
+                     (if (and (symbol? expr)
+                              (not (contains? env expr)))
+                       `(deref (var ~expr))
+                       expr))
+                   route-spec-exprs)]
     `(fn []
-       (->> (var ~route-spec-expr)
-            deref
-            ~expand-routes))
-    ;; Either an inline route, a reference to a local symbol, or a function call.
-    `(fn []
-       (~expand-routes ~route-spec-expr))))
+       (~expand-routes ~@exprs))))
 
 (defn- satisfies-query-constraints
   "Given a map of query constraints, return a predicate function of
