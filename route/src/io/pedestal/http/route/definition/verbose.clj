@@ -18,6 +18,7 @@
   in a future release."
   (:require [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.path :as path]
+            [io.pedestal.http.route.types :as types]
             [io.pedestal.interceptor :refer [interceptor?] :as i]
             [clojure.string :as string])
   (:import (clojure.lang IPersistentMap)))
@@ -29,7 +30,7 @@
      :enter (fn [context]
               (assoc context :response (-> context :request request-fn)))}))
 
-(defn ^:no-doc handler-interceptor
+(defn- handler-interceptor
   [handler name]
   (cond
     (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
@@ -37,12 +38,14 @@
     (fn? handler) (handler->interceptor name handler)))
 
 
-(defn ^:no-doc resolve-interceptor [interceptor name]
+(defn- resolve-interceptor
+  [interceptor name]
   (if (interceptor? interceptor)
     (handler-interceptor interceptor name)
     (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) name)))
 
-(defn ^:no-doc handler-map [m]
+(defn- handler-map
+  [m]
   (cond
     (symbol? m)
     (let [handler-name (definition/symbol->keyword m)]
@@ -101,11 +104,11 @@
           (update :path-constraints merge (into {} (map definition/capture-constraint path-constraints)))
           (update :query-constraints merge query-constraints)))))
 
-(defn ^:no-doc undoubleslash
+(defn- undoubleslash
   [^String s]
   (string/replace s #"/+" "/"))
 
-(defn ^:no-doc path-join
+(defn- path-join
   [parent-path path]
   (str parent-path "/" path))
 
@@ -132,7 +135,7 @@
     (concat (map #(generate-verb-terminal current-dna %) verbs)
             (mapcat #(generate-route-entries current-dna %) children))))
 
-(def ^:no-doc default-dna
+(def ^:private default-dna
   {:path-parts   []
    :path-params  []
    :interceptors []})
@@ -140,6 +143,4 @@
 (defn expand-verbose-routes
   "Expand route-maps into a routing table of route entries."
   [route-maps]
-  (->> route-maps
-       (mapcat (partial generate-route-entries default-dna))
-       definition/ensure-routes-integrity))
+  (types/->RoutingFragmentImpl (mapcat (partial generate-route-entries default-dna) route-maps)))

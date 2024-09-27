@@ -1,4 +1,5 @@
 = Routing Changes in 0.8
+::default_api_ns: io.pedestal.http.route
 
 A significant part of the 0.8 development cycle has been to improve and upgrade routers.
 In most cases, the new logic is a drop-in replacement for the old.
@@ -6,4 +7,44 @@ In most cases, the new logic is a drop-in replacement for the old.
 If you are upgrading from 0.7 or earlier, and _you implement your own routers or routing specifications_,
 you will need to be aware of these changes.
 
+[WARNING]
+====
+The naming of routing-related protocols and methods of those protocols is quite confusing; it will take some
+real work over much time to straighten that out. Focus on what the protocols _do_ rather than how
+they are _named_.
+====
+
+== Private Functions
+
+Many of the namespaces used in routing had internal functions not marked as private; these have
+been made private.
+
+== New: Routing Fragment vs. Routing Table
+
+Previously, it was assumed that there was a single source for all routes; in trivial examples
+this might be a set (which, via the RouteSpecification protocol) is interpreted as a
+call to api:table-routes[ns=io.pedestal.http.route.definition.table].
+
+Other applications might invoke `table/table-routes` directly.
+
+In either case, this single value is provided as the ::http/routes key of the
+xref:service-map.adoc[].
+
+A single set of routes is now considered a special case; the more general case is that
+multiple routes will be mixed together to form the overall routing table.
+
+The return type of `table-routes/routes`, and the other built-in route definitions
+(api:terse-routes[ns=io.pedestal.http.route.definition.terse] and
+api:expand-verbose-routes[ns=io.pedestal.http.route.definition.verbose]) have been changed;
+previously they returned a seq of route maps; they now return a
+api:RoutingFragment[ns=io.pedestal.http.route.types] (essentially, a wrapper around a seq
+of route maps).
+
+== ExpandableRoutes
+
+The api:ExpandableRoutes[] protocol is now used to convert an arbitrary data structure to
+a `RoutingFragment` (not a seq of expanded routes); these fragments are then combined,
+by api:expand-routes[], into the full routing table.
+
+Previously, `expand-routes` only accepted a single value; it now accepts one or more RoutingFragments.
 

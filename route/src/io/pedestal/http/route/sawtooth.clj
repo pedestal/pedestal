@@ -27,6 +27,7 @@
 
 (defn router
   [routes]
+  (internal/ensure-expanded-routes routes)
   (let [[matcher conflicts] (impl/create-matcher-from-routes (mapv internal/add-satisfies-constraints? routes))]
     (when (seq conflicts)
       (impl/report-conflicts conflicts routes))

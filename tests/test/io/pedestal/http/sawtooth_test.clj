@@ -13,6 +13,7 @@
   (:require [clojure.set :as set]
             [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
+            [io.pedestal.http.route :as route]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.router :as router]
@@ -45,7 +46,7 @@
 (defn- page-content [])
 
 (def routing-table
-  (concat
+  (route/expand-routes
     (table/table-routes
       {:host "example.com" :scheme :https}
       [["/user" :get `get-users]
@@ -216,12 +217,13 @@
 (deftest report-simple-conflict
   (let [s (tc/with-err-str
             (sawtooth/router
-              (table/table-routes
-                [["/user" :get `get-users]
-                 ["/user/:user-id" :get `get-user]
-                 ["/user/:user-id" :post `create-user]
-                 ;; A conflict:
-                 ["/user/search" :get `user-search]])))]
+              (route/expand-routes
+                (table/table-routes
+                  [["/user" :get `get-users]
+                   ["/user/:user-id" :get `get-user]
+                   ["/user/:user-id" :post `create-user]
+                   ;; A conflict:
+                   ["/user/search" :get `user-search]]))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"
@@ -232,15 +234,16 @@
 (deftest multiple-conflicts
   (let [s (tc/with-err-str
             (sawtooth/router
-              (table/table-routes
-                [["/pages" :get `list-pages]
-                 ["/pages/:id" :get `get-page]
-                 ["/pages/search" :get `search-pages]
-                 ["/pages/*path" :any `page-content]
-                 ["/user" :get `get-users]
-                 ["/user/:user-id" :get `get-user]
-                 ["/user/:user-id" :post `create-user]
-                 ["/user/search" :get `user-search]])))]
+              (route/expand-routes
+                (table/table-routes
+                  [["/pages" :get `list-pages]
+                   ["/pages/:id" :get `get-page]
+                   ["/pages/search" :get `search-pages]
+                   ["/pages/*path" :any `page-content]
+                   ["/user" :get `get-users]
+                   ["/user/:user-id" :get `get-user]
+                   ["/user/:user-id" :post `create-user]
+                   ["/user/search" :get `user-search]]))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"

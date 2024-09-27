@@ -255,10 +255,13 @@
                                 secure-headers        {}
                                 path-params-decoder   route/path-params-decoder
                                 tracing               (tracing/request-tracing-interceptor)}} service-map
-        processed-routes (cond
+        expanded-routes (cond
                            (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
                            (fn? routes) routes
                            (nil? routes) nil
+                           ;; This checks for an expanded route; a seq of maps, each presumably a route.
+                           ;; This is used when :routes is bound to the result of route/expand-routes with multiple
+                           ;; values (to build a routing table from multiple routing fragments).
                            (and (seq? routes) (every? map? routes)) routes
                            :else (throw (ex-info "Routes specified in the service map don't fulfill the contract.
                                                  They must be a seq of full-route maps or satisfy the ExpandableRoutes protocol"
@@ -281,7 +284,7 @@
                ;(not (nil? resource-path)) (conj (middlewares/fast-resource resource-path))
                (some? resource-path) (conj (middlewares/resource resource-path))
                (some? file-path) (conj (middlewares/file file-path))
-               true (conj (route/router processed-routes router))
+               true (conj (route/router expanded-routes router))
                (some? path-params-decoder) (conj path-params-decoder)))
       service-map)))
 

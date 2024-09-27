@@ -11,8 +11,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.map-tree
-  (:require [io.pedestal.http.route.prefix-tree :as prefix-tree]
-            [io.pedestal.http.route.internal                :as internal]
+  (:require [io.pedestal.http.route.definition :as definition]
+            [io.pedestal.http.route.internal :as route.internal]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]
+            [io.pedestal.http.route.internal :as internal]
             [io.pedestal.http.route.router :as router]))
 
 ;; This router is optimized for applications with static routes only.
@@ -56,9 +58,11 @@
   "Given a sequence of routes, return a router which satisfies the
   io.pedestal.http.route.router/Router protocol."
   [routes]
+  (route.internal/ensure-expanded-routes routes)
   (if (some prefix-tree/contains-wilds? (map :path routes))
     (prefix-tree/router routes)
-    (->MapRouter routes (matching-route-map routes))))
+    (let [routes' (definition/prioritize-constraints routes)]
+      (->MapRouter routes' (matching-route-map routes')))))
 
 (comment
 

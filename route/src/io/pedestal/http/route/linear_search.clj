@@ -12,7 +12,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.linear-search
-  (:require [io.pedestal.http.route.router :as router]))
+  (:require [io.pedestal.http.route.definition :as definition]
+            [io.pedestal.http.route.internal :as route.internal]
+            [io.pedestal.http.route.router :as router]))
 
 (defn- path-matcher [route]
   (let [{:keys [path-re path-params]} route]
@@ -48,11 +50,14 @@
   "Given a sequence of routes, return a router which satisfies the
   io.pedestal.http.route.router/Router protocol."
   [routes]
-  (let [matcher-routes (mapv #(assoc % :matcher (matcher %)) routes)]
+  (let [matcher-routes (->> routes
+                            route.internal/ensure-expanded-routes
+                            definition/prioritize-constraints
+                            (mapv #(assoc % ::matcher (matcher %))))]
     (reify
       router/Router
       (find-route [_ request]
-        (some (fn [{:keys [matcher] :as route}]
+        (some (fn [{::keys [matcher] :as route}]
                 (when-let [path-params (matcher request)]
                   (assoc route :path-params path-params)))
               matcher-routes)))))

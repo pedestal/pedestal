@@ -4,10 +4,15 @@
 
 ## 0.8.0 - UNRELEASED
 
+The main focus of this release is to improve routing.
+
 **BREAKING CHANGES:**
 
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
+- Significant changes to io.pedestal.http.route have occured
+- A new router, io.pedestal.http.route.sawtooth, has been added
+  - Sawtooth identfies conflicting routes
 
 ## 0.7.1 -- UNRELEASED
  

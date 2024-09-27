@@ -13,6 +13,7 @@
 
 (ns io.pedestal.http.route.definition.table
   (:require [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.http.route.types     :as types]
             [io.pedestal.http.route.definition :as route-definition]
             [io.pedestal.http.route.path :as path])
   (:import (java.util List)))
@@ -32,17 +33,19 @@
 (def ^:private known-options [:app-name :host :port :scheme :verbs])
 (def ^:private default-verbs #{:any :get :put :post :delete :patch :options :head})
 
-(defn make-parse-context
+(defn- make-parse-context
   [opts row route]
-  (let [ctx {:row       row
-             :original  route
-             :remaining route
-             :verbs     default-verbs}]
+  ;; This context is passed through many functions, with values from the route vector
+  ;; added as new keys. At the end, the extra keys are dissoc'ed and the result is a route map.
+  (let [ctx {:row       row                                 ; index (if known) into the route vectors (for errors)
+             :original  route                               ; the route as provided
+             :remaining route                               ; the remaining values in the route vector
+             :verbs     default-verbs}]                     ; allowed verbs for this route
     (assert (vector? route) (syntax-error ctx "the element" "a vector" route))
     (merge ctx
            (select-keys opts known-options))))
 
-(defn take-next-pair
+(defn- take-next-pair
   [argname expected-pred expected-str ctx]
   (let [[param arg & more] (:remaining ctx)]
     (if (= argname param)
@@ -51,7 +54,7 @@
         (assoc ctx argname arg :remaining more))
       ctx)))
 
-(defn parse-path
+(defn- parse-path
   [ctx]
   (let [[path & more] (:remaining ctx)]
     (assert (string? path) (syntax-error ctx "the path (first element)" "a string" path))
@@ -59,7 +62,7 @@
         (merge (path/parse-path path))
         (assoc :path path :remaining more))))
 
-(defn parse-verb
+(defn- parse-verb
   [ctx]
   (let [[verb & more] (:remaining ctx)
         known-verb (:verbs ctx default-verbs)]
@@ -67,7 +70,7 @@
     (assert (known-verb verb) (syntax-error ctx "the verb (second element)" (str "one of " known-verb) verb))
     (assoc ctx :method verb :remaining more)))
 
-(defn parse-handlers
+(defn- parse-handlers
   [ctx]
   (let [[handlers & more] (:remaining ctx)]
     (if (vector? handlers)
@@ -79,9 +82,9 @@
              :remaining more
              :last-handler (last original-handlers)))))
 
-(def attach-route-name (partial take-next-pair :route-name keyword? "a keyword"))
+(def ^:private attach-route-name (partial take-next-pair :route-name keyword? "a keyword"))
 
-(defn parse-route-name
+(defn- parse-route-name
   [{:keys [route-name interceptors last-handler] :as ctx}]
   (if route-name
     ctx
@@ -98,7 +101,7 @@
   (apply dissoc ctx
          (filter #(empty? (ctx %)) [:path-constraints :query-constraints])))
 
-(defn parse-constraints
+(defn- parse-constraints
   [{:keys [constraints path-params] :as ctx}]
   (let [path-param? (fn [[k _]] (some #{k} path-params))
         [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
@@ -107,18 +110,18 @@
         (update :query-constraints merge query-constraints)
         remove-empty-constraints)))
 
-(def attach-constraints (partial take-next-pair :constraints map? "a map"))
+(def ^:private attach-constraints (partial take-next-pair :constraints map? "a map"))
 
-(defn attach-path-regex
+(defn- attach-path-regex
   [ctx]
   (path/merge-path-regex ctx))
 
-(defn finalize
+(defn- finalize
   [ctx]
   (assert (empty? (:remaining ctx)) (surplus-declarations ctx))
   (select-keys ctx route-definition/allowed-keys))
 
-(defn route-table-row
+(defn- route-table-row
   [opts row route]
   (-> opts
       (make-parse-context row route)
@@ -132,23 +135,17 @@
       attach-path-regex
       finalize))
 
-(defn route-name [route]
-  (if-let [rname-pos (some-> ^List route
-                             (.indexOf :route-name))]
-    (if (pos? rname-pos)
-      (nth route (inc rname-pos))
-      (nth route 2))
-    nil))
-
-(defn ensure-unique-route-names [routes]
-  (loop [seen-route-names #{}
-         rname            (route-name (first routes))
-         rroutes          (rest routes)]
-    (when rname
-      (assert (nil? (seen-route-names rname)) (str "Route name or handler appears more than once in the route spec: " rname))
-      (recur (conj seen-route-names rname) (route-name (first rroutes)) (rest rroutes)))))
-
 (defn table-routes
+  "Constructs table routes.
+
+  The standard constructor is an options map and then a seq (a list or a set) of route vectors.
+
+  The single parameter constructor looks for the first map as the options, then any other vectors
+  are the routes.
+
+  The options map may have keys :app-name, :host, :port, :scheme, and :verbs.  The first four
+  set the corresponding route keys of the routes; the :verbs key specifies the allowed verbs for
+  the routes."
   ([routes]
    (table-routes (or (first (filter map? routes)) {})
                  (filterv vector? routes)))
@@ -156,9 +153,10 @@
    {:pre [(map? opts)
           (or (set? routes)
               (sequential? routes))]}
-   (ensure-unique-route-names routes)
-   (route-definition/ensure-routes-integrity
+   (types/->RoutingFragmentImpl
      (if (sequential? routes)
        (map-indexed #(route-table-row opts %1 %2) routes)
+       ;; When passed options and a set, we don't actually know the index numbers.
+       ;; This only affects error reporting.
        (map #(route-table-row opts nil %) routes)))))
 

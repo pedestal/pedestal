@@ -13,7 +13,8 @@
   "Internal utilities, not for reuse, subject to change at any time."
   {:no-doc true
    :added  "0.7.0"}
-  (:require [clj-commons.format.table :as t])
+  (:require [clj-commons.format.table :as t]
+            [io.pedestal.http.route.types :as types])
   (:import (clojure.lang Fn Sequential)))
 
 (defn- uniform?
@@ -149,3 +150,11 @@
   [request route path-param-values]
   (let [f (::satisfies-constraints? route)]
     (f request path-param-values)))
+
+(defn ensure-expanded-routes
+  [routes]
+  (when (satisfies? types/RoutingFragment routes)
+    (throw (ex-info "Must pass route fragment through io.pedestal.http.route/expand-routes"
+                    {:value routes})))
+
+  routes)

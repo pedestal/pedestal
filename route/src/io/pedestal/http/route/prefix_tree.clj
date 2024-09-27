@@ -13,6 +13,7 @@
 (ns io.pedestal.http.route.prefix-tree
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
+            [io.pedestal.http.route.definition :as definition]
             [io.pedestal.internal :as internal]
             [io.pedestal.http.route.internal :as route.internal]
             [io.pedestal.http.route.router :as router]))
@@ -458,7 +459,10 @@
   "Given a sequence of routes, return a router which satisfies the
   io.pedestal.http.route.router/Router protocol."
   [routes]
-  (let [tree (->> (map route.internal/add-satisfies-constraints? routes)
+  (let [tree (->> routes
+                  route.internal/ensure-expanded-routes
+                  definition/prioritize-constraints
+                  (map route.internal/add-satisfies-constraints?)
                   (reduce (fn [tree route]
                             (insert tree (:path route) route))
                           nil)

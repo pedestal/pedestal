@@ -15,7 +15,9 @@
   (:require [io.pedestal.http.route.definition :as route.definition]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.interceptor :as interceptor]
-            [io.pedestal.log :as log]))
+            [io.pedestal.log :as log])
+  (:import (clojure.lang APersistentVector IPersistentList Symbol)
+           (io.pedestal.interceptor Interceptor)))
 
 (defn- unexpected-vector-in-route [spec]
   (format "The route specification probably has too many levels of nested vectors: %s" spec))
@@ -56,18 +58,18 @@
   (expand-verb-action [expandable-verb-action]
     "Expand `expandable-verb-action` into a verbose-form verb-map."))
 
-(def valid-handler? (some-fn seq? symbol? interceptor/interceptor?))
-(def interceptor-vector? (every-pred vector? (comp :interceptors meta)))
-(def constraint-map? (every-pred map? (comp :constraints meta)))
+(def ^:private valid-handler? (some-fn seq? symbol? interceptor/interceptor?))
+(def ^:private interceptor-vector? (every-pred vector? (comp :interceptors meta)))
+(def ^:private constraint-map? (every-pred map? (comp :constraints meta)))
 
 (extend-protocol ExpandableVerbAction
-  clojure.lang.Symbol
+  Symbol
   (expand-verb-action [symbol] symbol)
 
-  clojure.lang.IPersistentList
+  IPersistentList
   (expand-verb-action [l] (expand-verb-action (eval l)))
 
-  clojure.lang.APersistentVector
+  APersistentVector
   (expand-verb-action [vector]
     ;; Take this apart by hand so we can provide nice error
     ;; messages. Exceptions from destructuring are opaque to users.
@@ -85,7 +87,7 @@
        :handler      handler
        :interceptors interceptors}))
 
-  io.pedestal.interceptor.Interceptor
+  Interceptor
   (expand-verb-action [interceptor]
     {:handler interceptor}))
 
@@ -135,7 +137,7 @@
     (assoc verbose-map :children (map expand-constraint children))
     verbose-map))
 
-(defn first-of [p coll] (first (filter p coll)))
+(defn- first-of [p coll] (first (filter p coll)))
 
 (defn- extract-port
   "Return the port, if present, from route-domain."
@@ -178,16 +180,17 @@
                                          (with-meta constraints
                                                     {:constraints true}))]
                                       subroutes)))))
-          [] route-map))
+          []
+          route-map))
 
-(defn dissoc-when
+(defn- dissoc-when
   "Dissoc those keys from m whose values in m satisfy pred."
   [pred m]
   (apply dissoc m (filter #(pred (m %)) (keys m))))
 
-(def preamble? (some-fn number? string? keyword?))
+(def ^:private preamble? (some-fn number? string? keyword?))
 
-(defn flatten-terse-app-routes
+(defn- flatten-terse-app-routes
   "Return a vector of maps that are equivalent to the terse routing syntax, but
    expanded for consumption by the verbose route parser."
   [route-spec]
