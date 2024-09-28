@@ -41,29 +41,6 @@ The protocols described here are what allow the individual pieces to cooperate; 
 that it is possible to define an application-specific routing specification format and use it with a Pedestal-supplied
 algorithm, or use any of the built-in routing specifications combined with an application-specific algorithm.
 
-=== api:Router[ns=io.pedestal.http.route.router]
-
-The combination of routing specification with a routing algorithm results in an instance of the Router interface.
-
-The Router protocol defines just one function: find-route. find-route is passed the Router
-itself and a xref:request-map.adoc[], and must return the route map for the route that it matched.
-The route map not only identifies the interceptors and handler to add to the interceptor queue, but further
-captures path variables that may be part of the matched URL (further details TBD).
-
-An instance of Router is returned by the router constructor
-identified in the application's xref:service-map.adoc[] by the key :io.pedestal.http/router.
-
-|===
-| ::http/router Value  | Constructor
-| :linear-search | xref:linear-search-router.adoc[]
-| :prefix-tree   | xref:prefix-tree-router.adoc[]
-| :map-tree      | xref:map-tree-router.adoc[]
-| application-supplied function | The function itself, called with sequence of routes as returned by from the RouterSpecification instance
-|===
-
-Whether built-in, or supplied by the application, the constructor is just a function that is passed an expanded route specification,
-and returns an instance of Router.
-
 === api:RouterSpecification[ns=io.pedestal.http.route]
 
 The RouterSpecification protocol is used to create a routing interceptor from some

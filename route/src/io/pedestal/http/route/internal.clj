@@ -81,7 +81,7 @@
                             new-routes))]
       ;; Execute once now to get the routing table displayed at startup.
       (wrapped-fn)
-      ;; And return it to be used when building a Router
+      ;; And return it to be used when building a routing interceptor
       wrapped-fn)))
 
 

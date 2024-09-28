@@ -1,7 +1,6 @@
 (ns io.pedestal.sawtooth-bench
   "Used to run comparisons of Sawtooth vs. prefix-tree router performance."
   (:require [clojure.string :as string]
-            [io.pedestal.http.route.router :as router]
             [net.lewisship.bench :as bench]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth :as sawtooth]
@@ -49,10 +48,10 @@
 
 (defn- execute
   [batch-size router-name]
-  (let [r (routers router-name)]
+  (let [router-fn (routers router-name)]
     (run! (fn [request]
             #_(prn request)
-            (router/find-route r request))
+            (router-fn request))
           (requests batch-size))))
 
 
@@ -122,5 +121,6 @@
     (dotimes [_ 100000] (execute :large :sawtooth)))
 
   (prof/serve-ui 8080)
+
 
   )

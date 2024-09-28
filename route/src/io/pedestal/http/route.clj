@@ -21,7 +21,6 @@
             [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.table :as table]
-            [io.pedestal.http.route.router :as router]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.map-tree :as map-tree]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
@@ -354,7 +353,7 @@
 
 (def ^:private ^:dynamic *url-for*
   "Dynamic var which holds the 'contextual' linker. The contextual
- linker is created by the router at routing time. The router will
+ linker is created from the router at routing time. The router will
  create the linker based on.
 
    - The routing table it is routing against.
@@ -442,8 +441,10 @@
 
   If no route matches, returns the context with :route nil."))
 
-(defn- route-context [context router routes]
-  (if-let [route (router/find-route router (:request context))]
+(defn- route-context
+  [context router-fn routes]
+  ;; TODO: Change contract of router-fn to return nil or [route path-params].
+  (if-let [route (router-fn (:request context))]
     ;;  This is where path-params are added to the request.
     (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
           ;; Rarely used, potentially expensive to create, delay creation until needed.
@@ -461,10 +462,10 @@
   ;; so RouterSpecification is extended on Sequential
   Sequential
   (router-spec [routing-table router-ctor]
-    (let [router (router-ctor routing-table)]
+    (let [router-fn (router-ctor routing-table)]
       (interceptor/interceptor
         {:name  ::router
-         :enter #(route-context % router routing-table)})))
+         :enter #(route-context % router-fn routing-table)})))
 
   ;; The alternative is to pass in a no-arguments function that returns the expanded routes.
   ;; That is only used in development, as it can allow for significant changes to routing and handling
@@ -474,9 +475,11 @@
     (interceptor/interceptor
       {:name  ::router
        :enter (fn [context]
+                ;; The table and the router are rebuilt on each execution; good for development,
+                ;; very, very, very bad for production.
                 (let [routing-table (f)
-                      router        (router-ctor routing-table)]
-                  (route-context context router routing-table)))})))
+                      router-fn     (router-ctor routing-table)]
+                  (route-context context router-fn routing-table)))})))
 
 (def router-implementations
   "Maps from the common router implementations (:map-tree, :prefix-tree, :sawtooth,
@@ -491,7 +494,9 @@
   creates and returns a router interceptor.
 
   router-type may be a keyword identifying a known implementation (see [[router-implementations]]), or function
-  that accepts a routing table, and returns a [[Router]].
+  that accepts a routing table, and returns a router function.
+
+  A router function will be passed the request map, and return nil, or a matching route.
 
   The default router type is :map-tree, which is the fastest built-in router;
   however, if the expanded routes contain path parameters or wildcards,
@@ -617,7 +622,6 @@
                            :request-method verb}}
         context ((:enter router) context)]
     (:route context)))
-
 
 (defmacro routes-from
   "Wraps around one or more expressions that each provide a [[RoutingFragment]].

@@ -5,7 +5,7 @@ A significant part of the 0.8 development cycle has been to improve and upgrade 
 In most cases, the new logic is a drop-in replacement for the old.
 
 If you are upgrading from 0.7 or earlier, and _you implement your own routers or routing specifications_,
-you will need to be aware of these changes.
+you will need to be aware of these changes. This should not affect the vast majority of Pedestal applications.
 
 [WARNING]
 ====

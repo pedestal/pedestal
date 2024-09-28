@@ -12,10 +12,9 @@
 (ns io.pedestal.http.route.sawtooth
   {:added "0.8.0"}
   (:require [io.pedestal.http.route.internal :as internal]
-            [io.pedestal.http.route.sawtooth.impl :as impl]
-            [io.pedestal.http.route.router :as router]))
+            [io.pedestal.http.route.sawtooth.impl :as impl]))
 
-(defn- -find-route [matcher request]
+(defn- find-route [matcher request]
   (when-let [[route params] (matcher request)]
     (when (internal/satisfies-constraints? request route params)
       ;; This is an ugly part of the Router protocol, that there
@@ -28,9 +27,11 @@
 (defn router
   [routes]
   (internal/ensure-expanded-routes routes)
-  (let [[matcher conflicts] (impl/create-matcher-from-routes (mapv internal/add-satisfies-constraints? routes))]
+  (let [[matcher conflicts] (->> routes
+                                 internal/ensure-expanded-routes
+                                 (mapv internal/add-satisfies-constraints?)
+                                 impl/create-matcher-from-routes)]
     (when (seq conflicts)
       (impl/report-conflicts conflicts routes))
-    (reify router/Router
-      (find-route [_ request]
-        (-find-route matcher request)))))
+    (fn [request]
+      (find-route matcher request))))

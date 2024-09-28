@@ -13,8 +13,7 @@
 
 (ns io.pedestal.http.route.linear-search
   (:require [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.http.route.internal :as route.internal]
-            [io.pedestal.http.route.router :as router]))
+            [io.pedestal.http.route.internal :as route.internal]))
 
 (defn- path-matcher [route]
   (let [{:keys [path-re path-params]} route]
@@ -47,17 +46,16 @@
       (and (base-match request) (path-match request)))))
 
 (defn router
-  "Given a sequence of routes, return a router which satisfies the
-  io.pedestal.http.route.router/Router protocol."
+  "Given a sequence of routes, return a router function.  Order is important for
+  linear search, and unlike other routers, it will continue searching if it matches
+  a route but doesn't match constraints for that route."
   [routes]
   (let [matcher-routes (->> routes
                             route.internal/ensure-expanded-routes
                             definition/prioritize-constraints
                             (mapv #(assoc % ::matcher (matcher %))))]
-    (reify
-      router/Router
-      (find-route [_ request]
-        (some (fn [{::keys [matcher] :as route}]
-                (when-let [path-params (matcher request)]
-                  (assoc route :path-params path-params)))
-              matcher-routes)))))
+    (fn [request]
+      (some (fn [{::keys [matcher] :as route}]
+              (when-let [path-params (matcher request)]
+                (assoc route :path-params path-params)))
+            matcher-routes))))

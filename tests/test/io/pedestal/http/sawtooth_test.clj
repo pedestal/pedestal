@@ -16,7 +16,6 @@
             [io.pedestal.http.route :as route]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.route.definition.table :as table]
-            [io.pedestal.http.route.router :as router]
             [com.walmartlabs.test-reporting :refer [reporting]]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
@@ -144,8 +143,8 @@
    (request ::anything "/internal/monitor" :port 9999) [::monitor {}]])
 
 (defn- attempt-request
-  [router request]
-  (when-let [matched (router/find-route router request)]
+  [router-fn request]
+  (when-let [matched (router-fn request)]
     [(:route-name matched) (:path-params matched)]))
 
 (deftest sawtooth-queries

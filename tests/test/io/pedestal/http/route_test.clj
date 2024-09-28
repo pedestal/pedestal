@@ -29,7 +29,6 @@
             [io.pedestal.http.route.map-tree :as map-tree]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.definition.verbose :as verbose]
-            [io.pedestal.http.route.router :as router]
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.linear-search :as linear-search]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
@@ -1455,8 +1454,8 @@
         test-routers      [(map-tree/router test-routes)
                            (prefix-tree/router test-routes)
                            (linear-search/router (mapv expand-route-path test-routes))]]
-    (is (every? some? (map #(router/find-route % test-request) test-routers)))
-    (is (every? nil? (map #(router/find-route % test-bad-request) test-routers)))))
+    (is (every? some? (map #(% test-request) test-routers)))
+    (is (every? nil? (map #(% test-bad-request) test-routers)))))
 
 (deftest verb-neutral-table-routes
   (let [test-routes      (expand-routes
@@ -1466,8 +1465,8 @@
         test-bad-request {:path-info "/hello" :request-method :clunk}
         test-routers     [(map-tree/router test-routes)
                           (prefix-tree/router test-routes)]]
-    (is (every? some? (map #(router/find-route % test-request) test-routers)))
-    (is (every? nil? (map #(router/find-route % test-bad-request) test-routers)))
+    (is (every? some? (map #(% test-request) test-routers)))
+    (is (every? nil? (map #(% test-bad-request) test-routers)))
     (is (try
           ;; `thrown` won't work with Compiler/AssertionErrors
           (table-routes {:verbs #{:walk :open :read :clunk :stat :wstat :version}}

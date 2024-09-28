@@ -4,6 +4,10 @@
 
 Many functions, macros, and even namespaces deprecated in 0.7.0 have been fully removed in 0.8.0.
 
+There have been xref:reference:routing-changes.adoc[significant changes to routing], including some
+non-backwards compatible changes to functions, namespaces, and protocols; these changes should only be
+concerning if you have previously implemented your own routing specifications or routers.
+
 == 0.7.0
 
 In _most_ cases, Pedestal can now emit a warning the first time a deprecated function, macro,

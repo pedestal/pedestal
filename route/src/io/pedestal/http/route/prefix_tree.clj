@@ -15,8 +15,7 @@
             [clojure.walk :as walk]
             [io.pedestal.http.route.definition :as definition]
             [io.pedestal.internal :as internal]
-            [io.pedestal.http.route.internal :as route.internal]
-            [io.pedestal.http.route.router :as router]))
+            [io.pedestal.http.route.internal :as route.internal]))
 
 ;; The Node record is only used as a faster map
 
@@ -317,7 +316,7 @@
 
   )
 
-(defn- -find-route [tree request]
+(defn- find-route [tree request]
   ;; find a result in the prefix-tree - payload could contain multiple routes
   (when-let [{:keys [payload] :as result} (lookup tree (:path-info request))]
     ;; call payload function to find specific match based on method, host, scheme and port
@@ -325,12 +324,6 @@
       ;; return a match only if path and query constraints are satisfied
       (when (route.internal/satisfies-constraints? request route (:path-params result))
         (assoc route :path-params (:path-params result))))))
-
-(defrecord PrefixTreeRouter [routes tree]
-
-  router/Router
-
-  (find-route [_ request] (-find-route tree request)))
 
 ;; The prefix tree is used to find a collection of routes which are
 ;; indexed by method, host, scheme and port, in that order. This is
@@ -456,8 +449,7 @@
     (route.internal/add-satisfies-constraints? route)))
 
 (defn router
-  "Given a sequence of routes, return a router which satisfies the
-  io.pedestal.http.route.router/Router protocol."
+  "Given a sequence of routes, return a router function."
   [routes]
   (let [tree (->> routes
                   route.internal/ensure-expanded-routes
@@ -467,18 +459,6 @@
                             (insert tree (:path route) route))
                           nil)
                   optimize-payloads)]
-    (->PrefixTreeRouter routes tree)))
-
-(comment
-
-  (def my-router (router [{:path "/foo/:x"}
-                          {:path "/foo/:x/bar/*rest"}]))
-
-  (:path-params (router/find-route my-router {:path-info "/foo/bar"}))
-  ;;=> {:x "bar"}
-
-  (:path-params (router/find-route my-router {:path-info "/foo/bar/bar/one/two"}))
-  ;;=> {:rest "one/two", :x "bar"}
-
-  )
+    (fn [request]
+      (find-route tree request))))
 
