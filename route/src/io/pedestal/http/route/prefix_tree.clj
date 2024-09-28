@@ -316,14 +316,15 @@
 
   )
 
-(defn- find-route [tree request]
+(defn- find-route
+  [tree request]
   ;; find a result in the prefix-tree - payload could contain multiple routes
-  (when-let [{:keys [payload] :as result} (lookup tree (:path-info request))]
+  (when-let [{:keys [payload path-params]} (lookup tree (:path-info request))]
     ;; call payload function to find specific match based on method, host, scheme and port
     (when-let [route (when payload (payload request))]
       ;; return a match only if path and query constraints are satisfied
-      (when (route.internal/satisfies-constraints? request route (:path-params result))
-        (assoc route :path-params (:path-params result))))))
+      (when (route.internal/satisfies-constraints? request route path-params)
+        [route path-params]))))
 
 ;; The prefix tree is used to find a collection of routes which are
 ;; indexed by method, host, scheme and port, in that order. This is

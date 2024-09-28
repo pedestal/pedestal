@@ -57,5 +57,5 @@
     (fn [request]
       (some (fn [{::keys [matcher] :as route}]
               (when-let [path-params (matcher request)]
-                (assoc route :path-params path-params)))
+                [route path-params]))
             matcher-routes))))

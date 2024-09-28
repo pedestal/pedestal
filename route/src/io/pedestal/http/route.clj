@@ -444,14 +444,14 @@
 (defn- route-context
   [context router-fn routes]
   ;; TODO: Change contract of router-fn to return nil or [route path-params].
-  (if-let [route (router-fn (:request context))]
+  (if-let [[route path-params] (router-fn (:request context))]
     ;;  This is where path-params are added to the request.
-    (let [request-with-path-params (assoc (:request context) :path-params (:path-params route))
+    (let [request' (assoc (:request context) :path-params path-params)
           ;; Rarely used, potentially expensive to create, delay creation until needed.
-          linker                   (delay (url-for-routes routes :request request-with-path-params))]
+          linker                   (delay (url-for-routes routes :request request'))]
       (-> context
           (assoc :route route
-                 :request (assoc request-with-path-params :url-for linker)
+                 :request (assoc request' :url-for linker)
                  :url-for linker)
           (assoc-in [:bindings #'*url-for*] linker)
           (interceptor.chain/enqueue (:interceptors route))))
@@ -615,13 +615,17 @@
   "Used for testing; constructs a router from the routing-table and router-type and performs routing
   on the provided path and verb (e.g., :get or :post).
 
-  Returns the matched route (a map from the routing table), or nil if routing was unsuccessful."
+  Returns the matched route (a map from the routing table), or nil if routing was unsuccessful.
+
+  The matched route has an extra key, :path-params."
   [routing-table router-type path verb]
-  (let [router  (router routing-table router-type)          ; create a disposable interceptor
-        context {:request {:path-info      path
-                           :request-method verb}}
-        context ((:enter router) context)]
-    (:route context)))
+  (let [routing-interceptor (router routing-table router-type) ; create a disposable interceptor
+        context             {:request {:path-info      path
+                                       :request-method verb}}
+        enter-fn            (:enter routing-interceptor)
+        {:keys [request route]} (enter-fn context)]
+    (when route
+      (assoc route :path-params (:path-params request)))))
 
 (defmacro routes-from
   "Wraps around one or more expressions that each provide a [[RoutingFragment]].

@@ -144,8 +144,8 @@
 
 (defn- attempt-request
   [router-fn request]
-  (when-let [matched (router-fn request)]
-    [(:route-name matched) (:path-params matched)]))
+  (when-let [[route path-params] (router-fn request)]
+    [(:route-name route) (or path-params {})]))
 
 (deftest sawtooth-queries
   (let [sawtooth (sawtooth/router routing-table)]

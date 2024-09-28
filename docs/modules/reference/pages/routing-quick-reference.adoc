@@ -61,6 +61,9 @@ to the provided routes; there are a few different constructor functions, each
 with different limitations and trade-offs.  The constructor returns a _Routing Function_
 encapsulating the routing table and the strategy.
 
+The routing function is passed the request and returns a vector of two values on success: the matching route, then the map
+of path parameters.  On failure, the routing function returns nil.
+
 The routing interceptor combines the routing function and the current request to identify the route, if any,
 that matched the request.  When routing is succesful, the interceptor updates the
 xref:request-map.adoc[], and queues up route-specific interceptors to handle the request.
@@ -237,7 +240,7 @@ During request execution, on a successful routing, the following keys are added 
 
 | :route | The verbose route map
 
-| [:request :path-parameters] | Path parameters extracted from the request path
+| [:request :path-params] | Path parameters extracted from the request path
 
 |===
 

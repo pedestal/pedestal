@@ -54,6 +54,11 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | String
 | Request path, below the context path. Always at least "/", never an empty string.
 
+| :path-params
+| N
+| Map
+| Present after succesful routing, a map from keyword id to string value of path parameters defined by the route.
+
 | :protocol
 | Y
 | String

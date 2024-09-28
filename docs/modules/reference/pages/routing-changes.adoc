@@ -50,3 +50,11 @@ by api:expand-routes[], into the full routing table.
 
 Previously, `expand-routes` only accepted a single value; it now accepts one or more RoutingFragments.
 
+== Router Protocol
+
+The Router protocol, and the  containing io.pedestal.http.route.router namespace, have been removed; instead, each router contructor simply returns a function.
+
+The contract has changed slightly; on a successful route, the router function returns a tuple of
+two values:
+- The matching route
+- The map of path parameter values (extracted from the request's path)

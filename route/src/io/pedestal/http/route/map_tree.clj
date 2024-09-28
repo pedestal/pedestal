@@ -25,14 +25,15 @@
 ;; The value within the map is matching-route fn, matching on host, scheme,
 ;; and port.
 
-(defn- find-route [tree-map req]
+(defn- find-route
+  [tree-map req]
   ;; find a result in the prefix-tree - payload could contain multiple routes
   (when-let [match-fn (tree-map (:path-info req))]
     ;; call payload function to find specific match based on method, host, scheme and port
     (when-let [route (match-fn req)]
       ;; return a match only if query constraints are satisfied
       (when (internal/satisfies-constraints? req route nil) ;; the `nil` here is "path-params"
-        route))))
+        [route nil]))))
 
 (defn matching-route-map
   "Given the full sequence of route-maps,
