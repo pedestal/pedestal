@@ -59,7 +59,7 @@ route::
 A mapping of an HTTP Verb (such as GET or POST) and a URL path to a specific set of interceptors.
 
 router::
-From context: one of
+A router is one of several elements related to routing; from context it will be one of:
 * A function that constructs a routing function from a routing table
 * The routing function itself
 * The routing function wrapped as an interceptor

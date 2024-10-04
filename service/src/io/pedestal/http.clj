@@ -39,7 +39,6 @@
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
-            [io.pedestal.internal :as i]
             [io.pedestal.log :as log])
   (:import (jakarta.servlet Servlet)))
 
@@ -58,7 +57,7 @@
 (defn ^{:deprecated "0.7.0"} json-print
   "Print object as JSON to *out*"
   [obj]
-  (i/deprecated `json-print
+  (internal/deprecated `json-print
     (json/generate-stream obj *out*)))
 
 (defn json-response

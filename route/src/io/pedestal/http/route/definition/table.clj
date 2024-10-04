@@ -13,10 +13,9 @@
 
 (ns io.pedestal.http.route.definition.table
   (:require [io.pedestal.interceptor :as interceptor]
-            [io.pedestal.http.route.types     :as types]
+            [io.pedestal.http.route.types :as types]
             [io.pedestal.http.route.definition :as route-definition]
-            [io.pedestal.http.route.path :as path])
-  (:import (java.util List)))
+            [io.pedestal.http.route.path :as path]))
 
 (defn- error
   [{:keys [row original]} msg]

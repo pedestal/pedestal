@@ -13,8 +13,7 @@
 
 (ns io.pedestal.http.route.linear-search
   (:require [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.http.route.internal :as internal]
-            [io.pedestal.http.route.internal :as route.internal]))
+            [io.pedestal.http.route.internal :as internal]))
 
 (defn- path-matcher [route]
   (let [{:keys [path-re path-params]} route]
@@ -52,7 +51,7 @@
   a route but doesn't match constraints for that route."
   [routes]
   (let [matcher-routes (->> routes
-                            route.internal/extract-routes
+                            internal/extract-routes
                             definition/prioritize-constraints
                             (mapv #(assoc % ::matcher (matcher %))))]
     (fn [request]

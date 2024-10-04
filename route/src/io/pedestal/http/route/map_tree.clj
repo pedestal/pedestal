@@ -12,7 +12,6 @@
 
 (ns io.pedestal.http.route.map-tree
   (:require [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.http.route.internal :as route.internal]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.internal :as internal]))
 
@@ -59,7 +58,7 @@
   If any of the routes do have path parameters, then [[prefix-tree/router]] is invoked
   to provide the router function."
   [routes]
-  (let [routes' (route.internal/extract-routes routes)]
+  (let [routes' (internal/extract-routes routes)]
     (if (some prefix-tree/contains-wilds? (map :path routes'))
       (prefix-tree/router routes')
       (let [ordered-routes  (definition/prioritize-constraints routes')

@@ -18,7 +18,6 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
-            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.http.route.sawtooth.impl :as impl]
             [io.pedestal.interceptor :refer [interceptor]]

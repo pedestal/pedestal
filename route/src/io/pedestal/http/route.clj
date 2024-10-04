@@ -17,7 +17,6 @@
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.log :as log]
-            io.pedestal.http.route.types
             [io.pedestal.http.route.definition :as definition]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.table :as table]
@@ -27,14 +26,14 @@
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.environment :refer [dev-mode?]]
             [io.pedestal.http.route.internal :as internal])
-  (:import (clojure.lang APersistentMap APersistentSet APersistentVector Fn Sequential)
+  (:import (clojure.lang APersistentMap APersistentSet APersistentVector)
            (io.pedestal.http.route.types RoutingFragment)
            (java.net URLEncoder URLDecoder)))
 
 (defn is-routing-table?
   "Returns true if the value is a routing table (as returned from [[expand-routes]])."
-  [routing-table]
   {:added "0.8.0"}
+  [routing-table]
   (internal/is-routing-table? routing-table))
 
 (def ^{:added   "0.7.0"
