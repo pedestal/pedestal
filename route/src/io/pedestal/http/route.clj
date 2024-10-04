@@ -31,6 +31,12 @@
            (io.pedestal.http.route.types RoutingFragment)
            (java.net URLEncoder URLDecoder)))
 
+(defn is-routing-table?
+  "Returns true if the value is a routing table (as returned from [[expand-routes]])."
+  [routing-table]
+  {:added "0.8.0"}
+  (internal/is-routing-table? routing-table))
+
 (def ^{:added   "0.7.0"
        :dynamic true} *print-routing-table*
   "If true, then the routing table is printed to the console at startup, and when it changes.
@@ -314,7 +320,7 @@
 
 (defn url-for-routes
   "Returns a function that generates URL routes (as strings) from the
-  routes table. The returned function has the signature:
+  routing table. The returned function has the signature:
 
   ```
       [route-name & options]
@@ -341,8 +347,10 @@
   In addition, you may supply default-options to the 'url-for-routes'
   function, which are merged with the options supplied to the returned
   function."
-  [routes & default-options]
-  (let [{:as default-opts} default-options
+  [routing-table & default-options]
+  {:pre []}
+  (let [routes (internal/extract-routes routing-table)
+        {:as default-opts} default-options
         m (linker-map routes)]
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
@@ -379,7 +387,7 @@
 
 (defprotocol ExpandableRoutes
   "A protocol extended onto types that can be used to convert instances into a
-  [[RoutingFragment]].  The fragments are combiend into a routing table
+  [[RoutingFragment]].  The fragments are combined into a routing table
   by [[expand-routes]].
 
   Built-in implementations map vectors to [[terse-routes]],
@@ -417,38 +425,32 @@
 
   Route fragments are created by route definitions (such as [[table-routes]]), or when
   data structures are implicitly converted (via the [[ExpandableRoutes]] protocol).
-  "
+
+  Returns a wrapper object with a :routes key; the routes themselves are verified
+  to have unique route names (or an exception is thrown)."
   [& route-specs]
-  {:pre  [(seq route-specs)]
-   :post [(seq? %)
-          (every? (every-pred map? :path :route-name :method) %)]}
+  {:pre [(seq route-specs)]}
+  ;; This is the case when the ::http/route is the result of
+  ;; calling expand-routes; this prevents expand-routes from being invoked
+  ;; a second time.
+  (when-not (seq route-specs)
+    (throw (IllegalArgumentException. "Must provide at least one routing specification")))
+
   (->> route-specs
        (map check-satifies-expandable-routes)
        (map -expand-routes)
        (mapcat types/fragment-routes)
-       definition/verify-unique-route-names))
+       definition/verify-unique-route-names
+       internal/->RoutingTable))
 
-
-(defprotocol RouterSpecification
-  (router-spec [routing-table router-ctor]
-    "Given a routing-table (usually, via [[expand-routes]]) and a routing contructor
-    function, returns an interceptor which attempts to match each route against
-    a :request in context. For the first route that matches, it will:
-
-    - enqueue the matched route's interceptors
-    - associate the route into the context as key :route
-    - associate a map of :path-params into the :request
-
-  If no route matches, returns the context with :route nil."))
 
 (defn- route-context
-  [context router-fn routes]
-  ;; TODO: Change contract of router-fn to return nil or [route path-params].
+  [context router-fn routing-table]
   (if-let [[route path-params] (router-fn (:request context))]
     ;;  This is where path-params are added to the request.
     (let [request' (assoc (:request context) :path-params path-params)
           ;; Rarely used, potentially expensive to create, delay creation until needed.
-          linker                   (delay (url-for-routes routes :request request'))]
+          linker   (delay (url-for-routes routing-table :request request'))]
       (-> context
           (assoc :route route
                  :request (assoc request' :url-for linker)
@@ -457,29 +459,27 @@
           (interceptor.chain/enqueue (:interceptors route))))
     (assoc context :route nil)))
 
-(extend-protocol RouterSpecification
-  ;; Normally, we start with a verbose routing table and create a router from that
-  ;; so RouterSpecification is extended on Sequential
-  Sequential
-  (router-spec [routing-table router-ctor]
-    (let [router-fn (router-ctor routing-table)]
-      (interceptor/interceptor
-        {:name  ::router
-         :enter #(route-context % router-fn routing-table)})))
-
-  ;; The alternative is to pass in a no-arguments function that returns the expanded routes.
-  ;; That is only used in development, as it can allow for significant changes to routing and handling
-  ;; without restarting the running application, but it is slow.
-  Fn
-  (router-spec [f router-ctor]
+(defn- construct-router-interceptor-from-table
+  [routing-table router-ctor]
+  {:pre [is-routing-table?]}
+  (let [routes    (:routes routing-table)
+        router-fn (router-ctor routes)]
     (interceptor/interceptor
       {:name  ::router
-       :enter (fn [context]
-                ;; The table and the router are rebuilt on each execution; good for development,
-                ;; very, very, very bad for production.
-                (let [routing-table (f)
-                      router-fn     (router-ctor routing-table)]
-                  (route-context context router-fn routing-table)))})))
+       :enter #(route-context % router-fn routing-table)})))
+
+(defn- construct-router-interceptor-from-fn
+  [f router-ctor]
+  (interceptor/interceptor
+    {:name  ::router
+     :enter (fn [context]
+              ;; The table and the router are rebuilt on each execution; good for development,
+              ;; very, very, very bad for production.
+              (let [routing-table (f)
+                    routes        (:routes routing-table)
+                    router-fn     (router-ctor routes)]
+                (route-context context router-fn routing-table)))}))
+
 
 (def router-implementations
   "Maps from the common router implementations (:map-tree, :prefix-tree, :sawtooth,
@@ -493,13 +493,13 @@
   "Given the expanded routing table and, optionally, what kind of router to construct,
   creates and returns a router interceptor.
 
-  router-type may be a keyword identifying a known implementation (see [[router-implementations]]), or function
-  that accepts a routing table, and returns a router function.
+  router-type may be a keyword identifying a known implementation (see [[router-implementations]]),
+  or a function that accepts a seq of route maps, and returns a router function.
 
   A router function will be passed the request map, and return nil, or a matching route.
 
   The default router type is :map-tree, which is the fastest built-in router;
-  however, if the expanded routes contain path parameters or wildcards,
+  however, if the expanded routes contain any path parameters or wildcards,
   the result is equivalent to the slower :prefix-tree implementation."
   ([routing-table]
    (router routing-table :map-tree))
@@ -514,7 +514,9 @@
                           (router-type router-implementations))
          routing-table' (cond-> routing-table
                           *print-routing-table* internal/wrap-routing-table)]
-     (router-spec routing-table' router-ctor))))
+     (if (fn? routing-table')
+       (construct-router-interceptor-from-fn routing-table' router-ctor)
+       (construct-router-interceptor-from-table routing-table' router-ctor)))))
 
 (defn- attach-bad-request-response
   [context exception]
@@ -527,7 +529,7 @@
   "An interceptor which parses query-string parameters from an
   HTTP request into a map. Keys in the map are query-string parameter
   names, as keywords, and values are strings. The map is assoc'd into
-  the request at :query-params."
+  the request with key :query-params."
   (interceptor/interceptor
     {:name  ::query-params
      :enter (fn [ctx]
@@ -538,14 +540,14 @@
 
 (def path-params-decoder
   "An Interceptor which URL-decodes path parameters.
-  The path parameters are in the :request map as :path-parameters.
+  The path parameters are assoc'd into the :request map with key :path-parameters.
 
   This will only operate once per interceptor chain execution, even if
   it appears multiple times; this prevents failures in existing applications
   that upgrade to Pedestal 0.6.0, as prior releases incorrectly failed to
-  parse path parameters. Existing applications that upgrade may have
-  this interceptor in some routes, which could yield runtime exceptions
-  and request failures if the interceptor is executed twice."
+  decode path parameters. Existing applications that upgrade may have
+  this interceptor in some routes which will do nothing (since the path parameters
+  will already have been decoded)."
   (interceptor/interceptor
     {:name  ::path-params-decoder
      :enter (fn [ctx]
@@ -563,7 +565,7 @@
 
 (defn method-param
   "Returns an interceptor that smuggles HTTP verbs through a value in
-  the request. Must come *after* the interceptor that populates that
+  the request. This interceptor must come *after* the interceptor that populates that
   value (e.g. query-params or body-params).
 
   query-param-or-param-path may be one of two things:
@@ -590,9 +592,13 @@
   :action, the URL string; and :method, the HTTP verb as a lower-case
   string. Also, the :method-param is :_method by default, so HTTP
   verbs other than GET and POST will be converted to POST with the
-  actual verb in the query string."
-  [routes & default-options]
-  (let [{:as default-opts} default-options
+  actual verb in the query string.
+
+  The routing-table is obtained from [[expand-routes]].
+  "
+  [routing-table & default-options]
+  (let [routes (internal/extract-routes routing-table)
+        {:as default-opts} default-options
         m (linker-map routes)]
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
@@ -607,9 +613,9 @@
 
 ;;; Help for debugging
 (defn print-routes
-  "Prints a route table (from [[expand-routes]]) in an easier to read format."
-  [expanded-routes]
-  (internal/print-routing-table expanded-routes))
+  "Prints a routing-table (from [[expand-routes]]) in an easier to read format."
+  [routing-table]
+  (internal/print-routing-table routing-table))
 
 (defn try-routing-for
   "Used for testing; constructs a router from the routing-table and router-type and performs routing
@@ -617,7 +623,9 @@
 
   Returns the matched route (a map from the routing table), or nil if routing was unsuccessful.
 
-  The matched route has an extra key, :path-params."
+  The matched route has an extra key, :path-params.
+
+  The routing-table is obtained from [[expand-routes]]."
   [routing-table router-type path verb]
   (let [routing-interceptor (router routing-table router-type) ; create a disposable interceptor
         context             {:request {:path-info      path
@@ -645,4 +653,5 @@
     `(expand-routes ~@route-exprs)
     ;; Internals awkwardly broken out for testing purposes
     (internal/create-routes-from-fn route-exprs &env `expand-routes)))
+
 

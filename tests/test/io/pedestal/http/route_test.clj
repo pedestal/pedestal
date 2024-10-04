@@ -1393,28 +1393,29 @@
     "/a/a/b/b/c"))
 
 (deftest nested-path-params
-  (let [terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
+  (let [routes (fn [spec] (-> spec expand-routes :routes first))
+        terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
         terse-sans-root `[[["/:resource/:thing" {:get add-user}]]]
         table-with-root #{["/base/:resource/:thing" :get add-user]}
         table-sans-root #{["/:resource/:thing" :get add-user]}]
     (testing "path parts extracted with root"
       (is (= ["base" :resource :thing]
-             (:path-parts (first (expand-routes terse-with-root)))
-             (:path-parts (first (expand-routes table-with-root)))
-             (:path-parts (first (expand-routes table-with-root))))))
+             (:path-parts (routes terse-with-root))
+             (:path-parts (routes table-with-root))
+             (:path-parts (routes table-with-root)))))
 
     (testing "path parts extracted without root"
       (is (= [:resource :thing]
-             (:path-parts (first (expand-routes terse-sans-root)))
-             (:path-parts (first (expand-routes table-sans-root))))))
+             (:path-parts (routes terse-sans-root))
+             (:path-parts (routes table-sans-root)))))
 
     (testing "path params extracted"
       (is (= [:resource :thing]
-             (:path-params (first (expand-routes terse-with-root)))
-             (:path-params (first (expand-routes table-with-root)))
-             (:path-params (first (expand-routes terse-sans-root)))
-             (:path-params (first (expand-routes table-sans-root)))
-             (:path-params (first (expand-routes table-sans-root))))))))
+             (:path-params (routes terse-with-root))
+             (:path-params (routes table-with-root))
+             (:path-params (routes terse-sans-root))
+             (:path-params (routes table-sans-root))
+             (:path-params (routes table-sans-root)))))))
 
 ;; Static routes with the Map-Tree
 (deftest static-map-route-rules

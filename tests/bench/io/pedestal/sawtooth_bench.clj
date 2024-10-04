@@ -5,6 +5,7 @@
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [clj-async-profiler.core :as prof]
+            [io.pedestal.http.route :as route]
             [io.pedestal.http.sawtooth-test :refer [routing-table]]))
 
 (def all-routes (vec routing-table))
@@ -43,8 +44,8 @@
    :large  (doall (take 100000 infinite-requests))})
 
 (def routers
-  {:prefix-tree (prefix-tree/router routing-table)
-   :sawtooth    (sawtooth/router routing-table)})
+  {:prefix-tree (prefix-tree/router all-routes)
+   :sawtooth    (sawtooth/router all-routes)})
 
 (defn- execute
   [batch-size router-name]
@@ -112,7 +113,8 @@
 
   (time (execute :large :sawtooth))
 
-  (bench/bench-for {:progress? true}
+  (bench/bench-for {:progress? true
+                    :ratio? false}
                    [size [:small :medium :large]
                     router (keys routers)]
                    (execute size router))
@@ -122,5 +124,14 @@
 
   (prof/serve-ui 8080)
 
+
+  (:routes (route/expand-routes
+             #{{:app-name :example-app
+                :scheme   :https
+                :host     "example.com"}
+               ["/department/:id/employees" :get [execute]
+                :route-name :org.example.app/employee-search
+                :constraints {:name  #".+"
+                              :order #"(asc|desc)"}]}))
 
   )

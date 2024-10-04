@@ -59,11 +59,11 @@
   If any of the routes do have path parameters, then [[prefix-tree/router]] is invoked
   to provide the router function."
   [routes]
-  (route.internal/ensure-expanded-routes routes)
-  (if (some prefix-tree/contains-wilds? (map :path routes))
-    (prefix-tree/router routes)
-    (let [routes' (definition/prioritize-constraints routes)
-          tree-map (matching-route-map routes')]
-      (fn [request]
-        (find-route tree-map request)))))
+  (let [routes' (route.internal/extract-routes routes)]
+    (if (some prefix-tree/contains-wilds? (map :path routes'))
+      (prefix-tree/router routes')
+      (let [ordered-routes  (definition/prioritize-constraints routes')
+            tree-map (matching-route-map ordered-routes)]
+        (fn [request]
+          (find-route tree-map request))))))
 

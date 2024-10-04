@@ -16,8 +16,9 @@
   specs are optional unless this namespace is required."
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
+            [io.pedestal.http.route.internal :as internal]
             [io.pedestal.interceptor.specs :as i]
-            [io.pedestal.http.route.types                   :as types]
+            [io.pedestal.http.route.types :as types]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.verbose :as verbose]
@@ -158,10 +159,9 @@
 
 ;; -- ROUTING FRAGMENT --
 
-;; A Spec representation of the RoutingFragment protocol
-;; TODO: Ah, probably not accurate, can we use the RF itself?
-(s/def ::routing-fragment (s/keys
-                            :req-un [::fragment-routes]))
+(s/def ::routing-fragment #(satisfies? types/RoutingFragment %))
+
+;; TODO: Can you spec protocol methods?
 
 (s/def ::fragment-routes (s/coll-of ::fragment-routing-entry))
 
@@ -183,8 +183,11 @@
 
 ;; --- EXPANDED ROUTING TABLE ---
 
+(s/def ::routing-table (s/and
+                         internal/is-routing-table?
+                         (s/keys :req-un [::routes])))
 
-(s/def ::routing-table (s/coll-of ::routing-entry))
+(s/def ::routes (s/coll-of ::routing-entry))
 
 ;; Each ::fragment-routing-entry is expanded into a ::routing-entry
 
@@ -194,14 +197,15 @@
                                   ::path-re
                                   ::path-parts
                                   ::interceptors
-                                  ::route-name
-                                  ::path-params
-                                  ::path-constraints
-                                  ::query-constraints]
+                                  ::route-name]
                          :opt-un [::app-name
                                   ::scheme
                                   ::host
-                                  ::port]))
+                                  ::port
+                                  ::path-parts
+                                  ::path-params
+                                  ::path-constraints
+                                  ::query-constraints]))
 
 ;; An RE that matches a path, and also defines capture groups for the :path-params
 (s/def ::path-re is-re?)
@@ -239,20 +243,19 @@
                 :proper (s/cat
                           :options (s/? ::table-options)
                           :routes ::table-routes))
-        :ret ::routing-table)
+        :ret ::routing-fragment)
 
 (s/fdef terse/terse-routes
         :args (s/cat :routes ::terse-routes)
-        :ret ::routing-table)
+        :ret ::routing-fragment)
 
 (s/fdef verbose/expand-verbose-routes
         :args (s/cat :routes ::verbose-routes)
-        :ret ::routing-table)
+        :ret ::routing-fragment)
 
-(s/def ::route-specification #(satisfies? route/ExpandableRoutes %))
+(s/def ::expandable-route #(satisfies? route/ExpandableRoutes %))
 
 (s/fdef route/expand-routes
-        ;; TODO: will support multiple inputs, either ::route-specification or
-        ;; ::routing-fragment
-        :args (s/cat :spec ::route-specification)
+        :args (s/*
+                (s/cat :spec ::expandable-route))
         :ret ::routing-table)

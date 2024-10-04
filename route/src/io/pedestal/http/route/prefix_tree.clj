@@ -453,7 +453,7 @@
   "Given a sequence of routes, return a router function."
   [routes]
   (let [tree (->> routes
-                  route.internal/ensure-expanded-routes
+                  route.internal/extract-routes
                   definition/prioritize-constraints
                   (map route.internal/add-satisfies-constraints?)
                   (reduce (fn [tree route]

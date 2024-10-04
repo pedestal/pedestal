@@ -59,18 +59,20 @@ route::
 A mapping of an HTTP Verb (such as GET or POST) and a URL path to a specific set of interceptors.
 
 router::
-A specific implementation (there are several in Pedestal, with different tradeoffs) responsible for
-identifying the route for an incoming request, using a routing table derived from a routing specification.
+From context: one of
+* A function that constructs a routing function from a routing table
+* The routing function itself
+* The routing function wrapped as an interceptor
 
 routing::
 The process of mapping an incoming request to a route, using a router and a routing specification.
 
 routing interceptor::
-An interceptor whose job is to perform routing; the routing interceptor is constructed from a routing specification
+An interceptor whose job is to perform routing; the routing interceptor is constructed from the routing table
 and a router implementation.
 
 routing specification::
-A concise list of routing data, in one of several formats. A routing specification is converted into a routing table.
+A concise list of routing data, in one of several formats. One or more routing specifications are converted into a routing table.
 
 routing table::
 A verbose, expanded version of routes that can be used by a router.

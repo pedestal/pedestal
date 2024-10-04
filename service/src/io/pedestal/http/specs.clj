@@ -56,10 +56,12 @@
 (s/def ::http/interceptors ::interceptor/interceptors)
 
 (s/def ::http/request-logger ::interceptor/interceptor)
-(s/def ::http/routes (s/or :protocol ::route/route-specification
+(s/def ::http/routes (s/or :expanded ::route/routing-table
+                           :expandable (s/and
+                                         sequential?
+                                         (s/coll-of ::route/expandable-route))
                            :fn fn?
                            :nil nil?
-                           ;; TODO: Shouldn't this be caught by the ExpandableRoutes check?
                            :maps (s/coll-of map?)))
 (s/def ::http/resource-path string?)
 (s/def ::http/method-param-name string?)

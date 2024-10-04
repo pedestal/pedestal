@@ -21,7 +21,7 @@ been made private.
 
 == New: Routing Fragment vs. Routing Table
 
-Previously, it was assumed that there was a single source for all routes; in trivial examples
+Previously, it was assumed that there was a single specification for all routes; in trivial examples
 this might be a set (which, via the RouteSpecification protocol) is interpreted as a
 call to api:table-routes[ns=io.pedestal.http.route.definition.table].
 
@@ -50,9 +50,15 @@ by api:expand-routes[], into the full routing table.
 
 Previously, `expand-routes` only accepted a single value; it now accepts one or more RoutingFragments.
 
+== RouterSpecification Protocol
+
+The RouterSpecification protocol was used to choose a different strategy based on whether the routing table
+was an actual value, or a function that returns a value; the protocol has been removed as there were only ever
+two implementations.
+
 == Router Protocol
 
-The Router protocol, and the  containing io.pedestal.http.route.router namespace, have been removed; instead, each router contructor simply returns a function.
+The Router protocol, and the containing io.pedestal.http.route.router namespace, have been removed; instead, each router contructor simply returns a function.
 
 The contract has changed slightly; on a successful route, the router function returns a tuple of
 two values:
