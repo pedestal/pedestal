@@ -9,7 +9,7 @@ generated `deps.edn`.
 
 The _embedded_ part indicates that the template is configured to work using
 xref:reference:jetty.adoc[], and it starts Jetty from within a running Clojure application
-(an alternate, and less used approach is to
+(an alternate, supported, but far less common approach is to
 xref:war-deployment.adoc[bundle a Pedestal application into
 a WAR] and deploy into Jetty, or another servlet container).
 
@@ -19,7 +19,7 @@ a WAR] and deploy into Jetty, or another servlet container).
 
     clojure -Ttools install-latest :lib io.github.seancorfield/deps-new :as new
 
-You will need the very latest version of this, version 0.7.0; you should re-execute the above command to ensure you have the latest.
+You will need the very latest version of this, version {libs_version}; you should re-execute the above command to ensure you have the latest.
 
 You will also https://github.com/seancorfield/deps-new#more-general-usage[need some scaffolding] in your `~/.clojure/deps.edn`; add the following
 to the :aliases map:
@@ -52,11 +52,11 @@ is only needed if Clojure 1.12 is not your default.  Clojure 1.12 is only needed
 Example:
 
 ```
-> clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded :name com.blueant/peripheral
+$ clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded :name com.blueant/peripheral
 
 Resolving io.github.pedestal/pedestal as a git dependency
 Creating project from io.pedestal/embedded in peripheral
-> tree peripheral
+$ tree peripheral
 ├── CHANGELOG.md
 ├── LICENSE
 ├── README.md
@@ -106,7 +106,7 @@ template evolves.
 From the new directory (`peripheral`) you can run tests:
 
 ```
-> clj -T:build test
+$ clj -T:build test
 
 Running tests in #{"test"}
 
@@ -121,7 +121,7 @@ You can also fire up a REPL and start the service:
 
 
 ```
-> clj -A:test
+$ clj -A:test
 Clojure 1.11.1
 user=> (use 'dev)
 nil
@@ -172,7 +172,7 @@ DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl
 You can also use `curl` or link:https://github.com/httpie/cli[http] to make a request:
 
 ```
-> http --json post :8080/hello name="Pedestal User"
+$ http --json post :8080/hello name="Pedestal User"
 HTTP/1.1 200 OK
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: text/plain
@@ -197,7 +197,7 @@ Hello, Pedestal User.
 Alternately, you can start the service directly without starting a REPL:
 
 ```
-> clj -X:run
+$ clj -X:run
 INFO  com.blueant.peripheral.main - {:msg "Service com.blueant/peripheral startup", :port 8080, :line 9}
 ```
 
@@ -222,7 +222,7 @@ The template includes a script, `start-jaeger.sh` that downloads the necessary f
 the container, and opens your web browser to the Jaeger UI:
 
 ```
-> ./start-jaeger.sh
+$ ./start-jaeger.sh
 Downloading Open Telemetry Java Agent to target directory ...
 f7296a450ab2bfad684451ed7e0ed22125c0743f79e9675c4e15f593570986de
 Jaeger is running, execute `docker stop jaeger` to stop it.
@@ -232,7 +232,7 @@ Jaeger is running, execute `docker stop jaeger` to stop it.
 Stop your old REPL session, if necessary, and start a new one:
 
 ```
-> clj -A:test:otel-agent
+$ clj -A:test:otel-agent
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 [otel.javaagent 2024-03-01 16:32:45:144 -0800] [main] INFO io.opentelemetry.javaagent.tooling.VersionLogger - opentelemetry-javaagent - version: 2.1.0
 Clojure 1.11.1
@@ -283,11 +283,10 @@ covering the span of time Pedestal was handling the request.
 The `lint` command uses link:https://github.com/clj-kondo/clj-kondo[clj-kondo] to identify problems in your source code:
 
 ```
-> clj -T:build lint
+$ clj -T:build lint
 WARNING: update-vals already refers to: #'clojure.core/update-vals in namespace: clj-kondo.impl.analysis.java, being replaced by: #'clj-kondo.impl.utils/update-vals
 linting took 137ms, errors: 0, warnings: 0
 clj-kondo approves ☺️
->
 ```
 
 The `lint` command will exit with a -1 status code if there are linter errors; this aligns well with
@@ -296,12 +295,11 @@ using it inside a CI/CD pipeline.
 The `jar` command builds a Maven POM file, and a JAR for the project:
 
 ```
-> clj -T:build jar
+$ clj -T:build jar
 Writing pom.xml...
 Copying source...
 
 Building JAR target/com.blueant/peripheral-0.1.0-SNAPSHOT.jar ...
->
 ```
 
 There's also an `install` command to install the JAR to your local Maven repository, and a `deploy`
@@ -309,7 +307,6 @@ command, to deploy the JAR to link:https://clojars.org/[Clojars].
 
 
 ## Conclusion
-
 
 The template provides a tiny amount of structure and examples; it's a seed
 from which you can grow a full project, but small as it is, it's worth

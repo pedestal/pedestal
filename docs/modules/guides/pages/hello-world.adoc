@@ -351,9 +351,11 @@ handler function:
 ----
 include::example$hello/src/hello.clj[tags=routing]
 ----
-<1> We specify routes in a short notation, but they must be expanded and turned into a Router for use.
-<2> This is the "table syntax". There are xref:reference:routing-quick-reference.adoc[several formats]
-that can be passed to api:expand-routes[ns=io.pedestal.html.route].
+<1> We specify routes in a short notation, but they must be expanded and turned into a Router for use. Technically,
+    we could omit invoking `expand-routes` and Pedestal will do it for us, but it is more robust to invoke it
+    explicitly.
+<2> This is the table syntax. There are xref:reference:routing-quick-reference.adoc[several older formats]
+that can be passed to api:expand-routes[ns=io.pedestal.html.route] as well, but table syntax is preferred.
 
 This routing table is a single route; the route matches:
 
@@ -362,7 +364,7 @@ This routing table is a single route; the route matches:
 
 When routed in a live service, the `respond-hello` function will be invoked.
 We've named this route :greet. Every route must have a unique
-name, though in many cases, Pedestal can automatically provide a reasonable name.
+name, though in many cases, Pedestal can automatically provide a reasonable name from other information you provide in the rouet.
 
 We're building up gradually, and have yet to hook this up to an HTTP server, but it's still possible
 to test the routing by hand (using code that could eventually be used in a test suite).
@@ -373,7 +375,7 @@ nil
 user=> (require '[io.pedestal.http.route :as route])
 nil
 user=> (route/try-routing-for hello/routes :prefix-tree "/greet" :get)
-{:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{:name }], :route-name :greet, :path-params {}, :io.pedestal.http.route.prefix-tree/satisfies-constraints? #object[clojure.core$constantly$fn__6443 0x6182d451 "clojure.core$constantly$fn__6443@6182d451"]}
+{:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{:name }], :route-name :greet, :path-params {}}
 user=> (route/try-routing-for hello/routes :prefix-tree "/greet" :post)
 nil
 user=> (route/try-routing-for hello/routes :prefix-tree "/greet" :put)
@@ -391,11 +393,11 @@ magic keyword :prefix-tree, then the query string and HTTP verb.
 
 `try-routing-for` uses the example routing table, from `hello/routes`, and the router type, :prefix-tree,
 to create a temporary router; it then passes the provided method (:get) and path, `/greet`,
-so see how it would be routed; if the route matches, a _routing entry_ is returned, which identifies
+to see how it would be routed; if the route matches, a _routing entry_ is returned, which identifies
 what was matched, and would be used in a live Pedestal application.
 
 When no route in the table matches, `try-routing-for` will return nil. The  REPL sessions shows
-that a GET to `/greet` will be match, but a PUT or POST will not.
+that a GET to `/greet` will be a match, but a PUT or POST will not.
 
 On a match, `try-routing-for` returns an expanded version of the route that was matched (this is
 the internal format, which is much more cumbersome than the table format we used to define

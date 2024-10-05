@@ -203,7 +203,7 @@ We can try that interceptor out now. Bounce your service and use curl to exercis
 
 [source,bash]
 ----
-> curl http://localhost:8890/echo
+$ curl http://localhost:8890/echo
 {:protocol "HTTP/1.1", :async-supported? true, :remote-addr "127.0.0.1", :servlet-response #object[org.eclipse.jetty.server.Response 0x1ea4d091 "HTTP/1.1 200 \nDate: Thu, 12 Oct 2023 20:43:21 GMT\r\nStrict-Transport-Security: max-age=31536000; includeSubdomains\r\nX-Frame-Options: DENY\r\nX-Content-Type-Options: nosniff\r\nX-XSS-Protection: 1; mode=block\r\nX-Download-Options: noopen\r\nX-Permitted-Cross-Domain-Policies: none\r\nContent-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;\r\nContent-Type: application/edn\r\n\r\n"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x6593f4fd "io.pedestal.http.servlet.FnServlet@6593f4fd"], :headers {"accept" "*/*", "user-agent" "curl/8.1.2", "host" "localhost:8890"}, :server-port 8890, :servlet-request #object[org.eclipse.jetty.server.Request 0x1a57fb49 "Request(GET //localhost:8890/echo)@1a57fb49"], :path-info "/echo", :url-for #object[clojure.lang.Delay 0xd0b64a9 {:status :pending, :val nil}], :uri "/echo", :server-name "localhost", :query-string nil, :path-params {}, :body #object[org.eclipse.jetty.server.HttpInputOverHTTP 0x28234bf2 "HttpInputOverHTTP@28234bf2[c=0,q=0,[0]=null,s=STREAM]"], :scheme :http, :request-method :get, :context-path ""}%
 ----
 
@@ -241,7 +241,7 @@ if the actual response map omits it - this is deduced from the response map's :b
 
 | Byte array                             | application/octet-stream
 | String                                 | text/plain
-| Clojure collection                     | application/edn
+| Clojure collection (list, set, map)    | application/edn
 | java.io.File                           | application/octet-stream
 | java.io.InputStream                    | application/octet-stream
 | java.nio.channels.ReadableByteChannel  | application/octet-stream
@@ -267,7 +267,7 @@ Let's see the result:
 
 [source,bash]
 ----
-> curl -i http://localhost:8890/greet
+$ curl -i http://localhost:8890/greet
 HTTP/1.1 200 OK
 Date: Thu, 12 Oct 2023 21:51:05 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
@@ -372,7 +372,7 @@ Let's try this out with curl. Restart your service and try sending in some curl 
 
 [source,bash]
 ----
-> curl -i http://localhost:8890/greet
+$ curl -i http://localhost:8890/greet
 HTTP/1.1 200 OK
 Date: Thu, 12 Oct 2023 22:06:52 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
@@ -392,7 +392,7 @@ Notice the content type returned by our service was "text/html." Let's try some 
 
 [source,bash]
 ----
-> curl -i -H "Accept: text/html" http://localhost:8890/greet
+$ curl -i -H "Accept: text/html" http://localhost:8890/greet
 HTTP/1.1 200 OK
 Date: Thu, 12 Oct 2023 22:07:18 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
@@ -407,7 +407,7 @@ Transfer-Encoding: chunked
 
 Hello, world!
 
-> curl -i -H "Accept: application/edn" http://localhost:8890/greet
+$ curl -i -H "Accept: application/edn" http://localhost:8890/greet
 HTTP/1.1 200 OK
 Date: Thu, 12 Oct 2023 22:08:07 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains

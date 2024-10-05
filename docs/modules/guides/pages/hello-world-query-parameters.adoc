@@ -113,8 +113,7 @@ from now on. Let's try it out.
 First, let's start the service.
 
 ----
-$ clj
-> clj
+$ clj <1>
 Clojure 1.11.1
 user=> (require 'hello)
 nil
@@ -126,7 +125,7 @@ user=> (hello/start-dev)
 #:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835 0x4e27c500 "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835@4e27c500"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15089 0x6dbd38e8 "io.pedestal.http.jetty$server$fn__15089@6dbd38e8"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{}], :route-name :greet, :path-params []}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x1a183473 "io.pedestal.http.servlet.FnServlet@1a183473"], :server #object[org.eclipse.jetty.server.Server 0x351bfccc "Server@351bfccc{STARTED}[9.4.52.v20230823]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15091 0x2d7956fb "io.pedestal.http.jetty$server$fn__15091@2d7956fb"]}
 user=>
 ----
-
+<1> The `$` is the shell prompt; once you execute `clj`, you are inside the Clojure REPL and the `user=>` is it's prompt.
 
 Whatever happened to "no news is good news?" Believe it or not, that
 is all successful output. The big glob at the end is the value of the
@@ -222,7 +221,7 @@ With the update code live, you can use `curl` again to see the change in the ser
 
 ----
 
-> curl -i http://localhost:8890/greet\?name=Michael
+$ curl -i http://localhost:8890/greet\?name=Michael
 HTTP/1.1 200 OK
 Date: Thu, 12 Oct 2023 17:54:46 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
@@ -321,7 +320,7 @@ symbols as a policy.
 Do the restart/reload dance again, and then use `curl` to try a few different requests with parameters.
 
 ----
-$ curl http://localhost:8890/greet\?name=Michael
+$ curl http://localhost:8890/greet\?name=Michael <1>
 Hello, Michael
 $ curl http://localhost:8890/greet\?name=Pankaj
 Hello, Pankaj
@@ -336,6 +335,8 @@ Hello,
 $ curl http://localhost:8890/greet
 Hello,
 ----
+<1> The `?` character is usually meaningful to the shell, so we escape it with a leading `\`. This results in a the URL
+  `\http://localhost:8890/greet?name=Michael` just like we want.
 
 Dang. We were doing really well right up until the end
 there. Obviously we need to do something smarter when the input is

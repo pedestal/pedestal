@@ -86,8 +86,8 @@ In this case, `view-users` is anything that can be resolved as an
 interceptor:
 
 - An Interceptor record
-- A function that returns an interceptor (the function must be annotated as `^:interceptor-fn`)
 - A request handler function (really a special case of interceptor)
+- A few other cases still maintained for backwards compatibility that we'll ignore
 
 == Building handlers
 
@@ -151,7 +151,7 @@ The path parameters are always delivered as strings. The strings are
 HTTP decoded for you, but are not otherwise converted.
 
 A single path parameter only matches one segment of a URL. One segment
-is just the part between '/' characters. So the route above will _not_
+is just the part between `/` characters. So the route above will _not_
 match `/users/miken/profile/photos/blue-wig.jpg`.
 
 What if our user IDs are all numeric? It would be convenient if the
@@ -180,6 +180,13 @@ request map:
 ----
 
 As the `subpage` path parameter demonstrates, catch-all parameters are strings containing the remaining path segments.
+
+[TIP]
+====
+Using this kind of parameter requires that there's some data to match; a URL of
+`/users/miken/profile` or `/users/miken/profile/` will not match, because there's no data
+to extract as the :subpage path parameter.
+====
 
 == Query Parameters
 
@@ -417,12 +424,12 @@ and returns a URL that can be used in a hyperlink.
 [source,clojure]
 ----
 (def app-routes
-   (table/table-routes
-     {}
-     [["/user"                   :get  user-search-form]
-      ["/user/:user-id"          :get  view-user        :route-name :show-user-profile]
-      ["/user/:user-id/timeline" :post post-timeline    :route-name :timeline]
-      ["/user/:user-id/profile"  :put  update-profile]]))
+   (route/expand-routes <1>
+     (table/table-routes <2>
+       [["/user"                   :get  user-search-form]
+        ["/user/:user-id"          :get  view-user        :route-name :show-user-profile]
+        ["/user/:user-id/timeline" :post post-timeline    :route-name :timeline]
+        ["/user/:user-id/profile"  :put  update-profile]])))
 
 (def url-for (route/url-for-routes app-routes))
 
@@ -432,6 +439,8 @@ and returns a URL that can be used in a hyperlink.
 (url-for :view-user :params {:user-id "12345"})
 ;; => "/user/12345"
 ----
+<1> `url-for-routes` requires a fully expanded routing table.
+<2> Explicitly calling `table-routes` is a choice; the alterative is to put the routes in a set.
 
 Any leftover entries in the :params map that do not correspond to
 path parameters get turned into query string parameters. If you want
