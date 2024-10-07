@@ -45,11 +45,6 @@ metrics and tracing functionality.]
 | xref:jetty.adoc[Jetty 11] adapter
 | pedestal.log, pedestal.service, Jetty 11 (server, servlet, alpn-servicer, http2-service, etc.)
 
-| pedestal.service-tools
-| Tools used for local development
-| pedestal.service, https://github.com/clojure/data.xml[org.clojure/data.xml],
-  https://github.com/weavejester/ns-tracker[ns-tracker]
-
 |===
 
 == Artifact Coordinates

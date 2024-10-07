@@ -11,10 +11,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.route.definition)
+(ns io.pedestal.http.route.definition
+  "Constants and utilities used when implementing a routing specification, routing definition,
+  or router.")
 
 (def schemes #{:http :https})
 (def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
+
+;; TODO: Move these public fn's to a private namespace
 
 (defn symbol->keyword
   [s]
@@ -29,7 +33,7 @@
   [[k v]]
   [k (re-pattern (str "(" v ")"))])
 
-(defn uniquely-add-route-path
+(defn- uniquely-add-route-path
   "Append `route-path` to `route-paths` if route-paths doesn't contain it
   already."
   [route-paths route-path]
@@ -69,7 +73,9 @@
                       {:non-unique-names non-unique-names})))
     routing-table))
 
-(defn ensure-routes-integrity [route-maps]
+#_
+(defn ensure-routes-integrity
+  [route-maps]
   (-> route-maps
       prioritize-constraints
       verify-unique-route-names))

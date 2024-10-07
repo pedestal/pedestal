@@ -16,7 +16,9 @@
   specs are optional unless this namespace is required."
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
+            [io.pedestal.http.route.internal :as internal]
             [io.pedestal.interceptor.specs :as i]
+            [io.pedestal.http.route.types :as types]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.definition.terse :as terse]
             [io.pedestal.http.route.definition.verbose :as verbose]
@@ -44,8 +46,7 @@
                                         ;; tied together.
                                         ::path              ;; Probably required except at root
                                         ::verbs             ;; Ditto
-                                        ::i/interceptors
-                                        ]))
+                                        ::i/interceptors]))
 
 (s/def ::app-name keyword?)
 (s/def ::host string?)
@@ -156,9 +157,39 @@
          :interceptors (s/? ::terse-interceptors)
          :interceptor ::i/interceptor))
 
+;; -- ROUTING FRAGMENT --
+
+(s/def ::routing-fragment #(satisfies? types/RoutingFragment %))
+
+;; TODO: Can you spec protocol methods?
+
+(s/def ::fragment-routes (s/coll-of ::fragment-routing-entry))
+
+(s/def ::fragment-routing-entry (s/keys
+                         :req-un [::path
+                                  ::method
+                                  ::interceptors
+                                  ::route-name
+                                  ;; This isn't accurate, should just be ::contraints, and an intermediate
+                                  ;; step should split the path and contraints into
+                                  ;; ::path-re, ::path-parts, ::path-constraints, and ::query-contraints
+                                  ;; to form a ::routing-entry.
+                                  ::path-constraints
+                                  ::query-constraints]
+                          :opt-un [::app-name
+                                  ::scheme
+                                  ::host
+                                  ::port]))
+
 ;; --- EXPANDED ROUTING TABLE ---
 
-(s/def ::routing-table (s/coll-of ::routing-entry))
+(s/def ::routing-table (s/and
+                         internal/is-routing-table?
+                         (s/keys :req-un [::routes])))
+
+(s/def ::routes (s/coll-of ::routing-entry))
+
+;; Each ::fragment-routing-entry is expanded into a ::routing-entry
 
 (s/def ::routing-entry (s/keys
                          :req-un [::path
@@ -166,15 +197,15 @@
                                   ::path-re
                                   ::path-parts
                                   ::interceptors
-                                  ::route-name
-                                  ::path-params
-                                  ::path-constraints
-                                  ::query-constraints]
+                                  ::route-name]
                          :opt-un [::app-name
                                   ::scheme
                                   ::host
                                   ::port
-                                  ::matcher]))
+                                  ::path-parts
+                                  ::path-params
+                                  ::path-constraints
+                                  ::query-constraints]))
 
 ;; An RE that matches a path, and also defines capture groups for the :path-params
 (s/def ::path-re is-re?)
@@ -212,18 +243,19 @@
                 :proper (s/cat
                           :options (s/? ::table-options)
                           :routes ::table-routes))
-        :ret ::routing-table)
+        :ret ::routing-fragment)
 
 (s/fdef terse/terse-routes
         :args (s/cat :routes ::terse-routes)
-        :ret ::routing-table)
+        :ret ::routing-fragment)
 
 (s/fdef verbose/expand-verbose-routes
         :args (s/cat :routes ::verbose-routes)
-        :ret ::routing-table)
+        :ret ::routing-fragment)
 
-(s/def ::route-specification #(satisfies? route/ExpandableRoutes %))
+(s/def ::expandable-route #(satisfies? route/ExpandableRoutes %))
 
 (s/fdef route/expand-routes
-        :args (s/cat :spec ::route-specification)
+        :args (s/*
+                (s/cat :spec ::expandable-route))
         :ret ::routing-table)

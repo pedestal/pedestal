@@ -8,16 +8,16 @@ Routing is based on comparing any of a number of factors from the request, inclu
 
 - The request path (including matching wild cards in the path)
 - The HTTP method used (GET, POST, etc.)
-- The HTTP scheme used in the request
+- The HTTP scheme used in the request (http or https)
 - The name of host in the request
 - The port number
 
 It's natural to understand why path and method are involved in routing; less obvious for
 the other factors. Essentially, a single Pedestal application may host two or more concurrent
-applications inside the same server - incoming requests are differentiated most often by port, but
+sets of endpoints inside the same server - incoming requests are differentiated most often by port, but
 can also be differentiated by the host.  A somewhat common example is an outward-facing consumer
-application exposed outside a company's firewall, and an inward-facing admin application
-that is only available inside the firewall.
+application exposed outside a company's firewall on one port, and an inward-facing set of endpoints
+for operations (status, metrics, management, and so forth) on a different port.
 
 == Library
 
@@ -25,19 +25,20 @@ The library api:*[ns=io.pedestal.http.route] namespace
 provides the core components to express routes and construct
 routers. It can be used independently of the pedestal-service library.
 
-== Route Specifications vs. Routers vs. Routing Interceptor
+== Route Specifications vs. Routing Functions vs. Routing Interceptor
 
 Pedestal is data driven, and the routing information starts in one form (as data) and is then
 transformed in a couple of stages to reach a final result that can be used to route incoming requests.
 
 The start is the route specification.
 Pedestal has three built-in formats for route specification:
-table, terse, and verbose.  Table is the newest format (but still old - it dates back to 2016)
+table, terse, and verbose.  Table is the newest format footnote:[But still old - the table format dates back to 2016]
 and is the preferred format; the others are maintained for compatibility.
 
 For each of the built-in formats, there is a function that can convert that specific format
-into a _routing table_ (also known as expanded routes).  Pedestal can often figure out which
-function to invoke based on the kind of data: set, vector, or map:
+into a _routing fragment_. One or more fragments are then combined to form the routing table.
+
+Pedestal will determine which function to invoke based on the kind of data: set, vector, or map:
 
 [mermaid]
 ....
@@ -47,25 +48,33 @@ flowchart
   terse("[] terse")-->|terse/terse-routes|expanded
   map("{} verbose")-->|terse/map-routes->vec-routes|expanded
   end
-  expanded(expanded routes)-->|RouterSpecification/router-spec|inter
-  cons(Router Constructor)-->inter
+  expanded(routing table)-->
+  cons(Router Constructor Fn)-->|Routing Function|inter
   inter(Routing Interceptor)
 ....
 
 _Route specifications_ are the data values that spell out the possible routes.
-These are normalized and expanded into a routing table.
+These are normalized and expanded  and combined into a routing table.
 
-A _Router Constructor_ function is provided with the routing table, and applies a specific strategy to match incoming requests
+A _Router Constructor_ function is passed the routing table, and applies a specific strategy to match incoming requests
 to the provided routes; there are a few different constructor functions, each
-with different limitations and trade-offs.
+with different limitations and trade-offs.  The constructor returns a _Routing function_
+encapsulating the routing table and the strategy.
 
-The constructor returns a
-api:Router[ns=io.pedestal.http.route.router] instance encapsulating the routing table and the
-strategy.
+The routing function is passed the request and returns a vector of two values on success: the matching route, then the map
+of path parameters.  On failure, the routing function returns nil.
 
-The routing interceptor builds on a `Router` to dispatch incoming requests to routes
-defined by the route specification. It identifies the route matching the incoming request
-and queues up route-specific interceptors to handle the request.
+The routing interceptor combines the routing function and the current request to identify the route, if any,
+that matched the request.  When routing is succesful, the interceptor updates the
+xref:request-map.adoc[], and queues up route-specific interceptors to handle the request.
+
+[TIP]
+====
+There are actually two different implementations of the interceptor; the production one is used
+in the normal case, where the routing table is an actual value.  During development,
+the routing table may be a function that returns the routing table; in which case, the routing
+function is rebuilt _on every request_.
+====
 
 Generally, all of this is automatic; an application provides a route specification in the :io.pedestal.http/route key
 of the xref:service-map.adoc[] (and perhaps a value for :io.pedestal.http/router) and a routing
@@ -78,7 +87,7 @@ a routing table is a sequence of verbose routing maps.
 
 The
 api:expand-routes[ns=io.pedestal.http.route]
-function converts any kind of specification into a routing table:
+function converts any kind of specification(s) into a routing table:
 
 |===
 | Argument to `expand-routes` | Syntax used
@@ -89,7 +98,7 @@ function converts any kind of specification into a routing table:
 
 | Vector
 | xref:terse-syntax.adoc[] - improvement on the verbose syntax, with an emphasis on avoiding
-  redundancy, but can be hard to read and write, since its deeply nested maps.
+  redundancy, but can be hard to read and write, since it is expressed as deeply nested maps.
 
 | Map
 | xref:verbose-syntax.adoc[] - oldest format.
@@ -100,29 +109,35 @@ api:ExpandableRoutes[ns=io.pedestal.http.route] protocol, which is
 extended on Map, Set, and Vector.
 
 [sidebar]
-`ExpandableRoutes` is only needed when Pedestal is provided with routes but doesn't know what
-format they are in.  It is also perfectly valid to build the routes explicitly, by directly
-calling api:table-routes[ns=io.pedestal.http.route.definition.table], and then building
-your own routing interceptor.
+`ExpandableRoutes` is only needed when Pedestal is provided with routes as data (a Set, Vector, or Map)
+It is also perfectly valid to build the routes explicitly, by directly
+calling api:table-routes[ns=io.pedestal.http.route.definition.table].
 
 It's not impossible that your application has specific needs that can't be met by any of the
 built-in formats and, as is often the case in Pedestal.
 To support a new syntax, come up with a syntax that resolves to new record type that implements the
 ExpandableRoutes protocol.
 
+`expand-routes` can be passed any number of routing specifications; these can be a mix of different data
+formats, plus the results of directly calling a definition function, such as
+`table-routes`.  The routing table is the merged result of all of these.
+
 == Routing Table
 
-The expanded routing table is a list of maps, each with the following specific structure:
+The expanded routing table is a wrapper object containing a :routes key;
+The routes is a seq of routing maps, with the following structure:
 
 [source,clojure]
 ----
-(table-routes #{{:app-name :example-app
-                 :scheme   :https
-                 :host     "example.com"}
-                ["/department/:id/employees" :get [...]
-                 :route-name :org.example.app/employee-search
-                 :constraints {:name  #".+"
-                               :order #"(asc|desc)"}]})
+(:routes
+    (route/expand-routes
+        #{{:app-name :example-app
+           :scheme   :https
+           :host     "example.com"}
+          ["/department/:id/employees" :get [...]
+           :route-name :org.example.app/employee-search
+           :constraints {:name  #".+"
+                         :order #"(asc|desc)"}]}))
 =>
 ({:route-name :org.example.app/employee-search <1>
    :app-name   :example-app  <2>
@@ -162,17 +177,19 @@ The expanded routing table is a list of maps, each with the following specific s
 This ficticious example defines a URI that includes an id in the request path, but has also defined query parameters
 constraints.
 
-The api:routing-table[] specification exhaustively defines what is allowed in a routing table.
+The :io.pedestal.http.route.specs/routing-table specification exhaustively defines what is allowed in a routing table.
 
-A path parameter will normally match a single name with in the path, delimited by `/` characters; an alternate form
-is the wildcard,, which starts with `*` and must come at the end of the path:  `["/accounts/*ids :get ...]` would
+A path parameter will normally match a single name within the path, delimited by `/` characters; an alternate form
+is the wildcard, which starts with `*` and is only allowed at the end of the path:  `["/accounts/*ids" :get ...]` would
 provide a path parameter named :ids, and will contain anything on the URL after `/accounts/`, including any slashes.
+
+A path parameter must match at least one term, so a URL of just `/accounts` or `/accounts/` would not match the route.
 
 == Builtin Routers
 
-Pedestal includes several Routers; this reflects not only the evolution of the Pedestal library,
+Pedestal includes several routing algorithms; this reflects not only the evolution of the Pedestal library,
 but also allows for different trade-offs in the algorithm used by each Router.  In rare cases, an application
-can provide its own Router rather than use one of Pedestal's.
+can provide its own router rather than use one of Pedestal's.
 
 When your application starts a Pedestal service with
 api:create-servlet[ns=io.pedestal.http] or
@@ -215,21 +232,14 @@ one of the built-in algorithms:
 
 When the value of :io.pedestal.http/router is a function, that
 function is used to construct a router. The function must take one
-argument: the fully expanded routing table. The constructor function must
-return a value that satisfies the
-api:Router[ns=io.pedestal.http.route.router]
-protocol.
-
-So the function is passed the routing table and returns a `Router` for those routes.
-The `Router` is supplied with the incoming request, and returns the matching route map
-(a verbose route map extended with extracted parameters from the path).
+argument: a seq of route maps (as described above). The constructor function must
+return a router function.
 
 == Routing Interceptor
 
 The function api:router[ns=io.pedestal.http.route] is where it all comes together;
-this function is passed the route specification and, optionally, the router type; from that it creates
-the routing table, and passes that through the correct Router constructor function,
-obtaining at the end an interceptor that performs routing, which it returns.
+this function is passed the routing table and the router type; from that it creates
+the router function, and then, at the end, creates an interceptor that performs routing, which it returns.
 
 During request execution, on a successful routing, the following keys are added in the context map:
 
@@ -238,7 +248,7 @@ During request execution, on a successful routing, the following keys are added 
 
 | :route | The verbose route map
 
-| [:request :path-parameters] | Path parameters extracted from the request path
+| [:request :path-params] | Path parameters extracted from the request path
 
 |===
 

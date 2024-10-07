@@ -13,9 +13,9 @@
   (:require [clojure.set :as set]
             [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
+            [io.pedestal.http.route :as route]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.route.definition.table :as table]
-            [io.pedestal.http.route.router :as router]
             [com.walmartlabs.test-reporting :refer [reporting]]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
@@ -45,23 +45,24 @@
 (defn- page-content [])
 
 (def routing-table
-  (concat
-    (table/table-routes
-      {:host "example.com" :scheme :https}
-      [["/user" :get `get-users]
-       ["/user/:user-id" :get `get-user :constraints {:user-id #"[0-9]+"}]
-       ["/user/:user-id" :post `create-user :constraints {:user-id #"[0-9]+"}]
-       ["/user/:user-id/collection" :get `get-user-collection :constraints {:user-id #"[0-9]+"}]])
-    (table/table-routes
-      [["/api/stats" :get `stats]
-       ["/api/shutdown" :post `shutdown]
-       ["/resources/*path" :get `get-resource]
-       ["/resources/*path" :head `head-resource]])
-    (table/table-routes
-      {:port 9999}
-      [["/" :get `root]
-       ["/internal" :get `internal]
-       ["/internal/monitor" :any `monitor]])))
+  (:routes
+    (route/expand-routes
+      (table/table-routes
+        {:host "example.com" :scheme :https}
+        [["/user" :get `get-users]
+         ["/user/:user-id" :get `get-user :constraints {:user-id #"[0-9]+"}]
+         ["/user/:user-id" :post `create-user :constraints {:user-id #"[0-9]+"}]
+         ["/user/:user-id/collection" :get `get-user-collection :constraints {:user-id #"[0-9]+"}]])
+      (table/table-routes
+        [["/api/stats" :get `stats]
+         ["/api/shutdown" :post `shutdown]
+         ["/resources/*path" :get `get-resource]
+         ["/resources/*path" :head `head-resource]])
+      (table/table-routes
+        {:port 9999}
+        [["/" :get `root]
+         ["/internal" :get `internal]
+         ["/internal/monitor" :any `monitor]]))))
 
 (deftest routing-table-as-expected
   (is (= [{:host       "example.com"
@@ -143,9 +144,9 @@
    (request ::anything "/internal/monitor" :port 9999) [::monitor {}]])
 
 (defn- attempt-request
-  [router request]
-  (when-let [matched (router/find-route router request)]
-    [(:route-name matched) (:path-params matched)]))
+  [router-fn request]
+  (when-let [[route path-params] (router-fn request)]
+    [(:route-name route) (or path-params {})]))
 
 (deftest sawtooth-queries
   (let [sawtooth (sawtooth/router routing-table)]
@@ -216,12 +217,14 @@
 (deftest report-simple-conflict
   (let [s (tc/with-err-str
             (sawtooth/router
-              (table/table-routes
-                [["/user" :get `get-users]
-                 ["/user/:user-id" :get `get-user]
-                 ["/user/:user-id" :post `create-user]
-                 ;; A conflict:
-                 ["/user/search" :get `user-search]])))]
+              (:routes
+                (route/expand-routes
+                  (table/table-routes
+                    [["/user" :get `get-users]
+                     ["/user/:user-id" :get `get-user]
+                     ["/user/:user-id" :post `create-user]
+                     ;; A conflict:
+                     ["/user/search" :get `user-search]])))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"
@@ -232,15 +235,17 @@
 (deftest multiple-conflicts
   (let [s (tc/with-err-str
             (sawtooth/router
-              (table/table-routes
-                [["/pages" :get `list-pages]
-                 ["/pages/:id" :get `get-page]
-                 ["/pages/search" :get `search-pages]
-                 ["/pages/*path" :any `page-content]
-                 ["/user" :get `get-users]
-                 ["/user/:user-id" :get `get-user]
-                 ["/user/:user-id" :post `create-user]
-                 ["/user/search" :get `user-search]])))]
+              (:routes
+                (route/expand-routes
+                  (table/table-routes
+                    [["/pages" :get `list-pages]
+                     ["/pages/:id" :get `get-page]
+                     ["/pages/search" :get `search-pages]
+                     ["/pages/*path" :any `page-content]
+                     ["/user" :get `get-users]
+                     ["/user/:user-id" :get `get-user]
+                     ["/user/:user-id" :post `create-user]
+                     ["/user/search" :get `user-search]])))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"

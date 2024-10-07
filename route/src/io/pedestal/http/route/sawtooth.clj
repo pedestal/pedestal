@@ -12,24 +12,21 @@
 (ns io.pedestal.http.route.sawtooth
   {:added "0.8.0"}
   (:require [io.pedestal.http.route.internal :as internal]
-            [io.pedestal.http.route.sawtooth.impl :as impl]
-            [io.pedestal.http.route.router :as router]))
+            [io.pedestal.http.route.sawtooth.impl :as impl]))
 
-(defn- -find-route [matcher request]
-  (when-let [[route params] (matcher request)]
-    (when (internal/satisfies-constraints? request route params)
-      ;; This is an ugly part of the Router protocol, that there
-      ;; isn't a way to return the route and the path-params separately.
-      ;; Inside io.pedestal.http.route/route-context, the :path-params
-      ;; are assoc'ed into the request map.  This also means that the
-      ;; route no longer follows its spec.
-      (assoc route :path-params (or params {})))))
+(defn- find-route [matcher request]
+  (when-let [[route path-params] (matcher request)]
+    (when (internal/satisfies-constraints? request route path-params)
+      ;; tests fail if path-params is nil
+      [route (or path-params {})])))
 
 (defn router
   [routes]
-  (let [[matcher conflicts] (impl/create-matcher-from-routes (mapv internal/add-satisfies-constraints? routes))]
+  (let [[matcher conflicts] (->> routes
+                                 internal/extract-routes
+                                 (mapv internal/add-satisfies-constraints?)
+                                 impl/create-matcher-from-routes)]
     (when (seq conflicts)
       (impl/report-conflicts conflicts routes))
-    (reify router/Router
-      (find-route [_ request]
-        (-find-route matcher request)))))
+    (fn [request]
+      (find-route matcher request))))

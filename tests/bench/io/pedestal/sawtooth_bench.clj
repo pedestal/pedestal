@@ -1,11 +1,11 @@
 (ns io.pedestal.sawtooth-bench
   "Used to run comparisons of Sawtooth vs. prefix-tree router performance."
   (:require [clojure.string :as string]
-            [io.pedestal.http.route.router :as router]
             [net.lewisship.bench :as bench]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [clj-async-profiler.core :as prof]
+            [io.pedestal.http.route :as route]
             [io.pedestal.http.sawtooth-test :refer [routing-table]]))
 
 (def all-routes (vec routing-table))
@@ -44,15 +44,15 @@
    :large  (doall (take 100000 infinite-requests))})
 
 (def routers
-  {:prefix-tree (prefix-tree/router routing-table)
-   :sawtooth    (sawtooth/router routing-table)})
+  {:prefix-tree (prefix-tree/router all-routes)
+   :sawtooth    (sawtooth/router all-routes)})
 
 (defn- execute
   [batch-size router-name]
-  (let [r (routers router-name)]
+  (let [router-fn (routers router-name)]
     (run! (fn [request]
             #_(prn request)
-            (router/find-route r request))
+            (router-fn request))
           (requests batch-size))))
 
 
@@ -113,7 +113,8 @@
 
   (time (execute :large :sawtooth))
 
-  (bench/bench-for {:progress? true}
+  (bench/bench-for {:progress? true
+                    :ratio? false}
                    [size [:small :medium :large]
                     router (keys routers)]
                    (execute size router))
@@ -122,5 +123,15 @@
     (dotimes [_ 100000] (execute :large :sawtooth)))
 
   (prof/serve-ui 8080)
+
+
+  (:routes (route/expand-routes
+             #{{:app-name :example-app
+                :scheme   :https
+                :host     "example.com"}
+               ["/department/:id/employees" :get [execute]
+                :route-name :org.example.app/employee-search
+                :constraints {:name  #".+"
+                              :order #"(asc|desc)"}]}))
 
   )

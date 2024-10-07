@@ -241,7 +241,7 @@ this:
 
 [source,clojure]
 ----
-:path-params {:list-id "abcdef", :item-id "12345"}}
+:path-params {:list-id "abcdef", :item-id "12345"}
 ----
 
 Pedestal extracted these parameters from the URL and bound them to

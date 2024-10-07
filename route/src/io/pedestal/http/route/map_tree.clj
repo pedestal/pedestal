@@ -11,9 +11,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.map-tree
-  (:require [io.pedestal.http.route.prefix-tree :as prefix-tree]
-            [io.pedestal.http.route.internal                :as internal]
-            [io.pedestal.http.route.router :as router]))
+  (:require [io.pedestal.http.route.definition :as definition]
+            [io.pedestal.http.route.prefix-tree :as prefix-tree]
+            [io.pedestal.http.route.internal :as internal]))
 
 ;; This router is optimized for applications with static routes only.
 ;; If your application contains path-params or wildcard routes,
@@ -24,18 +24,15 @@
 ;; The value within the map is matching-route fn, matching on host, scheme,
 ;; and port.
 
-(defrecord MapRouter [routes tree-map]
-
-  router/Router
-
-  (find-route [_ req]
-    ;; find a result in the prefix-tree - payload could contain multiple routes
-    (when-let [match-fn (tree-map (:path-info req))]
-      ;; call payload function to find specific match based on method, host, scheme and port
-      (when-let [route (match-fn req)]
-        ;; return a match only if query constraints are satisfied
-        (when (internal/satisfies-constraints? req route nil) ;; the `nil` here is "path-params"
-          route)))))
+(defn- find-route
+  [tree-map req]
+  ;; find a result in the prefix-tree - payload could contain multiple routes
+  (when-let [match-fn (tree-map (:path-info req))]
+    ;; call payload function to find specific match based on method, host, scheme and port
+    (when-let [route (match-fn req)]
+      ;; return a match only if query constraints are satisfied
+      (when (internal/satisfies-constraints? req route nil) ;; the `nil` here is "path-params"
+        [route nil]))))
 
 (defn matching-route-map
   "Given the full sequence of route-maps,
@@ -53,30 +50,19 @@
             initial-tree-map)))
 
 (defn router
-  "Given a sequence of routes, return a router which satisfies the
-  io.pedestal.http.route.router/Router protocol."
+  "Given a sequence of routes, return a router function.
+
+  This router is fast, because it uses a hash table lookup based entirely on path;
+  this only works because none of the routes may have path parameters.
+
+  If any of the routes do have path parameters, then [[prefix-tree/router]] is invoked
+  to provide the router function."
   [routes]
-  (if (some prefix-tree/contains-wilds? (map :path routes))
-    (prefix-tree/router routes)
-    (->MapRouter routes (matching-route-map routes))))
+  (let [routes' (internal/extract-routes routes)]
+    (if (some prefix-tree/contains-wilds? (map :path routes'))
+      (prefix-tree/router routes')
+      (let [ordered-routes  (definition/prioritize-constraints routes')
+            tree-map (matching-route-map ordered-routes)]
+        (fn [request]
+          (find-route tree-map request))))))
 
-(comment
-
-  (def my-router (router [{:path "/foo"}
-                          {:path "/foo/bar"}]))
-
-  (let [req {:path-info "/foo"}
-        route (((:tree-map my-router) "/foo") req)]
-    ((::prefix-tree/satisfies-constraints? route) req nil))
-
-  (:path (router/find-route my-router {:path-info "/foo"}))
-  ;;=> "/foo"
-
-  (:path (router/find-route my-router {:path-info "/foo/bar"}))
-  ;;=> "/foo/bar"
-
-  ;; When you use path-params, you'll get a prefix-tree
-  (type (router [{:path "/foo"}
-                 {:path "/foo/:bar"}]))
-
-  )

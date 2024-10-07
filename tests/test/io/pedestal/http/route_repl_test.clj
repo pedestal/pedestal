@@ -46,13 +46,17 @@
   #{["/hello" :get [#'hello-handler] :route-name ::hello]})
 
 (defn- exercise
-  [expanded-routes]
+  [routing-table]
+  {:pre [(internal/is-routing-table? routing-table)]}
   ;; These two keys do not compare well.
-  (mapv #(dissoc % :path-re :interceptors) expanded-routes))
+  (update routing-table
+          :routes
+          (fn [routes]
+            (mapv #(dissoc % :path-re :interceptors) routes))))
 
 (defmacro routes-from
   [expr]
-  (internal/routes-from-expr expr &env `route/expand-routes))
+  (internal/create-routes-from-fn [expr] &env `route/expand-routes))
 
 (deftest symbol-points-to-var
   (let [f          (routes-from sample-routes)
@@ -76,22 +80,28 @@
 
 (deftest production-mode
   (let [output (with-redefs [dev-mode? false]
-                 (eval `(route/routes-from sample-routes)))]
-    (is (identical? sample-routes output))))
+                 (eval `(route/routes-from sample-routes)))
+        _ (is (internal/is-routing-table? output))
+        routes (:routes output)]
+    ;; Close as we can get to "routing table" rather than a function that
+    ;; evaluates to a routing table.
+    (is (= true
+           (and (seq routes)
+                (every? map? routes))))))
+
 
 (deftest outputs-extra-columns-when-different
-  (let [routes (concat
-                 (route/expand-routes #{{:app-name :main
-                                         :host     "main"
-                                         :scheme   :https
-                                         :port     8080}
-                                        ["/" :get identity :route-name :root-page]})
-                 (route/expand-routes #{{:app-name :admin
-                                         :host     "internal"
-                                         :scheme   :http
-                                         :port     9090}
-                                        ["/status" :get identity :route-name :status]
-                                        ["/reset" :post identity :route-name :reset]}))
+  (let [routes  (route/expand-routes #{{:app-name :main
+                                        :host     "main"
+                                        :scheme   :https
+                                        :port     8080}
+                                       ["/" :get identity :route-name :root-page]}
+                                     #{{:app-name :admin
+                                        :host     "internal"
+                                        :scheme   :http
+                                        :port     9090}
+                                       ["/status" :get identity :route-name :status]
+                                       ["/reset" :post identity :route-name :reset]})
 
         out-str (with-out-str
                   (println)

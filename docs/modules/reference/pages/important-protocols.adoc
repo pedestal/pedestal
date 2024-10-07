@@ -24,80 +24,31 @@ types. See the xref:interceptors.adoc[interceptors reference] for details of the
 
 == Routing Protocols
 
-These protocols break up the lifecycle of routes and allow both
-extension points and alternative strategies in several places.
-
-Over time, Pedestal has evolved several data structures for representing routing of HTTP requests;
-each of these data structures is a kind of _routing specification_.
-The routing specification ultimately expresses which details of an incoming request,
-such as HTTP method or URI path, are used to find a specific route (and the interceptors
-and handler for that route).
-
-In parallel to the data structures, Pedestal has several algorithms for using the routing specification to dispatch
-an incoming request; some algorithms may be most efficient for small services with very few routes, others
-are better for large services with more (and more complex) routes.
-
-The protocols described here are what allow the individual pieces to cooperate; this also means
-that it is possible to define an application-specific routing specification format and use it with a Pedestal-supplied
-algorithm, or use any of the built-in routing specifications combined with an application-specific algorithm.
-
-=== api:Router[ns=io.pedestal.http.route.router]
-
-The combination of routing specification with a routing algorithm results in an instance of the Router interface.
-
-The Router protocol defines just one function: find-route. find-route is passed the Router
-itself and a xref:request-map.adoc[], and must return the route map for the route that it matched.
-The route map not only identifies the interceptors and handler to add to the interceptor queue, but further
-captures path variables that may be part of the matched URL (further details TBD).
-
-An instance of Router is returned by the router constructor
-identified in the application's xref:service-map.adoc[] by the key :io.pedestal.http/router.
-
-|===
-| ::http/router Value  | Constructor
-| :linear-search | xref:linear-search-router.adoc[]
-| :prefix-tree   | xref:prefix-tree-router.adoc[]
-| :map-tree      | xref:map-tree-router.adoc[]
-| application-supplied function | The function itself, called with sequence of routes as returned by from the RouterSpecification instance
-|===
-
-Whether built-in, or supplied by the application, the constructor is just a function that is passed an expanded route specification,
-and returns an instance of Router.
-
-=== api:RouterSpecification[ns=io.pedestal.http.route]
-
-The RouterSpecification protocol is used to create a routing interceptor from some
-definition of routes, and a single Router. This is the final step in the
-process of turning a routing specification into a routing interceptor.
-
-Whatever is returned from the
-api:router-spec[ns=io.pedestal.http.route]
-function of the protocol must be an interceptor. The returned interceptor will include an :enter function that
-must accept a xref:context-map.adoc[] and enqueue
-xref:interceptors.adoc[interceptors] based on whatever criteria it chooses.
-
 === api:ExpandableRoutes[ns=io.pedestal.http.route]
 
-ExpandableRoutes can convert all kinds of data structures representing a routing specification into a single
-canonical format that can be used to construct a Router. This occurs inside the
-api:expand-routes[ns=io.pedestal.http.route]
-function.
+ExpandableRoutes can convert all kinds of data structures representing a set of routes into a single
+canonical format that can be used to construct a routing function. This expansion occurs inside the
+api:expand-routes[ns=io.pedestal.http.route] function.
 
 Pedestal provides implementations of ExpandableRoutes for several types:
 
 |===
-| Type | Interpretation
+| Type                           | Interpretation
 | clojure.lang.APersistentVector | xref:terse-syntax.adoc[]
 | clojure.lang.APersistentMap    | xref:verbose-syntax.adoc[]
 | clojure.lang.APersistentSet    | xref:table-syntax.adoc[]
 |===
 
+Likewise, each of the underlying routing specification functions
+(such as api:table-routes[ns=io.pedestal.http.route.definition.table]) returns
+an ExpandableRoutes.
+
 Since the call to expand-routes comes from application code, it
 would be rare for an application to need to extend ExpandableRoutes.
 
-The result of expand-routes is a
+The result of expand-routes is a wrapper around a
 xref:routing-quick-reference.adoc#_routing_table[seq of maps]
-that will be passed to the Router.
+that will be passed to the routing contructor function.
 
 == Servlet Protocols
 

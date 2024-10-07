@@ -30,6 +30,7 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
+            [io.pedestal.internal :as internal]
             [io.pedestal.metrics :as metrics]
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.interceptor.chain :as chain]
@@ -38,7 +39,6 @@
             [ring.util.response :as ring-response]
             [clojure.string :as string]
             [cheshire.core :as json]
-            [io.pedestal.internal :as i]
             [io.pedestal.log :as log])
   (:import (jakarta.servlet Servlet)))
 
@@ -57,7 +57,7 @@
 (defn ^{:deprecated "0.7.0"} json-print
   "Print object as JSON to *out*"
   [obj]
-  (i/deprecated `json-print
+  (internal/deprecated `json-print
     (json/generate-stream obj *out*)))
 
 (defn json-response
@@ -196,7 +196,9 @@
   Options:
 
   * :routes: Something that satisfies the [[ExpandableRoutes]] protocol,
-    a function that returns routes when called, or a seq of route maps that defines a service's routes.
+    a function that returns expanded routes when called, expanded routes
+     (from calling [[expand-routes]], or a _seq of route maps that defines a service's routes_ (this last
+     case is _deprecated_).
   * :router: The [[Router]] implementation to use. Can be :linear-search, :map-tree
     :prefix-tree, or a custom Router constructor function. Defaults to :map-tree, which falls back on :prefix-tree
   * :file-path: File path used as root by the middlewares/file interceptor (exposing a local directory
@@ -255,13 +257,18 @@
                                 secure-headers        {}
                                 path-params-decoder   route/path-params-decoder
                                 tracing               (tracing/request-tracing-interceptor)}} service-map
-        processed-routes (cond
-                           (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
-                           (fn? routes) routes
-                           (nil? routes) nil
-                           (and (seq? routes) (every? map? routes)) routes
-                           :else (throw (ex-info "Routes specified in the service map don't fulfill the contract.
-                                                 They must be a seq of full-route maps or satisfy the ExpandableRoutes protocol"
+        routing-table-or-fn (cond
+                              (route/is-routing-table? routes) routes
+                              (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
+                              (fn? routes) routes
+                              (nil? routes) nil
+                              ;; This checks for an expanded route; a seq of maps, each presumably a route.
+                              (and (seq? routes) (every? map? routes))
+                              (internal/deprecated
+                                "Passing a seq of route maps as :io.pedestal.http/routes in service map"
+                                (route/expand-routes {:children routes}))
+                              :else (throw (ex-info (str "Routes specified in the service map don't fulfill the contract, "
+                                                         "they must be expanded routes, a function that returns expanded routes, or a RoutingFragment")
                                                  {:routes routes})))]
     (if-not interceptors
       (assoc service-map ::interceptors
@@ -277,11 +284,9 @@
                true (conj route/query-params)
                true (conj (route/method-param method-param-name))
                (some? secure-headers) (conj (sec-headers/secure-headers secure-headers))
-               ;; TODO: If all platforms support async/NIO responses, we can bring this back
-               ;(not (nil? resource-path)) (conj (middlewares/fast-resource resource-path))
                (some? resource-path) (conj (middlewares/resource resource-path))
                (some? file-path) (conj (middlewares/file file-path))
-               true (conj (route/router processed-routes router))
+               true (conj (route/router routing-table-or-fn router))
                (some? path-params-decoder) (conj path-params-decoder)))
       service-map)))
 
