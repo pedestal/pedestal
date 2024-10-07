@@ -71,10 +71,6 @@
     (with-redefs [sample-routes alt-routes]
       (is (= (exercise (route/expand-routes alt-routes))
              (exercise (f)))))))
-(comment
-  (clojure.test/run-test symbol-points-to-var)
-
-  )
 
 (deftest local-symbol-is-simply-wrapped-as-function
   (let [local-routes #{["/hi" :get #'hello-handler :route-name ::hi]}
