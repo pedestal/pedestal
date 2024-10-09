@@ -15,6 +15,7 @@
   (:require [io.pedestal.http.route.definition :as route.definition]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
   (:import (clojure.lang APersistentVector IPersistentList Symbol)
            (io.pedestal.interceptor Interceptor)))
@@ -64,10 +65,15 @@
 
 (extend-protocol ExpandableVerbAction
   Symbol
-  (expand-verb-action [symbol] symbol)
+  (expand-verb-action [symbol]
+    (deprecated "expanding a quoted symbol as a terse route verb action"
+                symbol))
 
   IPersistentList
-  (expand-verb-action [l] (expand-verb-action (eval l)))
+  (expand-verb-action [l]
+    (deprecated
+      "expanding a quoted list form as a terse route verb action"
+      (expand-verb-action (eval l))))
 
   APersistentVector
   (expand-verb-action [vector]

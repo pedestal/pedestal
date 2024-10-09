@@ -200,7 +200,7 @@
      (from calling [[expand-routes]], or a _seq of route maps that defines a service's routes_ (this last
      case is _deprecated_).
   * :router: The [[Router]] implementation to use. Can be :linear-search, :map-tree
-    :prefix-tree, or a custom Router constructor function. Defaults to :map-tree, which falls back on :prefix-tree
+    :prefix-tree, :sawtooth, or a custom Router constructor function. Defaults to :map-tree, which falls back on :prefix-tree
   * :file-path: File path used as root by the middlewares/file interceptor (exposing a local directory
      as the root). If nil, this interceptor
     is not added. Default is nil.

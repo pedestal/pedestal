@@ -14,7 +14,7 @@ The main focus of this release is to improve routing.
 - A new router, io.pedestal.http.route.sawtooth, has been added
   - Sawtooth identfies conflicting routes
 
-## 0.7.1 -- UNRELEASED
+## 0.7.1 -- 27 Sep 2024
  
 Changes:
 - Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)

@@ -106,6 +106,9 @@
        e/filter-stack-trace-maps
        (remove :omitted)
        (drop-while #(string/starts-with? (:name %) "io.pedestal.internal/"))
+       ;; Remove some cruft, in the hope of better identifying what's really been called
+       (remove #(string/starts-with? (:name %) "clojure.core"))
+       (remove #(string/ends-with? (:name %) "/G"))         ; protocol dispatch fns
        (map e/format-stack-frame)
        (map :name)
        reverse                                              ;; outermost -> innermost

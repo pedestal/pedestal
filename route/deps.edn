@@ -14,7 +14,7 @@
          "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.11.4"}
         org.clojure/core.async {:mvn/version "1.6.681"}
-        org.clj-commons/pretty {:mvn/version "3.1.1"}
+        org.clj-commons/pretty {:mvn/version "3.2.0"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-SNAPSHOT"}}
  :aliases

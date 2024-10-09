@@ -1,5 +1,6 @@
 (ns {{top/ns}}.{{main/ns}}.routes
-  (:require [io.pedestal.http.body-params :as body-params]))
+  (:require [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.http.route.definition.table :as table))
 
 (defn hello-handler
   [_request]
@@ -14,6 +15,7 @@
 
 (defn routes
   []
-  #{["/hello" :get [hello-handler] :route-name ::hello]
+  (table/table-routes
+   [["/hello" :get [hello-handler] :route-name ::hello]
     ["/hello" :post [(body-params/body-params)
-                     greet-handler] :route-name ::greet]})
+                     greet-handler] :route-name ::greet]]))
