@@ -11,7 +11,7 @@
 {;; You can use the `:suppression-file` in order to silence false positives.
  ;; This file will be automatically created, with whatever filename is specified here, if it didn't exist already.
  :suppression-file "nvd_suppressions.xml"
- :nvd-api          {:key "e17404f2-61e6-4ae5-bf5a-9e771dc0ede1"}
+ :nvd-api          {:key "14b7e285-4882-4aae-aae6-764b9e0a929c"}
  #_:analyzer                                                ;; Analyzer options, which are mostly advanced/internal
  #_{:ossindex-warn-only-on-remote-errors
     ;; Occasionally necessary for not making HTTP 500 errors from OSS Index (one of the multiple analyzers internally used)
