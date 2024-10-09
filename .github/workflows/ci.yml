@@ -57,7 +57,7 @@ jobs:
         working-directory: tests
         run: clojure -M:coverage
       - name: CVE Vulnerabilities Check
-        if: false # temporary
+        if: true # temporary
         id: cve-check
         run: clojure -T:build cve-check
       - name: Lint with clj-kondo
