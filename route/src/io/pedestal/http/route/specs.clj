@@ -56,7 +56,11 @@
 (s/def ::path (s/and string?
                      #(string/starts-with? % "/")))
 (s/def ::verbs (s/map-of ::verb ::verb-action))
-(s/def ::verb #{:any :get :put :post :delete :path :options :head})
+(s/def ::verb (s/or
+                ;; Some definitions are restricted to specific known verbs
+                :builtin #{:any :get :put :post :delete :path :options :head}
+                ;; But others are extensible (usually paired with verb smuggling).
+                :other keyword?))
 (s/def ::verb-action (s/or
                        :handler ::handler
                        :map ::handler-map))
@@ -84,9 +88,6 @@
                                   ::port
                                   ::scheme
                                   :io.pedestal.http.route.definition.table/verbs]))
-
-;; TODO: Can define optional allowed verbs in the options, which can include custom verbs,
-;; and that should be applied as a constraint when defining verbs in individual routes.
 
 (s/def :io.pedestal.http.route.definition.table/verbs (s/coll-of keyword?))
 
@@ -161,25 +162,11 @@
 
 (s/def ::routing-fragment #(satisfies? types/RoutingFragment %))
 
-;; TODO: Can you spec protocol methods?
+(s/def ::fragment-routes (s/coll-of ::routing-entry))
 
-(s/def ::fragment-routes (s/coll-of ::fragment-routing-entry))
-
-(s/def ::fragment-routing-entry (s/keys
-                         :req-un [::path
-                                  ::method
-                                  ::interceptors
-                                  ::route-name
-                                  ;; This isn't accurate, should just be ::contraints, and an intermediate
-                                  ;; step should split the path and contraints into
-                                  ;; ::path-re, ::path-parts, ::path-constraints, and ::query-contraints
-                                  ;; to form a ::routing-entry.
-                                  ::path-constraints
-                                  ::query-constraints]
-                          :opt-un [::app-name
-                                  ::scheme
-                                  ::host
-                                  ::port]))
+(s/fdef types/fragment-routes
+        :args (s/cat :this any?)
+        :ret ::fragment-routes)
 
 ;; --- EXPANDED ROUTING TABLE ---
 
@@ -190,6 +177,8 @@
 (s/def ::routes (s/coll-of ::routing-entry))
 
 ;; Each ::fragment-routing-entry is expanded into a ::routing-entry
+
+;; Define a routing-entry (aka routing map) as produced from a definition (table, terse, verbose):
 
 (s/def ::routing-entry (s/keys
                          :req-un [::path
@@ -202,7 +191,6 @@
                                   ::scheme
                                   ::host
                                   ::port
-                                  ::path-parts
                                   ::path-params
                                   ::path-constraints
                                   ::query-constraints]))
