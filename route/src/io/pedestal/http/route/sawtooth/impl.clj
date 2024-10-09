@@ -14,6 +14,11 @@
   (:require [clojure.string :as string]
             [clj-commons.ansi :refer [perr]]))
 
+#_
+(defn- simplify-path
+  [path]
+  (update path :route #(select-keys % [:path :method :route-name])))
+
 (def ^:dynamic *squash-conflicts-report* false)
 
 (defmacro with-split-path
@@ -266,7 +271,9 @@
   [paths]
   (let [path->route (reduce (fn [m path]
                               (assoc m
-                                     (->> path :unmatched-terms (map :token) (string/join "/"))
+                                     (let [tokens (->> path :unmatched-terms (mapv :token))]
+                                       (when (seq tokens)
+                                         (string/join "/" tokens)))
                                      (:route path)))
                             {}
                             paths)]
@@ -302,33 +309,35 @@
 
 (defn- subdivide-by-path
   [matched paths]
-  (let [[completed-paths other-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
-        ;; This is the case where you have a route that is complete, and other routes that
-        ;; extend from it: i.e. "/user" and "/user/:id".  The first will be an empty path
-        ;; (once "user" is matched) and it is handled here, "/user/:id" will be handled as part
-        ;; of by-first-token
-        completed-paths-matcher (when (seq completed-paths)
-                                  ;; TODO: Should only be one, right? Unless conflicts.
-                                  (let [route (-> completed-paths first :route)]
-                                    (if (= "/" (:path route))
-                                      (fn root-match-completed [remaining-path params-map]
-                                        (when (= "" remaining-path)
-                                          [route params-map]))
-                                      (fn match-completed [remaining-path params-map]
-                                        (when (nil? remaining-path)
-                                          [route params-map])))))
-        by-first-token          (group-by #(-> % :unmatched-terms first :token) other-paths)
-        {params :param
-         wilds  :wild} by-first-token
-        ;; wilds is technically plural *but* should not ever be more than 1 (unless conflicts exist)
-        by-first-literal-token  (dissoc by-first-token :param :wild)
-        literal-matcher         (matcher-by-first-token matched by-first-literal-token)
-        all-matchers            (cond-> []
-                                  completed-paths-matcher (conj completed-paths-matcher)
-                                  literal-matcher (conj literal-matcher)
-                                  params (into (mapv #(matcher-from-path matched %) params))
-                                  wilds (into (mapv #(matcher-from-path matched %) wilds)))]
-    (combine-matchers matched all-matchers)))
+  (if (every? #(= :literal (:category %)) paths)
+    (match-via-lookup paths)
+    (let [[completed-paths other-paths] (categorize-by #(-> % :unmatched-terms empty?) paths)
+          ;; This is the case where you have a route that is complete, and other routes that
+          ;; extend from it: i.e. "/user" and "/user/:id".  The first will be an empty path
+          ;; (once "user" is matched) and it is handled here, "/user/:id" will be handled as part
+          ;; of by-first-token
+          completed-paths-matcher (when (seq completed-paths)
+                                    ;; TODO: Should only be one, right? Unless conflicts.
+                                    (let [route (-> completed-paths first :route)]
+                                      (if (= "/" (:path route))
+                                        (fn root-match-completed [remaining-path params-map]
+                                          (when (= "" remaining-path)
+                                            [route params-map]))
+                                        (fn match-completed [remaining-path params-map]
+                                          (when (nil? remaining-path)
+                                            [route params-map])))))
+          by-first-token          (group-by #(-> % :unmatched-terms first :token) other-paths)
+          {params :param
+           wilds  :wild} by-first-token
+          ;; wilds is technically plural *but* should not ever be more than 1 (unless conflicts exist)
+          by-first-literal-token  (dissoc by-first-token :param :wild)
+          literal-matcher         (matcher-by-first-token matched by-first-literal-token)
+          all-matchers            (cond-> []
+                                    completed-paths-matcher (conj completed-paths-matcher)
+                                    literal-matcher (conj literal-matcher)
+                                    params (into (mapv #(matcher-from-path matched %) params))
+                                    wilds (into (mapv #(matcher-from-path matched %) wilds)))]
+      (combine-matchers matched all-matchers))))
 
 (defn- match-by-path
   [*conflicts matched routes]

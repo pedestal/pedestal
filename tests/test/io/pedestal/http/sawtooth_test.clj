@@ -44,7 +44,7 @@
 (defn- search-pages [])
 (defn- page-content [])
 
-(def routing-table
+(def dynamic-routing-table
   (:routes
     (route/expand-routes
       (table/table-routes
@@ -64,7 +64,7 @@
          ["/internal" :get `internal]
          ["/internal/monitor" :any `monitor]]))))
 
-(deftest routing-table-as-expected
+(deftest dynamic-table-as-expected
   (is (= [{:host       "example.com"
            :method     :post
            :path       "/user/:user-id"
@@ -109,7 +109,7 @@
           {:method     :get
            :path       "/api/stats"
            :route-name :io.pedestal.http.sawtooth-test/stats}]
-         (->> routing-table
+         (->> dynamic-routing-table
               (mapv #(select-keys % [:host :method :path :scheme :port :route-name]))
               (sort-by :route-name)
               vec))))
@@ -124,7 +124,7 @@
          (set/rename-keys kvs {:host :server-name
                                :port :server-port})))
 
-(def requests
+(def dynamic-requests
   [(request :get "/user/9999" :host "example.com") nil      ; wrong scheme
    (request :get "/user/9999" :host "example.com" :scheme :https) [::get-user {:user-id "9999"}]
    (request :head "/user/9999" :host "example.com" :scheme :https) nil ; wrong method
@@ -149,24 +149,24 @@
     [(:route-name route) (or path-params {})]))
 
 (deftest sawtooth-queries
-  (let [sawtooth (sawtooth/router routing-table)]
-    (doseq [[request expected] (partition 2 requests)]
+  (let [sawtooth (sawtooth/router dynamic-routing-table)]
+    (doseq [[request expected] (partition 2 dynamic-requests)]
       (reporting request
                  (is (= expected
                         (attempt-request sawtooth request)))))))
 
 (deftest sawtooth-matches-prefix-tree
-  (let [sawtooth    (sawtooth/router routing-table)
-        prefix-tree (prefix-tree/router routing-table)]
-    (doseq [[request _] (partition 2 requests)]
+  (let [sawtooth    (sawtooth/router dynamic-routing-table)
+        prefix-tree (prefix-tree/router dynamic-routing-table)]
+    (doseq [[request _] (partition 2 dynamic-requests)]
       (reporting request
                  (is (= (attempt-request prefix-tree request)
                         (attempt-request sawtooth request)))))))
 
 
 (comment
-  (def sawtooth-router (sawtooth/router routing-table))
-  (def prefix-router (prefix-tree/router routing-table))
+  (def sawtooth-router (sawtooth/router dynamic-routing-table))
+  (def prefix-router (prefix-tree/router dynamic-routing-table))
 
   (attempt-request sawtooth-router (request :get "/internal" :port 9999))
 
