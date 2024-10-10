@@ -220,7 +220,7 @@ one of the built-in algorithms:
 
 | :sawtooth
 | xref:sawtooth-router.adoc[Sawtooth]
-| High performance, reports conflicts
+| High performance, reports conflicts, *default router*
 
 | :linear-search
 | xref:linear-search-router.adoc[Linear Search]

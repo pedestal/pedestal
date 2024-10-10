@@ -14,6 +14,9 @@ real work over much time to straighten that out. Focus on what the protocols _do
 they are _named_.
 ====
 
+In addition, the xref:sawtooth-router.adoc[] is now the default router; the others are kept primarily for
+backwards compatibility.
+
 == Private Functions
 
 Many of the namespaces used in routing had internal functions not marked as private; these have
@@ -23,7 +26,7 @@ been made private.
 
 Previously, it was assumed that there was a single specification for all routes; in trivial examples
 this might be a set (which, via the RouteSpecification protocol) is interpreted as a
-call to api:table-routes[ns=io.pedestal.http.route.definition.table].
+call to api:table-routes[ns=io.pedestal.http.route.definition.table]).
 
 Other applications might invoke `table/table-routes` directly.
 
@@ -31,7 +34,7 @@ In either case, this single value is provided as the ::http/routes key of the
 xref:service-map.adoc[].
 
 A single set of routes is now considered a special case; the more general case is that
-multiple routes will be mixed together to form the overall routing table.
+multiple sets of routes will be mixed together to form the overall routing table.
 
 The return type of `table-routes/routes`, and the other built-in route definitions
 (api:terse-routes[ns=io.pedestal.http.route.definition.terse] and
@@ -58,9 +61,11 @@ two implementations.
 
 == Router Protocol
 
-The Router protocol, and the containing io.pedestal.http.route.router namespace, have been removed; instead, each router contructor simply returns a function.
+The Router protocol, and the containing io.pedestal.http.route.router namespace, have been removed; instead,
+each router contructor simply returns a router function.
 
 The contract has changed slightly; on a successful route, the router function returns a tuple of
 two values:
-- The matching route
-- The map of path parameter values (extracted from the request's path)
+
+* The matching route
+* The map of path parameter values (extracted from the request's path)

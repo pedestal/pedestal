@@ -1423,7 +1423,8 @@
                     (merge {:request-method :get} req)}]
       (= (:route-name (test-query-execute static-quoted-tabular-routes :map-tree full-req))
          (:route-name (test-query-execute static-quoted-tabular-routes :prefix-tree full-req))
-         (:route-name (test-query-execute static-quoted-tabular-routes :linear-search full-req))))
+         (:route-name (test-query-execute static-quoted-tabular-routes :linear-search full-req))
+         (:route-name (test-query-execute static-quoted-tabular-routes :sawtooth full-req))))
     {:path-info "/search" :query-string nil}
     {:path-info "/search" :query-string "q=1234"}
     {:request-method :put :path-info "/search" :query-string "q=1234"}

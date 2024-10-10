@@ -12,14 +12,16 @@
 (ns io.pedestal.sawtooth-bench
   "Used to run comparisons of Sawtooth vs. prefix-tree router performance."
   (:require [clojure.string :as string]
+            [criterium.core :as c]
+            [io.pedestal.http.route.map-tree :as map-tree]
             [net.lewisship.bench :as bench]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [clj-async-profiler.core :as prof]
             [io.pedestal.http.route :as route]
-            [io.pedestal.http.sawtooth-test :refer [routing-table]]))
+            [io.pedestal.http.sawtooth-test :refer [dynamic-routing-table]]))
 
-(def all-routes (vec routing-table))
+(def dynamic-routes (vec dynamic-routing-table))
 
 (defn route->request
   [route]
@@ -43,27 +45,26 @@
       scheme (assoc :scheme scheme)
       (not= method :any) (assoc :request-method method))))
 
-(def infinite-requests
+(def infinite-dynamic-requests
   (repeatedly
     (fn []
-      (route->request (rand-nth all-routes)))))
+      (route->request (rand-nth dynamic-routes)))))
 
+(def dynamic-requests
+  {:small  (doall (take 100 infinite-dynamic-requests))
+   :medium (doall (take 1000 infinite-dynamic-requests))
+   :large  (doall (take 100000 infinite-dynamic-requests))})
 
-(def requests
-  {:small  (doall (take 100 infinite-requests))
-   :medium (doall (take 1000 infinite-requests))
-   :large  (doall (take 100000 infinite-requests))})
+(def dynamic-routers
+  {:prefix-tree (prefix-tree/router dynamic-routes)
+   :sawtooth    (sawtooth/router dynamic-routes)})
 
-(def routers
-  {:prefix-tree (prefix-tree/router all-routes)
-   :sawtooth    (sawtooth/router all-routes)})
-
-(defn- execute
+(defn- execute-dynamic
   [batch-size router-name]
-  (let [router-fn (routers router-name)]
+  (let [router-fn (dynamic-routers router-name)]
     (run! (fn [request]
             (router-fn request))
-          (requests batch-size))))
+          (dynamic-requests batch-size))))
 
 
 ;; 14 Sep 2024
@@ -121,16 +122,16 @@
 
 (comment
 
-  (time (execute :large :sawtooth))
+  (time (execute-dynamic :large :sawtooth))
 
   (bench/bench-for {:progress? true
                     :ratio? false}
                    [size [:small :medium :large]
-                    router (keys routers)]
-                   (execute size router))
+                    router (keys dynamic-routers)]
+                   (execute-dynamic size router))
 
   (prof/profile
-    (dotimes [_ 100000] (execute :large :sawtooth)))
+    (dotimes [_ 100000] (execute-dynamic :large :sawtooth)))
 
   (prof/serve-ui 8080)
 
@@ -139,9 +140,77 @@
              #{{:app-name :example-app
                 :scheme   :https
                 :host     "example.com"}
-               ["/department/:id/employees" :get [execute]
+               ["/department/:id/employees" :get [execute-dynamic]
                 :route-name :org.example.app/employee-search
                 :constraints {:name  #".+"
                               :order #"(asc|desc)"}]}))
+
+  )
+
+(defn logout [])
+(defn search [])
+(defn search-form [])
+(defn intercepted [])
+(defn trailing-slash [])
+
+(def static-routing-table
+  (route/expand-routes
+    #{["/logout" :any `logout]
+      ["/search" :get `search :constraints {:q #".+"}]
+      ["/search" :post `search-form]
+      ["/intercepted" :get `intercepted ]
+      ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
+      ["/hierarchical/intercepted" :get intercepted :route-name :hierarchical-intercepted]
+      ["/terminal/intercepted" :get intercepted :route-name :terminal-intercepted]}))
+
+(def static-routes (-> static-routing-table :routes vec))
+
+(def infinite-static-requests
+  (repeatedly
+    (fn []
+      (route->request (rand-nth static-routes)))))
+
+(def static-requests
+  {:small  (doall (take 100 infinite-static-requests))
+   :medium (doall (take 1000 infinite-static-requests))
+   :large  (doall (take 100000 infinite-static-requests))})
+
+(def static-routers
+  {:map-tree (map-tree/router static-routes)
+   :sawtooth (sawtooth/router static-routes)})
+
+(defn- execute-static
+  [batch-size router-name]
+  (let [router-fn (static-routers router-name)]
+    (run! (fn [request]
+            (router-fn request))
+          (static-requests batch-size))))
+
+;; Optimizing sawtooth for static paths
+
+;; 9 Oct 2024
+
+;┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+;┃             Expression             ┃    Mean   ┃     Var     ┃
+;┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━╋━━━━━━━━━━━━━┫
+;┃  (execute-static :small :map-tree) ┃  18.05 µs ┃ ± 258.02 ns ┃ (fastest)
+;┃  (execute-static :small :sawtooth) ┃  21.48 µs ┃ ± 695.38 ns ┃
+;┃ (execute-static :medium :map-tree) ┃ 176.26 µs ┃   ± 1.92 µs ┃
+;┃ (execute-static :medium :sawtooth) ┃ 202.23 µs ┃   ± 4.14 µs ┃
+;┃  (execute-static :large :map-tree) ┃  16.99 ms ┃ ± 181.81 µs ┃
+;┃  (execute-static :large :sawtooth) ┃  19.56 ms ┃ ± 395.42 µs ┃ (slowest)
+;┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━━━┛
+
+(comment
+
+  (c/quick-bench (sawtooth/router dynamic-routes))
+
+  (time (execute-static :large :sawtooth))
+
+  (bench/bench-for {:progress? true
+                    :ratio?    false}
+                   [size [:small :medium :large]
+                    router (keys static-routers)]
+                   (execute-static size router))
 
   )

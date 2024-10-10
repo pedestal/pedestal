@@ -294,7 +294,7 @@ to `server.clj`:
 (defn recognize-route
   "Verifies the requested HTTP verb and path are recognized by the router."
   [verb path]
-  (route/try-routing-for (table-routes service/routes) :prefix-tree path verb))
+  (route/try-routing-for (table-routes service/routes) path verb))
 ----
 
 With this function in place, we can test for route recognition from the REPL:
