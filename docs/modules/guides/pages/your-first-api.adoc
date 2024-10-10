@@ -142,7 +142,7 @@ xref:hello-world-query-parameters.adoc#_interactive_development[Hello World, Wit
 Get ready for a _ton_ of output:
 
 ----
-> clj
+$ clj
 Clojure 1.11.1
 user=> (require 'main)
 nil
@@ -548,7 +548,7 @@ functions from right to left.
 | Leave | `list-item-create` | None.
 | Leave | `db-interceptor` | Execute the tx-data, attach updated DB value to context.
 | Leave | `list-item-view` | Find the (new) item by path-params,
-  attach it to the context as :result.
+  attach it to the context as :result.'
 | Leave | `entity-render` | Find :result on the context, make an OK response.
 
 |===

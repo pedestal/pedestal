@@ -497,11 +497,9 @@
 
   A router function will be passed the request map, and return nil, or a matching route.
 
-  The default router type is :map-tree, which is the fastest built-in router;
-  however, if the expanded routes contain any path parameters or wildcards,
-  the result is equivalent to the slower :prefix-tree implementation."
+  The default router type is :sawtooth."
   ([routing-table]
-   (router routing-table :map-tree))
+   (router routing-table :sawtooth))
   ([routing-table router-type]
    (assert (or (contains? router-implementations router-type)
                (fn? router-type))
@@ -620,19 +618,24 @@
   "Used for testing; constructs a router from the routing-table and router-type and performs routing
   on the provided path and verb (e.g., :get or :post).
 
+  Uses :sawtooth as the default router, if unspecified; this should match the configuration
+  in the application's service map.
+
   Returns the matched route (a map from the routing table), or nil if routing was unsuccessful.
 
-  The matched route has an extra key, :path-params.
+  The matched route has an extra key, :path-params, a map of keyword to string.
 
   The routing-table is obtained from [[expand-routes]]."
-  [routing-table router-type path verb]
-  (let [routing-interceptor (router routing-table router-type) ; create a disposable interceptor
-        context             {:request {:path-info      path
-                                       :request-method verb}}
-        enter-fn            (:enter routing-interceptor)
-        {:keys [request route]} (enter-fn context)]
-    (when route
-      (assoc route :path-params (:path-params request)))))
+  ([routing-table path verb]
+   (try-routing-for routing-table :sawtooth path verb))
+  ([routing-table router-type path verb]
+   (let [routing-interceptor (router routing-table router-type) ; create a disposable interceptor
+         context             {:request {:path-info      path
+                                        :request-method verb}}
+         enter-fn            (:enter routing-interceptor)
+         {:keys [request route]} (enter-fn context)]
+     (when route
+       (assoc route :path-params (:path-params request))))))
 
 (defmacro routes-from
   "Wraps around one or more expressions that each provide a [[RoutingFragment]].

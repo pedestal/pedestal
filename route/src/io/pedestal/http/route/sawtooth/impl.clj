@@ -266,7 +266,9 @@
   [paths]
   (let [path->route (reduce (fn [m path]
                               (assoc m
-                                     (->> path :unmatched-terms (map :token) (string/join "/"))
+                                     (let [tokens (->> path :unmatched-terms (mapv :token))]
+                                       (when (seq tokens)
+                                         (string/join "/" tokens)))
                                      (:route path)))
                             {}
                             paths)]
