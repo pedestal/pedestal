@@ -14,11 +14,6 @@
   (:require [clojure.string :as string]
             [clj-commons.ansi :refer [perr]]))
 
-#_
-(defn- simplify-path
-  [path]
-  (update path :route #(select-keys % [:path :method :route-name])))
-
 (def ^:dynamic *squash-conflicts-report* false)
 
 (defmacro with-split-path
