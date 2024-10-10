@@ -31,7 +31,7 @@ prefix-tree expressly favors paths with path parameters over paths that are enti
 
 == Additional Notes
 
-Like the prefix-tree and map-tree, query and path
+Like the prefix-tree and map-tree routers, query and path
 constraints are not used in routing decisions. They are only used to
 invalidate a route match.
 
