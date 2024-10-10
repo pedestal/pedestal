@@ -70,7 +70,7 @@ $ java -version
 You should see some output something like this:
 
 ----
-> java -version
+$ java -version
 openjdk version "11.0.19" 2023-04-18 LTS
 OpenJDK Runtime Environment Corretto-11.0.19.7.1 (build 11.0.19+7-LTS)
 OpenJDK 64-Bit Server VM Corretto-11.0.19.7.1 (build 11.0.19+7-LTS, mixed mode)
@@ -278,7 +278,7 @@ service. That makes our service more self-contained and portable.
 Let's try out our response function.
 
 ----
-> clj
+$ clj
 Downloading: io/pedestal/pedestal.jetty/0.6.1/pedestal.jetty-0.6.1.pom from clojars
 Downloading: io/pedestal/pedestal.service/0.6.1/pedestal.service-0.6.1.pom from clojars
 Downloading: io/pedestal/pedestal.log/0.6.1/pedestal.log-0.6.1.pom from clojars
@@ -374,11 +374,11 @@ user=> (require :reload 'hello)
 nil
 user=> (require '[io.pedestal.http.route :as route])
 nil
-user=> (route/try-routing-for hello/routes :prefix-tree "/greet" :get)
+user=> (route/try-routing-for hello/routes "/greet" :get)
 {:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{:name }], :route-name :greet, :path-params {}}
-user=> (route/try-routing-for hello/routes :prefix-tree "/greet" :post)
+user=> (route/try-routing-for hello/routes "/greet" :post)
 nil
-user=> (route/try-routing-for hello/routes :prefix-tree "/greet" :put)
+user=> (route/try-routing-for hello/routes "/greet" :put)
 nil
 ----
 
@@ -388,10 +388,9 @@ code from `hello.clj`. That's what the :reload keyword does in the
 error when you try to reference `hello/routes`.
 
 The function api:try-routing-for[ns=io.pedestal.http.route] lets us ask "What would Pedestal do?"
-with an incoming HTTP request. We gave it our table of one route, a
-magic keyword :prefix-tree, then the query string and HTTP verb.
+with an incoming HTTP request. We gave it our table of one route, then the query string and HTTP verb.
 
-`try-routing-for` uses the example routing table, from `hello/routes`, and the router type, :prefix-tree,
+`try-routing-for` uses the example routing table, from `hello/routes`
 to create a temporary router; it then passes the provided method (:get) and path, `/greet`,
 to see how it would be routed; if the route matches, a _routing entry_ is returned, which identifies
 what was matched, and would be used in a live Pedestal application.

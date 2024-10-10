@@ -13,6 +13,7 @@ The main focus of this release is to improve routing.
 - Significant changes to io.pedestal.http.route have occured
 - A new router, io.pedestal.http.route.sawtooth, has been added
   - Sawtooth identfies conflicting routes
+  - Sawtooth is now the *default router*
 
 ## 0.7.1 -- 27 Sep 2024
  

@@ -7,8 +7,11 @@ Provide a router that can detect and report route conflicts.
 == Why use it?
 
 Sawtooth is similar to xref:prefix-tree-router.adoc[Prefix Tree] in how it generally operates,
-and is nearly as fast -- within 5 to 10%  of prefix-tree in benchmarks, and on the order a micro- (not milli-)
+and is nearly as fast -- within 5 to 10%  of prefix-tree in benchmarks, and on the order of a micro- (not milli-)
 second to route a request.
+
+Further, when the routing table consists only of static paths (that is, no path parameters), Sawtooth
+has performance nearly as fast as xref:map-tree-router.adoc[] (a fraction of a micro-second to route a request).
 
 Sawtooth's distinguishing characteristic is that it will, at startup, write (to standard error)
 a report describing any conflicting routes.
@@ -18,16 +21,17 @@ image::sawtooth-report.png[]
 
 == How to use it?
 
-Add the key :io.pedestal.http/router to the xref:service-map.adoc[] with the
-value :sawtooth.
+Sawtooth is the default router; it will be used when no value is specified for the :io.pedestal.http/router key
+of the xref:service-map.adoc[].
 
 == Caveats
 
-The behavior of Sawtooth is not defined when there _are_ route conflicts.
+The behavior of Sawtooth is not defined when there _are_ route conflicts;
+prefix-tree expressly favors paths with path parameters over paths that are entirely static.
 
 == Additional Notes
 
-Like the xref:map-tree-router.adoc[], query and path
+Like the prefix-tree and map-tree, query and path
 constraints are not used in routing decisions. They are only used to
 invalidate a route match.
 

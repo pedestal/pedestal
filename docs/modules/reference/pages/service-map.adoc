@@ -123,7 +123,8 @@ from another container on the same host) will be network, not localhost, connect
 | ::http/router
 | N
 | Keyword or route constructor
-| The router implementation to use. Can be :linear-search, :map-tree :prefix-tree, or a custom api:Router[ns=io.pedestal.http.route.router] constructor function. Defaults to :map-tree, which falls back to :prefix-tree.
+| The router implementation to use. Can be :linear-search, :map-tree :prefix-tree, or :sawtooth, or a custom router constructor function.
+  Defaults to :sawtooth.
 
 | ::http/routes
 | Y
