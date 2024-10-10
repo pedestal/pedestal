@@ -199,8 +199,8 @@
     a function that returns expanded routes when called, expanded routes
      (from calling [[expand-routes]], or a _seq of route maps that defines a service's routes_ (this last
      case is _deprecated_).
-  * :router: The [[Router]] implementation to use. Can be :linear-search, :map-tree
-    :prefix-tree, :sawtooth, or a custom Router constructor function. Defaults to :map-tree, which falls back on :prefix-tree
+  * :router: The router constructor to use. Can be :linear-search, :map-tree
+    :prefix-tree, :sawtooth, or a custom router constructor function. Defaults to :sawtooth.
   * :file-path: File path used as root by the middlewares/file interceptor (exposing a local directory
      as the root). If nil, this interceptor
     is not added. Default is nil.
@@ -230,33 +230,33 @@
   Note that none of the default interceptors will parse the content of the request body (for POST or other requests);
   individual _routes_ that are of type POST should include the [[body-params]] interceptor to do so."
   [service-map]
-  (let [{interceptors          ::interceptors
-         request-logger        ::request-logger
-         routes                ::routes
-         router                ::router
-         file-path             ::file-path
-         resource-path         ::resource-path
-         method-param-name     ::method-param-name
-         allowed-origins       ::allowed-origins
-         not-found-interceptor ::not-found-interceptor
-         ext-mime-types        ::mime-types
-         enable-session        ::enable-session
-         enable-csrf           ::enable-csrf
-         secure-headers        ::secure-headers
-         path-params-decoder   ::path-params-decoder
-         tracing               ::tracing
-         :or                   {file-path             nil
-                                request-logger        log-request
-                                router                :map-tree
-                                resource-path         nil
-                                not-found-interceptor not-found
-                                method-param-name     :_method
-                                ext-mime-types        {}
-                                enable-session        nil
-                                enable-csrf           nil
-                                secure-headers        {}
-                                path-params-decoder   route/path-params-decoder
-                                tracing               (tracing/request-tracing-interceptor)}} service-map
+  (let [{::keys [interceptors
+                 request-logger
+                 routes
+                 router
+                 file-path
+                 resource-path
+                 method-param-name
+                 allowed-origins
+                 not-found-interceptor
+                 ext-mime-types
+                 enable-session
+                 enable-csrf
+                 secure-headers
+                 path-params-decoder
+                 tracing]
+         :or    {file-path             nil
+                 request-logger        log-request
+                 router                :sawtooth
+                 resource-path         nil
+                 not-found-interceptor not-found
+                 method-param-name     :_method
+                 ext-mime-types        {}
+                 enable-session        nil
+                 enable-csrf           nil
+                 secure-headers        {}
+                 path-params-decoder   route/path-params-decoder
+                 tracing               (tracing/request-tracing-interceptor)}} service-map
         routing-table-or-fn (cond
                               (route/is-routing-table? routes) routes
                               (satisfies? route/ExpandableRoutes routes) (route/expand-routes routes)
