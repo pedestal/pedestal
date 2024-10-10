@@ -150,10 +150,10 @@
 
 (deftest sawtooth-queries
   (let [sawtooth (sawtooth/router dynamic-routing-table)]
-    (doseq [[request expected] (partition 2 dynamic-requests)]
-      (reporting request
-                 (is (= expected
-                        (attempt-request sawtooth request)))))))
+    (doseq [[request expected] (partition 2 dynamic-requests)
+            :let [result (attempt-request sawtooth request)]]
+      (reporting [request result]
+                 (is (= expected result))))))
 
 (deftest sawtooth-matches-prefix-tree
   (let [sawtooth    (sawtooth/router dynamic-routing-table)
