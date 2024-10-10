@@ -12,6 +12,7 @@
 (ns io.pedestal.sawtooth-bench
   "Used to run comparisons of Sawtooth vs. prefix-tree router performance."
   (:require [clojure.string :as string]
+            [criterium.core :as c]
             [io.pedestal.http.route.map-tree :as map-tree]
             [net.lewisship.bench :as bench]
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
@@ -201,6 +202,8 @@
 ;┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━┻━━━━━━━━━━━━━┛
 
 (comment
+
+  (c/quick-bench (sawtooth/router dynamic-routes))
 
   (time (execute-static :large :sawtooth))
 
