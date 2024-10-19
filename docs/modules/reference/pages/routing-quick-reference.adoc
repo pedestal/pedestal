@@ -19,6 +19,14 @@ can also be differentiated by the host.  A somewhat common example is an outward
 application exposed outside a company's firewall on one port, and an inward-facing set of endpoints
 for operations (status, metrics, management, and so forth) on a different port.
 
+[WARNING]
+====
+Defining routes and setting up the servlet container are two separate functions; just because you have
+a route mapped to a port or host doesn't mean that the servlet container is configured to accept
+requests for that port or host. You have to connect those dots by setting up the servlet container's
+configuration in the xref:service-map.adoc[].
+====
+
 == Library
 
 The library api:*[ns=io.pedestal.http.route] namespace

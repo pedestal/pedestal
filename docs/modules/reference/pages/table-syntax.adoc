@@ -128,6 +128,9 @@ The "handler position" can be anything that satisfies the api:IntoInterceptor[ns
 - Map
 - List (of the above)
 
+The options provided to `table-routes` may include an :interceptors key; this is a seq of interceptors that is
+prefixed to any interceptors provided by the route.
+
 === Route Name Clause
 
 A route name clause is the keyword :route-name followed by a keyword. Route names must be unique.

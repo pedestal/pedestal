@@ -15,6 +15,11 @@ The main focus of this release is to improve routing.
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
 
+Other changes:
+
+- Table routes may now specify :interceptors (in the options map); these are prefixed on any
+  interceptors provided by the route
+
 ## 0.7.1 -- 27 Sep 2024
  
 Changes:
