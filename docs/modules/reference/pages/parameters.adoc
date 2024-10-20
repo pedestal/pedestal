@@ -174,8 +174,8 @@ function. Use the :store option to persist the parts.
 == The Method Parameter
 
 Browsers (especially older ones) do not have easy ways to handle
-DELETE and PUT requests. Pedestal allows requests to "smuggle" a verb
-through a query parameter.
+DELETE and PUT requests. Pedestal allows requests to
+link:verb-smuggling.adoc[smuggle verbs] through a query parameter.
 
 If the magic query parameter `_method` is present, then its value will
 be used as the HTTP verb for this request.

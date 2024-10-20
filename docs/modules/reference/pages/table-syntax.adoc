@@ -2,15 +2,30 @@
 
 == Quick Reference
 
-=== Route Vector Format
+=== Table Options
+
+Table routes may include an options map to provide defaults for all routes within; this
+can either be the first argument to api:table-routes[ns=io.pedestal.http.route.definition.table],
+or it can be an option map mixed in with the routes (each route is a vector) footnote:[This makes sense
+in terms of converting a set directly into table routes).
+
+The keys :app-name, :host, :port, and :schema set defaults for routes that do not specify the corresponding value.
+
+The :verbs key may be a set of keywords; these are the keywords allowed for routes within the table. This is typically
+used when xref:verb-smuggling.adoc[verb smuggling].
+
+The :interceptors option key is a seq of interceptors; these are prepended to any interceptors defined by routes
+in the table.
+
+=== Route Vector Formats
 
 1. Path string
-2. Verb. One of :any, :get, :put, :post, :delete, :patch, :options, :head
+2. Verb. Typically one of :any, :get, :put, :post, :delete, :patch, :options, :head
 3. Handler or vector of interceptors
 4. (Optional) Route name clause
 5. (Optional) Constraint clause
 
-=== Syntax for api:table-routes[ns=io.pedestal.http.route.definition.table]
+=== Syntax for `table-routes`
 
 [source,clojure]
 ----
@@ -103,7 +118,7 @@ including an options map with the keyword :verb in your route definition. The
 value of :verb is a set of verb keywords you wish to support in the routes. It is
 through this facility that you can specify custom verbs.
 
-When using custom verbs, you will want to configure your interceptors to support xref:guides:defining-routes.adoc#_verb_smuggling[verb smuggling].
+When using custom verbs, you will want to configure your interceptors to support xref:verb-smuggling.adoc[verb smuggling].
 
 ==== Syntax for specifying verbs
 

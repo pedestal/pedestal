@@ -468,7 +468,7 @@ The private variable allows the
 api:url-for[ns=io.pedestal.http.route]
 function to operate from any interceptor (or handler) code.
 
-=== Verb smuggling
+=== Form Route Verbs
 
 api:url-for[ns=io.pedestal.http.route]
 only returns URLs. The function
@@ -499,6 +499,8 @@ This behavior can be disabled (or enabled for `url-for` functions) and
 the query string parameter name can be changed. All of these settings
 can be modified when an `url-for` or `form-action` function is created
 or when it is invoked.
+
+The `_method` parameter is used for xref:reference:verb-smuggling.adoc[verb smuggling].
 
 == Using Routes in a Service
 
