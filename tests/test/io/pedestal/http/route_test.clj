@@ -1558,9 +1558,9 @@
 (deftest table-routes-interceptor-opt-is-prefix
 
   (let [routes  (table/table-routes {:interceptors [i-1 i-2]}
-                                    #{["/root/one" :get handler :route-name :one]
-                                      ["/root/two" :get [i-3 handler] :route-name :two]
-                                      ["/root/three" :get [handler] :route-name :three]})
+                                    [["/root/one" :get handler :route-name :one]
+                                     ["/root/two" :get [i-3 handler] :route-name :two]
+                                     ["/root/three" :get [handler] :route-name :three]])
         by-name (medley/index-by :route-name (:routes routes))]
     (is (match?
           {:one   {:interceptors [i-1 i-2 handler]}

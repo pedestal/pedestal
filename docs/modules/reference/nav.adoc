@@ -35,6 +35,7 @@
 **** xref:map-tree-router.adoc[]
 **** xref:linear-search-router.adoc[]
 **** xref:prefix-tree-router.adoc[]
+** xref:verb-smuggling.adoc[]
 
 ** Deployment and Operations
 *** xref:config.adoc[]

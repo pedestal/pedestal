@@ -77,7 +77,8 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | :request-method
 | Y
 | Keyword
-| The HTTP verb used to make this request, lowercased and in keyword form. For example, :get or :post. For :put and :delete request methods, this may be "smuggled" in via a query parameter :_method. (Performed by the api:method-param[ns=io.pedestal.http.route] interceptor.
+| The HTTP verb used to make this request, lowercased and in keyword form. Due to xref:verb-smuggling.adoc[verb smuggling], this
+  may change during processing of the request.
 
 | :server-name
 | Y
