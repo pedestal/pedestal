@@ -87,6 +87,7 @@
                                   ::host
                                   ::port
                                   ::scheme
+                                  ::interceptors
                                   :io.pedestal.http.route.definition.table/verbs]))
 
 (s/def :io.pedestal.http.route.definition.table/verbs (s/coll-of keyword?))

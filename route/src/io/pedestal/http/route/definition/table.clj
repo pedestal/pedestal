@@ -29,7 +29,7 @@
   [{:keys [remaining] :as ctx}]
   (error ctx (format "there were unused elements %s." remaining)))
 
-(def ^:private known-options [:app-name :host :port :scheme :verbs])
+(def ^:private known-options [:app-name :host :port :scheme :verbs :interceptors])
 (def ^:private default-verbs #{:any :get :put :post :delete :patch :options :head})
 
 (defn- make-parse-context
@@ -71,13 +71,16 @@
 
 (defn- parse-handlers
   [ctx]
-  (let [[handlers & more] (:remaining ctx)]
+  (let [{:keys [interceptors remaining]} ctx
+        [handlers & more] remaining]
     (if (vector? handlers)
       (assert (every? #(satisfies? interceptor/IntoInterceptor %) handlers) (syntax-error ctx "the vector of handlers" "a bunch of interceptors" handlers))
       (assert (satisfies? interceptor/IntoInterceptor handlers) (syntax-error ctx "the handler" "an interceptor" handlers)))
     (let [original-handlers (if (vector? handlers) (vec handlers) [handlers])
-          handlers          (mapv interceptor/interceptor original-handlers)]
-      (assoc ctx :interceptors handlers
+          route-interceptors (map interceptor/interceptor original-handlers)
+          all-interceptors (into (vec interceptors)
+                                 route-interceptors)]
+      (assoc ctx :interceptors all-interceptors
              :remaining more
              :last-handler (last original-handlers)))))
 
@@ -142,9 +145,11 @@
   The single parameter constructor looks for the first map as the options, then any other vectors
   are the routes.
 
-  The options map may have keys :app-name, :host, :port, :scheme, and :verbs.  The first four
+  The options map may have keys :app-name, :host, :port, :scheme, :interceptors, and :verbs.  The first four
   set the corresponding route keys of the routes; the :verbs key specifies the allowed verbs for
-  the routes."
+  the routes
+
+  The :interceptors option are a seq of interceptors that are prefixed to any interceptors specified in a route."
   ([routes]
    (table-routes (or (first (filter map? routes)) {})
                  (filterv vector? routes)))

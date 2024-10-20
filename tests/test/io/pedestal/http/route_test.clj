@@ -18,10 +18,12 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.http.route.sawtooth.impl :as impl]
             [io.pedestal.interceptor :refer [interceptor]]
             io.pedestal.http.route.specs
+            [medley.core :as medley]
             [ring.util.response :as ring-response]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.route :as route :refer [expand-routes]]
@@ -1536,3 +1538,32 @@
   (is (thrown-with-msg? ExceptionInfo
                         #"\QValue does not satisfy io.pedestal.http.route/ExpandableRoutes\E"
                         (expand-routes false))))
+
+(def i-1
+  (interceptor {:name  :i-1
+                :enter identity}))
+
+(def i-2
+  (interceptor {:name  :i-2
+                :enter identity}))
+
+(def i-3
+  (interceptor {:name  :i-3
+                :enter identity}))
+
+(def handler
+  (interceptor {:name  :handler
+                :enter identity}))
+
+(deftest table-routes-interceptor-opt-is-prefix
+
+  (let [routes  (table/table-routes {:interceptors [i-1 i-2]}
+                                    #{["/root/one" :get handler :route-name :one]
+                                      ["/root/two" :get [i-3 handler] :route-name :two]
+                                      ["/root/three" :get [handler] :route-name :three]})
+        by-name (medley/index-by :route-name (:routes routes))]
+    (is (match?
+          {:one   {:interceptors [i-1 i-2 handler]}
+           :two   {:interceptors [i-1 i-2 i-3 handler]}
+           :three {:interceptors [i-1 i-2 handler]}}
+          by-name))))
