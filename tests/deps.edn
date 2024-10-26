@@ -56,7 +56,8 @@
  :aliases
  {:coverage
   {:paths      ["test" "resources"]
-   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
+   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}
+                org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}
    :jvm-opts   ["-Dcollecting-coverage=true"]
    :main-opts  ["--main" "cloverage.coverage"
                 "--test-ns-path" "test"
