@@ -11,9 +11,9 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.jetty
-  "Jetty adaptor for Pedestal."
-  (:require [io.pedestal.http.jetty.container]
+(ns io.pedestal.http.jetty12
+  "Jetty 12 adaptor for Pedestal."
+  (:require [io.pedestal.http.jetty12.container]
             [clojure.string :as string]
             [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.websocket :as ws])

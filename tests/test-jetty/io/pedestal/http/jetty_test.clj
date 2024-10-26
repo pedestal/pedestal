@@ -285,4 +285,3 @@
                            (is (.startsWith ^String (get-in response [:headers "content-type"])
                                             "text/plain"))
                            (is (= (:body response) "/context2/hello"))))))
-

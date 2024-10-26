@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.jetty.util
+(ns io.pedestal.http.jetty12.util
   (:import (java.util EnumSet)
            (jakarta.servlet Filter DispatcherType)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler FilterHolder)))

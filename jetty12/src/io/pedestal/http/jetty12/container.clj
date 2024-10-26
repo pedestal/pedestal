@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.jetty.container
+(ns io.pedestal.http.jetty12.container
   "Extends Pedestal protocols onto Jetty container classes."
   (:require [io.pedestal.http.container :as container]
             [clojure.core.async :as async])
