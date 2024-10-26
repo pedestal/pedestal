@@ -29,7 +29,7 @@
 
         hato/hato {:mvn/version "1.0.0"}
 
-        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
+        jakarta.servlet/jakarta.servlet-api {:mvn/version "5.0.0"}
 
         ;; Include *all* the other modules
         io.pedestal/pedestal.log {:local/root "../log"}
@@ -79,7 +79,8 @@
   :jetty12
   {:extra-paths ["test-jetty12"]
    :extra-deps {org.eclipse.jetty.ee10/jetty-ee10-servlets {:mvn/version "12.0.14"}
-                io.pedestal/pedestal.jetty12 {:local/root "../jetty12"}}}
+                io.pedestal/pedestal.jetty12 {:local/root "../jetty12"}
+                jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}}}
 
   :test
   {
