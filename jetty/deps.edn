@@ -14,7 +14,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.11.4"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.service {:mvn/version "0.8.0-SNAPSHOT"}
-        org.eclipse.jetty/jetty-server {:mvn/version "11.0.23"}
+        org.eclipse.jetty/jetty-server {:mvn/version "11.0.24"}
         org.eclipse.jetty/jetty-servlet {:mvn/version "11.0.24"}
         org.eclipse.jetty/jetty-alpn-server {:mvn/version "11.0.24"}
         org.eclipse.jetty.http2/http2-server {:mvn/version "11.0.24"}

@@ -73,12 +73,12 @@
 
   :jetty
   {:extra-paths ["test-jetty"]
-   :extra-deps {org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.22"}
+   :extra-deps {org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
                 io.pedestal/pedestal.jetty {:local/root "../jetty"}}}
 
   :jetty12
   {:extra-paths ["test-jetty12"]
-   :extra-deps {org.eclipse.jetty.ee10/jetty-ee10-servlets {:mvn/version "12.0.12"}
+   :extra-deps {org.eclipse.jetty.ee10/jetty-ee10-servlets {:mvn/version "12.0.14"}
                 io.pedestal/pedestal.jetty12 {:local/root "../jetty12"}}}
 
   :test
