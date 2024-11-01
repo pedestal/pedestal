@@ -20,10 +20,18 @@ Other changes:
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
 
+## 0.7.2 - 1 Nov 2024
+
+Changes:
+- Correctly detect when a response can not be returned due to the client disconnecting
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/20?closed=1)
+
 ## 0.7.1 -- 27 Sep 2024
- 
+
 Changes:
 - Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
+
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/19?closed=1)
 
