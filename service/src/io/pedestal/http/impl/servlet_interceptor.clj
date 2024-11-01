@@ -261,8 +261,18 @@
 (defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
   [exception]
-  (and (instance? IOException exception)
-       (.equalsIgnoreCase "broken pipe" (ex-message exception))))
+  (cond
+    (nil? exception)
+    false
+
+    (and (instance? IOException exception)
+         (.equalsIgnoreCase "broken pipe" (ex-message exception)))
+    true
+
+    :else
+    (let [next (ex-cause exception)]
+      (when-not (identical? exception next)
+        (recur next)))))
 
 (defn default-exception-analyzer
   "The default for the :exception-analyzer option, this function is passed the
