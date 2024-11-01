@@ -2,13 +2,20 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
+## 0.7.2 - 1 Nov 2024
+
+Changes:
+- Correctly detect when a response can not be returned due to the client disconnecting
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/20?closed=1)
+
 ## 0.7.1 -- 27 Sep 2024
  
 Changes:
 - Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
 
 
-https://github.com/pedestal/pedestal/milestone/19?closed=1
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/19?closed=1)
 
 ## 0.7.0 - 2 Jul 2024
 
