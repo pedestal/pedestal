@@ -29,7 +29,7 @@
 
         hato/hato {:mvn/version "1.0.0"}
 
-        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
+        jakarta.servlet/jakarta.servlet-api {:mvn/version "5.0.0"}
 
         ;; Include *all* the other modules
         io.pedestal/pedestal.log {:local/root "../log"}
@@ -38,7 +38,6 @@
         ;; :local alias isn't carried through when resolving the local dependencies.
         io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
         io.pedestal/pedestal.route {:local/root "../route"}
-        io.pedestal/pedestal.jetty {:local/root "../jetty"}
         io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
         io.pedestal/pedestal.common {:local/root "../common"}
         io.pedestal/pedestal.error {:local/root "../error"}
@@ -57,7 +56,8 @@
  :aliases
  {:coverage
   {:paths      ["test" "resources"]
-   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
+   :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}
+                org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}
    :jvm-opts   ["-Dcollecting-coverage=true"]
    :main-opts  ["--main" "cloverage.coverage"
                 "--test-ns-path" "test"
@@ -72,12 +72,28 @@
   :1.10
   {:override-deps {org.clojure/clojure {:mvn/version "1.10.3"}}}
 
-  ;; clj -X:test
+  :jetty
+  {:extra-paths ["test-jetty"]
+   :extra-deps {org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
+                io.pedestal/pedestal.jetty {:local/root "../jetty"}}}
+
+  :jetty12
+  {:extra-paths ["test-jetty12"]
+   :extra-deps {org.eclipse.jetty.ee10/jetty-ee10-servlets {:mvn/version "12.0.14"}
+                io.pedestal/pedestal.jetty12 {:local/root "../jetty12"}
+                jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}}}
+
   :test
   {
    :jvm-opts ["-Djdk.attach.allowAttachSelf"]
    ;; Need extra test runner to avoid test hangs
    :exec-fn  io.pedestal.test-runner/test}
+
+  ;; clj -T:tests run
+  :tests
+  {:ns-default tests
+   :paths ["tests"]
+   :extra-deps {io.github.clojure/tools.build {:mvn/version "0.10.5"}}}
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
