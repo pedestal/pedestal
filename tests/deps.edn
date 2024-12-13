@@ -24,7 +24,7 @@
 
         org.clojure/java.classpath {:mvn/version "1.1.0"}
         org.clojure/tools.namespace {:mvn/version "1.5.0"}
-        org.clojure/data.json {:mvn/version "2.5.0"}
+        org.clojure/data.json {:mvn/version "2.5.1"}
         clj-http/clj-http {:mvn/version "3.13.0"}
 
         hato/hato {:mvn/version "1.0.0"}
@@ -45,7 +45,7 @@
 
         io.github.hlship/trace {:mvn/version "1.4"}
         com.walmartlabs/test-reporting {:mvn/version "1.2"}
-        com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.3.3"}
+        com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.5.1"}
 
         ;; For proper reloading of code in REPL
         io.github.tonsky/clj-reload {:mvn/version "0.7.1"}
@@ -81,11 +81,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.42.1"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.42.1"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.42.1"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.42.1"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.42.1"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.45.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.45.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.45.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.45.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.45.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

@@ -11,16 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.1
+        uses: actions/checkout@v4.2.2
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'corretto'
       - name: Setup Clojure
-        uses: DeLaGuardo/setup-clojure@12.5
+        uses: DeLaGuardo/setup-clojure@13.1
         with:
-          cli: 1.12.0.1479
+          cli: 1.12.0.1488
 
       - name: Cache Clojure dependencies
         uses: actions/cache@v4
