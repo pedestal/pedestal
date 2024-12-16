@@ -37,7 +37,6 @@
    "route"
    "service"
    ;; And then the others:
-   "jetty11"
    "jetty"
    "embedded"])
 

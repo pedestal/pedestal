@@ -18,7 +18,7 @@
 
 (defn run
   [_]
-  (doseq [jetty ["jetty11" "jetty"]]
+  (doseq [jetty ["jetty"]]
     (println "Running tests with" jetty)
     (b/process {:command-args ["clojure" (format "-X:%s:test" jetty)
                                ;; test-runner needs extra dirs
