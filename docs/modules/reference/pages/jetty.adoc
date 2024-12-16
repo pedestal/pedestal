@@ -23,7 +23,7 @@ The following table lists the container options supported by Jetty.
 | Reuse the socket address. Defaults to `true`.
 
 | :thread-pool
-| A link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/thread/ThreadPool.html[ThreadPool] instance.
+| A link:https://javadoc.jetty.org/jetty-11/org/eclipse/jetty/util/thread/ThreadPool.html[ThreadPool] instance.
 | Override the Jetty thread pool (ignores max-threads)
 
 | :configurator
@@ -59,7 +59,7 @@ an `org.eclipse.jetty.server.HttpConfiguration` instance and return an
 the SSL connection.
 
 | :ssl-context-factory
-| An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
+| An link:https://javadoc.jetty.org/jetty-11/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
 | The `SSLContextFactory` instance to use when creating the server. If
 specified, :key-password, :keystore, :truststore,
 :trust-password, :security-provider, :client-auth are ignored.
@@ -90,7 +90,7 @@ specified, :key-password, :keystore, :truststore,
 | Java Security Provider name. Refer to the Jetty https://www.eclipse.org/jetty/documentation/jetty-9/index.html#configuring-ssl[ConfiguringSSL/TLS] documentation. Not used if :ssl-context-factory is set.
 
 | :io.pedestal.http.jetty/http-configuration
-| An link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration] instance.
+| An link:https://javadoc.jetty.org/jetty-11/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration] instance.
 | The `HttpConfiguration` instance to use when creating the
 server. Use when advanced customization is required. The default
 `HttpConfiguration` is listed below.
