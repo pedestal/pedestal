@@ -10,12 +10,12 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.jetty12-websocket-test
+(ns io.pedestal.http.jetty11-websocket-test
   (:require
     [clojure.test :refer [deftest is use-fixtures report]]
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
-    [io.pedestal.http.jetty12 :as jetty]
+    [io.pedestal.http.jetty11 :as jetty]
     [io.pedestal.test-common :as tc]
     [clojure.core.async :refer [chan put! close!] :as async]
     [net.lewisship.trace :refer [trace]]

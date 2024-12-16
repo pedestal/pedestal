@@ -37,8 +37,8 @@
    "route"
    "service"
    ;; And then the others:
+   "jetty11"
    "jetty"
-   "jetty12"
    "embedded"])
 
 ;; Working around this problem (bug)?

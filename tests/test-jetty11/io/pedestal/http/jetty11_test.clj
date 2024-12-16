@@ -15,7 +15,7 @@
 ;;
 ;; https://github.com/ring-clojure/ring/blob/master/ring-jetty-adapter/test/ring/adapter/test/jetty.clj
 
-(ns io.pedestal.http.jetty12-test
+(ns io.pedestal.http.jetty11-test
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [clojure.edn :as edn]
             [io.pedestal.http :as bootstrap]
@@ -25,9 +25,10 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.http.jetty12 :as jetty])
+            [io.pedestal.http.jetty11 :as jetty])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
-           (org.eclipse.jetty.server Server Request Handler$Abstract)
+           (org.eclipse.jetty.server Server Request)
+           (org.eclipse.jetty.server.handler AbstractHandler)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
@@ -152,7 +153,7 @@
 
 (deftest ensure-configurator-runs-last
   (let [max-threads    20
-        new-handler    (proxy [Handler$Abstract] []
+        new-handler    (proxy [AbstractHandler] []
                          (handle [_ ^Request base-request request response]))
         configurator   (fn [^Server server]
                          (.setAttribute server "ANewAttribute" 42)
@@ -236,7 +237,7 @@
     #{["/hello" :get `hello-world :route-name :hello]}))
 
 (def service-map
-  {:io.pedestal.http/type   :jetty12
+  {:io.pedestal.http/type   :jetty11
    :io.pedestal.http/routes routes
    :io.pedestal.http/port   4347})
 
@@ -271,7 +272,7 @@
     #{["/hello" :get `hello-page2 :route-name :hello]}))
 
 (def service-map2
-  {:io.pedestal.http/type   :jetty12
+  {:io.pedestal.http/type   :jetty11
    :io.pedestal.http/routes routes2
    :io.pedestal.http/port   4347})
 

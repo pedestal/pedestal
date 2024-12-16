@@ -10,7 +10,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.websocket-test
+(ns io.pedestal.http.jetty-websocket-test
   (:require
     [clojure.test :refer [deftest is use-fixtures report]]
     [hato.websocket :as ws]

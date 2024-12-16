@@ -72,15 +72,15 @@
   :1.10
   {:override-deps {org.clojure/clojure {:mvn/version "1.10.3"}}}
 
+  :jetty11
+  {:extra-paths ["test-jetty11"]
+   :extra-deps {org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
+                io.pedestal/pedestal.jetty {:local/root "../jetty11"}}}
+
   :jetty
   {:extra-paths ["test-jetty"]
-   :extra-deps {org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
-                io.pedestal/pedestal.jetty {:local/root "../jetty"}}}
-
-  :jetty12
-  {:extra-paths ["test-jetty12"]
    :extra-deps {org.eclipse.jetty.ee10/jetty-ee10-servlets {:mvn/version "12.0.14"}
-                io.pedestal/pedestal.jetty12 {:local/root "../jetty12"}
+                io.pedestal/pedestal.jetty12 {:local/root "../jetty"}
                 jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}}}
 
   :test

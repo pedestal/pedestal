@@ -11,9 +11,9 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.jetty12
-  "Jetty 12 adaptor for Pedestal."
-  (:require [io.pedestal.http.jetty12.container]
+(ns io.pedestal.http.jetty11
+  "Jetty adaptor for Pedestal."
+  (:require [io.pedestal.http.jetty11.container]
             [clojure.string :as string]
             [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.websocket :as ws])
@@ -24,7 +24,7 @@
                                      ConnectionFactory
                                      HttpConnectionFactory
                                      ServerConnector SslConnectionFactory)
-           (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
+           (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.util.thread QueuedThreadPool ThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
@@ -33,7 +33,7 @@
                                            HTTP2CServerConnectionFactory)
            (jakarta.servlet Servlet ServletContext)
            (java.security KeyStore)
-           (org.eclipse.jetty.ee10.websocket.jakarta.server.config JakartaWebSocketServletContainerInitializer JakartaWebSocketServletContainerInitializer$Configurator)))
+           (org.eclipse.jetty.websocket.jakarta.server.config JakartaWebSocketServletContainerInitializer JakartaWebSocketServletContainerInitializer$Configurator)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
@@ -171,7 +171,7 @@
                                     (.setReuseAddress reuse-addr?)
                                     (.setPort ssl-port)
                                     (.setHost host)))
-        servlet-context-handler (doto (ServletContextHandler. context-path)
+        servlet-context-handler (doto (ServletContextHandler. server context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when websockets
       (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
@@ -190,7 +190,6 @@
       (.addConnector server ssl-connector))
     (when context-configurator
       (context-configurator servlet-context-handler))
-    (.setDefaultHandler server servlet-context-handler)
     (configurator server)))
 
 
