@@ -13,7 +13,7 @@
 (ns io.pedestal.http.jetty.util
   (:import (java.util EnumSet)
            (jakarta.servlet Filter DispatcherType)
-           (org.eclipse.jetty.servlet ServletContextHandler FilterHolder)))
+           (org.eclipse.jetty.ee10.servlet ServletContextHandler FilterHolder)))
 
 (def dispatch-types {:forward DispatcherType/FORWARD
                      :include DispatcherType/INCLUDE
@@ -69,4 +69,3 @@
       (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set)
       :else (.addFilter context servlet-filter path dispatch-set))
     context))
-
