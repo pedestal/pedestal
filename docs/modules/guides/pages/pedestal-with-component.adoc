@@ -383,7 +383,7 @@ by name.
 
 Now let's restart run the tests from the command line:
 ----
-> clj -X:test
+> clj -T:tests run
 
 Running tests in #{"test"}
 

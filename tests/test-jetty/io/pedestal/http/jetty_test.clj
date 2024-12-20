@@ -27,8 +27,7 @@
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.jetty :as jetty])
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
-           (org.eclipse.jetty.server Server Request)
-           (org.eclipse.jetty.server.handler AbstractHandler)
+           (org.eclipse.jetty.server Server Request Handler$Abstract)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
@@ -153,7 +152,7 @@
 
 (deftest ensure-configurator-runs-last
   (let [max-threads    20
-        new-handler    (proxy [AbstractHandler] []
+        new-handler    (proxy [Handler$Abstract] []
                          (handle [_ ^Request base-request request response]))
         configurator   (fn [^Server server]
                          (.setAttribute server "ANewAttribute" 42)
@@ -285,4 +284,3 @@
                            (is (.startsWith ^String (get-in response [:headers "content-type"])
                                             "text/plain"))
                            (is (= (:body response) "/context2/hello"))))))
-
