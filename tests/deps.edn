@@ -27,9 +27,16 @@
         org.clojure/data.json {:mvn/version "2.5.1"}
         clj-http/clj-http {:mvn/version "3.13.0"}
 
-        hato/hato {:mvn/version "1.0.0"}
+        ;; For test io.pedestal.http.jetty-util-test
+        ;; But io.pedestal.http.jetty-util is deprecated
 
         org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.24"}
+
+        hato/hato {:mvn/version "1.0.0"}
+
+        ;; These are extra deps from service/deps.edn
+        jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}
+        jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}
 
         ;; Include *all* the other modules
         io.pedestal/pedestal.log {:local/root "../log"}

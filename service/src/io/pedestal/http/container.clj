@@ -18,6 +18,14 @@
 ;; The most common case is to extend integration beyond the Servlet Spec -
 ;; for example, integrating and utilizing NIO throughout the entire stack.
 (defprotocol WriteNIOByteBody
+  "When a response body is a ByteBuffer or a ByteChannel, this protocol is the bridge
+   to container-specific code to handle those cases efficiently and asynchronously.
+
+   This is effectively part of the interceptor chain; once the body has been written,
+   the provided context should be written to the resume-chan (a core.async channel).
+
+   If an exception occurs, the error should be attached to the context via
+   [[with-error]], before writing it to the channel."
   (write-byte-channel-body [servlet-response body resume-chan context])
   (write-byte-buffer-body [servlet-response body resume-chan context]))
 

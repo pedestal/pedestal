@@ -15,13 +15,12 @@
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.service {:mvn/version "0.8.0-SNAPSHOT"}
         org.eclipse.jetty/jetty-server {:mvn/version "12.0.16"}
-        org.eclipse.jetty/jetty-servlet {:mvn/version "11.0.24"}
+        org.eclipse.jetty.http2/jetty-http2-server {:mvn/version "12.0.16"}
+        org.eclipse.jetty.ee10/jetty-ee10-servlet {:mvn/version "12.0.16"}
         org.eclipse.jetty/jetty-alpn-server {:mvn/version "12.0.16"}
-        org.eclipse.jetty.http2/http2-server {:mvn/version "11.0.24"}
         ;; These dependencies are necessary to run Jetty embedded, but need to be excluded
         ;; if packaging as a WAR for deployment to a standalone Jetty instance.
-        org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}
-        org.eclipse.jetty.websocket/websocket-jakarta-server {:mvn/version "11.0.24"}}
+        org.eclipse.jetty.ee10.websocket/jetty-ee10-websocket-jakarta-server {:mvn/version "12.0.16"}}
 
  :aliases
  {:local

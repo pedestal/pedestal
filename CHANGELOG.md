@@ -14,6 +14,13 @@ The main focus of this release is to improve routing.
 - A new router, io.pedestal.http.route.sawtooth, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
+- Deleted deprecated namespaces:
+  - `io.pedestal.http.request.lazy`
+  - `io.pedestal.http.request.zerocopy`
+
+Newly deprecated namespaces:
+- `io.pedestal.jetty.util`
+- `io.pedestal.jetty.container`
 
 Other changes:
 

@@ -13,27 +13,26 @@
 
 (ns io.pedestal.http.jetty
   "Jetty adaptor for Pedestal."
-  (:require [io.pedestal.http.jetty.container]
+  (:require io.pedestal.http.jetty.container
             [clojure.string :as string]
-            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.websocket :as ws])
   (:import (jakarta.websocket.server ServerContainer)
+           (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
+           (org.eclipse.jetty.http2.api.server ServerSessionListener)
+           (org.eclipse.jetty.http2.server RawHTTP2ServerConnectionFactory)
            (org.eclipse.jetty.server Server
                                      HttpConfiguration
                                      SecureRequestCustomizer
-                                     ConnectionFactory
+
                                      HttpConnectionFactory
-                                     ServerConnector SslConnectionFactory)
-           (org.eclipse.jetty.servlet ServletContextHandler ServletHolder)
+                                     ServerConnector
+                                     SslConnectionFactory)
            (org.eclipse.jetty.util.thread QueuedThreadPool ThreadPool)
            (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
-           (org.eclipse.jetty.http2 HTTP2Cipher)
-           (org.eclipse.jetty.http2.server HTTP2ServerConnectionFactory
-                                           HTTP2CServerConnectionFactory)
            (jakarta.servlet Servlet ServletContext)
            (java.security KeyStore)
-           (org.eclipse.jetty.websocket.jakarta.server.config JakartaWebSocketServletContainerInitializer JakartaWebSocketServletContainerInitializer$Configurator)))
+           (org.eclipse.jetty.ee10.websocket.jakarta.server.config JakartaWebSocketServletContainerInitializer JakartaWebSocketServletContainerInitializer$Configurator)))
 
 ;; Implement any container specific optimizations from Pedestal's container protocols
 
@@ -65,7 +64,7 @@
           :need (.setNeedClientAuth context true)
           :want (.setWantClientAuth context true)
           nil)
-        (.setCipherComparator context HTTP2Cipher/COMPARATOR)
+        #_(.setCipherComparator context HTTP2Cipher/COMPARATOR)
         (.setUseCipherSuitesOrder context true)
         context)))
 
@@ -103,7 +102,6 @@
   number of threads are created for the server."
   ([]
    (let [cores     (.availableProcessors (Runtime/getRuntime))
-         ;; TODO: Is this still accurate for Jetty 11?
          ;; The Jetty docs claim acceptors is 1.5 the number of cores available,
          ;; but the code says:  1 + cores / 16 - https://github.com/eclipse/jetty.project/blob/master/jetty-server/src/main/java/org/eclipse/jetty/server/AbstractConnector.java#L192
          acceptors (int (* 1.5 cores))                      ;(inc (/ cores 16))
@@ -123,8 +121,19 @@
   (or thread-pool
       (QueuedThreadPool. ^Integer max-threads)))
 
+(defn- add-connection-factories
+  [^Server server factories]
+  (let [conn (ServerConnector. server)]
+    ;; Clear the default HttpConnectionFactory
+    (.clearConnectionFactories conn)
+    ;; Add all the rest
+    (run! #(.addConnectionFactory conn %) (remove nil? factories))
+    (.addConnector server conn)
+    ;; Return the ServerConnector for any further configuration
+    conn))
+
 ;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
-(defn- create-server
+(defn create-server
   "Construct a Jetty Server instance."
   [servlet options]
   (let [{:keys [host port websockets container-options]} options
@@ -145,10 +154,14 @@
                                   (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but no SSL config was supplied.  Please set an HTTP port or configure SSL")))
         _                       (when (and (nil? port) (true? h2c?))
                                   (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but you attempted to turn on HTTP2-Cleartext.  Please set an HTTP port or set `h2c?` to false in your service config")))
+        server-session-listener (reify ServerSessionListener)
         http-conf               (http-configuration container-options)
         http                    (HttpConnectionFactory. http-conf)
-        http2c                  (when h2c? (HTTP2CServerConnectionFactory. http-conf))
-        http2                   (when h2? (HTTP2ServerConnectionFactory. http-conf))
+        http2c                  (when h2c? #_(HTTP2CServerConnectionFactory. http-conf))
+        http2                   (when h2?
+                                  (doto (RawHTTP2ServerConnectionFactory. server-session-listener)
+                                    ;; TODO: Max concurrent streams
+                                    (.setConnectProtocolEnabled true)))
         alpn                    (when h2?
                                   ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
                                   (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
@@ -156,27 +169,23 @@
         ssl                     (when (or ssl? ssl-port h2?)
                                   (ssl-conn-factory (assoc options :alpn alpn)))
         http-connector          (when port
-                                  (doto (ServerConnector. server (into-array ConnectionFactory
-
-                                                                             (remove nil? [http http2c])))
+                                  (doto (add-connection-factories server [http http2c])
                                     (.setReuseAddress reuse-addr?)
                                     (.setPort port)
                                     (.setHost host)))
         ssl-connector           (when ssl
-                                  (doto (ServerConnector. server
-                                                          (into-array ConnectionFactory
-                                                                      (remove nil?
-                                                                              (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]
-                                                                                    (map (fn [ffn] (ffn options http-conf)) connection-factory-fns)))))
-                                    (.setReuseAddress reuse-addr?)
-                                    (.setPort ssl-port)
-                                    (.setHost host)))
-        servlet-context-handler (doto (ServletContextHandler. server context-path)
+                                  (let [factories (into [ssl alpn http2 (HttpConnectionFactory. http-conf)]
+                                                        (map (fn [ffn] (ffn options http-conf)) connection-factory-fns))]
+                                    (doto (add-connection-factories server factories)
+                                      (.setReuseAddress reuse-addr?)
+                                      (.setPort ssl-port)
+                                      (.setHost host))))
+        servlet-context-handler (doto (ServletContextHandler. ServletContextHandler/SESSIONS)
+                                  (.setContextPath context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when websockets
       (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
                                                              (reify JakartaWebSocketServletContainerInitializer$Configurator
-
                                                                (^void accept [_this ^ServletContext _context
                                                                               ^ServerContainer container]
                                                                  (ws/add-endpoints container websockets)))))
@@ -190,32 +199,24 @@
       (.addConnector server ssl-connector))
     (when context-configurator
       (context-configurator servlet-context-handler))
+
+    ;; Only set the handler once it is fully configured
+    (.setHandler server servlet-context-handler)
+
+    ;; And only after that perform final configuration of the server
     (configurator server)))
 
 
 (defn- -start
-  "Deprecated; to be made private in the future."
   [^Server server
    {:keys [join?] :or {join? true}}]
   (.start server)
   (when join? (.join server))
   server)
 
-(defn ^{:deprecated "0.7.0"} start
-  "Deprecated; to be made private in the future."
-  [^Server server options]
-  (deprecated `start
-    (-start server options)))
-
 (defn- -stop [^Server server]
   (.stop server)
   server)
-
-(defn ^{:deprecated "0.7.0"} stop
-  "Deprecated; to be made private in the future."
-  [^Server server]
-  (deprecated `stop
-    (-stop server)))
 
 (defn server
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance."

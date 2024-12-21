@@ -53,8 +53,8 @@
   ;; to compile our servlet and other classes.
   ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
   :servlet-api
-  {:extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}
-                org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}}
+  {:extra-deps {jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}
+                jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}}}
   ;; clj -T:build <command>
   :build {:deps {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
           :ns-default build}}}
