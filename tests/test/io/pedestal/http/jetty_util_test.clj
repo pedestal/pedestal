@@ -14,7 +14,7 @@
             [clj-http.client :as http]
             [io.pedestal.http.jetty.util :as jetty-util]
             [io.pedestal.http.jetty-test :as test-util])
-  (:import (org.eclipse.jetty.servlet ServletContextHandler)
+  (:import (org.eclipse.jetty.ee10.servlet ServletContextHandler)
            (org.eclipse.jetty.servlets DoSFilter)
            (org.eclipse.jetty.server.handler.gzip GzipHandler)))
 

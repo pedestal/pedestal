@@ -31,7 +31,7 @@ import jakarta.websocket.Session;
  */
 public class FnEndpoint extends Endpoint {
 
-    public static final String USER_ATTRIBUTE_KEY = "io.pedestal.http.jetty.websockets.FnEndpoint";
+    public static final String USER_ATTRIBUTE_KEY = "io.pedestal.websocket.FnEndpoint";
 
     private static Keyword kw(String s) {
         return Keyword.intern(Symbol.intern(null, s));

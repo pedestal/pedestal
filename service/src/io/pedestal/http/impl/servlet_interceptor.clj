@@ -30,9 +30,9 @@
             io.pedestal.http.route
             io.pedestal.http.request.servlet-support)
   (:import (clojure.core.async.impl.protocols Channel)
-           (clojure.lang Fn IPersistentCollection)
            (jakarta.servlet Servlet ServletRequest)
-           (jakarta.servlet.http HttpServletRequest HttpServletResponse)
+           (jakarta.servlet.http HttpServletResponse HttpServletRequest)
+           (clojure.lang Fn IPersistentCollection)
            (java.io File IOException InputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))

@@ -11,34 +11,46 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.jetty.container
-  "Extends Pedestal protocols onto Jetty container classes."
+  "Extends Pedestal protocols onto Jetty container classes.
+
+  There is no reason to directly require this namespace."
+  {:deprecated "Deprecated in 0.8.0, will be made internal."}
   (:require [io.pedestal.http.container :as container]
+            [io.pedestal.interceptor.chain :as chain]
             [clojure.core.async :as async])
   (:import (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)
-           (org.eclipse.jetty.server HttpOutput Response)
+           (org.eclipse.jetty.ee10.servlet ServletApiResponse)
            (org.eclipse.jetty.util Callback)))
 
+(defn- continue
+  ([ch context]
+   (async/put! ch context)
+   (async/close! ch))
+  ([ch context t]
+   (continue ch (chain/with-error context t))))
+
 (extend-protocol container/WriteNIOByteBody
-  Response
-  (write-byte-channel-body [servlet-response ^ReadableByteChannel body resume-chan context]
-    (let [os ^HttpOutput (.getHttpOutput servlet-response)]
-      (.sendContent os body (reify Callback
-                                   (succeeded [_]
-                                     (.close body)
-                                     (async/put! resume-chan context)
-                                     (async/close! resume-chan))
-                                   (failed [_ throwable]
-                                     (.close body)
-                                     (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))
-                                     (async/close! resume-chan))))))
-  (write-byte-buffer-body [servlet-response ^ByteBuffer body resume-chan context]
-    (let [os ^HttpOutput (.getHttpOutput servlet-response)]
-      (.sendContent os body (reify Callback
-                                   (succeeded [_]
-                                     (async/put! resume-chan context)
-                                     (async/close! resume-chan))
-                                   (failed [_ throwable]
-                                     (async/put! resume-chan (assoc context :io.pedestal.impl.interceptor/error throwable))
-                                     (async/close! resume-chan)))))))
+
+  ServletApiResponse
+
+  (write-byte-channel-body [servlet-api-response ^ReadableByteChannel body resume-chan context]
+    (.sendContent (-> servlet-api-response .getServletChannel .getHttpOutput)
+                  body
+                  (reify Callback
+                    (succeeded [_]
+                      (.close body)
+                      (continue resume-chan context))
+                    (failed [_ throwable]
+                      (.close body)
+                      (continue resume-chan context throwable)))))
+
+  (write-byte-buffer-body [servlet-api-response ^ByteBuffer body resume-chan context]
+    (.sendContent (-> servlet-api-response .getServletChannel .getHttpOutput)
+                  body
+                  (reify Callback
+                    (succeeded [_]
+                      (continue resume-chan context))
+                    (failed [_ throwable]
+                      (continue resume-chan context throwable))))))
 
