@@ -20,7 +20,7 @@
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2.api.server ServerSessionListener)
            (org.eclipse.jetty.http2.server RawHTTP2ServerConnectionFactory)
-           (org.eclipse.jetty.server Server
+           (org.eclipse.jetty.server ConnectionFactory Server
                                      HttpConfiguration
                                      SecureRequestCustomizer
 
@@ -123,11 +123,8 @@
 
 (defn- add-connection-factories
   [^Server server factories]
-  (let [conn (ServerConnector. server)]
-    ;; Clear the default HttpConnectionFactory
-    (.clearConnectionFactories conn)
-    ;; Add all the rest
-    (run! #(.addConnectionFactory conn %) (remove nil? factories))
+  (let [factories' (into-array ConnectionFactory (remove nil? factories))
+        conn (ServerConnector. server factories')]
     (.addConnector server conn)
     ;; Return the ServerConnector for any further configuration
     conn))
@@ -201,7 +198,7 @@
       (context-configurator servlet-context-handler))
 
     ;; Only set the handler once it is fully configured
-    (.setHandler server servlet-context-handler)
+    (.setDefaultHandler server servlet-context-handler)
 
     ;; And only after that perform final configuration of the server
     (configurator server)))
