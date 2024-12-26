@@ -19,7 +19,7 @@ Let's start with yet another basic, "Hello World" application.
 ----
 (ns org.example.hello
   (:require [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route])
+            [io.pedestal.http.route :as route]))
 
 (defn hello-handler [_request] <1>
   {:status 200
