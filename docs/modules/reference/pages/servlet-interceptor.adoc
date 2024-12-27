@@ -1,6 +1,6 @@
 = Servlet Interceptor
 
-The servlet interceptor is the bridge between the Java Servlet API and Pedestal's
+The servlet interceptor footnote:[Poorly named, for historical reasons, as it is neither a servlet nor an interceptor, but actually the bridge between the two.] is the bridge between the Java Servlet API and Pedestal's
 interceptor chain. It is created when an application calls
 api:create-server[] or api:create-servlet[]; ultimately, the function
 api:service-fn[],

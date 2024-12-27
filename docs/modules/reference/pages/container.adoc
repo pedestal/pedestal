@@ -1,7 +1,8 @@
 = Container
 
 A Pedestal application always works in the context of a _container_ such as
-xref:jetty.adoc[]; the container is responsible for the low-level HTTP/HTTPs networking.
+xref:jetty.adoc[]; the container is responsible for the low-level HTTP/HTTPs networking,
+including support for Websockets and server-sent events.
 
 Once a request has been received, it is passed through the
 xref:servlet-interceptor.adoc[] to be processed using the
