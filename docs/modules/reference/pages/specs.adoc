@@ -21,6 +21,7 @@ Spec namespaces:
 * api:*[ns=io.pedestal.http.impl.servlet-interceptor.specs]
 * api:*[ns=io.pedestal.http.specs]
 * api:*[ns=io.pedestal.websocket.specs]
+* api:*[ns=io.pedestal.http.jetty.specs]
 
 
 

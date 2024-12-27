@@ -20,10 +20,10 @@
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2.api.server ServerSessionListener)
            (org.eclipse.jetty.http2.server RawHTTP2ServerConnectionFactory)
-           (org.eclipse.jetty.server ConnectionFactory Server
+           (org.eclipse.jetty.server ConnectionFactory
+                                     Server
                                      HttpConfiguration
                                      SecureRequestCustomizer
-
                                      HttpConnectionFactory
                                      ServerConnector
                                      SslConnectionFactory)
@@ -80,10 +80,12 @@
 
 (defn- http-configuration
   "Provides an HttpConfiguration that can be consumed by connection factories.
-  The `:io.pedestal.http.jetty/http-configuration` option can be used to specify
+  The `:http-configuration` option can be used to specify
   your own HttpConfiguration instance."
   ^HttpConfiguration [options]
-  (if-let [http-conf-override ^HttpConfiguration (::http-configuration options)]
+  (if-let [http-conf-override ^HttpConfiguration (or (:http-configuration options)
+                                                     ;; In 0.7 and earlier, was a namespaced key
+                                                     (::http-configuration options))]
     http-conf-override
     (let [{:keys [insecure-ssl?]} options
           http-conf ^HttpConfiguration (HttpConfiguration.)]
@@ -223,34 +225,3 @@
      {:server   server
       :start-fn #(-start server options)
       :stop-fn  #(-stop server)})))
-
-
-;; TODO: spec all this
-
-;; :port         - the http/h2c port to listen on (defaults to 80);
-;;                     If nil and SSL Config is set, HTTP is disabled.
-;; :host         - the hostname to listen on
-;; :join?        - blocks the thread until server ends (defaults to true)
-
-;; -- Container Options --
-;; :daemon?      - use daemon threads (defaults to false)
-;; :max-threads  - the maximum number of threads to use (default 50)
-;; :thread-pool  - override the Jetty thread pool (ignores max-threads)
-;; :reuse-addr?  - reuse the socket address (defaults to true)
-;; :configurator - a function called with the Jetty Server instance
-;; :context-configurator - a function called with the Jetty ServletContextHandler
-;; :ssl?         - allow connections over HTTPS
-;; :insecure-ssl? - if true, then SNI check is disabled (useful for http locally with host "localhost")
-;; :ssl-port     - the SSL port to listen on (defaults to 443, implies :ssl?)
-;; :h2?          - enable http2 protocol on secure socket port
-;; :h2c?         - enable http2 clear text on plain socket port
-;; :connection-factory-fns - a vector of functions that take the options map and HttpConfiguration
-;;                           and return a ConnectionFactory obj (applied to SSL connection)
-;; :ssl-context-factory - a Jetty SslContextFactory to use in place of one constructed by Pedestal.
-;;                        If passed in, all other SSL related options are ignored.
-;; :keystore     - the keystore to use for SSL connections - may be the object or a string path
-;; :key-password - the password to the keystore
-;; :truststore   - a truststore to use for SSL connections - may be the object or a string path
-;; :trust-password - the password to the truststore
-;; :client-auth  - SSL client certificate authenticate, may be set to :need,
-;;                 :want or :none (defaults to :none)"
