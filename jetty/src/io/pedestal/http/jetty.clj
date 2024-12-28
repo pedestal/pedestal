@@ -219,9 +219,8 @@
 
 (defn server
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
-  ([service-map] (server service-map {}))
-  ([service-map options]
-   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
-     {:server   server
-      :start-fn #(-start server options)
-      :stop-fn  #(-stop server)})))
+  [service-map options]
+  (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
+    {:server   server
+     :start-fn #(-start server options)
+     :stop-fn  #(-stop server)}))
