@@ -136,12 +136,13 @@
   "Construct a Jetty Server instance."
   [servlet options]
   (let [{:keys [host port websockets container-options]} options
-        {:keys [ssl? ssl-port
+        {:keys [ssl? ssl-port max-streams
                 h2? h2c? connection-factory-fns
                 context-configurator context-path configurator daemon? reuse-addr?]
          :or   {configurator identity
                 context-path "/"
                 h2c?         true
+                max-streams  128
                 reuse-addr?  true}} container-options
         ^ThreadPool thread-pool (thread-pool options)
         server                  (Server. thread-pool)
@@ -164,9 +165,12 @@
         server-session-listener (reify ServerSessionListener)
         http-conf               (http-configuration container-options)
         http                    (HttpConnectionFactory. http-conf)
-        http2c                  (when h2c? (HTTP2CServerConnectionFactory. http-conf))
+        http2c                  (when h2c?
+                                  (doto (HTTP2CServerConnectionFactory. http-conf)
+                                    (.setMaxConcurrentStreams max-streams)))
         http2                   (when h2?
                                   (doto (RawHTTP2ServerConnectionFactory. server-session-listener)
+                                    (.setMaxConcurrentStreams max-streams)
                                     (.setConnectProtocolEnabled true)))
         alpn                    (when h2?
                                   ;; Application-Layer Protocol Negotiation
@@ -213,14 +217,15 @@
     (configurator server)))
 
 
-(defn- -start
+(defn- start
   [^Server server
    {:keys [join?] :or {join? true}}]
   (.start server)
   (when join? (.join server))
   server)
 
-(defn- -stop [^Server server]
+(defn- stop
+  [^Server server]
   (.stop server)
   server)
 
@@ -229,5 +234,5 @@
   [service-map options]
   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
     {:server   server
-     :start-fn #(-start server options)
-     :stop-fn  #(-stop server)}))
+     :start-fn #(start server options)
+     :stop-fn  #(stop server)}))

@@ -28,6 +28,11 @@ The following table lists the container options supported by Jetty.
 | Integer
 | The maximum number of threads to use. Defaults to `50`.
 
+| :max-streams
+| Integer
+| The maximum number of concurrent streams for an HTTP2 or HTTP2C connector. Defaults to `128`.
+
+
 | :reuse-addr?
 | Boolean
 | Reuse the socket address. Defaults to `true`.

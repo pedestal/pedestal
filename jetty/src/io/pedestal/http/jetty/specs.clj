@@ -12,6 +12,7 @@
 (s/def ::container-options
   (s/keys :opt-un [::daemon?
                    ::max-threads
+                   ::max-streams
                    ::reuse-addr?
                    ::configurator
                    ::context-configurator
@@ -36,6 +37,7 @@
 
 (s/def ::daemon? boolean?)
 (s/def ::max-threads pos-int?)
+(s/def ::max-streams pos-int?)
 (s/def ::reuse-addr? boolean?)
 (s/def ::thread-pool (is-a ThreadPool))
 (s/def ::configurator fn?)

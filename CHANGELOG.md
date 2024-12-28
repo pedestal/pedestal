@@ -4,7 +4,7 @@
 
 ## 0.8.0 - UNRELEASED
 
-The main focus of this release is to improve routing.
+The main focus of this release is to improve routing and upgrade to Jetty 12.
 
 **BREAKING CHANGES:**
 
@@ -26,6 +26,8 @@ Other changes:
 
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
+- It is not possible to specifiy the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection 
+  factories
 
 ## 0.7.2 - 1 Nov 2024
 
