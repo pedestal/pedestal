@@ -1,6 +1,7 @@
 (ns io.pedestal.http.jetty.specs
   (:require [io.pedestal.http.jetty :as jetty]
             [io.pedestal.http :as http]
+            io.pedestal.http.specs
             [io.pedestal.internal :refer [is-a]]
             [clojure.spec.alpha :as s])
   (:import (java.security KeyStore)
@@ -54,7 +55,7 @@
 
 
 (s/fdef jetty/service
-        :args (s/and ::http/server-options
+        :args (s/and ::http/container-options
                      ;; "Refine" the :container-options key for Jetty-specific options
                      (s/keys :opt-un [::container-options]))
         :ret ::http/container-lifecycle)

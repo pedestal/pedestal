@@ -19,7 +19,7 @@
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2.api.server ServerSessionListener)
-           (org.eclipse.jetty.http2.server RawHTTP2ServerConnectionFactory)
+           (org.eclipse.jetty.http2.server HTTP2CServerConnectionFactory RawHTTP2ServerConnectionFactory)
            (org.eclipse.jetty.server ConnectionFactory
                                      Server
                                      HttpConfiguration
@@ -83,19 +83,19 @@
   The `:http-configuration` option can be used to specify
   your own HttpConfiguration instance."
   ^HttpConfiguration [options]
-  (if-let [http-conf-override ^HttpConfiguration (or (:http-configuration options)
-                                                     ;; In 0.7 and earlier, was a namespaced key
-                                                     (::http-configuration options))]
-    http-conf-override
-    (let [{:keys [insecure-ssl?]} options
-          http-conf ^HttpConfiguration (HttpConfiguration.)]
-      (doto http-conf
-        (.setSendDateHeader true)
-        (.setSendXPoweredBy false)
-        (.setSendServerVersion false)
-        ;; :insecure-ssl? is useful for local development, as otherwise "localhost"
-        ;; is not allowed as a valid host name, resulting in 400 statuses.
-        (.addCustomizer (SecureRequestCustomizer. (not insecure-ssl?)))))))
+  (or (:http-configuration options)
+      ;; In 0.7 and earlier, was a namespaced key
+      (::http-configuration options)
+      ;; Otherwise, build on the fly
+      (let [{:keys [insecure-ssl?]} options
+            http-conf ^HttpConfiguration (HttpConfiguration.)]
+        (doto http-conf
+          (.setSendDateHeader true)
+          (.setSendXPoweredBy false)
+          (.setSendServerVersion false)
+          ;; :insecure-ssl? is useful for local development, as otherwise "localhost"
+          ;; is not allowed as a valid host name, resulting in 400 statuses.
+          (.addCustomizer (SecureRequestCustomizer. (not insecure-ssl?)))))))
 
 (defn- needed-pool-size
   "Jetty calculates a needed number of threads per acceptors and selectors,
@@ -126,13 +126,13 @@
 (defn- add-connection-factories
   [^Server server factories]
   (let [factories' (into-array ConnectionFactory (remove nil? factories))
-        conn (ServerConnector. server factories')]
+        conn       (ServerConnector. server factories')]
     (.addConnector server conn)
     ;; Return the ServerConnector for any further configuration
     conn))
 
 ;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
-(defn create-server
+(defn- create-server
   "Construct a Jetty Server instance."
   [servlet options]
   (let [{:keys [host port websockets container-options]} options
@@ -145,24 +145,31 @@
                 reuse-addr?  true}} container-options
         ^ThreadPool thread-pool (thread-pool options)
         server                  (Server. thread-pool)
-        _                       (when-not (string/starts-with? context-path "/")
-                                  (throw (IllegalArgumentException. "context-path must begin with a '/'")))
-        _                       (when (and h2? (not ssl-port))
-                                  (throw (IllegalArgumentException. "SSL must be enabled to use HTTP/2. Please set an ssl port and appropriate *store setups")))
-        _                       (when (and (nil? port) (not (or ssl? ssl-port h2?)))
-                                  (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but no SSL config was supplied.  Please set an HTTP port or configure SSL")))
-        _                       (when (and (nil? port) (true? h2c?))
-                                  (throw (IllegalArgumentException. "HTTP was turned off with a `nil` port value, but you attempted to turn on HTTP2-Cleartext.  Please set an HTTP port or set `h2c?` to false in your service config")))
+        _                       (do
+                                  (when-not (string/starts-with? context-path "/")
+                                    (throw (ex-info "context-path must begin with a '/'" {:container-options container-options})))
+
+                                  (when (and h2? (not ssl-port))
+                                    (throw (ex-info "SSL must be enabled to use HTTP/2; Provide keys :ssl-port and keystore/truststore configuration"
+                                                    {:container-options container-options})))
+
+                                  (when (and (nil? port) (not (or ssl? ssl-port h2?)))
+                                    (throw (ex-info "No HTTP or SSL port configured"
+                                                    {:container-options container-options})))
+
+                                  (when (and (nil? port)
+                                             h2c?)
+                                    (throw (ex-info "HTTP2-Cleartext can not be neabled unless a non-nil HTTP port is provided"
+                                                    {:container-options container-options}))))
         server-session-listener (reify ServerSessionListener)
         http-conf               (http-configuration container-options)
         http                    (HttpConnectionFactory. http-conf)
-        http2c                  (when h2c? #_(HTTP2CServerConnectionFactory. http-conf))
+        http2c                  (when h2c? (HTTP2CServerConnectionFactory. http-conf))
         http2                   (when h2?
                                   (doto (RawHTTP2ServerConnectionFactory. server-session-listener)
-                                    ;; TODO: Max concurrent streams
                                     (.setConnectProtocolEnabled true)))
         alpn                    (when h2?
-                                  ;(NegotiatingServerConnectionFactory/checkProtocolNegotiationAvailable) ;; This only looks at Java8 bootclasspath stuff, and is no longer valid in newer Jetty versions
+                                  ;; Application-Layer Protocol Negotiation
                                   (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
                                     (.setDefaultProtocol "http/1.1")))
         ssl                     (when (or ssl? ssl-port h2?)

@@ -62,6 +62,7 @@
 
 
  :aliases
+ ;; clj -M:coverage
  {:coverage
   {:paths      ["test" "resources"]
    :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}

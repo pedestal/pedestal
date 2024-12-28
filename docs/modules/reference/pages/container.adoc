@@ -19,30 +19,31 @@ requests and pass those along to Pedestal for actual processing.
 The xref:service-map.adoc[] is used to configure what kinds of container to use, along with all the details of
 how the container is to be initialized.
 
-=== Service Type
+=== Container Type
 
-The ::type key of the service map determined the container; it may be either a simple keyword, or a function (the server function).
+The ::type key of the service map determined the container footnote:[The naming here is all over the place, as a function of many years and many hands.]; it may be either a simple keyword, or a function (the container function).
 Its default value is :jetty.
 
-When ::type is a keyword, it is used to locate the server function; this is `io.pedestal.http.<type>/server`;
+When ::type is a keyword, it is used to locate the container function as `io.pedestal.http.<type>/server`;
 the namespace will be loaded as needed.
 
 === Container Contract
 
-The server function is passed a modified version of the service map; the keys have the namespace removed, and
-only a limited number of
+The container function is passed the full service map, and the _options map_.
 
-Only the following keys are present:
+The options map is a modified version of the service map; the keys have had their namespace removed footnote:[It is believed that this is to make it easier to access the common keys, as
+the qualified names are more cumbersome.], and
+only a limited number of keys are present:
 
     - :host
-    - :port
+    - :port (may be nil to disable HTTP)
     - :join? (optional, default true)
     - :websockets (optional)
     - :container-options (optional)
 
 :host and :port will always be provided; the others are optional (only if included in the service map).
 
-:host will default to "localhost", which is acceptible for local development, but not likely the right value for a deployed service.
+:host will default to "localhost", which is acceptible for local development, but not likely the best value for a deployed service.
 
 The service function must create the necessary underlying objects based on the provided options; the :container-options key will have container-specific values.
 
@@ -66,6 +67,7 @@ starting the Pedestal application when the WAR is deployed into the servlet cont
 
 This all requires some careful setup, including omitting certain dependencies from the classpath.
 
-More discussion of WAR deployment is forthcoming.
+WARNING: More discussion of WAR deployment is forthcoming.
+
 
 
