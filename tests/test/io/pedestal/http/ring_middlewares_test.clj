@@ -19,6 +19,7 @@
             [clojure.test :refer [deftest is]]
             [io.pedestal.http.tracing :refer [mark-routed]]
             [ring.util.io :as rio]
+            [matcher-combinators.matchers :as matchers]
             [ring.middleware.session.store :as store])
   (:import (java.util UUID)))
 
@@ -161,7 +162,9 @@
   (is (match?
         {:response
          {:status  304
-          :headers {"Content-Length" "0"}
+          ;; This was present in earlier version of Ring, but in Ring 1.3
+          ;; it was removed (https://github.com/ring-clojure/ring/issues/509):
+          :headers {"Content-Length" matchers/absent}
           :body    nil}}
         (execute
           {:headers         {"if-none-match" "42"}

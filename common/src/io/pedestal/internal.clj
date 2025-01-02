@@ -142,3 +142,8 @@
 (comment
 
   (reset-deprecations))
+
+(defn is-a
+  "Returns a spec predicate that checks if a value is an instance of the given class."
+  [^Class clazz]
+  #(instance? clazz %))

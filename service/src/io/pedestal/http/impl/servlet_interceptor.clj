@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -17,22 +17,19 @@
             [clj-commons.format.exceptions :as exceptions]
             [clojure.pprint :as pprint]
             [clojure.core.async :as async]
-            [io.pedestal.internal :as i]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
-            [io.pedestal.http.request :as request]
             [io.pedestal.http.request.map :as request-map]
             [ring.util.response :as ring-response]
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
-            io.pedestal.http.route
-            io.pedestal.http.request.servlet-support)
+            io.pedestal.http.route)
   (:import (clojure.core.async.impl.protocols Channel)
-           (clojure.lang Fn IPersistentCollection)
            (jakarta.servlet Servlet ServletRequest)
-           (jakarta.servlet.http HttpServletRequest HttpServletResponse)
+           (jakarta.servlet.http HttpServletResponse HttpServletRequest)
+           (clojure.lang Fn IPersistentCollection)
            (java.io File IOException InputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
@@ -204,13 +201,13 @@
     (.setTimeout 0)))
 
 (defn- start-servlet-async
-  [{:keys [servlet-request]}]
-  (when-not (request/async-started? servlet-request)
+  [{:keys [^HttpServletRequest servlet-request]} ]
+  (when-not (.isAsyncStarted servlet-request)
     (start-servlet-async* servlet-request)))
 
 (defn- leave-stylobate
   [{:keys [^HttpServletRequest servlet-request] :as context}]
-  (when (request/async-started? servlet-request)
+  (when (.isAsyncStarted servlet-request)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
@@ -243,7 +240,7 @@
                     {:response response}))
 
     (let [status (:status response)]
-      (not (and (int? status)
+      (not (and (int? status)'
                 (pos? status))))
     (throw (ex-info "Response map must have positive integer value for :status"
                     {:response response}))
@@ -324,17 +321,6 @@
        :error (fn [context exception]
                 (error-stylobate exception-analyzer context exception))})))
 
-(def ^{:deprecated "0.7.0"} stylobate
-  "An interceptor which primarily handles uncaught exceptions thrown
-  during execution of the interceptor chain.
-
-  This var is deprecated in 0.7.0 as it should only be added to the
-  interceptor chain by [[http-interceptor-service-fn]].
-
-  [1]: https://github.com/ring-clojure/ring/blob/master/SPEC
-  [2]: http://jcp.org/aboutJava/communityprocess/final/jsr315/index.html"
-  (create-stylobate nil))
-
 (def ring-response
   "An interceptor which transmits a Ring specified response map to an
   HTTP response.
@@ -348,20 +334,6 @@
     {:name  ::ring-response
      :leave leave-ring-response
      :error error-ring-response}))
-
-(def ^{:deprecated "0.7.0"} terminator-injector
-  "An interceptor which causes execution to terminate when one of
-  the interceptors produces a response, as defined by
-  ring.util.response/response?
-
-  Prior to 0.7.0, this interceptor was automatically queued.
-  In 0.7.0, the context is initialized with a terminator function and this
-  interceptor is no longer used. "
-  (interceptor
-    {:name  ::terminator-injector
-     :enter (fn [context]
-              (i/deprecated `terminator-injector
-                (terminator-inject context)))}))
 
 (defn- format-exception
   [exception]

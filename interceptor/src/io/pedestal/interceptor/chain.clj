@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -48,6 +48,12 @@
                     (ex-data t))
              t)))
 
+(defn with-error
+  "Sets the provided exception as the ::error key of the context."
+  {:added "0.8.0"}
+  [context ^Throwable t]
+  (assoc context ::error t))
+
 (defn- begin-error
   [context stage interceptor throwable]
   (let [{:keys [execution-id]} context
@@ -58,10 +64,10 @@
                :stage stage)
     (-> context
         (dissoc ::queue)
-        (assoc ::error (throwable->ex-info throwable
-                                           execution-id
-                                           interceptor-name
-                                           stage)))))
+        (with-error (throwable->ex-info throwable
+                                        execution-id
+                                        interceptor-name
+                                        stage)))))
 
 (defn terminate
   "Removes all remaining interceptors from context's execution queue.
@@ -127,7 +133,7 @@
             (let [execution-id (::excecution-id context)]
               (log/debug :throw t :suppressed (:exception-type error) :execution-id execution-id)
               (-> context
-                  (assoc ::error (throwable->ex-info t execution-id (name-for interceptor) :error))
+                  (with-error (throwable->ex-info t execution-id (name-for interceptor) :error))
                   (update ::suppressed conj error)))))))
     context))
 
@@ -315,7 +321,7 @@
 
   The supplied function is appended to the list of such functions.
   All the functions are invoked, but only invoked once (a subsequent interceptor
-  also returning a channel does not have this side effect.
+  also returning a channel does not have this side effect).
 
   The callback function will be passed the context, but any returned value from the function is ignored."
   {:added "0.7.0"}
@@ -380,7 +386,8 @@
 
   The :error callback may either handle the exception, in which case the
   execution switches to the :leave stage; or the callback may
-  re-throw the exception, or attach it as the ::error key.
+  re-throw the exception, or attach it as the ::error key
+  (via the [[with-error]] function).
 
   If the exception reaches the end of the stack without
   being handled, `execute` will throw it.

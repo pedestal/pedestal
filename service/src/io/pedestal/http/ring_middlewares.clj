@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -20,7 +20,6 @@
   In some cases, some or all of the Ring middleware has been reimplemented here."
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
-            [io.pedestal.http.request :as request]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.internal :as i]
             [ring.middleware.cookies :as cookies]
@@ -37,7 +36,8 @@
             [ring.util.codec :as codec]
             [ring.util.response :as ring-resp]
             [io.pedestal.http.tracing :as tracing])
-  (:import (java.nio.channels FileChannel)
+  (:import (jakarta.servlet.http HttpServletResponse)
+           (java.nio.channels FileChannel)
            (java.nio.file OpenOption
                           StandardOpenOption)
            (java.io File)))
@@ -260,8 +260,8 @@
   the response :body will be a java.nio.channels.FileChannel that can be streamed to the client
   asynchronously.
 
-  A file is large if it is larger than the HTTP buffer size, which is calculated via
-  [[io.pedestal.http.request/response-buffer-size]] and defaults to 1460 bytes.
+  A file is large if it is larger than the HTTP buffer size, which is calculated from
+  the servlet-response's bufferSize, or defaults to 1460 bytes (if the servlet response is not known).
 
   If succesful, marks the current tracing span as routed, with a route-name of :fast-resource.
 
@@ -282,10 +282,10 @@
        {:name  ::fast-resource
         :enter (fn [context]
                  (let [{:keys [request]} context
-                       {:keys [servlet-response uri path-info request-method]} request]
+                       {:keys [^HttpServletResponse servlet-response uri path-info request-method]} request]
                    (if (#{:head :get} request-method)
                      (let [buffer-size-bytes (if servlet-response
-                                               (request/response-buffer-size servlet-response)
+                                               (.getBufferSize servlet-response)
                                                ;; let's play it safe and assume 1500 MTU
                                                1460)
                            uri-path          (subs (codec/url-decode (or path-info uri)) 1)

@@ -4,21 +4,42 @@
 
 ## 0.8.0 - UNRELEASED
 
-The main focus of this release is to improve routing.
+The main focus of this release is to improve routing and upgrade to Jetty 12.
 
 **BREAKING CHANGES:**
 
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
-- Significant changes to io.pedestal.http.route have occured
-- A new router, io.pedestal.http.route.sawtooth, has been added
+- Significant changes to `io.pedestal.http.route` have occured
+- A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
+- Deleted deprecated namespaces:
+  - `io.pedestal.http.request`
+  - `io.pedestal.http.request.lazy`
+  - `io.pedestal.http.request.zerocopy`
+- Deleted vars (previously deprecated):
+  - `io.pedestal.http.body-params`
+      - `add-ring-middleware`
+      - `edn-parser`
+      - `json-parser`
+      - `transit-parser`
+  - `io.pedestal.http.impl.servlet-interceptor`
+    - `stylobate`
+    - `terminator-injector`
+- Other deleted namespaces:
+  - `io.pedestal.http.request.servlet-support`
+
+Newly deprecated namespaces:
+- `io.pedestal.jetty.container`
+- `io.pedestal.jetty.util`
 
 Other changes:
 
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
+- It is not possible to specifiy the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection 
+  factories
 
 ## 0.7.2 - 1 Nov 2024
 

@@ -5,6 +5,7 @@
 *** xref:important-protocols.adoc[]
 *** xref:context-map.adoc[]
 *** xref:interceptors.adoc[]
+*** xref:container.adoc[]
 *** xref:chain-providers.adoc[]
 *** xref:error-handling.adoc[]
 *** xref:specs.adoc[]

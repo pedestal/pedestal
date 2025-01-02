@@ -15,16 +15,15 @@ Pedestal is composed of multiple libraries, and many of these can be used outsid
 
 | pedestal.telemetry
 | Wrapper around https://opentelemetry.io/[Open Telemetry] for generating application metrics and tracing.
-|
+| pedestal.common
 
 | pedestal.log
-| Wrapper around https://www.slf4j.org/[Simple Logging Facade for Java] footnote:[Also, some deprecated
-metrics and tracing functionality.]
-| pedestal.common, https://metrics.dropwizard.io/4.2.0/[Dropwizard Metrics], https://opentracing.io/[Open Tracing]
+| Wrapper around https://www.slf4j.org/[Simple Logging Facade for Java]
+| pedestal.common
 
 | pedestal.interceptor
 | Asynchronous xref:interceptors.adoc[interceptor pipeline]
-| pedestal.log, pedestal.common
+| pedestal.log, pedestal.common, {core_async}
 
 | pedestal.error
 | Simple error catching for interceptors
@@ -32,18 +31,18 @@ metrics and tracing functionality.]
 
 | pedestal.route
 | HTTP request xref:routing-quick-reference.adoc[routing]
-| pedestal.log, pedestal.interceptor, pedestal.common, {core_async}
+| pedestal.log, pedestal.interceptor, pedestal.common, {core_async}, org.clj-commons/pretty
 
 | pedestal.service
 | Container-agnostic HTTP service support
 | pedestal.log, pedestal.telemetry, pedestal.interceptor, pedestal.route, {core_async},
   Java Servlet API, Java WebSocket API,
-  https://github.com/ring-clojure/ring[ring/ring-core],
+  https://github.com/ring-clojure/ring[ring/ring-core], org.clj-commons/pretty,
   several others
 
 | pedestal.jetty
-| xref:jetty.adoc[Jetty 11] adapter
-| pedestal.log, pedestal.service, Jetty 11 (server, servlet, alpn-servicer, http2-service, etc.)
+| xref:jetty.adoc[Jetty 12] container
+| pedestal.log, pedestal.service, Jetty 12 (jetty-service, jetty-ee10-servlet, etc.)
 
 |===
 

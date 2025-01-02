@@ -387,8 +387,7 @@
 
 (defn- service-map->server-options
   ;; I think the idea is to make it easier for the jetty/server to access host, port, etc.
-  ;; without having to use name-spaced keys.  Perhaps this should be changed?  There's no
-  ;; particular reason for it.  Also ::host will be defaulted to "localhost".
+  ;; without having to use name-spaced keys.  Also ::host will be defaulted to "localhost".
   [service-map]
   (let [server-keys [::host ::port ::join? ::container-options ::websockets]]
     (into {} (map (fn [[k v]] [(keyword (name k)) v]) (select-keys service-map server-keys)))))

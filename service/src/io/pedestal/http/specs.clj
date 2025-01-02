@@ -25,7 +25,7 @@
                 ::http/container-options
                 ::http/websockets
                 ::http/interceptors
-                ;; These are placed here when the service is created (e.g., io.pedestal.jetty/service)
+                ;; These are placed here when the service is created (e.g., from io.pedestal.http.jetty/service)
                 ::http/start-fn
                 ::http/stop-fn
                 ;; From here down is essentially just what the default-interceptors function needs
@@ -45,8 +45,8 @@
                 ::http/service-fn-options
                 ::http/tracing]))
 
-(s/def ::http/port pos-int?)
-(s/def ::http/type (s/or :fn fn?
+(s/def ::http/port (s/nilable pos-int?))
+(s/def ::http/type (s/or :fn fn?                            ;; really ::http/container-fn
                          :kw simple-keyword?))
 (s/def ::http/host string?)
 (s/def ::http/join? boolean?)
@@ -93,5 +93,27 @@
         :ret ::http/service-map)
 
 (s/fdef http/create-servlet
-        :args (s/cat :service-map ::http/service-map)
+        :args ::http/service-map
         :ret ::http/service-map)
+
+;; options passed to a server function (to create a container)
+;; yes the naming is all over the place (many hands, much time passed)
+(s/def ::http/container-options (s/keys :req-un [::http/host
+                                                 ::http/port]
+                                        :opt-un [::http/join?
+                                                 ::http/websockets
+                                                 ::http/container-options]))
+
+;; Each container will have its own spec for container options
+(s/def ::http/container-options map?)
+
+(s/def ::http/container-lifecycle
+  (s/keys :req-un [::http/start-fn
+                   :http/stop-fn]))
+
+;; container-fn is derived from ::http/type, it accepts server options and
+;; returns a map of the two lifecycle functions.
+(s/def ::http/container-fn (s/fspec :args (s/cat
+                                            :service-map ::http/service-map
+                                            :options ::http/container-options)
+                                    :ret ::http/container-lifecycle))

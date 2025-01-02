@@ -113,7 +113,9 @@ from another container on the same host) will be network, not localhost, connect
 | ::http/port
 | N
 | Integer
-| Port for the running server. If `nil`, Pedestal defaults to port 80 and HTTP.
+| Port for the running server. If `nil`, then no HTTP port will be opened
+footnote:[This is the behavior of releases 0.7 and earlier as well, contrary to prior documentation.], and
+the container should be configured to open a port for HTTPs traffic.
 
 | ::http/resource-path
 | N
@@ -277,20 +279,13 @@ keys and string values for the security headers. Any other keys will be ignored.
 
 == Server Map
 
-The api:server[] function converts the service map to a server map; much of this is
-the responsibility of the container-specific `server` function, such as
-api:server[ns=io.pedestal.http.jetty] - the function is determined from the ::http/type key of the service map.
+The api:server[] function converts the service map to a server map, along the way,
+initializing a xref:container.adoc[container] (such as
+xref:jetty.adoc[Jetty]); this will add the :http/start-fn and :http/stop-fn keys to the
+service map, yielding the server map.
 
-This function is passed the full service map, and a set of server options; these options
-are a subset of the service map keys: :host, :port, :join?, :container-options, and :websockets (each
-as a non-namespaced keyword).
-
-The `server` function should create a service (e.g., a Jetty Server) and return a map with
-at least keys :start-fn and :stop-fn.  These are then qualified into the io.pedestal.http namespace
-and merged into the service map.
-
-The api:start[] and api:stop[] functions use the ::http/start-fn and ::http/stop-fn keys to start
-and stop the server instance.
+The api:start[] and api:stop[] functions use the two functions provided by the container function to start
+and stop the container instance.
 
 == Spec Validation
 
