@@ -23,7 +23,7 @@ Pedestal is composed of multiple libraries, and many of these can be used outsid
 
 | pedestal.interceptor
 | Asynchronous xref:interceptors.adoc[interceptor pipeline]
-| pedestal.log, pedestal.common
+| pedestal.log, pedestal.common, {core_async}
 
 | pedestal.error
 | Simple error catching for interceptors
@@ -41,7 +41,7 @@ Pedestal is composed of multiple libraries, and many of these can be used outsid
   several others
 
 | pedestal.jetty
-| xref:jetty.adoc[Jetty 12] adapter
+| xref:jetty.adoc[Jetty 12] container
 | pedestal.log, pedestal.service, Jetty 12 (jetty-service, jetty-ee10-servlet, etc.)
 
 |===

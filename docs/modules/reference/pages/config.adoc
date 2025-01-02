@@ -63,12 +63,6 @@ io.pedestal.log.formatter / PEDESTAL_LOG_FORMATTER::
 A function used to format a logged event map to a string prior to being passed to the LoggerSource.
 When not specified, clj:pr-str[] is used.
 
-io.pedestal.log.defaultMetricsRecorder / PEDESTAL_METRICS_RECORDER::
-
-Used to configure the now-deprecated support for metrics in the pedestal.log library.
-Supports the special string "nil" to indicate no metrics publishing.  Does not check
-the EDN config files.  Defaults to a registry built around api:jmx-recorder[ns=io.pedestal.log].
-
 io.pedestal.telemetry.metric-source / PEDESTAL_METRICS_SOURCE::
 
 A function that returns an instance of api:MetricSource[ns=io.pedestal.metrics.spi] used to create metrics used by
