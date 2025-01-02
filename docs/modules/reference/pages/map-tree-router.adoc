@@ -13,13 +13,13 @@ lookup).
 
 == How to use it?
 
-No need to do anything. This is Pedestal's default router implementation.
+Add the key :io.pedestal.http/router to the xref:service-map.adoc[] with the
+value :map-tree.
 
 == Caveats
 
-While this is Pedestal's default router, it falls back to the
-xref:prefix-tree-router.adoc[]
-when path parameters or wildcards are used in routes.
+If the routes provided have any path parameters or wildcards, the
+xref:prefix-tree-router.adoc[] will be used instead.
 
 == Additional Notes
 
