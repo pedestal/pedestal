@@ -17,7 +17,6 @@
             [clj-commons.format.exceptions :as exceptions]
             [clojure.pprint :as pprint]
             [clojure.core.async :as async]
-            [io.pedestal.internal :as i]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
@@ -324,17 +323,6 @@
        :error (fn [context exception]
                 (error-stylobate exception-analyzer context exception))})))
 
-(def ^{:deprecated "0.7.0"} stylobate
-  "An interceptor which primarily handles uncaught exceptions thrown
-  during execution of the interceptor chain.
-
-  This var is deprecated in 0.7.0 as it should only be added to the
-  interceptor chain by [[http-interceptor-service-fn]].
-
-  [1]: https://github.com/ring-clojure/ring/blob/master/SPEC
-  [2]: http://jcp.org/aboutJava/communityprocess/final/jsr315/index.html"
-  (create-stylobate nil))
-
 (def ring-response
   "An interceptor which transmits a Ring specified response map to an
   HTTP response.
@@ -348,20 +336,6 @@
     {:name  ::ring-response
      :leave leave-ring-response
      :error error-ring-response}))
-
-(def ^{:deprecated "0.7.0"} terminator-injector
-  "An interceptor which causes execution to terminate when one of
-  the interceptors produces a response, as defined by
-  ring.util.response/response?
-
-  Prior to 0.7.0, this interceptor was automatically queued.
-  In 0.7.0, the context is initialized with a terminator function and this
-  interceptor is no longer used. "
-  (interceptor
-    {:name  ::terminator-injector
-     :enter (fn [context]
-              (i/deprecated `terminator-injector
-                (terminator-inject context)))}))
 
 (defn- format-exception
   [exception]

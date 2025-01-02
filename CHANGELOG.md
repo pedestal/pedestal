@@ -17,6 +17,9 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
 - Deleted deprecated namespaces:
   - `io.pedestal.http.request.lazy`
   - `io.pedestal.http.request.zerocopy`
+- Deleted vars (previously deprecated):
+  - io.pedestal.http.impl.servlet-interceptor/terminator-injector
+  - io.pedestal.http.impl.servlet-interceptor/stylobate
 
 Newly deprecated namespaces:
 - `io.pedestal.jetty.util`
