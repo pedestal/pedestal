@@ -2,11 +2,22 @@
 
 == 0.8.0
 
+The focus of release 0.8 is to improve routing and support xref:reference:jetty.adoc[], but a secondary focus
+is to remove dead code.
+
 Many functions, macros, and even namespaces deprecated in 0.7.0 have been fully removed in 0.8.0.
 
 There have been xref:reference:routing-changes.adoc[significant changes to routing], including some
 non-backwards compatible changes to functions, namespaces, and protocols; these changes should only be
 concerning if you have previously implemented your own routing specifications or routers.
+
+Newly deprecated namespaces:
+
+- api:*[ns=io.pedestal.jetty.container]
+- api:*[ns=io.pedestal.jetty.util]
+
+These represent functionality that is not well supported by Pedestal, or internal namespaces that should not be
+used by application code.
 
 == 0.7.0
 

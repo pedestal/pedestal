@@ -10,23 +10,29 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
 
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
-- Significant changes to io.pedestal.http.route have occured
-- A new router, io.pedestal.http.route.sawtooth, has been added
+- Significant changes to `io.pedestal.http.route` have occured
+- A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
 - Deleted deprecated namespaces:
+  - `io.pedestal.http.request`
   - `io.pedestal.http.request.lazy`
   - `io.pedestal.http.request.zerocopy`
-  - `io.pedestal.http.request`
 - Deleted vars (previously deprecated):
-  - `io.pedestal.http.impl.servlet-interceptor/terminator-injector`
-  - `io.pedestal.http.impl.servlet-interceptor/stylobate`
+  - `io.pedestal.http.body-params`
+      - `add-ring-middleware`
+      - `edn-parser`
+      - `json-parser`
+      - `transit-parser`
+  - `io.pedestal.http.impl.servlet-interceptor`
+    - `stylobate`
+    - `terminator-injector`
 - Other deleted namespaces:
   - `io.pedestal.http.request.servlet-support`
 
 Newly deprecated namespaces:
-- `io.pedestal.jetty.util`
 - `io.pedestal.jetty.container`
+- `io.pedestal.jetty.util`
 
 Other changes:
 
