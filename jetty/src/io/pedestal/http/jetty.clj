@@ -18,6 +18,7 @@
             [io.pedestal.websocket :as ws])
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
+           (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.api.server ServerSessionListener)
            (org.eclipse.jetty.http2.server HTTP2CServerConnectionFactory RawHTTP2ServerConnectionFactory)
            (org.eclipse.jetty.server ConnectionFactory
@@ -64,7 +65,7 @@
           :need (.setNeedClientAuth context true)
           :want (.setWantClientAuth context true)
           nil)
-        #_(.setCipherComparator context HTTP2Cipher/COMPARATOR)
+        (.setCipherComparator context HTTP2Cipher/COMPARATOR)
         (.setUseCipherSuitesOrder context true)
         context)))
 
@@ -160,7 +161,7 @@
 
                                   (when (and (nil? port)
                                              h2c?)
-                                    (throw (ex-info "HTTP2-Cleartext can not be neabled unless a non-nil HTTP port is provided"
+                                    (throw (ex-info "HTTP2-Cleartext can not be enabled unless a non-nil HTTP port is provided"
                                                     {:container-options container-options}))))
         server-session-listener (reify ServerSessionListener)
         http-conf               (http-configuration container-options)

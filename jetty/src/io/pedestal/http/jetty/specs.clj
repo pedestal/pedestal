@@ -57,8 +57,10 @@
 
 
 (s/fdef jetty/service
-        :args (s/and ::http/container-options
-                     ;; "Refine" the :container-options key for Jetty-specific options
-                     (s/keys :opt-un [::container-options]))
+        :args (s/cat
+                :service-map ::http/service-map
+                :options (s/and ::http/server-options
+                            ;; "Refine" the :container-options key for Jetty-specific options
+                            (s/keys :opt-un [::container-options])))
         :ret ::http/container-lifecycle)
 
