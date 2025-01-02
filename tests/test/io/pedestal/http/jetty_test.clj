@@ -159,7 +159,7 @@
                          (.setAttribute server "ANewAttribute" 42)
                          (.setHandler server new-handler)
                          server)
-        ^Server server (:server (jetty-server hello-world
+        ^Server server (::jetty/server (jetty-server hello-world
                                               {:join? false :port 4347 :container-options {:max-threads  max-threads
                                                                                            :configurator configurator}}))]
     (is (= (.getMaxThreads ^QueuedThreadPool (.getThreadPool server)) max-threads))
@@ -170,13 +170,13 @@
 
 (deftest setting-daemon-threads
   (testing "default (daemon off)"
-    (let [server (:server (jetty-server hello-world {:port 4347 :join? false}))]
+    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false}))]
       (is (not (.. server getThreadPool isDaemon)))))
   (testing "daemon on"
-    (let [server (:server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? true}}))]
+    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? true}}))]
       (is (.. server getThreadPool isDaemon))))
   (testing "daemon off"
-    (let [server (:server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? false}}))]
+    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? false}}))]
       (is (not (.. server getThreadPool isDaemon))))))
 
 
