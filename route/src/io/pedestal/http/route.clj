@@ -288,7 +288,8 @@
              "//"
              host
              (when (non-standard-port? scheme port) (str \: port))))
-      (str (when-not (.startsWith path "/") "/") path)
+      (when-not (.startsWith path "/") "/")
+      path
       (when-not (str/blank? fragment) (str "#" fragment))
       (when (seq query-params)
         (str \?

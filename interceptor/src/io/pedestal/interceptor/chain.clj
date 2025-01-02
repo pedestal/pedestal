@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -321,7 +321,7 @@
 
   The supplied function is appended to the list of such functions.
   All the functions are invoked, but only invoked once (a subsequent interceptor
-  also returning a channel does not have this side effect.
+  also returning a channel does not have this side effect).
 
   The callback function will be passed the context, but any returned value from the function is ignored."
   {:added "0.7.0"}

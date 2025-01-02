@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -21,13 +21,11 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.http.container :as container]
-            [io.pedestal.http.request :as request]
             [io.pedestal.http.request.map :as request-map]
             [ring.util.response :as ring-response]
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
-            io.pedestal.http.route
-            io.pedestal.http.request.servlet-support)
+            io.pedestal.http.route)
   (:import (clojure.core.async.impl.protocols Channel)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletResponse HttpServletRequest)
@@ -203,13 +201,13 @@
     (.setTimeout 0)))
 
 (defn- start-servlet-async
-  [{:keys [servlet-request]}]
-  (when-not (request/async-started? servlet-request)
+  [{:keys [^HttpServletRequest servlet-request]} ]
+  (when-not (.isAsyncStarted servlet-request)
     (start-servlet-async* servlet-request)))
 
 (defn- leave-stylobate
   [{:keys [^HttpServletRequest servlet-request] :as context}]
-  (when (request/async-started? servlet-request)
+  (when (.isAsyncStarted servlet-request)
     (.complete (.getAsyncContext servlet-request)))
   context)
 
@@ -242,7 +240,7 @@
                     {:response response}))
 
     (let [status (:status response)]
-      (not (and (int? status)
+      (not (and (int? status)'
                 (pos? status))))
     (throw (ex-info "Response map must have positive integer value for :status"
                     {:response response}))

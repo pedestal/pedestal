@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -14,9 +14,9 @@
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [clojure.test :refer [deftest is]]
             [clojure.string :as string]
-            [matcher-combinators.matchers :as m]
-            [io.pedestal.http.request :as request])
-  (:import (java.io IOException)))
+            [matcher-combinators.matchers :as m])
+  (:import (jakarta.servlet.http HttpServletRequest)
+           (java.io IOException)))
 
 (def create-stylobate @#'si/create-stylobate)
 
@@ -40,12 +40,13 @@
                      (reset! *exception exception)
                      nil)
         e          (RuntimeException.)
-        context    {:this :that}
+        context    {:this            :that
+                    :servlet-request (reify HttpServletRequest
+                                       (isAsyncStarted [_] false))}
         stylobate  (create-stylobate {:exception-analyzer f})]
-    (with-redefs [request/async-started? (constantly false)]
-      (is (identical? context
-                      ((:error stylobate) context e)))
-      (is (identical? e @*exception)))))
+    (is (identical? context
+                    ((:error stylobate) context e)))
+    (is (identical? e @*exception))))
 
 (deftest dev-exception-debug-interceptor-invokes-formatter
   (let [e        (RuntimeException. "For testing of formatting")
