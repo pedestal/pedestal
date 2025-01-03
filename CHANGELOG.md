@@ -40,6 +40,8 @@ Other changes:
   interceptors provided by the route
 - It is not possible to specifiy the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection 
   factories
+- New functions:
+  - `io.pedestal.test/create-responder`
 
 ## 0.7.2 - 1 Nov 2024
 

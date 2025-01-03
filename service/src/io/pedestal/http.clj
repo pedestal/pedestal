@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-20245 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -205,7 +205,7 @@
      as the root). If nil, this interceptor
     is not added. Default is nil.
   * :resource-path: Resource path (on the classpath) used as root by the [[resource]] interceptor; If nil, no interceptor
-    is added. Default is nil.
+    is added. Default is nil. Alternately, include [[resource-routes]] in the :routes key.
   * :method-param-name: Query string parameter used to set the current HTTP verb. Default is `_method`.
   * :allowed-origins: Determines what origins are allowed for the [[allow-origin]] interceptor. If
      nil, this interceptor is not added. Default is nil.

@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,7 +13,8 @@
 
 (ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
   io.pedestal.test
-  (:require [io.pedestal.http.route :as route]
+  (:require [io.pedestal.http :as http]
+            [io.pedestal.http.route :as route]
             [io.pedestal.http.servlet :as servlets]
             [io.pedestal.log :as log]
             [clojure.string :as cstr]
@@ -233,7 +234,7 @@
       deref))
 
 (defn servlet-response-for
-  "Return a ring response map for an HTTP request of type `verb`
+  "Return a Ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
@@ -250,7 +251,7 @@
      :headers (test-servlet-response-headers servlet-response)}))
 
 (defn raw-response-for
-  "Return a ring response map for an HTTP request of type `verb`
+  "Return a Ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
@@ -272,12 +273,15 @@
                                             {"Content-Length" content-length})))))
 
 (defn response-for
-  "Return a ring response map for an HTTP request of type `verb`
+  "Return a Ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure. The response body will be converted
   to a UTF-8 string.
+
+  An empty response body will be returned as an empty string.
+
   Options:
 
   :body : An optional string that is the request body.
@@ -285,6 +289,18 @@
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
       (update :body #(.toString ^ByteArrayOutputStream % "UTF-8"))))
+
+(defn create-responder
+  "Given a service map, this returns a function that wraps [[response-for]].
+
+  The returned function's signature is: [verb url & options]"
+  {:added "0.8.0"}
+  [service-map]
+  (let [service-fn (-> service-map
+                       http/create-servlet
+                       ::http/service-fn)]
+    (fn [verb url & options]
+      (apply response-for service-fn verb url options))))
 
 (defn disable-routing-table-output-fixture
   "A test fixture that disables printing of the routing table, even when development mode
