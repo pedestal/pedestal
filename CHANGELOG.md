@@ -24,6 +24,8 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
       - `edn-parser`
       - `json-parser`
       - `transit-parser`
+  - `io.pedestal.http.ring-middlewares`
+    - `response-fn-adapter`
   - `io.pedestal.http.impl.servlet-interceptor`
     - `stylobate`
     - `terminator-injector`
@@ -38,10 +40,12 @@ Other changes:
 
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
-- It is not possible to specifiy the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection 
-  factories
+- It is now possible to specify the maximum number of concurrent threads with the 
+  Jetty HTTP2 and HTTP2C connection factories
 - New functions:
-  - `io.pedestal.test/create-responder`
+  - `io.pedestal.test/create-responder` - useful piece needed in most tests
+- New namespaces: 
+  - `io.pedestal.http.resources` - expose resources using _routes_ not _interceptors_
 
 ## 0.7.2 - 1 Nov 2024
 
