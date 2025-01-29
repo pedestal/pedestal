@@ -13,10 +13,8 @@
   "Creation of routes to expose file system or classpath resources as GET-able URIs.
 
   This is an alternative to [[io.pedestal.http.ring-middlewares]]
-  which provides _interceptors_ (which bypass routing); these functions
-  return [[RoutingFragment]]s that can be combined to form the application's routing table.
-
-  "
+  that provide _interceptors_ (which bypass routing); these functions
+  return [[RoutingFragment]]s that can be combined to as part of the application's routing table."
   {:added "0.8.0"}
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
@@ -130,24 +128,26 @@
     (table/table-routes opts routes)))
 
 (defn- create-resource-supplier
-  [resource-root class-loader]
+  [resource-root class-loader cache?]
   (assert (and (valid-prefix? resource-root)
                (not (string/starts-with? resource-root "/"))))
   (let [class-loader' (or class-loader
-                          (.getContextClassLoader (Thread/currentThread)))]
+                          (.getContextClassLoader (Thread/currentThread)))
+        *cache        (when cache?
+                        (atom {}))]
     (fn [path]
-      path
       (when-let [url (io/resource (str resource-root "/" path) class-loader')]
-        (impl/resource-data url)))))
+        (impl/resource-data url *cache)))))
 
 (defn resource-routes
   "Returns a [[RoutingFragment]] of routes to access files on the classpath."
   [opts]
   (let [{:keys [resource-root
-                class-loader] :as opts'} (-> (merge default-opts opts)
-                                             ;; :index-files? only makes sense for file routes.
-                                             (dissoc :index-files?))
-        supplier (create-resource-supplier resource-root class-loader)]
+                class-loader
+                cache?] :as opts'} (-> (merge default-opts opts)
+                                       ;; :index-files? only makes sense for file routes.
+                                       (dissoc :index-files?))
+        supplier (create-resource-supplier resource-root class-loader cache?)]
     (make-routes supplier "resource" opts')))
 
 (defn- valid-root-path?
@@ -160,10 +160,12 @@
   (let [root-dir (io/file root-path)
         _        (assert (and (.exists root-dir)
                               (.isDirectory root-dir)))
-        {:keys [index-files?]} (assoc opts :root root-path)]
+        {:keys [index-files? cache?]} (assoc opts :root root-path)
+        *cache   (when cache?
+                   (atom {}))]
     (fn [path]
       (when-let [url (impl/url-for-file root-dir path index-files?)]
-        (impl/resource-data url)))))
+        (impl/resource-data url *cache)))))
 
 (defn file-routes
   "Returns a [[RoutingFragment]] of routes to access files on the file system."

@@ -15,7 +15,7 @@
             [clojure.string :as string]
             [ring.util.io :as util.io])
   (:import (jakarta.servlet.http HttpServletResponse)
-           (java.io File InputStream)
+           (java.io BufferedInputStream File InputStream)
            (java.net URL)
            (java.nio.channels Channels FileChannel)
            (java.nio.file OpenOption StandardOpenOption)
@@ -32,9 +32,16 @@
   (let [{:keys [servlet-response]} request
         buffer-size-bytes (if servlet-response
                             (.getBufferSize ^HttpServletResponse servlet-response)
-                            ;; Assume 1500 MTU
+                            ;; The comment: Assume 1500 MTU (https://en.wikipedia.org/wiki/Maximum_transmission_unit)
+                            ;; (originally copied from io.pedestal.http.ring-middlewares/fast-resource)
+                            ;; Q: Then why is the default 1460?
                             1460)]
     (<= buffer-size-bytes stream-size)))
+
+(defn- buffered
+  ^InputStream [^InputStream is]
+  ;; 8192 is the transfer size of java.nio.channels.Channels.ReadableByteChannelImpl
+  (BufferedInputStream. is 8192))
 
 (defn- make-streamable-file-body
   [file]
@@ -49,26 +56,38 @@
 (defn- make-streamable-jar-entry-body
   [jar-file jar-entry]
   (fn [request]
-    (let [is ^InputStream (.getInputStream jar-file jar-entry)]
-      (if (should-stream? request (.length jar-entry))
+    (let [is ^InputStream (buffered (.getInputStream jar-file jar-entry))]
+      (if (should-stream? request (.getSize jar-entry))
         (Channels/newChannel is)
         is))))
 
 (defmulti resource-data
           "Returns resource data for a file: or jar: URL."
-          (fn [^URL url]
+          (fn [^URL url _*cache]
             (-> url .getProtocol keyword)))
 
+(defmacro from-cache
+  "Handles all the cases of reading and updating the optional cache, an atom."
+  [*cache key & body]
+  `(let [cached# (when ~*cache
+                   (get (deref ~*cache) ~key))]
+     (if cached#
+       cached#
+       (when-let [result# (do ~@body)]
+         (when ~*cache
+           (swap! ~*cache assoc ~key result#))
+         result#))))
+
 (defmethod resource-data :file
-  [url]
-  (when-let [file (io/as-file url)]
+  [url *cache]
+  (when-let [file (from-cache *cache url (io/as-file url))]
     {:last-modified   (util.io/last-modified-date file)
      :content-length  (.length file)
      :response-body   (fn [_] file)
      :streamable-body (make-streamable-file-body file)}))
 
 (defmethod resource-data :jar
-  [url]
+  [url *cache]
   (let [[_ file-path entry-path] (re-matches
                                    #"(?x)
     file:
@@ -76,14 +95,17 @@
     !/
     (.+)"
                                    (.getPath url))
+        _             (assert file-path)
+        _             (assert entry-path)
         ;; This opens the jar file, there's nothing to close it.
-        ;; TODO: Caching of jar files
-        jar-file      (-> file-path io/file JarFile.)
+        jar-file      (from-cache *cache file-path (-> file-path io/file JarFile.))
         jar-entry     (.getJarEntry jar-file entry-path)
+        ;; This should exist because we start at the URL for the file within the Jar
+        _             (assert jar-entry)
         last-modified (-> jar-entry .getLastModifiedTime .toMillis Date.)]
     {:last-modified   last-modified
      :content-length  (.getSize jar-entry)                  ; uncompressed size
-     :response-body   (fn [_] (.getInputStream jar-file jar-entry))
+     :response-body   (fn [_] (buffered (.getInputStream jar-file jar-entry)))
      :streamable-body (make-streamable-jar-entry-body jar-file jar-entry)}))
 
 (defn- traversal?
@@ -100,7 +122,7 @@
   [^File dir ^String prefix]
   (first
     (filter
-      #(string/starts-with? prefix (-> ^File % .getName .toLowerCase))
+      #(string/starts-with? (-> ^File % .getName .toLowerCase) prefix)
       (.listFiles dir))))
 
 (defn- find-index-file

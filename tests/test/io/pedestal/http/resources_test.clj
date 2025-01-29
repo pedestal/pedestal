@@ -10,7 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.resources-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [deftest is testing]]
             [io.pedestal.http :as http]
             [io.pedestal.test :as test]
             [io.pedestal.http.resources :as resources]
@@ -58,7 +59,7 @@
 (deftest get-resource-does-not-allow-..
   (let [responder (create-responder)]
 
-    (is (match? {:status  404}
+    (is (match? {:status 404}
                 (responder :get "/res/../res/index.html")))))
 
 (deftest get-resource-does-not-exist
@@ -109,6 +110,11 @@
                  :body    ""}
                 (responder :head "/file/test.html")))))
 
+(deftest head-of-existing-file-when-not-enabled-returns-404
+  (let [responder (create-responder #(assoc % :allow-head? false))]
+    (is (match? {:status 404}
+                (responder :head "/file/test.html")))))
+
 
 (deftest get-index-for-root-dir
   (let [responder          (create-responder)
@@ -118,10 +124,29 @@
                  :body    index-file-content}
                 (responder :get "/file")))))
 
+(deftest get-index-file-with-htm-extension
+  (let [responder (create-responder)
+        content   (slurp "file-root/sub/a/index.htm")]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/file/sub/a")))))
+
+(deftest get-index-file-with-other-extension
+  (let [responder (create-responder)
+        content   (slurp "file-root/sub/b/index.txt")]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/file/sub/b")))))
+
+(deftest status-404-if-no-index-file-matches
+  (let [responder (create-responder)]
+    (is (match? {:status 404}
+                (responder :get "/file/sub/c")))))
+
 (deftest get-file-404-if-path-contains-..
   (let [responder (create-responder)]
 
-    (is (match? {:status  404}
+    (is (match? {:status 404}
                 (responder :get "/file/../res/index.html")))))
 
 (deftest get-file-in-sub-directory
@@ -167,3 +192,53 @@
 
     (is (match? {:status 404}
                 (responder :get "/file/sub")))))
+
+;; Testing different paths through the code, there isn't a good way to
+;; see inside the black box, however.
+
+(deftest access-large-resource-from-jar
+  (let [responder (create-responder #(assoc % :resource-root "com/cognitect"))
+        ;; This is a convenient, largish file (large enough to be streamed async).
+        content   (-> "com/cognitect/transit/TransitFactory.class" io/resource slurp)]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/res/transit/TransitFactory.class")))))
+
+(deftest access-small-resource-from-jar
+  (let [responder (create-responder #(assoc % :resource-root "ring"))
+        ;; This is the other branch, where the InputStream for the file is returned rather
+        ;; than the ReadableChannel.  This file is ~350 bytes, well below the 1500 buffer size
+        ;; provided by the test-servlet-response.
+        content   (-> "ring/util/async.clj" io/resource slurp)]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/res/util/async.clj")))))
+
+(deftest get-large-file
+  (let [responder (create-responder)
+        content   (slurp "file-root/sub/image.jpg")]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/file/sub/image.jpg")))))
+
+(deftest get-large-resource-from-jar-slow
+  (let [responder (create-responder #(assoc %
+                                            :resource-root "com/cognitect"
+                                            :fast? false
+                                            ;; Turn off a few other options just to boost
+                                            ;; code coverage
+                                            :cache? false
+                                            :index-files? false
+                                                          :allow-head? false))
+        content   (-> "com/cognitect/transit/TransitFactory.class" io/resource slurp)]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/res/transit/TransitFactory.class")))))
+
+(deftest get-large-file-slow
+  (let [responder (create-responder #(assoc % :fast? false
+                                            :cache? false))
+        content   (slurp "file-root/sub/image.jpg")]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/file/sub/image.jpg")))))
