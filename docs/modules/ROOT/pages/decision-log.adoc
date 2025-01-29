@@ -1,0 +1,82 @@
+# Decision Log
+:default_api_ns: io.pedestal.interceptor.chain
+
+Document design and architecture decisions.
+
+A lighter-weight alternative to
+https://github.com/joelparkerhenderson/architecture-decision-record[Architecture Decision Record (ADR)].
+
+== Resource Routes (Jan 2025)
+
+Routing is a central concept in Pedestal, and so it causes friction when other important concepts
+are inconsistent with it.  One common example is how Pedestal makes file system or class path resources
+available; this happens outside of routing - by default, it occurs just before the router interceptor
+in the default interceprtor stack.
+
+Having resources operating outside of routing means that there can be conflicts between resources and routes that go undiagnosed.  It also means that it is not possible to
+reverse the URI for a resource in the way that is possible for endpoints defined in the routing table.
+
+In addition, exposing resources as routes has opened up new paths for caching, leading to greater
+efficiency when serving such resources.
+
+Whether support for the interceptor-based approach for resources remains fully supported, or is
+deprcated, is an outstanding question.
+
+== Jetty 12 (Dec 2024)
+
+Although Pedestal 0.7 bumped the supported version of Jetty from 9 to Jetty 11, this was
+only an interrum solution - Jetty 9 ended community support in June 2022, with EOL slated for Feb 2025,
+but Jetty 11 ended community support in Jan 2024, and EOL in Jan 2025.
+
+Thus, there is no reason to continue supporting both Jetty 11 and Jetty 12; Jetty 12 does
+not yet have a scheduled EOL.
+
+So, although initial plans were to support both 11 and 12 in Pedestal 0.8, we have pivoted to
+only supporting Jetty 12.
+
+== Routing Fragments (Fall 2024)
+
+The original intention of the _routing table_ was that an application would construct a single
+routing specification at startup; this would be converted to a routing table and combined with a router to
+form a routing interceptor.
+
+This is sufficient for many small projects using Pedestal; for larger users, such as the vast number of services deployed at Nubank, it has proven insufficient.
+
+Nubank services are built on common libraries; both the application and library layers each contribute
+portions of the routing table; this is a haphazard process in Pedestal 0.7 and earlier, because
+certain APIs assume just a single routing specification for the entire application.
+
+In Pedestal 0.8, this was
+xref:reference:routing-changes.adoc[reworked]
+(sacrificing some backwards compatibility) to allow
+for routing fragments, that can be properly combined, verified for correctness, and utilized
+by the framework.
+
+== Sawtooth Router (Sep 2024)
+
+A common query internally at Nubank, when asked "How can we make things better?" was a call for help with
+routes, particularily identifying routing conflicts.
+
+The existing router implementation, the
+xref:reference:prefix-tree-router.adoc[]
+had specific rules for dealing with any conflicts, but did a bad job of emitting warnings
+about such conflicts.
+
+xref:reference:sawtooth-router.adoc[Sawtooth]
+was created to address these concerns; it's behavior when conflicts occur is not defined, but
+it was designed to do a good job of identifying routing conflicts.
+
+Although the original goal was to create a router that was as fast, or faster, than
+prefix tree, that turned out to be difficult to achieve footnote:[There was a long series of
+attempted optimizations to address this, which bore very limited fruit.];
+Sawtooth is nearly as fast as Prefix Tree, with a difference in micro-seconds per routing execution.
+
+The final decision was whether to sawtooth the _default_ router; this seemed acceptible
+give its reasonable performance, and improved ergonomics.  The other routers, prefix tree included,
+continue to exist for backwards compatibility reasons, and to support cases where Sawtooth
+is not the best fit.
+
+
+
+
+

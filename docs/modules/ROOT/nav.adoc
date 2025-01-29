@@ -1,4 +1,5 @@
 * xref:index.adoc[]
+* xref:decision-log.adoc[]
 * xref:deprecations.adoc[]
 * xref:terms.adoc[]
 
