@@ -11,11 +11,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
-  io.pedestal.test
+(ns io.pedestal.test
+  "Pedestal testing utilities; mock implementations of the core Servlet API
+  objects, to support fast integration testing without starting a servlet container,
+  or opening a port for HTTP traffic."
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.servlet :as servlets]
+            [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [clojure.string :as cstr]
             [clojure.java.io :as io]
@@ -27,7 +30,8 @@
            (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
            (clojure.lang IMeta)
            (java.util Enumeration NoSuchElementException)
-           (java.nio.channels Channels ReadableByteChannel)))
+           (java.nio.channels Channels ReadableByteChannel))
+  (:import (java.io OutputStream)))
 
 (defn- test-servlet
   ^Servlet [interceptor-service-fn]
@@ -198,14 +202,14 @@
                      (try (io/copy instream-body output-stream)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
+                            (async/put! resume-chan (chain/with-error context t)))
                           (finally (async/close! resume-chan)))))
                  (write-byte-buffer-body [_ body resume-chan context]
-                   (let [out-chan (Channels/newChannel ^java.io.OutputStream output-stream)]
+                   (let [out-chan (Channels/newChannel ^OutputStream output-stream)]
                      (try (.write out-chan body)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
+                            (async/put! resume-chan (chain/with-error context t)))
                           (finally (async/close! resume-chan))))))
 
                meta-data)))
@@ -257,8 +261,11 @@
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure. The response body will be returned as
   a ByteArrayOutputStream.
-  Options:
 
+  Note that the `Content-Length` header, if present, will be a number,
+  not a string.
+
+  Options:
   :body : An optional string that is the request body.
   :headers : An optional map that are the headers"
   [interceptor-service-fn verb url & options]
@@ -279,6 +286,8 @@
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure. The response body will be converted
   to a UTF-8 string.
+
+  This builds on [[raw-response-for]], see a note there about headers.
 
   An empty response body will be returned as an empty string.
 

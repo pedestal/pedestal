@@ -34,7 +34,7 @@
                             (.getBufferSize ^HttpServletResponse servlet-response)
                             ;; Assume 1500 MTU
                             1460)]
-    (>= buffer-size-bytes stream-size)))
+    (<= buffer-size-bytes stream-size)))
 
 (defn- make-streamable-file-body
   [file]
@@ -112,7 +112,9 @@
 (defn url-for-file
   [root-file path index-files?]
   (when-not (traversal? path)
-    (let [file  (io/file root-file path)
+    (let [file  (if (= "" path)
+                  root-file
+                  (io/file root-file path))
           file' (cond
                   (.isDirectory file)
                   (when index-files?
@@ -123,15 +125,3 @@
       (when file'
         (io/as-url file')))))
 
-(defn url-for-resource
-  [resource-root path])
-
-
-(comment
-  (-> (io/resource "ring/util/io.clj")
-      (resource-data))
-
-  (-> (io/file "dev/public/test.html")
-      io/as-file)
-
-  )

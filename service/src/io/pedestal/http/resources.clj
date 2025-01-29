@@ -33,8 +33,13 @@
    :fast?           true})
 
 (defn- clean-path
+  "The path may contain redundant slashes; remove all from the start and collapse the rest
+  down to a single slash."
   [path]
-  (string/replace path #"/{2,}" "/"))
+  (-> path
+      (string/replace #"^/+" "")
+      (string/replace #"/{2,}" "/")))
+
 
 (def ^:private not-found {:status  404
                           :headers {"Content-Type" "text/plain"}})
@@ -43,7 +48,7 @@
   [response-data body]
   (let [{:keys [content-length last-modified]} response-data]
     {:status  200
-     :headers {"Content-Length" content-length
+     :headers {"Content-Length" (str content-length)
                "Last-Modified"  (ring.util.time/format-date last-modified)}
      :body    body}))
 
@@ -51,13 +56,7 @@
   [handler-data-supplier k]
   (fn [request]
     (when-let [data (handler-data-supplier request)]
-      #trace/result data
       (response data ((get data k) request)))))
-
-(defn- or-not-found
-  [delegate]
-  (fn [request]
-    (or (delegate request) not-found)))
 
 (defn- create-head-handler
   [handler-data-supplier]
@@ -97,11 +96,9 @@
                                   path
                                   (response-supplier' (clean-path (or path "")))))
         route-path            (str prefix "/*path")
-        get-handler           (do or-not-found
-                                  (create-get-handler handler-data-supplier
-                                                      (if fast? :streamable-body :response-body)))
-        head-handler          (or-not-found
-                                (create-head-handler handler-data-supplier))
+        get-handler           (create-get-handler handler-data-supplier
+                                                  (if fast? :streamable-body :response-body))
+        head-handler          (create-head-handler handler-data-supplier)
         route-name            (fn [prefix]
                                 (keyword route-namespace
                                          (str prefix "-" suffix)))
@@ -173,5 +170,5 @@
   [opts]
   (let [{:keys [file-root] :as opts'} (merge default-opts opts)
         _        (assert (valid-root-path? file-root))
-        supplier (create-file-supplier file-root opts)]
+        supplier (create-file-supplier file-root opts')]
     (make-routes supplier "file" opts')))
