@@ -20,7 +20,8 @@
   {:added "0.8.0"}
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
-            [ring.util.response :as response]
+            ring.util.time
+            [io.pedestal.http.resources.impl :as impl]
             [io.pedestal.http.route.definition.table :as table]))
 
 (def ^:private default-opts
@@ -28,78 +29,119 @@
    :prefix          "/public"
    :route-namespace "io.pedestal.http.resources"
    :index-files?    true
-   :allow-symlinks? false})
+   :cache?          true
+   :fast?           true})
 
+(defn- clean-path
+  [path]
+  (string/replace path #"/{2,}" "/"))
+
+(def ^:private not-found {:status  404
+                          :headers {"Content-Type" "text/plain"}})
+
+(defn- response
+  [response-data body]
+  (let [{:keys [content-length last-modified]} response-data]
+    {:status  200
+     :headers {"Content-Length" content-length
+               "Last-Modified"  (ring.util.time/format-date last-modified)}
+     :body    body}))
 
 (defn- create-get-handler
-  [response-supplier]
+  [handler-data-supplier k]
   (fn [request]
-    (or (response-supplier request)
-        {:status  404
-         :headers {"Content-Type" "text/plain"}})))
+    (when-let [data (handler-data-supplier request)]
+      #trace/result data
+      (response data ((get data k) request)))))
+
+(defn- or-not-found
+  [delegate]
+  (fn [request]
+    (or (delegate request) not-found)))
 
 (defn- create-head-handler
-  [get-handler]
+  [handler-data-supplier]
   (fn [request]
-    (assoc (get-handler request) :body nil)))
+    (when-let [data (handler-data-supplier request)]
+      (response data nil))))
 
 (defn- valid-prefix?
   [s]
   (and (string? s)
        (not (string/ends-with? s "/"))))
 
-(defn- create-resource-loader
+(defn- wrap-with-cache
+  [delegate-supplier]
+  (let [*cache (atom {})]
+    (fn cache-data-supplier [path]
+      (or (get @*cache path)
+          (let [result (delegate-supplier path)]
+            (when result
+              (swap! *cache assoc path result)
+              result))))))
+
+(defn- make-routes
+  [response-supplier suffix opts]
+  (let [{:keys [allow-head?
+                prefix
+                route-namespace
+                index-files?
+                cache?
+                fast?]} opts
+        _                     (assert (and (valid-prefix? prefix)
+                                           (string/starts-with? prefix "/")))
+        response-supplier'    (cond-> response-supplier
+                                cache? wrap-with-cache)
+        handler-data-supplier (fn [request]
+                                (let [{:keys [path]} (:path-params request)]
+                                  path
+                                  (response-supplier' (clean-path (or path "")))))
+        route-path            (str prefix "/*path")
+        get-handler           (do or-not-found
+                                  (create-get-handler handler-data-supplier
+                                                      (if fast? :streamable-body :response-body)))
+        head-handler          (or-not-found
+                                (create-head-handler handler-data-supplier))
+        route-name            (fn [prefix]
+                                (keyword route-namespace
+                                         (str prefix "-" suffix)))
+        routes                (cond-> [[route-path
+                                        :get
+                                        get-handler
+                                        :route-name (route-name "get")]]
+
+                                ;; So, a route doesn't match unless there's at least some
+                                ;; value for the *path parameter. With index-files? on, the root-path
+                                ;; prefix is valid, and this extra route will match on
+                                ;; that exact path.
+                                index-files?
+                                (conj [prefix
+                                       :get
+                                       get-handler
+                                       :route-name (route-name "get-root")])
+
+                                allow-head? (conj [route-path
+                                                   :head
+                                                   head-handler
+                                                   :route-name (route-name "head")])
+
+                                (and allow-head? index-files?)
+                                (conj [prefix
+                                       :head
+                                       head-handler
+                                       :route-name (route-name "head-root")]))]
+    (table/table-routes opts routes)))
+
+(defn- create-resource-supplier
   [resource-root class-loader]
   (assert (and (valid-prefix? resource-root)
                (not (string/starts-with? resource-root "/"))))
   (let [class-loader' (or class-loader
-                          (.getContextClassLoader (Thread/currentThread)))
-        opts          {:root   resource-root
-                       :loader class-loader'}]
+                          (.getContextClassLoader (Thread/currentThread)))]
     (fn [path]
-      (response/resource-response path opts))))
-
-(defn- make-routes
-  [resource-loader suffix opts]
-  (let [{:keys [allow-head?
-                prefix
-                route-namespace
-                index-files?]} opts
-        _                 (assert (and (valid-prefix? prefix)
-                                       (string/starts-with? prefix "/")))
-        ;; The loader is responsible for checking that the resource in the path
-        ;; exists, and is readable, etc. It returns nil on failure, a response map
-        ;; on success.
-        response-supplier (fn [request]
-                            (let [{:keys [path]} (:path-params request)]
-                              (resource-loader path)))
-        route-path        (str prefix "/*path")
-        get-handler       (create-get-handler response-supplier)
-        route-name        (fn [prefix]
-                            (keyword route-namespace
-                                     (str prefix "-" suffix)))
-        routes            (cond-> [[route-path
-                                    :get
-                                    get-handler
-                                    :route-name (route-name "get")]]
-
-                            index-files?
-                            (conj [prefix
-                                   :get
-                                   get-handler
-                                   :route-name (route-name "get-root")])
-
-                            allow-head? (conj [route-path
-                                               :head
-                                               (create-head-handler get-handler)
-                                               :route-name (route-name "head")])
-
-                            (and allow-head? index-files?)
-                            (conj [prefix
-                                   :head
-                                   (create-head-handler get-handler)
-                                   :route-name (route-name "head-root")]))]
-    (table/table-routes opts routes)))
+      path
+      (when-let [url (io/resource (str resource-root "/" path) class-loader')]
+        (impl/resource-data url)))))
 
 (defn resource-routes
   "Returns a [[RoutingFragment]] of routes to access files on the classpath."
@@ -108,27 +150,28 @@
                 class-loader] :as opts'} (-> (merge default-opts opts)
                                              ;; :index-files? only makes sense for file routes.
                                              (dissoc :index-files?))
-        resource-loader (create-resource-loader resource-root class-loader)]
-    (make-routes resource-loader "resource" opts')))
+        supplier (create-resource-supplier resource-root class-loader)]
+    (make-routes supplier "resource" opts')))
 
 (defn- valid-root-path?
   [path]
   (and (string? path)
        (not (string/ends-with? path "/")))) []
 
-(defn- create-file-loader
+(defn- create-file-supplier
   [root-path opts]
   (let [root-dir (io/file root-path)
         _        (assert (and (.exists root-dir)
                               (.isDirectory root-dir)))
-        opts'    (assoc opts :root root-path)]
+        {:keys [index-files?]} (assoc opts :root root-path)]
     (fn [path]
-      (response/file-response (or path "") opts'))))
+      (when-let [url (impl/url-for-file root-dir path index-files?)]
+        (impl/resource-data url)))))
 
 (defn file-routes
   "Returns a [[RoutingFragment]] of routes to access files on the file system."
   [opts]
   (let [{:keys [file-root] :as opts'} (merge default-opts opts)
-        _           (assert (valid-root-path? file-root))
-        file-loader (create-file-loader file-root opts)]
-    (make-routes file-loader "file" opts')))
+        _        (assert (valid-root-path? file-root))
+        supplier (create-file-supplier file-root opts)]
+    (make-routes supplier "file" opts')))

@@ -22,8 +22,10 @@
   {::http/port   8888
    ::http/routes (route/routes-from
                    (resources/resource-routes (xf {:resource-root "io/pedestal/public"
+                                                   :fast?         false
                                                    :prefix        "/pub"}))
                    (resources/file-routes (xf {:file-root "file-root"
+                                               :fast?     false
                                                :prefix    "/file"})))})
 (defn create-responder
   ([] (create-responder identity))
@@ -40,6 +42,13 @@
                    :body    "<h1>WOOT!</h1>\n"}
                   (responder :get "/pub/index.html"))))
 
+    (testing "ignored extra slashes in path"
+      (is (match? {:status  200
+                   :headers {"Content-Type"   "text/html"
+                             "Content-Length" 15}
+                   :body    "<h1>WOOT!</h1>\n"}
+                  (responder :get "/pub//index.html"))))
+
     (testing "HEAD"
       (is (match? {:status  200
                    :headers {"Content-Type"   "text/html"
@@ -48,19 +57,30 @@
                   (responder :head "/pub/index.html"))))
 
 
-    (testing "Can't use .. in path")
-    (is (match? {:status  404
-                 :headers {"Content-Type"   "text/plain"
-                           "Content-Length" m/absent
-                           "Last-Modified"  m/absent}
-                 :body    ""}
-                (responder :get "/pub/../pub/index.html")))
+    (testing "Can't use .. in path"
+      (is (match? {:status  404
+                   :headers {"Content-Type"   "text/plain"
+                             "Content-Length" m/absent
+                             "Last-Modified"  m/absent}
+                   :body    ""}
+                  (responder :get "/pub/../pub/index.html"))))
 
     (testing "Not found"
       (is (match? {:status 404
                    :body   ""}
                   (responder :get "/pub/not-present.txt"))))))
 
+(deftest resource-in-sub-folder
+  (let [responder (create-responder)
+        content   (slurp "test/io/pedestal/public/sub/sub.html")]
+
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/pub/sub/sub.html")))
+
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/pub//sub///sub.html")))))
 
 (deftest prefix-must-start-with-slash
   (is (thrown? AssertionError
@@ -101,18 +121,19 @@
                    :body    index-file-content}
                   (responder :get "/file"))))
 
-    (testing "Can't use .. in path")
-    (is (match? {:status  404
-                 :headers {"Content-Type"   "text/plain"
-                           "Content-Length" m/absent
-                           "Last-Modified"  m/absent}
-                 :body    ""}
-                (responder :get "/file/../pub/index.html")))
+    (testing "Can't use .. in path"
+      (is (match? {:status  404
+                   :headers {"Content-Type"   "text/plain"
+                             "Content-Length" m/absent
+                             "Last-Modified"  m/absent}
+                   :body    ""}
+                  (responder :get "/file/../pub/index.html"))))
 
     (testing "Access to sub-directory"
       (is (match? {:status 200
                    :body   sub-content}
                   (responder :get "/file/sub/sub.html"))))
+
 
     (testing "index on sub-directory"
       (is (match? {:status 200
@@ -123,6 +144,21 @@
       (is (match? {:status 404
                    :body   ""}
                   (responder :get "/file/not-present.txt"))))))
+
+(deftest extra-slashes-in-file-path
+  (let [responder         (create-responder)
+        test-file-content (slurp "file-root/test.html")
+        sub-file-content  (slurp "file-root/sub/sub.html")]
+
+    (testing "ignores extra slashes in root path"
+      (is (match? {:status 200
+                   :body   test-file-content}
+                  (responder :get "/file////test.html"))))
+
+    (testing "ignores extra slashes in sub path"
+      (is (match? {:status 200
+                   :body   sub-file-content}
+                  (responder :get "/file//sub/////sub.html"))))))
 
 (deftest no-index-files-if-disabled
   (let [responder (create-responder #(assoc % :index-files? false))]
