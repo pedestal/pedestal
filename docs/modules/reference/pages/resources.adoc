@@ -1,0 +1,82 @@
+= Resources
+:default_api_ns: io.pedestal.http.resources
+
+Although most of Pedestal is focused on _dynamic_ routes, nearly all HTTP-based applications will have some amount of static resources that need to be client accessible as well.
+
+These resources take the form of either plain files on the file system, or virtual files available on the https://docs.oracle.com/javase/tutorial/essential/environment/paths.html:[Java classpath].
+
+The classpath includes not just the code of your application, but of Pedestal, and any other dependencies you ahve defined for your project.
+
+For both classpath and file system resources, you must be careful about what you expose - only specific directories, known to be free of any compromising information (such as API keys or other secrets).
+
+== Resource Routes
+
+The preferred approach is to add routes for resources to your application.
+
+[source,clojure]
+----
+(ns org.example.service
+  (:require [io.pedestal.http :as http]
+            [io.pedestal.http.resources :as resources]
+            [io.pedestal.http.route :as route]))
+
+(defn create-server
+  []
+  (http/create-server
+    {::http/port 8890
+     ::http/type :jetty
+     ::http/join? false
+     ::http/routes (route/routes-from
+                     #{ ... }  <1>
+                     (resources/file-routes {:file-root "web/public"}))})) <2>
+----
+
+<1> This is where you would put the dynamic routes for your application.
+<2> This exposes any files under `web/public` under the path `/public`.
+
+The `routes-from` macro will expand and combine the routes together to form the full routing table.
+
+The api:resource[] function returns routes that expose resources on the classpath.
+
+[options=header]
+|===
+| Option | Default | `file` | `resource` | Description
+
+| :prefix | "/public" | y | y | The path prefix for the exposed resources.
+| :root-path | - | y | n | Path to route directory to expose.
+| :resource-root | - | n | y | Prefix on resources, limiting access to a safe subset of the classpath
+| :classloader | - | n | y | Classloader used to find resources, or nil for the default class loader
+| :index-files? | true | y | n | If true, paths that map to directories may return the index file for that directory.
+| :cache? | true | y | y | If true, then resource data is cached to in memory to speed up requests.
+| :fast? | true | y | y | If true, then fast, asynchronous responses may be used.
+| :route-namespace | "io.pedestal.http.resources" | y | y | Namespace used when creating route names for the routes.
+|===
+
+It is quite possible to use both `file` and `resource` together, as long as the :prefix is set to that routes do not overlap, and :route-namespace is unique for each, to prevent route name collisions.
+If necessary, it's even possible to use these functions multiple times.
+
+The :prefix option should start with a "/" and not end with one.
+
+For the :index-files? option, Pedestal will identify requests that map to a directory, not to a specific file.
+Pedestal will search for one of the following:
+* `index.html`
+* `index.htm`
+* Any file whose name starts with `index.`
+If one is found, then the request is treated as if it were to the matching file.
+
+The :resource-route option should not start or end with a slash; to restrict access to just classpath files within the `org.example.myapp.public` namespace, the option should be "org/example/myapp/public".
+
+Requests that include any use of ".." in the path (in order to "escape" from the root location) are rejected, resulting in a 404 response.
+
+The :cache? option does not currently put an upper limit on how many resources get cached; it's presumed that there are only a finite number of resources that can be exposed and cached.
+
+The :fast? option will attempt to convert matched files or resources into a java.nio.channel.Channel instance, for an xref:response-bodies.adoc#nio-channel[asynchronous response].
+This only occurs if the size of the resource exceeds the buffer size of the servlet response.
+
+Finally, the options map will _also_ be passed to
+api:table-routes[ns=io.pedestal.http.route.definition.table], so you may use the keys it
+supports, particularly :scheme, :port, and :interceptors.
+
+== service-map options
+
+== io.pedestal.http.ring-middlewares
