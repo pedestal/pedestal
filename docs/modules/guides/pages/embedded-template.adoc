@@ -9,7 +9,7 @@ generated `deps.edn`.
 
 The _embedded_ part indicates that the template is configured to work using
 xref:reference:jetty.adoc[], and it starts Jetty from within a running Clojure application
-(an alternate, and less used approach is to
+(an alternate, supported, but far less common approach is to
 xref:war-deployment.adoc[bundle a Pedestal application into
 a WAR] and deploy into Jetty, or another servlet container).
 
@@ -24,10 +24,10 @@ You will need the very latest version of this, version 0.7.0; you should re-exec
 You will also https://github.com/seancorfield/deps-new#more-general-usage[need some scaffolding] in your `~/.clojure/deps.edn`; add the following
 to the :aliases map:
 
-    :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0-beta1"}}}
+    :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0"}}}
 
-TIP: This step is only necessary if Clojure 1.12 is not your default; at the time
-of writing, 1.12 was still in beta.
+TIP: This step is only necessary if Clojure 1.12 is not your default; for most
+users, Clojure 1.12 will be available.  Check by running the `clojure` command; it will tell you the your default version.
 
 
 == Creating a project
@@ -42,8 +42,11 @@ this example below), in which case, your full project name is `com.blueant/perip
 
 The command for this is somewhat arcane:
 
+[subs=attributes]
 ```
-clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded :name com.blueant/peripheral
+clojure -A:1.12 -Tnew create :template \
+  io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} \
+  :name com.blueant/peripheral
 ```
 
 TIP: The `-A:1.12` option references the global alias you set up earlier and, again,
