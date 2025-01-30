@@ -52,14 +52,21 @@ Each of these functions take a single parameter, a map of options:
 | :index-files?    | true      | file     | If true, paths that map to directories may return the index file for that directory.
 | :cache?          | true      |          | If true, then resource data is cached to in memory to speed up requests.
 | :fast?           | true      |          | If true, then fast, asynchronous responses may be used.
+| :allow-head?     | true      |          | If true, then additional routes are added to support the :head request method,
+                                            returning empty bodies.
 | :route-namespace | "io.pedestal.http.resources"
                                |          | Namespace used when creating route names for the routes.
 |===
 
+Using the defaults, which enable fast responses and caching, the route-based resources are demonstrably faster
+than the xref:#service-map-options[interceptor-based] resources, especially for large resources ... though
+for any reasonably sized resource, the response time is sub-millisecond.
+
 === Options notes
 
-It is quite possible to use both `file` and `resource` together, as long as the :prefix is set to that routes do not overlap, and :route-namespace is unique for each, to prevent route name collisions.
-If necessary, it's even possible to use these functions multiple times.
+It is quite possible to use both `file` and `resource` together, as long as the :prefix is set so that routes do not overlap.
+If necessary, it's even possible to use these functions multiple times, but care must be taken with the :route-namespace to avoid
+route name collisions.
 
 The :prefix option should start with a "/" and not end with one.
 
@@ -87,6 +94,7 @@ Finally, the options map will _also_ be passed to
 api:table-routes[ns=io.pedestal.http.route.definition.table], so you may use the keys it
 supports, particularly :scheme, :port, and :interceptors.
 
+[#service-map-options]
 == Service map options
 
 File and resource can also be exposed by configuration in the

@@ -129,9 +129,15 @@
   (let [class-loader' (or class-loader
                           (.getContextClassLoader (Thread/currentThread)))
         *cache        (when cache?
-                        (atom {}))]
+                        (atom {}))
+        ;; Exposing the entire classpath is not a great idea, but that's what
+        ;; the ::http/resource-path service map option does anyway, so we
+        ;; need to support that.
+        path-prefix   (if (= resource-root "")
+                        ""
+                        (str resource-root "/"))]
     (fn [path]
-      (when-let [url (io/resource (str resource-root "/" path) class-loader')]
+      (when-let [url (io/resource (str path-prefix path) class-loader')]
         (impl/resource-data url *cache)))))
 
 (defn resource-routes

@@ -22,6 +22,8 @@ efficiency when serving such resources.
 Whether support for the interceptor-based approach for resources remains fully supported, or is
 deprcated, is an outstanding question.
 
+- The route-based resources are demonstrably faster than interceptor-based.
+
 == Jetty 12 (Dec 2024)
 
 Although Pedestal 0.7 bumped the supported version of Jetty from 9 to Jetty 11, this was
