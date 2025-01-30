@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - 0.6-maint
+      - '*-maint'
 
 jobs:
   notify-pedestal-io:
