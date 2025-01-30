@@ -56,7 +56,7 @@
                  :body    ""}
                 (responder :head "/res/index.html")))))
 
-(deftest get-resource-does-not-allow-..
+(deftest get-resource-when-path-includes-..-returns-404
   (let [responder (create-responder)]
 
     (is (match? {:status 404}
@@ -143,7 +143,7 @@
     (is (match? {:status 404}
                 (responder :get "/file/sub/c")))))
 
-(deftest get-file-404-if-path-contains-..
+(deftest get-file-when-path-contains-..-returns-404
   (let [responder (create-responder)]
 
     (is (match? {:status 404}

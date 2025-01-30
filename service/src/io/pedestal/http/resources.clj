@@ -38,10 +38,6 @@
       (string/replace #"^/+" "")
       (string/replace #"/{2,}" "/")))
 
-
-(def ^:private not-found {:status  404
-                          :headers {"Content-Type" "text/plain"}})
-
 (defn- response
   [response-data body]
   (let [{:keys [content-length last-modified]} response-data]
@@ -91,7 +87,6 @@
                                 cache? wrap-with-cache)
         handler-data-supplier (fn [request]
                                 (let [{:keys [path]} (:path-params request)]
-                                  path
                                   (response-supplier' (clean-path (or path "")))))
         route-path            (str prefix "/*path")
         get-handler           (create-get-handler handler-data-supplier

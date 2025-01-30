@@ -21,7 +21,6 @@
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.internal :as i]
             [ring.middleware.cookies :as cookies]
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
