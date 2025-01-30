@@ -52,8 +52,9 @@ is only needed if Clojure 1.12 is not your default.  Clojure 1.12 is only needed
 
 Example:
 
+[subs=attributes]
 ```
-$ clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded :name com.blueant/peripheral
+$ clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} :name com.blueant/peripheral
 
 Resolving io.github.pedestal/pedestal as a git dependency
 Creating project from io.pedestal/embedded in peripheral
