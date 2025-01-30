@@ -20,7 +20,7 @@ In addition, exposing resources as routes has opened up new paths for caching, l
 efficiency when serving such resources.
 
 Whether support for the interceptor-based approach for resources remains fully supported, or is
-deprcated, is an outstanding question.
+deprecated, is an outstanding question.
 
 - The route-based resources are demonstrably faster than interceptor-based.
 

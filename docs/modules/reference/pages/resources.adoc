@@ -36,7 +36,7 @@ The preferred approach is to add routes for resources to your application.
 
 The `routes-from` macro will expand and combine the routes together to form the full routing table.
 
-The api:resource-routes[] function is analagous to `file-routes`, but returns routes that expose resources on the classpath.
+The api:resource-routes[] function is analogous to `file-routes`, but returns routes that expose resources on the classpath.
 
 Each of these functions take a single parameter, a map of options:
 
@@ -48,7 +48,7 @@ Each of these functions take a single parameter, a map of options:
 | :prefix          | "/public" |          | The path prefix for the exposed resources.
 | :root-path       | -         | file     | Path to root directory to expose.
 | :resource-root   | -         | resource | Prefix on resources, limiting access to a safe subset of the classpath
-| :classloader     | -         | resource | Classloader used to find resources, or nil for the default class loader
+| :classloader     | -         | resource | Classloader used to find resources
 | :index-files?    | true      | file     | If true, paths that map to directories may return the index file for that directory.
 | :cache?          | true      |          | If true, then resource data is cached to in memory to speed up requests.
 | :fast?           | true      |          | If true, then fast, asynchronous responses may be used.
@@ -73,21 +73,33 @@ The :prefix option should start with a "/" and not end with one.
 For the :index-files? option, Pedestal will identify requests that map to a directory, not to a specific file.
 Pedestal will search for one of the following:
 
-- `index.html`
-- `index.htm`
-- Any file whose name starts with `index.`
+1. `index.html`
+2. `index.htm`
+3. Any file whose name starts with `index.`
 
 If any of these are found, then the request is treated as if it were to the matching file.
 
-The :resource-route option should not start or end with a slash; to restrict access to just classpath files within the `org.example.myapp.public` namespace, the option should be "org/example/myapp/public".
+The :resource-root option should not start or end with a slash; to restrict access to just classpath files within the `org.example.myapp.public` namespace, the option should be "org/example/myapp/public".
 
 Requests that include any use of ".." in the path (in order to "escape" from the root location) are rejected, resulting in a 404 response.
 
 The :cache? option does not currently put an upper limit on how many resources get cached; it's presumed that there are only a finite number of resources that can be exposed and cached.
 
+[WARNING]
+====
+You will want to disable the :cache? option if you have more than a handful of resources that may be
+available, as there's no facility to access or clear the cache. If you have many hundreds of
+resources, or the resources may change over time, caching is not a good option.  You may want
+to implement your own cache as an
+xref:#table-options[interceptor around the resource routes].
+====
+
 The :fast? option will attempt to convert matched files or resources into a java.nio.channel.Channel instance, for an xref:response-bodies.adoc#nio-channel[asynchronous response].
 This only occurs if the size of the resource exceeds the buffer size of the servlet response.
 
+The default used when the :classloader option is nil is the context class loader associated with the current thread.
+
+[#table-options]
 === Table route options
 
 Finally, the options map will _also_ be passed to
@@ -120,7 +132,7 @@ Because these are interceptors, and not routes, they are not visible in the rout
 They *can*  overlap with actual routes without an error: any requests that are not processed
 as resources will drop down into the routing interceptor.
 
-A second option, ::http/resource-path, is used to setup access to resources on the classpath.
+A second option, ::http/resource-path, is used to enable access to resources on the classpath.
 
 == io.pedestal.http.ring-middlewares
 
@@ -133,5 +145,5 @@ A third option, api:fast-resource[ns=io.pedestal.http.ring-middlewares], adds
 support for fast, asynchronous replies for large resources on the classpath.
 
 Each of these functions have additional options that can be configured when they are added
-explicitly as interceptors (rather than relying on the :http/file-path or ::http/resource-path
+explicitly as interceptors (rather than relying on the ::http/file-path or ::http/resource-path
 service map options).
