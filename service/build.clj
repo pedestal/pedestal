@@ -9,5 +9,4 @@
     (b/javac {:src-dirs ["java"]
               :class-dir "target/classes"
               :basis basis
-              :javac-opts ["-target" "1.8"
-                           "-source" "1.8"]})))
+              :javac-opts ["--release" "17"]})))
