@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -15,41 +15,10 @@
   "Generic Servlet adapter that closes over its implementation
   functions; this dynamically creates a Servlet instance that can be used with
   a servlet container such as Jetty."
-  (:import (jakarta.servlet Servlet ServletConfig)))
-
-;; Do not construct instances directly; use the 'servlet' function.
-(deftype FnServlet [init-fn service-fn destroy-fn
-                    ^:unsynchronized-mutable config]
-  Servlet
-  (init [this servlet-config]
-    (set! config servlet-config)
-    (init-fn this servlet-config))
-  (destroy [this]
-    (destroy-fn this))
-  (service [this servlet-request servlet-response]
-    (service-fn this servlet-request servlet-response))
-  (getServletConfig [_]
-    config)
-  (getServletInfo [_]
-    (str "FnServlet dispatching to " service-fn))
-
-  ServletConfig
-
-  (getInitParameter [_ name]
-    (when-not (nil? config)
-      (.getInitParameter ^ServletConfig config name)))
-  (getInitParameterNames [_]
-    (when-not (nil? config)
-      (.getInitParameterNames ^ServletConfig config)))
-  (getServletContext [_]
-    (when-not (nil? config)
-      (.getServletContext ^ServletConfig config)))
-  (getServletName [_]
-    (when-not (nil? config)
-      (.getServletName ^ServletConfig config))))
+  (:import (io.pedestal.servlet FnServlet)))
 
 (defn servlet
-  "Returns an instance of jakarta.servlet.Servlet using provided
+  "Returns an instance of jakarta.servlet.HttpServlet using provided
   functions for its implementation.
 
   Options:
@@ -71,7 +40,4 @@
   container) use the Java class pedestal.servlet.ClojureVarServlet."
   [& {:keys [init service destroy]}]
   {:pre [(fn? service)]}
-  (FnServlet. (or init (fn [_ _]))
-              service
-              (or destroy (fn [_]))
-              nil))
+  (FnServlet. init service destroy))
