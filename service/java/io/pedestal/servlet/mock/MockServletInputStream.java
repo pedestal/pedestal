@@ -17,11 +17,12 @@ import jakarta.servlet.ServletInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MockServletInputStream extends ServletInputStream {
+/* @since 0.8.0 */
+class MockServletInputStream extends ServletInputStream {
 
     private final InputStream delegate;
 
-    public MockServletInputStream(InputStream delegate) {
+    MockServletInputStream(InputStream delegate) {
         this.delegate = delegate;
     }
 

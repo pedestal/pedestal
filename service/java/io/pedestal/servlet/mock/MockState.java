@@ -13,6 +13,8 @@ package io.pedestal.servlet.mock;
 
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -39,9 +41,9 @@ public class MockState {
 
     public final ByteArrayOutputStream responseStream = new ByteArrayOutputStream(1000);
 
-    public final MockHttpServletRequest request;
-    public final MockHttpServletResponse response;
-    public final MockAsyncContext asyncContext;
+    public final HttpServletRequest request;
+    public final HttpServletResponse response;
+    final MockAsyncContext asyncContext;
     public boolean asyncStarted;
     public int responseStatus = 0;
     public long responseContentLength;
@@ -74,7 +76,7 @@ public class MockState {
 
     /**
      * Waits for the response to complete (which occurs when the
-     * response output stream is closed).
+     * response output stream is flushed).
      *
      * @param millis max wait time
      * @return true if complete, false if time out

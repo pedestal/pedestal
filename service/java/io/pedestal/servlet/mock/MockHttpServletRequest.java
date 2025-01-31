@@ -23,12 +23,14 @@ import java.util.*;
 /**
  * Mock implementation of the HttpServletRequest interface providing implementations of just
  * the parts of the interface needed by Pedestal.
+ *
+ * @since 0.8.0
  */
-public class MockHttpServletRequest implements HttpServletRequest {
+class MockHttpServletRequest implements HttpServletRequest {
 
     private final MockState state;
 
-    public MockHttpServletRequest(MockState state) {
+    MockHttpServletRequest(MockState state) {
         this.state = state;
     }
 

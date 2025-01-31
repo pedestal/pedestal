@@ -22,7 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-public class MockHttpServletResponse implements HttpServletResponse {
+/** @since 0.8.0 */
+class MockHttpServletResponse implements HttpServletResponse {
 
     private final MockState state;
 

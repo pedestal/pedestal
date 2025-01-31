@@ -17,12 +17,13 @@ import jakarta.servlet.WriteListener;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public class MockServletOutputStream extends ServletOutputStream {
+/** @since 0.8.0 */
+class MockServletOutputStream extends ServletOutputStream {
 
     private final MockState state;
     private final OutputStream delegate;
 
-    public MockServletOutputStream(MockState state, OutputStream delegate) {
+    MockServletOutputStream(MockState state, OutputStream delegate) {
         this.state = state;
         this.delegate = delegate;
     }

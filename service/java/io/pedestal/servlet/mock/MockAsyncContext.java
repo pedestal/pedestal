@@ -13,10 +13,11 @@ package io.pedestal.servlet.mock;
 
 import jakarta.servlet.*;
 
-public class MockAsyncContext implements AsyncContext {
+/** @since 0.8.0 */
+class MockAsyncContext implements AsyncContext {
     private final MockState state;
 
-    public MockAsyncContext(MockState state) {
+    MockAsyncContext(MockState state) {
         this.state = state;
     }
 
