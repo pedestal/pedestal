@@ -22,8 +22,7 @@
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.http.container :as container]
             [io.pedestal.log :as log]
-            [clojure.core.async :refer [thread put! close!]]
-            [clojure.string :as cstr]
+            [clojure.core.async :refer [put! close!]]
             [clojure.java.io :as io]
             [clj-commons.ansi :as ansi])
   (:import (jakarta.servlet.http HttpServlet)
@@ -39,7 +38,7 @@
 (defn parse-url
   [url]
   (let [[_ scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
-        [host port] (when raw-host (cstr/split raw-host #":"))]
+        [host port] (when raw-host (string/split raw-host #":"))]
     {:scheme       scheme
      :host         host
      :port         (if port
@@ -107,7 +106,7 @@
     result))
 
 (defn- new-mock-state
-  ^MockState [verb url & {:keys [body headers] :as options
+  ^MockState [verb url & {:keys [body headers]
                           :or   {body ""}}]
   (let [{:keys [scheme host port path query-string]} (parse-url url)
         body-stream (body->input-stream body)]
