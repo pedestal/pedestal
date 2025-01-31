@@ -8,6 +8,7 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
 
 **BREAKING CHANGES:**
 
+- Clojure 1.11 is now the minimum supported version
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured

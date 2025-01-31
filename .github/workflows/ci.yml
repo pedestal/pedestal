@@ -49,10 +49,7 @@ jobs:
         run: clojure -X:test:1.12
       - name: Execute tests (Clojure 1.11)
         working-directory: tests
-        run: clojure -X:test
-      - name: Execute tests (Clojure 1.10)
-        working-directory: tests
-        run: clojure -X:test:1.10
+        run: clojure -X:test:1.11
       - name: Collect Code Coverage
         working-directory: tests
         run: clojure -M:coverage
