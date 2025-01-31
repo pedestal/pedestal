@@ -9,7 +9,7 @@
 //
 // You must not remove this notice, or any other, from this software.
 
-package io.pedestal.servlet;
+package io.pedestal.servlet.mock;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
