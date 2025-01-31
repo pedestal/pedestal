@@ -217,8 +217,8 @@
   (let [service-fn (-> service-map
                        http/create-servlet
                        ::http/service-fn)]
-    (fn [verb url & options]
-      (apply response-for service-fn verb url options))))
+    (fn [verb url & {:as options}]
+      (response-for service-fn verb url options))))
 
 (defn disable-routing-table-output-fixture
   "A test fixture that disables printing of the routing table, even when development mode

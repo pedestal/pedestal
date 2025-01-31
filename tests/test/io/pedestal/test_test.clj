@@ -12,8 +12,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.test-test
-  (:require [clojure.test :refer [deftest is]]
-            [io.pedestal.test :refer [parse-url]]))
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [deftest is]]
+            [io.pedestal.test :as test]
+            [io.pedestal.test :refer [parse-url]])
+  (:import (java.io BufferedInputStream ByteArrayInputStream)))
 
 (deftest non-root-url
   (is (= "param=value"
@@ -76,4 +79,19 @@
           :path         "foo"
           :query-string "param=value"}
          (parse-url "http://localhost:8080/foo?param=value"))))
+
+(deftest file-is-converted-to-input-stream
+  (let [file   (io/file "file-root/sub/index.html")
+        stream (test/body->input-stream file)]
+    (is (= (slurp file)
+           (slurp stream)))))
+
+(deftest input-stream-is-wrapped-to-buffered-input-stream
+  (let [input-stream  (ByteArrayInputStream. (.getBytes "Hello, I must be going." "UTF-8"))
+        input-stream' (test/body->input-stream input-stream)]
+    (is (instance? BufferedInputStream input-stream'))
+    (is (= (slurp input-stream)
+           (do
+             (.reset input-stream)
+             (slurp input-stream'))))))
 
