@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -15,7 +15,8 @@
   "Generic Servlet adapter that closes over its implementation
   functions; this dynamically creates a Servlet instance that can be used with
   a servlet container such as Jetty."
-  (:import (io.pedestal.servlet FnServlet)))
+  (:import (io.pedestal.servlet FnServlet)
+           (jakarta.servlet.http HttpServlet)))
 
 (defn servlet
   "Returns an instance of jakarta.servlet.HttpServlet using provided
@@ -38,6 +39,6 @@
   Note: this function returns an instance, not a class. If you need a
   class with a static name (for example, to deploy to a Servlet
   container) use the Java class pedestal.servlet.ClojureVarServlet."
-  [& {:keys [init service destroy]}]
+  ^HttpServlet [& {:keys [init service destroy]}]
   {:pre [(fn? service)]}
   (FnServlet. init service destroy))
