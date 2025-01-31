@@ -279,7 +279,7 @@ public class MockHttpServletRequest implements HttpServletRequest {
 
     @Override
     public String getServerName() {
-        return "";
+        return state.host;
     }
 
     @Override

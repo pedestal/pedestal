@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +54,7 @@ public class MockHttpServletResponse implements HttpServletResponse {
     @Override
     public void sendError(int sc, String msg) throws IOException {
         state.responseStatus = sc;
-        state.responseStream.print(msg);
+        state.servletOutputStream.print(msg);
 
     }
 
@@ -75,35 +76,36 @@ public class MockHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void addDateHeader(String name, long date) {
-        setDateHeader(name, date);
-
     }
 
     @Override
     public void setHeader(String name, String value) {
-        state.responseHeaders.put(name, value);
+        state.setResponseHeaders.put(name, value);
     }
 
     @Override
     public void addHeader(String name, String value) {
-        // Only keep the last one
-        setHeader(name, value);
+        if (state.addedResponseHeaders.containsKey(name)) {
+            state.addedResponseHeaders.get(name).add(value);
+        } else {
+            List<String> list = new ArrayList<>();
+            list.add(value);
+            state.addedResponseHeaders.put(name, list);
+        }
+
     }
 
     @Override
     public void setIntHeader(String name, int value) {
-        setHeader(name, Integer.toString(value));
     }
 
     @Override
     public void addIntHeader(String name, int value) {
-        setIntHeader(name, value);
     }
 
     @Override
     public void setStatus(int sc) {
         state.responseStatus = sc;
-
     }
 
     @Override
@@ -138,7 +140,7 @@ public class MockHttpServletResponse implements HttpServletResponse {
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
-        return null;
+        return state.servletOutputStream;
     }
 
     @Override
@@ -182,7 +184,7 @@ public class MockHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void flushBuffer() throws IOException {
-        state.responseCommitted = true;
+        state.complete();
     }
 
     @Override

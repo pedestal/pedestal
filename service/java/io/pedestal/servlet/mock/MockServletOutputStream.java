@@ -19,9 +19,11 @@ import java.io.OutputStream;
 
 public class MockServletOutputStream extends ServletOutputStream {
 
+    private final MockState state;
     private final OutputStream delegate;
 
-    public MockServletOutputStream(OutputStream delegate) {
+    public MockServletOutputStream(MockState state, OutputStream delegate) {
+        this.state = state;
         this.delegate = delegate;
     }
 
@@ -54,6 +56,14 @@ public class MockServletOutputStream extends ServletOutputStream {
     public void close() throws IOException {
         delegate.close();
         super.close();
+    }
+
+    @Override
+    public void flush() throws IOException {
+        super.flush();
+        // Flushing (not closing!) the stream signals to the Servlet API that the response
+        // is complete.
+        state.complete();
     }
 }
 
