@@ -21,7 +21,6 @@
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.internal :as i]
             [ring.middleware.cookies :as cookies]
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
@@ -41,29 +40,6 @@
            (java.nio.file OpenOption
                           StandardOpenOption)
            (java.io File)))
-
-(defn ^{:deprecated "0.7.0"} response-fn-adapter
-  "Adapts a Ring middleware fn taking a response and request (that returns a possibly updated response), into an interceptor-compatible function taking a context map,
-  that can be used as the :leave callback of an interceptor.
-
-  The response-fn is only invoked if there is a non-nil :response map in the context.
-
-  If an opts map is provided (the arity two version) and is not empty, then the response function must be arity three, taking
-  a response map, request map, and the provided options."
-  ([response-fn]
-   (i/deprecated `response-fn-adapter
-     (fn [{:keys [request response] :as context}]
-       (if-not response
-         context
-         (assoc context :response (response-fn response request))))))
-  ([response-fn opts]
-   (i/deprecated `response-fn-adapter
-     (if (seq opts)
-       (fn [{:keys [request response] :as context}]
-         (if-not response
-           context
-           (assoc context :response (response-fn response request opts))))
-       (response-fn-adapter response-fn)))))
 
 (defn- response-fn->leave
   [response-fn & args]
@@ -263,7 +239,7 @@
   A file is large if it is larger than the HTTP buffer size, which is calculated from
   the servlet-response's bufferSize, or defaults to 1460 bytes (if the servlet response is not known).
 
-  If succesful, marks the current tracing span as routed, with a route-name of :fast-resource.
+  If successful, marks the current tracing span as routed, with a route-name of :fast-resource.
 
   If your container doesn't recognize FileChannel response bodies, this interceptor will cause errors.
 

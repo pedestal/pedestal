@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -110,7 +110,7 @@
           ;; The exception is only reported here, not handled, so reattach for later interceptors to deal with.
           ;; Since this interceptor is usually first, it will fall back to stylobate logic to report the error
           ;; to the client, if not previously caught and handled.
-          (assoc ::chain/error error)))))
+          (chain/with-error error)))))
 
 (defn request-tracing-interceptor
   "A tracing interceptor traces the execution of the request.  When the request is

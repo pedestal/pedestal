@@ -1,3 +1,4 @@
+
 = Response Bodies
 
 This reference describes how the xref:servlet-interceptor.adoc[] handles
@@ -22,6 +23,14 @@ type of the value in the :body key of the xref:response-map.adoc[].
 | ByteBuffer (NIO) | application/octet-stream | bytes of the buffer copied to the output stream | yes
 | {core_async} channel | nil | see below | yes
 |===
+
+[#nio-channel]
+== nio Channel
+When the response body is a ByteBuffer or an NIO Channel, then Pedestal will convert
+the response to
+https://docs.oracle.com/javaee/7/tutorial/servlets012.htm[asynchronous processing].
+This returns the thread to the container's request processing thread pool,
+and the container will (efficiently) stream the contents of the buffer or channel to the client.
 
 == Core Async Channel
 

@@ -66,6 +66,8 @@ NOTE: In the details below, ::http is an alias to :io.pedestal.http.
 | String
 | File path used as root by the api:file[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, this interceptor is added. Default is `nil`.
 
+  File system resources can also be exposed as xref:resources.adoc[routes].
+
 | ::http/host
 | N
 | String
@@ -121,6 +123,8 @@ the container should be configured to open a port for HTTPs traffic.
 | N
 | String
 | File path used as root by the api:resource[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, the interceptor is added. Default is `nil`.
+
+  Classpath resources can also be exposed as xref:resources.adoc[routes].
 
 | ::http/router
 | N

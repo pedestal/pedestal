@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -11,10 +11,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^{:doc "Pedestal testing utilities to simplify working with pedestal apps."}
-  io.pedestal.test
-  (:require [io.pedestal.http.route :as route]
+(ns io.pedestal.test
+  "Pedestal testing utilities; mock implementations of the core Servlet API
+  objects, to support fast integration testing without starting a servlet container,
+  or opening a port for HTTP traffic."
+  (:require [io.pedestal.http :as http]
+            [io.pedestal.http.route :as route]
             [io.pedestal.http.servlet :as servlets]
+            [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [clojure.string :as cstr]
             [clojure.java.io :as io]
@@ -26,7 +30,8 @@
            (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
            (clojure.lang IMeta)
            (java.util Enumeration NoSuchElementException)
-           (java.nio.channels Channels ReadableByteChannel)))
+           (java.nio.channels Channels ReadableByteChannel))
+  (:import (java.io OutputStream)))
 
 (defn- test-servlet
   ^Servlet [interceptor-service-fn]
@@ -197,14 +202,14 @@
                      (try (io/copy instream-body output-stream)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
+                            (async/put! resume-chan (chain/with-error context t)))
                           (finally (async/close! resume-chan)))))
                  (write-byte-buffer-body [_ body resume-chan context]
-                   (let [out-chan (Channels/newChannel ^java.io.OutputStream output-stream)]
+                   (let [out-chan (Channels/newChannel ^OutputStream output-stream)]
                      (try (.write out-chan body)
                           (async/put! resume-chan context)
                           (catch Throwable t
-                            (async/put! resume-chan (assoc context :io.pedestal.interceptor.chain/error t)))
+                            (async/put! resume-chan (chain/with-error context t)))
                           (finally (async/close! resume-chan))))))
 
                meta-data)))
@@ -233,7 +238,7 @@
       deref))
 
 (defn servlet-response-for
-  "Return a ring response map for an HTTP request of type `verb`
+  "Return a Ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
@@ -250,14 +255,17 @@
      :headers (test-servlet-response-headers servlet-response)}))
 
 (defn raw-response-for
-  "Return a ring response map for an HTTP request of type `verb`
+  "Return a Ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure. The response body will be returned as
   a ByteArrayOutputStream.
-  Options:
 
+  Note that the `Content-Length` header, if present, will be a number,
+  not a string.
+
+  Options:
   :body : An optional string that is the request body.
   :headers : An optional map that are the headers"
   [interceptor-service-fn verb url & options]
@@ -272,12 +280,17 @@
                                             {"Content-Length" content-length})))))
 
 (defn response-for
-  "Return a ring response map for an HTTP request of type `verb`
+  "Return a Ring response map for an HTTP request of type `verb`
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure. The response body will be converted
   to a UTF-8 string.
+
+  This builds on [[raw-response-for]], see a note there about headers.
+
+  An empty response body will be returned as an empty string.
+
   Options:
 
   :body : An optional string that is the request body.
@@ -285,6 +298,18 @@
   [interceptor-service-fn verb url & options]
   (-> (apply raw-response-for interceptor-service-fn verb url options)
       (update :body #(.toString ^ByteArrayOutputStream % "UTF-8"))))
+
+(defn create-responder
+  "Given a service map, this returns a function that wraps [[response-for]].
+
+  The returned function's signature is: [verb url & options]"
+  {:added "0.8.0"}
+  [service-map]
+  (let [service-fn (-> service-map
+                       http/create-servlet
+                       ::http/service-fn)]
+    (fn [verb url & options]
+      (apply response-for service-fn verb url options))))
 
 (defn disable-routing-table-output-fixture
   "A test fixture that disables printing of the routing table, even when development mode
