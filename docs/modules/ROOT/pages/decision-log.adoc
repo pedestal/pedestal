@@ -5,6 +5,72 @@ Document design and architecture decisions.
 A lighter-weight alternative to
 https://github.com/joelparkerhenderson/architecture-decision-record[Architecture Decision Record (ADR)].
 
+== Websocket Routes (Feb 2025)
+
+Support for WebSockets has been evolving over time; originally added as Jetty-specific prior to Pedestal 0.6.0, it was made more general in Pedestal 0.7.0; however it has always operated outside of
+routing, which has proven even more problematic than for resources.
+
+These prior attempts were based around `ServerContainer.addEndpoint()`, which establishes
+an addressable WebSocket endpoint, as-if it had been specified in a WAR's web.xml.
+
+WebSockets are specified by https://www.rfc-editor.org/info/rfc6455[RFC 6455] and
+https://jcp.org/aboutJava/communityprocess/final/jsr356/index.html[JSR-000356  Java API for WebSocket],
+
+Jetty 12: Java 17, Jakarta EE8 - EE10.
+
+Java API is clearly oriented towards Java-code w/ annotations, things we have to fight against in Clojure-land.
+
+Ping/Pong - check that connection is still alive.  Receive a ping, respond to that peer with a pong.
+
+Explicit references to path params, that map perfectly to Pedestal.
+
+Lot of notes about path conflicts which we'll avoid with Sawtooth.
+
+6.4 - Programmatic Server Deployment
+
+ServerContainer.addEndpoint(), called from a ServletContextListener.
+Is it possible they knew web.xml was running out of steam?
+
+No mention of ServerContainer.upgradeHttpToWebSocket().
+
+Maybe extend table routes to allow extra key/value pairs in the routes.
+
+Ah. https://jakarta.ee/specifications/websocket/2.1/jakarta-websocket-spec-2.1.pdf[Jakarta EE - WebSocket 2.1 Specification] (PDF).
+
+https://github.com/jakartaee/websocket/issues/211[jakartaee issue 211] discusses need for `upgradeHttpToWebSocket`.
+- Pedestal is the "front controller / front servlet"
+
+Inside `upgradeHttpToWebSocket`, a response is sent to the client; will need a Pedestal mechanism to support
+this case, where we unwind the interceptor chain w/o a :response being present. Maybe add an empty response map
+to signal that response was provided out-of-band?
+
+Negotiation (of protocol, etc.) via a stack of interceptors?  How to wrap modifyHandshake()?
+
+```
+        public static final String JAKARTA_WEBSOCKET_CONTAINER_ATTRIBUTE = jakarta.websocket.server.ServerContainer.class.getName();
+
+        // Store a reference to the ServerContainer per - jakarta.websocket spec 1.0 final - section 6.4: Programmatic Server Deployment
+        servletContext.setAttribute(JAKARTA_WEBSOCKET_CONTAINER_ATTRIBUTE, container);
+```
+
+    (-> request :servlet-request .getServletContext (.getAttribute "jakarta.websocket.server.ServerContainer"))
+
+
+Must have a ServerEndpointConfig, it must be built with a non-nil class (i.e., `FnEndpoint`).
+
+Class must extend Endpoint, or have one of a couple of annotations. We have the former.
+
+Class must be public. Ok.
+
+Sub-class or reified impl of ServerEndpointConfig$Configurator, to provide modifyHandshake()? I'd favor a shell class
+like `FnEndpoint` that delegates to a Clojure function.
+
+Likewise, getEndpointInstance(), which can be built around the shell class.
+
+
+Is the classpath for the server module not quite right w.r.t. websocket-api dependency?
+
+
 == Testing Revamp (Jan 2025)
 
 In earlier versions of Pedestal, the `io.pedestal.test` namespace directly contained `reify`-ed mock
@@ -94,7 +160,7 @@ prefix tree, that turned out to be difficult to achieve footnote:[There was a lo
 attempted optimizations to address this, which bore very limited fruit.];
 Sawtooth is nearly as fast as Prefix Tree, with a difference in micro-seconds per routing execution.
 
-The final decision was whether to sawtooth the _default_ router; this seemed acceptible
+The final decision was whether to make sawtooth the _default_ router; this seemed acceptible
 give its reasonable performance, and improved ergonomics.  The other routers, prefix tree included,
 continue to exist for backwards compatibility reasons, and to support cases where Sawtooth
 is not the best fit.
