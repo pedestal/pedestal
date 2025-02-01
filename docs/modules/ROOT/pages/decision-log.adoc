@@ -143,17 +143,18 @@ by the framework.
 
 == Sawtooth Router (Sep 2024)
 
-A common query internally at Nubank, when asked "How can we make things better?" was a call for help with
+A common query internally at Nubank, when asked "How can we make Pedestal better?" was a call for help with
 routes, particularily identifying routing conflicts.
 
 The existing router implementation, the
-xref:reference:prefix-tree-router.adoc[]
-had specific rules for dealing with any conflicts, but did a bad job of emitting warnings
+xref:reference:prefix-tree-router.adoc[],
+has specific rules for dealing with any path conflicts, but did a bad job of emitting warnings
 about such conflicts.
 
 xref:reference:sawtooth-router.adoc[Sawtooth]
-was created to address these concerns; it's behavior when conflicts occur is not defined, but
-it was designed to do a good job of identifying routing conflicts.
+was created to address these concerns; it's behavior when conflicts occur is not defined
+(in the sense that when there are path conflicts, we don't specify which path will be selected), but
+Sawtooth was designed to do a good job of identifying routing conflicts.
 
 Although the original goal was to create a router that was as fast, or faster, than
 prefix tree, that turned out to be difficult to achieve footnote:[There was a long series of
