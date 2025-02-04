@@ -23,7 +23,7 @@
            (jakarta.websocket EndpointConfig SendHandler Session MessageHandler$Whole RemoteEndpoint$Async)
            (jakarta.websocket.server ServerContainer ServerEndpointConfig ServerEndpointConfig$Builder)
            (java.nio ByteBuffer)
-           (java.util HashMap Map$Entry)))
+           (java.util HashMap)))
 
 (defn- message-handler
   ^MessageHandler$Whole [session-object f]

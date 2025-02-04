@@ -14,8 +14,7 @@
 (ns io.pedestal.test-test
   (:require [clojure.java.io :as io]
             [clojure.test :refer [deftest is]]
-            [io.pedestal.test :as test]
-            [io.pedestal.test :refer [parse-url]])
+            [io.pedestal.test :as test :refer [parse-url]])
   (:import (java.io BufferedInputStream ByteArrayInputStream)))
 
 (deftest non-root-url

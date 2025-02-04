@@ -177,14 +177,13 @@
 
                  (ws/send! session "hello")
 
-                 (is (= [:text "back-hello"])
-                     (<event!!))
-
+                 (is (= [:text "back hello"]
+                        (<event!!)))
 
                  (ws/send! session "goodbye")
 
-                 (is (= [:text "back-goodbye"])
-                     (<event!!)))))
+                 (is (= [:text "back goodbye"]
+                        (<event!!))))))
 
 
 (deftest client-sends-binary
