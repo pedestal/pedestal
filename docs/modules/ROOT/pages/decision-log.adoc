@@ -70,6 +70,8 @@ Likewise, getEndpointInstance(), which can be built around the shell class.
 
 Is the classpath for the server module not quite right w.r.t. websocket-api dependency?
 
+Add support for partial text messages?  :on-partial-text.
+
 
 == Testing Revamp (Jan 2025)
 

@@ -105,6 +105,12 @@ specifically modify.
 | Added by an interceptor or handler, at which point the :enter phase of request processing is completed, and
 the :leave phase begins.
 
+
+| :route
+| xref:routing-quick-reference.adoc[route map]
+| Added after request routing takes place, this is either the specifically match route map, or nil
+  to indicate that the request could not be mapped to a route.
+
 |===
 
 == Servlet Keys
