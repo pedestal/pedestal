@@ -1,24 +1,44 @@
 = Websockets
 :default_api_ns: io.pedestal.websocket
 
-[WARNING]
-====
-Websocket support was present prior to Pedestal 0.7, but was a container-specific option for
-Jetty. In Pedestal 0.7, websocket support was refactored to be more universal and declarative, part of
-the xref:service-map.adoc[].
-====
-
-link:https://en.wikipedia.org/wiki/WebSocket[Websockets] are an asynchronous and bidirectional connection between a client and a server.  Once a Websocket connection is established, either
+link:https://en.wikipedia.org/wiki/WebSocket[WebSockets] are an asynchronous and bidirectional connection between
+a client and a server.  Once a Websocket connection is established, either
 party may send messages to the other party - this unleashes truly unbounded possibilities for creating dynamic, real-time, and asynchronous applications.
 
-Websocket requests are not routed the way HTTP requests are; instead, the mapping from incoming requests
-to Websocket handlers is defined in the xref:service-map.adoc[].
+== WebSocket Lifecycle
 
-In the service map, the :io.pedestal.http/websockets key
-maps string routes to endpoint maps.
+A WebSocket connection starts with the client (the web browser) sending an HTTP or HTTPS request; this request
+includes a special header to indicate that it is intended to upgrade the request to a WebSocket connection; it is
+always a GET request.
 
-The endpoint map is a set of callbacks and configuration.  The path and endpoint map are ultimately passed to the api:add-endpoint[] function, which describes
-in detail how the callbacks are used.
+In the handling of this kind of request, there's a point where the request is
+https://javadoc.io/static/jakarta.websocket/jakarta.websocket-api/2.2.0/jakarta/websocket/server/ServerContainer.html#upgradeHttpToWebSocket(java.lang.Object,java.lang.Object,jakarta.websocket.server.ServerEndpointConfig,java.util.Map)[upgraded to a WebSocket connection].
+There is _no_ response to this request. Instead, both the client and the server may begin sending and receiving text
+and binary messages until the connection is closed by either party.
+
+== WebSockets in Java
+
+In Java, WebSocket endpoints are POJO objects with
+a https://javadoc.io/static/jakarta.websocket/jakarta.websocket-client-api/2.2.0/jakarta/websocket/ClientEndpoint.html[@ClientEndpoint]
+class annotation.
+
+Such endpoints will annotate specific methods to mark them as callbacks for asynchronous events.
+For example, to handle initial setup when a connection is first opened, the
+https://javadoc.io/static/jakarta.websocket/jakarta.websocket-client-api/2.2.0/jakarta/websocket/OnOpen.html[@OnOpen]
+annotation can be applied.
+
+Other annotations cover receiving text or binary messages.
+
+== WebSockets in Pedestal
+
+Under Pedestal, a WebSocket request is routed like any other request, but the final interceptor
+must invoke
+api:upgrade-request-to-websocket[]
+instead of attaching a response.
+In many cases, the final interceptor is created via api:websocket-upgrade[].
+
+The behavior of the endpoint is defined in terms of a _websocket map_ which provides configuration for the WebSocket,
+as well as callbacks for specific events in the WebSocket lifecyle.
 
 .Callbacks
 |===
@@ -47,8 +67,12 @@ in detail how the callbacks are used.
 
 | :configure
 | (ServerEndpointConfig$Builder) -> nil
-| Allows additional configuration using an instance of `jakarta.websocket.server.ServerEndpointConfig.Builder`.
 
+| Allows additional configuration using an instance of
+https://javadoc.io/static/jakarta.websocket/jakarta.websocket-api/2.2.0/jakarta/websocket/ClientEndpointConfig.Builder.html[ClientEndpointConfig.Builder].
+
+  This configuration occurs before the request is upgraded to a connection, and provides access to other configuration
+  options, such as encoders and decoders, that are not yet exposed by Pedestal's API.
 
 |===
 
@@ -77,3 +101,14 @@ The :on-text and :on-binary callbacks are invoked when a text or binary message 
 is received.
 
 
+== Upgrading from Pedestal 0.7
+
+
+
+
+
+Websocket requests are not routed the way HTTP requests are; instead, the mapping from incoming requests
+to Websocket handlers is defined in the xref:service-map.adoc[].
+
+In the service map, the :io.pedestal.http/websockets key
+maps string routes to endpoint maps.

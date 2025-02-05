@@ -19,6 +19,13 @@ Newly deprecated namespaces:
 These represent functionality that is not well supported by Pedestal, or internal namespaces that should not be
 used by application code.
 
+WebSockets upgrade requests are now routed, like any other request; the prior approach
+(the ::http/websockets service map key) has been deprecated.
+
+In `io.pedestal.websocket`, the following functions are deprecated:
+- add-endpoint
+- add-endpoints
+
 == 0.7.0
 
 In _most_ cases, Pedestal can now emit a warning the first time a deprecated function, macro,

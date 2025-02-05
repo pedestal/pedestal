@@ -15,6 +15,7 @@
   "Jetty adaptor for Pedestal."
   (:require io.pedestal.http.jetty.container
             [clojure.string :as string]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.websocket :as ws])
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
@@ -195,11 +196,12 @@
                                   (.setContextPath context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when websockets
-      (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
-                                                             (reify JakartaWebSocketServletContainerInitializer$Configurator
-                                                               (^void accept [_this ^ServletContext _context
-                                                                              ^ServerContainer container]
-                                                                 (ws/add-endpoints container websockets)))))
+      (deprecated "non-routed websockets (via the :io.pedestal.http/websockets service map key)"
+                  (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
+                                                                         (reify JakartaWebSocketServletContainerInitializer$Configurator
+                                                                           (^void accept [_this ^ServletContext _context
+                                                                                          ^ServerContainer container]
+                                                                             (ws/add-endpoints container websockets))))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.
@@ -234,6 +236,6 @@
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
   [service-map options]
   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
-    {::server   server
+    {::server  server
      :start-fn #(start server options)
      :stop-fn  #(stop server)}))

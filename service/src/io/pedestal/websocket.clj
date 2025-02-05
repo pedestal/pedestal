@@ -18,6 +18,7 @@
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
            (jakarta.servlet.http HttpServletRequest)
@@ -134,7 +135,9 @@
 
   The core of this invokes [[create-server-endpoint-config]].
 
-  Terminates the interceptor chain, without adding a response."
+  Terminates the interceptor chain, without adding a response.
+
+  Returns the updated context."
   {:added "0.8.0"}
   [context ws-endpoint-map]
   (let [{:keys [^HttpServletRequest servlet-request servlet-response request route]} context
@@ -181,21 +184,27 @@
   [[create-server-endpoint-config]].
 
   Returns nil."
+  {:deprecated "0.8.0"}
   [^ServerContainer container ^String path ws-endpoint-map]
-  (let [config (create-server-endpoint-config path ws-endpoint-map)]
-    (.addEndpoint container config)
-    nil))
+  (deprecated `add-endpoint
+              (let [config (create-server-endpoint-config path ws-endpoint-map)]
+                (.addEndpoint container config)
+                nil)))
 
 (defn add-endpoints
   "Adds all websocket endpoints in the path-map."
+  {:deprecated "0.8.0"}
   [^ServerContainer container websockets-map]
-  (doseq [[path endpoint] websockets-map]
-    (add-endpoint container path endpoint)))
+  (deprecated `add-endpoints
+    (doseq [[path endpoint] websockets-map]
+      (add-endpoint container path endpoint))))
 
 (defprotocol WebSocketSendAsync
   (ws-send-async [msg remote-endpoint]
     "Sends `msg` to `remote-endpoint`. Returns a
-     promise channel from which the result can be taken."))
+     promise channel from which the result can be taken.
+
+     The result is either :success or an Exception."))
 
 (defn- send-handler
   ^SendHandler [chan]
@@ -269,7 +278,10 @@
     send-ch))
 
 (defn on-open-start-ws-connection
-  "Returns an :on-open callback for [[add-endpoint]], using [[start-ws-connection]] to do the actual work."
+  "Returns an :on-open callback using [[start-ws-connection]] to do the actual work.
+
+  The callback returns the channel used to send messages to the client, which will become
+  the first argument passed to the :on-close, :on-error, :on-text, or :on-binary callbacks."
   [opts]
   (fn [^Session ws-session ^EndpointConfig _config]
     (start-ws-connection ws-session opts)))
