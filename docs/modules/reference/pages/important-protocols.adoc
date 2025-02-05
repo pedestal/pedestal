@@ -17,7 +17,7 @@ IntoInterceptor is legal to use in the interceptor vector of a
 route.
 
 This protocol also comes into play when
-xref:interceptors.adoc#_manipulating_the_interceptor_queue[appending new interceptors to the queue].
+xref:interceptors.adoc#manipulating[appending new interceptors to the queue].
 
 Pedestal extends IntoInterceptor onto a variety of Clojure and Java
 types. See the xref:interceptors.adoc[interceptors reference] for details of their behaviors.
@@ -47,7 +47,7 @@ Since the call to expand-routes comes from application code, it
 would be rare for an application to need to extend ExpandableRoutes.
 
 The result of expand-routes is a wrapper around a
-xref:routing-quick-reference.adoc#_routing_table[seq of maps]
+xref:routing-quick-reference.adoc#routing-table[seq of maps]
 that will be passed to the routing contructor function.
 
 == Servlet Protocols

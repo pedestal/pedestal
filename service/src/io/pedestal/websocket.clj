@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -82,7 +82,7 @@
   is saved as the \"session object\" which is then passed to the remaining callbacks as the first
   function argument.
 
-  :on-open (jakarta.websocket.Session,  jakarta.websocket.EndpointConfig)
+  :on-open (jakarta.websocket.Session, jakarta.websocket.EndpointConfig)
   : Invoked when client first opens a connection.  The returned value is retained
     and passed as the first argument of the remaining callbacks.
 
@@ -200,7 +200,7 @@
       (add-endpoint container path endpoint))))
 
 (defprotocol WebSocketSendAsync
-  (ws-send-async [msg remote-endpoint]
+  (ws-send-async [msg ^RemoteEndpoint$Async remote-endpoint]
     "Sends `msg` to `remote-endpoint`. Returns a
      promise channel from which the result can be taken.
 
@@ -232,6 +232,8 @@
 
   Returns a channel used to send messages to the client.
 
+  Closing the channel will close the WebSocket session.
+
   The values written to the channel are either
   a payload (a String, ByteBuffer, or some object
   that satisfies the WebSocketSendAsync protocol) or is a tuple of a payload and a response channel.
@@ -253,7 +255,7 @@
       (if-let [payload (and (.isOpen ws-session)
                             (async/<! send-ch))]
         ;; The payload is a message and an optional response channel; a message is either
-        ;; a String or a ByteBuffer (or something that implement WebSocketSendAsync).
+        ;; a String or a ByteBuffer (or something that implements WebSocketSendAsync).
         (let [[out-msg resp-ch] (if (sequential? payload)
                                   payload
                                   [payload nil])

@@ -25,8 +25,8 @@ attached to it.
 This error handling proceeds the same way regardless of whether
 interceptors in the chain returned a xref:context-map.adoc[context map] or
 async channel. (See
-xref:interceptors.adoc#_interceptor_return_values[Interceptor Return
-Values] for details on async return.) As a result, Pedestal unifies
+xref:interceptors.adoc#return[Interceptor Return Values] for details on async return.)
+As a result, Pedestal unifies
 error handling for synchronous interceptors and asynchronous
 interceptors.
 

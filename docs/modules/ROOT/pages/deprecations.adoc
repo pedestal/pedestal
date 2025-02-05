@@ -2,7 +2,7 @@
 
 == 0.8.0
 
-The focus of release 0.8 is to improve routing and support xref:reference:jetty.adoc[], but a secondary focus
+The focus of release 0.8 is to improve and unify routing, and to support xref:reference:jetty.adoc[], but a secondary focus
 is to remove dead code.
 
 Many functions, macros, and even namespaces deprecated in 0.7.0 have been fully removed in 0.8.0.
@@ -19,7 +19,7 @@ Newly deprecated namespaces:
 These represent functionality that is not well supported by Pedestal, or internal namespaces that should not be
 used by application code.
 
-WebSockets upgrade requests are now routed, like any other request; the prior approach
+xref:reference:websockets.adoc#upgrade[WebSocket upgrade requests] are now routed, like any other request; the prior approach
 (the ::http/websockets service map key) has been deprecated.
 
 In `io.pedestal.websocket`, the following functions are deprecated:

@@ -179,7 +179,7 @@ the container should be configured to open a port for HTTPs traffic.
 | ::http/websockets
 | N
 | Map
-| Defines websocket routing. See xref:websockets.adoc[].
+| *Deprecated in 0.8*: Prior approach to xref:websockets.adoc#upgrade[websocket routing].
 
 |===
 

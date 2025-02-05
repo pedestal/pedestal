@@ -130,6 +130,7 @@ ExpandableRoutes protocol.
 formats, plus the results of directly calling a definition function, such as
 `table-routes`.  The routing table is the merged result of all of these.
 
+[#routing-table]
 == Routing Table
 
 The expanded routing table is a wrapper object containing a :routes key;
@@ -193,7 +194,8 @@ provide a path parameter named :ids, and will contain anything on the URL after 
 
 A path parameter must match at least one term, so a URL of just `/accounts` or `/accounts/` would not match the route.
 
-== Builtin Routers
+[#builtin]
+== Built-in Routers
 
 Pedestal includes several routing algorithms; this reflects not only the evolution of the Pedestal library,
 but also allows for different trade-offs in the algorithm used by each Router.  In rare cases, an application
