@@ -125,7 +125,7 @@
   `(let [server# (ws-server ~ws-map)]
      (try
        (http/start server#)
-       (do ~@body)1
+       (do ~@body)
        (finally
          (http/stop server#)))))
 
