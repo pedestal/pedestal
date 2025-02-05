@@ -45,6 +45,17 @@ api:upgrade-request-to-websocket[]
 instead of attaching a response.
 In many cases, the final interceptor is created via api:websocket-upgrade[].
 
+[NOTE]
+====
+A WebSocket upgrade request has _no_ response.  If your application includes interceptors that
+examine or modify the :response key of the xref:context-map.adoc[] (in the :leave or :error phase), they may need to be adjusted for
+an entirely missing :response key.
+
+If some interceptor does attach a response key, it will be ignored by the xref:servlet-interceptor.adoc[].
+
+====
+
+
 == WebSocket Endpoint Map
 
 The behavior of the endpoint is defined in terms of a _websocket endpoint map_ which provides configuration for the WebSocket,
