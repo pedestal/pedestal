@@ -8,12 +8,19 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
 
 **BREAKING CHANGES:**
 
+- Clojure 1.11 is now the minimum supported version
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
+- `io.pedestal.test` has been rewritten, nearly from scratch
+  - The Servlet API mocks are now Java classes, not `reify`-ed classes
+  - A request body may now be a java.io.File
+- `io.pedestal.http.servlet` 
+  - The `reify`'ed `FnServlet` class is now a proper Java class, `io.pedestal.servlet.FnServlet`
+  - The new `FnServlet` extends `HttpServlet` not `Servlet`
 - Deleted deprecated namespaces:
   - `io.pedestal.http.request`
   - `io.pedestal.http.request.lazy`

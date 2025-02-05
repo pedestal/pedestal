@@ -1,10 +1,30 @@
 # Decision Log
-:default_api_ns: io.pedestal.interceptor.chain
 
 Document design and architecture decisions.
 
 A lighter-weight alternative to
 https://github.com/joelparkerhenderson/architecture-decision-record[Architecture Decision Record (ADR)].
+
+== Testing Revamp (Jan 2025)
+
+In earlier versions of Pedestal, the `io.pedestal.test` namespace directly contained `reify`-ed mock
+implementations of the relevant Servlet API types: `HttpServletRequest`, `HttpServletResponse`, and so forth.
+
+To some degree, these were abuses of reified types, because almost none of the mocks fully implemented all the
+necessary methods footnote:[Clojure allows you to only partially implement an interface in a nominally concrete type.]; further, because of limitations to reified types, they did not always inherit common
+behavior from base classes provided by the Servlet API.
+
+By converting these to full Java mock implementations, it is more clear that the mocks match the Servlet API,
+as failure to do so result in a compilation error. It also makes it clear what is, and is not, implemented
+on a method-by-method basis. In addition, the Servlet API is, by design, filled with mutable state - managing
+that mutable state inside a Java class is far simpler than doing so in Clojure code.
+
+We feel that the end result is more complete and maintainable, at the cost of adding several large (and mostly
+empty) Java classes to the build.
+
+Using this approach, the `FnServlet` was also converted from reified type to a Java class; this class
+is provided by tfhe api:servlet[ns=io.pedestal.http.servlet] function, and in an embedded Pedestal application,
+represents the initial bridge from the Java Servlet API to the Clojure and Pedestal implementations.
 
 == Resource Routes (Jan 2025)
 
@@ -47,6 +67,7 @@ This is sufficient for many small projects using Pedestal; for larger users, suc
 Nubank services are built on common libraries; both the application and library layers each contribute
 portions of the routing table; this is a haphazard process in Pedestal 0.7 and earlier, because
 certain APIs assume just a single routing specification for the entire application.
+
 
 In Pedestal 0.8, this was
 xref:reference:routing-changes.adoc[reworked]

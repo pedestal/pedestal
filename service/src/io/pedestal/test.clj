@@ -15,32 +15,30 @@
   "Pedestal testing utilities; mock implementations of the core Servlet API
   objects, to support fast integration testing without starting a servlet container,
   or opening a port for HTTP traffic."
-  (:require [io.pedestal.http :as http]
+  (:require [clojure.string :as string]
+            [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.servlet :as servlets]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.http.container :as container]
             [io.pedestal.log :as log]
-            [clojure.string :as cstr]
+            [clojure.core.async :refer [put! close!]]
             [clojure.java.io :as io]
-            [clj-commons.ansi :as ansi]
-            [clojure.core.async :as async]
-            [io.pedestal.http.container :as container])
-  (:import (jakarta.servlet.http HttpServletRequest HttpServletResponse)
-           (jakarta.servlet Servlet ServletOutputStream ServletInputStream AsyncContext)
-           (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
-           (clojure.lang IMeta)
-           (java.util Enumeration NoSuchElementException)
-           (java.nio.channels Channels ReadableByteChannel))
-  (:import (java.io OutputStream)))
+            [clj-commons.ansi :as ansi])
+  (:import (jakarta.servlet.http HttpServlet)
+           (java.io ByteArrayInputStream InputStream BufferedInputStream File)
+           (java.nio.channels Channels ReadableByteChannel)
+           (java.util HashMap Map$Entry)
+           (io.pedestal.servlet.mock MockHttpServletResponse MockState)))
 
 (defn- test-servlet
-  ^Servlet [interceptor-service-fn]
+  ^HttpServlet [interceptor-service-fn]
   (servlets/servlet :service interceptor-service-fn))
 
 (defn parse-url
   [url]
   (let [[_ scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
-        [host port] (when raw-host (cstr/split raw-host #":"))]
+        [host port] (when raw-host (string/split raw-host #":"))]
     {:scheme       scheme
      :host         host
      :port         (if port
@@ -49,193 +47,94 @@
      :path         path
      :query-string query-string}))
 
-(defn- enumerator
-  [data kw]
-  (let [data (atom (seq data))]
-    (reify Enumeration
-      (hasMoreElements [_] (not (nil? (first @data))))
-      (nextElement [_]
-        (log/debug :in :enumerator/nextElement
-                   :data @data
-                   :hasMoreElements (not (nil? (first @data)))
-                   :first (first @data)
-                   :rest (rest @data))
-        (let [result (first @data)]
-          (when (nil? result)
-            (throw
-              (NoSuchElementException. (str "Attempt to fetch element from " kw))))
-          (swap! data rest)
-          result)))))
+(defprotocol PrepareRequestBody
+  "How to prepare a provided request body as an InputStream that can be used with the Servlet API."
+  (body->input-stream [input]))
 
-(defprotocol TestRequestBody
-  (->servlet-input-stream [input]))
-
-(extend-protocol TestRequestBody
+(extend-protocol PrepareRequestBody
 
   nil
   (->servlet-input-stream [_]
-    (proxy [ServletInputStream]
-           []
-      (read ([] -1)
-        ([^bytes _b] -1)
-        ([^bytes _b ^Integer _off ^Integer _len] -1))
-      (readLine [_bytes _off _len] -1)))
+    (body->input-stream ""))
 
   String
-  (->servlet-input-stream [string]
-    (->servlet-input-stream (ByteArrayInputStream. (.getBytes string))))
+  (body->input-stream [string]
+    (ByteArrayInputStream. (.getBytes string "UTF-8")))
+
+  File
+  (body->input-stream [file]
+    (io/input-stream file))
 
   InputStream
-  (->servlet-input-stream [wrapped-stream]
-    (proxy [ServletInputStream]
-           []
-      (available ([] (.available wrapped-stream)))
-      (read ([] (.read wrapped-stream))
-        ([^bytes b] (.read wrapped-stream b))
-        ([^bytes b ^Integer off ^Integer len] (.read wrapped-stream b off len))))))
+  (body->input-stream [is]
+    (if (instance? BufferedInputStream is)
+      is
+      (BufferedInputStream. is 8000))))
 
-(defn- test-servlet-input-stream
-  ([] (test-servlet-input-stream nil))
-  ([input] (->servlet-input-stream input)))
+(extend-protocol container/WriteNIOByteBody
 
-(defn- test-servlet-request
-  [verb ^String url & args]
+  MockHttpServletResponse
+
+  ;; Implement async operations
+
+  (write-byte-channel-body [response body resume-chan context]
+    (let [instream-body (Channels/newInputStream ^ReadableByteChannel body)]
+      (try (io/copy instream-body (.getOutputStream response))
+           (put! resume-chan context)
+           (catch Throwable t
+             (put! resume-chan (chain/with-error context t)))
+           (finally (close! resume-chan)))))
+
+  (write-byte-buffer-body [response body resume-chan context]
+    (let [out-chan (Channels/newChannel (.getOutputStream response))]
+      (try (.write out-chan body)
+           (put! resume-chan context)
+           (catch Throwable t
+             (put! resume-chan (chain/with-error context t)))
+           (finally (close! resume-chan))))))
+
+(defn- create-request-headers
+  [headers]
+  (let [result (HashMap.)]
+    (assert (every? string? (keys headers))
+            ":headers option: keys must be strings")
+    (assert (every? string? (vals headers))
+            ":headers option: values must be strings")
+
+    (doseq [[k v] headers]
+      (.put result k v))
+    result))
+
+(defn- new-mock-state
+  ^MockState [verb url & {:keys [body headers]
+                          :or   {body ""}}]
   (let [{:keys [scheme host port path query-string]} (parse-url url)
-        options       (apply array-map args)
-        async-context (atom nil)
-        completion    (promise)
-        meta-data     {:completion completion}]
-    (assert (every? some? (vals (:headers options)))
-            (str "You called `response-for` with header values that were nil.
-                 Nil header values don't conform to the Ring spec: " (pr-str (:headers options))))
-    (with-meta
-      (reify HttpServletRequest
-        (getMethod [_] (-> verb
-                           name
-                           cstr/upper-case))
-        (getRequestURL [_] (StringBuffer. url))
-        (getServerPort [_] port)
-        (getServerName [_] host)
-        (getRemoteAddr [_] "127.0.0.1")
-        (getRemotePort [_] 0)
-        (getRequestURI [_] (str "/" path))
-        (getServletPath [_] (.getRequestURI _))
-        (getContextPath [_] "")
-        (getQueryString [_] query-string)
-        (getScheme [_] scheme)
-        (getInputStream [_] (apply test-servlet-input-stream (when-let [body (:body options)] [body])))
-        (getProtocol [_] "HTTP/1.1")
-        (isAsyncSupported [_] true)
-        (isAsyncStarted [_] (some? @async-context))
-        (getAsyncContext [_] @async-context)
-        (startAsync [_]
-          (compare-and-set! async-context
-                            nil
-                            (reify AsyncContext
-                              (complete [_]
-                                (deliver completion true)
-                                nil)
-                              (setTimeout [_ _timeout]
-                                nil)
-                              (start [_ _runnable]
-                                nil)))
-          @async-context)
-        ;; Needed for NIO testing (see Servlet Interceptor)
-        (getHeaderNames [_] (enumerator (keys (get options :headers)) ::getHeaderNames))
-        (getHeader [_ _header] (get-in options [:headers _header]))
-        (getHeaders [_ _header] (enumerator [(get-in options [:headers _header])] ::getHeaders))
-        (getContentLength [_] (Integer/parseInt (get-in options [:headers "Content-Length"] "0")))
-        (getContentLengthLong [_] (Long/parseLong (get-in options [:headers "Content-Length"] "0")))
-        (getContentType [_] (get-in options [:headers "Content-Type"] ""))
-        (getCharacterEncoding [_] "UTF-8")
-        (setAttribute [_ _s _obj] nil)                      ;; Needed for NIO testing (see Servlet Interceptor)
-        (getAttribute [_ _attribute] nil))
-      meta-data)))
+        body-stream (body->input-stream body)]
+    (MockState.
+      url
+      (-> verb name string/upper-case)
+      scheme
+      host
+      port
+      path
+      query-string
+      (create-request-headers headers)
+      body-stream)))
 
-(defn- test-servlet-output-stream
-  []
-  (let [output-stream (ByteArrayOutputStream.)]
-    (proxy [ServletOutputStream IMeta]
-           []
-      (write
-        ([arg] (if (= java.lang.Integer (type arg))
-                 (.write output-stream (int arg))
-                 (.write output-stream (bytes arg))))
-        ([contents off len] (.write output-stream (bytes contents) (int off) (int len))))
-      (meta [] {:output-stream output-stream}))))
-
-(defn test-servlet-response
-  "Returns a mock servlet response with a ServletOutputStream over a
-  ByteArrayOutputStream. Captures the ByteArrayOutputStream in
-  metadata. All headers set will swap a headers map held in an atom,
-  also held in metadata."
-  ^HttpServletResponse []
-  (let [output-stream (test-servlet-output-stream)
-        headers-map   (atom {})
-        status-val    (atom nil)
-        committed     (atom false)
-        meta-data     {:output-stream (:output-stream (meta output-stream))
-                       :status        status-val
-                       :headers-map   headers-map}]
-    (with-meta (reify HttpServletResponse
-                 (getOutputStream [_] output-stream)
-                 (setStatus [_ status] (reset! status-val status))
-                 (getStatus [_] @status-val)
-                 (getBufferSize [_] 1500)
-                 (setHeader [_ header value] (swap! headers-map update :set-header assoc header value))
-                 (addHeader [_ header value] (swap! headers-map update-in [:added-headers header] conj value))
-                 (setContentType [_ content-type] (swap! headers-map assoc :content-type content-type))
-                 (setContentLength [_ content-length] (swap! headers-map assoc :content-length content-length))
-                 (setContentLengthLong [_ content-length] (swap! headers-map assoc :content-length content-length))
-                 (flushBuffer [_] (reset! committed true))
-                 (isCommitted [_] @committed)
-                 (sendError [_ sc]
-                   (.sendError _ sc "Server Error"))
-                 (sendError [_ sc msg]
-                   (reset! status-val sc)
-                   (io/copy msg output-stream))
-
-                 ;; Force all async NIO behaviors to be sync
-                 container/WriteNIOByteBody
-                 (write-byte-channel-body [_ body resume-chan context]
-                   (let [instream-body (Channels/newInputStream ^ReadableByteChannel body)]
-                     (try (io/copy instream-body output-stream)
-                          (async/put! resume-chan context)
-                          (catch Throwable t
-                            (async/put! resume-chan (chain/with-error context t)))
-                          (finally (async/close! resume-chan)))))
-                 (write-byte-buffer-body [_ body resume-chan context]
-                   (let [out-chan (Channels/newChannel ^OutputStream output-stream)]
-                     (try (.write out-chan body)
-                          (async/put! resume-chan context)
-                          (catch Throwable t
-                            (async/put! resume-chan (chain/with-error context t)))
-                          (finally (async/close! resume-chan))))))
-
-               meta-data)))
-
-(defn test-servlet-response-status
-  [test-servlet-response]
-  (-> test-servlet-response
-      meta
-      :status
-      deref))
-
-(defn test-servlet-response-body
-  [test-servlet-response]
-  (let [^ByteArrayOutputStream baos (-> test-servlet-response
-                                        meta
-                                        :output-stream)]
-    (doto baos
-      (.flush)
-      (.close))))
-
-(defn test-servlet-response-headers
-  [test-servlet-response]
-  (-> test-servlet-response
-      meta
-      :headers-map
-      deref))
+(defn- extract-headers
+  [^MockState state]
+  (let [set-headers (->> (reduce (fn [result ^Map$Entry e]
+                                   (assoc result
+                                          (.getKey e)
+                                          (.getValue e)))
+                                 {}
+                                 (-> state .-setResponseHeaders .entrySet)))]
+    (->> (reduce (fn [result ^Map$Entry e]
+                   (assoc result
+                          (.getKey e)
+                          (-> e .getValue vec)))
+                 set-headers
+                 (-> state .-addedResponseHeaders .entrySet)))))
 
 (defn servlet-response-for
   "Return a Ring response map for an HTTP request of type `verb`
@@ -243,16 +142,24 @@
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
   the servlet infrastructure."
-  [interceptor-service-fn verb url & args]
+  [interceptor-service-fn verb url & {:keys [timeout]
+                                      :or   {timeout 5000}
+                                      :as   options}]
   (let [servlet          (test-servlet interceptor-service-fn)
-        servlet-request  (apply test-servlet-request verb url args)
-        servlet-response (test-servlet-response)]
+        state            (new-mock-state verb url options)
+        servlet-request  (.-request state)
+        servlet-response (.-response state)]
     (.service servlet servlet-request servlet-response)
-    (when (.isAsyncStarted ^HttpServletRequest servlet-request)
-      (-> servlet-request meta :completion deref))
-    {:status  (test-servlet-response-status servlet-response)
-     :body    (test-servlet-response-body servlet-response)
-     :headers (test-servlet-response-headers servlet-response)}))
+    (when-not (.waitForCompletion state timeout)
+      (throw (ex-info (str "Operation did not complete within " timeout " ms")
+                      {:verb    verb
+                       :url     url
+                       :options options
+                       :state   state})))
+    {:status  (.-responseStatus state)
+     :body    (.-responseStream state)
+     :headers (extract-headers state)
+     ::state  state}))
 
 (defn raw-response-for
   "Return a Ring response map for an HTTP request of type `verb`
@@ -268,16 +175,15 @@
   Options:
   :body : An optional string that is the request body.
   :headers : An optional map that are the headers"
-  [interceptor-service-fn verb url & options]
-  (let [servlet-resp (apply servlet-response-for interceptor-service-fn verb url options)]
+  [interceptor-service-fn verb url & {:as options}]
+  (let [servlet-resp (servlet-response-for interceptor-service-fn verb url options)]
     (log/debug :in :response-for
                :servlet-resp servlet-resp)
-    (update servlet-resp :headers #(merge (:set-header %)
-                                          (:added-headers %)
-                                          (when-let [content-type (:content-type %)]
-                                            {"Content-Type" content-type})
-                                          (when-let [content-length (:content-length %)]
-                                            {"Content-Length" content-length})))))
+    (let [{::keys [state]} servlet-resp
+          content-length (.-responseContentLength state)]
+      (cond-> servlet-resp
+        (pos? content-length)
+        (assoc-in [:headers "Content-Length"] content-length)))))
 
 (defn response-for
   "Return a Ring response map for an HTTP request of type `verb`
@@ -294,10 +200,13 @@
   Options:
 
   :body : An optional string that is the request body.
-  :headers : An optional map that are the headers"
-  [interceptor-service-fn verb url & options]
-  (-> (apply raw-response-for interceptor-service-fn verb url options)
-      (update :body #(.toString ^ByteArrayOutputStream % "UTF-8"))))
+  :headers : An optional map that are the request headers"
+  [interceptor-service-fn verb url & {:as options}]
+  (let [{::keys [state] :as response} (raw-response-for interceptor-service-fn verb url options)
+        body (-> state
+                 .responseStream
+                 (.toString "UTF-8"))]
+    (assoc response :body body)))
 
 (defn create-responder
   "Given a service map, this returns a function that wraps [[response-for]].
@@ -308,8 +217,8 @@
   (let [service-fn (-> service-map
                        http/create-servlet
                        ::http/service-fn)]
-    (fn [verb url & options]
-      (apply response-for service-fn verb url options))))
+    (fn [verb url & {:as options}]
+      (response-for service-fn verb url options))))
 
 (defn disable-routing-table-output-fixture
   "A test fixture that disables printing of the routing table, even when development mode
