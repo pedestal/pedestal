@@ -102,7 +102,6 @@
     {:name  ::echo-prefix-ws
      :enter (fn [context]
               (let [prefix (get-in context [:request :path-params :prefix])]
-                #trace/result prefix
                 (websocket/upgrade-request-to-websocket
                   context
                   (assoc default-endpoint-map

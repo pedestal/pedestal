@@ -167,6 +167,18 @@
     (update resp-map :headers merge {"Content-Type" (or content-type
                                                         (default-content-type body))})))
 
+(defn expect-no-response
+  "Updates the context to identify that no response is expected; this typically is because
+   the request was upgraded to a WebSocket connection."
+  {:added "0.8.0"}
+  [context]
+  (assoc context ::expect-no-response true))
+
+(defn response-expected?
+  {:added "0.8.0"}
+  [context]
+  (-> context ::expect-no-response not))
+
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]
    (let [{:keys [status headers]} (set-default-content-type resp-map)]
@@ -201,7 +213,7 @@
     (.setTimeout 0)))
 
 (defn- start-servlet-async
-  [{:keys [^HttpServletRequest servlet-request]} ]
+  [{:keys [^HttpServletRequest servlet-request]}]
   (when-not (.isAsyncStarted servlet-request)
     (start-servlet-async* servlet-request)))
 
@@ -221,14 +233,24 @@
   (log/debug :in :leave-ring-response :response response)
 
   (cond
-    (nil? response) (do
-                      (send-error context "Internal server error: no response")
-                      context)
-    (satisfies? WriteableBodyAsync body) (let [chan (::resume-channel context (async/chan))]
-                                           (send-response (assoc context ::resume-channel chan))
-                                           chan)
-    :else (do (send-response context)
-              context)))
+    ;; i.e., was WebSocket upgrade request?
+    (not (response-expected? context))
+    context
+
+    (nil? response)
+    (do
+      (send-error context "Internal server error: no response")
+      context)
+
+    (satisfies? WriteableBodyAsync body)
+    (let [chan (::resume-channel context (async/chan))]
+      (send-response (assoc context ::resume-channel chan))
+      chan)
+
+    :else
+    (do
+      (send-response context)
+      context)))
 
 (defn- terminate-when-response
   [{:keys [response]}]
@@ -240,7 +262,7 @@
                     {:response response}))
 
     (let [status (:status response)]
-      (not (and (int? status)'
+      (not (and (int? status)
                 (pos? status))))
     (throw (ex-info "Response map must have positive integer value for :status"
                     {:response response}))

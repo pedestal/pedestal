@@ -49,7 +49,7 @@
 
 ;; edn and json response formats
 
-(defn  edn-response
+(defn edn-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
   [obj]
   (response/data-response #(pr obj) "application/edn;charset=UTF-8"))
@@ -103,11 +103,16 @@
                   (pred response) (assoc :response (xform response)))))}))
 
 (def not-found
-  "An interceptor that returns a 404 when routing failed to resolve a route."
-  (response-interceptor
-    ::not-found
-    #(not (response? %))
-    (fn [_] (ring-response/not-found "Not Found"))))
+  "An interceptor that returns a 404 when routing failed to resolve a route, or no :response
+  map was attached to the context."
+  (interceptor
+    {:name  ::not-found
+     :leave (fn [context]
+              (if (and (not (-> context :response response?))
+                       (servlet-interceptor/response-expected? context))
+                (assoc context :response
+                       (ring-response/not-found "Not Found"))
+                context))}))
 
 (defn- missing-content-type?
   [response]
@@ -269,7 +274,7 @@
                                 (route/expand-routes {:children routes}))
                               :else (throw (ex-info (str "Routes specified in the service map don't fulfill the contract, "
                                                          "they must be expanded routes, a function that returns expanded routes, or a RoutingFragment")
-                                                 {:routes routes})))]
+                                                    {:routes routes})))]
     (if-not interceptors
       (assoc service-map ::interceptors
              (cond-> []

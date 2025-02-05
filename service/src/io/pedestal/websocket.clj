@@ -15,6 +15,7 @@
   for applications that make use Pedestal's websocket support."
   {:added "0.7.0"}
   (:require [clojure.core.async :as async :refer [go-loop put!]]
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log])
@@ -155,8 +156,9 @@
                              servlet-response
                              config
                              (-> request :path-params servlet-path-parameters)))
-  ;; TODO: Does no :response cause problems?
-  (chain/terminate context))
+  (-> context
+      servlet-interceptor/expect-no-response
+      chain/terminate))
 
 
 (defn websocket-upgrade
