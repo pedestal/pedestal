@@ -167,17 +167,18 @@
     (update resp-map :headers merge {"Content-Type" (or content-type
                                                         (default-content-type body))})))
 
-(defn expect-no-response
+(defn disable-response
   "Updates the context to identify that no response is expected; this typically is because
    the request was upgraded to a WebSocket connection."
   {:added "0.8.0"}
   [context]
-  (assoc context ::expect-no-response true))
+  (assoc context ::response-disabled true))
 
 (defn response-expected?
+  "Returns true unless [[disable-response]] was previously invoked."
   {:added "0.8.0"}
   [context]
-  (-> context ::expect-no-response not))
+  (-> context ::response-disabled not))
 
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]

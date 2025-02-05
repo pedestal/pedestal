@@ -157,7 +157,7 @@
                              config
                              (-> request :path-params servlet-path-parameters)))
   (-> context
-      servlet-interceptor/expect-no-response
+      servlet-interceptor/disable-response
       chain/terminate))
 
 
