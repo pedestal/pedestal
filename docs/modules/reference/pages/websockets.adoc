@@ -3,7 +3,7 @@
 
 link:https://en.wikipedia.org/wiki/WebSocket[WebSockets] are an asynchronous and bidirectional connection between
 a client and a server.  Once a Websocket connection is established, either
-party may send messages to the other party - this unleashes truly unbounded possibilities for creating dynamic, real-time, and asynchronous applications.
+party may transmit messages to the other party - this unleashes truly unbounded possibilities for creating dynamic, real-time, and asynchronous applications.
 
 == WebSocket Lifecycle
 
@@ -13,7 +13,7 @@ always a GET request.
 
 In the handling of this kind of request, there's a point where the request is
 https://javadoc.io/static/jakarta.websocket/jakarta.websocket-api/2.2.0/jakarta/websocket/server/ServerContainer.html#upgradeHttpToWebSocket(java.lang.Object,java.lang.Object,jakarta.websocket.server.ServerEndpointConfig,java.util.Map)[upgraded to a WebSocket connection].
-There is _no_ response to this request. Instead, both the client and the server may begin sending and receiving text
+There is _no_ response to this request. Instead, both the client and the server may begin transmitting and receiving text
 and binary messages until the connection is closed by either party.
 
 == WebSockets in Java
@@ -28,7 +28,7 @@ https://javadoc.io/static/jakarta.websocket/jakarta.websocket-client-api/2.2.0/j
 annotation can be applied.
 
 The https://javadoc.io/static/jakarta.websocket/jakarta.websocket-client-api/2.2.0/jakarta/websocket/Session.html[Session]
-object passed to the `@OnOpen` callback can be retained by the application code, and later used to send text and binary messages
+object passed to the `@OnOpen` callback can be retained by the application code, and later used to transmit text and binary messages
 to the client.
 
 Other annotations cover receiving text or binary messages from the client.
@@ -45,7 +45,9 @@ api:upgrade-request-to-websocket[]
 instead of attaching a response.
 In many cases, the final interceptor is created via api:websocket-upgrade[].
 
-The behavior of the endpoint is defined in terms of a _websocket map_ which provides configuration for the WebSocket,
+== WebSocket Endpoint Map
+
+The behavior of the endpoint is defined in terms of a _websocket endpoint map_ which provides configuration for the WebSocket,
 as well as callbacks for specific events in the WebSocket lifecyle.
 
 .Callbacks
@@ -99,7 +101,7 @@ https://javadoc.io/static/jakarta.websocket/jakarta.websocket-api/2.2.0/jakarta/
 Essentially, the :on-open callback is invoked when the client initiates the connection.
 
 It is intended that, when the client connects, some form of server-side process will be initiated
-capable of sending messages to the client asynchronously.
+capable of transmitting messages to the client asynchronously.
 It is the responsibility of the :on-open callback to create such a process, and to shut it down
 from an :on-close callback.
 
@@ -109,7 +111,7 @@ Whatever value is returned from the :on-open callback is retained, and passed as
 argument to the :on-close, :on-error, :on-text, and :on-binary callbacks.
 This can be a single value, such as a {core_async} channel, or a map, or whatever your application needs it to be.
 
-If no :on-open callback is provided, the value will be nil, and it will not be possible to send messages
+If no :on-open callback is provided, the value will be nil, and it will not be possible to transmit messages
 to the client, only receive via the :on-text and :on-binary callbacks.
 ====
 
@@ -121,40 +123,44 @@ is received.
 The Jakarta WebSocket API supports receiving _partial_ messages, useful when streaming very large objects.
 The :on-text and :on-binary callbacks only support _whole_ objects.
 
-== Sending Messages
+Likewise, the underlying APIs do provide support for streaming transmissions to the client, but
+the built-in approach to transmitting messages does not.
 
-The Session passed to the :on-open callback contains further objects that are used to send
+== Transmitting Messages
+
+The Session passed to the :on-open callback contains further objects that are used to transmit
 messages to the client.
 
-Pedestal provides utility functions to make it easier to  send messages, in the form of
+Pedestal provides utility functions to make it easier to  transmit messages, in the form of
 a {core_async} channel.
 
-The function api:start-ws-connection[] is passed the Session and options, and returns
-a channel.  The connection receives values from the channel, and sends those values to the client.
+The function api:start-ws-connection[] is passed the Session and options, and sets up a transmission loop, driven
+by a channel, which is returns.
+The transmission loop receives values from the channel, and transmits those values to the client.
 
 * A String is sent as a text message
 * A ByteBuffer is sent as a binary message
 * A vector is used to monitor the result, asynchronously.
-  ** The first element is the value to send (String or ByteBuffer)
-  ** The second element is a channel that will convey the result
-  ** The result is either :success, or an Exception (if unable to send the message)
+  ** The first element is the value to transmit (String or ByteBuffer)
+  ** The second element is a channel that will convey the transmission result
+  ** The result is either :success, or an Exception (if unable to transmit the message)
 
 [IMPORTANT]
 ====
-Closing the channel will close the WebSocket session.
+Closing the channel will shut down the transmission loop, and close the WebSocket session.
 ====
 
-As currently implemented, the sending of messages is not fully asynchronous: the processing loop waits for
-each send to complete before it advances to the next value in the channel.
+As currently implemented, the transmission of messages is not fully asynchronous: the processing loop waits for
+each transmission to complete before it advances to the next value in the channel.
 
 The function api:on-open-start-ws-connection[]  wraps around `start-ws-connection`;
-it is passed options, and returns a function that can be included in the websocket map as the :on-open callback.
+it is passed options used to create the transmission loop, and returns a function that can be included in the websocket map as the :on-open callback.
 
 == WebSocketSendAsync
 
-The api:WebSocketSendAsync[] protocol does the actual work of  sending a value (String
+The api:WebSocketSendAsync[] protocol does the actual work of  transmitting a value (String
 or ByteBuffer) asynchronously. This protocol could be extended to, for example,
-convert EDN data to JSON before sending it to the client as a text message.
+convert EDN data to JSON before transmitting it to the client as a text message.
 
 [#upgrade]
 == Upgrading from Pedestal 0.7

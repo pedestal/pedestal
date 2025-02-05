@@ -13,7 +13,7 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
-- WebSockets are now routable, and the route schemes may now also be :ws or :wss
+- WebSockets are now routable
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
