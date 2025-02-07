@@ -130,6 +130,7 @@ ExpandableRoutes protocol.
 formats, plus the results of directly calling a definition function, such as
 `table-routes`.  The routing table is the merged result of all of these.
 
+[#routing-table]
 == Routing Table
 
 The expanded routing table is a wrapper object containing a :routes key;
@@ -193,7 +194,8 @@ provide a path parameter named :ids, and will contain anything on the URL after 
 
 A path parameter must match at least one term, so a URL of just `/accounts` or `/accounts/` would not match the route.
 
-== Builtin Routers
+[#builtin]
+== Built-in Routers
 
 Pedestal includes several routing algorithms; this reflects not only the evolution of the Pedestal library,
 but also allows for different trade-offs in the algorithm used by each Router.  In rare cases, an application
@@ -218,7 +220,7 @@ one of the built-in algorithms:
 | Keyword | Router | Performance
 
 | :map-tree
-| xref:map-tree-router.adoc[Map Tree]  (default)
+| xref:map-tree-router.adoc[Map Tree]
 | Very fast
 
 
@@ -226,9 +228,9 @@ one of the built-in algorithms:
 | xref:prefix-tree-router.adoc[Prefix Tree]
 | High performance, space efficient
 
-| :sawtooth
+| :sawtooth (default router)
 | xref:sawtooth-router.adoc[Sawtooth]
-| High performance, reports conflicts, *default router*
+| High performance, reports conflicts
 
 | :linear-search
 | xref:linear-search-router.adoc[Linear Search]

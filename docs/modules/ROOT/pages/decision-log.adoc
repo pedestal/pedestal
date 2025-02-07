@@ -5,6 +5,20 @@ Document design and architecture decisions.
 A lighter-weight alternative to
 https://github.com/joelparkerhenderson/architecture-decision-record[Architecture Decision Record (ADR)].
 
+== Websocket Routes (Feb 2025)
+
+Support for WebSockets has been evolving over time; originally added as Jetty-specific prior to Pedestal 0.6.0, it was made more general in Pedestal 0.7.0; however it has always operated outside of
+routing, which has proven even more problematic than for resources.
+
+These prior attempts were based around `ServerContainer.addEndpoint()`, which establishes
+an addressable WebSocket endpoint, as-if it had been specified in a WAR's web.xml.
+
+The new approach is based on `ServetContainer.upgradeHttpToWebSocket()`, which still wants to instantiate a fresh
+instance of the endpoint class, but allows Pedestal to do all the request handling and routing work leading up to
+this point.
+
+Some effort was made to adjust for the fact that WebSocket upgrade requests have _no response_.
+
 == Testing Revamp (Jan 2025)
 
 In earlier versions of Pedestal, the `io.pedestal.test` namespace directly contained `reify`-ed mock
@@ -77,25 +91,26 @@ by the framework.
 
 == Sawtooth Router (Sep 2024)
 
-A common query internally at Nubank, when asked "How can we make things better?" was a call for help with
+A common query internally at Nubank, when asked "How can we make Pedestal better?" was a call for help with
 routes, particularily identifying routing conflicts.
 
 The existing router implementation, the
-xref:reference:prefix-tree-router.adoc[]
-had specific rules for dealing with any conflicts, but did a bad job of emitting warnings
+xref:reference:prefix-tree-router.adoc[],
+has specific rules for dealing with any path conflicts, but did a bad job of emitting warnings
 about such conflicts.
 
 xref:reference:sawtooth-router.adoc[Sawtooth]
-was created to address these concerns; it's behavior when conflicts occur is not defined, but
-it was designed to do a good job of identifying routing conflicts.
+was created to address these concerns; it's behavior when conflicts occur is not defined
+(in the sense that when there are path conflicts, we don't specify which path will be selected), but
+Sawtooth was designed to do a good job of identifying routing conflicts.
 
 Although the original goal was to create a router that was as fast, or faster, than
 prefix tree, that turned out to be difficult to achieve footnote:[There was a long series of
 attempted optimizations to address this, which bore very limited fruit.];
 Sawtooth is nearly as fast as Prefix Tree, with a difference in micro-seconds per routing execution.
 
-The final decision was whether to sawtooth the _default_ router; this seemed acceptible
-give its reasonable performance, and improved ergonomics.  The other routers, prefix tree included,
+The final decision was whether to make sawtooth the _default_ router; this seemed acceptible
+given its reasonable performance, and improved ergonomics.  The other routers, prefix tree included,
 continue to exist for backwards compatibility reasons, and to support cases where Sawtooth
 is not the best fit.
 

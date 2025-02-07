@@ -80,6 +80,7 @@ interactive session (called a REPL, rhymes with ripple) then starting
 the service in that session. Before we do that, though, let's discuss
 interactive development.
 
+[#interactive]
 == Interactive Development
 
 It's really not optimal to be restarting your REPL in order to restart
@@ -464,6 +465,7 @@ Looks like it mostly works, though it has some trouble with different
 capitalization. Take a look at the docs for http://clojure.github.io/clojure/clojure.string-api.html[`clojure.string`] and see
 if you can figure out how to make the comparison case-insensitive.
 
+[#whole-shebang]
 == The Whole Shebang
 
 Once again, we built this thing in small steps, so it may seem like

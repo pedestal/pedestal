@@ -54,7 +54,8 @@
   ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
   :servlet-api
   {:extra-deps {jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}
-                jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}}}
+                jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}
+                jakarta.websocket/jakarta.websocket-api {:mvn/version "2.1.1"}}}
   ;; clj -T:build <command>
   :build {:deps {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
           :ns-default build}}}

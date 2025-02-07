@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -15,11 +15,17 @@
   for applications that make use Pedestal's websocket support."
   {:added "0.7.0"}
   (:require [clojure.core.async :as async :refer [go-loop put!]]
+            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
+           (jakarta.servlet.http HttpServletRequest)
            (jakarta.websocket EndpointConfig SendHandler Session MessageHandler$Whole RemoteEndpoint$Async)
-           (jakarta.websocket.server ServerContainer ServerEndpointConfig$Builder)
-           (java.nio ByteBuffer)))
+           (jakarta.websocket.server ServerContainer ServerEndpointConfig ServerEndpointConfig$Builder)
+           (java.nio ByteBuffer)
+           (java.util HashMap)))
 
 (defn- message-handler
   ^MessageHandler$Whole [session-object f]
@@ -45,27 +51,27 @@
                                                            .getUserProperties
                                                            (.get session-object-key))]
                                     (f session-object session event-value))))
-        full-on-open (fn [^Session session ^EndpointConfig config]
-                       (let [session-object (when on-open
-                                              (on-open session config))]
-                         ;; Store this for on-close, on-error
-                         (-> session .getUserProperties (.put session-object-key session-object))
+        full-on-open          (fn [^Session session ^EndpointConfig config]
+                                (let [session-object (when on-open
+                                                       (on-open session config))]
+                                  ;; Store this for on-close, on-error
+                                  (-> session .getUserProperties (.put session-object-key session-object))
 
-                         (when idle-timeout-ms
-                           (.setMaxIdleTimeout session (long idle-timeout-ms)))
+                                  (when idle-timeout-ms
+                                    (.setMaxIdleTimeout session (long idle-timeout-ms)))
 
-                         (when on-text
-                           (.addMessageHandler session String (message-handler session-object on-text)))
+                                  (when on-text
+                                    (.addMessageHandler session String (message-handler session-object on-text)))
 
-                         (when on-binary
-                           (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
+                                  (when on-binary
+                                    (.addMessageHandler session ByteBuffer (message-handler session-object on-binary)))))]
     (fn [event-type ^Session session event-value]
       (case event-type
         :on-open (full-on-open session event-value)
         :on-error (maybe-invoke-callback on-error session event-value)
         :on-close (maybe-invoke-callback on-close session event-value)))))
 
-(defn add-endpoint
+(defn create-server-endpoint-config
   "Adds a WebSocket endpoint to a ServerContainer.
 
   The path provides the mapping to the endpoint, and must start with a slash.
@@ -76,7 +82,7 @@
   is saved as the \"session object\" which is then passed to the remaining callbacks as the first
   function argument.
 
-  :on-open (jakarta.websocket.Session,  jakarta.websocket.EndpointConfig)
+  :on-open (jakarta.websocket.Session, jakarta.websocket.EndpointConfig)
   : Invoked when client first opens a connection.  The returned value is retained
     and passed as the first argument of the remaining callbacks.
 
@@ -103,30 +109,102 @@
 
   All callbacks are optional.  The :on-open callback is critical, as it performs all the one-time setup
   for the WebSocket connection. The [[on-open-start-ws-connection]] function is a good starting place."
-  [^ServerContainer container ^String path ws-endpoint-map]
+  {:since "0.8.0"}
+  ^ServerEndpointConfig [^String path ws-endpoint-map]
   (let [callback (make-endpoint-delegate-callback ws-endpoint-map)
         {:keys [subprotocols configure]} ws-endpoint-map
-        builder (ServerEndpointConfig$Builder/create FnEndpoint path)
-        _ (do
-            (when subprotocols
-              (.subprotocols builder subprotocols))
-            (when configure
-              (configure builder)))
-        config (.build builder)]
+        builder  (ServerEndpointConfig$Builder/create FnEndpoint path)
+        _        (do
+                   (when subprotocols
+                     (.subprotocols builder subprotocols))
+                   (when configure
+                     (configure builder)))
+        config   (.build builder)]
     (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
-    (.addEndpoint container config)))
+    config))
 
+(defn- servlet-path-parameters
+  [path-params]
+  (let [result (HashMap.)]
+    (doseq [[k v] path-params]
+      (.put result (name k) v))
+    result))
+
+(defn upgrade-request-to-websocket
+  "Upgrades the current request to be a WebSocket connection.
+
+  The core of this invokes [[create-server-endpoint-config]].
+
+  Terminates the interceptor chain, without adding a response.
+
+  Returns the updated context."
+  {:added "0.8.0"}
+  [context ws-endpoint-map]
+  (let [{:keys [^HttpServletRequest servlet-request servlet-response request route]} context
+        _               (do
+                          (assert servlet-request)
+                          (assert servlet-response)
+                          (assert route))
+        servlet-context (.getServletContext servlet-request)
+        container       ^ServerContainer (.getAttribute servlet-context "jakarta.websocket.server.ServerContainer")
+        _               (assert container)
+        ;; TODO: May need to do some transformation of the :path
+        config          (create-server-endpoint-config (:path route)
+                                                       ws-endpoint-map)]
+    ;; The path-params are included because they are in the Servlet API, and that's normally the only way
+    ;; the FnEndpoint class would have access to them, but in a Pedestal app, if they are needed
+    ;; they will be in the request map prior to calling upgrade-request-to-websocket.
+    (.upgradeHttpToWebSocket container
+                             servlet-request
+                             servlet-response
+                             config
+                             (-> request :path-params servlet-path-parameters)))
+  (-> context
+      servlet-interceptor/disable-response
+      chain/terminate))
+
+
+(defn websocket-upgrade
+  "Returns a terminal interceptor for a route that will open a WebSocket connection.
+
+  The ws-endoint-map is passed to [[create-server-endpoint-config]].
+
+  This terminates the interceptor chain without adding a :response key."
+  {:added "0.8.0"}
+  [ws-endpoint-map]
+  (interceptor/interceptor
+    {:name  ::websocket-upgrade
+     :enter (fn [context]
+              (upgrade-request-to-websocket context ws-endpoint-map))}))
+
+(defn add-endpoint
+  "Adds a WebSocket endpoint to a ServerContainer.
+
+  The endpoint is constructed around a ServerEndpointConfig creates by
+  [[create-server-endpoint-config]].
+
+  Returns nil."
+  {:deprecated "0.8.0"}
+  [^ServerContainer container ^String path ws-endpoint-map]
+  (deprecated `add-endpoint
+              (let [config (create-server-endpoint-config path ws-endpoint-map)]
+                (.addEndpoint container config)
+                nil)))
 
 (defn add-endpoints
   "Adds all websocket endpoints in the path-map."
+  {:deprecated "0.8.0"}
   [^ServerContainer container websockets-map]
-  (doseq [[path endpoint] websockets-map]
-    (add-endpoint container path endpoint)))
+  (deprecated `add-endpoints
+    (doseq [[path endpoint] websockets-map]
+      (add-endpoint container path endpoint))))
 
 (defprotocol WebSocketSendAsync
-  (ws-send-async [msg remote-endpoint]
+  (ws-send-async [msg ^RemoteEndpoint$Async remote-endpoint]
     "Sends `msg` to `remote-endpoint`. Returns a
-     promise channel from which the result can be taken."))
+     promise channel from which the result can be taken.
+
+     The result is either :success or an Exception."))
 
 (defn- send-handler
   ^SendHandler [chan]
@@ -154,6 +232,8 @@
 
   Returns a channel used to send messages to the client.
 
+  Closing the channel will close the WebSocket session.
+
   The values written to the channel are either
   a payload (a String, ByteBuffer, or some object
   that satisfies the WebSocketSendAsync protocol) or is a tuple of a payload and a response channel.
@@ -168,14 +248,14 @@
   "
   [^Session ws-session opts]
   (let [{:keys [send-buffer-or-n]
-         :or {send-buffer-or-n 10}} opts
-        send-ch (async/chan send-buffer-or-n)
+         :or   {send-buffer-or-n 10}} opts
+        send-ch      (async/chan send-buffer-or-n)
         async-remote (.getAsyncRemote ws-session)]
     (go-loop []
       (if-let [payload (and (.isOpen ws-session)
                             (async/<! send-ch))]
         ;; The payload is a message and an optional response channel; a message is either
-        ;; a String or a ByteBuffer (or something that implement WebSocketSendAsync).
+        ;; a String or a ByteBuffer (or something that implements WebSocketSendAsync).
         (let [[out-msg resp-ch] (if (sequential? payload)
                                   payload
                                   [payload nil])
@@ -200,7 +280,10 @@
     send-ch))
 
 (defn on-open-start-ws-connection
-  "Returns an :on-open callback for [[add-endpoint]], using [[start-ws-connection]] to do the actual work."
+  "Returns an :on-open callback using [[start-ws-connection]] to do the actual work.
+
+  The callback returns the channel used to send messages to the client, which will become
+  the first argument passed to the :on-close, :on-error, :on-text, or :on-binary callbacks."
   [opts]
   (fn [^Session ws-session ^EndpointConfig _config]
     (start-ws-connection ws-session opts)))

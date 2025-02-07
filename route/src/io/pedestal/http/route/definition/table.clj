@@ -154,7 +154,8 @@
    (table-routes (or (first (filter map? routes)) {})
                  (filterv vector? routes)))
   ([opts routes]
-   {:pre [(map? opts)
+   {:pre [(or (nil? opts)
+              (map? opts))
           (or (set? routes)
               (sequential? routes))]}
    (types/->RoutingFragmentImpl

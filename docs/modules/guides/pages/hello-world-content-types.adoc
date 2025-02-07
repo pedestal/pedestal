@@ -62,7 +62,7 @@ preferred content type and make a decision about what to return.
 If you worked through xref:hello-world-query-parameters.adoc[]
 then you already have all the files you need. If
 not, take a moment to grab the sources from the
-xref:hello-world-query-parameters.adoc#_the_whole_shebang[whole shebang] in
+xref:hello-world-query-parameters.adoc#whole-shebang[whole shebang] in
 that guide.  Feel free to browse the complete sources in
 link:{guides_examples_root}/hello-content[the
 repository], but be warned that the file contains all the versions
@@ -120,6 +120,7 @@ We're going to define `echo` differently than our handler function
 `hello`. Instead of a simple handler function, we're going to define
 an interceptor.
 
+[#interceptors]
 == Interceptors
 
 Interceptors are the basic unit of work in Pedestal.
@@ -181,6 +182,7 @@ functions, turn it into a response at the tail end of the interceptor
 queue, and then refine the response map with defaults, headers, cookies,
 and so on in :leave functions.
 
+[#echo-interceptor]
 == An Echo Interceptor
 
 We're ready to define `echo` as an interceptor:

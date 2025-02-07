@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2023 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -16,6 +16,9 @@
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
     [io.pedestal.http.jetty :as jetty]
+    [io.pedestal.http.route :as route]
+    [io.pedestal.http.route.definition.table :as table]
+    [io.pedestal.interceptor :as interceptor]
     [io.pedestal.test-common :as tc]
     [clojure.core.async :refer [chan put! close!] :as async]
     [net.lewisship.trace :refer [trace]]
@@ -94,12 +97,27 @@
 
 (def default-websockets-map {"/ws" default-endpoint-map})
 
+(def echo-prefix-interceptor
+  (interceptor/interceptor
+    {:name  ::echo-prefix-ws
+     :enter (fn [context]
+              (let [prefix (get-in context [:request :path-params :prefix])]
+                (websocket/upgrade-request-to-websocket
+                  context
+                  (assoc default-endpoint-map
+                         :on-text (fn [_ text]
+                                    (put! events-chan [:text (str prefix " " text)]))))))}))
+
 (defn ws-server
   [websockets]
   (http/create-server {::http/type       jetty/server
                        ::http/join?      false
                        ::http/port       8080
-                       ::http/routes     []
+                       ::http/routes     (route/routes-from
+                                           (table/table-routes {}
+                                                               [["/ws/echo/:prefix"
+                                                                 :get
+                                                                 echo-prefix-interceptor]]))
                        ::http/websockets websockets}))
 
 (defmacro with-server
@@ -149,6 +167,23 @@
 
                  (is (= [:close 4000 "A valid reason"]
                         (<event!!))))))
+
+
+(deftest text-via-routed-websocket-connection
+  (with-server default-websockets-map
+               (let [session @(ws/websocket (str ws-uri "/echo/back") {})]
+                 (expect-event :open)
+
+                 (ws/send! session "hello")
+
+                 (is (= [:text "back hello"]
+                        (<event!!)))
+
+                 (ws/send! session "goodbye")
+
+                 (is (= [:text "back goodbye"]
+                        (<event!!))))))
+
 
 (deftest client-sends-binary
   (with-server default-websockets-map

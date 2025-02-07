@@ -227,7 +227,7 @@
         :args (s/or
                 :informal (s/*
                             (s/or
-                              :options ::table-options
+                              :options (s/nilable ::table-options)
                               :route ::table-route))
                 :proper (s/cat
                           :options (s/? ::table-options)

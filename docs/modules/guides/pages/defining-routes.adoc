@@ -302,6 +302,7 @@ literal in the route vector:
 ["/user/:user-id" :post update-user :constraints user-id]
 ----
 
+[#considering-constraints]
 === Considering Constraints
 
 The thing about constraints is that they are not used to distinguish

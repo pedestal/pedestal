@@ -457,7 +457,7 @@ you get tired of poking it, just hit Control-C in the terminal that is
 running the server to kill it.
 
 Later on, we'll see how to make Jetty
-xref:hello-world-query-parameters.adoc#_interactive_development[run on its own thread] so
+xref:hello-world-query-parameters.adoc#interactive[run on its own thread] so
 you can get your REPL prompt back.
 
 == The Whole Shebang
