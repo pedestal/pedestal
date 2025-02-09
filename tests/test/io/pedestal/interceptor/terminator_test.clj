@@ -21,7 +21,7 @@
   (:import (clojure.lang ExceptionInfo)))
 
 (defn- execute [& interceptors]
-  (let [context (#'si/terminator-inject {})]
+  (let [context (#'si/terminate-when-response {})]
     (:response
       (chain/execute context (mapv interceptor interceptors)))))
 

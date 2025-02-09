@@ -38,6 +38,7 @@
    "service"
    ;; And then the others:
    "jetty"
+   "http-kit"
    "embedded"])
 
 ;; Working around this problem (bug)?

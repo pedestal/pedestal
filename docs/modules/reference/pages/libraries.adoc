@@ -44,6 +44,10 @@ Pedestal is composed of multiple libraries, and many of these can be used outsid
 | xref:jetty.adoc[Jetty 12] container
 | pedestal.log, pedestal.service, Jetty 12 (jetty-service, jetty-ee10-servlet, etc.)
 
+| pedestal.http-kit
+|
+| pedestal.log, pedestal.service, https://github.com/http-kit/http-kit[http-kit]
+
 |===
 
 == Artifact Coordinates

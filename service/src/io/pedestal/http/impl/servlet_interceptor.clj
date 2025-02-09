@@ -253,7 +253,7 @@
       (send-response context)
       context)))
 
-(defn- terminate-when-response
+(defn- terminate-when-response*
   [{:keys [response]}]
   (cond
     (nil? response) false
@@ -273,9 +273,12 @@
     :else
     true))
 
-(defn- terminator-inject
+(defn terminate-when-response
+  "Adds a terminator that terminates the interceptor chain when a valid :response map
+  is added to the context."
+  {:added "0.8.0"}
   [context]
-  (interceptor.chain/terminate-when context terminate-when-response))
+  (interceptor.chain/terminate-when context terminate-when-response*))
 
 (defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
@@ -447,5 +450,5 @@
             ring-response]
            interceptors)
      (-> default-context
-         terminator-inject
+         terminate-when-response
          (interceptor.chain/on-enter-async start-servlet-async)))))
