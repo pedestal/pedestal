@@ -588,7 +588,7 @@ We covered some more advanced concepts with interceptors this time:
 
 == Where To Next?
 
-Congratulations! You've finished the whole getting stated trail.
+Congratulations! You've finished the whole getting started trail.
 
 To go deep on some of these topics, check out any of the
 following references:
