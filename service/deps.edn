@@ -31,17 +31,6 @@
                                      :exclusions [commons-code/commons-codec]}
         crypto-equality/crypto-equality {:mvn/version "1.0.1"}}
 
- ;; Requires `clj -X:deps prep`  when downloaded as a git checkout (if via Maven repo, the class will
- ;; already be compiled into the artifact).
- ;; Note: compile-java adds the :servlet-api alias to the classpath during compilation.
- :deps/prep-lib
- {:ensure "target/classes"
-  :alias :build
-  :fn compile-java}
-
- :io.pedestal/build
- {:compile-command ["clojure" "-T:build" "compile-java"]}
-
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
@@ -55,7 +44,4 @@
   :servlet-api
   {:extra-deps {jakarta.servlet/jakarta.servlet-api {:mvn/version "6.0.0"}
                 jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}
-                jakarta.websocket/jakarta.websocket-api {:mvn/version "2.1.1"}}}
-  ;; clj -T:build <command>
-  :build {:deps {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
-          :ns-default build}}}
+                jakarta.websocket/jakarta.websocket-api {:mvn/version "2.1.1"}}}}}
