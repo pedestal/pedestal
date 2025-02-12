@@ -9,7 +9,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service.protocols)
+(ns io.pedestal.service.protocols
+  {:added "0.8.0"})
 
 (defprotocol ResponseBufferSize
 

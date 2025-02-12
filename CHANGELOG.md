@@ -5,6 +5,8 @@
 ## 0.8.0 - UNRELEASED
 
 The main focus of this release is to improve routing and upgrade to Jetty 12.
+The secondary focus is to further tease apart the aspects of Pedestal that are specific
+to the Jakarta Servlet API from those that are more general.
 
 **BREAKING CHANGES:**
 
@@ -55,10 +57,13 @@ Other changes:
   interceptors provided by the route
 - It is now possible to specify the maximum number of concurrent threads with the 
   Jetty HTTP2 and HTTP2C connection factories
+- Much of `io.pedestal.http` has been deprecated, with the active code moving to new namespaces
 - New functions:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
 - New namespaces: 
   - `io.pedestal.service.resources` - expose resources using _routes_ not _interceptors_
+  - `io.pedestal.service.dev` - development/debugging tools
+  - `io.pedestal.service.interceptors` - common interceptors
 
 ## 0.7.2 - 1 Nov 2024
 

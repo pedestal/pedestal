@@ -14,15 +14,15 @@
 (ns io.pedestal.http.impl.servlet-interceptor
   "Interceptors for adapting the Java HTTP Servlet interfaces."
   (:require [clojure.java.io :as io]
-            [clj-commons.format.exceptions :as exceptions]
-            [clojure.pprint :as pprint]
             [clojure.core.async :as async]
+            [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
+            [io.pedestal.service.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
-            [ring.util.response :as ring-response]
+            [io.pedestal.service.dev.impl :as dev.impl]
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
             io.pedestal.http.route)
@@ -167,19 +167,6 @@
     (update resp-map :headers merge {"Content-Type" (or content-type
                                                         (default-content-type body))})))
 
-(defn disable-response
-  "Updates the context to identify that no response is expected; this typically is because
-   the request was upgraded to a WebSocket connection."
-  {:added "0.8.0"}
-  [context]
-  (assoc context ::response-disabled true))
-
-(defn response-expected?
-  "Returns true unless [[disable-response]] was previously invoked."
-  {:added "0.8.0"}
-  [context]
-  (-> context ::response-disabled not))
-
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]
    (let [{:keys [status headers]} (set-default-content-type resp-map)]
@@ -235,7 +222,7 @@
 
   (cond
     ;; i.e., was WebSocket upgrade request?
-    (not (response-expected? context))
+    (not (response/response-expected? context))
     context
 
     (nil? response)
@@ -361,37 +348,16 @@
      :leave leave-ring-response
      :error error-ring-response}))
 
-(defn- format-exception
-  [exception]
-  (binding [exceptions/*fonts* nil]
-    (exceptions/format-exception exception)))
-
-(defn- error-debug
-  "When an error propagates to this interceptor error fn, trap it,
-  print it to the output stream of the HTTP request, and do not
-  rethrow it."
-  [context exception]
-  (log/error :msg "Dev interceptor caught an exception; Forwarding it as the response."
-             :exception exception)
-  (assoc context
-         :response (-> (ring-response/response
-                         (with-out-str (println "Error processing request!")
-                                       (println "Exception:\n")
-                                       (println (format-exception exception))
-                                       (println "\nContext:\n")
-                                       (pprint/pprint context)))
-                       (ring-response/status 500))))
-
-(def exception-debug
+(def ^{:deprecated "0.8.0"} exception-debug
   "An interceptor which catches errors, renders them to readable text
   and sends them to the user. This interceptor is intended for
   development time assistance in debugging problems in pedestal
   services. Including it in interceptor paths on production systems
   may present a security risk by exposing call stacks of the
-  application when exceptions are encountered."
-  (interceptor
-    {:name  ::exception-debug
-     :error error-debug}))
+  application when exceptions are encountered.
+
+  DEPRECATED: Use io.pedestal.service.dev/uncaught-exception instead."
+  (assoc dev/uncaught-exception :name ::exception-debug))
 
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the
@@ -423,7 +389,7 @@
             (error-metric-fn)
             (log/error :msg "Servlet code threw an exception"
                        :throwable t
-                       :cause-trace (format-exception t)))
+                       :cause-trace (dev.impl/format-exception t)))
           (finally
             (swap! *active-calls dec)))))))
 
