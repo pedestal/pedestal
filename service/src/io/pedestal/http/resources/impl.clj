@@ -13,9 +13,9 @@
   "Implementation details for io.pedestal.http.resource; subject to change at any time."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
+            [io.pedestal.service.protocols :as sp]
             [ring.util.io :as util.io])
-  (:import (jakarta.servlet.http HttpServletResponse)
-           (java.io BufferedInputStream File InputStream)
+  (:import (java.io BufferedInputStream File InputStream)
            (java.net URL)
            (java.nio.channels Channels FileChannel)
            (java.nio.file OpenOption StandardOpenOption)
@@ -31,13 +31,14 @@
   [request stream-size]
   (let [{:keys [servlet-response]} request
         buffer-size-bytes (if servlet-response
-                            (.getBufferSize ^HttpServletResponse servlet-response)
+                            (sp/response-buffer-size servlet-response)
                             ;; The comment: Assume 1500 MTU (https://en.wikipedia.org/wiki/Maximum_transmission_unit)
                             ;; (originally copied from io.pedestal.http.ring-middlewares/fast-resource)
                             ;; Q: Then why is the default 1460?
                             ;; A (Marco): Likely to account for 20 bytes of TCP header, 20 bytes of IP header
                             1460)]
-    (<= buffer-size-bytes stream-size)))
+    (and buffer-size-bytes
+         (<= buffer-size-bytes stream-size))))
 
 (defn- buffered
   ^InputStream [^InputStream is]

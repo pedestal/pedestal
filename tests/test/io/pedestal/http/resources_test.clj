@@ -31,7 +31,6 @@
    (-> (service-map xf)
        test/create-responder)))
 
-
 (deftest get-resource-that-exists
   (let [responder (create-responder)]
     (is (match? {:status  200
