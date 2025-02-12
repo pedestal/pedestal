@@ -39,7 +39,6 @@
             [io.pedestal.http.response :as response]
             [ring.util.response :as ring-response]
             [clojure.string :as string]
-            [cheshire.core :as json]
             [io.pedestal.log :as log])
   (:import (jakarta.servlet Servlet)
            (jakarta.servlet.http HttpServletResponse)))
@@ -62,12 +61,6 @@
   "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
   [obj]
   (response/data-response #(pr obj) "application/edn;charset=UTF-8"))
-
-(defn ^{:deprecated "0.7.0"} json-print
-  "Print object as JSON to *out*"
-  [obj]
-  (internal/deprecated `json-print
-    (json/generate-stream obj *out*)))
 
 (defn json-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format."

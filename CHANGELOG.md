@@ -13,7 +13,6 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
-- WebSockets are now routable
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
@@ -28,6 +27,8 @@ The main focus of this release is to improve routing and upgrade to Jetty 12.
   - `io.pedestal.http.request.lazy`
   - `io.pedestal.http.request.zerocopy`
 - Deleted vars (previously deprecated):
+  - `io.pedestal.http`
+    - `json-print`
   - `io.pedestal.http.body-params`
       - `add-ring-middleware`
       - `edn-parser`
@@ -47,6 +48,9 @@ Newly deprecated namespaces:
 
 Other changes:
 
+- WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
+- The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
+  now in the `pedestal.servlet` module.
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
 - It is now possible to specify the maximum number of concurrent threads with the 
@@ -54,7 +58,7 @@ Other changes:
 - New functions:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
 - New namespaces: 
-  - `io.pedestal.http.resources` - expose resources using _routes_ not _interceptors_
+  - `io.pedestal.service.resources` - expose resources using _routes_ not _interceptors_
 
 ## 0.7.2 - 1 Nov 2024
 
