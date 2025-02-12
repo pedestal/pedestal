@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns ^:no-doc io.pedestal.http.resources.impl
+(ns ^:no-doc io.pedestal.service.resources.impl
   "Implementation details for io.pedestal.http.resource; subject to change at any time."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]

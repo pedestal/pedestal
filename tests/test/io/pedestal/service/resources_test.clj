@@ -9,12 +9,12 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.resources-test
+(ns io.pedestal.service.resources-test
   (:require [clojure.java.io :as io]
             [clojure.test :refer [deftest is testing]]
             [io.pedestal.http :as http]
             [io.pedestal.test :as test]
-            [io.pedestal.http.resources :as resources]
+            [io.pedestal.service.resources :as resources]
             [io.pedestal.http.route :as route]))
 
 (defn service-map
