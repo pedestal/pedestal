@@ -250,7 +250,7 @@
 ;; for this itself.
 
 (defn create-connector
-  "Creates a connector from the service map and the connector-specfici options.
+  "Creates a connector from the service map and the connector-specific options.
 
   Returns a connector in an unstarted state."
   ^PedestalConnector [service-map options]
@@ -258,7 +258,9 @@
         ;; The options may include an :exception-analyzer function.
         service-fn (si/http-interceptor-service-fn interceptors initial-context options)
         servlet    (servlet/servlet :service service-fn)
-        ;; Another bit of relic that maybe can be fixed
+        ;; Mixing service-map and options; another bit of relic that maybe can be fixed
+        ;; with changes to io.pedestal.http (that are probably ok to do as its implementation
+        ;; details).
         server     (create-server servlet (merge service-map options))]
     (reify
       p/PedestalConnector

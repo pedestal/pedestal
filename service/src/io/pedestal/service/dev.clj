@@ -11,15 +11,15 @@
 (ns io.pedestal.service.dev
   "Optional interceptors and support code used when developing and debugging."
   {:added "0.8.0"}
-  (:require [io.pedestal.interceptor.chain :as chain]
+  (:require [io.pedestal.http.response :as response]
+            [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]
             [clojure.pprint :refer [pprint]]
             [io.pedestal.service.dev.impl :as dev.impl]
             [io.pedestal.log :as log]
-            [ring.util.response :as ring-response]
             [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.service :as service]
             [io.pedestal.http.cors :as cors]))
-
 
 (defn- attach-formatted-exception-response
   "When an error propagates to this interceptor error fn, trap it,
@@ -28,14 +28,14 @@
   [context exception]
   (log/error :msg "Dev interceptor caught an exception; Forwarding it as the response."
              :exception exception)
-  (assoc context
-         :response (-> (ring-response/response
+  (response/respond-with context
+                         500
+                         {"Content-Type" "text/plain"}
                          (with-out-str (println "Error processing request!")
                                        (println "Exception:\n")
                                        (println (dev.impl/format-exception exception))
                                        (println "\nContext:\n")
-                                       (pprint context)))
-                       (ring-response/status 500))))
+                                       (pprint context))))
 
 (def uncaught-exception
   "A development-mode interceptor that captures exceptions, formats them using org.clj-commons/pretty, and generates a
@@ -44,12 +44,12 @@
     {:name  ::exception-debug
      :error attach-formatted-exception-response}))
 
-(defn inject-dev-interceptors
-  "Prefix the :interceptors in the service map with [[dev-allow-origin]]
-   and [[exception-debug]] interceptors to facilitate local development."
+(defn with-dev-interceptors
+  "Adds the [[dev-allow-origin]] and [[exception-debug]] interceptors; these should be used only during
+  local development, and should come before other interceptors."
   [service-map]
-  (update service-map :interceptors
-          #(into [cors/dev-allow-origin uncaught-exception] %)))
+  (service/with-interceptors service-map
+                             [cors/dev-allow-origin uncaught-exception]))
 
 (defn default-debug-observer-omit
   "Default for key paths to ignore when using [[debug-observer]].  This is primarily the
@@ -66,8 +66,8 @@
                    [:route]}
                  key-path)))
 
-(defn enable-debug-interceptor-observer
-  "Enables [[debug-observer]] for all request executions.  By default, uses
+(defn with-interceptor-observer
+  "Adds [[debug-observer]] as a context observer for all request executions.  By default, uses
   [[default-debug-observer-omit]] to omit internal or overly verbose context map
   keys.
 
@@ -77,7 +77,7 @@
 
   This modifies the :initial-context key of the service map."
   ([service-map]
-   (enable-debug-interceptor-observer service-map {:omit default-debug-observer-omit}))
+   (with-interceptor-observer service-map {:omit default-debug-observer-omit}))
   ([service-map debug-observer-options]
    (update service-map :initial-context
            chain/add-observer (chain.debug/debug-observer debug-observer-options))))

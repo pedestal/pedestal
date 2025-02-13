@@ -165,6 +165,6 @@
 
 (defn stop
   "A convienience for stopping the connector."
-  [^p/PedestalConnector connector]
+  [connector]
   (p/stop-connector connector))
 
