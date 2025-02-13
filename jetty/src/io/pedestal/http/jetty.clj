@@ -15,9 +15,13 @@
   "Jetty adaptor for Pedestal."
   (:require io.pedestal.http.jetty.container
             [clojure.string :as string]
+            [io.pedestal.http.servlet :as servlet]
             [io.pedestal.internal :refer [deprecated]]
+            [io.pedestal.http.impl.servlet-interceptor :as si]
+            [io.pedestal.service.protocols :as p]
             [io.pedestal.websocket :as ws])
-  (:import (jakarta.websocket.server ServerContainer)
+  (:import (io.pedestal.service.protocols PedestalConnector)
+           (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.api.server ServerSessionListener)
@@ -136,7 +140,7 @@
 ;; Consider allowing users to set the number of acceptors (ideal at 1 per core) and/or selectors
 (defn- create-server
   "Construct a Jetty Server instance."
-  [servlet options]
+  ^Server [servlet options]
   (let [{:keys [host port websockets container-options]} options
         {:keys [ssl? ssl-port max-streams
                 h2? h2c? connection-factory-fns
@@ -197,11 +201,11 @@
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when websockets
       (deprecated "non-routed websockets (via the :io.pedestal.http/websockets service map key)"
-                  (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
-                                                                         (reify JakartaWebSocketServletContainerInitializer$Configurator
-                                                                           (^void accept [_this ^ServletContext _context
-                                                                                          ^ServerContainer container]
-                                                                             (ws/add-endpoints container websockets))))))
+        (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
+                                                               (reify JakartaWebSocketServletContainerInitializer$Configurator
+                                                                 (^void accept [_this ^ServletContext _context
+                                                                                ^ServerContainer container]
+                                                                   (ws/add-endpoints container websockets))))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.
@@ -239,3 +243,33 @@
     {::server  server
      :start-fn #(start server options)
      :stop-fn  #(stop server)}))
+
+
+;; io.pedestal.http does a bit of inversion of control to create the service fn and servlet
+;; before invoking server; in the new model (io.pedestal.service) the service is responsible
+;; for this itself.
+
+(defn create-connector
+  "Creates a connector from the service map and the connector-specfici options.
+
+  Returns a connector in an unstarted state."
+  ^PedestalConnector [service-map options]
+  (let [{:keys [interceptors initial-context join?]} service-map
+        ;; The options may include an :exception-analyzer function.
+        service-fn (si/http-interceptor-service-fn interceptors initial-context options)
+        servlet    (servlet/servlet :service service-fn)
+        ;; Another bit of relic that maybe can be fixed
+        server     (create-server servlet (merge service-map options))]
+    (reify
+      p/PedestalConnector
+
+      (start-connector [this]
+        (.start server)
+        (when join?
+          (.join server))
+        this)
+
+      (stop-connector [this]
+        (.stop server)
+        this))))
+

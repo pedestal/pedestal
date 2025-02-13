@@ -27,3 +27,24 @@
   nil
 
   (response-buffer-size [_] nil))
+
+
+(defprotocol PedestalConnector
+  "A connector to an HTTP stack, created from a service map.
+
+  The connector, once started, will handle incoming requests and outgoing responses, building
+  on the interceptors and initial context provided in the service map."
+
+  (start-connector [this]
+    "Starts (or restarts) the connector.  If the :join? key of the service map is true, this method will block
+    until the connector is stopped.
+
+    Invoking start-connector when the connector is already started results in connector-defined behavior.
+
+    Returns the connector.")
+
+  (stop-connector [this]
+    "Stops the connector, if started. Does nothing if not started.  This will unblock a thread
+    that is blocked in start-connector.
+
+    Returns the connector."))

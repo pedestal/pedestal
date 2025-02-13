@@ -18,8 +18,10 @@
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
+            [io.pedestal.service.protocols :as p]
             io.pedestal.http.body-params
             io.pedestal.http.csrf
+            io.pedestal.http.secure-headers
             [io.pedestal.service.interceptors :as interceptors]))
 
 (defn default-service-map
@@ -114,7 +116,7 @@
   :allowed-origins  | Passed to [[allow-origin]]
   :session-options  | If non-nil, passed to [[session]]
   :extra-mime-types | Passed to [[content-type]]"
-  [service-map & [options]]
+  [service-map & {:as options}]
   (let [{:keys [allowed-origins
                 session-options
                 extra-mime-types]} options]
@@ -153,3 +155,16 @@
   with other routes."
   [service-map root-path]
   (with-interceptor service-map (ring-middlewares/resource root-path)))
+
+(defn create-and-start
+  "Creates the connector and starts it.  This may block the current thread until the connector is stopped.
+
+  Returns the connector."
+  [service-map create-connector-fn & {:as connector-options}]
+  (p/start-connector (create-connector-fn service-map connector-options)))
+
+(defn stop
+  "A convienience for stopping the connector."
+  [^p/PedestalConnector connector]
+  (p/stop-connector connector))
+

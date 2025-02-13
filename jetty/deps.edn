@@ -14,6 +14,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
         io.pedestal/pedestal.service {:mvn/version "0.8.0-SNAPSHOT"}
+        io.pedestal/pedestal.servlet {:mvn/version "0.8.0-SNAPSHOT"}
         org.eclipse.jetty/jetty-server {:mvn/version "12.0.16"}
         org.eclipse.jetty.http2/jetty-http2-server {:mvn/version "12.0.16"}
         org.eclipse.jetty.ee10/jetty-ee10-servlet {:mvn/version "12.0.16"}
@@ -25,6 +26,7 @@
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.servlet {:local/root "../servlet"}
                    io.pedestal/pedestal.service {:local/root "../service"}
                    ;; Recapitulate transitive dependencies of pedestal.service since the
                    ;; :local alias isn't carried through when resolving the local dependencies.

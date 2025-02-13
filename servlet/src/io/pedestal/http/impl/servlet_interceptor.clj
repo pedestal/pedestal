@@ -408,13 +408,13 @@
 
   This is normally called automatically from io.pedestal.http/service-fn."
   ([interceptors] (http-interceptor-service-fn interceptors {}))
-  ([interceptors default-context]
-   (http-interceptor-service-fn interceptors default-context nil))
-  ([interceptors default-context options]
+  ([interceptors initial-context]
+   (http-interceptor-service-fn interceptors initial-context nil))
+  ([interceptors initial-context options]
    (interceptor-service-fn
      (into [(create-stylobate options)
             ring-response]
            interceptors)
-     (-> default-context
+     (-> initial-context
          terminate-when-response
          (interceptor.chain/on-enter-async start-servlet-async)))))
