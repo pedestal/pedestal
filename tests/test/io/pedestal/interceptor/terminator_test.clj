@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -12,16 +12,16 @@
 (ns io.pedestal.interceptor.terminator-test
   "Tests for chain termination logic."
   (:require [clojure.test :refer [deftest is]]
+            [io.pedestal.http.response :as response]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]
             [clojure.core.async :refer [go >! chan]]
             [io.pedestal.test-common :refer [<!!?]]
-            [io.pedestal.http :refer [respond-with]]
-            [io.pedestal.http.impl.servlet-interceptor :as si])
+            [io.pedestal.http.response :refer [respond-with]])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn- execute [& interceptors]
-  (let [context (#'si/terminate-when-response {})]
+  (let [context (response/terminate-when-response {})]
     (:response
       (chain/execute context (mapv interceptor interceptors)))))
 

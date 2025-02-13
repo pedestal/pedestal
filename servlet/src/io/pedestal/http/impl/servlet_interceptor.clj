@@ -79,6 +79,10 @@
       (io/copy input-stream output-stream)
       (finally (.close input-stream))))
 
+
+  ;; These next two have no implementation of write-body-to-stream because
+  ;; they extend the WriteableBodyAsync protocol.
+
   ReadableByteChannel
 
   (default-content-type [_] "application/octet-stream")
@@ -91,15 +95,15 @@
   (default-content-type [_] nil)
   (write-body-to-stream [_ _]))
 
-;; This is sequestered out as it confuses both clj-kondo and the Cursive linter.
-#_{:clj-kondo/ignore [:syntax]}
-(extend-protocol WriteableBody
+(extend (Class/forName "[B")
 
-  (class (byte-array 0))
+  WriteableBody
 
-  (default-content-type [_] "application/octet-stream")
-  (write-body-to-stream [byte-array output-stream]
-    (io/copy byte-array output-stream)))
+  {:default-content-type (fn [_] "application/octet-stream")
+   :write-body-to-stream
+   (fn [^bytes byte-array output-stream]
+     (io/copy byte-array output-stream))})
+
 
 (defn- write-body [^HttpServletResponse servlet-resp body]
   (let [output-stream (.getOutputStream servlet-resp)]
@@ -240,33 +244,6 @@
       (send-response context)
       context)))
 
-(defn- terminate-when-response*
-  [{:keys [response]}]
-  (cond
-    (nil? response) false
-
-    (not (map? response))
-    (throw (ex-info "Interceptor attached a :response that is not a map"
-                    {:response response}))
-
-    (let [status (:status response)]
-      (not (and (int? status)
-                (pos? status))))
-    (throw (ex-info "Response map must have positive integer value for :status"
-                    {:response response}))
-
-    ;; Explicitly do *not* check for :headers or :body
-
-    :else
-    true))
-
-(defn terminate-when-response
-  "Adds a terminator that terminates the interceptor chain when a valid :response map
-  is added to the context."
-  {:added "0.8.0"}
-  [context]
-  (interceptor.chain/terminate-when context terminate-when-response*))
-
 (defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
   [exception]
@@ -360,16 +337,16 @@
   (assoc dev/uncaught-exception :name ::exception-debug))
 
 (defn- interceptor-service-fn
+  [interceptors initial-context]
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
   and :servlet-response."
-  [interceptors default-context]
   (let [error-metric-fn (metrics/counter ::base-servlet-error nil)
         *active-calls   (atom 0)]
     (metrics/gauge :io.pedestal/active-servlet-calls nil #(deref *active-calls))
     (fn [^Servlet servlet servlet-request servlet-response]
-      (let [context (-> default-context
+      (let [context (-> initial-context
                         (assoc :servlet-request servlet-request
                                :servlet-response servlet-response
                                :servlet-config (.getServletConfig servlet)
@@ -416,5 +393,5 @@
             ring-response]
            interceptors)
      (-> initial-context
-         terminate-when-response
+         response/terminate-when-response
          (interceptor.chain/on-enter-async start-servlet-async)))))

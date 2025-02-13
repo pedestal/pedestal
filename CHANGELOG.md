@@ -61,9 +61,12 @@ Other changes:
 - New functions:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
 - New namespaces: 
+  - `io.pedestal.service` - Replaces `io.pedestal.http` for setting up a connector
+  - `io.pedestal.service.protocols` - Defined core protocols
   - `io.pedestal.service.resources` - expose resources using _routes_ not _interceptors_
   - `io.pedestal.service.dev` - development/debugging tools
   - `io.pedestal.service.interceptors` - common interceptors
+  - `io.pedestal.service.test` - testing w/ Ring request and response (no Servlet API)
 
 ## 0.7.2 - 1 Nov 2024
 

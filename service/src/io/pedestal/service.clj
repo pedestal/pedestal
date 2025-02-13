@@ -13,12 +13,12 @@
   "Replacement for io.pedestal.http that is not (directly) linked to the Jakarta Servlet API and is generally
    simpler to use."
   {:added "0.8.0"}
-  (:require [io.pedestal.http.cors :as cors]
-            [io.pedestal.http.route :as route]
+  (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
             [io.pedestal.service.protocols :as p]
+            io.pedestal.http.cors
             io.pedestal.http.body-params
             io.pedestal.http.csrf
             io.pedestal.http.secure-headers
@@ -26,7 +26,7 @@
 
 (defn default-service-map
   "Creates a default service map for the given port and optional host.  host defaults to \"localhost\"
-  which is good for local testing (accessible only from the local host),
+  which is appropriate for local testing (accessible only from the local host),
   but \"0.0.0.0\" (accessible from any TCP/IP connection) is a better option when deployed."
   ([port]
    (default-service-map "localhost" port))
@@ -40,8 +40,7 @@
 (defn with-interceptor
   "Appends to the :interceptors in the service map, or does nothing if interceptor is nil.
 
-  interceptor must be an interceptor record.
-  "
+  interceptor must be an interceptor record."
   [service-map interceptor]
   {:pre [(or (nil? interceptor)
              (interceptor/interceptor? interceptor))]}
@@ -124,7 +123,7 @@
                        [(tracing/request-tracing-interceptor)
                         interceptors/log-request
                         (when allowed-origins
-                          (cors/allow-origin allowed-origins))
+                          (io.pedestal.http.cors/allow-origin allowed-origins))
                         (when session-options
                           (ring-middlewares/session session-options))
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
@@ -156,15 +155,17 @@
   [service-map root-path]
   (with-interceptor service-map (ring-middlewares/resource root-path)))
 
-(defn create-and-start
-  "Creates the connector and starts it.  This may block the current thread until the connector is stopped.
+(defn start!
+  "A convienience function for starting the connector.
+
+  This may block the current thread until the connector is stopped.
 
   Returns the connector."
-  [service-map create-connector-fn & {:as connector-options}]
-  (p/start-connector (create-connector-fn service-map connector-options)))
-
-(defn stop
-  "A convienience for stopping the connector."
   [connector]
-  (p/stop-connector connector))
+  (p/start-connector! connector))
+
+(defn stop!
+  "A convienience function for stopping the connector."
+  [connector]
+  (p/stop-connector! connector))
 

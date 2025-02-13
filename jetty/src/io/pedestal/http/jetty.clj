@@ -15,13 +15,14 @@
   "Jetty adaptor for Pedestal."
   (:require io.pedestal.http.jetty.container
             [clojure.string :as string]
+            [io.pedestal.http.response :as response]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.service.protocols :as p]
+            [io.pedestal.service.test :as test]
             [io.pedestal.websocket :as ws])
-  (:import (io.pedestal.service.protocols PedestalConnector)
-           (jakarta.websocket.server ServerContainer)
+  (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2 HTTP2Cipher)
            (org.eclipse.jetty.http2.api.server ServerSessionListener)
@@ -253,25 +254,32 @@
   "Creates a connector from the service map and the connector-specific options.
 
   Returns a connector in an unstarted state."
-  ^PedestalConnector [service-map options]
+  [service-map options]
   (let [{:keys [interceptors initial-context join?]} service-map
         ;; The options may include an :exception-analyzer function.
-        service-fn (si/http-interceptor-service-fn interceptors initial-context options)
-        servlet    (servlet/servlet :service service-fn)
+        service-fn        (si/http-interceptor-service-fn interceptors initial-context options)
+        servlet           (servlet/servlet :service service-fn)
         ;; Mixing service-map and options; another bit of relic that maybe can be fixed
-        ;; with changes to io.pedestal.http (that are probably ok to do as its implementation
+        ;; with changes to io.pedestal.http (that are probably ok to do as it only concerns implementation
         ;; details).
-        server     (create-server servlet (merge service-map options))]
+        server            (create-server servlet (merge service-map options))
+        ;; TODO: Async support
+        test-context      (-> initial-context
+                              response/terminate-when-response)
+        test-interceptors interceptors]
     (reify
       p/PedestalConnector
 
-      (start-connector [this]
+      (start-connector! [this]
         (.start server)
         (when join?
           (.join server))
         this)
 
-      (stop-connector [this]
+      (stop-connector! [this]
         (.stop server)
-        this))))
+        this)
+
+      (test-request [_ request]
+        (test/execute-interceptor-chain test-context test-interceptors request)))))
 

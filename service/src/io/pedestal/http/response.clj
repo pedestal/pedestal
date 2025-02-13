@@ -15,6 +15,7 @@
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [cognitect.transit :as transit]
+            [io.pedestal.interceptor.chain :as interceptor.chain]
             [ring.util.response :as ring-response])
   (:import (java.io OutputStreamWriter)))
 
@@ -107,3 +108,30 @@
    (assoc context :response {:status  status
                              :headers headers
                              :body    body})))
+
+(defn- terminate-when-response*
+  [{:keys [response]}]
+  (cond
+    (nil? response) false
+
+    (not (map? response))
+    (throw (ex-info "Interceptor attached a :response that is not a map"
+                    {:response response}))
+
+    (let [status (:status response)]
+      (not (and (int? status)
+                (pos? status))))
+    (throw (ex-info "Response map must have positive integer value for :status"
+                    {:response response}))
+
+    ;; Explicitly do *not* check for :headers or :body
+
+    :else
+    true))
+
+(defn terminate-when-response
+  "Adds an interceptor chain terminator to terminate execution when a valid :response map
+  is added to the context."
+  {:added "0.8.0"}
+  [context]
+  (interceptor.chain/terminate-when context terminate-when-response*))
