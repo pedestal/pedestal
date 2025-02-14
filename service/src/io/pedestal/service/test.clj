@@ -3,11 +3,11 @@
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]
             [clojure.java.io :as io]
-            [clojure.string :as string]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.service.impl :as impl]
             [clojure.core.async :refer [<!!]]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.core.async.impl.protocols Channel)
            (clojure.lang Fn IPersistentCollection)
@@ -42,7 +42,7 @@
 
 
 (defprotocol ResponseBodyConversion
-  "Convert the body of the response to nil, a String, or an InputStream."
+  "Convert the body of the response to an InputStream (or nil)."
 
   (convert-response-body [this]
     "Converts the response body to nil, a String, or an InputStream."))
@@ -97,6 +97,13 @@
    (fn [^bytes bytes]
      (ByteArrayInputStream. bytes))})
 
+(defn- capture-context
+  [*prom]
+  (interceptor {:name  ::capture-context
+                :leave (fn [context]
+                         (deliver *prom context)
+                         context)}))
+
 (defn execute-interceptor-chain
   "Executes the interceptor chain for a Ring request, and returns a Ring response.
 
@@ -104,11 +111,14 @@
 
   The :body of the returned response map will be nil, or InputStream."
   [initial-context interceptors request]
-  (let [request' (update request :body convert-request-body)
-        context' (chain/execute (assoc initial-context :request request') interceptors)
-        ;; TODO: Async support here (or make a utility available for caller)
-        ;; Maybe a promise + an interceptor
-        response (:response context')]
+  (let [request'      (update request :body convert-request-body)
+        *prom         (promise)
+        interceptors' (into [(capture-context *prom)] interceptors)
+        _             (-> initial-context
+                          (assoc :request request')
+                          (chain/execute interceptors'))
+        context'      @*prom
+        response      (:response context')]
     (when-not response
       (throw (ex-info "No :response provided after execution"
                       {:context context'
