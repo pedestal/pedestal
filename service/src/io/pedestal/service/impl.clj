@@ -34,7 +34,6 @@
     (f bos)
     (-> bos .toByteArray ByteArrayInputStream.)))
 
-
 (defn parse-url
   [url]
   (let [[_ scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)

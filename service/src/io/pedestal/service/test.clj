@@ -1,5 +1,16 @@
+; Copyright 2025 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.service.test
-  "Utilities for PedestalConnectors to implement testing."
+  "Utilities for PedestalConnectors to implement testing, and functions used when writing such tests."
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]
             [clojure.java.io :as io]
@@ -131,7 +142,6 @@
   "A test fixture that disables printing of the routing table, even when development mode
    is enabled.  It also disables ANSI colors in any Pedestal console output
    (such as deprecation warnings)."
-  {:added "0.8.0"}
   [f]
   (binding [route/*print-routing-table* false
             ansi/*color-enabled*        false]
