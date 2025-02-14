@@ -30,7 +30,7 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
-            [io.pedestal.internal :as internal]
+            [io.pedestal.internal :as internal :refer [deprecated]]
             [io.pedestal.metrics :as metrics]
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.service.dev :as dev]
@@ -39,7 +39,6 @@
             [io.pedestal.interceptor.chain.debug :as chain.debug]
             [io.pedestal.service.protocols :as sp]
             [io.pedestal.http.response :as response]
-            [io.pedestal.internal :refer [deprecated]]
             [clojure.string :as string]
             [io.pedestal.log :as log])
   (:import (jakarta.servlet Servlet)

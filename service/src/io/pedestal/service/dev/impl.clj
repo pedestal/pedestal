@@ -11,10 +11,11 @@
 
 (ns ^:no-doc io.pedestal.service.dev.impl
   "Internal namespace, subject to change at any time."
-  (:require [clj-commons.format.exceptions :as exceptions]))
+  (:require [clj-commons.ansi :as ansi]
+            [clj-commons.format.exceptions :as exceptions]))
 
 (defn ^:no-doc format-exception
   "Private function - do not use."
   [exception]
-  (binding [exceptions/*fonts* nil]
+  (binding [ansi/*color-enabled* false]
     (exceptions/format-exception exception)))

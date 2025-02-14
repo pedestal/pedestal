@@ -12,12 +12,11 @@
 (ns io.pedestal.interceptor.terminator-test
   "Tests for chain termination logic."
   (:require [clojure.test :refer [deftest is]]
-            [io.pedestal.http.response :as response]
+            [io.pedestal.http.response :as response :refer [respond-with]]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]
             [clojure.core.async :refer [go >! chan]]
-            [io.pedestal.test-common :refer [<!!?]]
-            [io.pedestal.http.response :refer [respond-with]])
+            [io.pedestal.test-common :refer [<!!?]])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn- execute [& interceptors]

@@ -13,7 +13,7 @@
   "Internal namespace, subject to change at any time."
   {:since "0.8.0"}
   (:require [clojure.string :as string])
-  (:import (java.io ByteArrayInputStream ByteArrayOutputStream InputStream OutputStream)
+  (:import (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
            (java.nio ByteBuffer)
            (java.nio.channels Channels ReadableByteChannel)))
 

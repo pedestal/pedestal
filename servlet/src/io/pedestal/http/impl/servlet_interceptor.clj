@@ -337,11 +337,11 @@
   (assoc dev/uncaught-exception :name ::exception-debug))
 
 (defn- interceptor-service-fn
-  [interceptors initial-context]
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
   and :servlet-response."
+  [interceptors initial-context]
   (let [error-metric-fn (metrics/counter ::base-servlet-error nil)
         *active-calls   (atom 0)]
     (metrics/gauge :io.pedestal/active-servlet-calls nil #(deref *active-calls))
