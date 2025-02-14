@@ -12,10 +12,13 @@
 (ns io.pedestal.service.conversions-test
   "Tests for the conversions that occur inside [[io.pedestal.service.test]]."
   (:require [clojure.edn :as edn]
+            [clojure.core.async :refer [go]]
             [clojure.java.io :as io]
             [io.pedestal.service.test :as test]
             [clojure.test :refer [deftest is]])
-  (:import (java.io ByteArrayInputStream InputStream)))
+  (:import (java.io InputStream)
+           (java.nio ByteBuffer)
+           (java.nio.channels Channels FileChannel)))
 
 (deftest request-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
@@ -70,10 +73,31 @@
     (is (= (slurp file)
            (slurp stream)))))
 
-;; TODO:
-;; ByteBuffer
-;; core.async Channel
-;; ReadableByteChannel
+(deftest response-byte-buffer
+  (let [s          "Duty now for the future"
+        byte-array (.getBytes s "UTF-8")
+        buf        (ByteBuffer/wrap byte-array)
+        stream     (test/convert-response-body buf)]
+    (is (instance? InputStream stream))
+    (is (= s
+           (slurp stream)))))
+
+(deftest response-async-channel
+  (let [s      "choose immutability, and see where it leads you"
+        ch     (go s)
+        stream (test/convert-response-body ch)]
+    (is (instance? InputStream stream))
+    (is (= s
+           (slurp stream)))))
+
+(deftest response-byte-channel
+  (let [file (io/file "file-root/sub/index.html")
+        channel (Channels/newChannel (io/input-stream file))
+        stream (test/convert-response-body channel)]
+    (is (instance? InputStream stream))
+    (is (= (slurp file)
+           (slurp stream)))))
+
 
 
 
