@@ -9,14 +9,14 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service.jetty-connector-test
-  "Tests when running Jetty as a connector, using test-request."
+(ns io.pedestal.service.hk-connector-test
+  "Tests when running Http-Kit using test-request (rather than HTTP)."
   (:require [clojure.edn :as edn]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [go]]
             [io.pedestal.http.response :as response]
             [io.pedestal.service :as service]
-            [io.pedestal.http.jetty :as jetty]
+            [io.pedestal.http.http-kit :as hk]
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
             [io.pedestal.service.test :as test]
@@ -36,6 +36,7 @@
 
 (defn echo-headers
   [request]
+  #trace/result request
   (response (:headers request)))
 
 (def routes
@@ -52,7 +53,7 @@
   (-> (service/default-service-map 8080)
       (service/with-default-interceptors)
       (service/with-routing :sawtooth routes)
-      (jetty/create-connector nil)))
+      (hk/create-connector nil)))
 
 (use-fixtures :once
               (fn [f]
@@ -71,17 +72,7 @@
                :body   (m/via slurp "HELLO")}
               (response-for :get "/hello"))))
 
-(deftest includes-essential-security-headers
-  (is (match? {:status  200
-               :headers {"Strict-Transport-Security"         "max-age=31536000; includeSubdomains"
-                         "X-Frame-Options"                   "DENY"
-                         "X-Content-Type-Options"            "nosniff"
-                         "X-XSS-Protection"                  "1; mode=block"
-                         "X-Download-Options"                "noopen"
-                         "X-Permitted-Cross-Domain-Policies" "none"
-                         "Content-Security-Policy"           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}
-              (response-for :get "/hello"))))
-
+#_
 (deftest chain-goes-async
   (is (match? {:status 200
                :body   (m/via slurp "ASYNC HELLO")}

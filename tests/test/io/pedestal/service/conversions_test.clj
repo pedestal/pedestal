@@ -18,7 +18,7 @@
             [clojure.test :refer [deftest is]])
   (:import (java.io InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels Channels FileChannel)))
+           (java.nio.channels Channels)))
 
 (deftest request-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
