@@ -72,7 +72,7 @@
                :body   (m/via slurp "HELLO")}
               (response-for :get "/hello"))))
 
-#_
+
 (deftest chain-goes-async
   (is (match? {:status 200
                :body   (m/via slurp "ASYNC HELLO")}

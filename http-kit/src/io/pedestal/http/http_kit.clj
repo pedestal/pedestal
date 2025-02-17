@@ -17,7 +17,7 @@
   (:require [io.pedestal.log :as log]
             [io.pedestal.service.protocols :as p]
             [org.httpkit.server :as hk]
-            [org.httpkit.server :as hk-server]
+            [io.pedestal.http.http-kit.impl :as impl]
             [io.pedestal.service.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain]))
@@ -63,6 +63,8 @@
                                                  (chain/execute interceptors'))]
                           ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
                           (if-let [async-channel @*async-channel]
+                            ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
+                            ;; via hk/send!.
                             {:body async-channel}
                             (:response context))))]
     (reify p/PedestalConnector
@@ -71,8 +73,8 @@
         (when @*server
           (throw (ex-info "Connector already started")))
 
-        (reset! *server (hk-server/run-server root-handler
-                                              options'))
+        (reset! *server (hk/run-server root-handler
+                                       options'))
 
         ;; TODO: Broken because doesn't work right when restarting a stopped
         ;; connection.
@@ -83,13 +85,19 @@
 
       (stop-connector! [this]
         (when-let [server @*server]
-          (hk-server/server-stop! server)
+          (hk/server-stop! server)
           (reset! *server nil)
           (deliver *join-promise nil))
 
         this)
 
       (test-request [_ ring-request]
-        (let [response (root-handler ring-request)]
+        (let [*async-response (promise)
+              channel         (impl/mock-channel *async-response)
+              sync-response   (root-handler (assoc ring-request :async-channel channel))
+              response        (if (= (:body sync-response) channel)
+                                (deref *async-response 1000 {:status 500
+                                                             :body   "Async response not produced after 1 sec"})
+                                sync-response)]
           (update response :body test/convert-response-body))))))
 
