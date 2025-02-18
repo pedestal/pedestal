@@ -12,7 +12,9 @@
 (ns ^:no-doc io.pedestal.service.impl
   "Internal namespace, subject to change at any time."
   {:since "0.8.0"}
-  (:require [clojure.string :as string])
+  (:require [clj-commons.ansi :as ansi]
+            [clj-commons.format.exceptions :as exceptions]
+            [clojure.string :as string])
   (:import (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
            (java.nio ByteBuffer)
            (java.nio.channels Channels ReadableByteChannel)))
@@ -52,3 +54,8 @@
      :path-info    uri                                      ; specific to Pedestal?
      :query-string query-string}))
 
+(defn  format-exception
+  "Private function - do not use."
+  [exception]
+  (binding [ansi/*color-enabled* false]
+    (exceptions/format-exception exception)))

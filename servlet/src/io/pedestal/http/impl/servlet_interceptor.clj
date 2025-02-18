@@ -22,10 +22,10 @@
             [io.pedestal.service.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
-            [io.pedestal.service.dev.impl :as dev.impl]
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
-            io.pedestal.http.route)
+            io.pedestal.http.route
+            [io.pedestal.service.impl :as impl])
   (:import (clojure.core.async.impl.protocols Channel)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletResponse HttpServletRequest)
@@ -366,7 +366,7 @@
             (error-metric-fn)
             (log/error :msg "Servlet code threw an exception"
                        :throwable t
-                       :cause-trace (dev.impl/format-exception t)))
+                       :cause-trace (impl/format-exception t)))
           (finally
             (swap! *active-calls dec)))))))
 

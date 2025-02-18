@@ -15,11 +15,11 @@
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]
             [clojure.pprint :refer [pprint]]
-            [io.pedestal.service.dev.impl :as dev.impl]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.service :as service]
-            [io.pedestal.http.cors :as cors]))
+            [io.pedestal.http.cors :as cors]
+            [io.pedestal.service.impl :as impl]))
 
 (defn- attach-formatted-exception-response
   "When an error propagates to this interceptor error fn, trap it,
@@ -33,7 +33,7 @@
                          {"Content-Type" "text/plain"}
                          (with-out-str (println "Error processing request!")
                                        (println "Exception:\n")
-                                       (println (dev.impl/format-exception exception))
+                                       (println (impl/format-exception exception))
                                        (println "\nContext:\n")
                                        (pprint context))))
 
