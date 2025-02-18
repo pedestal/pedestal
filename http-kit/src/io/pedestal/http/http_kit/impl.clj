@@ -8,8 +8,8 @@
 (defn mock-channel
   "Mock channel that captures a single send! for the response map. Not appropriate for simulating
   a websocket connection."
-  [*response]
-  (let [*closed (atom false)]
+  [*response-promise]
+  (let [*response (atom nil)]
     (reify hk/Channel
 
       (open? [_] (nyi "open?"))
@@ -17,16 +17,22 @@
       (websocket? [_] (nyi "websocket?"))
 
       (close [_]
-        (if @*closed
+        (if (realized? *response-promise)
           false
-          (reset! *closed true)))
+          (deliver *response-promise @*response)))
 
       (send! [_ data]
-        (when (realized? *response)
+        (when @*response
           (throw (ex-info "Mock Channel can only capture single response map"
                           {:response @*response
                            :data     data})))
-        (deliver *response data))
+
+        (when (realized? *response-promise)
+          (throw (ex-info "Mock Channel: send! after close"
+                          {:response @*response
+                           :data     data})))
+
+        (reset! *response data))
 
       (send! [this data close?]
         (hk/send! this data)

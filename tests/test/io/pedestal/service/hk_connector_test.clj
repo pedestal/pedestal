@@ -34,16 +34,34 @@
               (go
                 (response/respond-with context 200 "ASYNC HELLO")))}))
 
+(def async-bytes
+  (interceptor
+    {:name  ::async-bytes
+     :enter (fn [context]
+              (go (response/respond-with context 200
+                                         (.getBytes "ASYNC BYTES" "UTF-8"))))}))
+
+(defn no-response
+  [_request]
+  nil)
+
+(def async-no-response
+  (interceptor
+    {:name  ::async-no-response
+     :enter (fn [context] (go context))}))
+
 (defn echo-headers
   [request]
-  #trace/result request
   (response (:headers request)))
 
 (def routes
   (table/table-routes
     {}
     [["/hello" :get hello-page :route-name ::hello]
+     ["/no-response" :get no-response :route-name ::no-response]
      ["/async/hello" :get async-hello]
+     ["/async/bytes" :get async-bytes]
+     ["/async/no-response" :get async-no-response]
      ["/echo/headers" :get echo-headers :route-name ::echo-headers]]))
 
 (def *connector (atom nil))
@@ -83,3 +101,18 @@
                :body   (m/via #(-> % slurp edn/read-string)
                               {"My-Key" "My-Value"})}
               (response-for :get "/echo/headers" :headers {:My-Key 'My-Value}))))
+
+(deftest async-bytes-response
+  (is (match? {:status 200
+               :body   (m/via slurp "ASYNC BYTES")}
+              (response-for :get "/async/bytes"))))
+
+(deftest status-500-if-no-response-sync
+  (is (match? {:status 500
+               :body   (m/via slurp "Execution completed without producing a response")}
+              (response-for :get "/no-response"))))
+
+(deftest status-500-if-no-response-from-async-handler
+  (is (match? {:status 500
+               :body   (m/via slurp "Async response not produced after 1 second")}
+              (response-for :get "/async/no-response"))))

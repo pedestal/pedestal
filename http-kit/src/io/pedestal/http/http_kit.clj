@@ -14,12 +14,14 @@
 
   Http-Kit provides features similar to the Servlet API, including WebSockets, but does not
   implement any of the underlying Servlet API or WebSocket interfaces."
-  (:require [io.pedestal.log :as log]
+  (:require [io.pedestal.http.response :as response]
+            [io.pedestal.log :as log]
             [io.pedestal.service.protocols :as p]
             [org.httpkit.server :as hk]
             [io.pedestal.http.http-kit.impl :as impl]
             [io.pedestal.service.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.http.http-kit.response :refer [convert-response-body]]
             [io.pedestal.interceptor.chain :as chain]))
 
 (def ^:private default-options
@@ -36,9 +38,21 @@
     {:name  ::async-responder
      :leave (fn [context]
               (when-let [channel @*channel]
-                ;; TODO: convert response body as needed
-                (hk/send! channel (:response context) true))
+                (when-let [{:keys [response]} context]
+                  (hk/send! channel response))
+                (hk/close channel))
               context)}))
+
+(def ^:private response-converter
+  (interceptor
+    {:name  ::response-converter
+     :leave (fn [{:keys [response] :as context}]
+              (if (response/response? response)
+                (update-in context [:response :body] convert-response-body)
+                (do
+                  (log/error :msg "Invalid response"
+                             :response response)
+                  (dissoc context :response))))}))
 
 (defn create-connector
   [service-map options]
@@ -51,9 +65,10 @@
         *join-promise (promise)
         root-handler  (fn [request]
                         ;; TODO: something like stylobate,
-                        ;; TODO: handle response body not supported by http-kit
                         (let [*async-channel (atom nil)
-                              interceptors'  (into [(async-responder *async-channel)] interceptors)
+                              interceptors'  (into [(async-responder *async-channel)
+                                                    response-converter]
+                                                   interceptors)
                               context        (-> initial-context
                                                  (assoc :request request)
                                                  (chain/on-enter-async (fn [_]
@@ -66,12 +81,18 @@
                             ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
                             ;; via hk/send!.
                             {:body async-channel}
-                            (:response context))))]
+                            (or (:response context)
+                                (do
+                                  (log/error :msg "Execution completed without producing a response"
+                                             :request request)
+                                  {:status  500
+                                   :headers {"Content-Type" "text/plain"}
+                                   :body    "Execution completed without producing a response"})))))]
     (reify p/PedestalConnector
 
       (start-connector! [this]
         (when @*server
-          (throw (ex-info "Connector already started")))
+          (throw (IllegalStateException. "Http-Kit Connector already started")))
 
         (reset! *server (hk/run-server root-handler
                                        options'))
@@ -96,8 +117,11 @@
               channel         (impl/mock-channel *async-response)
               sync-response   (root-handler (assoc ring-request :async-channel channel))
               response        (if (= (:body sync-response) channel)
-                                (deref *async-response 1000 {:status 500
-                                                             :body   "Async response not produced after 1 sec"})
+                                (or (deref *async-response 1000 nil)
+                                    {:status 500
+                                     :body   "Async response not produced after 1 second"})
                                 sync-response)]
+          ;; The response has been converted to support what Http-Kit allows, but we need to further narrow to support
+          ;; the test contract (nil or InputStream).
           (update response :body test/convert-response-body))))))
 
