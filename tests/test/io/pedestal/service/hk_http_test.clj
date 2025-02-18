@@ -14,7 +14,6 @@
   (:require [io.pedestal.http.jetty :as jetty]
             [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.http.response :as response]
-            [io.pedestal.service.protocols :as p]
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
             [org.httpkit.client :as client]
