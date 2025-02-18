@@ -15,7 +15,7 @@
   for applications that make use Pedestal's websocket support."
   {:added "0.7.0"}
   (:require [clojure.core.async :as async :refer [go-loop put!]]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.http.response :as response]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.internal :refer [deprecated]]
@@ -160,7 +160,7 @@
                              config
                              (-> request :path-params servlet-path-parameters)))
   (-> context
-      servlet-interceptor/disable-response
+      response/disable-response
       chain/terminate))
 
 

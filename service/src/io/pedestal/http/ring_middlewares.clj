@@ -34,9 +34,9 @@
             [ring.util.mime-type :as mime]
             [ring.util.codec :as codec]
             [ring.util.response :as ring-resp]
+            [io.pedestal.service.protocols :as sp]
             [io.pedestal.http.tracing :as tracing])
-  (:import (jakarta.servlet.http HttpServletResponse)
-           (java.nio.channels FileChannel)
+  (:import (java.nio.channels FileChannel)
            (java.nio.file OpenOption
                           StandardOpenOption)
            (java.io File)))
@@ -258,12 +258,9 @@
        {:name  ::fast-resource
         :enter (fn [context]
                  (let [{:keys [request]} context
-                       {:keys [^HttpServletResponse servlet-response uri path-info request-method]} request]
+                       {:keys [servlet-response uri path-info request-method]} request]
                    (if (#{:head :get} request-method)
-                     (let [buffer-size-bytes (if servlet-response
-                                               (.getBufferSize servlet-response)
-                                               ;; let's play it safe and assume 1500 MTU
-                                               1460)
+                     (let [buffer-size-bytes (or (sp/response-buffer-size servlet-response) 1500)
                            uri-path          (subs (codec/url-decode (or path-info uri)) 1)
                            path              (-> (str (or root-path "") "/" uri-path)
                                                  (.replace "//" "/")
@@ -279,6 +276,7 @@
                                                           ;; TODO: Nothing like losing the data to private functions
                                                           ;;  - rewrite the above to do the file lookup and response generation directly
                                                           (Long/parseLong (get-in file-resp [:headers "Content-Length"])))
+                                                    ;; The response fits in the response buffer, streaming won't make anything better
                                                     file-resp
                                                     (assoc file-resp
                                                            :body (FileChannel/open (.toPath ^File (:body file-resp))

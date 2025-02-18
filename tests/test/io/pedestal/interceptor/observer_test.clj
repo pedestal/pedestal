@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0
@@ -221,7 +221,7 @@
             {:interceptor     ::content-type
              :stage           :leave
              :context-changes {:added {[:response :headers] {"Content-Type" "application/edn"}}}}]
-          #trace/result @*events))))
+         @*events))))
 
 (deftest debug-observer-changes-only
   (mock/providing [(log/make-logger "io.pedestal.interceptor.chain.debug") capture-logger

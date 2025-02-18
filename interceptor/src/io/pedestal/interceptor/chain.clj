@@ -403,7 +403,10 @@
 
   Processing continues in core.async threads - including even when
   a later interceptor returns an immediate context, rather than
-  a channel."
+  a channel.
+
+  Note that any previously queued interceptors are discarded when `execute` is invoked.
+  "
   ([context]
    (-> context
        (assoc ::stack PersistentQueue/EMPTY)

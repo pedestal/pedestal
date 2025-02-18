@@ -1,4 +1,4 @@
-; Copyright 2023-20245 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -30,51 +30,61 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.http.cors :as cors]
-            [io.pedestal.internal :as internal]
+            [io.pedestal.internal :as internal :refer [deprecated]]
             [io.pedestal.metrics :as metrics]
             [io.pedestal.http.tracing :as tracing]
+            [io.pedestal.service.dev :as dev]
+            [io.pedestal.service.interceptors :as interceptors]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]
+            [io.pedestal.service.protocols :as sp]
             [io.pedestal.http.response :as response]
-            [ring.util.response :as ring-response]
             [clojure.string :as string]
-            [cheshire.core :as json]
             [io.pedestal.log :as log])
-  (:import (jakarta.servlet Servlet)))
+  (:import (jakarta.servlet Servlet)
+           (jakarta.servlet.http HttpServletResponse)))
 
 ;; This is the majority case; attempting to require it here helps with applications that AOT.
 (try
   (require 'io.pedestal.http.jetty)
   (catch Exception _))
 
+(extend-protocol sp/ResponseBufferSize
+
+  HttpServletResponse
+
+  (response-buffer-size [response]
+    (.getBufferSize response)))
+
 ;; edn and json response formats
 
 (defn edn-response
-  "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
-  [obj]
-  (response/data-response #(pr obj) "application/edn;charset=UTF-8"))
+  "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format.
 
-(defn ^{:deprecated "0.7.0"} json-print
-  "Print object as JSON to *out*"
+  DEPRECATED: Use io.pedestal.http.response/edn-response instead."
+  {:deprecated "0.8.0"}
   [obj]
-  (internal/deprecated `json-print
-    (json/generate-stream obj *out*)))
+  (deprecated `edn-response
+    (response/edn-response obj)))
 
 (defn json-response
-  "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format."
+  "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format.
+
+  DEPRECATED: Use io.pedestal.http.response/json-response instead."
+  {:deprecated "0.8.0"}
   [obj]
-  (ring-response/content-type
-    (ring-response/response
-      (response/stream-json obj))
-    "application/json;charset=UTF-8"))
+  (response/json-response obj))
 
 ;; Interceptors
 ;; ------------
 
 (def ^:private request-meter-fn (metrics/counter ::request nil))
 
-(def log-request
-  "Log the request's method and uri."
+(def ^{:deprecated "0.8.0"}
+  log-request
+  "Log the request's method and uri.
+
+  DEPRECATED: Use io.pedestal.service.interceptors/log-request instead."
   (interceptor
     {:name  ::log-request
      :enter (fn [context]
@@ -87,59 +97,36 @@
                 context))}))
 
 (defn response?
-  "A valid response is any map that includes an integer :status
-  value."
+  "A valid response is any map that includes an integer :status value.
+
+  DEPRECATED: Use io.pedestal.http.response/response? instead."
+  {:deprecated "0.8.0"}
   [resp]
-  (and (map? resp)
-       (integer? (:status resp))))
+  (deprecated `response?
+    (response/response? resp)))
 
-(defn- response-interceptor
-  [interceptor-name pred xform]
-  (interceptor
-    {:name  interceptor-name
-     :leave (fn [context]
-              (let [{:keys [response]} context]
-                (cond-> context
-                  (pred response) (assoc :response (xform response)))))}))
-
-(def not-found
+(def ^{:deprecated "0.8.0"} not-found
   "An interceptor that returns a 404 when routing failed to resolve a route, or no :response
-  map was attached to the context."
-  (interceptor
-    {:name  ::not-found
-     :leave (fn [context]
-              (if (and (not (-> context :response response?))
-                       (servlet-interceptor/response-expected? context))
-                (assoc context :response
-                       (ring-response/not-found "Not Found"))
-                context))}))
+  map was attached to the context.
 
-(defn- missing-content-type?
-  [response]
-  (nil? (get-in response [:headers "Content-Type"])))
+  DEPRECATED: Use io.pedestal.service.interceptors/not-found instead."
+  (assoc interceptors/not-found :name ::not-found))
 
-(def html-body
+(def ^{:deprecated "0.8.0"} html-body
   "Set the Content-Type header to \"text/html\" if the body is a string and a
-  type has not been set."
-  (response-interceptor
-    ::html-body
-    #(and (-> % :body string?)
-          (missing-content-type? %))
-    #(ring-response/content-type % "text/html;charset=UTF-8")))
+  type has not been set.
 
-(def json-body
+  DEPRECATED: Use io.pedestal.service.interceptors/html-body instead."
+  (assoc interceptors/html-body :name ::html-body))
+
+(def ^{:deprecated "0.8.0"} json-body
   "Set the Content-Type header to \"application/json\" and convert the body to
-  JSON if the body is a collection and a type has not been set."
-  (response-interceptor
-    ::json-body
-    #(and (-> % :body coll?)
-          (missing-content-type? %))
-    (fn [response]
-      (-> response
-          (ring-response/content-type "application/json;charset=UTF-8")
-          (update :body response/stream-json)))))
+  JSON if the body is a collection and a type has not been set.
 
-(defn transit-body-interceptor
+  DEPRECATED: Use io.pedestal.service.interceptors/json-body instead."
+  (assoc interceptors/json-body :name ::json-body))
+
+(defn ^{:deprecated "0.8.0"} transit-body-interceptor
   "Returns an interceptor which sets the Content-Type header to the
   appropriate value depending on the transit format. Converts the body
   to the specified Transit format if the body is a collection and a
@@ -151,40 +138,35 @@
   iname                - namespaced keyword for the interceptor name
   default-content-type - content-type string to set in the response
   transit-format       - either :json or :msgpack
-  transit-options      - optional. map of options for transit/writer"
+  transit-options      - optional. map of options for transit/writer
+
+
+  DEPRECATED: Use io.pedestal.service.interceptors/transit-body-interceptor instead."
   ([iname default-content-type transit-format]
-   (transit-body-interceptor iname default-content-type transit-format {}))
-
+   (deprecated `transit-body-interceptor
+     (interceptors/transit-body-interceptor iname default-content-type transit-format {})))
   ([iname default-content-type transit-format transit-opts]
-   (response-interceptor
-     iname
-     #(and (-> % :body coll?)
-           (missing-content-type? %))
-     (fn [response]
-       (-> response
-           (ring-response/content-type default-content-type)
-           (update :body response/stream-transit transit-format transit-opts))))))
+   (deprecated `transit-body-interceptor
+     (interceptors/transit-body-interceptor iname default-content-type transit-format transit-opts))))
 
-(def transit-json-body
+(def ^{:deprecated "0.8.0"} transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
-  transit+json if the body is a collection and a type has not been set."
-  (transit-body-interceptor
-    ::transit-json-body
-    "application/transit+json;charset=UTF-8"
-    :json))
+  transit+json if the body is a collection and a type has not been set.
 
-(def transit-msgpack-body
+  DEPRECATED: Use io.pedestal.service.interceptors/transit-json-body instead."
+  (assoc interceptors/transit-json-body :name ::transit-json-body))
+
+(def ^{:deprecated "0.8.0"} transit-msgpack-body
   "Set the Content-Type header to \"application/transit+msgpack\" and convert the body to
-  transit+msgpack if the body is a collection and a type has not been set."
-  (transit-body-interceptor
-    ::transit-msgpack-body
-    "application/transit+msgpack;charset=UTF-8"
-    :msgpack))
+  transit+msgpack if the body is a collection and a type has not been set.
 
-(def transit-body
-  "Same as `transit-json-body` --
-  Set the Content-Type header to \"application/transit+json\" and convert the body to
-  transit+json if the body is a collection and a type has not been set."
+  DEPRECATED: Use io.pedestal.service.interceptors/transit-msgpack-body instead."
+  (assoc interceptors/transit-msgpack-body :name ::transit-msgpack-body))
+
+(def ^{:deprecated "0.8.0"} transit-body
+  "Alias for [[transit-json-body]].
+
+  DEPRECATED: Use io.pedestal.service.interceptors/transit-json-body instead."
   transit-json-body)
 
 (defn default-interceptors
@@ -303,20 +285,15 @@
   (update service-map ::interceptors
           #(into [cors/dev-allow-origin servlet-interceptor/exception-debug] %)))
 
-(defn ^{:added "0.7.0"} default-debug-observer-omit
+(defn default-debug-observer-omit
   "Default for key paths to ignore when using [[debug-observer]].  This is primarily the
   request and response bodies, anything private to the io.pedestal.interceptor.chain namespaces,
   and a few routing-related keys (that produce non-useful logged output)."
+  {:added      "0.7.0"
+   :deprecated "0.8.0"}
   [key-path]
-  (or (some->> key-path first namespace (contains? #{"io.pedestal.interceptor.chain"
-                                                     "io.pedestal.http.tracing"}))
-      (contains? #{[:bindings]
-                   [:response :body]
-                   [:request :body]
-                   [:request :url-for]
-                   [:url-for]
-                   [:route]}
-                 key-path)))
+  (deprecated `default-debug-observer-omit
+    (dev/default-debug-observer-omit key-path)))
 
 (defn ^{:added "0.7.0"}
   enable-debug-interceptor-observer
@@ -330,7 +307,7 @@
 
   This modifies the ::initial-context key of the service map."
   ([service-map]
-   (enable-debug-interceptor-observer service-map {:omit default-debug-observer-omit}))
+   (enable-debug-interceptor-observer service-map {:omit dev/default-debug-observer-omit}))
   ([service-map debug-observer-options]
    (update service-map ::initial-context
            chain/add-observer (chain.debug/debug-observer debug-observer-options))))
@@ -502,14 +479,17 @@
   (.service ^Servlet (::servlet service) servlet-req servlet-resp))
 
 (defn respond-with
-  "Utility function to add a :response map to the interceptor context."
-  {:added "0.7.0"}
+  "Utility function to add a :response map to the interceptor context.
+
+  DEPRECATED: Use io.pedestal.http.response/respond-with instead."
+  {:added      "0.7.0"
+   :deprecated "0.8.0"}
   ([context status]
-   (assoc context :response {:status status}))
+   (deprecated `respond-with
+     (response/respond-with context status)))
   ([context status body]
-   (assoc context :response {:status status
-                             :body   body}))
+   (deprecated `respond-with
+     (response/respond-with context status body)))
   ([context status headers body]
-   (assoc context :response {:status  status
-                             :headers headers
-                             :body    body})))
+   (deprecated `respond-with
+     (response/respond-with context status headers body))))
