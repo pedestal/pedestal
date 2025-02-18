@@ -99,6 +99,7 @@
 
         ;; TODO: Broken because doesn't work right when restarting a stopped
         ;; connection.
+        ;; See https://github.com/http-kit/http-kit/pull/589
         (when join?
           @*join-promise)
 
