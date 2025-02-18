@@ -63,10 +63,10 @@
               (fn [f]
                 (let [conn (new-connector)]
                   (try
-                    (p/start-connector! conn)
+                    (service/start! conn)
                     (f)
                     (finally
-                      (p/stop-connector! conn))))))
+                      (service/stop! conn))))))
 
 (deftest basic-access
   (is (match? {:status 200
