@@ -1,0 +1,26 @@
+; Copyright 2025 Nubank NA
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
+{:paths ["src"]
+ :deps  {org.clojure/clojure          {:mvn/version "1.12.0"}
+         io.pedestal/pedestal.log     {:mvn/version "0.8.0-SNAPSHOT"}
+         io.pedestal/pedestal.service {:mvn/version "0.8.0-SNAPSHOT"}
+         http-kit/http-kit            {:mvn/version "2.8.0"}}
+
+ :aliases
+ {:local
+  {:override-deps {io.pedestal/pedestal.log         {:local/root "../log"}
+                   io.pedestal/pedestal.service     {:local/root "../service"}
+                   ;; Recapitulate transitive dependencies of pedestal.service since the
+                   ;; :local alias isn't carried through when resolving the local dependencies.
+                   io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
+                   io.pedestal/pedestal.route       {:local/root "../route"}
+                   io.pedestal/pedestal.telemetry   {:local/root "../telemetry"}
+                   io.pedestal/pedestal.common      {:local/root "../common"}}}}}

@@ -36,8 +36,10 @@
    "error"
    "route"
    "service"
+   "servlet"
    ;; And then the others:
    "jetty"
+   "http-kit"
    "embedded"])
 
 ;; Working around this problem (bug)?

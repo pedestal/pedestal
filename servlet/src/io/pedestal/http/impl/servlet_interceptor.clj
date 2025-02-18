@@ -14,18 +14,18 @@
 (ns io.pedestal.http.impl.servlet-interceptor
   "Interceptors for adapting the Java HTTP Servlet interfaces."
   (:require [clojure.java.io :as io]
-            [clj-commons.format.exceptions :as exceptions]
-            [clojure.pprint :as pprint]
             [clojure.core.async :as async]
+            [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
+            [io.pedestal.service.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
-            [ring.util.response :as ring-response]
             [io.pedestal.metrics :as metrics]
     ;; for side effects:
-            io.pedestal.http.route)
+            io.pedestal.http.route
+            [io.pedestal.service.impl :as impl])
   (:import (clojure.core.async.impl.protocols Channel)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletResponse HttpServletRequest)
@@ -79,6 +79,10 @@
       (io/copy input-stream output-stream)
       (finally (.close input-stream))))
 
+
+  ;; These next two have no implementation of write-body-to-stream because
+  ;; they extend the WriteableBodyAsync protocol.
+
   ReadableByteChannel
 
   (default-content-type [_] "application/octet-stream")
@@ -91,15 +95,15 @@
   (default-content-type [_] nil)
   (write-body-to-stream [_ _]))
 
-;; This is sequestered out as it confuses both clj-kondo and the Cursive linter.
-#_{:clj-kondo/ignore [:syntax]}
-(extend-protocol WriteableBody
+(extend (Class/forName "[B")
 
-  (class (byte-array 0))
+  WriteableBody
 
-  (default-content-type [_] "application/octet-stream")
-  (write-body-to-stream [byte-array output-stream]
-    (io/copy byte-array output-stream)))
+  {:default-content-type (fn [_] "application/octet-stream")
+   :write-body-to-stream
+   (fn [^bytes byte-array output-stream]
+     (io/copy byte-array output-stream))})
+
 
 (defn- write-body [^HttpServletResponse servlet-resp body]
   (let [output-stream (.getOutputStream servlet-resp)]
@@ -167,19 +171,6 @@
     (update resp-map :headers merge {"Content-Type" (or content-type
                                                         (default-content-type body))})))
 
-(defn disable-response
-  "Updates the context to identify that no response is expected; this typically is because
-   the request was upgraded to a WebSocket connection."
-  {:added "0.8.0"}
-  [context]
-  (assoc context ::response-disabled true))
-
-(defn response-expected?
-  "Returns true unless [[disable-response]] was previously invoked."
-  {:added "0.8.0"}
-  [context]
-  (-> context ::response-disabled not))
-
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]
    (let [{:keys [status headers]} (set-default-content-type resp-map)]
@@ -235,7 +226,7 @@
 
   (cond
     ;; i.e., was WebSocket upgrade request?
-    (not (response-expected? context))
+    (not (response/response-expected? context))
     context
 
     (nil? response)
@@ -252,30 +243,6 @@
     (do
       (send-response context)
       context)))
-
-(defn- terminate-when-response
-  [{:keys [response]}]
-  (cond
-    (nil? response) false
-
-    (not (map? response))
-    (throw (ex-info "Interceptor attached a :response that is not a map"
-                    {:response response}))
-
-    (let [status (:status response)]
-      (not (and (int? status)
-                (pos? status))))
-    (throw (ex-info "Response map must have positive integer value for :status"
-                    {:response response}))
-
-    ;; Explicitly do *not* check for :headers or :body
-
-    :else
-    true))
-
-(defn- terminator-inject
-  [context]
-  (interceptor.chain/terminate-when context terminate-when-response))
 
 (defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
@@ -358,49 +325,28 @@
      :leave leave-ring-response
      :error error-ring-response}))
 
-(defn- format-exception
-  [exception]
-  (binding [exceptions/*fonts* nil]
-    (exceptions/format-exception exception)))
-
-(defn- error-debug
-  "When an error propagates to this interceptor error fn, trap it,
-  print it to the output stream of the HTTP request, and do not
-  rethrow it."
-  [context exception]
-  (log/error :msg "Dev interceptor caught an exception; Forwarding it as the response."
-             :exception exception)
-  (assoc context
-         :response (-> (ring-response/response
-                         (with-out-str (println "Error processing request!")
-                                       (println "Exception:\n")
-                                       (println (format-exception exception))
-                                       (println "\nContext:\n")
-                                       (pprint/pprint context)))
-                       (ring-response/status 500))))
-
-(def exception-debug
+(def ^{:deprecated "0.8.0"} exception-debug
   "An interceptor which catches errors, renders them to readable text
   and sends them to the user. This interceptor is intended for
   development time assistance in debugging problems in pedestal
   services. Including it in interceptor paths on production systems
   may present a security risk by exposing call stacks of the
-  application when exceptions are encountered."
-  (interceptor
-    {:name  ::exception-debug
-     :error error-debug}))
+  application when exceptions are encountered.
+
+  DEPRECATED: Use io.pedestal.service.dev/uncaught-exception instead."
+  (assoc dev/uncaught-exception :name ::exception-debug))
 
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
   context map containing :servlet, :servlet-config, :servlet-request,
   and :servlet-response."
-  [interceptors default-context]
+  [interceptors initial-context]
   (let [error-metric-fn (metrics/counter ::base-servlet-error nil)
         *active-calls   (atom 0)]
     (metrics/gauge :io.pedestal/active-servlet-calls nil #(deref *active-calls))
     (fn [^Servlet servlet servlet-request servlet-response]
-      (let [context (-> default-context
+      (let [context (-> initial-context
                         (assoc :servlet-request servlet-request
                                :servlet-response servlet-response
                                :servlet-config (.getServletConfig servlet)
@@ -420,7 +366,7 @@
             (error-metric-fn)
             (log/error :msg "Servlet code threw an exception"
                        :throwable t
-                       :cause-trace (format-exception t)))
+                       :cause-trace (impl/format-exception t)))
           (finally
             (swap! *active-calls dec)))))))
 
@@ -439,13 +385,13 @@
 
   This is normally called automatically from io.pedestal.http/service-fn."
   ([interceptors] (http-interceptor-service-fn interceptors {}))
-  ([interceptors default-context]
-   (http-interceptor-service-fn interceptors default-context nil))
-  ([interceptors default-context options]
+  ([interceptors initial-context]
+   (http-interceptor-service-fn interceptors initial-context nil))
+  ([interceptors initial-context options]
    (interceptor-service-fn
      (into [(create-stylobate options)
             ring-response]
            interceptors)
-     (-> default-context
-         terminator-inject
+     (-> initial-context
+         response/terminate-when-response
          (interceptor.chain/on-enter-async start-servlet-async)))))

@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.resources
+(ns io.pedestal.service.resources
   "Creation of routes to expose file system or classpath resources as GET-able URIs.
 
   This is an alternative to [[io.pedestal.http.ring-middlewares]]
@@ -19,13 +19,13 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             ring.util.time
-            [io.pedestal.http.resources.impl :as impl]
+            [io.pedestal.service.resources.impl :as impl]
             [io.pedestal.http.route.definition.table :as table]))
 
 (def ^:private default-opts
   {:allow-head?     true
    :prefix          "/public"
-   :route-namespace "io.pedestal.http.resources"
+   :route-namespace "io.pedestal.service.resources"
    :index-files?    true
    :cache?          true
    :fast?           true})

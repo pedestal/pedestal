@@ -1,7 +1,7 @@
 (ns resource-playground
   "Used to compare performance of different resource exposing techniques (service-map configuration vs. routes"
   (:require [io.pedestal.http :as http]
-            [io.pedestal.http.resources :as resources]
+            [io.pedestal.service.resources :as resources]
             [io.pedestal.http.route :as route]))
 
 (defn version-handler

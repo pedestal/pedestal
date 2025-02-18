@@ -17,14 +17,14 @@
   or opening a port for HTTP traffic."
   (:require [clojure.string :as string]
             [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
             [io.pedestal.http.servlet :as servlets]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.http.container :as container]
             [io.pedestal.log :as log]
             [clojure.core.async :refer [put! close!]]
             [clojure.java.io :as io]
-            [clj-commons.ansi :as ansi])
+            [io.pedestal.internal :refer [deprecated]]
+            [io.pedestal.service.test :as test])
   (:import (jakarta.servlet.http HttpServlet)
            (java.io ByteArrayInputStream InputStream BufferedInputStream File)
            (java.nio.channels Channels ReadableByteChannel)
@@ -223,9 +223,11 @@
 (defn disable-routing-table-output-fixture
   "A test fixture that disables printing of the routing table, even when development mode
    is enabled.  It also disables ANSI colors in any Pedestal console output
-   (such as deprecation warnings)."
-  {:added "0.7.0"}
+   (such as deprecation warnings).
+
+   DEPRECATED: Use io.pedestal.service.test/disable-routing-table-output-fixture instead."
+  {:added      "0.7.0"
+   :deprecated "0.8.0"}
   [f]
-  (binding [route/*print-routing-table* false
-            ansi/*color-enabled*        false]
-    (f)))
+  (deprecated `disable-routing-table-output-fixture
+    (test/disable-routing-table-output-fixture f)))

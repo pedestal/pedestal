@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the

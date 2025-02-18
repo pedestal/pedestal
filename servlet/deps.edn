@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -10,12 +10,15 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:paths ["src"]
+{:paths ["src"
+         "java"
+         "target/classes"]
  :deps  {org.clojure/clojure              {:mvn/version "1.12.0"}
          io.pedestal/pedestal.log         {:mvn/version "0.8.0-SNAPSHOT"}
          io.pedestal/pedestal.telemetry   {:mvn/version "0.8.0-SNAPSHOT"}
          io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-SNAPSHOT"}
          io.pedestal/pedestal.route       {:mvn/version "0.8.0-SNAPSHOT"}
+         io.pedestal/pedestal.service     {:mvn/version "0.8.0-SNAPSHOT"}
 
          org.clojure/core.async           {:mvn/version "1.6.681"}
 
@@ -29,10 +32,32 @@
                                            :exclusions  [commons-code/commons-codec]}
          crypto-equality/crypto-equality  {:mvn/version "1.0.1"}}
 
+ ;; Requires `clj -X:deps prep`  when downloaded as a git checkout (if via Maven repo, the class will
+ ;; already be compiled into the artifact).
+ ;; Note: compile-java adds the :servlet-api alias to the classpath during compilation.
+ :deps/prep-lib
+ {:ensure "target/classes"
+  :alias  :build
+  :fn     compile-java}
+
+ :io.pedestal/build
+ {:compile-command ["clojure" "-T:build" "compile-java"]}
+
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log         {:local/root "../log"}
                    io.pedestal/pedestal.common      {:local/root "../common"}
                    io.pedestal/pedestal.telemetry   {:local/root "../telemetry"}
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
-                   io.pedestal/pedestal.route       {:local/root "../route"}}}}}
+                   io.pedestal/pedestal.route       {:local/root "../route"}
+                   io.pedestal/pedestal.service     {:local/root "../service"}}}
+  ;; Normally javax.servlet-api comes from the runtime container (e.g., Jetty) but we need it here
+  ;; to compile our servlet and other classes.
+  ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
+  :servlet-api
+  {:extra-deps {jakarta.servlet/jakarta.servlet-api            {:mvn/version "6.0.0"}
+                jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}
+                jakarta.websocket/jakarta.websocket-api        {:mvn/version "2.1.1"}}}
+  ;; clj -T:build <command>
+  :build {:deps       {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
+          :ns-default build}}}
