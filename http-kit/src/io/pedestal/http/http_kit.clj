@@ -62,7 +62,6 @@
                              {:ip   host
                               :port port})
         *server       (atom nil)
-        *join-promise (promise)
         root-handler  (fn [request]
                         ;; TODO: something like stylobate,
                         (let [*async-channel (atom nil)
@@ -97,19 +96,15 @@
         (reset! *server (hk/run-server root-handler
                                        options'))
 
-        ;; TODO: Broken because doesn't work right when restarting a stopped
-        ;; connection.
-        ;; See https://github.com/http-kit/http-kit/pull/589
         (when join?
-          @*join-promise)
+          (hk/server-join @*server))
 
         this)
 
       (stop-connector! [this]
         (when-let [server @*server]
           (hk/server-stop! server)
-          (reset! *server nil)
-          (deliver *join-promise nil))
+          (reset! *server nil))
 
         this)
 

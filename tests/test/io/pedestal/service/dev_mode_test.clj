@@ -30,7 +30,7 @@
   (response {:origin (get-in request [:headers "origin"])}))
 
 (defn fail-page
-  [request]
+  [_request]
   (throw (IllegalStateException. "Gentlemen, failure is not an option.")))
 
 (def routes
