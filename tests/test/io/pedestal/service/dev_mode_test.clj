@@ -30,7 +30,7 @@
   (response {:origin (get-in request [:headers "origin"])}))
 
 (defn fail-page
-  [request]
+  [_request]
   (throw (IllegalStateException. "Gentlemen, failure is not an option.")))
 
 (def routes
@@ -82,6 +82,7 @@
 
 (deftest debug-observer-is-active
   (is (match? {:status 200
+               :headers {:content-type "text/plain"}
                :body   (m/via slurp "HELLO")}
               (response-for :get "/hello")))
 
@@ -99,7 +100,7 @@
   (let [response (response-for :get "/fail")
         body (-> response :body slurp)]
     (is (match? {:status 500
-                 :headers {"Content-Type" "text/plain"}}
+                 :headers {:content-type "text/plain"}}
                 response))
 
     ;; The full output is quite verbose, but these parts indicate that the exception has been formatted

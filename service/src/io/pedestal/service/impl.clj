@@ -51,7 +51,6 @@
                      (Integer/parseInt port)
                      -1)
      :uri          uri
-     :path-info    uri                                      ; specific to Pedestal?
      :query-string query-string}))
 
 (defn  format-exception

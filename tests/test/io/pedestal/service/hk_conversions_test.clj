@@ -19,44 +19,51 @@
            (java.nio ByteBuffer)
            (java.nio.channels Channels)))
 
+;; A macro, just to ensure proper failure location for reporting inside Cursive
+(defmacro assert-conversion
+  [expected-default-content-type expected-value body]
+  `(let [body# ~body
+         [default-content-type# output-body#] (convert-response-body body#)]
+     (is (= ~expected-default-content-type default-content-type#)
+         "mismatch on default content type")
+     (is (instance? InputStream output-body#)
+         "expected an InputStream result")
+     (is (= ~expected-value
+            (slurp output-body#))
+         "mismatch on content of InputStream result")))
+
 (deftest response-byte-buffer
   (let [s          "Are we not men? We are Devo."
         byte-array (.getBytes s "UTF-8")
-        buf        (ByteBuffer/wrap byte-array)
-        stream     (convert-response-body buf)]
-    (is (instance? InputStream stream))
-    (is (= s
-           (slurp stream)))))
+        buf        (ByteBuffer/wrap byte-array)]
+    (assert-conversion "application/octet-stream" s buf)))
 
 (deftest response-async-channel
   (let [s         "Clojure is a dynamic, general-purpose programming language, combining the approachability
   and interactive development of a scripting language with an efficient and robust infrastructure
   for multithreaded programming."
         ch        (go s)
-        converted (convert-response-body ch)]
+        [default-content-type converted] (convert-response-body ch)]
+    (is (= "text/plain" default-content-type))
     (is (= s
            converted))))
 
 (deftest response-async-channel-non-string
-  (let [s         "Clojure is a dialect of Lisp, and shares with Lisp the code-as-data philosophy and a powerful macro system."
-        ch        (go (-> s (.getBytes "UTF-8") ByteBuffer/wrap))
-        stream (convert-response-body ch)]
-    (is (instance? InputStream stream))
-    (is (= s
-           (slurp stream)))))
+  (let [s      "Clojure is a dialect of Lisp, and shares with Lisp the code-as-data philosophy and a powerful macro system."
+        ch     (go (-> s (.getBytes "UTF-8") ByteBuffer/wrap))]
+    (assert-conversion "application/octet-stream" s ch)))
 
 (deftest response-byte-channel
-  (let [file (io/file "file-root/sub/index.html")
-        channel (Channels/newChannel (io/input-stream file))
-        stream (convert-response-body channel)]
-    (is (instance? InputStream stream))
-    (is (= (slurp file)
-           (slurp stream)))))
+  (let [file    (io/file "file-root/sub/index.html")
+        channel (Channels/newChannel (io/input-stream file))]
+    (assert-conversion "application/octet-stream" (slurp file) channel)))
 
 (deftest nil-passes-through-unchanged
-  (is (= nil
+  (is (= [nil nil]
          (convert-response-body nil))))
 
 (deftest input-stream-passes-through-unchanged
-  (let [stream (-> "file-root/test.html" io/file io/input-stream)]
-    (is (identical? stream (convert-response-body stream)))))
+  (let [stream (-> "file-root/test.html" io/file io/input-stream)
+        [content-type result-stream]  (convert-response-body stream)]
+    (is (= "application/octet-stream" content-type))
+    (is (identical? stream result-stream))))

@@ -165,29 +165,24 @@
     :else
     (throw (ex-info "Invalid header value" {:value vs}))))
 
-(defn- set-default-content-type
-  [{:keys [headers body] :or {headers {}} :as resp-map}]
-  (let [content-type (headers "Content-Type")]
-    (update resp-map :headers merge {"Content-Type" (or content-type
-                                                        (default-content-type body))})))
-
 (defn set-response
   ([^HttpServletResponse servlet-resp resp-map]
-   (let [{:keys [status headers]} (set-default-content-type resp-map)]
+   (let [{:keys [status headers]} resp-map]
      (.setStatus servlet-resp status)
      (doseq [[k vs] headers]
        (set-header servlet-resp k vs)))))
 
 (defn- send-response
   [{:keys [^HttpServletResponse servlet-response response] :as context}]
-  (when-not (.isCommitted servlet-response)
-    (set-response servlet-response response))
-  (let [body (:body response)]
+  (let [{:keys [body]} response]
+    (when-not (.isCommitted servlet-response)
+      (set-response servlet-response response))
     (if (satisfies? WriteableBodyAsync body)
       (write-body-async body servlet-response (::resume-channel context) context)
       (do
         (write-body servlet-response body)
-        (.flushBuffer servlet-response)))))
+        (.flushBuffer servlet-response)))
+    context))
 
 ;;; Async handling and Provider bootstrapping
 
@@ -218,7 +213,9 @@
 (defn- send-error
   [context message]
   (log/info :msg "sending error" :message message)
-  (send-response (assoc context :response {:status 500 :body message})))
+  (send-response (assoc context :response {:status  500
+                                           :headers {"Content-Type" "text/plain"}
+                                           :body    message})))
 
 (defn- leave-ring-response
   [{{body :body :as response} :response :as context}]
@@ -236,13 +233,14 @@
 
     (satisfies? WriteableBodyAsync body)
     (let [chan (::resume-channel context (async/chan))]
+      ;; Create a channel that will convey the context after the response
+      ;; has been asynchronously written.  Start copying (which will continue
+      ;; inside the servlet container's threads) and return the channel.
       (send-response (assoc context ::resume-channel chan))
       chan)
 
     :else
-    (do
-      (send-response context)
-      context)))
+    (send-response context)))
 
 (defn- is-broken-pipe?
   "Checks for a broken pipe exception, which (by default) is omitted."
@@ -325,6 +323,21 @@
      :leave leave-ring-response
      :error error-ring-response}))
 
+(def apply-default-content-type
+  "An interceptor that will apply a default content type header,
+  if none has been supplied, and a default can be identified from
+  the response body."
+  (interceptor
+    {:name  ::apply-default-content-type
+     :leave (fn [context]
+              (let [{:keys [response]} context
+                    {:keys [headers body]} response
+                    content-type (get headers "Content-Type")
+                    default-type (when (nil? content-type)
+                                   (default-content-type body))]
+                (cond-> context
+                  default-type (assoc-in [:response :headers "Content-Type"] default-type))))}))
+
 (def ^{:deprecated "0.8.0"} exception-debug
   "An interceptor which catches errors, renders them to readable text
   and sends them to the user. This interceptor is intended for
@@ -390,7 +403,8 @@
   ([interceptors initial-context options]
    (interceptor-service-fn
      (into [(create-stylobate options)
-            ring-response]
+            ring-response
+            apply-default-content-type]
            interceptors)
      (-> initial-context
          response/terminate-when-response

@@ -14,10 +14,11 @@
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]
             [clojure.java.io :as io]
+            [clojure.string :as string]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.service.impl :as impl]
-            [clojure.core.async :refer [<!!]]
+            [clojure.core.async :refer [<!! put! chan]]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.core.async.impl.protocols Channel)
@@ -108,12 +109,12 @@
    (fn [^bytes bytes]
      (ByteArrayInputStream. bytes))})
 
-(defn- capture-context
-  [*prom]
-  (interceptor {:name  ::capture-context
-                :leave (fn [context]
-                         (deliver *prom context)
-                         context)}))
+(defn- convey-response
+  [ch]
+  (interceptor
+    {:name  ::convey-response
+     :leave (fn [context]
+              (put! ch (:response context)))}))
 
 (defn execute-interceptor-chain
   "Executes the interceptor chain for a Ring request, and returns a Ring response.
@@ -122,18 +123,18 @@
 
   The :body of the returned response map will be nil, or InputStream."
   [initial-context interceptors request]
-  (let [request'      (update request :body convert-request-body)
-        *prom         (promise)
-        interceptors' (into [(capture-context *prom)] interceptors)
+  (let [request'      (-> request
+                          (assoc :path-info (:uri request))
+                          (update :body convert-request-body))
+        response-ch   (chan 1)
+        interceptors' (into [(convey-response response-ch)] interceptors)
         _             (-> initial-context
                           (assoc :request request')
                           (chain/execute interceptors'))
-        context'      @*prom
-        response      (:response context')]
+        response      (<!! response-ch)]
     (when-not response
       (throw (ex-info "No :response provided after execution"
-                      {:context context'
-                       :request request})))
+                      {:request request})))
     (-> response
         (select-keys [:status :headers :body])
         (update :body convert-response-body))))
@@ -154,20 +155,27 @@
              {}
              headers))
 
+(defn- convert-response-headers
+  [headers]
+  (reduce-kv (fn [m k v]
+               (assoc m (-> k string/lower-case keyword) v))
+             {}
+             headers))
+
 (defn response-for
   "Works with a [[PedestalConnector]] to test a Ring request map; returns a Ring response map.
 
   The :body of the response map will be either nil, or an InputStream.
+
+  In the response; the :headers map is converted; keys are converted to lower-case
+  and converted to keywords.
 
   Options:
 
   Key      | Value
   ---      |---
   :headers | Map; keys and values are converted from keyword or symbol to string
-  :body    | Body to send (nil, String, File, InputStream)
-
-
-  "
+  :body    | Body to send (nil, String, File, InputStream)"
   [connector request-method url & {:as options}]
   (let [{:keys [headers body]} options
         request (merge
@@ -175,6 +183,7 @@
                    :headers        (create-request-headers headers)
                    :body           body}
                   (impl/parse-url url))]
-    (p/test-request connector request)))
+    (-> (p/test-request connector request)
+        (update :headers convert-response-headers))))
 
 

@@ -68,27 +68,30 @@
 
 (deftest basic-access
   (is (match? {:status 200
+               :headers {:content-type "text/plain"}
                :body   (m/via slurp "HELLO")}
               (response-for :get "/hello"))))
 
 (deftest includes-essential-security-headers
   (is (match? {:status  200
-               :headers {"Strict-Transport-Security"         "max-age=31536000; includeSubdomains"
-                         "X-Frame-Options"                   "DENY"
-                         "X-Content-Type-Options"            "nosniff"
-                         "X-XSS-Protection"                  "1; mode=block"
-                         "X-Download-Options"                "noopen"
-                         "X-Permitted-Cross-Domain-Policies" "none"
-                         "Content-Security-Policy"           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}
+               :headers {:strict-transport-security         "max-age=31536000; includeSubdomains"
+                         :x-frame-options                   "DENY"
+                         :x-content-type-options            "nosniff"
+                         :x-xss-protection                  "1; mode=block"
+                         :x-download-options                "noopen"
+                         :x-permitted-cross-domain-policies "none"
+                         :content-security-policy           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}
               (response-for :get "/hello"))))
 
 (deftest chain-goes-async
   (is (match? {:status 200
+              :headers {:content-type "text/plain"}
                :body   (m/via slurp "ASYNC HELLO")}
               (response-for :get "/async/hello"))))
 
 (deftest edn-response-body
   (is (match? {:status 200
+               :headers {:content-type "application/edn"}
                :body   (m/via #(-> % slurp edn/read-string)
                               {"My-Key" "My-Value"})}
               (response-for :get "/echo/headers" :headers {:My-Key 'My-Value}))))
