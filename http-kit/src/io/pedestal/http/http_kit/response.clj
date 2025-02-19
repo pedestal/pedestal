@@ -11,37 +11,39 @@
 (defprotocol HttpKitResponse
 
   (convert-response-body [body]
-    "Converts a body value to a type compatible with HttpKit."))
+    "Converts a body value to a type compatible with HttpKit.
+
+    Returns a tuple of the default content type to use (or nil), and the body converted to an acceptible type for Http-Kit."))
 
 (extend-protocol HttpKitResponse
 
   nil
-  (convert-response-body [_] _)
+  (convert-response-body [_] [nil nil])
 
   String
-  (convert-response-body [s] s)
+  (convert-response-body [s] ["text/plain" s])
 
   InputStream
-  (convert-response-body [stream] stream)
+  (convert-response-body [stream] ["application/octet-stream" stream])
 
   File
-  (convert-response-body [file] file)
+  (convert-response-body [file] ["application/octet-stream" file])
 
   ByteBuffer
   (convert-response-body [buffer]
-    (impl/byte-buffer->input-stream buffer))
+    ["application/octet-stream" (impl/byte-buffer->input-stream buffer)])
 
   ReadableByteChannel
   (convert-response-body [channel]
-    (impl/byte-channel->input-stream channel))
+    ["application/octet-stream" (impl/byte-channel->input-stream channel)])
 
   Fn
   (convert-response-body [f]
-    (impl/function->input-stream f))
+    ["application/octet-stream" (impl/function->input-stream f)])
 
   IPersistentCollection
   (convert-response-body [coll]
-    (pr-str coll))
+    ["application/edn" (pr-str coll)])
 
   Channel                                                   ; core.async
   (convert-response-body [ch]
@@ -51,4 +53,5 @@
 
   HttpKitResponse
 
-  {:convert-response-body identity})
+  {:convert-response-body (fn [byte-array]
+                            ["application/octet-stream" byte-array])})

@@ -11,7 +11,7 @@
 
 (ns io.pedestal.service.hk-http-test
   "Test Http-Kit connector using HTTP requests (to fully exercise async code paths)."
-  (:require [io.pedestal.http.jetty :as jetty]
+  (:require [io.pedestal.http.http-kit :as http-kit]
             [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.http.response :as response]
             [matcher-combinators.matchers :as m]
@@ -55,7 +55,7 @@
   (-> (service/default-service-map port)
       (service/with-default-interceptors)
       (service/with-routing :sawtooth routes)
-      (jetty/create-connector nil)))
+      (http-kit/create-connector nil)))
 
 (use-fixtures :once
               tc/instrument-specs-fixture
@@ -68,12 +68,15 @@
                       (service/stop! conn))))))
 
 (deftest basic-access
-  (is (match? {:status 200
-               :body   (m/via slurp "HELLO")}
+  (is (match? {:status  200
+               ;; Http-Kit client returns headers with names lowercase keywords
+               :headers {:content-type "text/plain"}
+               :body    (m/via slurp "HELLO")}
               (get! "/hello"))))
 
 
 (deftest async-request-handling
   (is (match? {:status 200
+               :headers {:content-type "text/plain"}
                :body   (m/via slurp "ASYNC HELLO")}
               (get! "/async/hello"))))

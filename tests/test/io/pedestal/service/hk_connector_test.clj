@@ -87,23 +87,27 @@
 
 (deftest basic-access
   (is (match? {:status 200
+               :headers {"Content-Type" "text/plain"}
                :body   (m/via slurp "HELLO")}
               (response-for :get "/hello"))))
 
 
 (deftest chain-goes-async
   (is (match? {:status 200
+               :headers {"Content-Type" "text/plain"}
                :body   (m/via slurp "ASYNC HELLO")}
               (response-for :get "/async/hello"))))
 
 (deftest edn-response-body
   (is (match? {:status 200
+               :headers {"Content-Type" "application/edn"}
                :body   (m/via #(-> % slurp edn/read-string)
                               {"My-Key" "My-Value"})}
               (response-for :get "/echo/headers" :headers {:My-Key 'My-Value}))))
 
 (deftest async-bytes-response
   (is (match? {:status 200
+               :headers {"Content-Type" "application/octet-stream"}
                :body   (m/via slurp "ASYNC BYTES")}
               (response-for :get "/async/bytes"))))
 

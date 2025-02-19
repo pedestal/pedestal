@@ -43,12 +43,23 @@
                 (hk/close channel))
               context)}))
 
+(defn- prepare-response
+  [response]
+  (let [{:keys [body]} response
+        content-type (get-in response [:headers "Content-Type"])
+        [default-content-type body'] (convert-response-body body)]
+    (-> response
+        (assoc :body body')
+        (cond->
+          (and (nil? content-type) default-content-type)
+          (assoc-in [:headers "Content-Type"] default-content-type)))))
+
 (def ^:private response-converter
   (interceptor
     {:name  ::response-converter
      :leave (fn [{:keys [response] :as context}]
               (if (response/response? response)
-                (update-in context [:response :body] convert-response-body)
+                (update context :response prepare-response)
                 (do
                   (log/error :msg "Invalid response"
                              :response response)
@@ -57,36 +68,38 @@
 (defn create-connector
   [service-map options]
   (let [{:keys [host port interceptors initial-context join?]} service-map
-        options'      (merge default-options
-                             options
-                             {:ip   host
-                              :port port})
-        *server       (atom nil)
-        root-handler  (fn [request]
-                        ;; TODO: something like stylobate,
-                        (let [*async-channel (atom nil)
-                              interceptors'  (into [(async-responder *async-channel)
-                                                    response-converter]
-                                                   interceptors)
-                              context        (-> initial-context
-                                                 (assoc :request request)
-                                                 (chain/on-enter-async (fn [_]
-                                                                         (reset! *async-channel (or (:async-channel request)
-                                                                                                    (throw (ex-info "No async channel in request object"
-                                                                                                                    {:request request}))))))
-                                                 (chain/execute interceptors'))]
-                          ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
-                          (if-let [async-channel @*async-channel]
-                            ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
-                            ;; via hk/send!.
-                            {:body async-channel}
-                            (or (:response context)
-                                (do
-                                  (log/error :msg "Execution completed without producing a response"
-                                             :request request)
-                                  {:status  500
-                                   :headers {"Content-Type" "text/plain"}
-                                   :body    "Execution completed without producing a response"})))))]
+        options'     (merge default-options
+                            options
+                            {:ip   host
+                             :port port})
+        *server      (atom nil)
+        root-handler (fn [request]
+                       ;; TODO: something like stylobate,
+                       (let [{:keys [uri]} request
+                             request' (assoc request :path-info uri)
+                             *async-channel (atom nil)
+                             interceptors'  (into [(async-responder *async-channel)
+                                                   response-converter]
+                                                  interceptors)
+                             context        (-> initial-context
+                                                (assoc :request request')
+                                                (chain/on-enter-async (fn [_]
+                                                                        (reset! *async-channel (or (:async-channel request)
+                                                                                                   (throw (ex-info "No async channel in request object"
+                                                                                                                   {:request request}))))))
+                                                (chain/execute interceptors'))]
+                         ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
+                         (if-let [async-channel @*async-channel]
+                           ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
+                           ;; via hk/send!.
+                           {:body async-channel}
+                           (or (:response context)
+                               (do
+                                 (log/error :msg "Execution completed without producing a response"
+                                            :request request)
+                                 {:status  500
+                                  :headers {"Content-Type" "text/plain"}
+                                  :body    "Execution completed without producing a response"})))))]
     (reify p/PedestalConnector
 
       (start-connector! [this]
@@ -111,7 +124,9 @@
       (test-request [_ ring-request]
         (let [*async-response (promise)
               channel         (impl/mock-channel *async-response)
-              sync-response   (root-handler (assoc ring-request :async-channel channel))
+              request         (assoc ring-request
+                                     :async-channel channel)
+              sync-response   (root-handler request)
               response        (if (= (:body sync-response) channel)
                                 (or (deref *async-response 1000 nil)
                                     {:status 500

@@ -122,7 +122,9 @@
 
   The :body of the returned response map will be nil, or InputStream."
   [initial-context interceptors request]
-  (let [request'      (update request :body convert-request-body)
+  (let [request'      (-> request
+                          (assoc :path-info (:uri request))
+                          (update :body convert-request-body))
         *prom         (promise)
         interceptors' (into [(capture-context *prom)] interceptors)
         _             (-> initial-context
@@ -164,10 +166,7 @@
   Key      | Value
   ---      |---
   :headers | Map; keys and values are converted from keyword or symbol to string
-  :body    | Body to send (nil, String, File, InputStream)
-
-
-  "
+  :body    | Body to send (nil, String, File, InputStream)"
   [connector request-method url & {:as options}]
   (let [{:keys [headers body]} options
         request (merge
