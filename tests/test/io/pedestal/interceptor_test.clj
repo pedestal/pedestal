@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -15,7 +15,7 @@
   (:require [clojure.test :refer [deftest is testing]]
             [io.pedestal.internal :as i]
             [clojure.core.async :as async
-             :refer [<! >! go chan timeout <!! >!!]]
+             :refer [<! >! go chan timeout <!! put!]]
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)]))
@@ -70,18 +70,18 @@
 
 (defn deliverer [ch]
   (interceptor {:name  ::deliverer
-                :leave #(do (>!! ch %)
+                :leave #(do (put! ch %)
                             ch)}))
 
 (defn error-deliverer [ch]
   (interceptor {:name  :error-deliverer
                 :error (fn [context _]
-                         (>!! ch context)
+                         (put! ch context)
                          context)}))
 
 (defn enter-deliverer [ch]
   (interceptor {:name  ::deliverer
-                :enter #(do (>!! ch %)
+                :enter #(do (put! ch %)
                             ch)}))
 
 (deftest t-simple-execution
