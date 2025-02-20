@@ -1,3 +1,4 @@
+
 # Pedestal Changelog
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
@@ -11,10 +12,13 @@ to the Jakarta Servlet API from those that are more general.
 **BREAKING CHANGES:**
 
 - Clojure 1.11 is now the minimum supported version
+- Anonymous interceptors are deprecated
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
+- When using terse or verbose routes, a route name in the routing specification will now override 
+  the name of the final interceptor, the handler - see notes below about handler functions and interceptor name
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
@@ -67,6 +71,10 @@ Other changes:
   - `io.pedestal.service.dev` - development/debugging tools
   - `io.pedestal.service.interceptors` - common interceptors
   - `io.pedestal.service.test` - testing w/ Ring request and response (no Servlet API)
+- When converting a handler function to an Interceptor
+  - The :name metadata on the _function_ will be used as the :name of the interceptor
+  - Otherwise, a :name is derived from the function's class
+  - Note that terse and verbose routes may override this name to match the route name
 
 ## 0.7.2 - 1 Nov 2024
 

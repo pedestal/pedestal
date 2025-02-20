@@ -14,7 +14,9 @@
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
-  (:require [io.pedestal.internal :as i])
+  (:require [clojure.string :as string]
+            [io.pedestal.internal :as i]
+            [clj-commons.format.exceptions :as exceptions])
   (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
            (java.io Writer)))
 
@@ -26,6 +28,26 @@
               (str "#Interceptor{:name " (pr-str n) "}")
               "#Interceptor{}")))
 
+(defn- default-handler-name
+  [f]
+  (let [class-name (-> f class .getName)
+        [namespace-name & raw-function-ids] (string/split class-name #"\$")
+        fn-name    (->> raw-function-ids
+                        (map #(string/replace % #"__\d+" ""))
+                        (map exceptions/demangle)
+                        (string/join "/"))]
+    (keyword (exceptions/demangle namespace-name)
+             fn-name)))
+
+(defn- fn->interceptor
+  [f]
+  (let [m                (meta f)
+        interceptor-name (or (:name m)
+                             (default-handler-name f))]
+    {:name  interceptor-name
+     :enter (fn [context]
+              (assoc context :response (f (:request context))))}))
+
 (defprotocol IntoInterceptor
 
   "Conversion into Interceptor, ready for execution as part of an interceptor chain."
@@ -35,48 +57,35 @@
 (extend-protocol IntoInterceptor
 
   IPersistentMap
-  (-interceptor [t] (map->Interceptor t))
+  (-interceptor [m] (map->Interceptor m))
 
   ; This is the `handler` case
   Fn
-  (-interceptor [t]
-    (let [int-meta (meta t)]
-      ;; To some degree, support backwards compatibility
-      ;; But deprecated in 0.7.0
-      (if (or (:interceptor int-meta)
-              (:interceptorfn int-meta))
-        ^{:in   "0.7.0"
-          :noun "support for deferred interceptors (via ^:interceptor metadata)"}
-        (i/deprecated
-          ::deferred-interceptors
-          (-interceptor (t)))
-        ;; This is the standard case, the handler function (which really should only
-        ;; be allowed in the terminal position of a list of interceptors).
-        (-interceptor {:enter (fn [context]
-                                (assoc context :response (t (:request context))))}))))
+  (-interceptor [f]
+    (-interceptor (fn->interceptor f)))
 
   IPersistentList
-  (-interceptor [t]
+  (-interceptor [l]
     ^{:noun "conversion of expressions to interceptors"
       :in   "0.7.0"}
     (i/deprecated ::expression
-      (-interceptor (eval t))))
+      (-interceptor (eval l))))
 
   Cons
-  (-interceptor [t]
+  (-interceptor [c]
     ^{:noun "conversion of expressions to interceptors"
       :in   "0.7.0"}
     (i/deprecated ::expression
-      (-interceptor (eval t))))
+      (-interceptor (eval c))))
 
   Symbol
-  (-interceptor [t] (-interceptor (resolve t)))
+  (-interceptor [sym] (-interceptor (resolve sym)))
 
   Var
-  (-interceptor [t] (-interceptor (deref t)))
+  (-interceptor [v] (-interceptor (deref v)))
 
   Interceptor
-  (-interceptor [t] t))
+  (-interceptor [interceptor] interceptor))
 
 (defn interceptor-name
   "Ensures that an interceptor name (to eventually be the :name key of an Interceptor)
@@ -102,6 +111,13 @@
          true)
     false))
 
+(defn- anon-deprecated
+  [interceptor]
+  (when-not (:name interceptor)
+    ^{:in   "0.8.0"
+      :noun "anonymous (unamed) interceptors"} (i/deprecated ::anon-interceptor))
+  true)
+
 (defn interceptor
   "Given a value, produces and returns an Interceptor (Record)."
   [t]
@@ -110,6 +126,7 @@
                             {:t    t
                              :type (type t)}))
             true)]
-   :post [(valid-interceptor? %)]}
+   :post [(valid-interceptor? %)
+          (anon-deprecated %)]}
   (-interceptor t))
 

@@ -9,7 +9,7 @@ digraph G {
   "pedestal.telemetry" -> "pedestal.common";
   "pedestal.log" -> "pedestal.common";
   "pedestal.telemetry" -> "Open Telemetry";
-  "pedestal.interceptor" -> "pedestal.common", "pedestal.log", "org.clojure/core.async";
+  "pedestal.interceptor" -> "pedestal.common", "pedestal.log", "org.clojure/core.async", "org.clj-commons/pretty;
   "pedestal.error" -> "pedestal.interceptor", "org.clojure/core.match";
   "pedestal.route" -> "pedestal.log", "pedestal.interceptor", "pedestal.common", "org.clojure/core.async", "org.clj-commons/pretty";
 

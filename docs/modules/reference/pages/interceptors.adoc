@@ -141,8 +141,7 @@ represents anything that can be used as an interceptor. Pedestal extends that pr
 | The :enter, :leave, :error, and :name keys are used directly.
 
 | Function
-| The function is interpreted as a link:#handler[handler] (or, rarely, as
-an link:#indirect[indirect interceptor].)
+| The function is interpreted as a link:#handler[handler].
 
 | List
 | The list is evaluated and its result is used as an interceptor. footnote:[This is supported behavior
@@ -224,34 +223,33 @@ position of an interceptor stack.
 Handlers are always synchronous; they must return a response map, they may
 not return a channel that delivers a response map.
 
-[TIP]
-====
-Interceptors generates from handlers are _anonymous_; they do not have a specific name.
-This has some impacts elsewhere: for example, it becomes necessary to specific a route name
-when using a handler function in a route. Additionally, not having an interceptor name can impact
-debugging output during interceptor chain execution.
-====
+Interceptors should always have names
+footnote:[In Pedestal 0.8.0 anonymous interceptors are deprecated; in a future release anonymous interceptors
+may result in a runtime exeption.].  When a handler function is converted to an Interceptor, Pedestal
+will check to see if the function has :name metadata and use that as the Interceptor's name.
 
-[#indirect]
-== Indirect Interceptors
+Failing that, Pedestal will generate an interceptor name from the function's class name; this does not
+always provide ideal results.
 
-When IntoInterceptor is applied to a function _and_ that function has either the :interceptor
-or :interceptorfn metadata, it is not treated as a handler.
-The function will be invoked, and the returned value will itself be converted into an interceptor.
+TIP: Provide a keyword :name metadata on your function.
 
-Note that you will need to carefully put the metadata on the function itself,
-and not on the symbol or Var associated with the function:
+Example:
 
-[clojure]
+[source]
 ----
-    ^{:interceptor true} (fn [] ...)
-----
+ (def version-handler
+      ^{:name ::version} <1>
+      (fn [_request] {:status 200 :body "0.3.7"}))
 
-[WARNING]
-====
-Support for functions with this meta-data (^:interceptor or ^:interceptorfn) is
-*deprecated* in Pedestal 0.7, and may be removed in a future release.
-====
+
+  ; Later, in routes
+
+  ["/api/version" :get version-handler] <2>
+----
+<1> This is metadata applied to the _function_ itself.  If using `defn`, the metadata would be applied
+to the Var.
+<2> Prior to release 0.8.0, this would be an error because there would be no route name; now the route name
+will be the same as the interceptor's name.
 
 == Error Handling
 

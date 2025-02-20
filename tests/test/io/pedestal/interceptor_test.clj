@@ -381,19 +381,26 @@
                   (interceptor {:name :b :enter enter})]))
     (is (= 1 @*count))))
 
-(deftest indirect-interceptor
-  (let [indirect (interceptor {:name ::indirect :enter identity})
-        f1       ^:interceptor (fn [] indirect)
-        f2       ^:interceptorfn (fn [] {:name ::indirect :enter identity})]
-
-    (is (identical? indirect
-                    (interceptor/-interceptor f1)))
-
-    ;; This also shows that the result is converted (from a Map to an Interceptor).
-    (is (= indirect
-           (interceptor/-interceptor f2)))))
-
 (def ^:dynamic *rebindable* nil)
+
+(def custom-handler ^{:name ::custom} (fn [_request] ::custom-response))
+
+(defn anon-handler [_request] ::anon-response)
+
+(deftest handler-to-interceptor-uses-name-meta-key
+  (let [interceptor (interceptor custom-handler)]
+    (is (= {:response ::custom-response} ((-> interceptor :enter) nil)))
+    (is (= ::custom (:name interceptor)))))
+
+(deftest handler-to-interceptor-default-name
+  (let [interceptor (interceptor anon-handler)]
+    (is (= {:response ::anon-response} ((-> interceptor :enter) nil)))
+    (is (= ::anon-handler (:name interceptor)))))
+
+(deftest default-name-from-inline
+  ;; The extra "fn/" prefix is actually part of deftest
+  (is (= (keyword "io.pedestal.interceptor-test" "fn/foo")
+         (:name (interceptor (fn foo [_request] nil))))))
 
 (deftest interceptor-leave-ordering-after-a-change-in-bindings
   (let [step     (fn [interceptor-name]

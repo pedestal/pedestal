@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -19,7 +19,7 @@
           io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.8"}
           clj-kondo/clj-kondo {:mvn/version "2024.11.14"}
-          org.clj-commons/pretty {:mvn/version "3.3.0"}
+          org.clj-commons/pretty {:mvn/version "3.3.1"}
           babashka/fs {:mvn/version "0.5.23"}}}
 
   ;; Invoked via clj -T:build cve-check
