@@ -2,51 +2,62 @@
 
 Pedestal is composed of multiple libraries, and many of these can be used outside of a Pedestal application.
 
-[%header,cols=3]
+[graphviz]
+----
+digraph G {
+  "pedestal.common" ->  "org.clj-commons/pretty";
+  "pedestal.telemetry" -> "pedestal.common";
+  "pedestal.log" -> "pedestal.common";
+  "pedestal.telemetry" -> "Open Telemetry";
+  "pedestal.interceptor" -> "pedestal.common", "pedestal.log", "org.clojure/core.async";
+  "pedestal.error" -> "pedestal.interceptor", "org.clojure/core.match";
+  "pedestal.route" -> "pedestal.log", "pedestal.interceptor", "pedestal.common", "org.clojure/core.async", "org.clj-commons/pretty";
+
+  "pedestal.service" -> "pedestal.telemetry", "pedestal.intereptor", "pedestal.route",
+    "org.clojure/core.async", "ring/ring.core";
+    "pedestal.servlet" -> "pedestal.service", "Jakarta Servlet APIs";
+    "pedestal.jetty" -> "pedestal.servlet", "jetty-service, ...";
+    "pedestal.http-kit" -> "pedestal.service", "http-kit/http-kit";
+
+
+}
+----
+
+[%header,cols=2]
 .Pedestal Libraries Summary
 |===
 | Library Name
 | Description
-| Dependencies
 
 | pedestal.common
 | Common functionality and internal utilities.
-|
 
 | pedestal.telemetry
 | Wrapper around https://opentelemetry.io/[Open Telemetry] for generating application metrics and tracing.
-| pedestal.common
 
 | pedestal.log
 | Wrapper around https://www.slf4j.org/[Simple Logging Facade for Java]
-| pedestal.common
 
 | pedestal.interceptor
 | Asynchronous xref:interceptors.adoc[interceptor pipeline]
-| pedestal.log, pedestal.common, {core_async}
 
 | pedestal.error
 | Simple error catching for interceptors
-| pedestal.interceptor, org.clojure/core.match
 
 | pedestal.route
 | HTTP request xref:routing-quick-reference.adoc[routing]
-| pedestal.log, pedestal.interceptor, pedestal.common, {core_async}, org.clj-commons/pretty
 
 | pedestal.service
-| Container-agnostic HTTP service support
-| pedestal.log, pedestal.telemetry, pedestal.interceptor, pedestal.route, {core_async},
-  Java Servlet API, Java WebSocket API,
-  https://github.com/ring-clojure/ring[ring/ring-core], org.clj-commons/pretty,
-  several others
+| Connector-agnostic HTTP service support
+
+| pedestal.servlet
+| Servlet-API specific
 
 | pedestal.jetty
-| xref:jetty.adoc[Jetty 12] container
-| pedestal.log, pedestal.service, Jetty 12 (jetty-service, jetty-ee10-servlet, etc.)
+| xref:jetty.adoc[] connector
 
 | pedestal.http-kit
-|
-| pedestal.log, pedestal.service, https://github.com/http-kit/http-kit[http-kit]
+| xref:http-kit.adoc[] connector
 
 |===
 

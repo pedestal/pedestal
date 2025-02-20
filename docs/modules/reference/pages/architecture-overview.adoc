@@ -32,22 +32,37 @@ application we want to support:
 - Traditional server-rendered pages
 - An API supporting a SPA (Single Page Application)
 - Streaming events
-- Bi-directional WebSockets
+- Bidirectional WebSockets
 - A mix of all of the above
 
 Importantly, supporting streaming events and WebSockets are explicitly asynchronous.
 
-Addressing all of these requirements led us to an architecture that is based on
-_interceptors_, the context map, and an adaptor to the HTTP network connector (for the underlying
-request handling framework).
+[seqdiag]
+----
+seqdiag {
+  "HTTP Client" -> "Network connector" [label = "HTTP Request"]
+  "Network connector" -> "Pedestal connector"
+  "Pedestal connector" -> "Interceptor chain" [label="Executes"]
+  "Interceptor chain" -> "Built-in interceptors"
+  "Interceptor chain" <- "Built-in interceptors"
+  "Interceptor chain" -> "Application interceptors"
+  "Interceptor chain" <- "Application interceptors"
+  "Pedestal connector" <- "Interceptor chain"
+  "Network connector" <- "Pedestal connector"
+  "HTTP Client" <- "Network connector" [label = "HTTP Response"]
+}
+----
 
-image::pedestal-fundament.png[]
+Requests flow in from clients, through the network connector (such as xref:jetty.adoc[]), which in turn,
+delegates to a Pedestal connector to handle the bulk of the request.  This processing takes the form of
+a series of xref:#interceptor[interceptors], in a specific order, each focused on one small part of the processing of the request.
+The interceptor chain manages the execution of the interceptors.
 
-Here, the network occurs at the bottom of the diagram; the interceptor chain provider
-is initialized with the incoming request, and a series of Pedestal and application-specific
-interceptors perform the bulk of the work, resulting in a response that flows back to the
-network connector to be conveyed to the originating client.
+The Pedestal connector provides many of the built-in interceptors that deal with the mechanics of interfacing with
+the chosen Network connector; the application provides additional interceptors for appication-specific behaviors.
 
+
+[#interceptor]
 === Interceptors
 
 Pedestal is far from the first web framework for Clojure, and attempts to expand on ideas

@@ -3,7 +3,7 @@
 :apiroot: https://javadoc.jetty.org/jetty-12
 :HttpConfiguration: {apiroot}/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration]
 
-link:https://jetty.org/docs/jetty/12/index.html[Jetty 12] is the default xref:container.adoc[container] used with Pedestal.
+link:https://jetty.org/docs/jetty/12/index.html[Jetty 12] is the default xref:connector.adoc[connector] used with Pedestal.
 
 == Container Options
 

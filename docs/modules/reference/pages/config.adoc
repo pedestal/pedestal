@@ -1,13 +1,13 @@
 = Configuration
 
 Pedestal primarily is configured via the xref:service-map.adoc[]; however, there are sub-systems within
-Pedestal that can operate outside of a service, or before a service map is used to create and start a server.
+Pedestal that can operate outside a service, or before a service map is used to create and start a server.
 
 These sub-systems are:
 
 - xref:dev-mode.adoc[]
 - xref:logging.adoc[]
-- xref::metrics.adoc[]
+- xref:metrics.adoc[]
 - Tracing
 
 For all but Developer Mode{empty}footnote:[Developer mode is the exception, as it resolves to

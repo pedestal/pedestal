@@ -1,0 +1,37 @@
+= Connector
+:reftext: connector
+:navtitle: Connector
+
+A Pedestal application always works in the context of a _connector_ such as
+xref:jetty.adoc[]; the network connector is responsible for the low-level HTTP/HTTPs networking,
+including support for Websockets and server-sent events.
+
+Once a request has been received, it is passed through
+an interceptor chain  to be processed using the
+xref:interceptors.adoc[] pipeline.
+
+== Embedded
+
+Pedestal applications are primarily run in _embedded_ mode, where the network connector is a library that is part of the runtime classpath.
+
+The xref:service-map.adoc[] is passed to a connector factory function.
+
+Pedestal connectors implement the api:PedestalConnector[ns=io.pedestal.service.protocols] protocol.  When started,
+the Pedestal connector will create, configure, and start the network connector.
+
+Once started, the network connector will receive incoming
+requests and pass those along to Pedestal for actual processing.
+
+== WAR (Web Application Archive)
+
+The alternate setup for a Pedestal application is a WAR file - a packaged version of an application, its code and libraries, configuration, and public resources - that runs inside a standalone servlet connector.
+WAR deployments have a different lifecycle, as the network connector (such as xref:jetty.adoc[]) is its own
+running process, that unpacks and loads the contents of the WAR file.  This means that there isn't a Pedestal connector,
+just the xref:servlet-interceptor.adoc[].
+
+This all requires some careful setup, including omitting certain dependencies from the classpath.
+
+WARNING: More discussion of WAR deployment is forthcoming.
+
+
+

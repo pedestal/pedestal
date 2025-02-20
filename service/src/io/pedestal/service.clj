@@ -67,15 +67,16 @@
   a good default for new applications especially.
 
   The provided route-fragments must extend the [[ExpandableRoutes]] protocol; these will
-  either by [[RoutingFragments]] (from directly invoking a function such as
-  [[table-routes]]) or a data structure (vector, map, or set) that can be explicitly
+  either be [[RoutingFragment]]s (from directly invoking a function such as
+  [[table-routes]]) or a data structure (vector, map, or set) that can be implicitly
   converted to a RoutingFragment.
 
   At least one route fragment is required.
 
-  Evalulates to the service map with a routing interceptor added to the :interceptor key.
+  Evalulates to the service map with two added interceptors:
 
-  In addition, a default interceptor to decode path parameters is added. "
+  - A routing interceptor
+  - A [[path-params-decoder]]"
   [service-map router-constructor & route-fragments]
   `(with-interceptors ~service-map
                       [(route/router (route/routes-from ~@route-fragments)
