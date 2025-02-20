@@ -45,22 +45,28 @@
       ;; But deprecated in 0.7.0
       (if (or (:interceptor int-meta)
               (:interceptorfn int-meta))
+        ^{:in   "0.7.0"
+          :noun "support for deferred interceptors (via ^:interceptor metadata)"}
         (i/deprecated
-          "deferred interceptors (via ^:interceptor metadata)"
+          ::deferred-interceptors
           (-interceptor (t)))
         ;; This is the standard case, the handler function (which really should only
         ;; be allowed in the terminal position of a list of interceptors).
         (-interceptor {:enter (fn [context]
-                               (assoc context :response (t (:request context))))}))))
+                                (assoc context :response (t (:request context))))}))))
 
   IPersistentList
   (-interceptor [t]
-    (i/deprecated "conversion of expressions to interceptors"
+    ^{:noun "conversion of expressions to interceptors"
+      :in   "0.7.0"}
+    (i/deprecated ::expression
       (-interceptor (eval t))))
 
   Cons
   (-interceptor [t]
-    (i/deprecated "conversion of expressions to interceptors"
+    ^{:noun "conversion of expressions to interceptors"
+      :in   "0.7.0"}
+    (i/deprecated ::expression
       (-interceptor (eval t))))
 
   Symbol
@@ -89,21 +95,21 @@
 (defn valid-interceptor?
   [o]
   (if-let [int-vals (and (interceptor? o)
-                           (vals (select-keys o [:enter :leave :error])))]
+                         (vals (select-keys o [:enter :leave :error])))]
     (and (some identity int-vals)
          (every? fn? (remove nil? int-vals))
-         (or (interceptor-name (:name o)) true) ;; Could return `nil`
+         (or (interceptor-name (:name o)) true)             ;; Could return `nil`
          true)
     false))
 
 (defn interceptor
   "Given a value, produces and returns an Interceptor (Record)."
   [t]
-  {:pre [(if-not (satisfies? IntoInterceptor t)
-           (throw (ex-info "You're trying to use something as an interceptor that isn't supported by the protocol; Perhaps you need to extend it?"
-                           {:t t
-                            :type (type t)}))
-           true)]
+  {:pre  [(if-not (satisfies? IntoInterceptor t)
+            (throw (ex-info "You're trying to use something as an interceptor that isn't supported by the protocol; Perhaps you need to extend it?"
+                            {:t    t
+                             :type (type t)}))
+            true)]
    :post [(valid-interceptor? %)]}
   (-interceptor t))
 

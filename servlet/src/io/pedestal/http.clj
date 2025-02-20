@@ -64,6 +64,7 @@
   DEPRECATED: Use io.pedestal.http.response/edn-response instead."
   {:deprecated "0.8.0"}
   [obj]
+  ^{:in "0.8.0"}
   (deprecated `edn-response
     (response/edn-response obj)))
 
@@ -102,6 +103,7 @@
   DEPRECATED: Use io.pedestal.http.response/response? instead."
   {:deprecated "0.8.0"}
   [resp]
+  ^{:in "0.8.0"}
   (deprecated `response?
     (response/response? resp)))
 
@@ -143,9 +145,11 @@
 
   DEPRECATED: Use io.pedestal.service.interceptors/transit-body-interceptor instead."
   ([iname default-content-type transit-format]
+   ^{:in "0.8.0"}
    (deprecated `transit-body-interceptor
      (interceptors/transit-body-interceptor iname default-content-type transit-format {})))
   ([iname default-content-type transit-format transit-opts]
+   ^{:in "0.8.0"}
    (deprecated `transit-body-interceptor
      (interceptors/transit-body-interceptor iname default-content-type transit-format transit-opts))))
 
@@ -251,8 +255,9 @@
                               (nil? routes) nil
                               ;; This checks for an expanded route; a seq of maps, each presumably a route.
                               (and (seq? routes) (every? map? routes))
-                              (internal/deprecated
-                                "Passing a seq of route maps as :io.pedestal.http/routes in service map"
+                              ^{:in "0.8.0"
+                                :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map"}
+                              (internal/deprecated ::route-maps-seq
                                 (route/expand-routes {:children routes}))
                               :else (throw (ex-info (str "Routes specified in the service map don't fulfill the contract, "
                                                          "they must be expanded routes, a function that returns expanded routes, or a RoutingFragment")
@@ -292,6 +297,7 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   [key-path]
+  ^{:in "0.8.0"}
   (deprecated `default-debug-observer-omit
     (dev/default-debug-observer-omit key-path)))
 
@@ -485,11 +491,14 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   ([context status]
+   ^{:in "0.8.0"}
    (deprecated `respond-with
      (response/respond-with context status)))
   ([context status body]
+   ^{:in "0.8.0"}
    (deprecated `respond-with
      (response/respond-with context status body)))
   ([context status headers body]
+   ^{:in "0.8.0"}
    (deprecated `respond-with
      (response/respond-with context status headers body))))

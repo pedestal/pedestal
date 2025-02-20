@@ -209,5 +209,6 @@
 (defn ^{:deprecated "0.7.0"} sse-setup
   "See start-event-stream. This function is for backward compatibility."
   [& args]
+  ^{:in "0.7.0"}
   (i/deprecated `sse-setup
     (apply start-event-stream args)))
