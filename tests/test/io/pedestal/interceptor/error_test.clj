@@ -11,6 +11,7 @@
 
 (ns io.pedestal.interceptor.error-test
   (:require [clojure.test :refer [deftest is]]
+            [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.test :refer [response-for]]
             [io.pedestal.http :as service]
@@ -52,11 +53,8 @@
       service/service-fn
       ::service/service-fn))
 
-(def app (make-app {::service/routes request-handling-routes}))
-(comment
-  (route/expand-routes request-handling-routes)
-
-  )
+(def app (binding [interceptor/*default-handler-names* false]
+           (make-app {::service/routes request-handling-routes})))
 
 (def url "http://error-dispatch.pedestal/div")
 (def url-two (str url "2"))

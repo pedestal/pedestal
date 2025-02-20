@@ -20,6 +20,16 @@
   (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
            (java.io Writer)))
 
+(def ^:dynamic ^{:added "0.8.0"} *default-handler-names*
+  "If true (the default) then functions converted to interceptor
+  will get a default interceptor name based on the function class name.
+
+  If false, for compatibility, the interceptor will have no :name.
+
+  The system property `io.pedestal.interceptor.disable-default-handler-names`
+  if true, will default this to false."
+  (not (Boolean/getBoolean "io.pedestal.interceptor.disable-default-handler-names")))
+
 (defrecord Interceptor [name enter leave error])
 
 (defmethod print-method Interceptor
@@ -30,14 +40,15 @@
 
 (defn- default-handler-name
   [f]
-  (let [class-name (-> f class .getName)
-        [namespace-name & raw-function-ids] (string/split class-name #"\$")
-        fn-name    (->> raw-function-ids
-                        (map #(string/replace % #"__\d+" ""))
-                        (map exceptions/demangle)
-                        (string/join "/"))]
-    (keyword (exceptions/demangle namespace-name)
-             fn-name)))
+  (when *default-handler-names*
+    (let [class-name (-> f class .getName)
+          [namespace-name & raw-function-ids] (string/split class-name #"\$")
+          fn-name    (->> raw-function-ids
+                          (map #(string/replace % #"__\d+" ""))
+                          (map exceptions/demangle)
+                          (string/join "/"))]
+      (keyword (exceptions/demangle namespace-name)
+               fn-name))))
 
 (defn- fn->interceptor
   [f]

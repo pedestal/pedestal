@@ -34,7 +34,7 @@
   [handler route-name]
   (cond
     (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
-                             (assoc interceptor :name (or route-name interceptor-name)))
+                             (assoc interceptor :name (or interceptor-name route-name)))
     (fn? handler) (handler->interceptor route-name handler)))
 
 

@@ -231,6 +231,18 @@ will check to see if the function has :name metadata and use that as the Interce
 Failing that, Pedestal will generate an interceptor name from the function's class name; this does not
 always provide ideal results.
 
+[WARNING]
+====
+When using xref:terse-syntax.adoc[] or xref:verbose-syntax.adoc[] to define routes,
+the route name is used as a default on the handler interceptor, if it does not have its
+own name. This can cause interceptors to have different names after upgrading to 0.8.0.
+If this is a problem, the default name behavior can be disabled;
+// TODO: This link is slightly broken
+see api:*default-handler-names*[ns=io.pedestal.interceptor] for further details.
+====
+
+
+
 TIP: Provide a keyword :name metadata on your function.
 
 Example:
