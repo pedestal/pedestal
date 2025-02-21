@@ -12,6 +12,7 @@
 (ns ^:no-doc io.pedestal.interceptor.impl
   "Internal namespace subject to change at any time."
   {:added "0.8.0"}
+  (:require clojure.core.async.impl.protocols)
   (:import (clojure.core.async.impl.protocols ReadPort)))
 
 (defn channel?
