@@ -34,7 +34,6 @@ seqdiag {
 }
 ----
 
-
 Either the :enter or :leave function may be omitted without harm.
 
 Logically speaking, interceptors form a queue.
@@ -96,8 +95,8 @@ Further keys are described in the xref:context-map.adoc[] reference.
 [#return]
 == Interceptor Return Values
 
-Interceptor functions must return values. Returning `nil` will cause
-an internal server error.
+Interceptor functions must return the context passed to it, or a modification of that context.
+Returning `nil` will cause an internal server error.
 
 An :enter or :leave function may return a context map directly. In
 this case, processing continues with the next interceptor.
@@ -131,7 +130,8 @@ the channel returned by an interceptor to convey the new context map.
 
 The protocol
 api:IntoInterceptor[ns=io.pedestal.interceptor]
-represents anything that can be used as an interceptor. Pedestal extends that protocol to the following:
+represents anything that can be used as an interceptor.
+Pedestal extends that protocol to the following types:
 
 [cols="1,3"]
 |===
@@ -220,8 +220,7 @@ Because a handler takes one kind of thing (request) and returns a
 different kind of thing (response), it can only be used in the last
 position of an interceptor stack.
 
-Handlers are always synchronous; they must return a response map, they may
-not return a channel that delivers a response map.
+Handlers return a response map; alternately, an asynchronous handler should return a channel that conveys the response map.
 
 Interceptors should always have names
 footnote:[In Pedestal 0.8.0 anonymous interceptors are deprecated; in a future release anonymous interceptors
@@ -240,8 +239,6 @@ If this is a problem, the default name behavior can be disabled;
 // TODO: This link is slightly broken
 see api:*default-handler-names*[ns=io.pedestal.interceptor] for further details.
 ====
-
-
 
 TIP: Provide a keyword :name metadata on your function.
 

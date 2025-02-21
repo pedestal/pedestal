@@ -18,7 +18,8 @@
              :refer [<! >! go chan timeout <!! put!]]
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)]))
+            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)])
+  (:import (java.util.concurrent CountDownLatch TimeUnit)))
 
 (defn trace
   [context direction name]
@@ -32,10 +33,6 @@
 (defn thrower [name]
   (assoc (tracer name)
          :enter (fn [_context] (throw (ex-info "Boom!" {:from name})))))
-
-(defn leave-thrower [name]
-  (assoc (tracer name)
-         :leave (fn [_context] (throw (ex-info "Boom!" {:from name})))))
 
 (defn catcher [name]
   (assoc (tracer name)
@@ -63,25 +60,10 @@
                     (throw (ex-info "This gets swallowed and the channel produced by `go` is closed"
                                     {:from name}))))))
 
-(defn two-channeler [name]
-  (assoc (tracer name)
-         :enter (channel-callback :enter name)
-         :leave (channel-callback :leave name)))
 
 (defn deliverer [ch]
   (interceptor {:name  ::deliverer
                 :leave #(do (put! ch %)
-                            ch)}))
-
-(defn error-deliverer [ch]
-  (interceptor {:name  :error-deliverer
-                :error (fn [context _]
-                         (put! ch context)
-                         context)}))
-
-(defn enter-deliverer [ch]
-  (interceptor {:name  ::deliverer
-                :enter #(do (put! ch %)
                             ch)}))
 
 (deftest t-simple-execution
@@ -496,3 +478,23 @@
                          :a :late}}
                 (<!!? ch)))))
 
+(defn async-handler
+  [_request]
+  (go ::response))
+
+(deftest handler-can-return-channel
+  (let [*capture (atom nil)
+        latch    (CountDownLatch. 1)
+        capturer (interceptor {:name  ::capturer
+                               :leave (fn [context]
+                                        (reset! *capture (:response context))
+                                        (.countDown latch)
+                                        context)})
+        context  (chain/execute nil [capturer
+                                     (interceptor async-handler)])]
+    (is (nil? context)
+        "nil context when it goes async")
+
+    (is (= true (.await latch 1 TimeUnit/SECONDS)))
+
+    (is (= ::response @*capture))))

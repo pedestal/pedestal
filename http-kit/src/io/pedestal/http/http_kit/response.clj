@@ -1,8 +1,19 @@
+; Copyright 2025 Nubank NA
+
+; The use and distribution terms for this software are covered by the
+; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
+; which can be found in the file epl-v10.html at the root of this distribution.
+;
+; By using this software in any fashion, you are agreeing to be bound by
+; the terms of this license.
+;
+; You must not remove this notice, or any other, from this software.
+
 (ns io.pedestal.http.http-kit.response
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
   (:require [io.pedestal.service.impl :as impl]
             [clojure.core.async :refer [<!!]])
-  (:import (clojure.core.async.impl.protocols Channel)
+  (:import (clojure.core.async.impl.protocols ReadPort)
            (clojure.lang Fn IPersistentCollection)
            (java.io File InputStream)
            (java.nio ByteBuffer)
@@ -45,7 +56,7 @@
   (convert-response-body [coll]
     ["application/edn" (pr-str coll)])
 
-  Channel                                                   ; core.async
+  ReadPort                                                   ; core.async
   (convert-response-body [ch]
     (convert-response-body (<!! ch))))
 

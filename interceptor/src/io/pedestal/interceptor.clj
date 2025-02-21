@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -15,7 +15,9 @@
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
   (:require [clojure.string :as string]
+            [clojure.core.async :refer [go <!]]
             [io.pedestal.internal :as i]
+            [io.pedestal.interceptor.impl :as impl]
             [clj-commons.format.exceptions :as exceptions])
   (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
            (java.io Writer)))
@@ -57,7 +59,10 @@
                              (default-handler-name f))]
     {:name  interceptor-name
      :enter (fn [context]
-              (assoc context :response (f (:request context))))}))
+              (let [response (-> context :request f)]
+                (if (impl/channel? response)
+                  (go (assoc context :response (<! response)))
+                  (assoc context :response (f (:request context))))))}))
 
 (defprotocol IntoInterceptor
 
@@ -126,7 +131,7 @@
   [interceptor]
   (when-not (:name interceptor)
     ^{:in   "0.8.0"
-      :noun "anonymous (unamed) interceptors"} (i/deprecated ::anon-interceptor))
+      :noun "anonymous (unnamed) interceptors"} (i/deprecated ::anon-interceptor))
   true)
 
 (defn interceptor

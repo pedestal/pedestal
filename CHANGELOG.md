@@ -75,6 +75,7 @@ Other changes:
   - The :name metadata on the _function_ will be used as the :name of the interceptor
   - Otherwise, a :name is derived from the function's class
   - Note that terse and verbose routes may override this name to match the route name
+  - Handler functions may now be asynchronous, returning a channel that conveys the response
 
 ## 0.7.2 - 1 Nov 2024
 
