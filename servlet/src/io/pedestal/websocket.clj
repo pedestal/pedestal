@@ -186,6 +186,7 @@
   Returns nil."
   {:deprecated "0.8.0"}
   [^ServerContainer container ^String path ws-endpoint-map]
+  ^{:in "0.8.0"}
   (deprecated `add-endpoint
               (let [config (create-server-endpoint-config path ws-endpoint-map)]
                 (.addEndpoint container config)
@@ -195,6 +196,7 @@
   "Adds all websocket endpoints in the path-map."
   {:deprecated "0.8.0"}
   [^ServerContainer container websockets-map]
+  ^{:in "0.8.0"}
   (deprecated `add-endpoints
     (doseq [[path endpoint] websockets-map]
       (add-endpoint container path endpoint))))

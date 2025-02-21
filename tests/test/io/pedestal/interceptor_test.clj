@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -15,10 +15,11 @@
   (:require [clojure.test :refer [deftest is testing]]
             [io.pedestal.internal :as i]
             [clojure.core.async :as async
-             :refer [<! >! go chan timeout <!! >!!]]
+             :refer [<! >! go chan timeout <!! put!]]
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)]))
+            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)])
+  (:import (java.util.concurrent CountDownLatch TimeUnit)))
 
 (defn trace
   [context direction name]
@@ -32,10 +33,6 @@
 (defn thrower [name]
   (assoc (tracer name)
          :enter (fn [_context] (throw (ex-info "Boom!" {:from name})))))
-
-(defn leave-thrower [name]
-  (assoc (tracer name)
-         :leave (fn [_context] (throw (ex-info "Boom!" {:from name})))))
 
 (defn catcher [name]
   (assoc (tracer name)
@@ -63,25 +60,10 @@
                     (throw (ex-info "This gets swallowed and the channel produced by `go` is closed"
                                     {:from name}))))))
 
-(defn two-channeler [name]
-  (assoc (tracer name)
-         :enter (channel-callback :enter name)
-         :leave (channel-callback :leave name)))
 
 (defn deliverer [ch]
   (interceptor {:name  ::deliverer
-                :leave #(do (>!! ch %)
-                            ch)}))
-
-(defn error-deliverer [ch]
-  (interceptor {:name  :error-deliverer
-                :error (fn [context _]
-                         (>!! ch context)
-                         context)}))
-
-(defn enter-deliverer [ch]
-  (interceptor {:name  ::deliverer
-                :enter #(do (>!! ch %)
+                :leave #(do (put! ch %)
                             ch)}))
 
 (deftest t-simple-execution
@@ -381,19 +363,26 @@
                   (interceptor {:name :b :enter enter})]))
     (is (= 1 @*count))))
 
-(deftest indirect-interceptor
-  (let [indirect (interceptor {:name ::indirect :enter identity})
-        f1       ^:interceptor (fn [] indirect)
-        f2       ^:interceptorfn (fn [] {:name ::indirect :enter identity})]
-
-    (is (identical? indirect
-                    (interceptor/-interceptor f1)))
-
-    ;; This also shows that the result is converted (from a Map to an Interceptor).
-    (is (= indirect
-           (interceptor/-interceptor f2)))))
-
 (def ^:dynamic *rebindable* nil)
+
+(def custom-handler ^{:name ::custom} (fn [_request] ::custom-response))
+
+(defn anon-handler [_request] ::anon-response)
+
+(deftest handler-to-interceptor-uses-name-meta-key
+  (let [interceptor (interceptor custom-handler)]
+    (is (= {:response ::custom-response} ((-> interceptor :enter) nil)))
+    (is (= ::custom (:name interceptor)))))
+
+(deftest handler-to-interceptor-default-name
+  (let [interceptor (interceptor anon-handler)]
+    (is (= {:response ::anon-response} ((-> interceptor :enter) nil)))
+    (is (= ::anon-handler (:name interceptor)))))
+
+(deftest default-name-from-inline
+  ;; The extra "fn/" prefix is actually part of deftest
+  (is (= (keyword "io.pedestal.interceptor-test" "fn/foo")
+         (:name (interceptor (fn foo [_request] nil))))))
 
 (deftest interceptor-leave-ordering-after-a-change-in-bindings
   (let [step     (fn [interceptor-name]
@@ -489,3 +478,23 @@
                          :a :late}}
                 (<!!? ch)))))
 
+(defn async-handler
+  [_request]
+  (go ::response))
+
+(deftest handler-can-return-channel
+  (let [*capture (atom nil)
+        latch    (CountDownLatch. 1)
+        capturer (interceptor {:name  ::capturer
+                               :leave (fn [context]
+                                        (reset! *capture (:response context))
+                                        (.countDown latch)
+                                        context)})
+        context  (chain/execute nil [capturer
+                                     (interceptor async-handler)])]
+    (is (nil? context)
+        "nil context when it goes async")
+
+    (is (= true (.await latch 1 TimeUnit/SECONDS)))
+
+    (is (= ::response @*capture))))

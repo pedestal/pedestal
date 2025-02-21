@@ -201,7 +201,9 @@
                                   (.setContextPath context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
     (when websockets
-      (deprecated "non-routed websockets (via the :io.pedestal.http/websockets service map key)"
+      ^{:in "0.8.0"
+        :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)"}
+      (deprecated ::websockets
         (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
                                                                (reify JakartaWebSocketServletContainerInitializer$Configurator
                                                                  (^void accept [_this ^ServletContext _context

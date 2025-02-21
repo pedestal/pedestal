@@ -17,17 +17,14 @@
   error handling, observations, asynchronous executions, and other factors."
   (:require [clojure.core.async :as async]
             [io.pedestal.internal :as i]
+            [io.pedestal.interceptor.impl :as impl]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong
-           (clojure.core.async.impl.protocols Channel)
            (clojure.lang PersistentQueue)))
 
 (declare ^:private execute-continue)
 
-(defn- channel?
-  [c]
-  (instance? Channel c))
 
 (defn- name-for
   [interceptor]
@@ -216,7 +213,7 @@
                                                                 ::queue (pop queue)
                                                                 ::stack (conj stack interceptor))
                                              context-out (try-stage context' interceptor :enter)]
-                                         (if (channel? context-out)
+                                         (if (impl/channel? context-out)
                                            (go-async interceptor :enter context context-out)
                                            (recur context-out)))))))] ;; recur inner loop
           ;; inner loop may return early just to force a rebind when the :bindings
@@ -255,7 +252,7 @@
                                            context-out (if error
                                                          (try-error context' interceptor error)
                                                          (try-stage context' interceptor :leave))]
-                                       (if (channel? context-out)
+                                       (if (impl/channel? context-out)
                                          (go-async interceptor :leave context context-out)
                                          (recur context-out)))))))] ;; recur inner loop
         ;; inner loop may return early just to force a rebind when the :bindings
@@ -317,7 +314,7 @@
 
 (defn on-enter-async
   "Adds a callback function to be executed if the execution goes async, which occurs
-  when an interceptor returns a channel rather than a context map.
+  when an interceptor returns a core.async channel rather than a context map.
 
   The supplied function is appended to the list of such functions.
   All the functions are invoked, but only invoked once (a subsequent interceptor
@@ -435,7 +432,7 @@
 (defn ^{:added "0.7.0"} add-observer
   "Adds an observer function to the execution; observer functions are notified after each interceptor
   executes.  If the interceptor is asynchronous, the notification occurs once the new context
-  is conveyed through the returned channel.
+  is conveyed through the returned core.async channel.
 
   The function is passed an event map:
 

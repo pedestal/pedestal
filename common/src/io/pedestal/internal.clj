@@ -118,21 +118,27 @@
 (def *deprecations (atom #{}))
 
 (defn deprecation-warning
-  [label]
+  [label form-meta]
   (when-not (contains? @*deprecations label)
     (swap! *deprecations conj label)
-    (perr
-      [:yellow
-       [:bold "WARNING: "]
-       label
-       " is deprecated and may be removed in a future release"]
-      [:bold "\nCall stack: ... "]
-      (call-stack 4))))
+    (let [{:keys [noun in]} form-meta]
+      (perr
+        [:yellow
+         [:bold "WARNING: "]
+         (or noun label)
+         " "
+         (if in
+           (list "was deprecated in version "
+                 [:bold in])
+           "has been deprecated")
+         " and may be removed in a future release"]
+        [:bold "\nCall stack: ... "]
+        (call-stack 4)))))
 
 (defmacro deprecated
   [label & body]
   `(do
-     (deprecation-warning ~label)
+     (deprecation-warning ~label ~(meta &form))
      ~@body))
 
 (defn reset-deprecations

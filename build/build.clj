@@ -185,6 +185,11 @@
       (run! #(deploy-jar (assoc % :sign-key-id sign-key-id)) artifacts-data)))
   (println "done"))
 
+(defn install
+  "Installs all libraries to local Maven repository."
+  [_]
+  (deploy-all {:force true :dry-run true}))
+
 (defn update-version
   "Updates the version of the library.
 

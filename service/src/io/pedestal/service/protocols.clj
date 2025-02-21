@@ -30,7 +30,7 @@
 
 
 (defprotocol PedestalConnector
-  "A connector to an HTTP stack, created from a service map.
+  "A connector to an HTTP network adaptor, created from a service map.
 
   The connector, once started, will handle incoming requests and outgoing responses, building
   on the interceptors and initial context provided in the service map."

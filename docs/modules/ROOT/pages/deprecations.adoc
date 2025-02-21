@@ -26,6 +26,10 @@ In `io.pedestal.websocket`, the following functions are deprecated:
 - add-endpoint
 - add-endpoints
 
+In `io.pedestal.interceptor`
+- Support for the deferred interceptors (via :interceptor or :interceptorfn metadata) was removed
+- Anonymous interceptor are deprecated
+
 == 0.7.0
 
 In _most_ cases, Pedestal can now emit a warning the first time a deprecated function, macro,

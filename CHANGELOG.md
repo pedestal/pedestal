@@ -1,3 +1,4 @@
+
 # Pedestal Changelog
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
@@ -11,6 +12,7 @@ to the Jakarta Servlet API from those that are more general.
 **BREAKING CHANGES:**
 
 - Clojure 1.11 is now the minimum supported version
+- Anonymous interceptors are deprecated
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
@@ -67,6 +69,13 @@ Other changes:
   - `io.pedestal.service.dev` - development/debugging tools
   - `io.pedestal.service.interceptors` - common interceptors
   - `io.pedestal.service.test` - testing w/ Ring request and response (no Servlet API)
+- When converting a handler function to an Interceptor
+  - The :name metadata on the _function_ will be used as the :name of the interceptor
+  - Otherwise, a :name is derived from the function's class
+  - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
+    of the interceptor; now interceptors always have names and this does not occur
+  - Default interceptor names from handler can also be turned off, reverting to 0.7.0 behavior
+  - Handler functions may now be asynchronous, returning a channel that conveys the response
 
 ## 0.7.2 - 1 Nov 2024
 

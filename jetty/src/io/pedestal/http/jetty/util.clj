@@ -30,6 +30,7 @@
    - a keyword representation of DispatcherType (see `dispatch-types`)
    - `:all` which generates an EnumSet of all DispatcherTypes"
   ^EnumSet [dispatches]
+  ^{:in "0.8.0"}
   (deprecated `dispatcher-set
     (cond
       (instance? EnumSet dispatches) dispatches
@@ -46,6 +47,7 @@
 
 (defn  filter-holder
   ^FilterHolder  [^Filter servlet-filter init-params]
+  ^{:in "0.8.0"}
   (deprecated `filter-holder
     (let [holder (FilterHolder. servlet-filter)]
       (doseq [[k v] init-params]
@@ -60,6 +62,7 @@
     :path - The pathSpec string that applies to the filter; defaults to '/*'
     :dispatches - A keyword signaling the defaults to :request"
   ^ServletContextHandler [^ServletContextHandler context filter-opts]
+  ^{:in "0.8.0"}
   (deprecated `add-servlet-filter
     (let [{servlet-filter :filter
            path           :path

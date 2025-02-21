@@ -50,7 +50,18 @@ The result of expand-routes is a wrapper around a
 xref:routing-quick-reference.adoc#routing-table[seq of maps]
 that will be passed to the routing contructor function.
 
+== Service Protocols
+
+=== api:PedestalConnector[ns=io.pedestal.service.protocols]
+
+A connector encapsulates a network adapter, such as xref:jetty.adoc[]; a connector
+is responsible for configuring, starting, and stopping the network adapter. In addition,
+a connector can be used for testing.
+
 == Servlet Protocols
+
+These are specific to using Pedestal with a network connector that implements
+the Jakarta Servlet API, such as xref:jetty.adoc[].
 
 === api:WritableBody[ns=io.pedestal.http.impl.servlet-interceptor]
 

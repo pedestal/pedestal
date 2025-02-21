@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -9,5 +9,12 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:deps {org.clojure/clojure    {:mvn/version "1.12.0"}
-        org.clj-commons/pretty {:mvn/version "3.3.1"}}}
+(ns ^:no-doc io.pedestal.interceptor.impl
+  "Internal namespace subject to change at any time."
+  {:added "0.8.0"}
+  (:require clojure.core.async.impl.protocols)
+  (:import (clojure.core.async.impl.protocols ReadPort)))
+
+(defn channel?
+  [c]
+  (instance? ReadPort c))

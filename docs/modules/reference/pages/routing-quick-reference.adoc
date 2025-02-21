@@ -166,7 +166,7 @@ The routes is a seq of routing maps, with the following structure:
    })
 ----
 <1> :route-name is required and must be a keyword; often a qualified keyword. The route name must
-    be unique within the table.
+    be unique within the table. If omitted, the route name will come from the name of the last interceptor for the route.
 <2> Optional, used for documentation only.
 <3> Must start with a leading slash; terms with a leading `:` identify _path parameters_, or
     a leading `*` identifies a wildcard.
