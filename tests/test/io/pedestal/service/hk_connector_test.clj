@@ -17,6 +17,7 @@
             [io.pedestal.http.response :as response]
             [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
+            io.pedestal.http.http-kit.specs
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
             [io.pedestal.service.test :as test]
