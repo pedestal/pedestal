@@ -17,8 +17,6 @@ to the Jakarta Servlet API from those that are more general.
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
-- When using terse or verbose routes, a route name in the routing specification will now override 
-  the name of the final interceptor, the handler - see notes below about handler functions and interceptor name
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*
@@ -74,7 +72,9 @@ Other changes:
 - When converting a handler function to an Interceptor
   - The :name metadata on the _function_ will be used as the :name of the interceptor
   - Otherwise, a :name is derived from the function's class
-  - Note that terse and verbose routes may override this name to match the route name
+  - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
+    of the interceptor; now interceptors always have names and this does not occur
+  - Default interceptor names from handler can also be turned off, reverting to 0.7.0 behavior
   - Handler functions may now be asynchronous, returning a channel that conveys the response
 
 ## 0.7.2 - 1 Nov 2024
