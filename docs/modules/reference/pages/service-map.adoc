@@ -9,6 +9,12 @@ api:*[ns=io.pedestal.http] namespace.  Much of that namespace is deprecated in
 Pedestal 0.8, and replaced with the
 api:*[ns=io.pedestal.connector] namespace, which is centered on the
 xref:connector-map.adoc[].
+
+The service map was developed with the intention that all supported network connectors
+would implement the Jakarta Servlet API (such as xref:jetty.adoc[]); the
+newer xref:connector-map.adoc[] reflects a more generic system where the network connector
+understands HTTP but does _not_ implement the Servlet API, such as
+xref:http-kit.adoc[].
 ====
 
 The service map is a blueprint that Pedestal uses to create all the necessary
