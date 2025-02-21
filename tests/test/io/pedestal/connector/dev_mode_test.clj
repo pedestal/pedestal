@@ -9,13 +9,13 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service.dev-mode-test
+(ns io.pedestal.connector.dev-mode-test
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.http.http-kit :as hk]
             [io.pedestal.http.route.definition.table :as table]
-            [io.pedestal.service :as service]
-            [io.pedestal.service.dev :as dev]
+            [io.pedestal.connector :as connector]
+            [io.pedestal.connector.dev :as dev]
             [matcher-combinators.matchers :as m]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :refer [response]]
@@ -41,13 +41,13 @@
 
 (defn new-connector
   []
-  (-> (service/default-service-map 8080)
-      (service/with-default-interceptors)
+  (-> (connector/default-connector-map 8080)
+      (connector/with-default-interceptors)
       dev/with-dev-interceptors
       (dev/with-interceptor-observer {:omit          dev/default-debug-observer-omit
                                       :changes-only? true
                                       :tap?          true})
-      (service/with-routing :sawtooth routes)
+      (connector/with-routing :sawtooth routes)
       (hk/create-connector nil)))
 
 (def *connector (atom nil))
@@ -107,5 +107,5 @@
     ;; using org.clj-commons/pretty.
 
     (is (string/includes? body "Error processing request!"))
-    (is (string/includes? body "io.pedestal.service.dev-mode-test/fail-page"))
+    (is (string/includes? body "io.pedestal.connector.dev-mode-test/fail-page"))
     (is (string/includes? body "java.lang.IllegalStateException: Gentlemen, failure is not an option"))))

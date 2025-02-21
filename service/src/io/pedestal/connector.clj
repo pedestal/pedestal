@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service
+(ns io.pedestal.connector
   "Replacement for io.pedestal.http that is not (directly) linked to the Jakarta Servlet API and is generally
    simpler to use."
   {:added "0.8.0"}
@@ -24,12 +24,12 @@
             io.pedestal.http.secure-headers
             [io.pedestal.service.interceptors :as interceptors]))
 
-(defn default-service-map
-  "Creates a default service map for the given port and optional host.  host defaults to \"localhost\"
+(defn default-connector-map
+  "Creates a default connector map for the given port and optional host.  host defaults to \"localhost\"
   which is appropriate for local testing (accessible only from the local host),
   but \"0.0.0.0\" (accessible from any TCP/IP connection) is a better option when deployed."
   ([port]
-   (default-service-map "localhost" port))
+   (default-connector-map "localhost" port))
   ([host port]
    {:port            port
     :host            host
@@ -40,13 +40,11 @@
 (defn with-interceptor
   "Appends to the :interceptors in the service map, or does nothing if interceptor is nil.
 
-  interceptor must be an interceptor record."
-  [service-map interceptor]
-  {:pre [(or (nil? interceptor)
-             (interceptor/interceptor? interceptor))]}
+  interceptor must be an interceptor record, or convertable to an interceptor record."
+  [connector-map interceptor]
   (if interceptor
-    (update service-map :interceptors conj interceptor)
-    service-map))
+    (update connector-map :interceptors conj (interceptor/interceptor interceptor))
+    connector-map))
 
 (defn with-interceptors
   "Appends a sequence of interceptors using [[with-interceptor]]."
@@ -116,11 +114,11 @@
   :allowed-origins  | Passed to [[allow-origin]]
   :session-options  | If non-nil, passed to [[session]]
   :extra-mime-types | Passed to [[content-type]]"
-  [service-map & {:as options}]
+  [connector-map & {:as options}]
   (let [{:keys [allowed-origins
                 session-options
                 extra-mime-types]} options]
-    (with-interceptors service-map
+    (with-interceptors connector-map
                        [(tracing/request-tracing-interceptor)
                         interceptors/log-request
                         (when allowed-origins
@@ -142,8 +140,8 @@
 
   This is an alternative to [[file-routes]], and should only be used when file routing would conflict
   with other routes."
-  [service-map file-path]
-  (with-interceptor service-map (ring-middlewares/file file-path)))
+  [connector-map file-path]
+  (with-interceptor connector-map (ring-middlewares/file file-path)))
 
 (defn with-resource-access
   "Adds an interceptor exposing access to resources on the classpath system, routed at root-path; this uses
@@ -153,8 +151,8 @@
 
   This is an alternative to [[resource-routes]], and should only be used when resource routing would conflict
   with other routes."
-  [service-map root-path]
-  (with-interceptor service-map (ring-middlewares/resource root-path)))
+  [connector-map root-path]
+  (with-interceptor connector-map (ring-middlewares/resource root-path)))
 
 (defn start!
   "A convienience function for starting the connector.

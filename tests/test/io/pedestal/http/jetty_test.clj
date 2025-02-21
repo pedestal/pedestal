@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -25,7 +25,8 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.http.jetty :as jetty])
+            [io.pedestal.http.jetty :as jetty]
+            io.pedestal.http.jetty.specs)
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)

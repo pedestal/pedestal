@@ -33,7 +33,7 @@
             [io.pedestal.internal :as internal :refer [deprecated]]
             [io.pedestal.metrics :as metrics]
             [io.pedestal.http.tracing :as tracing]
-            [io.pedestal.service.dev :as dev]
+            [io.pedestal.connector.dev :as dev]
             [io.pedestal.service.interceptors :as interceptors]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]

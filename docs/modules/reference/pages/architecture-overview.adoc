@@ -45,8 +45,8 @@ seqdiag {
   "Pedestal connector" -> "Interceptor chain" [label="Executes"]
   "Interceptor chain" -> "Built-in interceptors"
   "Interceptor chain" <- "Built-in interceptors"
-  "Interceptor chain" -> "Application interceptors"
-  "Interceptor chain" <- "Application interceptors"
+  "Interceptor chain" -> "Application\ninterceptors"
+  "Interceptor chain" <- "Application\ninterceptors"
   "Pedestal connector" <- "Interceptor chain"
   "Network connector" <- "Pedestal connector"
   "HTTP Client" <- "Network connector" [label = "HTTP Response"]

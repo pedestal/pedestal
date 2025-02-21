@@ -21,7 +21,7 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.service :as service]))
+            [io.pedestal.connector :as connector]))
 
 (defn hello-page
   [_request]
@@ -52,9 +52,9 @@
 
 (defn new-connector
   []
-  (-> (service/default-service-map port)
-      (service/with-default-interceptors)
-      (service/with-routing :sawtooth routes)
+  (-> (connector/default-connector-map port)
+      (connector/with-default-interceptors)
+      (connector/with-routing :sawtooth routes)
       (http-kit/create-connector nil)))
 
 (use-fixtures :once
@@ -62,10 +62,10 @@
               (fn [f]
                 (let [conn (new-connector)]
                   (try
-                    (service/start! conn)
+                    (connector/start! conn)
                     (f)
                     (finally
-                      (service/stop! conn))))))
+                      (connector/stop! conn))))))
 
 (deftest basic-access
   (is (match? {:status  200

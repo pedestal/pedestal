@@ -2,13 +2,21 @@
 :reftext: connector
 :navtitle: Connector
 
-A Pedestal application always works in the context of a _connector_ such as
+A Pedestal application always works in the context of a _network connector_ such as
 xref:jetty.adoc[]; the network connector is responsible for the low-level HTTP/HTTPs networking,
 including support for Websockets and server-sent events.
 
 Once a request has been received, it is passed through
-an interceptor chain  to be processed using the
+an interceptor chain to be processed using the
 xref:interceptors.adoc[] pipeline.
+
+A Pedestal connector is created from a xref:connector-map.adoc[]; the Pedestal connector
+manages the lifecycle of the network connector, and transforms from the network connector's
+APIs to Pedestal's.
+
+The namespaces api:*[ns=io.pedestal.connector] and api:*[ns=io.pedestal.connector.dev] provide functions to create
+and configure the connector map.
+
 
 == Embedded
 
@@ -32,6 +40,3 @@ just the xref:servlet-interceptor.adoc[].
 This all requires some careful setup, including omitting certain dependencies from the classpath.
 
 WARNING: More discussion of WAR deployment is forthcoming.
-
-
-
