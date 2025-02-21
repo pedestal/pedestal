@@ -135,7 +135,11 @@
   true)
 
 (defn interceptor
-  "Given a value, produces and returns an Interceptor (Record)."
+  "Given a value, produces and returns an Interceptor (Record)
+
+  t can be anything that extends the [[IntoInterceptor]] protocol; notably, this includes functions, which
+  will be wrapped as interceptors, but act as handlers (a handler receives the request map and returns
+  the response map)."
   [t]
   {:pre  [(if-not (satisfies? IntoInterceptor t)
             (throw (ex-info "You're trying to use something as an interceptor that isn't supported by the protocol; Perhaps you need to extend it?"

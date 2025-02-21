@@ -8,7 +8,7 @@
 ; the terms of this license.
 ;
 ; You must not remove this notice, or any other, from this software.
-(ns io.pedestal.service.dev
+(ns io.pedestal.connector.dev
   "Optional interceptors and support code used when developing and debugging."
   {:added "0.8.0"}
   (:require [io.pedestal.http.response :as response]
@@ -17,7 +17,7 @@
             [clojure.pprint :refer [pprint]]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.service :as service]
+            [io.pedestal.connector :as connector]
             [io.pedestal.http.cors :as cors]
             [io.pedestal.service.impl :as impl]))
 
@@ -47,9 +47,9 @@
 (defn with-dev-interceptors
   "Adds the [[dev-allow-origin]] and [[exception-debug]] interceptors; these should be used only during
   local development, and should come before other interceptors."
-  [service-map]
-  (service/with-interceptors service-map
-                             [cors/dev-allow-origin uncaught-exception]))
+  [connector-map]
+  (connector/with-interceptors connector-map
+                               [cors/dev-allow-origin uncaught-exception]))
 
 (defn default-debug-observer-omit
   "Default for key paths to ignore when using [[debug-observer]].  This is primarily the
@@ -76,8 +76,8 @@
   logged can be verbose, sensitive, or both.
 
   This modifies the :initial-context key of the service map."
-  ([service-map]
-   (with-interceptor-observer service-map {:omit default-debug-observer-omit}))
-  ([service-map debug-observer-options]
-   (update service-map :initial-context
+  ([connector-map]
+   (with-interceptor-observer connector-map {:omit default-debug-observer-omit}))
+  ([connector-map debug-observer-options]
+   (update connector-map :initial-context
            chain/add-observer (chain.debug/debug-observer debug-observer-options))))

@@ -10,6 +10,12 @@ Once a request has been received, it is passed through
 an interceptor chain  to be processed using the
 xref:interceptors.adoc[] pipeline.
 
+A connector is created from a xref:connector-map.adoc[].
+
+The namespaces api:*[ns=io.pedestal.connector] and api:*[ns=io.pedestal.connector.dev] provide functions to create
+and configure the connector map.
+
+
 == Embedded
 
 Pedestal applications are primarily run in _embedded_ mode, where the network connector is a library that is part of the runtime classpath.
@@ -32,6 +38,3 @@ just the xref:servlet-interceptor.adoc[].
 This all requires some careful setup, including omitting certain dependencies from the classpath.
 
 WARNING: More discussion of WAR deployment is forthcoming.
-
-
-

@@ -19,7 +19,7 @@
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
-            [io.pedestal.service.dev :as dev]
+            [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
             [io.pedestal.metrics :as metrics]
@@ -346,7 +346,7 @@
   may present a security risk by exposing call stacks of the
   application when exceptions are encountered.
 
-  DEPRECATED: Use io.pedestal.service.dev/uncaught-exception instead."
+  DEPRECATED: Use io.pedestal.connector.dev/uncaught-exception instead."
   (assoc dev/uncaught-exception :name ::exception-debug))
 
 (defn- interceptor-service-fn

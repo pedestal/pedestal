@@ -15,7 +15,7 @@
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [go]]
             [io.pedestal.http.response :as response]
-            [io.pedestal.service :as service]
+            [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
@@ -68,9 +68,9 @@
 
 (defn new-connector
   []
-  (-> (service/default-service-map 8080)
-      (service/with-default-interceptors)
-      (service/with-routing :sawtooth routes)
+  (-> (connector/default-connector-map 8080)
+      (connector/with-default-interceptors)
+      (connector/with-routing :sawtooth routes)
       (hk/create-connector nil)))
 
 (use-fixtures :once
