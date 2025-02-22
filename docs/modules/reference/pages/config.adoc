@@ -88,8 +88,15 @@ will be anonymous instead).
 A function that returns an instance of api:MetricSource[ns=io.pedestal.metrics.spi] used to create metrics used by
 Pedestal or applications.
 
-The default get the value from
+The default is to get the value from
 `io.opentelemetry.api.GlobalOpenTelemetry.getMeter(java.lang.String)`.
+
+=== io.pedestal.telemetry.metric-value-type / PEDESTAL_METRICS_VALUE_TYPE
+
+- type: keyword (:long or :double)
+- default: :long
+
+The kind of values provided to the api:MetricSource[ns=io.pedestal.metrics.spi].
 
 === io.pedestal.telemetry.tracing-source/ PEDESTAL_TRACING_SOURCE
 

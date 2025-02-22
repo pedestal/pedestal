@@ -75,7 +75,7 @@
                        (ex-message e))])))))
 
 (defn- boolean-resolver
-  [from-source from-name val]
+  [_ _ val]
   (cond
     (nil? val)
     nil
@@ -87,13 +87,27 @@
     (Boolean/valueOf ^String val)
 
     :else
-    (throw (IllegalArgumentException. (str val " is not a string or boolean ("
-                                           (value-source from-source from-name)
-                                           ")")))))
+    (throw (IllegalArgumentException. (str val " is not a string or boolean")))))
+
+(defn- keyword-resolver
+  [_ _ val]
+  (cond
+    (nil? val)
+    val
+
+    (keyword? val)
+    val
+
+    (string? val)
+    (keyword val)
+
+    :else
+    (throw (IllegalArgumentException. (str val " is not a string or keyword")))))
 
 (def ^:private kw->resolver
   {:fn fn-resolver
-   :boolean boolean-resolver})
+   :boolean boolean-resolver
+   :keyword keyword-resolver})
 
 (defn read-config
   "Reads a configuration value, and converts it to a particular type.
@@ -114,8 +128,7 @@
         (let [config-key (keyword property-name)]
           (or (resolver "test configuration key" config-key (get test-config config-key))
               (resolver "configuration key" config-key (get prod-config config-key))))
-        (when (some? default-value)
-          (resolver nil nil default-value)))))
+        (resolver nil nil default-value))))
 
 (defn- truncate-to
   [limit coll]

@@ -80,3 +80,13 @@
 
   (is (= false
          (read-config "_XXX_" "_XXX" :as :boolean :default-value "false"))))
+
+(deftest keyword-config
+  (is (= nil
+         (read-config "_XXX_" "_XXX_" :as :keyword)))
+
+  (is (= ::default
+         (read-config "_XXX_" "_XXX_" :as :keyword :default-value ::default)))
+
+  (is (= :converted
+         (read-config "_XXX_" "_XXX_" :as :keyword :default-value "converted"))))
