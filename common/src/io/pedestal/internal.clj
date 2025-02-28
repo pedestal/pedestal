@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -21,13 +21,13 @@
   [v value]
   (conj (or v []) value))
 
-(defn- read-config
+(defn- read-resource
   [resource-path]
   (when-let [uri (io/resource resource-path)]
     (-> uri slurp edn/read-string)))
 
-(def test-config (read-config "pedestal-test-config.edn"))
-(def prod-config (read-config "pedestal-config.edn"))
+(def test-config (read-resource "pedestal-test-config.edn"))
+(def prod-config (read-resource "pedestal-config.edn"))
 
 (defn- to-sym
   [val]
@@ -48,47 +48,87 @@
     :else
     (throw (IllegalArgumentException. (str val " is not a string or qualified symbol")))))
 
-(defn- resolver
+(defn- value-source
+  [from-source from-name]
+  (if from-source
+    (str "from " from-source " " from-name)
+    "default value"))
+
+(defn- fn-resolver
   [from-source from-name val]
   (when-let [sym (to-sym val)]
-    (let [value-source (if from-source
-                         (str "from " from-source " " from-name)
-                         "default value")]
-      (try
-        (let [v (requiring-resolve sym)]
-          (if v
-            @v
-            (perr [:yellow
-                   [:bold "WARNING: "]
-                   (format "Symbol %s (%s) does not exist"
-                           (str sym)
-                           value-source)])))
-        (catch Exception e
-          (perr [:red
-                 [:bold "ERROR: "]
-                 (format "Could not resolve symbol %s (%s): %s"
+    (try
+      (let [v (requiring-resolve sym)]
+        (if v
+          @v
+          (perr [:yellow
+                 [:bold "WARNING: "]
+                 (format "Symbol %s (%s) does not exist"
                          (str sym)
-                         value-source
-                         (ex-message e))]))))))
+                         (value-source from-source from-name))])))
+      (catch Exception e
+        (perr [:red
+               [:bold "ERROR: "]
+               (format "Could not resolve symbol %s (%s): %s"
+                       (str sym)
+                       (value-source from-source from-name)
+                       (ex-message e))])))))
 
-(defn resolve-var-from
-  "Resolves a var based on a JVM property, environment variable, or a default.
+(defn- boolean-resolver
+  [_ _ val]
+  (cond
+    (nil? val)
+    nil
 
-  Prints a warning if the symbol does not exist or other error requiring the var.
+    (boolean? val)
+    val
+
+    (string? val)
+    (Boolean/valueOf ^String val)
+
+    :else
+    (throw (IllegalArgumentException. (str val " is not a string or boolean")))))
+
+(defn- keyword-resolver
+  [_ _ val]
+  (cond
+    (nil? val)
+    val
+
+    (keyword? val)
+    val
+
+    (string? val)
+    (keyword val)
+
+    :else
+    (throw (IllegalArgumentException. (str val " is not a string or keyword")))))
+
+(def ^:private kw->resolver
+  {:fn fn-resolver
+   :boolean boolean-resolver
+   :keyword keyword-resolver})
+
+(defn read-config
+  "Reads a configuration value, and converts it to a particular type.
+
+  A configuration value may come from a JVM system property, an environment variable,
+  from one of two configuration files, or from a provided default value.
+
+  Prints a warning if the config value does not exist or other error requiriBng the var.
 
   May return nil."
-  ([property-name env-var]
-   (resolve-var-from property-name env-var nil))
-  ([property-name env-var default-var-name]
-   (or (resolver "JVM property" property-name (System/getProperty property-name))
-       (resolver "environment variable" env-var (System/getenv env-var))
-       ;; Defaults can be stored in config files, and the property name becomes a keyword
-       ;; key.  The value can be a string or a qualified symbol.
-       (let [config-key (keyword property-name)]
-         (or (resolver "test configuration key" config-key (get test-config config-key))
-             (resolver "configuration key" config-key (get prod-config config-key))))
-       (when default-var-name
-         (resolver nil nil default-var-name)))))
+  [property-name env-var & {:keys [as default-value]
+                            :or   {as :fn}}]
+  (let [resolver (get kw->resolver as)]
+    (or (resolver "JVM property" property-name (System/getProperty property-name))
+        (resolver "environment variable" env-var (System/getenv env-var))
+        ;; Defaults can be stored in config files, and the property name becomes a keyword
+        ;; key.
+        (let [config-key (keyword property-name)]
+          (or (resolver "test configuration key" config-key (get test-config config-key))
+              (resolver "configuration key" config-key (get prod-config config-key))))
+        (resolver nil nil default-value))))
 
 (defn- truncate-to
   [limit coll]

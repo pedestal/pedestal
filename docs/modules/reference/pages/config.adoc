@@ -1,4 +1,5 @@
 = Configuration
+:page-toclevels: 1
 
 Pedestal primarily is configured via the xref:service-map.adoc[]; however, there are sub-systems within
 Pedestal that can operate outside a service, or before a service map is used to create and start a server.
@@ -43,7 +44,9 @@ The contents of `pedestal-config.edn` (and `pedestal-test-config.edn`) are EDN m
 
 The keys are the JVM property converted to a keyword (for example, :io.pedestal.log.overrideLogger).
 
-The value can be either a qualified symbol, or a string that is converted to a qualified symbol.
+For values that are function types, the config value can be either a qualified symbol, or a string that is converted to a qualified symbol.
+
+For values that are boolean, the config value may be a boolean or a string.
 
 == Configuration Keys
 
@@ -53,34 +56,57 @@ of configuration has its own interpretation of the Var.
 The following section list the current configuration values; each heading identifies the JVM system property,
 then the equivalent environment variable.
 
-io.pedestal.log.overrideLogger / PEDESTAL_LOGGER::
+=== io.pedestal.log.overrideLogger / PEDESTAL_LOGGER
+
+- type: function
 
 Used to create an api:LoggerSource[ns=io.pedestal.log] instance from a logger name;
   If not specified, then `org.slf4j.LoggerFactory.getLogger(java.lang.String)` is used.
 
-io.pedestal.log.formatter / PEDESTAL_LOG_FORMATTER::
+=== io.pedestal.log.formatter / PEDESTAL_LOG_FORMATTER
+
+- type: function
 
 A function used to format a logged event map to a string prior to being passed to the LoggerSource.
 When not specified, clj:pr-str[] is used.
 
-io.pedestal.telemetry.metric-source / PEDESTAL_METRICS_SOURCE::
+[#disable-handler-names]
+=== io.pedestal.interceptor.disable-default-handler-names / PEDESTAL_DISABLE_DEFAULT_HANDLER_NAMES
+
+- type: boolean
+- default: false
+
+If true, then Pedestal will not automatically convert
+xref:interceptors.adoc#handler[handler function] class names to an interceptor name (the interceptor
+will be anonymous instead).
+
+=== io.pedestal.telemetry.metric-source / PEDESTAL_METRICS_SOURCE
+
+- type: function
+- default: api:metric-source[ns=io.pedestal.telemetry.otel-global-init]
 
 A function that returns an instance of api:MetricSource[ns=io.pedestal.metrics.spi] used to create metrics used by
 Pedestal or applications.
-+
-The default, api:metric-source[ns=io.pedestal.telemetry.otel-global-init], gets
-the value from
+
+The default is to get the value from
 `io.opentelemetry.api.GlobalOpenTelemetry.getMeter(java.lang.String)`.
 
-io.pedestal.telemetry.tracing-source/ PEDESTAL_TRACING_SOURCE::
+[#metric-value-type]
+=== io.pedestal.telemetry.metric-value-type / PEDESTAL_METRICS_VALUE_TYPE
+
+- type: keyword (:long or :double)
+- default: :long
+
+The kind of values provided to the api:MetricSource[ns=io.pedestal.metrics.spi].
+
+=== io.pedestal.telemetry.tracing-source/ PEDESTAL_TRACING_SOURCE
+
+- type: function
+- default: api:tracing-source[ns=io.pedestal.telemetry.otel-global-init]
 
 A function that returns an instance of
 api:TracingSource[ns=io.pedestal.tracing.spi], used to emit tracing events.
-+
-The default, api:tracing-source[ns=io.pedestal.telemetry.otel-global-init], gets its value
+
+The default, gets its value
 from `io.opentelemetry.api.GlobalOpenTelemetry.getTracer(java.lang.String)`.
-
-
-
-
 

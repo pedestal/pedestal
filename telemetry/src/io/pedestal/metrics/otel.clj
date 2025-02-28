@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -15,7 +15,8 @@
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.telemetry.internal :as i])
   (:import (io.opentelemetry.api.common Attributes)
-           (io.opentelemetry.api.metrics LongCounter LongHistogram Meter ObservableLongMeasurement)
+           (io.opentelemetry.api.metrics DoubleCounter DoubleHistogram
+                                         LongCounter LongHistogram Meter ObservableDoubleMeasurement ObservableLongMeasurement)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
@@ -28,46 +29,70 @@
 (defn- map->Attributes
   ^Attributes [attributes]
   (i/map->Attributes (when attributes
-                       (dissoc attributes :io.pedestal.metrics/unit :io.pedestal.metrics/description))))
+                       (dissoc attributes
+                               :io.pedestal.metrics/unit
+                               :io.pedestal.metrics/description
+                               :io.pedestal.metrics/value-type))))
+
+(defn- use-doubles?
+  [attributes]
+  (= :double (get attributes :io.pedestal.metrics/value-type spi/metric-value-type)))
 
 (defn- new-counter
   [^Meter meter metric-name attributes]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
+        as-doubles?          (use-doubles? attributes)
         ^LongCounter counter (-> (.counterBuilder meter (convert-metric-name metric-name))
                                  (cond->
+                                   as-doubles? .ofDoubles
                                    description (.setDescription description)
                                    unit (.setUnit unit))
                                  .build)
-        attributes'           (map->Attributes attributes)]
-    (fn
-      ([]
-       (.add counter 1 attributes'))
-      ([increment]
-       (.add counter increment attributes')))))
+        attributes'          (map->Attributes attributes)]
+    (if as-doubles?
+      (fn
+        ([]
+         (.add ^DoubleCounter counter 1.0 attributes'))
+        ([^double increment]
+         (.add ^DoubleCounter counter increment attributes')))
+      (fn
+        ([]
+         (.add ^LongCounter counter 1 attributes'))
+        ([^long increment]
+         (.add ^LongCounter counter increment attributes'))))))
 
 (defn- new-histogram
   [^Meter meter metric-name attributes]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
-        ^LongHistogram histogram (-> (.histogramBuilder meter (convert-metric-name metric-name))
-                                     .ofLongs
-                                     (cond->
-                                       description (.setDescription description)
-                                       unit (.setUnit unit))
-                                     .build)
-        attributes'               (map->Attributes attributes)]
-    (fn [value]
-      (.record histogram value attributes'))))
+        as-longs?   (not (use-doubles? attributes))
+        histogram   (-> (.histogramBuilder meter (convert-metric-name metric-name))
+                        (cond->
+                          as-longs? .ofLongs
+                          description (.setDescription description)
+                          unit (.setUnit unit))
+                        .build)
+        attributes' (map->Attributes attributes)]
+    (if as-longs?
+      (fn [^long value]
+        (.record ^LongHistogram histogram value attributes'))
+      (fn [^double value]
+        (.record ^DoubleHistogram histogram value attributes')))))
 
 (defn- new-gauge
   [^Meter meter metric-name attributes value-fn]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
         attributes' (map->Attributes attributes)
-        callback   (reify Consumer
-                     (accept [_ measurement]
-                       (.record ^ObservableLongMeasurement measurement (value-fn) attributes')))]
+        as-longs?   (not (use-doubles? attributes))
+        callback    (if as-longs?
+                      (reify Consumer
+                        (accept [_ measurement]
+                          (.record ^ObservableLongMeasurement measurement (value-fn) attributes')))
+                      (reify Consumer
+                        (accept [_ measurement]
+                          (.record ^ObservableDoubleMeasurement measurement (value-fn) attributes'))))]
     (-> (.gaugeBuilder meter (convert-metric-name metric-name))
-        .ofLongs
         (cond->
+          as-longs? .ofLongs
           description (.setDescription description)
           unit (.setUnit unit))
         (.buildWithCallback callback))))
@@ -78,10 +103,18 @@
 
 (defn- new-timer
   [^Meter meter metric-name attributes time-source-fn]
-  (let [counter-fn (new-counter meter metric-name attributes)]
+  (let [counter-fn (new-counter meter metric-name attributes)
+        as-longs?  (not (use-doubles? attributes))]
     (fn start-timer []
       (let [start-nanos (time-source-fn)
-            *first?     (atom true)]
+            *first?     (atom true)
+            prep-nanos  (if as-longs?
+                          (fn [^long value]
+                            ;; nanos -> millis as a long
+                            (Math/floorDiv value 1000000))
+                          (fn [^long value]
+                            (quot value 1000000)))]
+
         (fn stop-timer []
           ;; Only the first call to the stop timer fn does anything,
           ;; extra calls are ignored.
@@ -89,8 +122,7 @@
             (when (compare-and-set! *first? true false)
               ;; Pass the number of milliseconds to the counter.
               ;; Yes this means we lose fractional amounts of milliseconds.
-              (counter-fn
-                (Math/floorDiv elapsed-nanos 1000000)))))))))
+              (counter-fn (prep-nanos elapsed-nanos)))))))))
 
 
 (defn- default-time-source

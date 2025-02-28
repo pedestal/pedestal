@@ -74,8 +74,9 @@ Other changes:
   - Otherwise, a :name is derived from the function's class
   - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
     of the interceptor; now interceptors always have names and this does not occur
-  - Default interceptor names from handler can also be turned off, reverting to 0.7.0 behavior
+  - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
   - Handler functions may now be asynchronous, returning a channel that conveys the response
+- Metrics can now be configured to accept longs or doubles as their values.
 
 ## 0.7.2 - 1 Nov 2024
 

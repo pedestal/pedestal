@@ -29,8 +29,11 @@
   If false, for compatibility, the interceptor will have no :name.
 
   The system property `io.pedestal.interceptor.disable-default-handler-names`
+  (or environment variable `PEDESTAL_DISABLE_DEFAULT_HANDLER_NAMES`)
   if true, will default this to false."
-  (not (Boolean/getBoolean "io.pedestal.interceptor.disable-default-handler-names")))
+  (not (i/read-config "io.pedestal.interceptor.disable-default-handler-names"
+                      "PEDESTAL_DISABLE_DEFAULT_HANDLER_NAMES"
+                      :as :boolean)))
 
 (defrecord Interceptor [name enter leave error])
 

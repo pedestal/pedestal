@@ -235,9 +235,8 @@ always provide ideal results.
 When using xref:terse-syntax.adoc[] or xref:verbose-syntax.adoc[] to define routes,
 the route name is used as a default on the handler interceptor, if it does not have its
 own name. This can cause interceptors to have different names after upgrading to 0.8.0.
-If this is a problem, the default name behavior can be disabled;
-// TODO: This link is slightly broken
-see api:*default-handler-names*[ns=io.pedestal.interceptor] for further details.
+In the unlikely event that this behavior proves to be a problem, it can be
+xref:config.adoc#disable-handler-names[disabled].
 ====
 
 TIP: Provide a keyword :name metadata on your function.
@@ -247,7 +246,7 @@ Example:
 [source]
 ----
  (def version-handler
-      ^{:name ::version} <1>
+      ^{:name ::get-version} <1>
       (fn [_request] {:status 200 :body "0.3.7"}))
 
 
@@ -256,9 +255,10 @@ Example:
   ["/api/version" :get version-handler] <2>
 ----
 <1> This is metadata applied to the _function_ itself.  If using `defn`, the metadata would be applied
-to the Var.
-<2> Prior to release 0.8.0, this would be an error because there would be no route name; now the route name
-will be the same as the interceptor's name.
+to the Var, not the function.
+<2> Prior to release 0.8.0, this route would be an error,
+because there is no explicit route name; now the route name
+will be the same as the interceptor's name (whether set explicitly, or derived from the function's class name).
 
 == Error Handling
 

@@ -299,9 +299,8 @@ keys and string values for the security headers. Any other keys will be ignored.
 == Server Map
 
 The api:server[] function converts the service map to a server map, along the way,
-initializing a xref:container.adoc[container] (such as
-xref:jetty.adoc[Jetty]); this will add the :http/start-fn and :http/stop-fn keys to the
-service map, yielding the server map.
+initializing a container (such as xref:jetty.adoc[Jetty]);
+this will add the :http/start-fn and :http/stop-fn keys to the service map, yielding the server map.
 
 The api:start[] and api:stop[] functions use the two functions provided by the container function to start
 and stop the container instance.

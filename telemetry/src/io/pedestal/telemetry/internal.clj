@@ -98,7 +98,7 @@
 
 (defn- create
   [what property-name env-var default-var-name]
-  (when-let [v (i/resolve-var-from property-name env-var default-var-name)]
+  (when-let [v (i/read-config property-name env-var :default-value default-var-name)]
     (try
       (v)
       (catch Exception e
