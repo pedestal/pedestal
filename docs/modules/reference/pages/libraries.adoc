@@ -9,17 +9,15 @@ digraph G {
   "pedestal.telemetry" -> "pedestal.common";
   "pedestal.log" -> "pedestal.common";
   "pedestal.telemetry" -> "Open Telemetry";
-  "pedestal.interceptor" -> "pedestal.common", "pedestal.log", "org.clojure/core.async", "org.clj-commons/pretty;
+  "pedestal.interceptor" -> "pedestal.common", "pedestal.log", "org.clojure/core.async", "org.clj-commons/pretty";
   "pedestal.error" -> "pedestal.interceptor", "org.clojure/core.match";
-  "pedestal.route" -> "pedestal.log", "pedestal.interceptor", "pedestal.common", "org.clojure/core.async", "org.clj-commons/pretty";
+  "pedestal.route" -> "pedestal.log", "pedestal.interceptor", "pedestal.common", "org.clojure/core.async";
 
-  "pedestal.service" -> "pedestal.telemetry", "pedestal.intereptor", "pedestal.route",
-    "org.clojure/core.async", "ring/ring.core";
+  "pedestal.service" -> "pedestal.telemetry", "pedestal.intereptor", "pedestal.route", "org.clojure/core.async", "ring/ring.core";
     "pedestal.servlet" -> "pedestal.service", "Jakarta Servlet APIs";
     "pedestal.jetty" -> "pedestal.servlet", "jetty-service, ...";
+    "jetty-service, ..." -> "Jakarta Servlet APIs";
     "pedestal.http-kit" -> "pedestal.service", "http-kit/http-kit";
-
-
 }
 ----
 

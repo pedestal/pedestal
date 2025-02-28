@@ -91,6 +91,7 @@ Pedestal or applications.
 The default is to get the value from
 `io.opentelemetry.api.GlobalOpenTelemetry.getMeter(java.lang.String)`.
 
+[#metric-value-type]
 === io.pedestal.telemetry.metric-value-type / PEDESTAL_METRICS_VALUE_TYPE
 
 - type: keyword (:long or :double)
