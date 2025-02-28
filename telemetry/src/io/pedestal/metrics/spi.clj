@@ -49,7 +49,7 @@
   (counter [source metric-name attributes]
     "Finds or creates a counter metric with the given metric name.
 
-    Values are either longs or doubles, as per [[metric-value-type]]
+    Values are either longs or doubles, as per attribute io.pedestal.metrics/value-type (defaults to [[metric-value-type]]).
 
     Counters should only ever increase.
 
@@ -60,8 +60,8 @@
   (gauge [source metric-name attributes value-fn]
     "Creates, if necessary, a gauge with the given metric name.
 
-    The value-fn will be periodically invoked and should return a long or double value
-    (according to the setting of [[metric-value-type]]).
+    The value-fn will be periodically invoked and should return a long or double value,
+    as per attribute io.pedestal.metrics/value-type (defaults to [[metric-value-type]]).
 
     If called when the gauge already exists, returns without doing anything.
 
@@ -71,7 +71,7 @@
     "Finds or creates a timer, returning the timer's trigger function.
 
     The timer value will be a long number of milliseconds, or a double value of milliseconds,
-    as per [[metric-value-type]].
+    as per attribute io.pedestal.metrics/value-type (defaults to [[metric-value-type]]).
 
     When invoked, the trigger function starts a timer and returns a
     new function that stops the timer and adds the elapsed time to the underlying
@@ -80,7 +80,7 @@
   (histogram [source metric-name attributes]
     "Finds or creates a distribution summary, returning a function.
 
-    Values are either longs or doubles, as per [[metric-value-type]].
+    Values are either longs or doubles, as per attribute io.pedestal.metrics/value-type (defaults to [[metric-value-type]]).
 
     The function is passed a value, to record that value as a new event that will be
     included in the distribution summary."))

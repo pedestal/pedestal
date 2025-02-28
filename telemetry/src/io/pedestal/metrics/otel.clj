@@ -29,20 +29,26 @@
 (defn- map->Attributes
   ^Attributes [attributes]
   (i/map->Attributes (when attributes
-                       (dissoc attributes :io.pedestal.metrics/unit :io.pedestal.metrics/description))))
+                       (dissoc attributes
+                               :io.pedestal.metrics/unit
+                               :io.pedestal.metrics/description
+                               :io.pedestal.metrics/value-type))))
 
-(def ^:private use-longs? (= spi/metric-value-type :long))
+(defn- use-doubles?
+  [attributes]
+  (= :double (get attributes :io.pedestal.metrics/value-type spi/metric-value-type)))
 
 (defn- new-counter
-  [^Meter meter metric-name as-doubles? attributes]
+  [^Meter meter metric-name attributes]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
+        as-doubles?          (use-doubles? attributes)
         ^LongCounter counter (-> (.counterBuilder meter (convert-metric-name metric-name))
                                  (cond->
                                    as-doubles? .ofDoubles
                                    description (.setDescription description)
                                    unit (.setUnit unit))
                                  .build)
-        attributes'           (map->Attributes attributes)]
+        attributes'          (map->Attributes attributes)]
     (if as-doubles?
       (fn
         ([]
@@ -58,14 +64,15 @@
 (defn- new-histogram
   [^Meter meter metric-name attributes]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
-        histogram                 (-> (.histogramBuilder meter (convert-metric-name metric-name))
-                                     (cond->
-                                       use-longs? .ofLongs
-                                       description (.setDescription description)
-                                       unit (.setUnit unit))
-                                     .build)
-        attributes'               (map->Attributes attributes)]
-    (if use-longs?
+        as-longs?   (not (use-doubles? attributes))
+        histogram   (-> (.histogramBuilder meter (convert-metric-name metric-name))
+                        (cond->
+                          as-longs? .ofLongs
+                          description (.setDescription description)
+                          unit (.setUnit unit))
+                        .build)
+        attributes' (map->Attributes attributes)]
+    (if as-longs?
       (fn [^long value]
         (.record ^LongHistogram histogram value attributes'))
       (fn [^double value]
@@ -75,7 +82,8 @@
   [^Meter meter metric-name attributes value-fn]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
         attributes' (map->Attributes attributes)
-        callback    (if use-longs?
+        as-longs?   (not (use-doubles? attributes))
+        callback    (if as-longs?
                       (reify Consumer
                         (accept [_ measurement]
                           (.record ^ObservableLongMeasurement measurement (value-fn) attributes')))
@@ -84,7 +92,7 @@
                           (.record ^ObservableDoubleMeasurement measurement (value-fn) attributes'))))]
     (-> (.gaugeBuilder meter (convert-metric-name metric-name))
         (cond->
-          use-longs? .ofLongs
+          as-longs? .ofLongs
           description (.setDescription description)
           unit (.setUnit unit))
         (.buildWithCallback callback))))
@@ -95,11 +103,12 @@
 
 (defn- new-timer
   [^Meter meter metric-name attributes time-source-fn]
-  (let [counter-fn (new-counter meter metric-name (not use-longs?) attributes)]
+  (let [counter-fn (new-counter meter metric-name attributes)
+        as-longs?  (not (use-doubles? attributes))]
     (fn start-timer []
       (let [start-nanos (time-source-fn)
             *first?     (atom true)
-            prep-nanos  (if use-longs?
+            prep-nanos  (if as-longs?
                           (fn [^long value]
                             ;; nanos -> millis as a long
                             (Math/floorDiv value 1000000))
@@ -145,7 +154,7 @@
        (counter [_ metric-name attributes]
          (let [k [metric-name attributes]]
            (or (get @*counters k)
-               (write-to-cache *counters k (new-counter meter metric-name false attributes)))))
+               (write-to-cache *counters k (new-counter meter metric-name attributes)))))
 
        (gauge [_ metric-name attributes value-fn]
          (let [k [metric-name attributes]]
