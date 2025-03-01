@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.websocket
-  "Utilities needed by Pedestal containers (such as [[io.pedestal.http.jetty]]) to implement
+  "Utilities needed by servlet-based Pedestal containers (such as [[io.pedestal.http.jetty]]) to implement
   WebSocket support using default Servlet API functionality, as well as utilities
   for applications that make use Pedestal's websocket support."
   {:added "0.7.0"}
