@@ -12,7 +12,7 @@
 
 (ns io.pedestal.http.websocket-test
   (:require
-    [clojure.test :refer [deftest is use-fixtures report]]
+    [clojure.test :refer [deftest is use-fixtures]]
     [hato.websocket :as ws]
     [io.pedestal.http :as http]
     [io.pedestal.http.jetty :as jetty]
@@ -20,8 +20,9 @@
     [io.pedestal.http.route.definition.table :as table]
     [io.pedestal.interceptor :as interceptor]
     [io.pedestal.test-common :as tc]
-    [clojure.core.async :refer [chan put! close!] :as async]
+    [clojure.core.async :refer [put! close!]]
     [net.lewisship.trace :refer [trace]]
+    [io.pedestal.async-events :as async-events :refer [<event!! expect-event write-event]]
     [io.pedestal.websocket :as websocket])
   (:import (jakarta.websocket CloseReason CloseReason$CloseCodes)
     #_:clj-kondo/ignore
@@ -30,70 +31,27 @@
 
 (def ws-uri "ws://localhost:8080/ws")
 
-(def events-chan nil)
-
-(defn events-chan-fixture [f]
-  (with-redefs [events-chan (chan 10)]
-    (f)))
 
 (use-fixtures :once tc/instrument-specs-fixture)
 (use-fixtures :each
-              events-chan-fixture)
-
-(defn <event!!
-  []
-  (async/alt!!
-    events-chan ([status-value]
-                 (trace :event status-value)
-                 status-value)
-
-    (async/timeout 75) [::timed-out]))
-
-(defmacro expect-event
-  "
-  Events are expected to be a vector where the first element is the type (:open, :close, :text, etc.).
-  Expects a particular kind of event to be in the channel.
-  Consumes and ignores events until a match is found, or a timeout occurs.
-  Reports a failure on timeout that includes any consumed events.
-
-  Returns the rest of the event (i.e., the type is stripped out) on success, or nil on failure."
-  [expected-kind]
-  `(let [expected-kind# ~expected-kind]
-     (loop [skipped# []]
-       (let [[kind# :as event#] (<event!!)]
-         (cond
-           (= kind# expected-kind#)
-           (do
-             (report {:type :pass})
-             (rest event#))
-
-           (= ::timed-out kind#)
-           (do
-             (report {:type     :fail
-                      :message  "Expected event was not delivered"
-                      :expected expected-kind#
-                      :actual   (conj skipped# event#)})
-             nil)
-
-           :else
-           (recur (conj skipped# event#)))))))
+              async-events/events-chan-fixture)
 
 (def default-endpoint-map
   {:on-open   (fn [session _config]
                 (trace :in :on-open :session session :config _config)
-                (put! events-chan [:open session])
+                (write-event :open session)
                 nil)
    :on-close  (fn [_ _session reason]
                 (trace :in :on-close :session _session :reason reason)
-                (put! events-chan [:close
-                                   (-> reason .getCloseCode .getCode)
-                                   (-> reason .getReasonPhrase)]))
+                (write-event :close
+                             (-> reason .getCloseCode .getCode)
+                             (-> reason .getReasonPhrase)))
    :on-error  (fn [_ _session exception]
-                (put! events-chan [:error exception]))
+                (write-event :error exception))
    :on-text   (fn [_ text]
-                (put! events-chan [:text text]))
+                (write-event :text text))
    :on-binary (fn [_ buffer]
-                (put! events-chan [:binary buffer]))})
+                (write-event :binary buffer))})
 
 (def default-websockets-map {"/ws" default-endpoint-map})
 
@@ -106,7 +64,7 @@
                   context
                   (assoc default-endpoint-map
                          :on-text (fn [_ text]
-                                    (put! events-chan [:text (str prefix " " text)]))))))}))
+                                    (write-event :text (str prefix " " text)))))))}))
 
 (defn ws-server
   [websockets]
@@ -138,7 +96,7 @@
                          :idle-timeout-ms 100000
                          :on-open (fn [session _config]
                                     (reset! *session session)
-                                    (put! events-chan [:open session])))]
+                                    (write-event :open session)))]
     (with-server ws-map
                  (let [config (-> *builder deref .build)]
                    (is (= "/ws" (.getPath config)))
@@ -203,10 +161,10 @@
 
 (deftest text-conversation
   (with-server {"/ws" (conversation-actions {:on-text (fn [send-ch text]
-                                                        (put! events-chan [:text text])
+                                                        (write-event :text text)
                                                         (put! send-ch (str "Hello, " text)))})}
                (let [session @(ws/websocket ws-uri {:on-message (fn [_ws data last?]
-                                                                  (put! events-chan [:client-message data last?]))})]
+                                                                  (write-event :client-message data last?))})]
                  (ws/send! session "Bob")
                  (is (= ["Bob"]
                         (expect-event :text)))
@@ -218,11 +176,11 @@
 (deftest binary-conversation
   (let [response-buffer (ByteBuffer/wrap (.getBytes "We Agree" "utf-8"))]
     (with-server {"/ws" (conversation-actions {:on-binary (fn [send-ch data]
-                                                            (put! events-chan [:binary data])
+                                                            (write-event :binary data)
                                                             (put! send-ch response-buffer))})}
                  (let [buffer  (ByteBuffer/wrap (.getBytes "WebSockets are nifty" "utf-8"))
                        session @(ws/websocket ws-uri {:on-message (fn [_ws data last?]
-                                                                    (put! events-chan [:client-message data last?]))})]
+                                                                    (write-event :client-message data last?))})]
                    (ws/send! session buffer)
                    (.rewind buffer)
 
@@ -236,15 +194,15 @@
 
 (deftest closing-send-channel-shuts-down-connection
   (with-server {"/ws" (conversation-actions {:on-text  (fn [send-ch text]
-                                                         (put! events-chan [:text text])
+                                                         (write-event :text text)
                                                          (when (= "DIE" text)
                                                            (close! send-ch)))
                                              :on-close (fn [_ _ ^CloseReason reason]
                                                          (trace :event :on-close
                                                                 :reason reason)
-                                                         (put! events-chan [:close (.getCloseCode reason)]))})}
+                                                         (write-event :close (.getCloseCode reason)))})}
                (let [session @(ws/websocket ws-uri {:on-message (fn [_ws data last?]
-                                                                  (put! events-chan [:client-message data last?]))
+                                                                  (write-event :client-message data last?))
                                                     :on-error   (fn [_ws err]
                                                                   ;; Doesn't get called when socket closed by server
                                                                   (trace :event :client-error
@@ -254,7 +212,7 @@
                                                                          :reason reason)
                                                                   ;; Client on-close handler does not appear to be
                                                                   ;; invoked.
-                                                                  (put! events-chan [:client-close status-code reason]))})]
+                                                                  (write-event :client-close status-code reason))})]
                  (ws/send! session "Bob")
                  (is (= ["Bob"]
                         (expect-event :text)))
@@ -269,12 +227,12 @@
 (deftest exception-during-open-is-identified
   (let [e (RuntimeException. "on-open exception")]
     (with-server {"/ws" {:on-open  (fn [_session _config]
-                                     (put! events-chan [:open])
+                                     (write-event :open)
                                      (throw e))
                          :on-error (fn [_ _ t]
-                                     (put! events-chan [:error t]))
+                                     (write-event :error t))
                          :on-close (fn [_ _ ^CloseReason reason]
-                                     (put! events-chan [:close (.getCloseCode reason)]))}}
+                                     (write-event :close (.getCloseCode reason)))}}
                  (let [_session @(ws/websocket ws-uri {})]
                    (expect-event :open)
                    (when-let [[t] (expect-event :error)]
@@ -286,17 +244,18 @@
 (deftest exception-during-on-text-is-identified
   (let [e (RuntimeException. "on-text exception")]
     (with-server {"/ws" {:on-text  (fn [_ text]
-                                     (put! events-chan [:text text])
+                                     (write-event :text text)
                                      (throw e))
                          :on-error (fn [_ _ t]
-                                     (put! events-chan [:error (ex-message t)]))
+                                     (write-event :error (ex-message t)))
                          :on-close (fn [_ _ ^CloseReason reason]
-                                     (put! events-chan [:close (-> (.getCloseCode reason) .getCode)
-                                                        (.getReasonPhrase reason)]))}}
+                                     (write-event :close
+                                                  (-> (.getCloseCode reason) .getCode)
+                                                  (.getReasonPhrase reason)))}}
                  (let [session @(ws/websocket ws-uri {:on-error (fn [_ws t]
-                                                                  (put! events-chan [:client-error t]))
+                                                                  (write-event :client-error t))
                                                       :on-close (fn [_ws status-code reason]
-                                                                  (put! events-chan [:client-close status-code reason]))})]
+                                                                  (write-event :client-close status-code reason))})]
                    (ws/send! session "CHOKE")
 
                    (is (= ["CHOKE"]
