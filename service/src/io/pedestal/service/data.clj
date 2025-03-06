@@ -25,6 +25,9 @@
 
   (->byte-array [value]))
 
+(defprotocol ToByteBuffer
+
+  (->byte-buffer [value]))
 
 (extend-protocol ToInputStream
 
@@ -62,6 +65,23 @@
       (.get buffer result)
       result)))
 
+(extend-protocol ToByteBuffer
+
+  nil
+
+  (->byte-buffer [_] (ByteBuffer/allocate 0))
+
+  ByteBuffer
+
+  (->byte-buffer [buf] buf)
+
+  InputStream
+
+  (->byte-buffer [stream]
+    (-> stream
+        ->byte-array
+        ->byte-buffer)))
+
 (extend (Class/forName "[B")
 
   ToInputStream
@@ -69,21 +89,30 @@
   {:->input-stream (fn [byte-array]
                      (ByteArrayInputStream. byte-array))}
 
+  ToByteBuffer
+
+  {:->byte-buffer (fn [byte-array]
+                    (ByteBuffer/wrap byte-array))}
+
   ToByteArray
 
   {:->byte-array (fn [byte-array] byte-array)})
 
 (def ^:private converters
   {:input-stream ->input-stream
-   :byte-array   ->byte-array})
+   :byte-array   ->byte-array
+   :byte-buffer  ->byte-buffer})
 
 (defn convert
-  [format data]
+  "Converts binary data in a supported format (byte array, ByteBuffer, InputStream) to
+  another format (:byte-array, :byte-buffer, or :input-stream). Converting nil results in
+  an empty array/buffer/stream."
+  [format binary-data]
   (let [f (or (get converters format)
               (throw (ex-info (str "unknown format: " format)
                               {:format        format
                                :known-formats (-> converters keys sort)})))]
-    (f data)))
+    (f binary-data)))
 
 
 

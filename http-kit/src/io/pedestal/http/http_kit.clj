@@ -17,12 +17,15 @@
   (:require [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
             [io.pedestal.service.protocols :as p]
+            [io.pedestal.service.websocket :as ws]
             [org.httpkit.server :as hk]
             [io.pedestal.http.http-kit.impl :as impl]
             [io.pedestal.service.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.http-kit.response :refer [convert-response-body]]
-            [io.pedestal.interceptor.chain :as chain]))
+            [io.pedestal.service.data :refer [convert]]
+            [io.pedestal.interceptor.chain :as chain])
+  (:import (org.httpkit.server AsyncChannel)))
 
 (def ^:private default-options
   {:server-header        "Pedestal/http-kit"
@@ -74,9 +77,10 @@
                              :port port})
         *server      (atom nil)
         root-handler (fn [request]
-                       ;; TODO: something like stylobate,
-                       (let [{:keys [uri]} request
-                             request' (assoc request :path-info uri)
+                       (let [{:keys [uri async-channel]} request
+                             request'       (assoc request
+                                                   :websocket-channel-source async-channel
+                                                   :path-info uri)
                              *async-channel (atom nil)
                              interceptors'  (into [(async-responder *async-channel)
                                                    response-converter]
@@ -84,8 +88,8 @@
                              context        (-> initial-context
                                                 (assoc :request request')
                                                 (chain/on-enter-async (fn [_]
-                                                                        (reset! *async-channel (or (:async-channel request)
-                                                                                                   (throw (ex-info "No async channel in request object"
+                                                                        (reset! *async-channel (or async-channel
+                                                                                                   (throw (ex-info "No async channel in request map"
                                                                                                                    {:request request}))))))
                                                 (chain/execute interceptors'))]
                          ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
@@ -136,3 +140,75 @@
           ;; the test contract (nil or InputStream).
           (update response :body test/convert-response-body))))))
 
+(defn- is-byte-array?
+  [value]
+  (and value
+       (-> value .getClass .getName (= "[B"))))
+
+
+(defn- async-channel->websocket-channel
+  "Knit together Pedestal's lifecycle with Http-Kit's."
+  [ch context ws-opts]
+  (let [{:keys [request]} context
+        {:keys [on-open on-close]} ws-opts
+        ;; Http-Kit always wants to setup on-receive before the open, so we do that but allow
+        ;; for the actual callback to be provided later.
+        *on-text    (atom nil)
+        *on-binary  (atom nil)
+        *proc       (atom nil)
+        ws-channel  (reify ws/WebSocketChannel
+
+                      (on-text [_ callback]
+                        (when @*on-text
+                          (throw (ex-info "on-text callback has already been set"
+                                          {:ch ch})))
+
+                        (reset! *on-text callback)
+
+                        nil)
+
+                      (on-binary [_ format callback]
+                        (when @*on-binary
+                          (throw (ex-info "on-binary callback has already been set"
+                                          {:ch ch})))
+
+                        (reset! *on-binary (fn [ws-channel proc raw-binary]
+                                             (callback ws-channel proc (convert format raw-binary))))
+
+                        nil)
+
+                      (send-text! [_ string]
+                        (hk/send! ch string))
+
+                      (send-binary! [_ data]
+                        (let [data' (if (is-byte-array? data)
+                                      data
+                                      (convert :input-stream data))]
+                          (hk/send! ch data')))
+
+                      (close! [_]
+                        (hk/close ch)
+
+                        nil))
+        on-receive  (fn [_ message]
+                      (let [*callback (if (string? message) *on-text *on-binary)
+                            f         @*callback]
+                        (when f
+                          (f ws-channel @*proc message))))
+        ch-opts     (-> {:on-recieve on-receive}
+                        on-open (assoc :on-open
+                                       (fn [_]
+                                         (reset! *proc (on-open ws-channel request))))
+                        on-close (assoc :on-close
+                                        (fn [_ status-code]
+                                          ;; TODO: Convert status-code to proper value
+                                          (on-close ch @*proc status-code))))
+        hk-response (hk/as-channel request ch-opts)]
+    (assoc context :response hk-response)))
+
+(extend-protocol ws/IntoWebSocketChannel
+
+  AsyncChannel
+
+  (into-websocket-channel [ch context ws-opts]
+    (async-channel->websocket-channel ch context ws-opts)))
