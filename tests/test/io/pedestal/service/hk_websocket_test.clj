@@ -10,16 +10,18 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.service.hk-websocket-test
-  (:require [clojure.test :refer [deftest is use-fixtures]]
+  (:require [clojure.string :as string]
+            [clojure.test :refer [deftest is use-fixtures]]
             io.pedestal.http.http-kit
             [io.pedestal.http.route.definition.table :as table]
             [matcher-combinators.matchers :as m]
             [io.pedestal.async-events :as async-events :refer [write-event expect-event <event!!]]
-            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.test-common :as tc]
             [hato.websocket :as ws]
             [io.pedestal.service.websocket :as websocket]
-            [io.pedestal.connector :as connector]))
+            [io.pedestal.connector :as connector])
+  (:import (java.nio ByteBuffer)))
 
 
 (use-fixtures :once tc/instrument-specs-fixture)
@@ -27,7 +29,7 @@
 (use-fixtures :each
               async-events/events-chan-fixture)
 
-(def default-endpoint-map
+(def default-ws-opts
   {:on-open   (fn on-open [channel request]
                 (write-event :open channel)
                 nil)
@@ -39,20 +41,40 @@
                 (write-event :binary buffer))})
 
 (def echo-prefix-interceptor
-  (interceptor/interceptor
+  (interceptor
     {:name  ::echo-prefix
      :enter (fn [context]
               (let [prefix (get-in context [:request :path-params :prefix])]
                 (websocket/upgrade-request-to-websocket
                   context
-                  (assoc default-endpoint-map
+                  (assoc default-ws-opts
                          :on-text (fn [channel _ text]
                                     (write-event :server-text text)
                                     (websocket/send-text! channel (str prefix " " text)))))))}))
 
+(defn- reverse-bytes [^ByteBuffer buf]
+  (let [limit  (.limit buf)
+        result (ByteBuffer/allocate limit)]
+    (dotimes [i limit]
+      (.put result ^byte (.get buf (int (- limit i 1)))))
+    (.flip result)
+    result))
+
+(def byte-reverser-interceptor
+  (interceptor
+    {:name  ::byte-reverser
+     :enter (fn [context]
+              (websocket/upgrade-request-to-websocket
+                context
+                (assoc default-ws-opts
+                       :on-binary (fn [channel _ data]
+                                    (write-event :server-binary data)
+                                    (websocket/send-binary! channel (reverse-bytes data))))))}))
+
 (def routes
   (table/table-routes
-    [["/ws/echo/:prefix" :get [echo-prefix-interceptor]]]))
+    [["/ws/echo/:prefix" :get [echo-prefix-interceptor]]
+     ["/ws/reverser" :get [byte-reverser-interceptor]]]))
 
 
 (def ws-uri "ws://localhost:8080")
@@ -69,7 +91,7 @@
        (finally
          (connector/stop! conn#)))))
 
-(deftest basic-echo
+(deftest send-and-receive-text
   (with-connector routes
     (let [session @(ws/websocket (str ws-uri "/ws/echo/back") {:on-message (fn [_ text _]
                                                                              (write-event :client-text text))})]
@@ -90,5 +112,37 @@
 
       (is (match? [(m/via str "back rub")]
                   (expect-event :client-text))))))
+
+(defn- as-buffer
+  ^ByteBuffer [^String s]
+  (ByteBuffer/wrap (.getBytes s "UTF-8")))
+
+(defn as-string
+  [^ByteBuffer buf]
+  (let [array (byte-array (.limit buf))]
+    (.get buf array)
+    (String. array "UTF-8")))
+
+(deftest send-and-receive-binary
+  (let [client-string "The sky above the port was the color of television, tuned to a dead channel."
+        client-binary (as-buffer client-string)]
+    (with-connector routes
+      (let [session @(ws/websocket (str ws-uri "/ws/reverser") {:on-message (fn [_ data _]
+                                                                              (write-event :client-binary data))})]
+
+        (expect-event :open)
+
+        (ws/send! session client-binary)
+
+        ;; Server sees the binary message from client:
+
+        (is (match? [(m/via as-string client-string)]
+                    (expect-event :server-binary)))
+
+        ;; Client sees the reversed binary message from the server:
+        (is (match? [(m/via as-string (string/reverse client-string))]
+                    (expect-event :client-binary)))))))
+
+
 
 

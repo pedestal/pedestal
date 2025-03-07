@@ -63,4 +63,5 @@
 (defn write-event
   "Writes an event, a tuple of type plus any data, into the channel."
   [type & data]
-  (put! events-chan (apply vector type data)))
+  (let [event (apply vector type data)]
+    (put! events-chan event)))
