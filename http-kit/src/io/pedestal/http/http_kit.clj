@@ -145,14 +145,13 @@
   (and value
        (-> value .getClass .getName (= "[B"))))
 
-
-(defn- async-channel->websocket-channel
+(defn- initialize-websocket*
   "Knit together Pedestal's lifecycle with Http-Kit's."
   [ch context ws-opts]
   (let [{:keys [request]} context
         {:keys [on-open on-close]} ws-opts
         ;; Http-Kit always wants to setup on-receive before the open, so we do that but allow
-        ;; for the actual callback to be provided later.
+        ;; for the actual callback to be provided after the open callback.
         *on-text    (atom nil)
         *on-binary  (atom nil)
         *proc       (atom nil)
@@ -195,20 +194,22 @@
                             f         @*callback]
                         (when f
                           (f ws-channel @*proc message))))
-        ch-opts     (-> {:on-recieve on-receive}
-                        on-open (assoc :on-open
-                                       (fn [_]
-                                         (reset! *proc (on-open ws-channel request))))
-                        on-close (assoc :on-close
-                                        (fn [_ status-code]
-                                          ;; TODO: Convert status-code to proper value
-                                          (on-close ch @*proc status-code))))
-        hk-response (hk/as-channel request ch-opts)]
-    (assoc context :response hk-response)))
+        ch-opts     (cond-> {:on-receive on-receive}
+                      on-open (assoc :on-open
+                                     (fn [_]
+                                       (reset! *proc (on-open ws-channel request))))
+                      on-close (assoc :on-close
+                                      (fn [_ status-code]
+                                        ;; TODO: Convert status-code to proper value
+                                        (on-close ws-channel @*proc status-code))))
+        ;; The :status part is necessary to prevent an exception due to malformed response.
+        hk-response (assoc (hk/as-channel request ch-opts) :status 200)]
+    (assoc context :response hk-response
+           :websocket-channel ws-channel)))
 
-(extend-protocol ws/IntoWebSocketChannel
+(extend-type AsyncChannel
 
-  AsyncChannel
+  ws/InitializeWebSocket
 
-  (into-websocket-channel [ch context ws-opts]
-    (async-channel->websocket-channel ch context ws-opts)))
+  (initialize-websocket [ch context ws-opts]
+    (initialize-websocket* ch context ws-opts)))

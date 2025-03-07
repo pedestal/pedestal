@@ -15,7 +15,7 @@
             [clojure.test :refer [report]]
             [net.lewisship.trace :refer [trace]]))
 
-(def events-chan nil)
+(def ^:private events-chan nil)
 
 (defn events-chan-fixture [f]
   (with-redefs [events-chan (chan 10)]

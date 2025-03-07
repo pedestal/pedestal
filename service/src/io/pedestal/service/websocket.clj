@@ -17,11 +17,7 @@
 
 (defprotocol WebSocketChannel
 
-  "Defines the behavior of an asynchronous WebSocket connection capable of sending and receiving messages.
-
-  :on-open (f channel request) -> proc object
-  :on-close (f channel proc close-reason) -> nil
-  "
+  "Defines the behavior of an asynchronous WebSocket connection capable of sending and receiving messages."
 
   (on-text [this callback]
     "Sets up a callback for received text messages.
@@ -54,16 +50,20 @@
   (close! [this]
     "Closes the channel, preventing further sends or receives.  Returns nil."))
 
-(defprotocol IntoWebSocketChannel
-  "Converts a native value into a WebSocketChannel.  The native value is stored in the
+(defprotocol InitializeWebSocket
+  "Converts a native value (supplied by the network connector) into a WebSocketChannel.
+  Expects the native value to be stored in the
   Ring request map under key :websocket-channel-source."
 
-  (into-websocket-channel [source context ws-opts]
-    "Passed the native channel (specific to the network connector), performs initialization
-to yield a WebSocket, and performs any modification to the context needed."))
+  (initialize-websocket [source context ws-opts]
+    "Passed the native channel (specific to the network connector), the context, and options.
 
-(defn initialize-websocket-channel
-  "Initializes a WebSocket connection for the request stored in the context.
+    Performs initialization to initialize a WebSocketChannel,
+    and performs any modification to the context needed,
+    including setting the :websocket-channel key to the WebSocketChannel instance."))
+
+(defn upgrade-request-to-websocket
+  "Initializes a WebSocketChannel for the request stored in the context.
 
   Returns a modified context map.
 
@@ -71,11 +71,24 @@ to yield a WebSocket, and performs any modification to the context needed."))
 
   :on-open - callback passed the WebSocketChannel and the request map, returns a process object.
 
-  :on-close - callback passed the WebSocketChannel, the process object, and the close reason; return value is ignored."
+  :on-close - callback passed the WebSocketChannel, the process object, and the close reason; return value is ignored.
+
+  :on-text callback passed the WebSocketChannel, the process object, and a String; return value is ignored.
+
+  :on-binary callback passed the WebSocketChannel, the process object, and the binary data (as a ByteBuffer); return value is ignored.
+
+  "
   [context ws-opts]
   (let [{:keys [request]} context
-        source (:websocket-channel-source request)]
-    (into-websocket-channel source context ws-opts)))
+        source (:websocket-channel-source request)
+        {:keys [websocket-channel]
+         :as   context'} (initialize-websocket source context ws-opts)]
+    (when-let [f (:on-text ws-opts)]
+      (on-text websocket-channel f))
+    (when-let [f (:on-binary ws-opts)]
+      (on-binary websocket-channel :byte-buffer f))
+
+    context'))
 
 (defn- async-send!
   [channel message]
