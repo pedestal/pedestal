@@ -194,23 +194,24 @@
                         (when f
                           (f ws-channel @*proc message))))
         ch-opts     (cond-> {:on-receive on-receive
-                             :on-open (fn [_]
-                                        (when-let [f (:on-open ws-opts)]
-                                          (reset! *proc (f ws-channel request)))
+                             :on-open    (fn [_]
+                                           (when-let [f (:on-open ws-opts)]
+                                             (reset! *proc (f ws-channel request)))
 
-                                        (when-let [f (:on-text ws-opts)]
-                                          (ws/on-text ws-channel f))
+                                           (when-let [f (:on-text ws-opts)]
+                                             (ws/on-text ws-channel f))
 
-                                        (when-let [f (:on-binary ws-opts)]
-                                          (ws/on-binary ws-channel :byte-buffer f)))}
+                                           (when-let [f (:on-binary ws-opts)]
+                                             (ws/on-binary ws-channel :byte-buffer f)))}
                       on-close (assoc :on-close
                                       (fn [_ status-code]
                                         ;; TODO: Convert status-code to proper value
                                         (on-close ws-channel @*proc status-code))))
-        ;; The :status part is necessary to prevent an exception due to malformed response.
-        hk-response (assoc (hk/as-channel request ch-opts) :status 200)]
-    (assoc context :response hk-response
-           :websocket-channel ws-channel)))
+        hk-response (hk/as-channel request ch-opts)]
+    (-> context
+        ;; The :status is needed to keep the interceptor terminator checker from complaining.
+        (assoc :response (assoc hk-response :status 200))
+        chain/terminate)))
 
 (extend-type AsyncChannel
 
