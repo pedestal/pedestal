@@ -78,7 +78,8 @@
 
   :on-binary callback passed the WebSocketChannel, the process object, and the binary data (as a ByteBuffer); return value is ignored.
 
-  "
+  Note that in order to override the type of binary data passed to the callback, you must make use of [[on-binary]] from
+  your :on-open callback."
   [context ws-opts]
   ;; The Pedestal Connector is responsible for putting this key into the context:
   (initialize-websocket (:websocket-channel-source context) context ws-opts))
