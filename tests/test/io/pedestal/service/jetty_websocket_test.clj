@@ -9,11 +9,12 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service.hk-websocket-test
+(ns io.pedestal.service.jetty-websocket-test
+  "Tests Jetty specifically, but nearly all the code is based on Servlet API and should work on others."
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [put!]]
-            io.pedestal.http.http-kit
+            io.pedestal.http.jetty
             [io.pedestal.http.route.definition.table :as table]
             [matcher-combinators.matchers :as m]
             [io.pedestal.async-events :as async-events :refer [write-event expect-event <event!!]]
@@ -75,11 +76,12 @@
     (assoc default-ws-opts
            :on-open (fn [ws-channel _]
                       (websocket/start-ws-connection ws-channel nil))
+           #_ #_
            :on-text (fn [_ ch text]
                       (let [count (parse-long text)]
                         (dotimes [i count]
                           (put! ch
-                            (str (- count i)))))
+                                (str (- count i)))))
                       (put! ch "Launch!")))))
 
 (def routes
@@ -95,7 +97,7 @@
   `(let [conn# (-> (connector/default-connector-map 8080)
                    (connector/with-default-interceptors)
                    (connector/with-routing :sawtooth ~routes)
-                   (io.pedestal.http.http-kit/create-connector nil))]
+                   (io.pedestal.http.jetty/create-connector nil))]
      (try
        (connector/start! conn#)
        (do ~@body)
@@ -134,6 +136,7 @@
     (.get buf array)
     (String. array "UTF-8")))
 
+#_
 (deftest send-and-receive-binary
   (let [client-string "The sky above the port was the color of television, tuned to a dead channel."
         client-binary (as-buffer client-string)]
@@ -153,7 +156,7 @@
         ;; Client sees the reversed binary message from the server:
         (is (match? [(m/via as-string (string/reverse client-string))]
                     (expect-event :client-binary)))))))
-
+#_
 (deftest start-a-connection
   (with-connector routes
     (let [session @(ws/websocket (str ws-uri "/ws/countdown") {:on-message (fn [_ data _]

@@ -78,15 +78,14 @@
         *server      (atom nil)
         root-handler (fn [request]
                        (let [{:keys [uri async-channel]} request
-                             request'       (assoc request
-                                                   :websocket-channel-source async-channel
-                                                   :path-info uri)
+                             request'       (assoc request :path-info uri)
                              *async-channel (atom nil)
                              interceptors'  (into [(async-responder *async-channel)
                                                    response-converter]
                                                   interceptors)
                              context        (-> initial-context
-                                                (assoc :request request')
+                                                (assoc :request request'
+                                                       :websocket-channel-source async-channel)
                                                 (chain/on-enter-async (fn [_]
                                                                         (reset! *async-channel (or async-channel
                                                                                                    (throw (ex-info "No async channel in request map"
@@ -194,10 +193,16 @@
                             f         @*callback]
                         (when f
                           (f ws-channel @*proc message))))
-        ch-opts     (cond-> {:on-receive on-receive}
-                      on-open (assoc :on-open
-                                     (fn [_]
-                                       (reset! *proc (on-open ws-channel request))))
+        ch-opts     (cond-> {:on-receive on-receive
+                             :on-open (fn [_]
+                                        (when-let [f (:on-open ws-opts)]
+                                          (reset! *proc (f ws-channel request)))
+
+                                        (when-let [f (:on-text ws-opts)]
+                                          (ws/on-text ws-channel f))
+
+                                        (when-let [f (:on-binary ws-opts)]
+                                          (ws/on-binary ws-channel :byte-buffer f)))}
                       on-close (assoc :on-close
                                       (fn [_ status-code]
                                         ;; TODO: Convert status-code to proper value

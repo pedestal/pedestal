@@ -78,5 +78,5 @@
 
 (s/fdef jetty/create-connector
   :args (s/cat :connector-map ::connector/connector-map
-               :options ::container-options))
+               :options (s/nilable ::container-options)))
 

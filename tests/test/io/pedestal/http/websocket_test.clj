@@ -68,15 +68,15 @@
 
 (defn ws-server
   [websockets]
-  (http/create-server {::http/type       jetty/server
-                       ::http/join?      false
-                       ::http/port       8080
-                       ::http/routes     (route/routes-from
-                                           (table/table-routes {}
-                                                               [["/ws/echo/:prefix"
-                                                                 :get
-                                                                 echo-prefix-interceptor]]))
-                       ::http/websockets websockets}))
+  (http/create-server (cond-> {::http/type   jetty/server
+                               ::http/join?  false
+                               ::http/port   8080
+                               ::http/routes (route/routes-from
+                                               (table/table-routes {}
+                                                                   [["/routed/ws/echo/:prefix"
+                                                                     :get
+                                                                     echo-prefix-interceptor]]))}
+                        websockets (assoc ::http/websockets websockets))))
 
 (defmacro with-server
   [ws-map & body]
@@ -128,8 +128,8 @@
 
 
 (deftest text-via-routed-websocket-connection
-  (with-server default-websockets-map
-               (let [session @(ws/websocket (str ws-uri "/echo/back") {})]
+  (with-server nil
+               (let [session @(ws/websocket (str "ws://localhost:8080/routed/ws/echo/back") {})]
                  (expect-event :open)
 
                  (ws/send! session "hello")

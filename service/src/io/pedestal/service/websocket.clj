@@ -13,6 +13,7 @@
   "WebSocket support abstracted away from the Servlet API."
   {:added "0.8.0"}
   (:require [clojure.core.async :refer [go-loop thread chan <! put!]]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.log :as log]))
 
 (defprotocol WebSocketChannel
@@ -79,16 +80,16 @@
 
   "
   [context ws-opts]
-  (let [{:keys [request]} context
-        source (:websocket-channel-source request)
-        {:keys [websocket-channel]
-         :as   context'} (initialize-websocket source context ws-opts)]
-    (when-let [f (:on-text ws-opts)]
-      (on-text websocket-channel f))
-    (when-let [f (:on-binary ws-opts)]
-      (on-binary websocket-channel :byte-buffer f))
+  ;; The Pedestal Connector is responsible for putting this key into the context:
+  (initialize-websocket (:websocket-channel-source context) context ws-opts))
 
-    context'))
+(defn websocket-interceptor
+  "Creates and returns an interceptor as a wrapper around [[upgrade-request-to-websocket]]."
+  [interceptor-name ws-opts]
+  (interceptor
+    {:name  interceptor-name
+     :enter (fn [context]
+              (upgrade-request-to-websocket context ws-opts))}))
 
 (defn- async-send!
   [channel message]

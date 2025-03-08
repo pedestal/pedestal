@@ -64,4 +64,6 @@
   "Writes an event, a tuple of type plus any data, into the channel."
   [type & data]
   (let [event (apply vector type data)]
-    (put! events-chan event)))
+    (if events-chan
+      (put! events-chan event)
+      (println "*** Late event:" event))))
