@@ -119,7 +119,7 @@
   (as a String, ByteBuffer, InputStream, or byte array) or a tuple of the message and a response channel.
 
   When the response channel is provided, the result of sending the message is written to it:
-  Either the keyword :success, or an Exception thrown when attempting to send the message.
+  Either the keyword :success, :closed, or an Exception thrown when attempting to send the message.
 
   Message delivery is sequential, not parallel.
 
