@@ -241,6 +241,8 @@
 
     (is (= :success (<!!? bin-result-ch)))
 
+    (Thread/sleep 100)
+
     (close! conn)
 
     (is (match? [[:text "text message"]
@@ -283,8 +285,8 @@
                     true)
         channel   (mock-ws-channel acceptor *closed?)
         conn      (websocket/start-ws-connection channel nil)
-        ch-2 (chan 1)
-        ch-3 (chan 1)]
+        ch-2      (chan 1)
+        ch-3      (chan 1)]
     (>!! conn "1")
     (>!! conn ["2" ch-2])
 
@@ -297,7 +299,7 @@
     (is (match? [[:text "1"]
                  [:text "2"]
                  [:text "3"]]
-             @*messages))
+                @*messages))
 
     (is (= false @*closed?))))
 
