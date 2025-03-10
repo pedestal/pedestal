@@ -205,7 +205,6 @@
                                              (ws/on-binary ws-channel :byte-buffer f)))}
                       on-close (assoc :on-close
                                       (fn [_ status-code]
-                                        ;; TODO: Convert status-code to proper value
                                         (on-close ws-channel @*proc status-code))))
         hk-response (hk/as-channel request ch-opts)]
     (-> context

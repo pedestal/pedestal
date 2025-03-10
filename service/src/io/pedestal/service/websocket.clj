@@ -74,6 +74,8 @@
 
   :on-close - callback passed the WebSocketChannel, the process object, and the close reason; return value is ignored.
 
+  The close reason is a keyword, but the values vary slightly between network connectors.
+
   :on-text callback passed the WebSocketChannel, the process object, and a String; return value is ignored.
 
   :on-binary callback passed the WebSocketChannel, the process object, and the binary data (as a ByteBuffer); return value is ignored.
@@ -144,7 +146,7 @@
               (catch Exception ex
                 (log/error :msg "Invalid response channel"
                            :exception ex))))
-          (when-not (= :closed result)
+          (when (not= :closed result)
             (recur)))
         ;; The session is closed when the channel is closed.
         (close! ws-channel)))

@@ -419,6 +419,24 @@
 
 ;;; Support for WebSockets, in the context of io.pedestal.service.websocket
 
+(def ^:private close-codes
+  {1000 :normal
+   1001 :going-away
+   1002 :protocol-error
+   1003 :unsupported
+   1005 :no-status-received
+   1006 :abnormal
+   1007 :invalid-payload-data
+   1008 :policy-violation
+   1009 :message-too-big
+   1010 :mandatory-extension
+   1011 :internal-server-error
+   1015 :tls-handshake})
+
+(defn- convert-close-reason
+  [^CloseReason reason]
+  (-> reason .getCloseCode .getCode  (close-codes :unknown)))
+
 (defn- message-handler
   ^MessageHandler$Whole [ws-channel *proc f]
   (reify MessageHandler$Whole
@@ -466,8 +484,7 @@
 
         :on-close
         (when-let [f (:on-close ws-opts)]
-          ;; TODO: Convert extra from ??? to keyword!
-          (f @*ws-channel @*proc extra))))))
+          (f @*ws-channel @*proc (convert-close-reason extra)))))))
 
 (defn- create-server-endpoint-config
   ^ServerEndpointConfig [^String path request *ws-channel ws-opts]

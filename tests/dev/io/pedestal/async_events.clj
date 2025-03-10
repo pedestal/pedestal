@@ -25,9 +25,7 @@
 (defn <event!!
   []
   (async/alt!!
-    events-chan ([event]
-                 #_(trace :event event)
-                 event)
+    events-chan ([event] event)
 
     ;; A fake event for when things are broken:
     (async/timeout 75) [::timed-out]))
@@ -60,10 +58,22 @@
            :else
            (recur (conj skipped# event#)))))))
 
+(defn available-events!
+  "Collects a series of events, stopping after a 100ms timeout."
+  []
+  (loop [result []]
+    (async/alt!!
+
+      events-chan ([event]
+                   (recur (conj result event)))
+
+      (async/timeout 100) result)))
+
 (defn write-event
   "Writes an event, a tuple of type plus any data, into the channel."
   [type & data]
   (let [event (apply vector type data)]
+    #trace/result event
     (if events-chan
       (put! events-chan event)
       (println "*** Late event:" event))))

@@ -16,7 +16,7 @@
             io.pedestal.http.http-kit
             [io.pedestal.http.route.definition.table :as table]
             [matcher-combinators.matchers :as m]
-            [io.pedestal.async-events :as async-events :refer [write-event expect-event <event!!]]
+            [io.pedestal.async-events :as async-events :refer [write-event expect-event <event!! available-events!]]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.test-common :as tc]
             [hato.websocket :as ws]
@@ -79,14 +79,22 @@
                       (let [count (parse-long text)]
                         (dotimes [i count]
                           (put! ch
-                            (str (- count i)))))
+                                (str (- count i)))))
                       (put! ch "Launch!")))))
+(def oneshot
+  (websocket/websocket-interceptor
+    ::oneshot
+    (assoc default-ws-opts
+           :on-text (fn [conn _ text]
+                      (websocket/send-text! conn (str "oneshot: " text))
+                      (websocket/close! conn)))))
 
 (def routes
   (table/table-routes
     [["/ws/echo/:prefix" :get echo-prefix]
      ["/ws/reverser" :get byte-reverser]
-     ["/ws/countdown" :get countdown]]))
+     ["/ws/countdown" :get countdown]
+     ["/ws/oneshot" :get oneshot]]))
 
 (def ws-uri "ws://localhost:8080")
 
@@ -141,8 +149,6 @@
       (let [session @(ws/websocket (str ws-uri "/ws/reverser") {:on-message (fn [_ data _]
                                                                               (write-event :client-binary data))})]
 
-        (expect-event :open)
-
         (ws/send! session client-binary)
 
         ;; Server sees the binary message from client:
@@ -170,7 +176,20 @@
                   (expect-event :response))))))
 
 
+(deftest server-closes-channel
+  (with-connector routes
+    (let [session @(ws/websocket (str ws-uri "/ws/oneshot") {:on-message (fn [_ text _]
+                                                                           (write-event :client-text text))})]
 
+      (ws/send! session "xyzzyx")
+
+      (let [events (available-events!)]
+        ;; May get these in some other order.
+        (is (match? (m/embeds
+                      [[:client-text (m/via str "oneshot: xyzzyx")]
+                       ;; Note: differs from Jetty
+                       [:close :server-close]])
+                    events))))))
 
 
 
