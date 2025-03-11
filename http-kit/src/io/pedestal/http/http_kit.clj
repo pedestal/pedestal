@@ -139,11 +139,6 @@
           ;; the test contract (nil or InputStream).
           (update response :body test/convert-response-body))))))
 
-(defn- is-byte-array?
-  [value]
-  (and value
-       (-> value .getClass .getName (= "[B"))))
-
 (defn- initialize-websocket*
   "Knit together Pedestal's lifecycle with Http-Kit's."
   [ch context ws-opts]
@@ -179,7 +174,7 @@
                         (hk/send! ch string))
 
                       (send-binary! [_ data]
-                        (let [data' (if (is-byte-array? data)
+                        (let [data' (if (bytes? data)
                                       data
                                       (convert :input-stream data))]
                           (hk/send! ch data')))

@@ -34,7 +34,7 @@
   nil
 
   (->input-stream [_]
-    (ByteArrayInputStream. (byte-array 0)))
+    (InputStream/nullInputStream))
 
   InputStream
 
