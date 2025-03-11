@@ -202,10 +202,8 @@
                                       (fn [_ status-code]
                                         (on-close ws-channel @*proc status-code))))
         hk-response (hk/as-channel request ch-opts)]
-    (-> context
-        ;; The :status is needed to keep the interceptor terminator checker from complaining.
-        (assoc :response (assoc hk-response :status 200))
-        chain/terminate)))
+    ;; The :status is needed to keep the interceptor terminator checker from complaining.
+    (assoc context :response (assoc hk-response :status 200))))
 
 (extend-type AsyncChannel
 
