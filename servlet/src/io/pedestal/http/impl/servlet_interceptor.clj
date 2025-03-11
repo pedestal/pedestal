@@ -16,6 +16,7 @@
   (:require [clojure.java.io :as io]
             [clojure.core.async :as async]
             [io.pedestal.http.response :as response]
+            [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as interceptor.chain]
@@ -23,13 +24,18 @@
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
             [io.pedestal.metrics :as metrics]
+            [io.pedestal.service.websocket :as ws :refer [InitializeWebSocket WebSocketChannel]]
+            [io.pedestal.service.data :refer [convert]]
     ;; for side effects:
             io.pedestal.http.route
             [io.pedestal.service.impl :as impl])
-  (:import (clojure.core.async.impl.protocols Channel)
+  (:import (clojure.core.async.impl.protocols ReadPort)
+           (io.pedestal.websocket FnEndpoint)
            (jakarta.servlet Servlet ServletRequest)
            (jakarta.servlet.http HttpServletResponse HttpServletRequest)
            (clojure.lang Fn IPersistentCollection)
+           (jakarta.websocket CloseReason CloseReason$CloseCodes MessageHandler$Whole Session)
+           (jakarta.websocket.server ServerContainer ServerEndpointConfig ServerEndpointConfig$Builder)
            (java.io File IOException InputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
@@ -116,7 +122,7 @@
 
 (extend-protocol WriteableBodyAsync
 
-  Channel
+  ReadPort
   (write-body-async [body ^HttpServletResponse servlet-response resume-chan context]
     (async/go
       (loop []
@@ -361,10 +367,11 @@
     (fn [^Servlet servlet servlet-request servlet-response]
       (let [context (-> initial-context
                         (assoc :servlet-request servlet-request
+                               :websocket-channel-source servlet-request
                                :servlet-response servlet-response
                                :servlet-config (.getServletConfig servlet)
-                               :servlet servlet
-                                        :request (request-map/servlet-request-map servlet servlet-request servlet-response)))]
+                                               :servlet servlet
+                                               :request (request-map/servlet-request-map servlet servlet-request servlet-response)))]
         (log/debug :in :interceptor-service-fn
                    :context context)
         (swap! *active-calls inc)
@@ -409,3 +416,128 @@
      (-> initial-context
          response/terminate-when-response
          (interceptor.chain/on-enter-async start-servlet-async)))))
+
+;;; Support for WebSockets, in the context of io.pedestal.service.websocket
+
+(def ^:private close-codes
+  {1000 :normal
+   1001 :going-away
+   1002 :protocol-error
+   1003 :unsupported
+   1005 :no-status-received
+   1006 :abnormal
+   1007 :invalid-payload-data
+   1008 :policy-violation
+   1009 :message-too-big
+   1010 :mandatory-extension
+   1011 :internal-server-error
+   1015 :tls-handshake})
+
+(defn- convert-close-reason
+  [^CloseReason reason]
+  (-> reason .getCloseCode .getCode  (close-codes :unknown)))
+
+(defn- message-handler
+  ^MessageHandler$Whole [ws-channel *proc f]
+  (reify MessageHandler$Whole
+    (onMessage [_ message]
+      (f ws-channel @*proc message))))
+
+(defn- websocket-channel-callback
+  "Creates the callback from the FnEndpoint to handle lifecycle (open, close, error) of the WebSocket."
+  [request *ws-channel ws-opts]
+  (let [*proc (atom nil)]
+    (fn [event-type ^Session session extra]
+      (case event-type
+        :on-open
+        (let [ws-channel (reify WebSocketChannel
+                           (on-text [this callback]
+                             (.addMessageHandler session String (message-handler this *proc callback)))
+                           (on-binary [this format callback]
+                             (.addMessageHandler session
+
+                                                 ByteBuffer
+                                                 (message-handler this *proc
+                                                                  (fn [ws-channel proc data]
+                                                                    (callback ws-channel proc (convert format data))))))
+                           (send-text! [_ string]
+                             (let [remote (.getBasicRemote session)]
+                               (.sendText remote string)
+                               true))
+                           (send-binary! [_ data]
+                             (let [remote (.getBasicRemote session)]
+                               (.sendBinary remote (convert :byte-buffer data))
+                               true))
+                           (close! [_]
+                             (.close session
+                                     (CloseReason. CloseReason$CloseCodes/NORMAL_CLOSURE nil))))]
+          (when-let [f (:on-open ws-opts)]
+            (reset! *proc (f ws-channel request)))
+          (when-let [f (:on-text ws-opts)]
+            (ws/on-text ws-channel f))
+          (when-let [f (:on-binary ws-opts)]
+            (ws/on-binary ws-channel :byte-buffer f))
+          (deliver *ws-channel ws-channel))
+
+        :on-error
+        ;; Would be nice to add, but ...
+
+        :on-close
+        (when-let [f (:on-close ws-opts)]
+          (f @*ws-channel @*proc (convert-close-reason extra)))))))
+
+(defn- create-server-endpoint-config
+  ^ServerEndpointConfig [^String path request *ws-channel ws-opts]
+  (let [callback (websocket-channel-callback request *ws-channel ws-opts)
+        {:keys [subprotocols configure]} ws-opts
+        builder  (ServerEndpointConfig$Builder/create FnEndpoint path)
+        _        (do
+                   (when subprotocols
+                     (.subprotocols builder subprotocols))
+                   (when configure
+                     (configure builder)))
+        config   (.build builder)]
+    (.put (.getUserProperties config) FnEndpoint/USER_ATTRIBUTE_KEY callback)
+    config))
+
+(defn- initialize-websocket*
+  [^HttpServletRequest servlet-request context ws-opts]
+  (try
+    (let [{:keys [request servlet-response route]} context
+          _               (do
+                            (assert servlet-response)
+                            (assert route))
+          servlet-context (.getServletContext servlet-request)
+          container       ^ServerContainer (.getAttribute servlet-context "jakarta.websocket.server.ServerContainer")
+          _               (assert container)
+          *ws-channel     (promise)
+          ;; TODO: May need to do some transformation of the :path
+          config          (create-server-endpoint-config
+                            (:path route)
+                            request
+                            *ws-channel
+                            ws-opts)]
+      ;; The path-params are included because they are in the Servlet API, and that's normally the only way
+      ;; the FnEndpoint class would have access to them, but in a Pedestal app, if they are needed
+      ;; they will be in the request map prior to calling upgrade-request-to-websocket.
+      (.upgradeHttpToWebSocket container
+                               servlet-request
+                               servlet-response
+                               config
+                               {})
+      ;; Note that the creation of the FnEndpoint happens later (I believe once this request has been processed)
+      ;; so we can't attached the WebSocketChannel instance here ... we don't it.  That makes the :on-load
+      ;; callback important, as that's the only way the application can find the WSC in order to send messages
+      ;; to the client, etc.
+      (-> context
+          response/disable-response
+          chain/terminate))
+    (catch Exception e
+      (prn e))))
+
+(extend-type HttpServletRequest
+
+  InitializeWebSocket
+
+  (initialize-websocket [request context ws-opts]
+    (initialize-websocket* request context ws-opts)))

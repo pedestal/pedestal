@@ -10,9 +10,13 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.websocket
-  "Utilities needed by Pedestal containers (such as [[io.pedestal.http.jetty]]) to implement
+  "Utilities needed by servlet-based Pedestal containers (such as [[io.pedestal.http.jetty]]) to implement
   WebSocket support using default Servlet API functionality, as well as utilities
-  for applications that make use Pedestal's websocket support."
+  for applications that make use Pedestal's websocket support.
+
+  This namespace is not deprecated, but a newer abstraction, which does not make use of any Servlet APIs,
+  is available in [[io.pedestal.service.websocket]].
+  "
   {:added "0.7.0"}
   (:require [clojure.core.async :as async :refer [go-loop put!]]
             [io.pedestal.http.response :as response]

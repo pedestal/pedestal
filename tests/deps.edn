@@ -73,7 +73,8 @@
                 "--test-ns-path" "test"
                 "--ns-regex" "\\Qio.pedestal.\\E.*"
                 "--test-ns-regex" ".*-test"
-                "--ns-exclude-regex" ".*-test"]}
+                "--ns-exclude-regex" ".*-test"
+                "--ns-exclude-regex" "\\Qio.pedestal.async-events\\E"]}
 
 
   :1.12

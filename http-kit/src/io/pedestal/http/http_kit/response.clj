@@ -17,7 +17,8 @@
            (clojure.lang Fn IPersistentCollection)
            (java.io File InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels ReadableByteChannel)))
+           (java.nio.channels ReadableByteChannel)
+           (org.httpkit.server AsyncChannel)))
 
 (defprotocol HttpKitResponse
 
@@ -30,6 +31,9 @@
 
   nil
   (convert-response-body [_] [nil nil])
+
+  AsyncChannel
+  (convert-response-body [ch] [nil ch])
 
   String
   (convert-response-body [s] ["text/plain" s])

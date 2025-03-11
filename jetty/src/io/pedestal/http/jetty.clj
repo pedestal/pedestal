@@ -200,15 +200,17 @@
         servlet-context-handler (doto (ServletContextHandler. ServletContextHandler/SESSIONS)
                                   (.setContextPath context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
-    (when websockets
-      ^{:in "0.8.0"
-        :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)"}
-      (deprecated ::websockets
-        (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
-                                                               (reify JakartaWebSocketServletContainerInitializer$Configurator
-                                                                 (^void accept [_this ^ServletContext _context
-                                                                                ^ServerContainer container]
-                                                                   (ws/add-endpoints container websockets))))))
+      ;; Always initialize the container for WebSockets, even when no :websockets key, to ensure that
+      ;; routed websockets also work.
+      (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
+                                                             (reify JakartaWebSocketServletContainerInitializer$Configurator
+                                                               (^void accept [_this ^ServletContext _context
+                                                                              ^ServerContainer container]
+                                                                 (when websockets
+                                                                   ^{:in   "0.8.0"
+                                                                     :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)"}
+                                                                   (deprecated ::websockets
+                                                                     (ws/add-endpoints container websockets))))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.
@@ -259,16 +261,16 @@
   [service-map options]
   (let [{:keys [interceptors initial-context join?]} service-map
         ;; The options may include an :exception-analyzer function.
-        service-fn   (si/http-interceptor-service-fn interceptors initial-context options)
-        servlet      (servlet/servlet :service service-fn)
+        service-fn        (si/http-interceptor-service-fn interceptors initial-context options)
+        servlet           (servlet/servlet :service service-fn)
         ;; Mixing service-map and options; another bit of relic that maybe can be fixed
         ;; with changes to io.pedestal.http (that are probably ok to do as it only concerns implementation
         ;; details).
-        server       (create-server servlet (merge service-map options))
+        server            (create-server servlet (merge service-map options))
         ;; Normally, apply-default-content-type is provided by http-interceptor-service-fn, but since
         ;; we are bypassing that for testing, need to explicitly add it back in.
         test-interceptors (into [si/apply-default-content-type] interceptors)
-        test-context (response/terminate-when-response initial-context)]
+        test-context      (response/terminate-when-response initial-context)]
     (reify
       p/PedestalConnector
 
