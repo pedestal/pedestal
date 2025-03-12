@@ -38,7 +38,7 @@
     :join?           false}))
 
 (defn with-interceptor
-  "Appends to the :interceptors in the service map, or does nothing if interceptor is nil.
+  "Appends to the :interceptors in the conector map, or does nothing if interceptor is nil.
 
   interceptor must be an interceptor record, or convertable to an interceptor record."
   [connector-map interceptor]
@@ -48,12 +48,12 @@
 
 (defn with-interceptors
   "Appends a sequence of interceptors using [[with-interceptor]]."
-  [service-map interceptors]
-  (reduce with-interceptor service-map interceptors))
+  [connector-map interceptors]
+  (reduce with-interceptor connector-map interceptors))
 
 (defmacro with-routing
   "A macro for adding a routing interceptor (and an interceptor to decode
-  path parameters) to the service map.
+  path parameters) to the connector map.
   This is generally the last step in building the interceptor chain.
 
   This is a wrapper around the [[routes-from]] macro, which helps with
@@ -71,12 +71,12 @@
 
   At least one route fragment is required.
 
-  Evalulates to the service map with two added interceptors:
+  Evalulates to the connector map with two added interceptors:
 
   - A routing interceptor
   - A [[path-params-decoder]]"
-  [service-map router-constructor & route-fragments]
-  `(with-interceptors ~service-map
+  [connector-map router-constructor & route-fragments]
+  `(with-interceptors ~connector-map
                       [(route/router (route/routes-from ~@route-fragments)
                                      ~router-constructor)
                        route/path-params-decoder]))
