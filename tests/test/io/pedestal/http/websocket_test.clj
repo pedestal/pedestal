@@ -129,7 +129,7 @@
 
 (deftest text-via-routed-websocket-connection
   (with-server nil
-               (let [session @(ws/websocket (str "ws://localhost:8080/routed/ws/echo/back") {})]
+               (let [session @(ws/websocket "ws://localhost:8080/routed/ws/echo/back" {})]
                  (expect-event :open)
 
                  (ws/send! session "hello")
@@ -264,8 +264,7 @@
                    (let [[message] (expect-event :error)]
                      (is (= "Endpoint notification error" message)))
 
-                   (is (= [1003
-                           "Endpoint notification error"]
+                   (is (= [1003 "Endpoint notification error"]
                           (expect-event :close)))
 
                    ;; Looks like Jetty 11 doesn't pass this down

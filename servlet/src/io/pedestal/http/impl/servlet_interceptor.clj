@@ -19,7 +19,6 @@
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as interceptor.chain]
             [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
@@ -376,7 +375,7 @@
                    :context context)
         (swap! *active-calls inc)
         (try
-          (let [final-context (interceptor.chain/execute context interceptors)]
+          (let [final-context (chain/execute context interceptors)]
             (log/debug :msg "Leaving servlet"
                        ;; This will be nil if the execution went async
                        :final-context final-context))
@@ -415,7 +414,7 @@
            interceptors)
      (-> initial-context
          response/terminate-when-response
-         (interceptor.chain/on-enter-async start-servlet-async)))))
+         (chain/on-enter-async start-servlet-async)))))
 
 ;;; Support for WebSockets, in the context of io.pedestal.service.websocket
 

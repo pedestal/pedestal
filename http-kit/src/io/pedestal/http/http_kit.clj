@@ -143,7 +143,7 @@
   "Knit together Pedestal's lifecycle with Http-Kit's."
   [ch context ws-opts]
   (let [{:keys [request]} context
-        {:keys [on-open on-close]} ws-opts
+        {:keys [on-close]} ws-opts
         ;; Http-Kit always wants to setup on-receive before the open, so we do that but allow
         ;; for the actual callback to be provided after the open callback.
         *on-text    (atom nil)
