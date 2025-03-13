@@ -20,14 +20,14 @@
          io.pedestal/pedestal.route       {:mvn/version "0.8.0-SNAPSHOT"}
          io.pedestal/pedestal.service     {:mvn/version "0.8.0-SNAPSHOT"}
 
-         org.clojure/core.async           {:mvn/version "1.6.681"}
+         org.clojure/core.async           {:mvn/version "1.7.701"}
 
          ;; Ring 1.11 is the first version to support Servlet API 4.0
          ring/ring-core                   {:mvn/version "1.13.0"}
          cheshire/cheshire                {:mvn/version "5.13.0"}
-         org.clojure/tools.reader         {:mvn/version "1.5.0"}
+         org.clojure/tools.reader         {:mvn/version "1.5.2"}
          com.cognitect/transit-clj        {:mvn/version "1.0.333"}
-         commons-codec/commons-codec      {:mvn/version "1.17.1"}
+         commons-codec/commons-codec      {:mvn/version "1.18.0"}
          crypto-random/crypto-random      {:mvn/version "1.2.1"
                                            :exclusions  [commons-code/commons-codec]}
          crypto-equality/crypto-equality  {:mvn/version "1.0.1"}}
@@ -55,9 +55,9 @@
   ;; to compile our servlet and other classes.
   ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
   :servlet-api
-  {:extra-deps {jakarta.servlet/jakarta.servlet-api            {:mvn/version "6.0.0"}
-                jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.1.1"}
-                jakarta.websocket/jakarta.websocket-api        {:mvn/version "2.1.1"}}}
+  {:extra-deps {jakarta.servlet/jakarta.servlet-api            {:mvn/version "6.1.0"}
+                jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.2.0"}
+                jakarta.websocket/jakarta.websocket-api        {:mvn/version "2.2.0"}}}
   ;; clj -T:build <command>
   :build {:deps       {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
           :ns-default build}}}
