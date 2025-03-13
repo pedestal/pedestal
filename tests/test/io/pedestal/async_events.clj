@@ -12,8 +12,7 @@
 (ns io.pedestal.async-events
   "Helpers for async tests."
   (:require [clojure.core.async :as async :refer [put! chan]]
-            [clojure.test :refer [report]]
-            [net.lewisship.trace :refer [trace]]))
+            [clojure.test :refer [report]]))
 
 (def ^:private events-chan nil)
 

@@ -15,7 +15,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         io.pedestal/pedestal.common {:mvn/version "0.8.0-SNAPSHOT"}
         ;; logging
-        org.slf4j/slf4j-api {:mvn/version "2.0.16"}}
+        org.slf4j/slf4j-api {:mvn/version "2.0.17"}}
  :aliases
  {:local
   {:override-deps
