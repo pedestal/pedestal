@@ -71,6 +71,11 @@ class MockHttpServletResponse implements HttpServletResponse {
     }
 
     @Override
+    public void sendRedirect(String s, int i, boolean b) throws IOException {
+
+    }
+
+    @Override
     public void setDateHeader(String name, long date) {
 
     }
