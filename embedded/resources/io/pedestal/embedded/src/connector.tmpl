@@ -1,0 +1,27 @@
+(ns {{top/ns}}.{{main/ns}}.connector
+  "Defines the connector configuration for the {{name}} project."
+  (:require [io.pedestal.connector :as connector]
+            [io.pedestal.environment :as env]
+            [io.pedestal.connector.dev :as dev]
+            [{{top/ns}}.{{main/ns}}.routes :as routes]))
+
+(defn connector-map
+  "Creates a connector map for the {{name}} service.
+
+  Options:
+  - dev-mode: enables dev-interceptors and interceptor logging if true, defaults from
+    Pedestal's development mode.
+  - join?: if true, then the current thread will block when the connector is started (default is false)."
+  [opts]
+  (let [{:keys [dev-mode? join?]
+         :or {dev-mode? env/dev-mode?
+              join? false}} opts]
+    (-> (connector/default-connector-map 8080)
+        (assoc :join? join?)
+        (cond->
+           dev-mode? dev/with-dev-interceptors)
+       ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
+       ;; with an application-specific set of calls to with-interceptor.
+        connector/with-default-interceptors
+        (connector/with-routing :sawtooth (routes/routes)))))
+

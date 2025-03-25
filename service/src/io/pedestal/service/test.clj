@@ -20,12 +20,14 @@
             [io.pedestal.service.impl :as impl]
             [clojure.core.async :refer [<!! put! chan]]
             [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.service.data :as data]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.core.async.impl.protocols Channel)
            (clojure.lang Fn IPersistentCollection)
            (java.io ByteArrayInputStream File InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels ReadableByteChannel)))
+           (java.nio.channels ReadableByteChannel)
+           (java.nio.charset Charset)))
 
 (defprotocol RequestBodyConversion
 
@@ -162,6 +164,18 @@
              {}
              headers))
 
+(defn- coerce-response-body
+  [response body-type]
+  (if-let [body (:body response)]
+    (assoc response :body
+           (case body-type
+             :string (slurp body)
+
+             :byte-buffer (data/convert :byte-buffer body)
+
+             :stream body))
+    response))
+
 (defn response-for
   "Works with a [[PedestalConnector]] to test a Ring request map; returns a Ring response map.
 
@@ -170,20 +184,26 @@
   In the response; the :headers map is converted; keys are converted to lower-case
   and converted to keywords.
 
+  The response body is normally returned as a string, but the :as option allows
+  for the body to be coerced to an InputStream or ByteBuffer.
+
   Options:
 
   Key      | Value
   ---      |---
   :headers | Map; keys and values are converted from keyword or symbol to string
-  :body    | Body to send (nil, String, File, InputStream)"
+  :body    | Body to send (nil, String, File, InputStream)
+  :as      | Convert a non-nil body to this type (:string, :byte-buffer, :stream). :string is the default."
   [connector request-method url & {:as options}]
-  (let [{:keys [headers body]} options
+  (let [{:keys [headers body as]
+         :or   {as :string}} options
         request (merge
                   {:request-method request-method
                    :headers        (create-request-headers headers)
                    :body           body}
                   (impl/parse-url url))]
     (-> (p/test-request connector request)
-        (update :headers convert-response-headers))))
+        (update :headers convert-response-headers)
+        (coerce-response-body as))))
 
 

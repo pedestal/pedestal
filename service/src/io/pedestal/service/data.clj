@@ -15,7 +15,8 @@
   (:require [clojure.java.io :as io]
             [io.pedestal.service.impl :as impl])
   (:import (java.io ByteArrayInputStream ByteArrayOutputStream InputStream)
-           (java.nio ByteBuffer)))
+           (java.nio ByteBuffer)
+           (java.nio.charset Charset)))
 
 (defprotocol ToInputStream
 

@@ -1,19 +1,20 @@
 (ns {{top/ns}}.{{main/ns}}.main
   "Runs the {{name}} service."
-  (:require [io.pedestal.http :as http]
+  (:require [io.pedestal.connector :as connector]
             [io.pedestal.log :as log]
-            [{{top/ns}}.{{main/ns}}.service :as service]))
+            [io.pedestal.http.http-kit :as hk]
+            [{{top/ns}}.{{main/ns}} :refer [connector-map]))
 
 (defn- log-startup
-  [service-map]
+  [connector-map]
   (log/info :msg "Service {{name}} startup"
-            :port (::http/port service-map))
-  service-map)
+            :port (:port connector-map))
+  connector-map)
 
 (defn start-service
   [_]
-  (-> (service/service-map {:join? true})
-      http/create-server
+  (-> (connector-map {:join? true})
       log-startup
-      http/start))
+      (hk/create-connector nil)
+      connector/start!))
 
