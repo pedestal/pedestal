@@ -99,6 +99,7 @@
   Request tracing            | Make request observable via Open Telemetry    | [[request-tracing-interceptor]]
   Request logging            | Log incoming request method and URI           | [[log-request]]
   Allowed origins (optional) | Only allow requests from specified origins    | [[allow-origin]]
+  Not Found                  | Report lack of response as a status 404       | [[not-found]]
   Session support (optional) | Persist data between requests                 | [[session]]
   Body params                | Parse JSON, EDN, etc. body into appropriate  parameters (:edn-body, :json-body, etc.) | [[body-params]]
   Cross site request forgery | Detect forged requests                        | [[anti-forgery]]
@@ -123,6 +124,7 @@
                         interceptors/log-request
                         (when allowed-origins
                           (io.pedestal.http.cors/allow-origin allowed-origins))
+                        interceptors/not-found
                         (when session-options
                           (ring-middlewares/session session-options))
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
