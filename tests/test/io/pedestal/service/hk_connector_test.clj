@@ -47,10 +47,9 @@
   [_request]
   nil)
 
-(def async-no-response
-  (interceptor
-    {:name  ::async-no-response
-     :enter (fn [context] (go context))}))
+(defn async-no-response
+  [_request]
+  (go nil))
 
 (defn echo-headers
   [request]
@@ -126,12 +125,12 @@
                :body    "ASYNC BYTES"}
               (response-for :get "/async/bytes"))))
 
-(deftest status-500-if-no-response-sync
-  (is (match? {:status 500
-               :body   "Execution completed without producing a response"}
+(deftest status-404-if-no-response-sync
+  (is (match? {:status 404
+               :body   "Not Found"}
               (response-for :get "/no-response"))))
 
-(deftest status-500-if-no-response-from-async-handler
-  (is (match? {:status 500
-               :body   "Async response not produced after 1 second"}
+(deftest status-404-if-no-response-from-async-handler
+  (is (match? {:status 404
+               :body   "Not Found"}
               (response-for :get "/async/no-response"))))
