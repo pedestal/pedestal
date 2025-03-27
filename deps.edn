@@ -14,7 +14,7 @@
  {:build
   {:ns-default build
    :paths ["build" "tests/resources"]
-   :deps {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}
+   :deps {io.github.hlship/build-tools {:git/tag "0.11.0" :git/sha "8c67d1"}
           io.github.hlship/trace {:mvn/version "1.4"}
           io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.9"}
