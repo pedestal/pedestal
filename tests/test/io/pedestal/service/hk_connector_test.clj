@@ -59,7 +59,6 @@
 
 (defn echo-name
   [request]
-  #trace/result request
   {:status 200
    :body   (str "Hello " (get-in request [:json-params :name]) "!")})
 
