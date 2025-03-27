@@ -26,88 +26,97 @@
            (clojure.lang Fn IPersistentCollection)
            (java.io ByteArrayInputStream File InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels ReadableByteChannel)
-           (java.nio.charset Charset)))
+           (java.nio.channels ReadableByteChannel)))
 
-(defprotocol RequestBodyConversion
+(defprotocol RequestBodyCoercion
 
   "Converts a supported type of Request body to an InputStream."
 
-  (convert-request-body [this]
+  (coerce-request-body [this]
     "Convert a value for a Ring request map's :body to an InputStream, for downstream processing."))
 
-(extend-protocol RequestBodyConversion
+(extend-protocol RequestBodyCoercion
 
   nil
-  (convert-request-body [_] nil)
+
+  (coerce-request-body [_] nil)
 
   String
-  (convert-request-body [s]
+
+  (coerce-request-body [s]
     (-> s
         (.getBytes "UTF-8")
         ByteArrayInputStream.))
 
   InputStream
-  (convert-request-body [input-stream] input-stream)
+
+  (coerce-request-body [input-stream] input-stream)
 
   File
-  (convert-request-body [file]
+
+  (coerce-request-body [file]
     (io/input-stream file)))
 
 
-(defprotocol ResponseBodyConversion
+(defprotocol ResponseBodyCoercion
   "Convert the body of the response to an InputStream (or nil)."
 
-  (convert-response-body [this]
+  (coerce-response-body [this]
     "Converts the response body to nil, a String, or an InputStream."))
 
 
 ;; Need to keep this in sync with io.pedestal.http.impl.servlet-interceptor/WriteableBody
 
-(extend-protocol ResponseBodyConversion
+(extend-protocol ResponseBodyCoercion
   nil
-  (convert-response-body [_] nil)
+  (coerce-response-body [_] nil)
 
   String
-  (convert-response-body [s]
-    (-> s (.getBytes "UTF-8") convert-response-body))
+
+  (coerce-response-body [s]
+    (-> s (.getBytes "UTF-8") coerce-response-body))
 
   InputStream
-  (convert-response-body [stream] stream)
+
+  (coerce-response-body [stream] stream)
 
   File
-  (convert-response-body [file]
+
+  (coerce-response-body [file]
     (io/input-stream file))
 
   ;; If going through the Jakarta Servlet code, these would be handled asynchronously;
   ;; but that doesn't make sense in a test, so instead we block while copying.
 
   ByteBuffer
-  (convert-response-body [buffer]
+
+  (coerce-response-body [buffer]
     (impl/byte-buffer->input-stream buffer))
 
   ReadableByteChannel
-  (convert-response-body [channel]
+
+
+  (coerce-response-body [channel]
     (impl/byte-channel->input-stream channel))
 
   Channel                                                   ; from core.async
-  (convert-response-body [chan]
+  (coerce-response-body [chan]
     (let [body-value (<!! chan)]
-      (convert-response-body body-value)))
+      (coerce-response-body body-value)))
 
   Fn
-  (convert-response-body [f]
+  (coerce-response-body [f]
     (impl/function->input-stream f))
 
   IPersistentCollection
-  (convert-response-body [coll]
-    (-> coll pr-str convert-response-body)))
+  (coerce-response-body [coll]
+    (-> coll pr-str coerce-response-body)))
 
 (extend (Class/forName "[B")
 
-  ResponseBodyConversion
+  ResponseBodyCoercion
 
-  {:convert-response-body
+  {:coerce-response-body
    (fn [^bytes bytes]
      (ByteArrayInputStream. bytes))})
 
@@ -127,7 +136,7 @@
   [initial-context interceptors request]
   (let [request'      (-> request
                           (assoc :path-info (:uri request))
-                          (update :body convert-request-body))
+                          (update :body coerce-request-body))
         response-ch   (chan 1)
         interceptors' (into [(convey-response response-ch)] interceptors)
         _             (-> initial-context
@@ -139,7 +148,7 @@
                       {:request request})))
     (-> response
         (select-keys [:status :headers :body])
-        (update :body convert-response-body))))
+        (update :body coerce-response-body))))
 
 (defn disable-routing-table-output-fixture
   "A test fixture that disables printing of the routing table, even when development mode
@@ -153,7 +162,7 @@
 (defn- create-request-headers
   [headers]
   (reduce-kv (fn [m k v]
-               (assoc m (name k) (name v)))
+               (assoc m (-> k name string/lower-case) (name v)))
              {}
              headers))
 
@@ -164,7 +173,13 @@
              {}
              headers))
 
-(defn- coerce-response-body
+(defn- inject-content-type
+  [request]
+  (if-let [v (get-in request [:headers "content-type"])]
+    (assoc request :content-type v)
+    request))
+
+(defn- convert-response-body
   [response body-type]
   (if-let [body (:body response)]
     (assoc response :body
@@ -197,13 +212,14 @@
   [connector request-method url & {:as options}]
   (let [{:keys [headers body as]
          :or   {as :string}} options
-        request (merge
-                  {:request-method request-method
-                   :headers        (create-request-headers headers)
-                   :body           body}
-                  (impl/parse-url url))]
+        request (-> (merge
+                      {:request-method request-method
+                       :headers        (create-request-headers headers)
+                       :body           (coerce-request-body body)}
+                      (impl/parse-url url))
+                    inject-content-type)]
     (-> (p/test-request connector request)
         (update :headers convert-response-headers)
-        (coerce-response-body as))))
+        (convert-response-body as))))
 
 

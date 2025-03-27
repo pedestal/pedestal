@@ -11,9 +11,11 @@
 
 (ns io.pedestal.service.hk-connector-test
   "Tests when running Http-Kit using test-request (rather than HTTP)."
-  (:require [clojure.edn :as edn]
+  (:require [cheshire.core :as json]
+            [clojure.edn :as edn]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [go]]
+            [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.response :as response]
             [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
@@ -55,10 +57,17 @@
   [request]
   (response (:headers request)))
 
+(defn echo-name
+  [request]
+  #trace/result request
+  {:status 200
+   :body   (str "Hello " (get-in request [:json-params :name]) "!")})
+
 (def routes
   (table/table-routes
     {}
     [["/hello" :get hello-page :route-name ::hello]
+     ["/hello" :post echo-name]
      ["/no-response" :get no-response :route-name ::no-response]
      ["/async/hello" :get async-hello]
      ["/async/bytes" :get async-bytes]
@@ -87,37 +96,44 @@
   (test/response-for @*connector request-method url options))
 
 (deftest basic-access
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "text/plain"}
-               :body   (m/via slurp "HELLO")}
+               :body    "HELLO"}
               (response-for :get "/hello"))))
 
+(deftest json-request-body
+  (is (match? {:status 200
+               :body   "Hello Mr. Client!"}
+              (response-for :post "/hello"
+                            :headers {:content-type "application/json"}
+                            :body (json/generate-string {:name "Mr. Client"})
+                            ))))
 
 (deftest chain-goes-async
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "text/plain"}
-               :body   (m/via slurp "ASYNC HELLO")}
+               :body    "ASYNC HELLO"}
               (response-for :get "/async/hello"))))
 
 (deftest edn-response-body
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "application/edn"}
-               :body   (m/via #(-> % slurp edn/read-string)
-                              {"My-Key" "My-Value"})}
+               :body    (m/via edn/read-string
+                               {"my-key" "My-Value"})}
               (response-for :get "/echo/headers" :headers {:My-Key 'My-Value}))))
 
 (deftest async-bytes-response
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "application/octet-stream"}
-               :body   (m/via slurp "ASYNC BYTES")}
+               :body    "ASYNC BYTES"}
               (response-for :get "/async/bytes"))))
 
 (deftest status-500-if-no-response-sync
   (is (match? {:status 500
-               :body   (m/via slurp "Execution completed without producing a response")}
+               :body   "Execution completed without producing a response"}
               (response-for :get "/no-response"))))
 
 (deftest status-500-if-no-response-from-async-handler
   (is (match? {:status 500
-               :body   (m/via slurp "Async response not produced after 1 second")}
+               :body   "Async response not produced after 1 second"}
               (response-for :get "/async/no-response"))))
