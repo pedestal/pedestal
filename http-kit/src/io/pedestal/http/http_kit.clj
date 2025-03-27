@@ -16,6 +16,7 @@
   implement any of the underlying Servlet API or WebSocket interfaces."
   (:require [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
+            [io.pedestal.service.data :as data]
             [io.pedestal.service.protocols :as p]
             [io.pedestal.service.websocket :as ws]
             [org.httpkit.server :as hk]
@@ -127,8 +128,9 @@
       (test-request [_ ring-request]
         (let [*async-response (promise)
               channel         (impl/mock-channel *async-response)
-              request         (assoc ring-request
-                                     :async-channel channel)
+              request         (-> ring-request
+                                  (update :body data/->input-stream)
+                                  (assoc :async-channel channel))
               sync-response   (root-handler request)
               response        (if (= (:body sync-response) channel)
                                 (or (deref *async-response 1000 nil)
@@ -137,7 +139,7 @@
                                 sync-response)]
           ;; The response has been converted to support what Http-Kit allows, but we need to further narrow to support
           ;; the test contract (nil or InputStream).
-          (update response :body test/convert-response-body))))))
+          (update response :body test/coerce-response-body))))))
 
 (defn- initialize-websocket*
   "Knit together Pedestal's lifecycle with Http-Kit's."
