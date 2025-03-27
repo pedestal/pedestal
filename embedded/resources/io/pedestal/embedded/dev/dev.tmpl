@@ -1,7 +1,7 @@
 (ns dev
   (:require [io.pedestal.connector :as conn]
             [io.pedestal.http.http-kit :as hk]
-            [{{top/ns}}.{{main/ns}}.service :as service]))
+            [{{top/ns}}.{{main/ns}}.connector :refer [connector-map]]))
 
 (defonce connector nil)
 
@@ -10,8 +10,12 @@
   []
   (alter-var-root #'connector
     (fn [_]
-        (-> (service/connector-map nil)
-            (hk/create-connector nil))))
+        (-> (connector-map {:dev-mode? true
+                            ;; You will want to disable this as it generates huges amounts of output.
+                            ;; However, it is very useful when tracking down which interceptor put
+                            ;; the :response, or other key, into the context.
+                            :trace? true})
+            (hk/create-connector nil)))))
 
 (defn start!
   "Starts the current development connector."

@@ -13,15 +13,19 @@
     Pedestal's development mode.
   - join?: if true, then the current thread will block when the connector is started (default is false)."
   [opts]
-  (let [{:keys [dev-mode? join?]
+  (let [{:keys [dev-mode? trace? join?]
          :or {dev-mode? env/dev-mode?
               join? false}} opts]
     (-> (connector/default-connector-map 8080)
         (assoc :join? join?)
         (cond->
-           dev-mode? dev/with-dev-interceptors)
+           dev-mode? dev/with-dev-interceptors
+           trace? dev/with-interceptor-observer)
        ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
        ;; with an application-specific set of calls to with-interceptor.
         connector/with-default-interceptors
+        ;; This kind of file or resource access is separate from routing and must come first.
+        (connector/with-resource-access "public")
+        ;; Routing is generally the last interceptors added.
         (connector/with-routing :sawtooth (routes/routes)))))
 

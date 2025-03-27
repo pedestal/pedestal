@@ -3,7 +3,7 @@
   (:require [io.pedestal.connector :as connector]
             [io.pedestal.log :as log]
             [io.pedestal.http.http-kit :as hk]
-            [{{top/ns}}.{{main/ns}} :refer [connector-map]))
+            [{{top/ns}}.{{main/ns}}.connector :refer [connector-map]]))
 
 (defn- log-startup
   [connector-map]
