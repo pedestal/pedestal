@@ -94,5 +94,5 @@
   (is (match? {:status  200
                :headers {:content-type "application/edn"}
                :body    (m/via edn/read-string
-                               {"My-Key" "My-Value"})}
+                               {"my-key" "My-Value"})}
               (response-for :get "/echo/headers" :headers {:My-Key 'My-Value}))))

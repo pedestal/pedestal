@@ -10,12 +10,11 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.service.hk-connector-test
-  "Tests when running Http-Kit using test-request (rather than HTTP)."
+  "Tests when running Http-Kit using io.pedestal.service.test/response-for (rather than HTTP)."
   (:require [cheshire.core :as json]
             [clojure.edn :as edn]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [go]]
-            [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.response :as response]
             [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
