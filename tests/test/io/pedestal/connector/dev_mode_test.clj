@@ -16,7 +16,6 @@
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.connector :as connector]
             [io.pedestal.connector.dev :as dev]
-            [matcher-combinators.matchers :as m]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :refer [response]]
             [io.pedestal.service.test :as test]))
@@ -83,7 +82,7 @@
 (deftest debug-observer-is-active
   (is (match? {:status 200
                :headers {:content-type "text/plain"}
-               :body   (m/via slurp "HELLO")}
+               :body "HELLO"}
               (response-for :get "/hello")))
 
   ;; Just want to verify that *some* taps occurred. Going into more detail
@@ -93,12 +92,12 @@
 (deftest empty-string-default-for-origin
   (is (match? {:status 200
                ;; Note: empty string, not null, due to dev-allow-origin
-               :body   (m/via slurp "{:origin \"\"}")}
+               :body   "{:origin \"\"}"}
               (response-for :get "/echo/origin"))))
 
 (deftest uncaught-exception-reporting
   (let [response (response-for :get "/fail")
-        body (-> response :body slurp)]
+        {:keys [body]} response]
     (is (match? {:status 500
                  :headers {:content-type "text/plain"}}
                 response))

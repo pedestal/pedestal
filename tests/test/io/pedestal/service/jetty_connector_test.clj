@@ -67,9 +67,9 @@
   (test/response-for @*connector request-method url options))
 
 (deftest basic-access
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "text/plain"}
-               :body   (m/via slurp "HELLO")}
+               :body    "HELLO"}
               (response-for :get "/hello"))))
 
 (deftest includes-essential-security-headers
@@ -84,14 +84,15 @@
               (response-for :get "/hello"))))
 
 (deftest chain-goes-async
-  (is (match? {:status 200
-              :headers {:content-type "text/plain"}
-               :body   (m/via slurp "ASYNC HELLO")}
-              (response-for :get "/async/hello"))))
+  (is (match? {:status  200
+               :headers {:content-type "text/plain"}
+               :body    (m/via slurp "ASYNC HELLO")}
+              (response-for :get "/async/hello"
+                            :as :stream))))
 
 (deftest edn-response-body
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "application/edn"}
-               :body   (m/via #(-> % slurp edn/read-string)
-                              {"My-Key" "My-Value"})}
+               :body    (m/via edn/read-string
+                               {"my-key" "My-Value"})}
               (response-for :get "/echo/headers" :headers {:My-Key 'My-Value}))))

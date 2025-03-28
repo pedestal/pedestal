@@ -11,7 +11,8 @@
 
 (ns io.pedestal.service.hk-http-test
   "Test Http-Kit connector using HTTP requests (to fully exercise async code paths)."
-  (:require [io.pedestal.http.http-kit :as http-kit]
+  (:require [cheshire.core :as json]
+            [io.pedestal.http.http-kit :as http-kit]
             [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.http.response :as response]
             [matcher-combinators.matchers :as m]
@@ -33,10 +34,18 @@
      :enter (fn [context]
               (go
                 (response/respond-with context 200 "ASYNC HELLO")))}))
+
+(defn echo-name
+  [request]
+  (let [{:keys [json-params]} request]
+    {:status 200
+     :body   (str "Hello, " (:name json-params) "!")}))
+
 (def routes
   (table/table-routes
     {}
     [["/hello" :get hello-page :route-name ::hello]
+     ["/hello" :post echo-name]
      ["/async/hello" :get async-hello]]))
 
 (def port 38348)
@@ -76,7 +85,16 @@
 
 
 (deftest async-request-handling
-  (is (match? {:status 200
+  (is (match? {:status  200
                :headers {:content-type "text/plain"}
-               :body   (m/via slurp "ASYNC HELLO")}
+               :body    (m/via slurp "ASYNC HELLO")}
               (get! "/async/hello"))))
+
+(deftest with-body
+  (is (match?
+        {:status 200
+         :body   (m/via slurp "Hello, Mr. Client!")}
+        @(client/post (str base-url "/hello")
+                      {:as      :stream
+                       :headers {"content-type" "application/json"}
+                       :body    (json/generate-string {:name "Mr. Client"})}))))

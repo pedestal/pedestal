@@ -23,21 +23,21 @@
 (deftest request-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
     (is (identical? input-stream
-                    (test/convert-request-body input-stream)))))
+                    (test/coerce-request-body input-stream)))))
 
 (deftest request-file-is-converted-to-stream
   (let [file   (io/file "file-root/index.html")
-        stream (test/convert-request-body file)]
+        stream (test/coerce-request-body file)]
     (is (instance? InputStream stream))
     (is (= (slurp file)
            (slurp stream)))))
 
 (deftest request-nil-is-nil
-  (is (nil? (test/convert-request-body nil))))
+  (is (nil? (test/coerce-request-body nil))))
 
 (deftest request-string-is-converted-to-stream
   (let [body   "A mind forever voyaging"
-        stream (test/convert-request-body body)]
+        stream (test/coerce-request-body body)]
     (is (instance? InputStream stream))
     (is (= body
            (slurp stream)))))
@@ -45,21 +45,21 @@
 (deftest response-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
     (is (identical? input-stream
-                    (test/convert-response-body input-stream)))))
+                    (test/coerce-response-body input-stream)))))
 
 (deftest response-nil-is-nil
-  (is (nil? (test/convert-response-body nil))))
+  (is (nil? (test/coerce-response-body nil))))
 
 (deftest response-file-is-converted-to-stream
   (let [file   (io/file "file-root/index.html")
-        stream (test/convert-response-body file)]
+        stream (test/coerce-response-body file)]
     (is (instance? InputStream stream))
     (is (= (slurp file)
            (slurp stream)))))
 
 (deftest response-edn
   (let [body   {:this [:and :that]}
-        stream (test/convert-response-body body)]
+        stream (test/coerce-response-body body)]
     (is (instance? InputStream stream))
     (is (= body
            (-> stream slurp edn/read-string)))))
@@ -68,7 +68,7 @@
   (let [file   (io/file "file-root/test.html")
         f      (fn [output-stream]
                  (io/copy file output-stream))
-        stream (test/convert-response-body f)]
+        stream (test/coerce-response-body f)]
     (is (instance? InputStream stream))
     (is (= (slurp file)
            (slurp stream)))))
@@ -77,7 +77,7 @@
   (let [s          "Duty now for the future"
         byte-array (.getBytes s "UTF-8")
         buf        (ByteBuffer/wrap byte-array)
-        stream     (test/convert-response-body buf)]
+        stream     (test/coerce-response-body buf)]
     (is (instance? InputStream stream))
     (is (= s
            (slurp stream)))))
@@ -85,7 +85,7 @@
 (deftest response-async-channel
   (let [s      "choose immutability, and see where it leads you"
         ch     (go s)
-        stream (test/convert-response-body ch)]
+        stream (test/coerce-response-body ch)]
     (is (instance? InputStream stream))
     (is (= s
            (slurp stream)))))
@@ -93,7 +93,7 @@
 (deftest response-byte-channel
   (let [file (io/file "file-root/sub/index.html")
         channel (Channels/newChannel (io/input-stream file))
-        stream (test/convert-response-body channel)]
+        stream (test/coerce-response-body channel)]
     (is (instance? InputStream stream))
     (is (= (slurp file)
            (slurp stream)))))

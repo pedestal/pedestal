@@ -1,32 +1,49 @@
 (ns dev
-  (:require [io.pedestal.http :as http]
-            [{{top/ns}}.{{main/ns}}.service :as service]))
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.http.http-kit :as hk]
+            [{{top/ns}}.{{main/ns}}.connector :refer [connector-map]]))
 
-(defonce server nil)
+(defonce connector nil)
 
 (defn init
-  "Constructs the current development server."
+  "Constructs the current Pedestal development connector."
   []
-  (alter-var-root #'server
+  (alter-var-root #'connector
     (fn [_]
-        (-> (service/service-map nil)
-            http/create-server))))
+        (-> (connector-map {:dev-mode? true
+                            ;; You will want to disable this as it generates huges amounts of output.
+                            ;; However, it is very useful when tracking down which interceptor put
+                            ;; the :response, or other key, into the context.
+                            :trace? true})
+            (hk/create-connector nil)))))
 
-(defn start
-  "Starts the current development server."
+(defn start!
+  "Starts the current development connector."
   []
-  (alter-var-root #'server http/start))
+  (alter-var-root #'connector conn/start!))
 
-(defn stop
-  "Shuts down the current development server."
+(defn stop!
+  "Shuts down the current development connector."
   []
-  (alter-var-root #'server
-    (fn [server]
-      (when server
-        (http/stop server)))))
+  (alter-var-root #'connector
+    (fn [connector]
+      (when connector
+        (conn/stop! connector))
+        nil)))
 
-(defn go
-  "Initializes the current development server and starts it running."
+(defn go!
+  "Initializes the current development connector and starts it running."
   []
   (init)
-  (start))
+  (start!))
+
+(comment
+  ;; For REPL development, this can be evaluated:
+
+  (go!)
+  (start!)
+  (stop!)
+
+  ;;
+)
+

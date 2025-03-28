@@ -65,7 +65,7 @@
               (let [response (-> context :request f)]
                 (if (impl/channel? response)
                   (go (assoc context :response (<! response)))
-                  (assoc context :response (f (:request context))))))}))
+                  (assoc context :response response))))}))
 
 (defprotocol IntoInterceptor
 
