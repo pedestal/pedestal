@@ -253,7 +253,8 @@ Routing table:
 ┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
 ┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #object[io.pedestal.http.http_kit$create_connector$reify__17973 0x16a475d3 "io.pedestal.http.http_kit$create_connector$reify__17973@16a475d3"]
-user=>```
+user=>
+```
 
 The :otel-agent alias enables the Open Telementry Java Agent; a Java Agent is a special library that "hooks into"
 the Java Virtual Machine, and can instrument classes as they are loaded from disk, or from JAR files.  In this
@@ -284,7 +285,6 @@ The `lint` command uses link:https://github.com/clj-kondo/clj-kondo[clj-kondo] t
 
 ```
 $ clj -T:build lint
-WARNING: update-vals already refers to: #'clojure.core/update-vals in namespace: clj-kondo.impl.analysis.java, being replaced by: #'clj-kondo.impl.utils/update-vals
 linting took 137ms, errors: 0, warnings: 0
 clj-kondo approves ☺️
 ```
