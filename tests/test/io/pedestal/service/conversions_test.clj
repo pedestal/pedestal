@@ -121,6 +121,14 @@
     (is (= content
            (slurp (convert :input-stream buf))))))
 
+(deftest data-byte-buffer-to-byte-array
+  (let [content "we'll push this through the pipe"
+        result (->> (.getBytes content "UTF-8")
+                    (convert :byte-buffer)
+                    (convert :byte-array))]
+    (is (= content
+           (slurp result)))))
+
 
 (deftest unknown-data-conversion
   (when-let [e (is (thrown? Exception
@@ -128,9 +136,8 @@
     (is (= "unknown format: :pipe" (ex-message e)))
     (is (= {:format        :pipe
             :known-formats [:byte-array :byte-buffer :input-stream]}
-           (ex-data e))))
+           (ex-data e)))))
 
-  )
 
 
 
