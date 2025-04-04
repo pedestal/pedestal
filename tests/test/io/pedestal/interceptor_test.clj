@@ -18,8 +18,9 @@
              :refer [<! >! go chan timeout <!! put!]]
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
-            [io.pedestal.interceptor.chain :as chain :refer (execute enqueue)])
-  (:import (java.util.concurrent CountDownLatch TimeUnit)))
+            [io.pedestal.interceptor.chain :as chain :refer [execute enqueue]])
+  (:import (clojure.lang Keyword)
+           (java.util.concurrent CountDownLatch TimeUnit)))
 
 (defn trace
   [context direction name]
@@ -508,6 +509,27 @@
 (deftest does-not-satisfy-into-interceptor
   (when-let [e (is (thrown-with-msg? Exception #"isn't supported by the protocol"
                                      (interceptor :just-a-keyword)))]
-    (is (= {:t :just-a-keyword
-            :type clojure.lang.Keyword}
+    (is (= {:t    :just-a-keyword
+            :type Keyword}
            (ex-data e)))))
+
+(deftest enqeue*-will-expand-a-list-as-final-value
+  (let [names (fn [context] (->> context
+                                 chain/queue
+                                 (map :name)))
+        ctx   (chain/enqueue {} [(tracer :a)])]
+    (is (= [:a]
+           (names ctx)))
+
+    (is (= [:a :b :c :d]
+           (names
+             (chain/enqueue* ctx
+                             (tracer :b)
+                             (tracer :c)
+                             (tracer :d)))))
+
+    (is (= [:a :b :c :d]
+           (names
+             (chain/enqueue* ctx
+                             (tracer :b)
+                             [(tracer :c) (tracer :d)]))))))
