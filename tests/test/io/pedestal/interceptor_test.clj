@@ -504,3 +504,10 @@
     (is (= "Name must be keyword or nil; Got: \"not-a-keyword\"" (ex-message e)))
     (is (= {:name "not-a-keyword"}
            (ex-data e)))))
+
+(deftest does-not-satisfy-into-interceptor
+  (when-let [e (is (thrown-with-msg? Exception #"isn't supported by the protocol"
+                                     (interceptor :just-a-keyword)))]
+    (is (= {:t :just-a-keyword
+            :type clojure.lang.Keyword}
+           (ex-data e)))))
