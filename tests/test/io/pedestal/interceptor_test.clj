@@ -498,3 +498,9 @@
     (is (= true (.await latch 1 TimeUnit/SECONDS)))
 
     (is (= ::response @*capture))))
+
+(deftest interceptor-name-must-be-a-keyword
+  (when-let [e (is (thrown? Exception (interceptor/interceptor-name "not-a-keyword")))]
+    (is (= "Name must be keyword or nil; Got: \"not-a-keyword\"" (ex-message e)))
+    (is (= {:name "not-a-keyword"}
+           (ex-data e)))))
