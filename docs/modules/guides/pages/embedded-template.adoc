@@ -7,11 +7,11 @@ https://github.com/seancorfield/deps-new[deps-new], a tool used to generate new 
 If you are a Leiningen user, it is relative straight forward to create an equivalent `project.clj` from the
 generated `deps.edn`.
 
-The _embedded_ part indicates that the template is configured to work using
-xref:reference:jetty.adoc[], and it starts Jetty from within a running Clojure application
+The _embedded_ name indicates that the template is configured to work using
+xref:reference:http-kit.adoc[], and it starts Http-Kit from within the running Clojure application
 (an alternate, supported, but far less common approach is to
-xref:war-deployment.adoc[bundle a Pedestal application into
-a WAR] and deploy into Jetty, or another servlet container).
+xref:war-deployment.adoc[bundle a Pedestal application into a WAR]
+and deploy into xref:reference:jetty.adoc[Jetty], or another servlet container).
 
 == Setting up deps-new
 
@@ -24,9 +24,8 @@ to the :aliases map:
 
     :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0"}}}
 
-TIP: This step is only necessary if Clojure 1.12 is not your default; for most
-users, Clojure 1.12 will be the default.  Check by running the `clojure` command; it will tell you your default Clojure version.
-
+TIP: This step is only necessary if Clojure 1.12 (or better) is not your default; for most
+users, Clojure 1.12 (or better) _will_ be the default.  Check by running the `clojure` command; it will tell you your default Clojure version.
 
 == Creating a project
 
@@ -42,20 +41,19 @@ The command for this is somewhat arcane:
 
 [subs=attributes]
 ```
-clojure -A:1.12 -Tnew create :template \
+clojure -Tnew create :template \
   io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} \
   :name com.blueant/peripheral
 ```
 
-TIP: The `-A:1.12` option references the global alias you set up earlier and, again,
-is only needed if Clojure 1.12 is not your default.  Clojure 1.12 is only needed to initially construct your project;
-to later build or run your project, Clojure 1.10 or above is all that's needed.
+TIP: Add the `-A:1.12` option immediately after `clojure` if Clojure 1.12 (or better) is not your default.
+Clojure 1.12 is only needed to initially construct your project; to later build or run your project, Clojure 1.10 or above is all that's needed.
 
 Example:
 
 [subs=attributes]
 ```
-$ clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} :name com.blueant/peripheral
+$ clojure -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} :name com.blueant/peripheral
 
 Resolving io.github.pedestal/pedestal as a git dependency
 Creating project from io.pedestal/embedded in peripheral
@@ -147,7 +145,7 @@ The `dev` namespace provides the functions `go!`, `start!`, and `stop!`.
 
 The :test alias sets up the classpath so that the `dev` namespace is
 available, and enables
-xref:live-repl.adoc[REPL oriented development mode], including
+xref:live-repl.adoc[REPL oriented development mode], one aspect of which is
 the output of the routing table as the service started.
 
 Because the application is running in debug mode,
@@ -173,6 +171,8 @@ DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.trac
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.http-kit/response-converter, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.http-kit/async-responder, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
 ```
+
+TIP: The generated `logback-test.xml` file can be changed to control what is logged and in what format.
 
 You can also use `curl` or link:https://github.com/httpie/cli[http] to make a request:
 
@@ -218,9 +218,9 @@ INFO  io.pedestal.service.interceptors - {:msg "GET /favicon.ico", :line 40}
 
 ## Gathering Telemetry
 
-The template includes very basic support for  gathering and reporting telementry using {otel}.
+The template includes very basic support for gathering and reporting telementry using {otel}.
 For local work, this is best accomplished
-by running a Docker container with the link:https://www.jaegertracing.io/[Jaeger] server running; the container
+by launching a Docker container to run the link:https://www.jaegertracing.io/[Jaeger] service; the container
 will collect telemetry from the running application, and also provides a user interface to examine
 the traces produced by the application.
 

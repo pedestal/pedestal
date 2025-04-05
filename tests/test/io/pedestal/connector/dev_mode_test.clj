@@ -46,7 +46,7 @@
       (dev/with-interceptor-observer {:omit          dev/default-debug-observer-omit
                                       :changes-only? true
                                       :tap?          true})
-      (connector/with-routing :sawtooth routes)
+      (connector/with-routes routes)
       (hk/create-connector nil)))
 
 (def *connector (atom nil))
