@@ -10,15 +10,18 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.service.conversions-test
-  "Tests for the conversions that occur inside [[io.pedestal.service.test]]."
+  "Tests for the conversions that occur inside [[io.pedestal.service.test]]
+  and [[io.pedestal.service.data]]."
   (:require [clojure.edn :as edn]
             [clojure.core.async :refer [go]]
             [clojure.java.io :as io]
             [io.pedestal.service.test :as test]
+            [io.pedestal.service.data :as data :refer [convert]]
             [clojure.test :refer [deftest is]])
-  (:import (java.io InputStream)
+  (:import (java.io ByteArrayInputStream InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels Channels)))
+           (java.nio.channels Channels)
+           (javassist.bytecode ByteArray)))
 
 (deftest request-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
@@ -91,12 +94,49 @@
            (slurp stream)))))
 
 (deftest response-byte-channel
-  (let [file (io/file "file-root/sub/index.html")
+  (let [file    (io/file "file-root/sub/index.html")
         channel (Channels/newChannel (io/input-stream file))
-        stream (test/coerce-response-body channel)]
+        stream  (test/coerce-response-body channel)]
     (is (instance? InputStream stream))
     (is (= (slurp file)
            (slurp stream)))))
+
+
+(deftest data-nil-to-byte-array
+  (let [array (convert :byte-array nil)]
+    (is (= (Class/forName "[B")
+           (type array)))))
+
+(deftest data-nil-to-byte-buffer
+  (let [buf (convert :byte-buffer nil)]
+    (is (instance? ByteBuffer buf))
+    (is (= 0
+           (.limit buf)))))
+
+
+(deftest data-input-stream-byte-buffer
+  (let [content "This is some content."
+        stream  (convert :input-stream (.getBytes content "UTF-8"))
+        buf     (convert :byte-buffer stream)]
+    (is (= content
+           (slurp (convert :input-stream buf))))))
+
+(deftest data-byte-buffer-to-byte-array
+  (let [content "we'll push this through the pipe"
+        result (->> (.getBytes content "UTF-8")
+                    (convert :byte-buffer)
+                    (convert :byte-array))]
+    (is (= content
+           (slurp result)))))
+
+
+(deftest unknown-data-conversion
+  (when-let [e (is (thrown? Exception
+                            (convert :pipe nil)))]
+    (is (= "unknown format: :pipe" (ex-message e)))
+    (is (= {:format        :pipe
+            :known-formats [:byte-array :byte-buffer :input-stream]}
+           (ex-data e)))))
 
 
 

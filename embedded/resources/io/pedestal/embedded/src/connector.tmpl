@@ -21,11 +21,11 @@
         (cond->
            dev-mode? dev/with-dev-interceptors
            trace? dev/with-interceptor-observer)
-       ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
-       ;; with an application-specific set of calls to with-interceptor.
+        ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
+        ;; with an application-specific set of calls to with-interceptor.
         connector/with-default-interceptors
         ;; This kind of file or resource access is separate from routing and must come first.
         (connector/with-resource-access "public")
         ;; Routing is generally the last interceptors added.
-        (connector/with-routing :sawtooth (routes/routes)))))
+        (connector/with-routes (routes/routes)))))
 

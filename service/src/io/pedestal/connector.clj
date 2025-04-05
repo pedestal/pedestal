@@ -33,6 +33,7 @@
   ([host port]
    {:port            port
     :host            host
+    :router          :sawtooth
     :interceptors    []
     :initial-context {}
     :join?           false}))
@@ -51,7 +52,7 @@
   [connector-map interceptors]
   (reduce with-interceptor connector-map interceptors))
 
-(defmacro with-routing
+(defmacro with-routes
   "A macro for adding a routing interceptor (and an interceptor to decode
   path parameters) to the connector map.
   This is generally the last step in building the interceptor chain.
@@ -75,11 +76,12 @@
 
   - A routing interceptor
   - A [[path-params-decoder]]"
-  [connector-map router-constructor & route-fragments]
-  `(with-interceptors ~connector-map
-                      [(route/router (route/routes-from ~@route-fragments)
-                                     ~router-constructor)
-                       route/path-params-decoder]))
+  [connector-map & route-fragments]
+  `(let [connector-map# ~connector-map]
+     (with-interceptors connector-map#
+                        [(route/router (route/routes-from ~@route-fragments)
+                                       (:router connector-map#))
+                         route/path-params-decoder])))
 
 (defn with-default-interceptors
   "Sets up a default set of interceptors for _early_ development of an application.
