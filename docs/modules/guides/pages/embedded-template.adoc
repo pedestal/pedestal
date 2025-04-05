@@ -47,7 +47,7 @@ clojure -Tnew create :template \
 ```
 
 TIP: Add the `-A:1.12` option immediately after `clojure` if Clojure 1.12 (or better) is not your default.
-Clojure 1.12 is only needed to initially construct your project; to later build or run your project, Clojure 1.10 or above is all that's needed.
+Clojure 1.12 is only needed to initially construct your project; to later build or run your project, Clojure {base-clojure} or above is all that's needed.
 
 Example:
 
