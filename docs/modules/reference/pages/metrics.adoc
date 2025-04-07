@@ -1,8 +1,11 @@
 = Metrics
-:default_api_ns:io.pedestal.metrics
+:default_api_ns: io.pedestal.metrics
 
 
-Pedestal metrics are a wrapper around {otel}, which provides cross-platform solutions for metrics, tracing, and logging.
+Pedestal metrics are a wrapper around {otel}, which provides cross-platform solutions for metrics, tracing, and logging
+footnote:[In fact, there's an extra layer of abstraction:
+namespace api:*[ns=io.pedestal.metrics.spi] which defines the protocol that can be implemented to capture metrics without
+using Open Telemetry.].
 
 Metrics and tracing are provided in the io.pedestal/pedestal.telemetry library.
 
@@ -28,14 +31,26 @@ identifying broad trends, and used for metrics such as size of incoming requests
 == Setup
 
 The metrics API is built around the api:*default-metric-source*[], which is created
-at startup from function identified by xref:config.adoc[runtime configuration].
+at startup from a function identified by xref:config.adoc[runtime configuration].
 
-Open Telemetry defines a wide range of JVM system properties and environment variables to
+{otel} defines a wide range of JVM system properties and environment variables to
 configure metrics (and tracing); those are outside the scope of this document.
 
 Rather than rely on outside configuration, an application can provide its own initialization function
 to setup Open Telemetry as needed.
 
+== Value Types
+
+The {otel} framework supports long or double as the value types inside metrics; Pedestal expects any
+underlying metrics framework to do the same, even if it means converting provided value types.
+
+By default, metric values are of type long. This can be overridden using
+xref:config.adoc#metric-value-type[configuration].
+
+In addition, the attribute :io.pedestal.metrics/value-type can be applied to any metric; the value
+for the attribute should be either :long or :double.
+
+Pedestal will convert supplied longs or doubles to the correct type for the particular metric.
 
 == Built-in Metrics
 

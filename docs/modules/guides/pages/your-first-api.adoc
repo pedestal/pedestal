@@ -125,7 +125,7 @@ did go look up code link:https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 Second, we're going to define all our routes right away, but have them
 all use an `echo` handler so we can test the routes separately from
 everything else{empty}footnote:[See the
-xref:hello-world-content-types.adoc#_an_echo_interceptor[Hello World With Content Types tutorial]
+xref:hello-world-content-types.adoc#echo_interceptor[Hello World With Content Types tutorial]
 for an explanation of the `echo` interceptor.].
 
 [source,clojure]
@@ -137,7 +137,7 @@ include::example$todo-api/src/main.clj[tags=routes]
 Pedestal makes it possible to invoke these routes directly from the REPL, without involving HTTP at all.
 This is a nice way to break your work up into incremental steps.
 It goes together nicely with the interactive development support we introduced in the
-xref:hello-world-query-parameters.adoc#_interactive_development[Hello World, With Parameters tutorial].
+xref:hello-world-query-parameters.adoc#interactive[Hello World, With Parameters tutorial].
 
 Get ready for a _ton_ of output:
 
@@ -331,7 +331,7 @@ order.
 There are a couple of things to notice about this updated route
 definition. First, instead of using `echo` here, we have a vector with
 our `db-interceptor` and `list-create` interceptors. Recall from
-xref:hello-world-content-types.adoc#_interceptors[the introduction to
+xref:hello-world-content-types.adoc#interceptors[the introduction to
 interceptors] that interceptors have two functions. The :enter
 functions get called from left to right, then the :leave functions
 get called from right to left. That means calls to the
@@ -588,7 +588,7 @@ We covered some more advanced concepts with interceptors this time:
 
 == Where To Next?
 
-Congratulations! You've finished the whole getting stated trail.
+Congratulations! You've finished the whole getting started trail.
 
 To go deep on some of these topics, check out any of the
 following references:

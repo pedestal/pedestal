@@ -20,5 +20,6 @@ asciidoc:
     api_doc_root: http://pedestal.io/api/0.8
     # Necessary to support the API link in the UI template (header dropdown):
     page-api_doc_root: "{api_doc_root}"
-    libs_version: 0.8.0-SNAPSHOT
+    libs_version: 0.8.0-alpha-1
+    base-clojure: 1.11
     otel: "link:https://opentelemetry.io/[Open Telemetry]"

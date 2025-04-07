@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -147,14 +147,15 @@
 
   The options map may have keys :app-name, :host, :port, :scheme, :interceptors, and :verbs.  The first four
   set the corresponding route keys of the routes; the :verbs key specifies the allowed verbs for
-  the routes
+  the routes.
 
   The :interceptors option are a seq of interceptors that are prefixed to any interceptors specified in a route."
   ([routes]
    (table-routes (or (first (filter map? routes)) {})
                  (filterv vector? routes)))
   ([opts routes]
-   {:pre [(map? opts)
+   {:pre [(or (nil? opts)
+              (map? opts))
           (or (set? routes)
               (sequential? routes))]}
    (types/->RoutingFragmentImpl

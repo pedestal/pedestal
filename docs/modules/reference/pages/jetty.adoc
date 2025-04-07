@@ -1,8 +1,14 @@
-= Jetty 11
+= Jetty 12
+:docroot: https://jetty.org/docs/jetty/12
+:apiroot: https://javadoc.jetty.org/jetty-12
+:HttpConfiguration: {apiroot}/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration]
 
-link:https://eclipse.dev/jetty/[Jetty 11] is the default container used with Pedestal.
+link:https://jetty.org/docs/jetty/12/index.html[Jetty 12] is the default xref:connector.adoc[connector] used with Pedestal.
 
 == Container Options
+
+The provided container options are generally sufficient for most applications which use HTTP or HTTPs; some options
+are callback functions to provide greater custom control over the Jetty objects.
 
 The following table lists the container options supported by Jetty.
 
@@ -14,26 +20,35 @@ The following table lists the container options supported by Jetty.
 | Boolean
 | Use daemon threads. Defaults to `false`.
 
+| :context-path
+| String
+| Context path for the application; must start with a `/`.  Defaults to `/`.
+
 | :max-threads
 | Integer
 | The maximum number of threads to use. Defaults to `50`.
+
+| :max-streams
+| Integer
+| The maximum number of concurrent streams for an HTTP2 or HTTP2C connector. Defaults to `128`.
+
 
 | :reuse-addr?
 | Boolean
 | Reuse the socket address. Defaults to `true`.
 
 | :thread-pool
-| A link:https://javadoc.jetty.org/jetty-11/org/eclipse/jetty/util/thread/ThreadPool.html[ThreadPool] instance.
+| A link:{apiroot}/org/eclipse/jetty/util/thread/ThreadPool.html[ThreadPool] instance.
 | Override the Jetty thread pool (ignores max-threads)
 
 | :configurator
 | Function
-| A function called with the `org.eclipse.jetty.server.Server`
+| A function called with the link:{apiroot}/org/eclipse/jetty/server/Server.html[Server]
 instance. Expected to return the Server instance. Use when advanced customization is required.
 
 | :context-configurator
 | Function
-| A function called with the `org.eclipse.jetty.servlet.ServletContextHandler` instance. Use when advanced customization is required.
+| A function called with the link:{apiroot}/org/eclipse/jetty/ee10/servlet/ServletContextHandler.html[ServletContextHandler] instance. Use when advanced customization is required.
 
 | :ssl?
 | Boolean
@@ -45,21 +60,21 @@ instance. Expected to return the Server instance. Use when advanced customizatio
 
 | :h2c?
 | Boolean
-| HTTP/2 cleartext support. Allows upgrading connections from HTTP/1.1 to the Http/2 protocol. Defaults to `true`. When `true`, :port must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
+| HTTP/2 cleartext support. Allows upgrading connections from HTTP/1.1 to the Http/2 protocol. Defaults to `true`.link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:{docroot}/operations-guide/modules/standard.html#http2[Jetty HTTP/2] documentation.
 
 | :h2?
 | Boolean
-| HTTP/2 TLS support. When `true`, :ssl-port must be specified. link:https://httpwg.org/specs/rfc7540.html#versioning[HTTP/2 versioning], link:https://www.eclipse.org/jetty/documentation/jetty-9/index.html#http2[Jetty HTTP/2] documentation.
+| HTTP/2 TLS support. When `true`, :ssl-port must also be specified.
 
 | :connection-factory-fns
 | Vector of Functions
-| A vector of functions that take the options map and
-an `org.eclipse.jetty.server.HttpConfiguration` instance and return an
-`org.eclipse.jetty.server.ConnectionFactory` instance. Applies only to
+| A vector of functions that each take the options map and
+an link:{HttpConfiguration} instance and return a
+link:{apiroot}/org/eclipse/jetty/server/ConnectionFactory.html[ConnectionFactory] instance. Applies only to
 the SSL connection.
 
 | :ssl-context-factory
-| An link:https://javadoc.jetty.org/jetty-11/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
+| An link:{apiroot}/org/eclipse/jetty/util/ssl/SslContextFactory.html[SslContextFactory] instance.
 | The `SSLContextFactory` instance to use when creating the server. If
 specified, :key-password, :keystore, :truststore,
 :trust-password, :security-provider, :client-auth are ignored.
@@ -87,10 +102,11 @@ specified, :key-password, :keystore, :truststore,
 
 | :security-provider
 | String
-| Java Security Provider name. Refer to the Jetty https://www.eclipse.org/jetty/documentation/jetty-9/index.html#configuring-ssl[ConfiguringSSL/TLS] documentation. Not used if :ssl-context-factory is set.
+| Java Security Provider name. Refer to the Jetty
+{docroot}/operations-guide/modules/standard.html#ssl[Configuring SSL/TLS] documentation. Not used if :ssl-context-factory is set.
 
-| :io.pedestal.http.jetty/http-configuration
-| An link:https://javadoc.jetty.org/jetty-11/org/eclipse/jetty/server/HttpConfiguration.html[HttpConfiguration] instance.
+| :http-configuration
+| An link:{HttpConfiguration} instance.
 | The `HttpConfiguration` instance to use when creating the
 server. Use when advanced customization is required. The default
 `HttpConfiguration` is listed below.
@@ -99,7 +115,7 @@ server. Use when advanced customization is required. The default
 
 == Default HttpConfiguration
 
-The default HttpConfiguration is:
+The default link:{HttpConfiguration} is:
 
 * `SendDateHeader` is set to `true`
 * `SendXPoweredBy` is set to `false`

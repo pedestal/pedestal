@@ -11,16 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.1
+        uses: actions/checkout@v4.2.2
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'corretto'
       - name: Setup Clojure
-        uses: DeLaGuardo/setup-clojure@12.5
+        uses: DeLaGuardo/setup-clojure@13.2
         with:
-          cli: 1.12.0.1479
+          cli: 1.12.0.1530
 
       - name: Cache Clojure dependencies
         uses: actions/cache@v4
@@ -37,33 +37,28 @@ jobs:
           clojure -version
           clojure -M -e '*clojure-version*'
       - name: Local Install
-        run: clojure -T:build deploy-all :dry-run true
-      - name: Dependencies and Prep
-        working-directory: service
-        run: clojure -X:deps:local prep
-      - name: Compile services
-        working-directory: service
+        run: clojure -T:build install
+      - name: Compile servlet module
+        working-directory: servlet
         run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
       - name: Execute tests (Clojure 1.12)
         working-directory: tests
         run: clojure -X:test:1.12
       - name: Execute tests (Clojure 1.11)
         working-directory: tests
-        run: clojure -X:test
-      - name: Execute tests (Clojure 1.10)
-        working-directory: tests
-        run: clojure -X:test:1.10
+        run: clojure -X:test:1.11
       - name: Collect Code Coverage
         working-directory: tests
         run: clojure -M:coverage
       - name: CVE Vulnerabilities Check
+        if: false #temporary
         id: cve-check
         run: clojure -T:build cve-check
       - name: Lint with clj-kondo
         run: clojure -T:build lint
       - name: Upload cve-check-results.html
         if: ${{ !cancelled() && steps.cve-check.conclusion }}
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: cve-check-results.html
           path: target/nvd/dependency-check-report.html

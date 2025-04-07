@@ -1,4 +1,4 @@
-; Copyright 2021-2024 Nubank NA
+; Copyright 2021-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2018 Cognitect, Inc.
 
@@ -185,7 +185,7 @@
 (def override-logger
   "Override of the default logger source, from symbol property `io.pedestal.log.overrideLogger`
   or environment variable `PEDESTAL_LOGGER`."
-  (i/resolve-var-from "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))
+  (i/read-config "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))
 
 (def ^:private override-logger-delay
   "Improves the ergonomics of overriding logging by delaying
@@ -194,7 +194,7 @@
   This replaces override-logger, as it allows runtime setting of the property, rather
   than being locked into the property name when the namespace is first loaded."
   (delay (or override-logger
-             (i/resolve-var-from "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))))
+             (i/read-config "io.pedestal.log.overrideLogger" "PEDESTAL_LOGGER"))))
 
 (defn make-logger
   "Returns a logger which satisfies the [[LoggerSource]] protocol."
@@ -205,7 +205,7 @@
 
 (def ^:private *default-formatter
   (delay
-    (or (i/resolve-var-from "io.pedestal.log.formatter" "PEDESTAL_LOG_FORMATTER")
+    (or (i/read-config "io.pedestal.log.formatter" "PEDESTAL_LOG_FORMATTER")
         pr-str)))
 
 (defn default-formatter

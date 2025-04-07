@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -21,7 +21,6 @@
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
             [cognitect.transit :as transit]
-            [io.pedestal.internal :as i]
             [ring.middleware.params :as params])
   (:import (java.io EOFException InputStream InputStreamReader PushbackReader)
            (java.util.regex Pattern)))
@@ -49,24 +48,6 @@
   (let [parser-fn (parser-for parser-map (:content-type request))]
     (parser-fn request)))
 
-(defn- set-content-type
-  "Changes the content type of a request"
-  [request content-type]
-  (-> request
-      (assoc :content-type content-type)
-      (assoc-in [:headers "Content-Type"] content-type)))
-
-(defn- convert-middleware
-  "Turn a ring middleware into a parser. If a content type is given, return a parser
-   that will ensure that the handler sees that content type in the request"
-  ([wrap-fn] (fn [_request] (wrap-fn identity)))
-  ([wrap-fn expected-content-type]
-   (let [parser (wrap-fn identity)]
-     (fn [request]
-       (let [retyped-request (set-content-type request expected-content-type)
-             parsed-request  (parser retyped-request)]
-         (set-content-type parsed-request (:content-type request)))))))
-
 (defn add-parser
   "Adds a parser to the parser map; content type can either be a string (to exactly match the content type),
   or a regular expression.
@@ -78,11 +59,6 @@
                           content-type
                           (re-pattern (str "^" (Pattern/quote content-type) "$")))]
     (assoc parser-map content-pattern parser-fn)))
-
-(defn ^{:deprecated "0.7.0"} add-ring-middleware
-  [parser-map content-type middleware]
-  (i/deprecated `add-ring-middleware
-    (add-parser parser-map content-type (convert-middleware middleware))))
 
 (defn custom-edn-parser
   "Return an edn-parser fn that, given a request, will read the body of that
@@ -101,14 +77,6 @@
                              input-stream
                              PushbackReader.
                              (->> (edn/read edn-options))))))))
-
-(defn ^{:deprecated "0.7.0"} edn-parser
-  "Take a request and parse its body as edn.
-
-  Invoke [[custom-edn-parser]] instead."
-  [& args]
-  (i/deprecated `edn-parser
-    (apply custom-edn-parser args)))
 
 (defn- json-read
   "Parse json stream, supports parser-options with key-val pairs:
@@ -142,14 +110,6 @@
                       ^String encoding)
                     options)))))
 
-(defn ^{:deprecated "0.7.0"} json-parser
-  "Take a request and parse its body as JSON.
-
-  Use [[custom-json-parser]] instead."
-  [& args]
-  (i/deprecated `json-parser
-    (apply custom-json-parser args)))
-
 (defn custom-transit-parser
   "Return a transit-parser fn that, given a request, will read the
   body of that request with `transit/read`. options is a sequence to
@@ -174,13 +134,6 @@
       (cond-> request
         transit-params (assoc :transit-params transit-params)))))
 
-(defn ^{:deprecated "0.7.0"} transit-parser
-  "Take a request and parse its body as JSON transit.
-
-  Use [[custom-transit-parser]] instead."
-  [& args]
-  (i/deprecated `transit-parser
-    (apply custom-transit-parser :json args)))
 
 (defn form-parser
   "Take a request and parse its body as a form."
@@ -214,12 +167,12 @@
   (let [{:keys [edn-options json-options transit-options]} (apply hash-map parser-options)
         edn-options-vec  (apply concat edn-options)
         json-options-vec (apply concat json-options)]
-
-    {#"^application/edn"                   (apply custom-edn-parser edn-options-vec)
-     #"^application/json"                  (apply custom-json-parser json-options-vec)
-     #"^application/x-www-form-urlencoded" form-parser
-     #"^application/transit\+json"         (apply custom-transit-parser :json transit-options)
-     #"^application/transit\+msgpack"      (apply custom-transit-parser :msgpack transit-options)}))
+    (-> {}
+        (add-parser #"^application/edn" (apply custom-edn-parser edn-options-vec))
+        (add-parser #"^application/json" (apply custom-json-parser json-options-vec))
+        (add-parser #"^application/x-www-form-urlencoded" form-parser)
+        (add-parser #"^application/transit\+json" (apply custom-transit-parser :json transit-options))
+        (add-parser #"^application/transit\+msgpack" (apply custom-transit-parser :msgpack transit-options)))))
 
 (defn body-params
   "Returns an interceptor that will parse the body of the request according to the content type.

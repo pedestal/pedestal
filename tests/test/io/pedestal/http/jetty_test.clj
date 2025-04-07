@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -25,7 +25,8 @@
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.http.jetty :as jetty])
+            [io.pedestal.http.jetty :as jetty]
+            io.pedestal.http.jetty.specs)
   (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
@@ -77,7 +78,7 @@
 
 (defn jetty-server
   [app options]
-  (jetty/server {:io.pedestal.http/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [(interceptor app)]))}
+  (jetty/server {::bootstrap/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [(interceptor app)]))}
                 (assoc options :join? false)))
 
 (defmacro with-server [app options & body]
@@ -159,7 +160,7 @@
                          (.setAttribute server "ANewAttribute" 42)
                          (.setHandler server new-handler)
                          server)
-        ^Server server (:server (jetty-server hello-world
+        ^Server server (::jetty/server (jetty-server hello-world
                                               {:join? false :port 4347 :container-options {:max-threads  max-threads
                                                                                            :configurator configurator}}))]
     (is (= (.getMaxThreads ^QueuedThreadPool (.getThreadPool server)) max-threads))
@@ -170,13 +171,13 @@
 
 (deftest setting-daemon-threads
   (testing "default (daemon off)"
-    (let [server (:server (jetty-server hello-world {:port 4347 :join? false}))]
+    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false}))]
       (is (not (.. server getThreadPool isDaemon)))))
   (testing "daemon on"
-    (let [server (:server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? true}}))]
+    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? true}}))]
       (is (.. server getThreadPool isDaemon))))
   (testing "daemon off"
-    (let [server (:server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? false}}))]
+    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? false}}))]
       (is (not (.. server getThreadPool isDaemon))))))
 
 
@@ -237,9 +238,9 @@
     #{["/hello" :get `hello-world :route-name :hello]}))
 
 (def service-map
-  {:io.pedestal.http/type   :jetty
-   :io.pedestal.http/routes routes
-   :io.pedestal.http/port   4347})
+  {::bootstrap/type   :jetty
+   ::bootstrap/routes routes
+   ::bootstrap/port   4347})
 
 (deftest test-run-jetty-context-path
   (testing "default context-path"
@@ -253,7 +254,7 @@
                            (is (= (url-for :hello) "/hello")))))
   (testing "custom context-path"
     (with-service-server (merge service-map
-                                {:io.pedestal.http/container-options {:context-path "/context"}})
+                                {::bootstrap/container-options {:context-path "/context"}})
                          (let [response (http/get "http://localhost:4347/context/hello")
                                url-for  (route/url-for-routes routes :context "/context")]
                            (is (= (:status response) 200))
@@ -272,17 +273,36 @@
     #{["/hello" :get `hello-page2 :route-name :hello]}))
 
 (def service-map2
-  {:io.pedestal.http/type   :jetty
-   :io.pedestal.http/routes routes2
-   :io.pedestal.http/port   4347})
+  {::bootstrap/type   :jetty
+   ::bootstrap/routes routes2
+   ::bootstrap/port   4347})
 
 (deftest test-run-jetty-custom-context-with-servletcontext
   (testing "custom context-path via servlet context"
     (with-service-server (merge service-map2
-                                {:io.pedestal.http/container-options {:context-path "/context2"}})
+                                {::bootstrap/container-options {:context-path "/context2"}})
                          (let [response (http/get "http://localhost:4347/context2/hello")]
                            (is (= (:status response) 200))
                            (is (.startsWith ^String (get-in response [:headers "content-type"])
                                             "text/plain"))
                            (is (= (:body response) "/context2/hello"))))))
+
+(def ^:private create-server #'jetty/create-server)
+
+(deftest validates-that-context-path-starts-with-slash
+  (is (thrown-with-msg? Exception #"\QNo HTTP or SSL port configured\E"
+                        (create-server nil {:context-path "invalid"}))))
+
+(deftest requires-ssl-port-if-h2-enabled
+  (is (thrown-with-msg? Exception #"\QSSL must be enabled to use HTTP/2\E"
+                        (create-server nil {:container-options {:h2? true}}))))
+
+(deftest requires-plain-or-ssl-port
+  (is (thrown-with-msg? Exception #"\QNo HTTP or SSL port configured\E"
+                        (create-server nil nil))))
+
+(deftest requires-plan-port-for-h2c
+  (is (thrown-with-msg? Exception #"\QHTTP2-Cleartext can not be enabled unless a non-nil HTTP port is provided\E"
+                        (create-server nil {:container-options {:h2c?     true
+                                                                :ssl-port 443}}))))
 

@@ -31,18 +31,18 @@
               (assoc context :response (-> context :request request-fn)))}))
 
 (defn- handler-interceptor
-  [handler name]
+  [handler route-name]
   (cond
     (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
-                             (assoc interceptor :name (or interceptor-name name)))
-    (fn? handler) (handler->interceptor name handler)))
+                             (assoc interceptor :name (or interceptor-name route-name)))
+    (fn? handler) (handler->interceptor route-name handler)))
 
 
 (defn- resolve-interceptor
-  [interceptor name]
+  [interceptor route-name]
   (if (interceptor? interceptor)
-    (handler-interceptor interceptor name)
-    (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) name)))
+    (handler-interceptor interceptor route-name)
+    (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) route-name)))
 
 (defn- handler-map
   [m]

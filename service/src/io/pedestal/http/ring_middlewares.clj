@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -20,9 +20,7 @@
   In some cases, some or all of the Ring middleware has been reimplemented here."
   (:require [clojure.java.io :as io]
             [io.pedestal.http.params :as pedestal-params]
-            [io.pedestal.http.request :as request]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.internal :as i]
             [ring.middleware.cookies :as cookies]
             [ring.middleware.file :as file]
             [ring.middleware.file-info :as file-info]
@@ -36,34 +34,12 @@
             [ring.util.mime-type :as mime]
             [ring.util.codec :as codec]
             [ring.util.response :as ring-resp]
+            [io.pedestal.service.protocols :as sp]
             [io.pedestal.http.tracing :as tracing])
   (:import (java.nio.channels FileChannel)
            (java.nio.file OpenOption
                           StandardOpenOption)
            (java.io File)))
-
-(defn ^{:deprecated "0.7.0"} response-fn-adapter
-  "Adapts a Ring middleware fn taking a response and request (that returns a possibly updated response), into an interceptor-compatible function taking a context map,
-  that can be used as the :leave callback of an interceptor.
-
-  The response-fn is only invoked if there is a non-nil :response map in the context.
-
-  If an opts map is provided (the arity two version) and is not empty, then the response function must be arity three, taking
-  a response map, request map, and the provided options."
-  ([response-fn]
-   (i/deprecated `response-fn-adapter
-     (fn [{:keys [request response] :as context}]
-       (if-not response
-         context
-         (assoc context :response (response-fn response request))))))
-  ([response-fn opts]
-   (i/deprecated `response-fn-adapter
-     (if (seq opts)
-       (fn [{:keys [request response] :as context}]
-         (if-not response
-           context
-           (assoc context :response (response-fn response request opts))))
-       (response-fn-adapter response-fn)))))
 
 (defn- response-fn->leave
   [response-fn & args]
@@ -260,10 +236,10 @@
   the response :body will be a java.nio.channels.FileChannel that can be streamed to the client
   asynchronously.
 
-  A file is large if it is larger than the HTTP buffer size, which is calculated via
-  [[io.pedestal.http.request/response-buffer-size]] and defaults to 1460 bytes.
+  A file is large if it is larger than the HTTP buffer size, which is calculated from
+  the servlet-response's bufferSize, or defaults to 1460 bytes (if the servlet response is not known).
 
-  If succesful, marks the current tracing span as routed, with a route-name of :fast-resource.
+  If successful, marks the current tracing span as routed, with a route-name of :fast-resource.
 
   If your container doesn't recognize FileChannel response bodies, this interceptor will cause errors.
 
@@ -284,10 +260,7 @@
                  (let [{:keys [request]} context
                        {:keys [servlet-response uri path-info request-method]} request]
                    (if (#{:head :get} request-method)
-                     (let [buffer-size-bytes (if servlet-response
-                                               (request/response-buffer-size servlet-response)
-                                               ;; let's play it safe and assume 1500 MTU
-                                               1460)
+                     (let [buffer-size-bytes (or (sp/response-buffer-size servlet-response) 1500)
                            uri-path          (subs (codec/url-decode (or path-info uri)) 1)
                            path              (-> (str (or root-path "") "/" uri-path)
                                                  (.replace "//" "/")
@@ -303,6 +276,7 @@
                                                           ;; TODO: Nothing like losing the data to private functions
                                                           ;;  - rewrite the above to do the file lookup and response generation directly
                                                           (Long/parseLong (get-in file-resp [:headers "Content-Length"])))
+                                                    ;; The response fits in the response buffer, streaming won't make anything better
                                                     file-resp
                                                     (assoc file-resp
                                                            :body (FileChannel/open (.toPath ^File (:body file-resp))

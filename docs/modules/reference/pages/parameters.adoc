@@ -69,7 +69,7 @@ Query parameters are also merged into the :params map inside the
 xref:request-map.adoc[].
 
 Query parameters are a feature of the
-xref:routing-quick-reference.adoc#_builtin_routers[built in routers].
+xref:routing-quick-reference.adoc#builtin[built-in routers].
 If you supply your own router, it may or may not support query parameters.
 
 == Path Parameters
@@ -94,7 +94,7 @@ In every case, the value of the parameter is a string, taken from the
 corresponding segment of the URL.
 
 Path parameters are a feature of the
-xref:routing-quick-reference.adoc#_builtin_routers[built in routers]. If you supply your own
+xref:routing-quick-reference.adoc#builtin[built in routers]. If you supply your own
 router, it may or may not support path parameters.
 
 == Body Parameters

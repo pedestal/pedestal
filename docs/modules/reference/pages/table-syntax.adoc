@@ -156,4 +156,4 @@ Route name is required unless route name can be deduced from the handler, or fin
 A constraint clause is the keyword :constraints followed by a map.
 
 Note that support for constraints exists today only for backwards compatibility;
-use of path parameter and query parameter constraints is xref:guides:defining-routes.adoc#_considering_constraints[no longer advised].
+use of path parameter and query parameter constraints is xref:guides:defining-routes.adoc#considering-constraints[no longer advised].

@@ -32,6 +32,8 @@
 (defn instrument-specs-fixture
   [f]
   (require 'io.pedestal.http.specs)
+  (require 'io.pedestal.http.jetty.specs)
+  (require 'io.pedestal.http.http-kit.specs)
   (stest/instrument)
   (try
     (f)

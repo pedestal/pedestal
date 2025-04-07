@@ -2,6 +2,21 @@
 :reftext: service map
 :navtitle: Service Map
 
+[WARNING]
+====
+The service map is used with the
+api:*[ns=io.pedestal.http] namespace.  Much of that namespace is deprecated in
+Pedestal 0.8, and replaced with the
+api:*[ns=io.pedestal.connector] namespace, which is centered on the
+xref:connector-map.adoc[].
+
+The service map was developed with the intention that all supported network connectors
+would implement the Jakarta Servlet API (such as xref:jetty.adoc[]); the
+newer xref:connector-map.adoc[] reflects a more generic system where the network connector
+understands HTTP but does _not_ implement the Servlet API, such as
+xref:http-kit.adoc[].
+====
+
 The service map is a blueprint that Pedestal uses to create all the necessary
 parts to begin processing requests: a service function, server function, chain provider, router, routes, and
 default set of interceptors.
@@ -66,6 +81,8 @@ NOTE: In the details below, ::http is an alias to :io.pedestal.http.
 | String
 | File path used as root by the api:file[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, this interceptor is added. Default is `nil`.
 
+  File system resources can also be exposed as xref:resources.adoc[routes].
+
 | ::http/host
 | N
 | String
@@ -113,12 +130,16 @@ from another container on the same host) will be network, not localhost, connect
 | ::http/port
 | N
 | Integer
-| Port for the running server. If `nil`, Pedestal defaults to port 80 and HTTP.
+| Port for the running server. If `nil`, then no HTTP port will be opened
+footnote:[This is the behavior of releases 0.7 and earlier as well, contrary to prior documentation.], and
+the container should be configured to open a port for HTTPs traffic.
 
 | ::http/resource-path
 | N
 | String
 | File path used as root by the api:resource[ns=io.pedestal.http.ring-middlewares] interceptor. If non-`nil`, the interceptor is added. Default is `nil`.
+
+  Classpath resources can also be exposed as xref:resources.adoc[routes].
 
 | ::http/router
 | N
@@ -173,7 +194,7 @@ from another container on the same host) will be network, not localhost, connect
 | ::http/websockets
 | N
 | Map
-| Defines websocket routing. See xref:websockets.adoc[].
+| *Deprecated in 0.8*: Prior approach to xref:websockets.adoc#upgrade[websocket routing].
 
 |===
 
@@ -277,20 +298,12 @@ keys and string values for the security headers. Any other keys will be ignored.
 
 == Server Map
 
-The api:server[] function converts the service map to a server map; much of this is
-the responsibility of the container-specific `server` function, such as
-api:server[ns=io.pedestal.http.jetty] - the function is determined from the ::http/type key of the service map.
+The api:server[] function converts the service map to a server map, along the way,
+initializing a container (such as xref:jetty.adoc[Jetty]);
+this will add the :http/start-fn and :http/stop-fn keys to the service map, yielding the server map.
 
-This function is passed the full service map, and a set of server options; these options
-are a subset of the service map keys: :host, :port, :join?, :container-options, and :websockets (each
-as a non-namespaced keyword).
-
-The `server` function should create a service (e.g., a Jetty Server) and return a map with
-at least keys :start-fn and :stop-fn.  These are then qualified into the io.pedestal.http namespace
-and merged into the service map.
-
-The api:start[] and api:stop[] functions use the ::http/start-fn and ::http/stop-fn keys to start
-and stop the server instance.
+The api:start[] and api:stop[] functions use the two functions provided by the container function to start
+and stop the container instance.
 
 == Spec Validation
 

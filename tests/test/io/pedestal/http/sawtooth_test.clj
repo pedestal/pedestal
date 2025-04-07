@@ -163,6 +163,25 @@
                  (is (= (attempt-request prefix-tree request)
                         (attempt-request sawtooth request)))))))
 
+(defn- get-product-parts [])
+(defn- get-product-orders [])
+
+(deftest path-with-param-distinguish-by-last-term
+
+  (let [routes  (table/table-routes
+                  [["/api/product/:id/parts" :get get-product-parts :route-name ::parts]
+                   ["/api/product/:id/orders" :get get-product-orders :route-name ::orders]
+                   ["/api/users" :get get-users :route-name ::users]])
+        router  (-> routes
+                    route/expand-routes
+                    sawtooth/router)
+        attempt (fn [& args]
+                  (router (apply request args)))]
+    (is (match? [{:route-name ::parts} {:id "23"}]
+                (attempt :get "/api/product/23/parts")))
+    (is (match? [{:route-name ::orders} {:id "267"}]
+                (attempt :get "/api/product/267/orders")))))
+
 
 (comment
   (def sawtooth-router (sawtooth/router dynamic-routing-table))
@@ -212,6 +231,7 @@
            ; Not conflicts, different methods:
            (route :new-user :post "/users")
            (route :update-user :post "/users/:id")))))
+
 
 
 (deftest report-simple-conflict

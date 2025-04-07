@@ -446,6 +446,7 @@
   the request satisfies all path and query constraints."
   {:deprecated "0.8.0"}
   [route]
+  ^{:in "0.8.0"}
   (internal/deprecated `add-satisfies-constraints?
     (route.internal/add-satisfies-constraints? route)))
 

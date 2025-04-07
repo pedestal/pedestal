@@ -22,13 +22,23 @@ Pedestal calls the :enter function on the way "in" to handling a
 request. It calls the :leave function on the way back "out". This is
 shown here for a single interceptor:
 
-image::guides:interceptors.png[]
+[seqdiag]
+----
+seqdiag {
+  "Interceptor Chain" -> Interceptor [label=":enter"]
+  "Interceptor Chain" <- Interceptor
+  "Interceptor Chain" -> "Other Interceptors"
+  "Interceptor Chain" <- "Other Interceptors"
+  "Interceptor Chain" -> Interceptor [label=":leave"]
+  "Interceptor Chain" <- Interceptor
+}
+----
 
 Either the :enter or :leave function may be omitted without harm.
 
 Logically speaking, interceptors form a queue.
 During the :enter phase, the next interceptor is popped off the queue,
-pushed onto the leave stack, and it's :enter function, if any, is executed.
+pushed onto the leave stack, and its :enter function, if any, is executed.
 
 Once the handler (or other interceptor) adds a :response to the context,
 the chain logic switches to :leave mode: it pops interceptors off
@@ -37,7 +47,23 @@ the leave stack and invokes the :leave function, if any.
 Because it's the leave _stack_ the :leave functions are invoked
 in the opposite order from the :enter functions.
 
-image::guides:interceptor-stack.png[]
+[seqdiag]
+----
+seqdiag {
+  "Interceptor Chain" -> A [label=":enter"]
+  "Interceptor Chain" <- A
+  "Interceptor Chain" -> B [label=":enter"]
+  "Interceptor Chain" <- B
+  "Interceptor Chain" -> C [label=":enter"]
+  "Interceptor Chain" <- C
+  "Interceptor Chain" -> C [label=":leave"]
+  "Interceptor Chain" <- C
+  "Interceptor Chain" -> B [label=":leave"]
+  "Interceptor Chain" <- B
+  "Interceptor Chain" -> A [label=":leave"]
+  "Interceptor Chain" <- A
+}
+----
 
 Both the queue and the stack reside in the context map. Since
 interceptors can modify the context map, that means they can change
@@ -52,10 +78,10 @@ the interceptor :leave functions, is called _executing the interceptor chain_.
 
 Interceptors expect certain keys to be present in the context
 map. These _context bindings_ are part of the contract between
-provider and interceptors.
+Pedestal connector and interceptors.
 
 The most important keys are :request, which holds the xref:request-map.adoc[], and
-:response, which holds the xref:response-map.adoc[].
+:response, which (once added to the context) holds the xref:response-map.adoc[].
 
 [NOTE]
 ====
@@ -66,20 +92,21 @@ xref:servlet-interceptor.adoc[] adds these details.
 
 Further keys are described in the xref:context-map.adoc[] reference.
 
+[#return]
 == Interceptor Return Values
 
-Interceptor functions must return values. Returning `nil` will cause
-an internal server error.
+Interceptor functions must return the context passed to it, or a modification of that context.
+Returning `nil` will cause an internal server error.
 
 An :enter or :leave function may return a context map directly. In
 this case, processing continues with the next interceptor.
 
 If the interceptor is expected to take a long time to return a result, it may
 instead return a {core_async} channel. Pedestal will yield the request processing thread back
-the the servlet container (so that it can process other incoming requests) and
+to the network adapter (so that it can process other incoming requests) and
 wait for a value to be produced.
 
-Only one value will be consumed from the returned channel, and the value must be a context map.
+Only one value will be consumed from the returned channel, and the value *must* be a context map.
 
 Request processing continues once the channel delivers the context map.
 
@@ -103,7 +130,8 @@ the channel returned by an interceptor to convey the new context map.
 
 The protocol
 api:IntoInterceptor[ns=io.pedestal.interceptor]
-represents anything that can be used as an interceptor. Pedestal extends that protocol to the following:
+represents anything that can be used as an interceptor.
+Pedestal extends that protocol to the following types:
 
 [cols="1,3"]
 |===
@@ -113,12 +141,12 @@ represents anything that can be used as an interceptor. Pedestal extends that pr
 | The :enter, :leave, :error, and :name keys are used directly.
 
 | Function
-| The function is interpreted as a link:#_handlers[handler] (or, rarely, as
-an link:#_indirect_interceptors[indirect interceptor].)
+| The function is interpreted as a link:#handler[handler].
 
 | List
 | The list is evaluated and its result is used as an interceptor. footnote:[This is supported behavior
   related to the xref:table-syntax.adoc[table router syntax], but is no longer commonly used and is deprecated.]
+  Support for List is deprecated.
 
 | Cons
 | Same as List (and also deprecated)
@@ -139,13 +167,14 @@ Applications should mainly use the map form as shown in the
 earlier examples when defining interceptors for routing
 purposes.
 
+[#manipulating]
 == Manipulating the interceptor queue
 
 The queue of interceptors remaining to execute is held in the
 xref:context-map.adoc[]. This means that an interceptor can
 enqueue other interceptors to be executed. In fact, this is exactly how
-xref:routing-quick-reference.adoc[routing] works, the router is an interceptor that matches requests and
-enqueues the desired interceptors when a specific route is identified.
+xref:routing-quick-reference.adoc[routing] works, the router is an interceptor that matches information
+from incoming requests to specific routes, then enqueues interceptors for that specific route.
 
 Use
 api:enqueue[ns=io.pedestal.interceptor.chain]
@@ -177,6 +206,7 @@ in the queue, then a few interceptors that provide behavior common to all routes
 common interceptors will run before any route-specific interceptors.
 
 
+[#handler]
 == Handlers
 
 A handler function is a special case of an interceptor.
@@ -190,22 +220,45 @@ Because a handler takes one kind of thing (request) and returns a
 different kind of thing (response), it can only be used in the last
 position of an interceptor stack.
 
-Handlers are always synchronous; they must return a response map, they may
-not return a channel that delivers a response map.
+Handlers return a response map; alternately, an asynchronous handler should return a channel that conveys the response map.
 
-== Indirect Interceptors
+Interceptors should always have names
+footnote:[In Pedestal 0.8.0 anonymous interceptors are deprecated; in a future release anonymous interceptors
+may result in a runtime exeption.].  When a handler function is converted to an Interceptor, Pedestal
+will check to see if the function has :name metadata and use that as the Interceptor's name.
 
-When IntoInterceptor is applied to a function _and_ that function has either the :interceptor
-or :interceptorfn metadata, it is not treated as a handler.
-The function will be invoked, and the returned value will itself be converted into an interceptor.
+Failing that, Pedestal will generate an interceptor name from the function's class name; this does not
+always provide ideal results.
 
-Note that you will need to carefully put the metadata on the function itself,
-and not on the symbol or Var associated with the function:
+[WARNING]
+====
+When using xref:terse-syntax.adoc[] or xref:verbose-syntax.adoc[] to define routes,
+the route name is used as a default on the handler interceptor, if it does not have its
+own name. This can cause interceptors to have different names after upgrading to 0.8.0.
+In the unlikely event that this behavior proves to be a problem, it can be
+xref:config.adoc#disable-handler-names[disabled].
+====
 
-[clojure]
+TIP: Provide a keyword :name metadata on your function.
+
+Example:
+
+[source]
 ----
-    ^{:interceptor true} (fn [] ...)
+ (def version-handler
+      ^{:name ::get-version} <1>
+      (fn [_request] {:status 200 :body "0.3.7"}))
+
+
+  ; Later, in routes
+
+  ["/api/version" :get version-handler] <2>
 ----
+<1> This is metadata applied to the _function_ itself.  If using `defn`, the metadata would be applied
+to the Var, not the function.
+<2> Prior to release 0.8.0, this route would be an error,
+because there is no explicit route name; now the route name
+will be the same as the interceptor's name (whether set explicitly, or derived from the function's class name).
 
 == Error Handling
 
@@ -217,7 +270,8 @@ Pedestal supports defining interceptor-specific error handlers via the
 The io.pedestal/pedestal.service library includes a large set of interceptors
 that are specialized for HTTP request handling.
 Many of these interceptors are automatically added to the
-interceptor queue by the api:default-interceptors[] function.
+interceptor queue by the api:default-interceptors[] function,
+using information from the xref:service-map.adoc[].
 
 - api:allow-origin[ns=io.pedestal.http.cors]
 - api:anti-forgery[ns=io.pedestal.http.csrf]
@@ -234,4 +288,4 @@ Routing-related interceptors are provided by the io.pedestal/pedestal.route libr
 
 - api:path-params-decoder[ns=io.pedestal.http.route]
 - api:query-params[ns=io.pedestal.http.route]
-- api:router[ns=io.pedestal.http.route
+- api:router[ns=io.pedestal.http.route]
