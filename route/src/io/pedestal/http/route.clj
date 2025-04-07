@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 ; Copyright 2013 Relevance, Inc.
 
@@ -288,7 +288,8 @@
              "//"
              host
              (when (non-standard-port? scheme port) (str \: port))))
-      (str (when-not (.startsWith path "/") "/") path)
+      (when-not (.startsWith path "/") "/")
+      path
       (when-not (str/blank? fragment) (str "#" fragment))
       (when (seq query-params)
         (str \?
@@ -339,7 +340,7 @@
   :context      | varied          | String, function that returns a string, or symbol that resolves to a function; specifies root context for the URL
   :fragment     | String          | The fragment part of the URL
   :absolute?    | Boolean         | True to force an absolute URL
-  :scheme       | :http or :https | Used to override the scheme portion of the URL
+  :scheme       | :http, :https   | Used to override the scheme portion of the URL
   :host         | String          | Used to override the host portion of the URL
   :port         | Integer         | Used to override the port in the URL
 
@@ -350,7 +351,7 @@
   {:pre []}
   (let [routes (internal/extract-routes routing-table)
         {:as default-opts} default-options
-        m (linker-map routes)]
+        m      (linker-map routes)]
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
             default-app-name (:app-name default-opts)
@@ -456,6 +457,8 @@
                  :url-for linker)
           (assoc-in [:bindings #'*url-for*] linker)
           (interceptor.chain/enqueue (:interceptors route))))
+    ;; Key present but nil indicates that routing failed (the request could not be
+    ;; mapped to a route).
     (assoc context :route nil)))
 
 (defn- construct-router-interceptor-from-table
@@ -596,7 +599,7 @@
   [routing-table & default-options]
   (let [routes (internal/extract-routes routing-table)
         {:as default-opts} default-options
-        m (linker-map routes)]
+        m      (linker-map routes)]
     (fn [route-name & options]
       (let [{:keys [app-name] :as options-map} options
             {:keys [method] :as route} (find-route m app-name route-name)

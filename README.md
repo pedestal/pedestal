@@ -15,7 +15,7 @@ Pedestal features:
 - Asynchronous request handling
 - Server Sent Events and WebSockets as first class citizens
 - Integrated logging, metrics, and tracing
-- Default integration with [Jetty 11](https://eclipse.dev/jetty/)
+- Default integration with [Jetty 12](https://eclipse.dev/jetty/)
 
 You can stand up a basic Pedestal server in just a few lines of code
 (see the tutorials in the documentation), but Pedestal is designed to grow with you, 
@@ -24,7 +24,7 @@ as your application matures and expands.
 See the [full documentation](http://pedestal.io) for far more detail about
 using Pedestal, its design, and its philosophy.
 
-Pedestal requires Clojure 1.10 or later, and works with Servlet API 5.0 and Java 11 and up.
+Pedestal requires Clojure 1.11 or later, and works with Servlet API 5.0 and Java 17 and up.
 
 ## Support
 

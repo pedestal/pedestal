@@ -36,8 +36,10 @@
    "error"
    "route"
    "service"
+   "servlet"
    ;; And then the others:
    "jetty"
+   "http-kit"
    "embedded"])
 
 ;; Working around this problem (bug)?
@@ -174,14 +176,16 @@
   (println (str "Building version " version (when dry-run " (dry run)") " ..."))
 
   (let [build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
-        ;; We only care about the Leiningen service-template when either deploying, or
-        ;; when changing the version number.
-        module-dirs'      (conj module-dirs "service-template")
-        artifacts-data    (mapv #(build-and-install % version) module-dirs')]
+        artifacts-data    (mapv #(build-and-install % version) module-dirs)]
     (when-not dry-run
       (println "Deploying ...")
       (run! #(deploy-jar (assoc % :sign-key-id sign-key-id)) artifacts-data)))
   (println "done"))
+
+(defn install
+  "Installs all libraries to local Maven repository."
+  [_]
+  (deploy-all {:force true :dry-run true}))
 
 (defn update-version
   "Updates the version of the library.

@@ -1,0 +1,82 @@
+= Connector Map
+:reftext: connector map
+:navtitle: Connector Map
+:default_api_ns: io.pedestal.connector
+
+Pedestal provides functions to create a xref:connector.adoc[].
+
+The service map contains general information that any Pedestal connector will need to create a network connector.
+This is supplemented by a connector-specific configuration map.
+
+== Connector Map Keys
+
+An initial connector map can be created by api:default-connector-map[].
+
+[cols="s,d,d", options="header", grid="rows"]
+|===
+| Key |  Type | Description
+
+| :port | Number | Port for the network connector to receive connections on
+| :host | String | Hostname to listen on, defaults to "localhost"
+| :router | Keyword or fn | Routing constructor to use, default is xref:sawtooth-router.adoc[:sawtooth]
+| :interceptors | Vector | Interceptor to used when processing requests.
+| :initial-context | Map | Initial context that will be used when executing the interceptor chain
+| :join? | Boolean | If true (the default is false) then the current thread will block when the connector is started.
+|===
+
+The created Pedestal connector will often prefix the supplied interceptors with ones specific to the connector.
+
+TIP: Supplying an :initial-context is a way to provide useful data, functions, or components to all interceptors
+and handlers.
+
+== Default interceptors
+
+The api:with-default-interceptors[] function is used to add interceptors to the service map for much
+common functionality.  It is passed the service map and an additional configuration map and will
+add interceptors for the following functionality:
+
+* Request tracing
+* Request logging
+* Allowed origins
+* Session support
+* Cross site request forgery detection
+* Default content type for responses
+* Parsing of query parameters
+* Secure headers (adds a few headers to improve security)
+
+[WARNING]
+====
+`with-default-interceptors` is useful, but limited. It doesn't let you fully configure many of the interceptors
+it adds, and it may add interceptors you do not need.
+It is intended as _scaffolding_: useful only at the outset of a new project, but should be
+removed and replaced with application specific setup once development is fully underway.
+====
+
+== Files and Resources
+
+The api:with-file-access[] and api:with-resource-access[] functions add interceptors that will expose
+file system or class path resources to the client; this is an alternative to xref:resources.adoc[exposing
+files and resources via routes].
+
+== Routing
+
+The api:with-routes[] macro is used to set the routes for your service.
+It is a macro because it sets up a REPL-friendly
+workflow (when in xref:dev-mode.adoc[development mode]).
+
+== Creating the Pedestal connector
+
+The service map is passed to a Pedestal connector factory function, along with a map of configuration
+specific to the Pedestal connector, and returns a
+api:PedestalConnector[ns=io.pedestal.service.protocols] object, which can be started with api:start![].
+
+Factory functions:
+
+- api:create-connector[ns=io.pedestal.http.jetty] (Jetty)
+- api:create-connector[ns=io.pedestal.http.http-kit] (Http-Kit)
+
+== Development Mode
+
+Functions in the
+api:*[ns=io.pedestal.connector.dev] namespace provide additional support that may be used
+when developing and testing locally, but should not be used in production.

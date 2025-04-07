@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -17,17 +17,14 @@
   error handling, observations, asynchronous executions, and other factors."
   (:require [clojure.core.async :as async]
             [io.pedestal.internal :as i]
+            [io.pedestal.interceptor.impl :as impl]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :as interceptor])
   (:import java.util.concurrent.atomic.AtomicLong
-           (clojure.core.async.impl.protocols Channel)
            (clojure.lang PersistentQueue)))
 
 (declare ^:private execute-continue)
 
-(defn- channel?
-  [c]
-  (instance? Channel c))
 
 (defn- name-for
   [interceptor]
@@ -48,6 +45,12 @@
                     (ex-data t))
              t)))
 
+(defn with-error
+  "Sets the provided exception as the ::error key of the context."
+  {:added "0.8.0"}
+  [context ^Throwable t]
+  (assoc context ::error t))
+
 (defn- begin-error
   [context stage interceptor throwable]
   (let [{:keys [execution-id]} context
@@ -58,10 +61,10 @@
                :stage stage)
     (-> context
         (dissoc ::queue)
-        (assoc ::error (throwable->ex-info throwable
-                                           execution-id
-                                           interceptor-name
-                                           stage)))))
+        (with-error (throwable->ex-info throwable
+                                        execution-id
+                                        interceptor-name
+                                        stage)))))
 
 (defn terminate
   "Removes all remaining interceptors from context's execution queue.
@@ -127,7 +130,7 @@
             (let [execution-id (::excecution-id context)]
               (log/debug :throw t :suppressed (:exception-type error) :execution-id execution-id)
               (-> context
-                  (assoc ::error (throwable->ex-info t execution-id (name-for interceptor) :error))
+                  (with-error (throwable->ex-info t execution-id (name-for interceptor) :error))
                   (update ::suppressed conj error)))))))
     context))
 
@@ -210,7 +213,7 @@
                                                                 ::queue (pop queue)
                                                                 ::stack (conj stack interceptor))
                                              context-out (try-stage context' interceptor :enter)]
-                                         (if (channel? context-out)
+                                         (if (impl/channel? context-out)
                                            (go-async interceptor :enter context context-out)
                                            (recur context-out)))))))] ;; recur inner loop
           ;; inner loop may return early just to force a rebind when the :bindings
@@ -249,7 +252,7 @@
                                            context-out (if error
                                                          (try-error context' interceptor error)
                                                          (try-stage context' interceptor :leave))]
-                                       (if (channel? context-out)
+                                       (if (impl/channel? context-out)
                                          (go-async interceptor :leave context context-out)
                                          (recur context-out)))))))] ;; recur inner loop
         ;; inner loop may return early just to force a rebind when the :bindings
@@ -287,8 +290,7 @@
   "Like [[enqueue]] but accepting a variable number of arguments.
   If the last argument is itself a sequence of interceptors,
   they're unpacked and added to the context's execution queue."
-  [context & interceptors-and-seq]
-  (if (seq? (last interceptors-and-seq))
+  [context & interceptors-and-seq] +(if (sequential? (last interceptors-and-seq))
     (enqueue context (apply list* interceptors-and-seq))
     (enqueue context interceptors-and-seq)))
 
@@ -311,11 +313,11 @@
 
 (defn on-enter-async
   "Adds a callback function to be executed if the execution goes async, which occurs
-  when an interceptor returns a channel rather than a context map.
+  when an interceptor returns a core.async channel rather than a context map.
 
   The supplied function is appended to the list of such functions.
   All the functions are invoked, but only invoked once (a subsequent interceptor
-  also returning a channel does not have this side effect.
+  also returning a channel does not have this side effect).
 
   The callback function will be passed the context, but any returned value from the function is ignored."
   {:added "0.7.0"}
@@ -380,7 +382,8 @@
 
   The :error callback may either handle the exception, in which case the
   execution switches to the :leave stage; or the callback may
-  re-throw the exception, or attach it as the ::error key.
+  re-throw the exception, or attach it as the ::error key
+  (via the [[with-error]] function).
 
   If the exception reaches the end of the stack without
   being handled, `execute` will throw it.
@@ -396,7 +399,10 @@
 
   Processing continues in core.async threads - including even when
   a later interceptor returns an immediate context, rather than
-  a channel."
+  a channel.
+
+  Note that any previously queued interceptors are discarded when `execute` is invoked.
+  "
   ([context]
    (-> context
        (assoc ::stack PersistentQueue/EMPTY)
@@ -425,7 +431,7 @@
 (defn ^{:added "0.7.0"} add-observer
   "Adds an observer function to the execution; observer functions are notified after each interceptor
   executes.  If the interceptor is asynchronous, the notification occurs once the new context
-  is conveyed through the returned channel.
+  is conveyed through the returned core.async channel.
 
   The function is passed an event map:
 

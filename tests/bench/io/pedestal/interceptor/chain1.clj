@@ -403,6 +403,7 @@
   the `interceptor-key` functions are invoked in order. As this happens, the
   Interceptors are pushed on to a stack."
   ([context interceptor-key]
+   ^{:in "0.7.0"}
    (i/deprecated `execute-only
      (let [context (some-> context
                            begin

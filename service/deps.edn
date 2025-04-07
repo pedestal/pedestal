@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -10,51 +10,29 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:paths ["src"
-         "java"
-         "target/classes"]
- :deps {org.clojure/clojure {:mvn/version "1.11.4"}
-        io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
-        io.pedestal/pedestal.telemetry {:mvn/version "0.8.0-SNAPSHOT"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-SNAPSHOT"}
-        io.pedestal/pedestal.route {:mvn/version "0.8.0-SNAPSHOT"}
+{:paths ["src"]
+ :deps  {org.clojure/clojure              {:mvn/version "1.12.0"}
+         io.pedestal/pedestal.log         {:mvn/version "0.8.0-alpha-1"}
+         io.pedestal/pedestal.telemetry   {:mvn/version "0.8.0-alpha-1"}
+         io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-alpha-1"}
+         io.pedestal/pedestal.route       {:mvn/version "0.8.0-alpha-1"}
 
-        org.clojure/core.async {:mvn/version "1.6.681"}
+         org.clojure/core.async           {:mvn/version "1.7.701"}
 
-        ;; Ring 1.11 is the first version to support Servlet API 4.0
-        ring/ring-core {:mvn/version "1.12.2"}
-        cheshire/cheshire {:mvn/version "5.13.0"}
-        org.clojure/tools.reader {:mvn/version "1.5.0"}
-        com.cognitect/transit-clj {:mvn/version "1.0.333"}
-        commons-codec/commons-codec {:mvn/version "1.17.1"}
-        crypto-random/crypto-random {:mvn/version "1.2.1"
-                                     :exclusions [commons-code/commons-codec]}
-        crypto-equality/crypto-equality {:mvn/version "1.0.1"}}
-
- ;; Requires `clj -X:deps prep`  when downloaded as a git checkout (if via Maven repo, the class will
- ;; already be compiled into the artifact).
- ;; Note: compile-java adds the :servlet-api alias to the classpath during compilation.
- :deps/prep-lib
- {:ensure "target/classes"
-  :alias :build
-  :fn compile-java}
-
- :io.pedestal/build
- {:compile-command ["clojure" "-T:build" "compile-java"]}
+         ;; Ring 1.11 is the first version to support Servlet API 4.0
+         ring/ring-core                   {:mvn/version "1.14.1"}
+         cheshire/cheshire                {:mvn/version "5.13.0"}
+         org.clojure/tools.reader         {:mvn/version "1.5.2"}
+         com.cognitect/transit-clj        {:mvn/version "1.0.333"}
+         commons-codec/commons-codec      {:mvn/version "1.18.0"}
+         crypto-random/crypto-random      {:mvn/version "1.2.1"
+                                           :exclusions  [commons-code/commons-codec]}
+         crypto-equality/crypto-equality  {:mvn/version "1.0.1"}}
 
  :aliases
  {:local
-  {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
-                   io.pedestal/pedestal.common {:local/root "../common"}
-                   io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
+  {:override-deps {io.pedestal/pedestal.log         {:local/root "../log"}
+                   io.pedestal/pedestal.common      {:local/root "../common"}
+                   io.pedestal/pedestal.telemetry   {:local/root "../telemetry"}
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
-                   io.pedestal/pedestal.route {:local/root "../route"}}}
-  ;; Normally javax.servlet-api comes from the runtime container (e.g., Jetty) but we need it here
-  ;; to compile our servlet and other classes.
-  ;; When developing with Cursive you should enable the servlet-api alias in the Clojure Deps tool.
-  :servlet-api
-  {:extra-deps {org.eclipse.jetty.toolchain/jetty-jakarta-servlet-api {:mvn/version "5.0.2"}
-                org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}}}
-  ;; clj -T:build <command>
-  :build {:deps {io.github.hlship/build-tools {:git/tag "0.10.2" :git/sha "3c446e4"}}
-          :ns-default build}}}
+                   io.pedestal/pedestal.route       {:local/root "../route"}}}}}

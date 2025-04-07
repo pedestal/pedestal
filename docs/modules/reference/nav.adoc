@@ -5,6 +5,7 @@
 *** xref:important-protocols.adoc[]
 *** xref:context-map.adoc[]
 *** xref:interceptors.adoc[]
+*** xref:connector.adoc[]
 *** xref:chain-providers.adoc[]
 *** xref:error-handling.adoc[]
 *** xref:specs.adoc[]
@@ -12,10 +13,12 @@
 
 ** HTTP Handling
 *** xref:servlet-interceptor.adoc[]
+*** xref:connector-map.adoc[]
 *** xref:service-map.adoc[]
 *** xref:request-map.adoc[]
 *** xref:response-map.adoc[]
 *** xref:response-bodies.adoc[]
+*** xref:resources.adoc[]
 *** xref:parameters.adoc[]
 *** xref:ring.adoc[]
 *** xref:default-interceptors.adoc[]
@@ -39,8 +42,9 @@
 
 ** Deployment and Operations
 *** xref:config.adoc[]
-*** Containers
+*** Connectors
 **** xref:jetty.adoc[]
+**** xref:http-kit.adoc[]
 **** xref:immutant.adoc[]
 **** xref:tomcat.adoc[]
 *** xref:logging.adoc[]

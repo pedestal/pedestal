@@ -17,13 +17,19 @@ and external dependencies.
 The first time you work on Pedestal, especially a version that has never yet been uploaded to Clojars, you must perform an initialization step; if you fail to do so, you may see tests fails with a
 ClassNotFoundException exception, related to io.pedestal.servlet.ClojureVarServlet.
 
-From the `service` directory, execute `clj -T:build compile-java :aliases '[:local :servlet-api]'.
+From the root directory, execute:
+
+    clj -T:build install
+
+From the `servlet` directory, execute:
+
+    clj -T:build compile-java :aliases '[:local :servlet-api]'
 
 This will compile a few Java classes, including ClojureVarServlet.
 
 === Testing Pedestal Itself
 
-If you're working on Pedestal itself, you can test everything
+If you're working on Pedestal itself, you can test everything with a single command.
 
 From the `tests` directory, execute `clj -X:test`.
 
@@ -104,7 +110,8 @@ everything. Here is the workflow we recommend:
 2. Create a branch for your feature/bugfix.
 3. Make your changes and add tests.
 4. Run `clj -X:test` from the `tests` directory.
-5. Commit, push, and submit a pull request.
+5. Run `clj -T:build lint` from the root directory.
+6. Commit, push, and submit a pull request.
 
 == Contributor's Agreement
 

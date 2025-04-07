@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -12,46 +12,85 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.test-test
-  (:require [clojure.test :refer [deftest is testing]]
-            [io.pedestal.test :refer [parse-url test-servlet-response test-servlet-response-body test-servlet-response-status]]))
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer [deftest is]]
+            [io.pedestal.test :as test :refer [parse-url]])
+  (:import (java.io BufferedInputStream ByteArrayInputStream)))
 
-(deftest parse-url-test
-  (testing "non-root url parses query-string correctly"
-    (is (= "param=value"
-           (-> "/foo?param=value"
-               parse-url
-               :query-string))))
-  (testing "root url parses query-string correctly"
-    (is (= "param=value"
-           (-> "/?param=value"
-               parse-url
-               :query-string))))
-  (testing "hosts parse correctly with/without ports"
-    (is (= {:scheme nil, :host nil, :port -1, :path "", :query-string nil}
-           (parse-url "/")))
-    (is (= {:scheme nil, :host nil, :port -1, :path "foo", :query-string nil}
-           (parse-url "/foo")))
-    (is (= {:scheme nil, :host "localhost", :port -1, :path "", :query-string nil}
-           (parse-url "localhost/")))
-    (is (= {:scheme nil, :host "localhost", :port -1, :path "foo", :query-string nil}
-           (parse-url "localhost/foo")))
-    (is (= {:scheme nil, :host "localhost", :port 8080, :path "", :query-string nil}
-           (parse-url "localhost:8080/")))
-    (is (= {:scheme nil, :host "localhost", :port 8080, :path "foo", :query-string nil}
-           (parse-url "localhost:8080/foo")))
-    (is (= {:scheme "http", :host "localhost", :port 8080, :path "foo", :query-string nil}
-           (parse-url "http://localhost:8080/foo")))
-    (is (= {:scheme "http", :host "localhost", :port 8080, :path "foo", :query-string "param=value"}
-           (parse-url "http://localhost:8080/foo?param=value")))))
+(deftest non-root-url
+  (is (= "param=value"
+         (-> "/foo?param=value"
+             parse-url
+             :query-string))))
 
-(deftest response-senderror-test
-  (testing "sendError with status only"
-    (let [resp (test-servlet-response)]
-      (.sendError resp 500)
-      (is (= 500 (test-servlet-response-status resp)))
-      (is (= "Server Error" (.toString (test-servlet-response-body resp))))))
-  (testing "sendError with status and message"
-    (let [resp (test-servlet-response)]
-      (.sendError resp 500 "Boom!")
-      (is (= 500 (test-servlet-response-status resp)))
-      (is (= "Boom!" (.toString (test-servlet-response-body resp)))))))
+(deftest root-url-with-query-string
+  (is (= "param=value"
+         (-> "/?param=value"
+             parse-url
+             :query-string))))
+
+(deftest path-parsing-with-and-without-ports
+  (is (= {:scheme       nil
+          :host         nil
+          :port         -1
+          :path         ""
+          :query-string nil}
+         (parse-url "/")))
+  (is (= {:scheme       nil
+          :host         nil
+          :port         -1
+          :path         "foo"
+          :query-string nil}
+         (parse-url "/foo")))
+  (is (= {:scheme       nil
+          :host         "localhost"
+          :port         -1
+          :path         ""
+          :query-string nil}
+         (parse-url "localhost/")))
+  (is (= {:scheme       nil
+          :host         "localhost"
+          :port         -1
+          :path         "foo"
+          :query-string nil}
+         (parse-url "localhost/foo")))
+  (is (= {:scheme       nil
+          :host         "localhost"
+          :port         8080
+          :path         ""
+          :query-string nil}
+         (parse-url "localhost:8080/")))
+  (is (= {:scheme       nil
+          :host         "localhost"
+          :port         8080
+          :path         "foo"
+          :query-string nil}
+         (parse-url "localhost:8080/foo")))
+  (is (= {:scheme       "http"
+          :host         "localhost"
+          :port         8080
+          :path         "foo"
+          :query-string nil}
+         (parse-url "http://localhost:8080/foo")))
+  (is (= {:scheme       "http"
+          :host         "localhost"
+          :port         8080
+          :path         "foo"
+          :query-string "param=value"}
+         (parse-url "http://localhost:8080/foo?param=value"))))
+
+(deftest file-is-converted-to-input-stream
+  (let [file   (io/file "file-root/sub/index.html")
+        stream (test/body->input-stream file)]
+    (is (= (slurp file)
+           (slurp stream)))))
+
+(deftest input-stream-is-wrapped-to-buffered-input-stream
+  (let [input-stream  (ByteArrayInputStream. (.getBytes "Hello, I must be going." "UTF-8"))
+        input-stream' (test/body->input-stream input-stream)]
+    (is (instance? BufferedInputStream input-stream'))
+    (is (= (slurp input-stream)
+           (do
+             (.reset input-stream)
+             (slurp input-stream'))))))
+

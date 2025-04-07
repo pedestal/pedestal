@@ -66,13 +66,17 @@
 (extend-protocol ExpandableVerbAction
   Symbol
   (expand-verb-action [symbol]
-    (deprecated "expanding a quoted symbol as a terse route verb action"
-                symbol))
+    ^{:noun "expanding a quoted symbol as a terse route verb action"
+      :in   "0.8.0"}
+    (deprecated ::symbol
+      symbol))
 
   IPersistentList
   (expand-verb-action [l]
+    ^{:in   "0.8.0"
+      :noun "expanding a quoted list form as a terse route verb action"}
     (deprecated
-      "expanding a quoted list form as a terse route verb action"
+      ::persistent-list
       (expand-verb-action (eval l))))
 
   APersistentVector

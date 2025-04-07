@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -9,5 +9,5 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-{:deps {org.clojure/clojure    {:mvn/version "1.11.4"}
-        org.clj-commons/pretty {:mvn/version "3.2.0"}}}
+{:deps {org.clojure/clojure    {:mvn/version "1.12.0"}
+        org.clj-commons/pretty {:mvn/version "3.3.2"}}}

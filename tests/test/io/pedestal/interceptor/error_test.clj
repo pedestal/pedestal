@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -11,6 +11,8 @@
 
 (ns io.pedestal.interceptor.error-test
   (:require [clojure.test :refer [deftest is]]
+            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.test :refer [response-for]]
             [io.pedestal.http :as service]
             [ring.util.response :as ring-resp]
@@ -18,11 +20,16 @@
 
 (def service-error-handler
   (error-int/error-dispatch [ctx ex]
-    [{:exception-type :java.lang.ArithmeticException
-      :interceptor ::another-bad-one}] (assoc ctx :response {:status 400 :body "Another bad one"})
-    [{:exception-type :java.lang.ArithmeticException}] (assoc ctx :response {:status 400 :body "A bad one"})
-    ;; If we don't match, forward it on
-    :else (assoc ctx :io.pedestal.interceptor.chain/error ex)))
+                            [{:exception-type :java.lang.ArithmeticException
+                              :interceptor    ::another-bad-one}]
+                            (assoc ctx :response {:status 400 :body "Another bad one"})
+
+                            [{:exception-type :java.lang.ArithmeticException}]
+                            (assoc ctx :response {:status 400 :body "A bad one"})
+
+                            ;; If we don't match, forward it on
+                            :else
+                            (chain/with-error ctx ex)))
 
 
 (defn bad-page
@@ -46,7 +53,8 @@
       service/service-fn
       ::service/service-fn))
 
-(def app (make-app {::service/routes request-handling-routes}))
+(def app (binding [interceptor/*default-handler-names* false]
+           (make-app {::service/routes request-handling-routes})))
 
 (def url "http://error-dispatch.pedestal/div")
 (def url-two (str url "2"))
@@ -64,6 +72,6 @@
   (println "This test will log an ERROR, which can be ignored.")
   (let [boom-resp (response-for app :get drop-url)]
     (is (match? {:status 500
-                  :body "Internal server error: exception"}
-                 boom-resp))))
+                 :body   "Internal server error: exception"}
+                boom-resp))))
 

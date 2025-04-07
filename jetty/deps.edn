@@ -11,21 +11,22 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.4"}
-        io.pedestal/pedestal.log {:mvn/version "0.8.0-SNAPSHOT"}
-        io.pedestal/pedestal.service {:mvn/version "0.8.0-SNAPSHOT"}
-        org.eclipse.jetty/jetty-server {:mvn/version "11.0.23"}
-        org.eclipse.jetty/jetty-servlet {:mvn/version "11.0.24"}
-        org.eclipse.jetty/jetty-alpn-server {:mvn/version "11.0.24"}
-        org.eclipse.jetty.http2/http2-server {:mvn/version "11.0.24"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        io.pedestal/pedestal.log {:mvn/version "0.8.0-alpha-1"}
+        io.pedestal/pedestal.service {:mvn/version "0.8.0-alpha-1"}
+        io.pedestal/pedestal.servlet {:mvn/version "0.8.0-alpha-1"}
+        org.eclipse.jetty/jetty-server {:mvn/version "12.0.18"}
+        org.eclipse.jetty.http2/jetty-http2-server {:mvn/version "12.0.18"}
+        org.eclipse.jetty.ee10/jetty-ee10-servlet {:mvn/version "12.0.18"}
+        org.eclipse.jetty/jetty-alpn-server {:mvn/version "12.0.18"}
         ;; These dependencies are necessary to run Jetty embedded, but need to be excluded
         ;; if packaging as a WAR for deployment to a standalone Jetty instance.
-        org.eclipse.jetty.toolchain/jetty-jakarta-websocket-api {:mvn/version "2.0.0"}
-        org.eclipse.jetty.websocket/websocket-jakarta-server {:mvn/version "11.0.24"}}
+        org.eclipse.jetty.ee10.websocket/jetty-ee10-websocket-jakarta-server {:mvn/version "12.0.18"}}
 
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log {:local/root "../log"}
+                   io.pedestal/pedestal.servlet {:local/root "../servlet"}
                    io.pedestal/pedestal.service {:local/root "../service"}
                    ;; Recapitulate transitive dependencies of pedestal.service since the
                    ;; :local alias isn't carried through when resolving the local dependencies.

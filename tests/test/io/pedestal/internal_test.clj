@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -12,7 +12,7 @@
 (ns io.pedestal.internal-test
   (:require [clojure.string :as string]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.internal :refer [resolve-var-from]]
+            [io.pedestal.internal :refer [read-config]]
             [clojure.test :refer [deftest is use-fixtures]])
   (:import (java.io StringWriter)))
 
@@ -34,37 +34,59 @@
 
 (deftest test-overrides-prod
   (is (= ::test-value
-         (resolve-var-from "overridden" "_XXX_"))))
+         (read-config "overridden" "_XXX_"))))
 
 (deftest value-from-prod-when-not-overridden
   (is (= ::prod-value
-         (resolve-var-from "not-overridden" "_XXX_"))))
+         (read-config "not-overridden" "_XXX_"))))
 
 (deftest string-value-is-converted-to-symbol-and-resolved
   (is (= ::string-key-value
-         (resolve-var-from "string" "_XXX_"))))
+         (read-config "string" "_XXX_"))))
 
 (deftest config-value-may-not-be-unqualified-symbol
   (is (thrown-with-msg? IllegalArgumentException #"\Qjust-a-symbol is not a string or qualified symbol\E"
-                        (resolve-var-from "just-symbol" "_XXX_"))))
+                        (read-config "just-symbol" "_XXX_"))))
 
 (deftest config-value-must-be-string-or-qualified-symbol
   (is (thrown-with-msg? IllegalArgumentException #"\Q42 is not a string or qualified symbol\E"
-                        (resolve-var-from "not-a-symbol" "_XXX_"))))
+                        (read-config "not-a-symbol" "_XXX_"))))
 
 (deftest valid-var-from-config-default
   (is (= ::via-default
-         (resolve-var-from "_XXX_" "_XXX_" "io.pedestal.internal-test/via-default"))))
+         (read-config "_XXX_" "_XXX_" :default-value "io.pedestal.internal-test/via-default"))))
 
 
 (deftest warning-when-symbol-does-not-exist
   (is (= "WARNING: Symbol io.pedestal.internal-test/does-not-exist (default value) does not exist"
          (capture-output *err*
-                         (resolve-var-from "_XXX_" "_XXX" "io.pedestal.internal-test/does-not-exist")
-                         ))))
+                         (read-config "_XXX_" "_XXX" :default-value "io.pedestal.internal-test/does-not-exist")))))
 
 (deftest error-when-can-not-resolve-symbol
   (is (= (str "ERROR: Could not resolve symbol this.namespace/does-not-exist (from configuration key :does-not-exist): "
               "Could not locate this/namespace__init.class, this/namespace.clj or this/namespace.cljc on classpath.")
          (capture-output *err*
-                         (resolve-var-from "does-not-exist" "_XXX_")))))
+                         (read-config "does-not-exist" "_XXX_")))))
+
+(deftest boolean-config
+  (is (= true
+         (read-config "_XXX_" "_XXX" :as :boolean :default-value true)))
+
+  (is (= false
+         (read-config "_XXX_" "_XXX" :as :boolean :default-value false)))
+
+  (is (= true
+         (read-config "_XXX_" "_XXX" :as :boolean :default-value "true")))
+
+  (is (= false
+         (read-config "_XXX_" "_XXX" :as :boolean :default-value "false"))))
+
+(deftest keyword-config
+  (is (= nil
+         (read-config "_XXX_" "_XXX_" :as :keyword)))
+
+  (is (= ::default
+         (read-config "_XXX_" "_XXX_" :as :keyword :default-value ::default)))
+
+  (is (= :converted
+         (read-config "_XXX_" "_XXX_" :as :keyword :default-value "converted"))))

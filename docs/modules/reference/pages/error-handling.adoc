@@ -25,8 +25,8 @@ attached to it.
 This error handling proceeds the same way regardless of whether
 interceptors in the chain returned a xref:context-map.adoc[context map] or
 async channel. (See
-xref:interceptors.adoc#_interceptor_return_values[Interceptor Return
-Values] for details on async return.) As a result, Pedestal unifies
+xref:interceptors.adoc#return[Interceptor Return Values] for details on async return.)
+As a result, Pedestal unifies
 error handling for synchronous interceptors and asynchronous
 interceptors.
 
@@ -149,7 +149,7 @@ Here is an example from the test suite:
 
 For HTTP, the xref:servlet-interceptor.adoc[] provides the "last
 ditch" error handlers that log the error and return an _error_ response. In
-development mode, they emit a stack trace as the response body; you will see
+development mode, they emit a formatted stack trace as the response body; you will see
 the error logged from the :io.pedestal.http.impl.servlet-interceptor/stylobate
 footnote:[link:https://en.wikipedia.org/wiki/Stylobate[Stylobate] is the term for a supporter of columns in
 classic Greek and Roman architecture; here the interceptor is providing support to the rest of Pedestal.]

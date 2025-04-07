@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -18,7 +18,6 @@
             [clojure.spec.test.alpha :as stest]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
-            [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.http.route.sawtooth :as sawtooth]
             [io.pedestal.http.route.sawtooth.impl :as impl]
             [io.pedestal.interceptor :refer [interceptor]]
@@ -32,7 +31,7 @@
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.linear-search :as linear-search]
-            [io.pedestal.http.route.definition.table :refer [table-routes]]
+            [io.pedestal.http.route.definition.table :as table :refer [table-routes]]
             [io.pedestal.http.route.definition.terse :as terse :refer [map-routes->vec-routes]])
   (:import (clojure.lang ExceptionInfo)))
 
@@ -1551,19 +1550,19 @@
   (interceptor {:name  :i-3
                 :enter identity}))
 
-(def handler
+(def table-route-handler
   (interceptor {:name  :handler
                 :enter identity}))
 
 (deftest table-routes-interceptor-opt-is-prefix
 
   (let [routes  (table/table-routes {:interceptors [i-1 i-2]}
-                                    [["/root/one" :get handler :route-name :one]
-                                     ["/root/two" :get [i-3 handler] :route-name :two]
-                                     ["/root/three" :get [handler] :route-name :three]])
+                                    [["/root/one" :get table-route-handler :route-name :one]
+                                     ["/root/two" :get [i-3 table-route-handler] :route-name :two]
+                                     ["/root/three" :get [table-route-handler] :route-name :three]])
         by-name (medley/index-by :route-name (:routes routes))]
     (is (match?
-          {:one   {:interceptors [i-1 i-2 handler]}
-           :two   {:interceptors [i-1 i-2 i-3 handler]}
-           :three {:interceptors [i-1 i-2 handler]}}
+          {:one   {:interceptors [i-1 i-2 table-route-handler]}
+           :two   {:interceptors [i-1 i-2 i-3 table-route-handler]}
+           :three {:interceptors [i-1 i-2 table-route-handler]}}
           by-name))))
