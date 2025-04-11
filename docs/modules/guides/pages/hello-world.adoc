@@ -14,7 +14,7 @@ After reading this guide, you will be able to:
 - Create a Pedestal project from scratch
 - Define a handler and a route for that handler
 - Return plain text in your response from that handler
-- Setup and run a HTTP server around the route
+- Setup and run an HTTP server around the route
 
 == Guide Assumptions
 
@@ -155,22 +155,26 @@ the Pedestal libraries.
 The
 api:*[ns=io.pedestal.connector]
 namespace has functions that used to describe a Pedestal connector.
-The description starts with the port number to listen to, and continues
-from there to describe the behavior of the connector, in Pedestal terms,
-by describing the routes and interceptors that handle incoming requests.
+
+What's a Pedestal connector?  It's what connects the network world of HTTP requests and responses
+to the Pedestal world of maps and functions.
+The `io.pedestal.connector` namespace has functions and macros to describe the connector and ultimately
+start it listening to a port for HTTP requests.
 
 The
 api:*[ns=io.pedestal.http.http-kit] namespace adapts Pedestal to
 use the xref:reference:http-kit.adoc[] library.
 
 Where the :require says :as `something` it means we're making an
-alias inside our namespace.
+_alias_ inside our namespace (the `hello` namespace).
 
 An alias is a prefix that can be used to name symbols defined inside a
 namespace; a `/` separates the namespace alias from the symbol inside the namespace. `conn/default-connector-map` is the same as
-`io.pedestal.connector/default-connector-map`, just with less to type,
-especially when your namespace calls many different functions
-in the aliased namespace.
+`io.pedestal.connector/default-connector-map`, just with less to type.
+
+You can type the full name if you like, but those long namespace names add up quickly, especially
+if you are calling multiple functions from the namespace. And alias makes the code more concise and
+easier to read.
 
 Also, don't worry about the indentation ... Clojure
 ignores whitespace outside of quoted strings entirely. Many common
@@ -189,9 +193,10 @@ basic things:
 3. Stream a response back to the client.
 
 We're going to work our way up from the bottom:
-- First, the handler function that does the primary work for the request
-- Next, the routing information that Pedestal uses to connect requests to handler functions
-- Then, the code that sets everything up and starts listening for requests
+
+* First, the handler function that does the primary work for the request
+* Next, the routing information that Pedestal uses to connect incoming requests to handler functions
+* Then, the code that sets everything up and starts listening for requests
 
 [source, clojure]
 .src/hello.clj
@@ -254,7 +259,7 @@ have your tests call this code directly.
 
 That's one of the beauties of working in
 Clojure and Pedestal... you can try everything interactively in a running
-system. Let's do that before we move on.
+system. We'll see that in practice, shortly.
 
 Next, we'll tackle what it takes to actually run the code inside the `src/hello.clj` source file.
 
@@ -326,7 +331,13 @@ downloaded and ready to run.
 The exact libraries and versions downloaded will vary with the exact version of Pedestal.
 
 The `clj` tool will download dependencies as needed, add them to the classpath
-and start a repl in the `user` namespace. Now we're able to 
+and start a REPL
+footnote:[Read/Eval/Print/Loop.  In Clojure, you enter expressions at the prompt, and those
+are parsed, executed and the result printed back to the console.  Anything you can do in a Clojure source file
+can also be done right at the prompt, including redefining existing functions. REPL-oriented development is powerfully productive, especially
+when combined with an IDE that can help you interact with your running REPL.]
+
+in the `user` namespace. Now we're able to
 enter Clojure code to evaluate it (turn it into a value). The first
 thing we need to do is tell Clojure to load our `hello` namespace:
 
@@ -366,13 +377,13 @@ It's worth noting that we passed in an empty map (`{}`) rather than a full reque
 This is perfectly acceptable for testing; in fact we could have even passed a `nil` (Clojure's `null`),
 as the `hello-handler` function doesn't actually use the `_request` parameter.
 
-== Routes
+== Routes and Routing
 
 In Pedestal, routing is the process of matching an incoming request to
 a handler footnote:[We're simplifying here, we'll get around to discussing
 _interceptors_ soon].  Essentially, the combination of the HTTP method (such as GET or POST) and
-the path information in the request (such as `/greet/`) should uniquely identify a _route_ and from
-that a handler for that route.
+the path information in the request (such as `/greet`) should uniquely identify a _route_ and, from
+that, a handler for that route.
 
 Pedestal can easily handle dozens or even hundreds of routes, but we'll start with just one.
 
@@ -397,7 +408,7 @@ When routed in a live service, the `hello-handler` function will be invoked.
 We've named this route :greet; every route must have a unique
 name, though in many cases, Pedestal can automatically provide a reasonable name from other information you provide in the route.
 
-There's a kind of informal contract here:  Pedestal expects that `hello-handler` is a function that can accept a single parameter, a request map.  Further, it expects that, as a handler function, it will return a response map.  Violating
+There's an informal contract here:  Pedestal expects that `hello-handler` is a function that can accept a single parameter, a request map.  Further, it expects that, as a handler function, it will return a response map.  Violating
 these rules can result in runtime exceptions.
 
 == Hooking It All Up
@@ -413,7 +424,7 @@ We have two additional functions; one to create the Pedestal connector, and a se
 ----
 include::example$hello/src/hello.clj[tags=connector]
 ----
-<1> A connector is built from a connector map; this builds a map with the specified port number.
+<1> A connector is built from a connector map; this builds an initial map with the specified port number.
 <2> This step adds much basic functionality and security to the connector map.
 <3> This is where routing is added to the connector map.
 <4> Convert the connector map to a connector; the `nil` is a second parameter of options
@@ -438,6 +449,8 @@ user=> (hello/start)
 
 The `start!` function returns the connector (the crazy `#object[...]` name is how Clojure prints out
 Java classes, such as the connector); the connector is now listening on port 8890.
+
+We can test this is a second terminal window:
 
 ----
 $ curl -i http://127.0.0.1:8890/greet
@@ -473,7 +486,7 @@ running the REPL to kill it.
 == The Whole Shebang
 
 This might seem complicated because I've used so many words to
-describe all this. The code is pretty short though. For reference, and
+describe all this. The actual code is pretty short though. For reference, and
 in case you've hit any snags along the way, here are the complete
 contents of both files.
 
