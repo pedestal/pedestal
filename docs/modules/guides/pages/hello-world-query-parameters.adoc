@@ -517,7 +517,7 @@ Once again, we built this thing in small steps, so it may seem like
 there was a lot to deal with. The final product is still pretty small
 though. Here's all the final code.
 
-[source,clojure]
+[source.hide-callouts,clojure]
 .src/hello.clj
 ----
 include::example$hello-query/src/hello.clj[tags=ns]
@@ -531,7 +531,7 @@ include::example$hello-query/src/hello.clj[tags=routing]
 include::example$hello-query/src/hello.clj[tags=connector]
 ----
 
-[source,clojure]
+[source.hide-callouts,clojure]
 .deps.edn
 ----
 include::example$hello-query/deps.edn[]

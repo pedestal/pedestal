@@ -447,7 +447,7 @@ user=> (hello/start)
 <1> This directs Clojure to throw away the current version of the `hello` namespace and reload it from
 `src/hello.clj`.
 
-The `start!` function returns the connector (the crazy `#object[...]` name is how Clojure prints out
+The `start!` function returns the connector (the unwieldy `#object[...]` text is how Clojure prints out
 Java classes, such as the connector); the connector is now listening on port 8890.
 
 We can test this is a second terminal window:
@@ -490,14 +490,13 @@ describe all this. The actual code is pretty short though. For reference, and
 in case you've hit any snags along the way, here are the complete
 contents of both files.
 
-// TODO: CSS trick to hide the callouts
-[source,clojure]
 .src/hello.clj
+[source.hide-callouts,clojure]
 ----
 include::example$hello/src/hello.clj[tag=**]
 ----
 
-[source,clojure]
+[source.hide-callouts,clojure]
 .deps.edn
 ----
 include::example$hello/deps.edn[]
