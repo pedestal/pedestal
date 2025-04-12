@@ -469,7 +469,7 @@ include::example$hello-query/src/hello.clj[tags=greeting_with_404]
 Because there are now three possible conditions that can happen in
 `greet-handler`, I've changed from an clj:if[] to clj:cond[]
 expression. `cond` uses pairs of "condition / value" clauses. So if
-`(umentionables greet-name)` returns any truthy value, then `cond` returns
+`(unmentionables greet-name)` returns any truthy value, then `cond` returns
 `nil` and stops evaluating. If `(empty? greet-name)` returns true, then `cond`
 returns the literal string "Hello, world!\n" and nothing else. If
 neither of those happened, then `cond` sees the keyword :else as a
