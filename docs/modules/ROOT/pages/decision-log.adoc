@@ -26,8 +26,8 @@ specifically Servlet based.
 This split manifests in several changes:
 
 * A new module, `io.pedestal/pedestal.servlet` was created; it has all the Servlet API dependencies.
-* Servlet-dependent code was moved from `io.pedestal/pedestal.service` to `pedestal.servlet`.
-* An alterative way to configure and start an embedded HTTP handler was created the Pedestal connector,
+* Servlet-dependent namespaces were moved from `io.pedestal/pedestal.service` to `pedestal.servlet`.
+* An alterative way to configure and start an embedded HTTP handler was created as the Pedestal connector,
   and the api:*[ns=io.pedestal.connector] namespace.
 
 == Websocket Routes (Feb 2025)
