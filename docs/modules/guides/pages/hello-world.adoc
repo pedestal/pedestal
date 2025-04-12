@@ -211,9 +211,11 @@ function. In this case, that will be the map that we construct just before
 the closing paren.
 
 [sidebar]
+****
 Most Clojure code consists of creating, querying, and modifying these kinds of maps, so the language includes syntax to create maps very succinctly:
 the curly braces mark the start and end of the map, and within are
 pairs of keys and values.  Likewise, a _vector_ is marked by square brackets (`[` and `]`) and a general _list_ by `(` and `)`.
+****
 
 Clojure uses dynamic typing, that means keys and values inside a map may be different types. Generally, the keys are Clojure keywords, such as `:status`.
 

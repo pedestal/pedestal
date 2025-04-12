@@ -30,7 +30,7 @@ skip ahead to xref:your-first-api.adoc[] to start building
 some logic and multiple routes.
 
 This guide also assumes that you are in a Unix-like development
-envirogreet-nameent, with Java installed. We've tested it on Mac OS X and
+environment, with Java installed. We've tested it on Mac OS X and
 Linux (any flavor) with great results. We haven't yet tried it on the
 Windows Subsystem for Linux, but would love to hear from you if you've
 succeeded with it there.
@@ -93,7 +93,7 @@ friendly to interactive development.
 include::example$hello-query/src/hello.clj[tags=connector]
 ----
 <1> `defonce` here means we can recompile this file in the same REPL
-without overwriting the value in this atom.  An atom is a mutable, thread-safe container.
+without overwriting the `*connector` symbol's value.
 <2> `reset!` replaces the current value in the atom with the new value.
 <3> This is a quick way to bounce the server.
 
@@ -111,15 +111,17 @@ user=>
 <1> The `$` is the shell prompt; once you execute `clj`, you are inside the Clojure REPL and the `user=>` is its prompt.
 
 The `start` function has done four things:
-* It has created the connection (via `create-connector`)
+* It has created the connector (via `create-connector`)
 * It has started the connector
-* It has stored the connector in an http://clojure.org/reference/atoms[atom].
+* It has stored the connector in an http://clojure.org/reference/atoms[atom] (a mutable container).
 * It has returned the connector, which the Clojure REPL has printed.
 
-[SIDEBAR]
+[sidebar]
+****
 A convention for mutable objects, such as atoms, is to prefix their name with a `*`.  This is a reminder that
 we must use the special prefix `@` to _dereference_ the actual value (the connector object) from the container
 (the atom).
+****
 
 Now we can use `start`, `stop`, and `restart` functions as we make changes.  Mostly, we'll make code changes,
 reload the `hello` namespace, and call `restart` to quickly stop the connector and start a new one.
@@ -180,7 +182,7 @@ client. This is a common debugging trick that you can use.
 ----
 include::example$hello-query/src/hello.clj[tags=response_debug_body]
 ----
-<1> We're actually using the parameter now, so no more leading `_` on the parameter name
+<1> We're actually using the parameter now, so no more leading `_` on the parameter name.
 <2> Instead of returning the string "Hello, world!" we return the _entire_ request as the response body.
 
 
@@ -221,12 +223,9 @@ as JSON is to JavaScript.
 
 Yikes! There's a lot of content in the request map echoed back to us, and it's in one huge line.
 
-We need to unpack that a bit to make sense out of it.  Let's break add line breaks and indentation
-to make it easier to read. We'll also omit
-
-I'm also going to omit several keys. They will be relevant later,
-but they're not interesting now. And anyway, they don't print very
-readably because they're objects rather than data.
+We need to unpack that a bit to make sense out of it.  Let's add some line breaks and indentation
+to make it easier to read. We'll also omit several keys. They may be relevant later,
+but they're a distraction now.
 
 Here's what we are left with.
 
@@ -479,11 +478,13 @@ work equally well.]
 and the code continues to build the string the same way as before.
 
 [sidebar]
+****
 A nested `if` would also have worked here. In fact `cond` is a macro
 that expands into a series of nested `if` expressions. All three of
 these conditions are kind of parallel in significance, so I like that
 they appear to be parallel in the structure of the code. The shape of
 the code mirrors the shape of my thinking about these cases.
+****
 
 The second thing you'll notice is that the handler now makes a
 decision whether to call our `ok` helper or the new function
@@ -514,8 +515,8 @@ if you can figure out how to make the comparison case-insensitive.
 == The Whole Shebang
 
 Once again, we built this thing in small steps, so it may seem like
-there was a lot to deal with. The final product is still pretty small
-though. Here's all the final code.
+there was a lot to deal with. The final product is still compact and to the point.
+Here's all the final code.
 
 [source.hide-callouts,clojure]
 .src/hello.clj
