@@ -228,7 +228,7 @@ dynamic decisions during request handling.
 Pedestal is agnostic as to what servlet container (such as xref:reference:jetty.adoc[]) is used to
 accept requests and return responses. At the core of Pedestal is the
 xref:reference:servlet-interceptor.adoc[]footnote:[This is poorly named as it's neither a Servlet nor an interceptor!], which is the bridge between the
-link:https://en.wikipedia.org/wiki/Jakarta_Servlet[Servlet API] (the domain of the servlet container) and Pedestal's interceptors.
+{servlet-api} (the domain of the servlet container) and Pedestal's interceptors.
 
 
 The servlet interceptor queues up several interceptors ahead of any provided by the
