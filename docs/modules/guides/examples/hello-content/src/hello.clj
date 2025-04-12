@@ -178,13 +178,13 @@
 (defonce server (atom nil))
 
 (defn start-dev []
-  (reset! server
+  (reset! *connector
           (http/start (http/create-server
                         (assoc service-map
                                ::http/join? false)))))
 
 (defn stop-dev []
-  (http/stop @server))
+  (http/stop @*connector))
 
 (defn restart []                                            ;
   (stop-dev)

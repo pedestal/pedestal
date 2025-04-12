@@ -203,7 +203,7 @@ We're going to work our way up from the bottom:
 ----
 include::example$hello/src/hello.clj[tags=response]
 ----
-<1> Define  a function, using `defn`,  called `hello-handler` that takes a single argument, which we will call `_request`
+<1> Define  a function, using `defn`,  called `greet-handler` that takes a single argument, which we will call `_request`
 <2> Return a Clojure map with two keys and two values.
 
 A Clojure function returns the value of the last expression in the
@@ -238,7 +238,7 @@ just taking the easy road.
 There's absolutely nothing special about this map. It's a plain old
 Clojure map - this is how Clojure operates, we don't use classes, we
 use ordinary maps but care about what particular keys are in the map.
-A handler function, such as `hello-handler`, returns a xref:reference:response-map.adoc[].
+A handler function, such as `greet-handler`, returns a xref:reference:response-map.adoc[].
 
 Clojure is a _functional language_, which means that whenever possible,
 we create simple functions that have no side effects: their behavior is defined
@@ -248,11 +248,11 @@ only by the arguments passed in.
 Most handlers use information in the
 xref:reference:request-map.adoc[]
 passed into the function,
-but `hello-handler` is so trivial that it ignores the request;
+but `greet-handler` is so trivial that it ignores the request;
 the `_` prefix on the parameter name, `_request`,
 is a Clojure convention for parameters that are present but purposely ignored.
 
-This trivial `hello-handler` function is functional -- it can be tested entirely
+This trivial `greet-handler` function is functional -- it can be tested entirely
 by invoking it, passing in a request map, and making assertions about at the response map it returns.
 There's no need to start up a server and send a request to it via HTTP, you can just
 have your tests call this code directly.
@@ -365,8 +365,8 @@ It means you missed the single-quote before "hello" in the `require.`
 Now we can actually test our handler function:
 
 ----
-user=> (hello/hello-handler {})
-{:status 200, :body "Hello, world!"}
+user=> (hello/greet-handler {})
+{:status 200, :body "Hello, world!\n"}
 ----
 
 Well, we got the singularly unexciting result that we can call a
@@ -375,7 +375,7 @@ hooking this up to a route.
 
 It's worth noting that we passed in an empty map (`{}`) rather than a full request map.
 This is perfectly acceptable for testing; in fact we could have even passed a `nil` (Clojure's `null`),
-as the `hello-handler` function doesn't actually use the `_request` parameter.
+as the `greet-handler` function doesn't actually use the `_request` parameter.
 
 == Routes and Routing
 
@@ -404,11 +404,11 @@ This routing table is a single route; the route matches:
 * The GET HTTP method
 * The URL `/greet`
 
-When routed in a live service, the `hello-handler` function will be invoked.
+When routed in a live service, the `greet-handler` function will be invoked.
 We've named this route :greet; every route must have a unique
 name, though in many cases, Pedestal can automatically provide a reasonable name from other information you provide in the route.
 
-There's an informal contract here:  Pedestal expects that `hello-handler` is a function that can accept a single parameter, a request map.  Further, it expects that, as a handler function, it will return a response map.  Violating
+There's an informal contract here:  Pedestal expects that `greet-handler` is a function that can accept a single parameter, a request map.  Further, it expects that, as a handler function, it will return a response map.  Violating
 these rules can result in runtime exceptions.
 
 == Hooking It All Up
@@ -464,7 +464,7 @@ X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: text/plain
-content-length: 13
+content-length: 14
 Server: Pedestal/http-kit
 Date: Fri, 11 Apr 2025 00:12:33 GMT
 

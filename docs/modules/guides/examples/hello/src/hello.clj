@@ -5,15 +5,15 @@
 ;; end::ns[]
 
 ;; tag::response[]
-(defn hello-handler [_request]                              ;; <1>
+(defn greet-handler [_request]                              ;; <1>
   {:status 200
-   :body   "Hello, world!"})                                ;; <2>
+   :body   "Hello, world!\n"})                              ;; <2>
 ;; end::response[]
 
 
 ;; tag::routing[]
 (def routes
-  #{["/greet" :get hello-handler :route-name :greet]})
+  #{["/greet" :get greet-handler :route-name :greet]})
 ;; end::routing[]
 
 ;; tag::connector[]
