@@ -1,43 +1,51 @@
 ;; tag::ns[]
 (ns hello                                                   ;; <1>
-  (:require [io.pedestal.http :as http]                     ;; <2>
-            [io.pedestal.http.route :as route]))            ;; <3>
+  (:require [io.pedestal.connector :as conn]                ;; <2>
+            [io.pedestal.http.http-kit :as hk]))            ;; <3>
 ;; end::ns[]
 
+(defn greet-handler [_request]                              ;; <1>
+  {:status 200
+   :body   "Hello, world!"})                                ;; <2>
 
 ;; tag::response_debug_body[]
-(defn respond-hello [request]
-  {:status 200 :body request})                              ;; <1>
+(defn greet-handler [request]                               ;; <1>
+  {:status 200 :body request})                              ;; <2>
 ;; end::response_debug_body[]
 
 ;; tag::response[]
-(defn respond-hello [request]
-  (let [nm (get-in request [:query-params :name])]          ;; <1>
-    {:status 200 :body (str "Hello, " nm "\n")}))           ;; <2>
+(defn greet-handler [request]
+  (let [green-name (get-in request [:query-params :name])]  ;; <1>
+    {:status 200 :body (str "Hello, " green-name "\n")}))   ;; <2>
 ;; end::response[]
 
+;; tag::response_sidequest[]
+(defn greet-handler [request]
+  (let [greet-name (get-in request [:query-params :name])]
+    {:status 200 :body (str "Hello, " name "\n")}))
+;; end::response_sidequest[]
 
 ;; tag::response_logic[]
-(defn respond-hello [request]
-  (let [nm (get-in request [:query-params :name])
-        resp (if (empty? nm)                                ;; <1>
+(defn greet-handler [request]
+  (let [greet-name (get-in request [:query-params :name])
+        message    (if (empty? greet-name)                  ;; <1>
                "Hello, world!\n"                            ;; <2>
-               (str "Hello, " nm "\n"))]                    ;; <3>
-    {:status 200 :body resp}))                              ;; <4>
+               (str "Hello, " greet-name "\n"))]            ;; <3>
+    {:status 200 :body message}))                           ;; <4>
 ;; end::response_logic[]
 
 ;; tag::response_logic_refactor[]
-(defn ok [body]                                             ;; <1>
-  {:status 200 :body body})
+(defn ok [message]                                          ;; <1>
+  {:status 200 :body message})
 
-(defn greeting-for [nm]                                     ;; <2>
-  (if (empty? nm)
+(defn greeting-for [greet-name]                             ;; <2>
+  (if (empty? greet-name)
     "Hello, world!\n"
-    (str "Hello, " nm "\n")))
+    (str "Hello, " greet-name "\n")))
 
-(defn respond-hello [request]                               ;; <3>
-  (let [nm (get-in request [:query-params :name])
-        resp (greeting-for nm)]
+(defn greet-handler [request]                               ;; <3>
+  (let [greet-name (get-in request [:query-params :name])
+        resp       (greeting-for greet-name)]
     (ok resp)))
 ;; end::response_logic_refactor[]
 
@@ -50,54 +58,47 @@
 ;; end::not_to_be_named[]
 
 ;; tag::greeting_with_404[]
-(defn ok [body]
-  {:status 200 :body body})
-
 (defn not-found []
   {:status 404 :body "Not found\n"})
 
-(defn greeting-for [nm]
+(defn greeting-for [greet-name]
   (cond
-    (unmentionables nm) nil
-    (empty? nm) "Hello, world!\n"
-    :else (str "Hello, " nm "\n")))
+    (unmentionables greet-name) nil
+    (empty? greet-name) "Hello, world!\n"
+    :else (str "Hello, " greet-name "\n")))
 
-(defn respond-hello [request]
-  (let [nm (get-in request [:query-params :name])
-        resp (greeting-for nm)]
-    (if resp
-      (ok resp)
+(defn greet-handler [request]
+  (let [greet-name (get-in request [:query-params :name])
+        message    (greeting-for greet-name)]
+    (if message
+      (ok message)
       (not-found))))
 ;; end::greeting_with_404[]
 
 ;; tag::routing[]
 (def routes
-  (route/expand-routes                                      ;; <1>
-    #{["/greet" :get respond-hello :route-name :greet]}))   ;; <2>
+  #{["/greet" :get greet-handler :route-name :greet]}) 
 ;; end::routing[]
 
-;; tag::server[]
-(def service-map
-  {::http/routes routes
-   ::http/type :jetty
-   ::http/port 8890})
-
-(defn start []
-  (http/start (http/create-server service-map)))
+;; tag::connector[]
+(defn create-connector []
+  (-> (conn/default-connector-map 8890)
+      (conn/with-default-interceptors)
+      (conn/with-routes routes)
+      (hk/create-connector nil)))
 
 ;; For interactive development
-(defonce server (atom nil))                                 ;; <1>
+(defonce *connector (atom nil))                             ;; <1>
 
-(defn start-dev []
-  (reset! server                                            ;; <2>
-          (http/start (http/create-server
-                        (assoc service-map
-                               ::http/join? false)))))      ;; <3>
+(defn start []
+  (reset! *connector                                        ;; <2>
+          (conn/start! (create-connector))))
 
-(defn stop-dev []
-  (http/stop @server))
+(defn stop []
+  (conn/stop! @*connector)
+  (reset! *connector nil))
 
-(defn restart []                                            ;; <4>
-  (stop-dev)
-  (start-dev))
-;; end::server[]
+(defn restart []                                            ;; <3>
+  (stop)
+  (start))
+;; end::connector[]

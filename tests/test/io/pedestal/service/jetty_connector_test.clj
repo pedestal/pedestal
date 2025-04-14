@@ -51,7 +51,7 @@
   []
   (-> (connector/default-connector-map 8080)
       (connector/with-default-interceptors)
-      (connector/with-routing :sawtooth routes)
+      (connector/with-routes routes)
       (jetty/create-connector nil)))
 
 (use-fixtures :once

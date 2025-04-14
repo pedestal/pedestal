@@ -63,7 +63,7 @@
   []
   (-> (connector/default-connector-map port)
       (connector/with-default-interceptors)
-      (connector/with-routing :sawtooth routes)
+      (connector/with-routes routes)
       (http-kit/create-connector nil)))
 
 (use-fixtures :once

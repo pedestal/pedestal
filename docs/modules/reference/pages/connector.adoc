@@ -4,7 +4,7 @@
 
 A Pedestal application always works in the context of a _network connector_ such as
 xref:jetty.adoc[]; the network connector is responsible for the low-level HTTP/HTTPs networking,
-including support for Websockets and server-sent events.
+including support for WebSockets and server-sent events.
 
 Once a request has been received, it is passed through
 an interceptor chain to be processed using the
@@ -17,6 +17,11 @@ APIs to Pedestal's.
 The namespaces api:*[ns=io.pedestal.connector] and api:*[ns=io.pedestal.connector.dev] provide functions to create
 and configure the connector map.
 
+The connector concept was added in Pedestal 0.8; a connector does not require a servlet or anything from the
+Servlet API; the xref:http-kit.adoc[Http-Kit connector] is an example that provides HTTP functionality without
+the Servlet API.
+
+By contrast, the older Jetty support can run as a service (that is, in terms of the Servlet API) _or_ as a connector.
 
 == Embedded
 

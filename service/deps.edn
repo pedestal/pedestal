@@ -20,7 +20,7 @@
          org.clojure/core.async           {:mvn/version "1.7.701"}
 
          ;; Ring 1.11 is the first version to support Servlet API 4.0
-         ring/ring-core                   {:mvn/version "1.13.0"}
+         ring/ring-core                   {:mvn/version "1.14.1"}
          cheshire/cheshire                {:mvn/version "5.13.0"}
          org.clojure/tools.reader         {:mvn/version "1.5.2"}
          com.cognitect/transit-clj        {:mvn/version "1.0.333"}

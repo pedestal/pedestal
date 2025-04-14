@@ -38,9 +38,17 @@ link:https://leiningen.org/[Leiningen] is a popular and pervasive Clojure build 
 Projects with a `project.clj` file at the root are built using Leiningen, which can download dependencies from a Maven repository
 on demand.
 
+network connector::
+A library, such as xref:reference:http-kit.adoc[], responsible for directly handling HTTP requests, acting as an
+entrypoint into Pedestal.
+
 Maven repository::
 A source of Java and Clojure packages, used by the link:https://maven.apache.org/index.html[Maven build tool], but also
 by virtually all other similar tools in the Java ecosystem.
+
+Pedestal connector::
+Responsible for starting and managing a network connector so that incoming requests can be handled
+using the interceptor chain. A different Pedestal connector is used for each different network connector.
 
 REPL::
 The *R*{empty}ead *E*{empty}val *P*{empty}rint *L*{empty}oop:

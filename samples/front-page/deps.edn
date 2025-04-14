@@ -1,0 +1,4 @@
+{:deps {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-alpha-1"}}
+ :aliases
+ {:run
+  {:exec-fn front-page/start}}}
