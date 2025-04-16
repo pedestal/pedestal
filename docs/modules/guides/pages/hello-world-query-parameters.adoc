@@ -108,13 +108,13 @@ user=> (hello/start)
 #object[io.pedestal.http.http_kit$create_connector$reify__15862 0x3b85a820 "io.pedestal.http.http_kit$create_connector$reify__15862@3b85a820"]
 user=>
 ----
-<1> The `$` is the shell prompt; once you execute `clj`, you are inside the Clojure REPL and the `user=>` is its prompt.
 
 The `start` function has done four things:
-* It has created the connector (via `create-connector`)
-* It has started the connector
-* It has stored the connector in an http://clojure.org/reference/atoms[atom] (a mutable container).
-* It has returned the connector, which the Clojure REPL has printed.
+
+- It has created the connector (via `create-connector`)
+- It has started the connector
+- It has stored the connector in an http://clojure.org/reference/atoms[atom] (a mutable container).
+- It has returned the connector, which the Clojure REPL has printed.
 
 [sidebar]
 ****
@@ -358,7 +358,8 @@ Date: Sat, 12 Apr 2025 00:16:42 GMT
 Hello, clojure.core$name@6b202ecb
 ```
 
-`clojure.core$name@6b202ecb` is how the `clojure.core/name` function is printed.  We can verify that in the REPL:
+`clojure.core$name@6b202ecb` is how the `clojure.core/name` function is printed as a string.
+We can verify that in the REPL:
 
 ```
 user=> (str clojure.core/name)
