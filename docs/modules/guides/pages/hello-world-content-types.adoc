@@ -16,6 +16,14 @@ In fact, we should go a step further: the client should be in charge
 of whether they get human-presentable HTML, or code-focused JSON, using
 the very same endpoints.
 
+Content types are used in HTTP for three purposes:
+
+- The client includes a `Content-Type` header to describe the format of the request body
+- The client includes an `Accepts` header to indicate what format body it can handle
+- The server includes a `Content-Type` header to describe the format of the response body
+
+There's quite a bit of inherent complexity there, but Pedestal can help sort it out.
+
 It's time to see how Pedestal handles content types and response bodies.
 We will also get our first taste of interceptors.
 
@@ -71,17 +79,23 @@ some magic comments to pare it down to just the final version.
 
 == The Hard Way
 
-Our first effort to deal with content types will be pretty
-manual. This is to show you what goes on under the hood before we use
+Pedestal includes effective support for handilng content type issues on
+both the request and the response.
+
+In order to appreciate what Pedestal offers, we'll do it "the hard way",
+implementing our own support for content types and gradually improving them.
+This is to show you what goes on under the hood before we use
 the handy built-in features that Pedestal offers. Don't worry, this
 won't hurt too much. It'll also let us introduce the most important
-concept in Pedestal: Interceptors.
+concept in Pedestal: xref:reference:interceptors.adoc[].
 
 Back in xref:hello-world-query-parameters.adoc[]
 we echoed an HTTP request back
 as the response. That was pretty useful for debugging, and it will
-come in handy for our next step. Since our `/greet` route is working
-so nicely, let's make a general route to just echo requests back. Pop
+come in handy for our next step.
+
+Given that we put some effort into getting our `/greet` route working
+so nicely, let's make a new, general route to just echo requests back. Pop
 open `hello.clj` and change the `routes` definition to this:
 
 [source,clojure]
@@ -89,15 +103,7 @@ open `hello.clj` and change the `routes` definition to this:
 include::example$hello-content/src/hello.clj[tags=routing]
 ----
 
-You probably noticed that `routes` is created with a `def` and not with a
-`defn`. `def` creates a var and binds a value to that var. Under the
-jargon, that means it creates a new name in the namespace and attaches
-a value. `defn` is a macro that essentially expands into `def` with a
-`fn`, hence the name.
-
-In practice, when you see a `def`, you should think "this is creating
-a value, and values don't change." So it is with the routes. After
-changing the routes, you will need to restart your service.
+// Is this the right spot for this sidebar?
 
 [sidebar]
 This is purely a result of the way we've built things for this guide. There
@@ -114,16 +120,17 @@ Unable to resolve symbol: echo in this context
 user=>
 ```
 
-That is a very precise way to say we forgot to define `echo` before using it. Let's do that now.
+That is a very precise way to say we forgot to define `echo` before using it in the `routes` definition.
+Let's do that now.
 
 We're going to define `echo` differently than our handler function
-`hello`. Instead of a simple handler function, we're going to define
+`greet-handler`. Instead of a simple handler _function_, we're going to define
 an interceptor.
 
 [#interceptors]
 == Interceptors
 
-Interceptors are the basic unit of work in Pedestal.
+xref:reference:interceptors.adoc[] are the basic unit of work in Pedestal.
 
 At every step of the way between when a request arrives from the client, and when a response
 is sent back, there's at least one interceptor. This includes:
@@ -191,55 +198,49 @@ We're ready to define `echo` as an interceptor:
 ----
 include::example$hello-content/src/hello.clj[tags=echo]
 ----
-<1> Interceptor names help with debugging.
-<2> We're providing an :enter function.
+<1> Interceptors should always have distinct names.
+<2> We're providing an :enter function (but not a :leave function).
 <3> Take the request map out of the context map.
-<4> Make a response map out of it.
+<4> Make a response map, with the request map as the body.
 <5> Attach the response to the context map, and return the new context map.
 
 We normally wouldn't write this in such an expanded form, but I wanted
 to show all the pieces one by one. Ultimately, we're just making a map
 with the keys :name and :enter.
 
-We can try that interceptor out now. Bounce your service and use curl to exercise the `/echo` route:
+We can try that interceptor out now. Bounce your service and use `curl` to exercise the `/echo` route:
 
 [source,bash]
 ----
 $ curl http://localhost:8890/echo
-{:protocol "HTTP/1.1", :async-supported? true, :remote-addr "127.0.0.1", :servlet-response #object[org.eclipse.jetty.server.Response 0x1ea4d091 "HTTP/1.1 200 \nDate: Thu, 12 Oct 2023 20:43:21 GMT\r\nStrict-Transport-Security: max-age=31536000; includeSubdomains\r\nX-Frame-Options: DENY\r\nX-Content-Type-Options: nosniff\r\nX-XSS-Protection: 1; mode=block\r\nX-Download-Options: noopen\r\nX-Permitted-Cross-Domain-Policies: none\r\nContent-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;\r\nContent-Type: application/edn\r\n\r\n"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x6593f4fd "io.pedestal.http.servlet.FnServlet@6593f4fd"], :headers {"accept" "*/*", "user-agent" "curl/8.1.2", "host" "localhost:8890"}, :server-port 8890, :servlet-request #object[org.eclipse.jetty.server.Request 0x1a57fb49 "Request(GET //localhost:8890/echo)@1a57fb49"], :path-info "/echo", :url-for #object[clojure.lang.Delay 0xd0b64a9 {:status :pending, :val nil}], :uri "/echo", :server-name "localhost", :query-string nil, :path-params {}, :body #object[org.eclipse.jetty.server.HttpInputOverHTTP 0x28234bf2 "HttpInputOverHTTP@28234bf2[c=0,q=0,[0]=null,s=STREAM]"], :scheme :http, :request-method :get, :context-path ""}%
+{:remote-addr "127.0.0.1", :start-time 654778320605125, :headers {"accept" "*/*", "host" "localhost:8890", "user-agent" "curl/8.7.1"}, :async-channel #object[org.httpkit.server.AsyncChannel 0x7e67b292 "/127.0.0.1:8890<->/127.0.0.1:55832"], :server-port 8890, :content-length 0, :websocket? false, :content-type nil, :path-info "/echo", :character-encoding "utf8", :url-for #object[clojure.lang.Delay 0x3d9b3fd {:status :pending, :val nil}], :uri "/echo", :server-name "localhost", :query-string nil, :path-params {}, :body nil, :scheme :http, :request-method :get, :io.pedestal.http.csrf/anti-forgery-token "3WNRl+PRNbWCtIn2MV91S7aZy2khEvYaXTJ6yhpnApMGYDwIokH0dAYDKw3L+7xVj7v8SHix5y6NIy8X"}%
 ----
 
 This should look pretty familiar from xref:hello-world-query-parameters.adoc[the previous guide].
 
 == From Routes to Interceptors
 
-When Pedestal starts your service, it sets up some default
-interceptors for you. That includes an interceptor that does the
-routing. A router is just a specialized interceptor that looks at
-parts of the request, decides which interceptors to invoke next, and
-pushes those onto the interceptor queue.
+Pedestal's basic unit of work is the interceptor.  The `echo` and `greet-handler` functions?
+Those are actually converted into interceptors.  The `conn/with-routes` in our setup?  That creates
+a routing interceptor and adds it to the connector description. The routing interceptor
+examines the request map and matches it to a route, and pushes the interceptors for the route onto
+the queue for execution.
 
-That means any other interceptor can _also_ modify the queue! This is
+Because the interceptor queue is stored in the context, it means any  interceptor can _ modify the queue!
+There's nothing that special about the routing interceptor. This is
 one of the big benefits of using interceptors: the ability to make
 dynamic decisions during request handling.
 
+Each Pedestal connector implementation  may some interceptors to the front of the queue, before adding all the
+interceptors you directly, or indirectly, define in the connector map.
+
 == Returning to Content Types
 
-Pedestal is agnostic as to what servlet container (such as xref:reference:jetty.adoc[]) is used to
-accept requests and return responses. At the core of Pedestal is the
-xref:reference:servlet-interceptor.adoc[]footnote:[This is poorly named as it's neither a Servlet nor an interceptor!], which is the bridge between the
-{servlet-api} (the domain of the servlet container) and Pedestal's interceptors.
+Pedestal connectors are required to allow any of the following types in the :body of the response map:
 
-
-The servlet interceptor queues up several interceptors ahead of any provided by the
-service{empty}footnote:[Or provided by api:create-service[], such as the routing interceptor], including
-the api:ring-response[ns=io.pedestal.impl.servlet-interceptor] interceptor;
-part of this interceptor's job is to determine a default response `Content-Type` header,
-if the actual response map omits it - this is deduced from the response map's :body.
-
-.Content Type Mapping
+.Response Content Type Mapping
 |===
-| Object in :body                        | Content-Type
+| Object in :body                        | Default Content-Type
 
 | Byte array                             | application/octet-stream
 | String                                 | text/plain
@@ -250,11 +251,11 @@ if the actual response map omits it - this is deduced from the response map's :b
 | java.nio.ByteBuffer                    | application/octet-stream
 |===
 
-`ring-response` also uses the body type to determine how to stream the response to the
-client; for example, Clojure collections are printed as a string, which is then streamed.
-A `File`{empty}'s contents are read and streamed as a byte stream.
+For each type, the connector will assign a `Content-Type` header, if not already present, based
+on the type of value.  In our previous attempts with the `greet-handler`, we returned a String
+and Pedestal supplied the content type `text/plain` for us.
 
-`ring-response` does a reasonable job, but it's not always right. You might notice
+The built-in logic does a reasonable job for common cases, but it's not always right. You might notice
 that "text/html" doesn't appear anywhere in that list. We can force
 that by setting a content type header in our response, like this:
 
@@ -271,27 +272,30 @@ Let's see the result:
 ----
 $ curl -i http://localhost:8890/greet
 HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 21:51:05 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
 X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
-Content-Type: text/html
-Transfer-Encoding: chunked
+Content-Type: text/html <1>
+content-length: 14
+Server: Pedestal/http-kit
+Date: Thu, 17 Apr 2025 17:16:35 GMT
 
-Hello, world!
+Hello, world! <2>
 ----
+<1> Pedestal honored our `Content-Type` header ...
+<2> ... even though we returned plain text.
 
 As expected. But, something about that doesn't seem quite right. We're
 completely ignoring HTTP content negotiation. The client might want
 JSON instead of HTML. Or it might _want_ plain text. Or EDN. The
-trouble is that the HTTP content negotiation spec is a royal
+trouble is that the HTTP content negotiation specific is a royal
 pain. Fortunately, Pedestal provides an interceptor to help.
 
-api:io.pedestal.http.content-negotiation/negotiate-content[ns=io.pedestal.http.content-negotiation]
+api:negotiate-content[ns=io.pedestal.http.content-negotiation] interceptor
 does the job. If you look at the docs, though, you'll see that is not
 an interceptor, but rather a function that returns an interceptor.
 
@@ -301,7 +305,14 @@ function which returns an interceptor that "closes over" those
 arguments. It returns a data structure that contains functions that
 carry those arguments around with them.
 
-Let's remove the content type header from `ok` and use this interceptor.
+So what does this interceptor do?  It reads the client's `Accept` request header
+(which can have quite a complicated format) and finds the "best match" among
+the supported content types; this is added to the request map as the key :accept.
+
+If the client doesn't accept any format that the server supports, then a 406 Not acceptable
+response is attached to the context.
+
+Let's remove the content type header from `ok` and use this new interceptor.
 
 [source,clojure]
 .src/hello.clj
@@ -324,7 +335,7 @@ Could not locate clojure/data/json__init.class, clojure/data/json.clj or clojure
 
 That is how Clojure tells you it is missing a library. By looking at
 the library's https://github.com/clojure/data.json[project page], we see that the latest stable release is
-"2.5.0" (at least, it is when this guide is being written!). We can
+"2.5.1" (at least, it is when this guide is being written!). We can
 add the library in the dependencies part of our `deps.edn` file:
 
 [source,clojure]
@@ -332,17 +343,22 @@ add the library in the dependencies part of our `deps.edn` file:
 ----
 include::example$hello-content/deps.edn[]
 ----
+<1> This is the line that was added.
 
-Any time you change the dependencies, you will definitely need to
-restart your service.
+[TIP]
+====
+Any time you change your project dependencies, you'll need to quit out of
+the REPL and start it again; Clojure will download, as needed, the new dependencies or
+dependency versions.  The `(require :reload ...)` trick only works for reloading
+source files, not what's in `deps.edn`.
+====
 
 If you try this out, you'll notice that absolutely nothing
 changed. That's because the content negotiation interceptor handles
-the protocol, but it's up to you to do something about the result. The
-interceptor runs the algorithm, then attaches the result to the
-request. That result is then available throughout the rest of
-processing. This is a great way to decompose your interceptors into
-small pieces that can be plugged together.
+the protocol, but it's up to you to do something about the result, the :accept key added to the request map.
+
+This gets to the heart of interceptors: breaking up your request processing
+logic into small, resuable, individually testable chunks.
 
 It's up to our service code to return a different body format
 depending on the accepted content type. It probably won't surprise you
@@ -360,7 +376,7 @@ include::example$hello-content/src/hello.clj[tags=coerce_entangled]
 <3> Translate the body according to the chosen content type.
 <4> Create a new response by attaching headers and the coerced body.
 <5> Return a new context by attaching the updated response.
-<6> Tell Pedestal to put this interceptor at the head of the queue.
+<6> Tell Pedestal to put this interceptor at the head of the queue _just for this one route_
 
 Why does this new interceptor go at the start of the vector? Take look
 at the picture of the interceptors above. The first one in the vector
@@ -370,62 +386,71 @@ response body so it goes at the top. Turn the queue sideways to write
 it as a vector, and the topmost interceptor is on the left. It only
 takes a little bit to get used to this.
 
-Let's try this out with curl. Restart your service and try sending in some curl requests with different "Accept" headers:
+Let's try this out with curl. Restart your service and try sending in some curl requests with different `Accept` headers:
 
 [source,bash]
 ----
 $ curl -i http://localhost:8890/greet
 HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 22:06:52 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
 X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: text/html
-Transfer-Encoding: chunked
+content-length: 14
+Server: Pedestal/http-kit
+Date: Thu, 17 Apr 2025 17:43:51 GMT
 
 Hello, world!
 ----
 
-Notice the content type returned by our service was "text/html." Let's try some others. Keep an eye on the "Content-Type" header in each response.
+Notice the content type returned by our service is now "text/html."  This is because the `curl` command, by default,
+sends an `Accept` header with the value `*/*`.  This matches the first value in `supported-types`, so that's what's
+selected by the `content-negotiation-interceptor`.
+
+We can use the `-H` option to override `curl`'s default.
+Keep an eye on the "Content-Type" header in each response.
 
 [source,bash]
 ----
 $ curl -i -H "Accept: text/html" http://localhost:8890/greet
 HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 22:07:18 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
 X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: text/html
-Transfer-Encoding: chunked
+content-length: 14
+Server: Pedestal/http-kit
+Date: Thu, 17 Apr 2025 17:44:52 GMT
 
 Hello, world!
-
 $ curl -i -H "Accept: application/edn" http://localhost:8890/greet
 HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 22:08:07 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
 X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: application/edn
-Transfer-Encoding: chunked
+content-length: 17
+Server: Pedestal/http-kit
+Date: Thu, 17 Apr 2025 17:45:10 GMT
 
-"Hello, world!\n"%
+"Hello, world!\n"
 ----
 
 Notice when asking for the response in `application/edn` format, the string result was enclosed in quotes.
+That's the difference between encoding a string as plain text -- the string itself -- and encoding it
+in the EDN format, where strings are quoted.
 
 == Refactoring and Style
 
@@ -445,10 +470,17 @@ functions.
 We're also going to touch up the `echo` interceptor while we're at it.
 
 It is common style in Pedestal applications to make heavy use of the
-core functions like `update` and `update-in`. They are good at taking
-out a part of a nested data structure, applying a function to it, then
-reattaching the updated part. Let's see how this interceptor would
-change if we refactor it that way.
+core functions such as
+clj:update[] and clj:update-in[].
+These functions can "reach into" a data structure and make changes to the values
+already stored there, by applying a function to the stored value.  Of course, this is Clojure
+and the original map isn't changed, even by `update-in`: new immutable copies of the
+nested and containing maps are created.
+
+Using the update style is s more concise than our prior code, and, to a more seasoned Clojure developer, often
+more readable.
+
+Let's see how this interceptor would change if we refactor it that way.
 
 [source,clojure]
 .src/hello.clj
@@ -458,7 +490,7 @@ include::example$hello-content/src/hello.clj[tags=coerce_refactored_comm;coerce_
 
 We're going to take one more step toward Clojure mastery. Do you see
 the `coerce-body` function? It looks inside the context. If there's
-already a "Content-Type" header on the response, then it does nothing
+already a `Content-Type` header on the response, then it does nothing
 and returns the context without modification. On the other hand, if
 there is no content type assigned yet, it modifies the context by
 updating the response.
@@ -468,12 +500,12 @@ make a series of changes to a data structure, where each change is
 conditional on some other logic. In an imperative language, this would
 look like a series of `if` statements whose bodies each mutate the
 object being built. In Clojure, they would look like a deeply nested
-`if` special form, where each `if` returns either a modified or
+`if` forms, where each `if` returns either a modified or
 unmodified version of the input. The trouble with deeply nested `if`s
 is that it's too easy to get lost in the nesting.
 
 This pattern is very common, and Clojure includes macros to help.
-The slightly tricky clj:cond\->[]footnote:[That's read out loud as "cond arrow". Once you master it,
+The slightly tricky clj:cond\->[]{empty}footnote:[That's read out loud as "cond arrow". Once you master it,
 you'll really level up in Clojure skills.] macro is what we need here.
 `cond\->` is similar to the usual
 threading macro `\->`, but instead of a just a series of expressions, it precedes
@@ -486,8 +518,10 @@ In practice, it's very straight forward:
 ----
 include::example$hello-content/src/hello.clj[tags=coerce_body_2]
 ----
-<1> This is the test clause. It says "if there is no Content-Type header"
-<2> When the test is true, `cond->` puts `context` in the second position here, right after the `update-in`
+<1> This _predicate function_ makes the main function more readable; the `?` suffix is a convention for functions
+     that return a boolean (true or false) result.
+<2> This is the test clause.
+<3> When the test is true, `cond->` puts `context` in the second position here, right after the `update`
 
 If there were more clauses in the `cond->`, each clause would receive
 the value returned from the previous clauses.
@@ -500,10 +534,10 @@ responsibilities. We'll tackle that some other time. For now, let's
 take a look at the whole thing. Spend some time making sure you
 understand how and when each line of code gets invoked.
 
-[source,clojure]
+[source.hide-callouts,clojure]
 .src/hello.clj
 ----
-include::example$hello-content/src/hello.clj[tags=ns;continuo;coerce_refactored_comm;coerce_body_2;routes_refactored;server]
+include::example$hello-content/src/hello.clj[tags=ns;continuo;coerce_refactored_comm;coerce_body_2;routes_refactored;connector]
 ----
 
 == The Path So Far

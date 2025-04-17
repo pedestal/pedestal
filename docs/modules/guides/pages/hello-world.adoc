@@ -398,6 +398,19 @@ handler function:
 include::example$hello/src/hello.clj[tags=routing]
 ----
 
+You probably noticed that `routes` is created with a
+clj:def[] and not with a clj:defn[].
+
+`def` is used for defining a _constant_.  The constant value is then linked to
+a symbol in the namespace.  This can be a single value (such as the set provided here) or
+it can be a more complex expression that gets evaluated, just once, and linked to the symbol.
+
+`defn` is used to define a function which has parameters and a body of expressions ...
+but in Clojure, a function is ultimately a kind of value.
+The function gets linked to a namespace symbol.  Under the covers, the `defn` macro itself makes use of
+the `def` macro.
+
+
 Clojure has a xref:reference:routing-quick-reference.adoc[number of ways to express routing]; the use
 of a set here (with `#{ ... }`) denotes xref:reference:table-syntax.adoc[table syntax], which is prefered.
 
