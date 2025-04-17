@@ -103,14 +103,6 @@ open `hello.clj` and change the `routes` definition to this:
 include::example$hello-content/src/hello.clj[tags=routing]
 ----
 
-// Is this the right spot for this sidebar?
-
-[sidebar]
-This is purely a result of the way we've built things for this guide. There
-are techniques that let you automatically reload routes during
-development. We'll get to those in
-xref:developing-at-the-repl.adoc[].
-
 When you restarted your service, you probably got a nasty message from Clojure like:
 
 ```
@@ -213,7 +205,7 @@ We can try that interceptor out now. Bounce your service and use `curl` to exerc
 [source,bash]
 ----
 $ curl http://localhost:8890/echo
-{:remote-addr "127.0.0.1", :start-time 654778320605125, :headers {"accept" "*/*", "host" "localhost:8890", "user-agent" "curl/8.7.1"}, :async-channel #object[org.httpkit.server.AsyncChannel 0x7e67b292 "/127.0.0.1:8890<->/127.0.0.1:55832"], :server-port 8890, :content-length 0, :websocket? false, :content-type nil, :path-info "/echo", :character-encoding "utf8", :url-for #object[clojure.lang.Delay 0x3d9b3fd {:status :pending, :val nil}], :uri "/echo", :server-name "localhost", :query-string nil, :path-params {}, :body nil, :scheme :http, :request-method :get, :io.pedestal.http.csrf/anti-forgery-token "3WNRl+PRNbWCtIn2MV91S7aZy2khEvYaXTJ6yhpnApMGYDwIokH0dAYDKw3L+7xVj7v8SHix5y6NIy8X"}%
+{:remote-addr "127.0.0.1", :start-time 654778320605125, :headers {"accept" "*/*", "host" "localhost:8890", "user-agent" "curl/8.7.1"}, :async-channel #object[org.httpkit.server.AsyncChannel 0x7e67b292 "/127.0.0.1:8890<->/127.0.0.1:55832"], :server-port 8890, :content-length 0, :websocket? false, :content-type nil, :path-info "/echo", :character-encoding "utf8", :url-for #object[clojure.lang.Delay 0x3d9b3fd {:status :pending, :val nil}], :uri "/echo", :server-name "localhost", :query-string nil, :path-params {}, :body nil, :scheme :http, :request-method :get}%
 ----
 
 This should look pretty familiar from xref:hello-world-query-parameters.adoc[the previous guide].
