@@ -145,7 +145,7 @@ for an explanation of the `echo` interceptor.].
 [source,clojure]
 .src/main.clj
 ----
-include::example$todo-api/src/main.clj[tags=routes]
+include::example$todo-api/src/main.clj[tags=echo;routes]
 ----
 
 Pedestal makes it possible to invoke these routes directly from the REPL, without involving HTTP at all.
@@ -198,8 +198,6 @@ user=> (dissoc *1 :body)
 [TIP]
 Inside the REPL, Clojure keeps track of the most recent result it printed in the
 symbol `*1`.  That makes it a snap to dig down into that result. There's also `*2` and `*3`.
-
-
 
 Now we can see the status code (200, OK) and the headers. Not too bad.
 
@@ -427,7 +425,7 @@ looked at the context after running all the interceptors, saw that
 there was no response, and sent the 404 as a fallback. We need to
 attach a response somewhere.
 
-=== url-for
+=== Providing a proper response
 
 In REST apis, it is expected that a POST request that creates an entity will
 then return a response with a 201 Created status code, and include a
@@ -465,7 +463,7 @@ And the results (manually formatted for readability):
 user==> (main/test-request :post "/todo?name=A")
 {:status 201,
   :body "{:name \"A\", :items {}}", <1>
-  :headers {:x-xss-protection "1; mode=block",
+  :headers {:x-xss-protection "1; mode=block", <2>
             :x-content-type-options "nosniff",
             :x-permitted-cross-domain-policies "none",
             :x-download-options "noopen",
@@ -497,9 +495,11 @@ Now that we've done one route, this will go a bit faster. The
 connection from route to interceptor to entity should be a bit more
 evident at this point.
 
-To view a list, we need to look it up from the "database". If it
-doesn't exist, we need to return a 404 (which can be done by omitting
-a response body). If it does exist, we send it in the response.
+To view a list, we need to look it up from the "database",
+as provided in the :database key of the request map.
+
+If found, we want to return the found to-do list ... but indirectly.
+
 
 [source,clojure]
 .src/main.clj
@@ -510,6 +510,43 @@ include::example$todo-api/src/main.clj[tags=list_view]
 <2> Extract the path parameter, if present.
 <3> Lookup the matching list if the parameter was provided.
 <4> If a list was found, add it to the context as :result; otherwise do nothing resulting in a 404 response.
+
+Adding the :result key to the context does _not_ terminate execution of the interceptor chain; that's triggered by
+the :response key.  And if we don't provide a response, we're back in 404 land.
+
+Once again, we'll lean on interceptors to keep our code reusable.
+
+== The Entity View
+
+The `entity-render` interceptor provides the missing part; when a prior
+interceptor has attached a :result to the context, it will build and attach
+a response.
+
+[source,clojure]
+.src/main.clj
+----
+include::example$todo-api/src/main.clj[tags=entity_render]
+----
+
+But to make this work, we need to include it in the :list-view route:
+
+[source,clojure]
+.src/main.clj
+----
+include::example$todo-api/src/main.clj[tags=entity_render_routes]
+----
+
+
+
+After once again reloading code and restarting the connector, you can give the endpoint a try:
+
+----
+user=> (main/test-request :get "/todo/l15892")
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /todo/l15892", :line 40}
+{:status 200, :body "{:name \"A-List\", :items {}}", :headers {:strict-transport-security "max-age=31536000; includeSubdomains", :x-frame-options "DENY", :x-content-type-options "nosniff", :x-xss-protection "1; mode=block", :x-download-options "noopen", :x-permitted-cross-domain-policies "none", :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", :content-type "application/edn"}}
+----
+
+There in the body is the retrieved list.
 
 == Add Item to List
 
@@ -566,6 +603,15 @@ executed.
 <5> This is where `list-item-create` passes a parameter to
 `list-item-view`.
 
+And, again, we must add the necessary interceptor to the :list-item-create
+route:
+
+[source,clojure]
+.src/main.clj
+----
+include::example$todo-api/src/main.clj[tags=list_item_create_routes]
+----
+
 To understand the interceptors for the :list-item-create route, we
 need to think about :enter functions from left to right and :leave
 functions from right to left.
@@ -600,12 +646,11 @@ minutes to see if you can create the interceptors for the next few.
 Here is the final version of the code. Everything is cleaned, folded,
 and sorted nicely.
 
-[source,clojure]
+[source.hide-callouts,clojure]
 .src/main.clj
 ----
-include::example$todo-api/src/main-complete.clj[]
+include::example$todo-api/src/main.clj[tags=ns;response_partials;repository;db_interceptor;echo;list_create_preamble;list_create;echo;list_create_with_response;entity_render;list_view;list_item_create;list_item_create_routes;connector;test_request]
 ----
-
 
 == The Path So Far
 
