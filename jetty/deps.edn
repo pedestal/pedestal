@@ -12,9 +12,9 @@
 
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        io.pedestal/pedestal.log {:mvn/version "0.8.0-alpha-1"}
-        io.pedestal/pedestal.service {:mvn/version "0.8.0-alpha-1"}
-        io.pedestal/pedestal.servlet {:mvn/version "0.8.0-alpha-1"}
+        io.pedestal/pedestal.log {:mvn/version "0.8.0-alpha-2"}
+        io.pedestal/pedestal.service {:mvn/version "0.8.0-alpha-2"}
+        io.pedestal/pedestal.servlet {:mvn/version "0.8.0-alpha-2"}
         org.eclipse.jetty/jetty-server {:mvn/version "12.0.18"}
         org.eclipse.jetty.http2/jetty-http2-server {:mvn/version "12.0.18"}
         org.eclipse.jetty.ee10/jetty-ee10-servlet {:mvn/version "12.0.18"}
