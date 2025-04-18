@@ -13,7 +13,7 @@
 {:paths ["src"
          "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
-        io.pedestal/pedestal.common {:mvn/version "0.8.0-alpha-1"}
+        io.pedestal/pedestal.common {:mvn/version "0.8.0-alpha-2"}
         ;; logging
         org.slf4j/slf4j-api {:mvn/version "2.0.17"}}
  :aliases

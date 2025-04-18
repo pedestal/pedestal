@@ -46,7 +46,7 @@
 ;; tag::echo[]
 
 (def echo
-  {:name  ::echo                                            ;; <1>
+  {:name  :echo                                             ;; <1>
    :enter (fn [context]                                     ;; <2>
             (let [request  (:request context)               ;; <3>
                   response (ok request)]                    ;; <4>
@@ -103,7 +103,7 @@
 
 ;; tag::coerce_refactored_comm[]
 (def echo
-  {:name  ::echo
+  {:name  :echo
    :enter #(assoc % :response (ok (:request %)))})
 
 (def supported-types ["text/html"

@@ -21,7 +21,6 @@ Pedestal was created to bring Clojure's key attributes, *Focus*, *Empowerment*, 
 (defn start!
   []
   (-> (conn/default-connector-map 8080)
-      (assoc :join? true)
       (conn/with-default-interceptors)
       (conn/with-routes
         #{["/greet" :get greet-handler]})
@@ -72,7 +71,7 @@ When you need more power, it's ready for you.
 Pedestal embraces testability as a first-class concern.
 The core interceptor model breaks request processing into small pieces that are simple, often free of side effects, and therefore easy to
 test; then lets you stack those pieces up to form your full application. Pedestal provides a testing API that can fully exercise your
-synchronous and asynchrounous code without actually starting a web server.
+synchronous and asynchronous code without actually starting a web server.
 
 === Streaming
 
