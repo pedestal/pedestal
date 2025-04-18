@@ -75,7 +75,7 @@ $ cd todo-api
 $ mkdir src
 ----
 
-This time, we'll set up our `deps.edn` file first. It will be almost
+This time, we'll set up our `deps.edn` file first. It will be
 exactly the same as our last one:
 
 [source,clojure]
@@ -93,6 +93,8 @@ declaration:
 include::example$todo-api/src/main.clj[tags=ns]
 ----
 
+This adds new namespaces that we'll use later in this tutorial.
+
 === Partial Functions
 
 We're going to use some of the same structures from
@@ -106,19 +108,31 @@ include::example$todo-api/src/main.clj[tags=response_partials]
 ----
 
 
-`partial` is a Clojure function that takes a function and
+clj:partial[] is a Clojure function that takes a function and
 returns a new function that needs fewer arguments - you supply the initial arguments in the call
 to `partial`. The returned function keeps track of those initial arguments, and when invoked,
 "glues together" the initial arguments and any additional arguments provided to it, and calls the
 original function: `response` in this case.
 
+[NOTE]
+====
+The `& {:as headers}` forms in the `response` function's parameter list is a bit advanced;
+it's based on
+https://clojure.org/guides/destructuring[destructuring],
+but in practice all it means is that after the `status` and `body` arguments, you may pass key/value pairs
+that will be used as the headers of the response map built by `response`.  For example, you could
+have a handler function return `(ok "success" "Content-Type" "text/plain")`.
+====
+
 Although created with `def`, the symbols `ok`, `created`, and `accepted`, are all functions, as if
-they were created using `defn`.
+they were created using `defn`.  Remember: Clojure functions are still values!
 
 Why do any of this?  For all that web developers generally know the status codes in their sleep
 footnote:[But do you know what status code link:https://en.wikipedia.org/wiki/Hyper_Text_Coffee_Pot_Control_Protocol[418] is for?],
-it is more intent of the code that calls these functions is more semantically visible.  And you probably
-did go look up code link:https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#2xx_success[201].
+having these three functions results in code that is more intentful: the semantics
+become visible directly in the code.
+
+And you probably did go look up code link:https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#2xx_success[201].
 
 === Routes Up Front
 
@@ -139,19 +153,15 @@ This is a nice way to break your work up into incremental steps.
 It goes together nicely with the interactive development support we introduced in the
 xref:hello-world-query-parameters.adoc#interactive[Hello World, With Parameters tutorial].
 
-Get ready for a _ton_ of output:
+Let's start the service in this early, echo-only mode:
 
 ----
 $ clj
-Clojure 1.11.1
+Clojure 1.12.0
 user=> (require 'main)
 nil
-user=> (main/start-dev)
-[main] INFO org.eclipse.jetty.server.Server - jetty-11.0.18; built: 2023-10-27T02:14:36.036Z; git: 5a9a771a9fbcb9d36993630850f612581b78c13f; jvm 11.0.19+7-LTS
-[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@6c8f2e4e{/,null,AVAILABLE}
-[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@1432a683{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
-[main] INFO org.eclipse.jetty.server.Server - Started Server@b025f2f{STARTING}[11.0.18,sto=0] @57816ms
-#:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14892 0x515f104c "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14892@515f104c"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15680 0x1dde2d1 "io.pedestal.http.jetty$server$fn__15680@1dde2d1"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/todo/:list-id", :method :get, :path-constraints {:list-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)", :path-parts ["todo" :list-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :database-interceptor} #Interceptor{:name :list-view}], :route-name :list-view, :path-params [:list-id]} {:path "/todo/:list-id", :method :post, :path-constraints {:list-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)", :path-parts ["todo" :list-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :list-item-view} #Interceptor{:name :database-interceptor} #Interceptor{:name :list-item-create}], :route-name :list-item-create, :path-params [:list-id]} {:path "/todo", :method :post, :path-re #"/\Qtodo\E", :path-parts ["todo"], :interceptors [#Interceptor{:name :database-interceptor} #Interceptor{:name :list-create}], :route-name :list-create, :path-params []} {:path "/todo", :method :get, :path-re #"/\Qtodo\E", :path-parts ["todo"], :interceptors [#Interceptor{:name :echo}], :route-name :list-query-form, :path-params []} {:path "/todo/:list-id/:item-id", :method :delete, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-delete, :path-params [:list-id :item-id]} {:path "/todo/:list-id/:item-id", :method :get, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :entity-render} #Interceptor{:name :list-item-view} #Interceptor{:name :database-interceptor}], :route-name :database-interceptor, :path-params [:list-id :item-id]} {:path "/todo/:list-id/:item-id", :method :put, :path-constraints {:list-id "([^/]+)", :item-id "([^/]+)"}, :path-re #"/\Qtodo\E/([^/]+)/([^/]+)", :path-parts ["todo" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-update, :path-params [:list-id :item-id]}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x47caa1ff "io.pedestal.http.servlet.FnServlet@47caa1ff"], :server #object[org.eclipse.jetty.server.Server 0xb025f2f "Server@b025f2f{STARTED}[11.0.18,sto=0]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15682 0x7330574d "io.pedestal.http.jetty$server$fn__15682@7330574d"]}
+user=> (main/start)
+#object[io.pedestal.http.http_kit$create_connector$reify__15862 0x63cd8f26 "io.pedestal.http.http_kit$create_connector$reify__15862@63cd8f26"]
 user=>
 ----
 
@@ -159,24 +169,18 @@ user=>
 
 Let's try out the routes that we defined in the `main`
 namespace. We'll do that using
-api:response-for[ns=io.pedestal.test]. This
-function exercises our server without going through any actual HTTP
+api:response-for[ns=io.pedestal.service.test]. This
+function exercises our Pedestal connection without going through any actual HTTP
 requests.
 
-In Pedestal, the :io.pedestal.http/service-fn key of the service map contains the
-_service function_ which is essentially the bridge between Servlet APIs and
-Pedestal's interceptor chain.
-
-By extracting the service-fn (which we keep handy when
-running in development mode), we can pass it to `response-for` along with the HTTP verb (as a keyword), and the URL:
+By extracting the connector (it's in the `main/*connector` atom) we can pass it to `test/response-for` along with the HTTP verb (as a keyword), and the URL:
 
 ----
-user=> (require '[io.pedestal.test :as test])
+user=> (require '[io.pedestal.service.test :as test])
 nil
-user=> (test/response-for (:io.pedestal.http/service-fn @main/server) :get "/todo")
-[main] INFO io.pedestal.http - {:msg "GET /todo", :line 80}
-{:status 200, :body "{:io.pedestal.interceptor.chain/stack (#Interceptor{:name :echo} #Interceptor{:name :io.pedestal.http.route/path-params-decoder} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/ring-response} #Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/stylobate} #Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/terminator-injector}), :request {:protocol \"HTTP/1.1\", :async-supported? true, :remote-addr \"127.0.0.1\", :servlet-response #object[io.pedestal.test$test_servlet_response$reify__15083 0x3e1ff1cf \"io.pedestal.test$test_servlet_response$reify__15083@3e1ff1cf\"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x389588b2 \"io.pedestal.http.servlet.FnServlet@389588b2\"], :headers {\"content-length\" \"0\", \"content-type\" \"\"}, :server-port -1, :servlet-request #object[io.pedestal.test$test_servlet_request$reify__15071 0x57e9122f \"io.pedestal.test$test_servlet_request$reify__15071@57e9122f\"], :content-length 0, :content-type \"\", :path-info \"/todo\", :character-encoding \"UTF-8\", :url-for #object[clojure.lang.Delay 0x41c22d59 {:status :pending, :val nil}], :uri \"/todo\", :server-name nil, :query-string nil, :path-params {}, :body #object[io.pedestal.test.proxy$javax.servlet.ServletInputStream$ff19274a 0x5ea52724 \"io.pedestal.test.proxy$javax.servlet.ServletInputStream$ff19274a@5ea52724\"], :scheme nil, :request-method :get, :context-path \"\"}, :bindings {#'io.pedestal.http.route/*url-for* #object[clojure.lang.Delay 0x41c22d59 {:status :pending, :val nil}]}, :enter-async [#object[io.pedestal.http.impl.servlet_interceptor$start_servlet_async 0x7dfccbf2 \"io.pedestal.http.impl.servlet_interceptor$start_servlet_async@7dfccbf2\"]], :io.pedestal.interceptor.chain/terminators (#object[io.pedestal.http.impl.servlet_interceptor$terminator_inject$fn__14810 0x1fe24f79 \"io.pedestal.http.impl.servlet_interceptor$terminator_inject$fn__14810@1fe24f79\"]), :servlet-response #object[io.pedestal.test$test_servlet_response$reify__15083 0x3e1ff1cf \"io.pedestal.test$test_servlet_response$reify__15083@3e1ff1cf\"], :route {:path \"/todo\", :method :get, :path-re #\"/\\Qtodo\\E\", :path-parts [\"todo\"], :interceptors [#Interceptor{:name :echo}], :route-name :list-query-form, :path-params {}, :io.pedestal.http.route.prefix-tree/satisfies-constraints? #object[clojure.core$constantly$fn__5740 0x4f9a0139 \"clojure.core$constantly$fn__5740@4f9a0139\"]}, :servlet #object[io.pedestal.http.servlet.FnServlet 0x389588b2 \"io.pedestal.http.servlet.FnServlet@389588b2\"], :servlet-request #object[io.pedestal.test$test_servlet_request$reify__15071 0x57e9122f \"io.pedestal.test$test_servlet_request$reify__15071@57e9122f\"], :io.pedestal.interceptor.chain/queue #object[clojure.lang.PersistentQueue 0x38f183e9 \"clojure.lang.PersistentQueue@1\"], :url-for #object[clojure.lang.Delay 0x41c22d59 {:status :pending, :val nil}], :io.pedestal.interceptor.chain/execution-id 1, :servlet-config nil, :async? #object[io.pedestal.http.impl.servlet_interceptor$servlet_async_QMARK_ 0x23497c5e \"io.pedestal.http.impl.servlet_interceptor$servlet_async_QMARK_@23497c5e\"]}", :headers {"Strict-Transport-Security" "max-age=31536000; includeSubdomains", "X-Frame-Options" "DENY", "X-Content-Type-Options" "nosniff", "X-XSS-Protection" "1; mode=block", "X-Download-Options" "noopen", "X-Permitted-Cross-Domain-Policies" "none", "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", "Content-Type" "application/edn"}}
-user=>
+user=> (test/response-for @main/*connector :get "/todo")
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /todo", :line 40}
+{:status 200, :body "{:headers {}, :async-channel #object[io.pedestal.http.http_kit.impl$mock_channel$reify__15583 0x4fbdd61f \"io.pedestal.http.http_kit.impl$mock_channel$reify__15583@4fbdd61f\"], :server-port -1, :path-info \"/todo\", :url-for #object[clojure.lang.Delay 0xc7ba58d {:status :pending, :val nil}], :uri \"/todo\", :server-name \"localhost\", :query-string nil, :path-params {}, :body #object[java.io.InputStream$1 0x2d579733 \"java.io.InputStream$1@2d579733\"], :scheme :http, :request-method :get, :headers {:strict-transport-security "max-age=31536000; includeSubdomains", :x-frame-options "DENY", :x-content-type-options "nosniff", :x-xss-protection "1; mode=block", :x-download-options "noopen", :x-permitted-cross-domain-policies "none", :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", :content-type "application/edn"}}
 ----
 
 NOTE: Part of this output -- `[main] INFO ...` -- comes from built-in Pedestal interceptors
@@ -188,30 +192,42 @@ omit the response body, it's easier to observe the most useful parts of the resp
 
 ----
 user=> (dissoc *1 :body)
-{:status 200, :headers {"Strict-Transport-Security" "max-age=31536000; includeSubdomains", "X-Frame-Options" "DENY", "X-Content-Type-Options" "nosniff", "X-XSS-Protection" "1; mode=block", "X-Download-Options" "noopen", "X-Permitted-Cross-Domain-Policies" "none", "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", "Content-Type" "application/edn"}}
+{:status 200, :headers {:strict-transport-security "max-age=31536000; includeSubdomains", :x-frame-options "DENY", :x-content-type-options "nosniff", :x-xss-protection "1; mode=block", :x-download-options "noopen", :x-permitted-cross-domain-policies "none", :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", :content-type "application/edn"}, :session {"__anti-forgery-token" "budMA8HEyGwNrcnL1Z+Co32j/8jTbVxavt4byAPBC/usXyfbFyUd5sfzriHXzflTtWQnEcDryRK0/mUi"}}
 ----
 
 [TIP]
 Inside the REPL, Clojure keeps track of the most recent result it printed in the
 symbol `*1`.  That makes it a snap to dig down into that result. There's also `*2` and `*3`.
 
-Now we can see the status code (200, OK) and the headers. Not
-too bad. What happens if we ask for a route that doesn't exist? Or a
+
+
+Now we can see the status code (200, OK) and the headers. Not too bad.
+
+
+We're going to test quite a few of these routes this way, so let's add a helper function:
+
+[source,clojure]
+----
+include::example$todo-api/src/main.clj[tags=test_request]
+----
+
+Now, after we reload the namespace with `(require :reload 'main)`, we can experiment a bit easier.
+
+What happens if we ask for a route that doesn't exist? Or a
 verb that isn't supported on a real route?
 
 ----
-user=> (dissoc (test/response-for (:io.pedestal.http/service-fn @main/server) :get "/no-such-route") :body)
-[main] INFO io.pedestal.http - {:msg "GET /no-such-route", :line 80}
-{:status 404, :headers {"Content-Type" "text/plain"}}
-user=> (dissoc (test/response-for (:io.pedestal.http/service-fn @main/server) :delete "/todo") :body)
-[main] INFO io.pedestal.http - {:msg "DELETE /todo", :line 80}
-{:status 404, :headers {"Content-Type" "text/plain"}}
-user=>
+user=> (require :reload 'main)
+nil
+user=> (main/test-request :get "/does-not-exist")
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /does-not-exist", :line 40}
+{:status 404, :headers {:content-type "text/plain"}, :body "Not Found"}
 ----
 
-This 404 response comes from Pedestal itself. That is the default
+This 404 response comes from Pedestal itself footnote:[Technically, it comes from an interceptor added by
+the api:with-default-interceptors[ns=io.pedestal.connector] function]. That is the default
 response when the router cannot find a route that matches the URL
-pattern _and_ passes constraints. (For much more about routers, see the
+pattern. (For much more about routers, see the
 xref:reference:routing-quick-reference.adoc[]).
 
 === Path Parameters
@@ -225,19 +241,18 @@ to us. This is one of the ways we can make sure that routes do what we
 think they are going to do, before we write the real logic.
 
 ----
-user=> (test/response-for (:io.pedestal.http/service-fn @main/server) :get "/todo/abcdef/12345")
-[main] INFO io.pedestal.http - {:msg "GET /todo/abcdef/12345", :line 80}
-{:status 200, :body "{:io.pedestal.interceptor.chain/stack (#Interceptor{:name :echo} #Interceptor{:name :io.pedestal.http.route/path-params-decoder} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/ring-response} #Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/stylobate} #Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/terminator-injector}), :request {:protocol \"HTTP/1.1\", :async-supported? true, :remote-addr \"127.0.0.1\", :servlet-response #object[io.pedestal.test$test_servlet_response$reify__15083 0x29c808c8 \"io.pedestal.test$test_servlet_response$reify__15083@29c808c8\"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x265b5f05 \"io.pedestal.http.servlet.FnServlet@265b5f05\"], :headers {\"content-length\" \"0\", \"content-type\" \"\"}, :server-port -1, :servlet-request #object[io.pedestal.test$test_servlet_request$reify__15071 0x6916566d \"io.pedestal.test$test_servlet_request$reify__15071@6916566d\"], :content-length 0, :content-type \"\", :path-info \"/todo/abcdef/12345\", :character-encoding \"UTF-8\", :url-for #object[clojure.lang.Delay 0x614c7175 {:status :pending, :val nil}], :uri \"/todo/abcdef/12345\", :server-name nil, :query-string nil, :path-params {:list-id \"abcdef\", :item-id \"12345\"}, :body #object[io.pedestal.test.proxy$javax.servlet.ServletInputStream$ff19274a 0x82bbbdc \"io.pedestal.test.proxy$javax.servlet.ServletInputStream$ff19274a@82bbbdc\"], :scheme nil, :request-method :get, :context-path \"\"}, :bindings {#'io.pedestal.http.route/*url-for* #object[clojure.lang.Delay 0x614c7175 {:status :pending, :val nil}]}, :enter-async [#object[io.pedestal.http.impl.servlet_interceptor$start_servlet_async 0x7dfccbf2 \"io.pedestal.http.impl.servlet_interceptor$start_servlet_async@7dfccbf2\"]], :io.pedestal.interceptor.chain/terminators (#object[io.pedestal.http.impl.servlet_interceptor$terminator_inject$fn__14810 0x74f47eab \"io.pedestal.http.impl.servlet_interceptor$terminator_inject$fn__14810@74f47eab\"]), :servlet-response #object[io.pedestal.test$test_servlet_response$reify__15083 0x29c808c8 \"io.pedestal.test$test_servlet_response$reify__15083@29c808c8\"], :route {:path \"/todo/:list-id/:item-id\", :method :get, :path-constraints {:list-id \"([^/]+)\", :item-id \"([^/]+)\"}, :io.pedestal.http.route.prefix-tree/satisfies-constraints? #object[io.pedestal.http.route.prefix_tree$add_satisfies_constraints_QMARK_$fn__11533 0x2f8afb66 \"io.pedestal.http.route.prefix_tree$add_satisfies_constraints_QMARK_$fn__11533@2f8afb66\"], :path-re #\"/\\Qtodo\\E/([^/]+)/([^/]+)\", :path-parts [\"todo\" :list-id :item-id], :interceptors [#Interceptor{:name :echo}], :route-name :list-item-view, :path-params {:list-id \"abcdef\", :item-id \"12345\"}}, :servlet #object[io.pedestal.http.servlet.FnServlet 0x265b5f05 \"io.pedestal.http.servlet.FnServlet@265b5f05\"], :servlet-request #object[io.pedestal.test$test_servlet_request$reify__15071 0x6916566d \"io.pedestal.test$test_servlet_request$reify__15071@6916566d\"], :io.pedestal.interceptor.chain/queue #object[clojure.lang.PersistentQueue 0x2d4fe03b \"clojure.lang.PersistentQueue@1\"], :url-for #object[clojure.lang.Delay 0x614c7175 {:status :pending, :val nil}], :io.pedestal.interceptor.chain/execution-id 9, :servlet-config nil, :async? #object[io.pedestal.http.impl.servlet_interceptor$servlet_async_QMARK_ 0x23497c5e \"io.pedestal.http.impl.servlet_interceptor$servlet_async_QMARK_@23497c5e\"]}", :headers {"Strict-Transport-Security" "max-age=31536000; includeSubdomains", "X-Frame-Options" "DENY", "X-Content-Type-Options" "nosniff", "X-XSS-Protection" "1; mode=block", "X-Download-Options" "noopen", "X-Permitted-Cross-Domain-Policies" "none", "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", "Content-Type" "application/edn"}}
+user=> (main/test-request :get "/todo/abcdef/12345")
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /todo/abcdef/12345", :line 40}
+{:status 200, :body "{:headers {}, :async-channel #object[io.pedestal.http.http_kit.impl$mock_channel$reify__15583 0x6801b4a4 \"io.pedestal.http.http_kit.impl$mock_channel$reify__15583@6801b4a4\"], :server-port -1, :path-info \"/todo/abcdef/12345\", :url-for #object[clojure.lang.Delay 0x54eaf69d {:status :pending, :val nil}], :uri \"/todo/abcdef/12345\", :server-name \"localhost\", :query-string nil, :path-params {:list-id \"abcdef\", :item-id \"12345\"}, :body #object[java.io.InputStream$1 0x647b7f63 \"java.io.InputStream$1@647b7f63\"], :scheme :http, :request-method :get, :headers {:strict-transport-security "max-age=31536000; includeSubdomains", :x-frame-options "DENY", :x-content-type-options "nosniff", :x-xss-protection "1; mode=block", :x-download-options "noopen", :x-permitted-cross-domain-policies "none", :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", :content-type "application/edn"}}
 ----
 
-The interesting part here is kind of buried inside the request map
-(which is a string inside the response body). We can pull it out with
+The interesting part here is deeply buried inside the request map
+(which we see as a giant string inside the response body). We can pull it out with
 a bit of Clojure code, but I'll just highlight it here. (If you're
-interested in an exercise, try using `clojure.edn` to extract the
-request.)
+interested in an exercise, try using
+clj:*[ns=clojure.edn] to parse the response body).
 
-Inside the request, there is a map :path-params which looks like
-this:
+Inside the request map, there is a :path-params map which looks like this:
 
 [source,clojure]
 ----
@@ -248,12 +263,14 @@ Pedestal extracted these parameters from the URL and bound them to
 the request for us. Note that the values are always strings, because
 URLs are strings. If we want to treat "12345" as a number, that's up
 to us. But our application had better not break if some sly user sends
-us up a request with something other than numbers there.
+us a request with something other than numbers there.
 
 == Create List
 
-The first request to handle is creating lists. This is a POST to the
-`/todo` URL. In the interest of simplicity, the only part of a request
+Before we can do anything else, we need a way to create a TODO list - later we'll handle
+adding items to the list.
+
+This is a POST to the `/todo` URL. In the interest of simplicity, the only part of a request
 body we need is a name field. Also in the interest of simplicity, we
 are not going to deal with content negotiation yet.
 
@@ -262,10 +279,18 @@ What do we need to do in order to create a list?
 1. Make a new data structure for the list.
 2. Add it to our repository.
 
-
 Without getting too far ahead of ourselves, we'd like to avoid doing all of the above
 in a single handler function, and instead, break this up into several interceptors, each
-of which is (as much as possible) side-effect free and easily testable.
+of which is (as much as possible) free of side effects, and easily testable.
+
+[NOTE]
+====
+The approach we are taking here is especially well suited when using
+https://www.datomic.com/[Datomic] or
+https://github.com/juji-io/datalevin[Datalevin] for persistent storage, but can work even
+when using a more traditional database.
+====
+
 
 Let's break the behavior up into multiple steps, and give each step a provisional name:
 
@@ -291,24 +316,34 @@ include::example$todo-api/src/main.clj[tag=repository]
 <1> Using clj:defonce[] here ensures that the value, the database atom, will survive when we reload
 the namespace.
 
-And the interceptor to snapshot the database and handle transactions:
+Next, we'll implement roles A and D in a single interceptor:
 
 [source,clojure]
 .src/main.clj
 ----
 include::example$todo-api/src/main.clj[tag=db_interceptor]
 ----
-<1> `@database` gets the current value of the atom. We attach it to
-the request inside the context. This is step `A` from above.
+<1> `@*database` gets the current value of the atom. We attach it to
+the request inside the context so that other interceptors can see it. This is step `A` from above.
 <2> The :tx-data key on the context may be set by other
 interceptors. This is step `D` from above.
-<3> The `do` block is a sure sign of a side effect. The `swap!` here is our stand-in for a real database transaction.
+<3> clj:if-let[] combines a let with an if test. The `swap!` here is our stand-in for a real database transaction.  The clj:swap![] modifies
+    the value stored in the `*database` atom, and returns the new value.
 <4> We attach the updated database value in case any other
-interceptors need to use it. We use the latest version of the database (via `@database`), not the
-value in the request, to account for any concurrent threads changing the database simultaneously.
+interceptors need to use it. We use the latest version of the database (returned from `swap!`).
 <5> If there wasn't any tx-data, we just return the context without
 changes. If you forget this and return nil, every request will respond
 with 404.
+
+[NOTE]
+====
+This may be a simple tutorial where we're feeding in one request at a time, manually ... but one aspect to working in Clojure is just how well even such simple code scales
+to real world realities. This interceptor would work quite well in a busy server with multiple request processing
+threads executing simulataneously.  The `@*database` expression captures a consistent _snapshot_ of the ever-changing
+database stored in the atom; any interceptors in the queue will _all_ work from a _single_ consistent view
+of the database. No sharing, no race conditions, no impossible to reproduce bugs caused by mutable data shared
+across multiple threads.
+====
 
 Now we need a handler to receive the request, extract a name, and
 create the actual list.
@@ -320,7 +355,7 @@ include::example$todo-api/src/main.clj[tag=list_create]
 
 include::example$todo-api/src/main.clj[tag=routes_with_list_create]
 ----
-<1> If there was a query parameter, use it. Otherwise use a placeholder.
+<1> If there was a query parameter, use it. Otherwise, use a placeholder.
 <2> Generate a unique ID. In a real service, the DB itself would do
 this for us.
 <3> Don't modify the DB here. Attach data to the context that the
@@ -329,7 +364,7 @@ db-interceptor will use.
 order.
 
 There are a couple of things to notice about this updated route
-definition. First, instead of using `echo` here, we have a vector with
+definition. First, instead of using the `echo` handler function here, we have a vector with
 our `db-interceptor` and `list-create` interceptors. Recall from
 xref:hello-world-content-types.adoc#interceptors[the introduction to
 interceptors] that interceptors have two functions. The :enter
@@ -342,34 +377,25 @@ The second thing about the new route is that we removed the
 must have a unique name. When we used the `echo` interceptor
 everywhere, there was no way for Pedestal to create unique, meaningful
 names for the routes so we had to help it out. Now, `list-create` has
-it's own name so we can let Pedestal do it's default behavior: use the
+its own name so we can leverage Pedestal's  default behavior: use the
 name of the last interceptor in the vector.
 
 [TIP]
-When you use a function in a route, Pedestal also can't
-pick a good name for you. There are quoting forms you can read
-about in the
-xref:reference:routing-quick-reference.adoc[routing reference] that offer some tricks for that.
+====
+When you use a handler function in a route and don't supply
+an explicit :route-name, Pedestal will attempt to extract a route name
+from the function. You can xref:reference:interceptors.adoc#handler[supply meta data]
+to specify a better name than the default.
+====
 
 === First Attempt
 
-Let's give this a try. Here's a new helper function to make it easier to
-try requests out interactively:
-
-[source,clojure]
-.src/main.clj
-----
-include::example$todo-api/src/main.clj[tag=test_request]
-----
-
-With this new helper we can try out a lot of requests from the REPL.
-Don't forget to reload the main namespace in the REPL with `(require
-:reload 'main)` and restart the server with `(main/restart)` before
-you do.
+Let's give this a try.
 
 ----
 user> (main/test-request :post "/todo?name=A-List")
-{:status 404, :body "Not Found", :headers {"Content-Type" "text/plain"}}
+[main] INFO io.pedestal.service.interceptors - {:msg "POST /todo", :line 40}
+{:status 404, :headers {:content-type "text/plain"}, :body "Not Found"}
 ----
 
 Uh oh. What happened here? We just tried this route a minute ago. Was
@@ -377,21 +403,23 @@ it the query parameter?
 
 ----
 user> (main/test-request :post "/todo")
-{:status 404, :body "Not Found", :headers {"Content-Type" "text/plain"}}
+[main] INFO io.pedestal.service.interceptors - {:msg "POST /todo", :line 40}
+{:status 404, :headers {:content-type "text/plain"}, :body "Not Found"}
 ----
 
 Nope.
 
 If you check the contents of your in-memory database by running
-`@main/database` in the REPL, you'll see the new item in there:
-
+`@main/*database` in the REPL, you'll see the new items (one for each POST request)
+in there:
 
 ----
-user=> @main/database
-{"l15385" {:name "A-List", :items {}}}
+user=> @main/*database
+{"l15892" {:name "A-List", :items {}},
+ "l15895" {:name "Unnamed List", :items {}}}
 ----
 
-So why did Pedestal return 404 response?
+So why did Pedestal return a 404 Not found response?
 
 The problem is that neither of the `list-create` and `db-interceptor`
 interceptors attached any kind of response to the context. Pedestal
@@ -429,23 +457,28 @@ include::example$todo-api/src/main.clj[tags=list_create_with_response]
 ----
 <1> Generate URL for route :list-view and the new ID we just generated. Pedestal uses some hidden
 machinery{empty}footnote:[A private, thread-bound var.] to get the routing table, which is needed to construct the URL.
+<2> Return a 201 response, with an extra header (`Location`).
 
 And the results (manually formatted for readability):
 
 ----
-user> (main/test-request :post "/todo?name=A")
+user==> (main/test-request :post "/todo?name=A")
 {:status 201,
- :body "{:name \"A\", :items []}", <1>
- :headers {"Strict-Transport-Security" "max-age=31536000; includeSubdomains",
-           "X-Frame-Options" "DENY",
-           "X-Content-Type-Options" "nosniff",
-           "X-XSS-Protection" "1; mode=block",
-           "Location" "/todo/l30488", <2>
-           "Content-Type" "application/edn"}} <3>
+  :body "{:name \"A\", :items {}}", <1>
+  :headers {:x-xss-protection "1; mode=block",
+            :x-content-type-options "nosniff",
+            :x-permitted-cross-domain-policies "none",
+            :x-download-options "noopen",
+            :x-frame-options "DENY",
+            :strict-transport-security "max-age=31536000; includeSubdomains",
+            :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;",
+            :content-type "application/edn",
+            :location "/todo/l15959"}} <3>
 ----
-<1> The created list, as map encoded as a string.
-<2> The location, generated by `url-for`.
-<3> The Clojure map was converting a string by a default Pedestal interceptor, which also applied the matching content type.
+<1> The created list, as Clojure map, encoded as a string.
+<2> The api:response-for[ns=io.pedestal.service.test] function converts headers from Camel-Case strings
+    to lower-case keywords. It also ensures that the :body is a string (by default).
+<3> The location, generated by `url-for`.
 
 In general, adding something
 to the database might cause it to change. Sometimes there are triggers

@@ -20,7 +20,6 @@
             [io.pedestal.service.protocols :as p]
             io.pedestal.http.cors
             io.pedestal.http.body-params
-            io.pedestal.http.csrf
             io.pedestal.http.secure-headers
             [io.pedestal.service.interceptors :as interceptors]))
 
@@ -104,7 +103,6 @@
   Not Found                  | Report lack of response as a status 404       | [[not-found]]
   Session support (optional) | Persist data between requests                 | [[session]]
   Body params                | Parse JSON, EDN, etc. body into appropriate  parameters (:edn-body, :json-body, etc.) | [[body-params]]
-  Cross site request forgery | Detect forged requests                        | [[anti-forgery]]
   Default content type       | Set response content type from request file extension, if not otherwise set | [[content-type]]
   Query parameters           | Decode request :query-string to :query-params | [[query-params]]
   Secure headers             | Ensures a number of security-related headers  | [[secure-headers]]
@@ -132,7 +130,6 @@
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
                         route/query-params
                         (io.pedestal.http.body-params/body-params)
-                        (io.pedestal.http.csrf/anti-forgery)
                         (io.pedestal.http.secure-headers/secure-headers)
                         route/query-params])))
 

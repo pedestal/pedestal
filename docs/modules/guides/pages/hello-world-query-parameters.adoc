@@ -108,20 +108,20 @@ user=> (hello/start)
 #object[io.pedestal.http.http_kit$create_connector$reify__15862 0x3b85a820 "io.pedestal.http.http_kit$create_connector$reify__15862@3b85a820"]
 user=>
 ----
-<1> The `$` is the shell prompt; once you execute `clj`, you are inside the Clojure REPL and the `user=>` is its prompt.
 
 The `start` function has done four things:
-* It has created the connector (via `create-connector`)
-* It has started the connector
-* It has stored the connector in an http://clojure.org/reference/atoms[atom] (a mutable container).
-* It has returned the connector, which the Clojure REPL has printed.
 
-[sidebar]
-****
+- It has created the connector (via `create-connector`)
+- It has started the connector
+- It has stored the connector in an http://clojure.org/reference/atoms[atom] (a mutable container).
+- It has returned the connector, which the Clojure REPL has printed.
+
+[TIP]
+====
 A convention for mutable objects, such as atoms, is to prefix their name with a `*`.  This is a reminder that
 we must use the special prefix `@` to _dereference_ the actual value (the connector object) from the container
 (the atom).
-****
+====
 
 Now we can use `start`, `stop`, and `restart` functions as we make changes.  Mostly, we'll make code changes,
 reload the `hello` namespace, and call `restart` to quickly stop the connector and start a new one.
@@ -216,7 +216,7 @@ content-length: 763
 Server: Pedestal/http-kit
 Date: Fri, 11 Apr 2025 23:42:09 GMT
 
-{:remote-addr "127.0.0.1", :start-time 360038830750564, :params {:name "Michael"}, :headers {"accept" "*/*", "host" "localhost:8890", "user-agent" "curl/8.7.1"}, :async-channel #object[org.httpkit.server.AsyncChannel 0x525383f "/127.0.0.1:8890<->/127.0.0.1:63835"], :server-port 8890, :content-length 0, :websocket? false, :query-params {:name "Michael"}, :content-type nil, :path-info "/greet", :character-encoding "utf8", :url-for #object[clojure.lang.Delay 0x4adfdcd0 {:status :pending, :val nil}], :uri "/greet", :server-name "localhost", :query-string "name=Michael", :path-params {}, :body nil, :scheme :http, :request-method :get, :io.pedestal.http.csrf/anti-forgery-token "IoeXQBJ9JpEGtXy7q3T1waugcXYcRKZJAzJGvd8zexqSO8eUojl/H3XlnE8tUGyKo9rvgCKVoEE8jNCj"}
+{:remote-addr "127.0.0.1", :start-time 360038830750564, :params {:name "Michael"}, :headers {"accept" "*/*", "host" "localhost:8890", "user-agent" "curl/8.7.1"}, :async-channel #object[org.httpkit.server.AsyncChannel 0x525383f "/127.0.0.1:8890<->/127.0.0.1:63835"], :server-port 8890, :content-length 0, :websocket? false, :query-params {:name "Michael"}, :content-type nil, :path-info "/greet", :character-encoding "utf8", :url-for #object[clojure.lang.Delay 0x4adfdcd0 {:status :pending, :val nil}], :uri "/greet", :server-name "localhost", :query-string "name=Michael", :path-params {}, :body nil, :scheme :http, :request-method :get}
 ----
 <1> Pedestal uses the `application/edn` content type when the response :body is a Clojure map.  EDN is to Clojure
 as JSON is to JavaScript.
@@ -286,6 +286,12 @@ include::example$hello-query/src/hello.clj[tags=response]
 ----
 <1> Extract the parameter, bind it to the name `greet-name`.
 <2> For the response body, concatenate "Hello," and the parameter into a string.
+
+[TIP]
+====
+The clj:let[] form is used to define one or more local symbols, much like a block-scoped
+local variable in a more traditional language.
+====
 
 Here we can just grab the value right out of the map and use it in the
 response.
@@ -358,7 +364,8 @@ Date: Sat, 12 Apr 2025 00:16:42 GMT
 Hello, clojure.core$name@6b202ecb
 ```
 
-`clojure.core$name@6b202ecb` is how the `clojure.core/name` function is printed.  We can verify that in the REPL:
+`clojure.core$name@6b202ecb` is how the `clojure.core/name` function is printed as a string.
+We can verify that in the REPL:
 
 ```
 user=> (str clojure.core/name)
@@ -477,14 +484,14 @@ condition{empty}footnote:[Using :else for this purpose is just a common Clojure 
 work equally well.]
 and the code continues to build the string the same way as before.
 
-[sidebar]
-****
+[NOTE]
+====
 A nested `if` would also have worked here. In fact `cond` is a macro
 that expands into a series of nested `if` expressions. All three of
 these conditions are kind of parallel in significance, so I like that
 they appear to be parallel in the structure of the code. The shape of
 the code mirrors the shape of my thinking about these cases.
-****
+====
 
 The second thing you'll notice is that the handler now makes a
 decision whether to call our `ok` helper or the new function
