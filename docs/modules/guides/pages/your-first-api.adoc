@@ -127,7 +127,7 @@ have a handler function return `(ok "success" "Content-Type" "text/plain")`.
 Although created with `def`, the symbols `ok`, `created`, and `accepted`, are all functions, as if
 they were created using `defn`.  Remember: Clojure functions are still values!
 
-Why do any of this?  For all that web developers generally know the status codes in their sleep
+Why do any of this?  For all that web developers generally know the HTTP status codes in their sleep
 footnote:[But do you know what status code link:https://en.wikipedia.org/wiki/Hyper_Text_Coffee_Pot_Control_Protocol[418] is for?],
 having these three functions results in code that is more intentful: the semantics
 become visible directly in the code.
@@ -192,7 +192,7 @@ omit the response body, it's easier to observe the most useful parts of the resp
 
 ----
 user=> (dissoc *1 :body)
-{:status 200, :headers {:strict-transport-security "max-age=31536000; includeSubdomains", :x-frame-options "DENY", :x-content-type-options "nosniff", :x-xss-protection "1; mode=block", :x-download-options "noopen", :x-permitted-cross-domain-policies "none", :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", :content-type "application/edn"}, :session {"__anti-forgery-token" "budMA8HEyGwNrcnL1Z+Co32j/8jTbVxavt4byAPBC/usXyfbFyUd5sfzriHXzflTtWQnEcDryRK0/mUi"}}
+{:status 200, :headers {:strict-transport-security "max-age=31536000; includeSubdomains", :x-frame-options "DENY", :x-content-type-options "nosniff", :x-xss-protection "1; mode=block", :x-download-options "noopen", :x-permitted-cross-domain-policies "none", :content-security-policy "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;", :content-type "application/edn"}}
 ----
 
 [TIP]

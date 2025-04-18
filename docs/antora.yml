@@ -22,6 +22,6 @@ asciidoc:
     page-api_doc_root: "{api_doc_root}"
     libs_version: 0.8.0-alpha-1
     base-clojure-version: 1.11
-    base-java-version: 1.11
+    base-java-version: 11
     otel: "link:https://opentelemetry.io/[Open Telemetry]"
     servlet-api: link:https://jakarta.ee/specifications/servlet/[Jakarta Servlet API]

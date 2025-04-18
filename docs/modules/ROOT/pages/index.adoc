@@ -21,7 +21,6 @@ Pedestal was created to bring Clojure's key attributes, *Focus*, *Empowerment*, 
 (defn start!
   []
   (-> (conn/default-connector-map 8080)
-      (assoc :join? true)
       (conn/with-default-interceptors)
       (conn/with-routes
         #{["/greet" :get greet-handler]})

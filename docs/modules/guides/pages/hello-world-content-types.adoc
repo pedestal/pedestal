@@ -10,7 +10,7 @@ xref:hello-world-query-parameters.adoc[accept a query parameter].
 Both of these returned their responses as plain text. Plain text is
 not particularly useful: it doesn't excel at presentation the way that HTML does,
 and it doesn't offer structured data to a smart client the way JSON
-(or XML, or EDN, or a number of formats) would.
+(or XML, or EDN, or a number of other formats) would.
 
 In fact, we should go a step further: the client should be in charge
 of whether they get human-presentable HTML, or code-focused JSON, using
@@ -19,10 +19,10 @@ the very same endpoints.
 Content types are used in HTTP for three purposes:
 
 - The client includes a `Content-Type` header to describe the format of the request body
-- The client includes an `Accepts` header to indicate what format body it can handle
-- The server includes a `Content-Type` header to describe the format of the response body
+- The client includes an `Accepts` header to indicate what body formats it can handle
+- The server includes a `Content-Type` header to describe the actual format of the response body
 
-There's quite a bit of inherent complexity there, but Pedestal can help sort it out.
+There's quite a bit of inherent complexity there, but Pedestal can help sort it all out.
 
 It's time to see how Pedestal handles content types and response bodies.
 We will also get our first taste of interceptors.
@@ -146,7 +146,7 @@ do work during both phases. An interceptor that omits the :enter or :leave key w
 
 But what does that work entail?  It's essentially a bucket brigade: each interceptor is passed
 the xref:reference:context-map.adoc[], is free to perform other work if necessary, and returns
-a modified context map, which is passed to the next interceptor.
+a modified context map, which is passed to the next interceptor. An _interceptor chain_ is the process of executing a sequence of interceptors.
 
 Part of the context map is the interceptor queue, and the interceptor stack; the queue
 is a list of interceptors who have yet to be invoked during the enter phase.  As interceptors
@@ -214,16 +214,16 @@ This should look pretty familiar from xref:hello-world-query-parameters.adoc[the
 
 Pedestal's basic unit of work is the interceptor.  The `echo` and `greet-handler` functions?
 Those are actually converted into interceptors.  The `conn/with-routes` in our setup?  That creates
-a routing interceptor and adds it to the connector description. The routing interceptor
+a routing interceptor and adds it to the list of interceptors in the connector map. The routing interceptor
 examines the request map and matches it to a route, and pushes the interceptors for the route onto
 the queue for execution.
 
-Because the interceptor queue is stored in the context, it means any  interceptor can _ modify the queue!
+Because the interceptor queue is stored in the context, it means any  interceptor can modify the queue!
 There's nothing that special about the routing interceptor. This is
 one of the big benefits of using interceptors: the ability to make
 dynamic decisions during request handling.
 
-Each Pedestal connector implementation  may some interceptors to the front of the queue, before adding all the
+Each Pedestal connector implementation  may inject some interceptors to the front of the queue, before adding all the
 interceptors you directly, or indirectly, define in the connector map.
 
 == Returning to Content Types
@@ -284,10 +284,10 @@ Hello, world! <2>
 As expected. But, something about that doesn't seem quite right. We're
 completely ignoring HTTP content negotiation. The client might want
 JSON instead of HTML. Or it might _want_ plain text. Or EDN. The
-trouble is that the HTTP content negotiation specific is a royal
+trouble is that the HTTP content negotiation specification is a royal
 pain. Fortunately, Pedestal provides an interceptor to help.
 
-api:negotiate-content[ns=io.pedestal.http.content-negotiation] interceptor
+The api:negotiate-content[ns=io.pedestal.http.content-negotiation] interceptor
 does the job. If you look at the docs, though, you'll see that is not
 an interceptor, but rather a function that returns an interceptor.
 
@@ -403,7 +403,7 @@ Notice the content type returned by our service is now "text/html."  This is bec
 sends an `Accept` header with the value `*/*`.  This matches the first value in `supported-types`, so that's what's
 selected by the `content-negotiation-interceptor`.
 
-We can use the `-H` option to override `curl`'s default.
+We can use the `-H` option to override `curl` 's default.
 Keep an eye on the "Content-Type" header in each response.
 
 [source,bash]
@@ -469,7 +469,7 @@ already stored there, by applying a function to the stored value.  Of course, th
 and the original map isn't changed, even by `update-in`: new immutable copies of the
 nested and containing maps are created.
 
-Using the update style is s more concise than our prior code, and, to a more seasoned Clojure developer, often
+Using the update style is s more concise than our prior code, and, to a more experienced Clojure developer, often
 more readable.
 
 Let's see how this interceptor would change if we refactor it that way.

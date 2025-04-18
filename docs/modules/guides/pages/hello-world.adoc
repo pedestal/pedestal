@@ -91,7 +91,7 @@ to the Pedestal part.
 
 We're going to start this project with an empty directory. In
 practice, most of the time you'll generate a project from a
-xref:embedded-template.adoc[template]. But for now, it's more important to see what the pieces are
+xref:embedded-template.adoc[template]. But for now, it's more important to see what the individual pieces are
 and how they fit together.
 
 I'm going to call my project 'hello-world'. Feel free to call yours
@@ -118,10 +118,10 @@ $ mkdir src
 
 == A Place to Put Things
 
-Now we're going to create a file under "src" to hold our code. Call it
-"src/hello.clj". It's going to start with a "namespace declaration". This
+Now we're going to create a file under `src` to hold our code. Call it
+`src/hello.clj`. It's going to start with a _namespace declaration_. This
 tell Clojure what namespace to put the code into. If you're familiar with Java,
-you can think of a namespace as similar to a package name.
+you can think of a namespace as similar to a Java package name.
 
 [source, clojure]
 .src/hello.clj
@@ -129,57 +129,69 @@ you can think of a namespace as similar to a package name.
 include::example$hello/src/hello.clj[tags=ns]
 ----
 <1> This namespace is called 'hello'. This almost always matches the filename.
-<2> We need to use the `io.pedestal.connector` namespace, but would like to only type `conn` later in the file.
-<3> We need to use the `io.pedestal.http.http-kit` namespace, but would like to use `hk` later in the file.
+<2> We need to use the `io.pedestal.connector` namespace, abbreviated as `conn`.
+<3> We need to use the `io.pedestal.http.http-kit` namespace, abbreviated as `hk`.
+
+The clj:ns[] form establishes a name for your namespace; this is the name
+that other namespaces can use to reference the functions and constants
+provided by the `hello` namespace.
+
+The :require clause is how the `hello` namespace identifies other namespaces
+it uses; requiring a namespace loads its source and, optionally, creates an _alias_ for the namespace.
 
 This is very similar to using `import` in Java or `require` in
 Ruby. It just makes some names from other namespaces available to us
 in this namespace.
 
+Clojure's main namespace, `clojure.core`, is special; its contents are mixed into every namespace automatically.
+
 If you haven't written any Clojure before, this syntax might look a
 little strange. The first thing that jumps out at people is the
 parentheses. Why is there an open paren _before_ the `ns`? In Clojure,
 every expression is enclosed in its very own set of parentheses. There
-are no semicolons to end the line or curly braces to close an "if"
+are no semicolons to end the line or curly braces to close an `if`
 expression. To find the end of any expression, you just find the
 matching close paren.
 
-The first thing in an expression is the function or macro to call.
+The first thing in an expression is the function or macro
+footnote:[There's some important distinctions between a Clojure function
+and a Clojure macro and _you don't have to think about that one bit_ when
+you are first getting started with Clojure.]
+to call.
 In this case `ns` is a macro that is built in to Clojure. It sets up a
 namespace and makes the stuff we :require available.
 
-Speaking of the stuff we require, what is `io.pedestal.connector` and
-`io.pedestal.http.http-kit`? Those are each namespaces from one of
-the Pedestal libraries.
-
-The
-api:*[ns=io.pedestal.connector]
-namespace has functions that used to describe a Pedestal connector.
-
-What's a Pedestal connector?  It's what connects the network world of HTTP requests and responses
-to the Pedestal world of maps and functions.
-The `io.pedestal.connector` namespace has functions and macros to describe the connector and ultimately
-start it listening to a port for HTTP requests.
-
-The
-api:*[ns=io.pedestal.http.http-kit] namespace adapts Pedestal to
-use the xref:reference:http-kit.adoc[] library.
+Each namespace is loaded from a Clojure source file.  A Clojure
+namespace provides _symbols_ and those symbols are the names of functions, macros, or constants.
 
 Where the :require says :as `something` it means we're making an
 _alias_ inside our namespace (the `hello` namespace).
 
-A namespace alias is a prefix that can be used to reference symbols defined inside a
-namespace; a `/` separates the namespace alias from the symbol. `conn/default-connector-map` is the same as
-`io.pedestal.connector/default-connector-map`, just with less for you to type.
+Because `hello` has required the `io.pedestal.connector` namespace, it can make use of functions in that namespace, such as `io.pedestal.connector/with-default-interceptors`.  This is the truest form, where every symbol a namespace has a full name that includes the namespace.
 
-You may type the fully qualified name if you like, but those long namespace names add up quickly, especially
-if you are calling multiple functions from the namespace. And alias makes your code more concise and
-easier to read.
+That's cumbersome to type again and again, which is why we set up the alias; `conn/with-default-interceptors` is exactly the same, but more concise and more readable.
 
 Also, don't worry about the indentation ... Clojure
-ignores whitespace outside of quoted strings entirely. Many common
+ignores whitespace outside quoted strings entirely. Many common
 editors support Clojure with some form of plugin, and these can help
 you keep your code formatting clean and orderly (and much more besides).
+
+So what exactly are the  `io.pedestal.connector` and
+`io.pedestal.http.http-kit` namespaces?
+
+The
+api:*[ns=io.pedestal.connector]
+namespace has functions that are used to describe a Pedestal connector.
+
+A Pedestal connector exists to connect the network world of HTTP requests and responses
+to the Pedestal world of maps and functions.
+The `io.pedestal.connector` namespace has functions and macros to describe the connector and ultimately
+start it listening to a TCP/IP port for HTTP requests.
+
+Pedestal has connectors for several popular Java and Clojure HTTP libraries.
+The
+api:*[ns=io.pedestal.http.http-kit] namespace adapts Pedestal to
+use the xref:reference:http-kit.adoc[] library.
 
 == Generating a Response
 
@@ -188,9 +200,9 @@ code! Let's pause for a moment to talk about the next steps. We're
 making a web service that can say hello. That means we need to do some
 basic things:
 
-1. Listen to on a socket for HTTP requests.
-2. For each request, decide exactly what operations to execute, including a response.
-3. Stream a response back to the client.
+1. Listen to a port for incoming HTTP requests.
+2. For each request, decide exactly what operations to execute, including what's in the response.
+3. Stream the response back to the client.
 
 We're going to work our way up from the bottom:
 
@@ -204,7 +216,7 @@ We're going to work our way up from the bottom:
 include::example$hello/src/hello.clj[tags=response]
 ----
 <1> Define  a function, using
-clj:defn[],  called `greet-handler` that takes a single argument, which we will call `_request`
+clj:defn[],  called `greet-handler` that takes a single argument, which we will call `_request`.
 <2> Return a Clojure map with two keys and two values.
 
 A Clojure function returns the value of the last expression in the
@@ -215,7 +227,7 @@ the closing paren.
 ====
 Most Clojure code consists of creating, querying, and modifying these kinds of maps, so the language includes syntax to create maps very succinctly:
 the curly braces mark the start and end of the map, and within are
-pairs of keys and values.  Likewise, a _vector_ is marked by square brackets (`[` and `]`) and a general _list_ by `(` and `)` and a set by `#{` and `}`.
+pairs of keys and values.  Likewise, a _vector_ is marked by square brackets (`[` and `]`), general _list_ by `(` and `)`, and a set by `#{` and `}`.
 ====
 
 Clojure uses dynamic typing, that means keys and values inside a map may be different types. Generally, the keys are Clojure keywords, such as :status.
@@ -235,10 +247,10 @@ HTTP headers, including `Content-Type`.
 
 Later on, we'll see how to take control
 of the xref:hello-world-content-types.adoc[whole response]. For now, we're
-just taking the easy road.
+just taking the easy road and let Pedestal's defaults do the work.
 
 There's absolutely nothing special about this map. It's a plain old
-Clojure map - this is how Clojure operates, we don't use classes, we
+Clojure map - this is typical of how Clojure operates, we don't use classes, we
 use ordinary maps but care about what particular keys are in the map.
 A handler function, such as `greet-handler`, returns a xref:reference:response-map.adoc[].
 
@@ -314,7 +326,8 @@ but it's great for local development or deployment behind a firewall that provid
 
 Adding `io.pedestal/pedestal.http-kit` as a dependency of our hello-world
 project adds the library and _all_ of its dependencies (over 40 at the
-time of writing!).
+time of writing!), including `io.pedestal/pedestal.service` and many more
+footnote:[Try the command `clj -Spath` to see them all.].
 
 Let's try out our response function.
 
@@ -340,8 +353,10 @@ footnote:[Read/Eval/Print/Loop.  In Clojure, you enter expressions at the prompt
 are parsed, executed and the result printed back to the console.  Anything you can do in a Clojure source file
 can also be done right at the prompt, including redefining existing functions. REPL-oriented development is powerfully productive, especially
 when combined with an IDE that can help you interact with your running REPL.]
-in the `user` namespace. Now we're able to
-enter Clojure code to evaluate it (turn it into a value). The first
+in the `user` namespace.
+
+Now we're able to
+enter Clojure code directly and Clojure will evaluate it (turn it into a value) and print the result. The first
 thing we need to do is tell Clojure to load our `hello` namespace:
 
 ----
@@ -352,7 +367,7 @@ user=>
 
 There will be short pause as Clojure reads the `hello` namespace, then all the other namespaces
 directly or indirectly required by `hello`.
-The `require` function returns nil on success, which the Clojure REPL printed.
+The clj:require[] function returns nil on success, which the Clojure REPL printed.
 
 If instead, you get a message like this:
 
@@ -363,7 +378,7 @@ Syntax error compiling at (REPL:1:1).
 Unable to resolve symbol: hello in this context
 ----
 
-It means you missed the single-quote before "hello" in the `require.`
+It means you missed the single-quote before "hello" in the `require`.
 
 Now we can actually test our handler function:
 
@@ -373,7 +388,7 @@ user=> (hello/greet-handler {})
 ----
 
 Well, we got the singularly unexciting result that we can call a
-function and it returns the map that we told it to. Let's move on to
+function and see that it returns the map that we told it to. Let's move on to
 hooking this up to a route.
 
 It's worth noting that we passed in an empty map (`{}`) rather than a full request map.
@@ -420,6 +435,9 @@ This routing table is a single route; the route matches:
 * The GET HTTP method
 * The URL `/greet`
 
+In a route definition, the first three terms are the URL to match, the HTTP method to match, and the handler for the route. After that
+are key/value pairs for additional information, such as the name of the route.
+
 When routed in a live service, the `greet-handler` function will be invoked.
 In Pedestal, every route must have a unique :route-name.
 We've named this route :greet.
@@ -451,7 +469,7 @@ specific to Http-Kit.
 ====
 The clj:->[] macro is used to run a value through a series of functions; here, the result of calling
 `default-connector-map` is passed to `with-default-interceptors`; the result of _that_ is passed to
-`with-routes`, and so forth. This is _very_ useful, concise, and common in Clojure code.
+`with-routes`, and so forth. This pattern is _very_ useful, concise, and common in Clojure code.
 ====
 
 All we need to do now is run it.
@@ -472,7 +490,6 @@ We can test this is a second terminal window:
 
 ----
 $ curl -i http://127.0.0.1:8890/greet
-
 HTTP/1.1 200 OK
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY

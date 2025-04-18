@@ -92,10 +92,10 @@ friendly to interactive development.
 ----
 include::example$hello-query/src/hello.clj[tags=connector]
 ----
-<1> `defonce` here means we can recompile this file in the same REPL
+<1> clj:defonce[] here means we can recompile this file in the same REPL
 without overwriting the `*connector` symbol's value.
 <2> `reset!` replaces the current value in the atom with the new value.
-<3> This is a quick way to bounce the server.
+<3> This is a quick way to bounce the server after reloading code.
 
 First, let's start the Pedestal connector.
 
@@ -131,6 +131,7 @@ reload the `hello` namespace, and call `restart` to quickly stop the connector a
 From another window, let's send a request with a query parameter.
 
 ----
+$ curl -i http://localhost:8890/greet\?name=Michael <1>
 HTTP/1.1 200 OK
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
@@ -146,6 +147,7 @@ Date: Fri, 11 Apr 2025 23:37:30 GMT
 
 Hello, world!
 ----
+<1> The backslash before `name` is needed because otherwise the shell will treat the `?` specially.
 
 What we've demonstrated is that Pedestal can route the incoming request, `GET /greet?name=Michael` and isn't
 confused by the presence of the query parameter. Ultimately, the `greet-handler` function was invoked,
@@ -199,7 +201,7 @@ user=>
 Again, this is in two steps: `(require :reload ...)` to update all the Clojure code, then `(hello/restart)`
 to stop the connector and start a replacement, using the update functions.
 
-With the update code live, you can use `curl` again to see the change in the service's behavior:
+With the updated code live, you can use `curl` again to see the change in the service's behavior:
 
 ----
 $ curl -i http://localhost:8890/greet\?name=Michael
@@ -231,28 +233,28 @@ Here's what we are left with.
 
 [source,clojure]
 ----
-{:remote-addr        "127.0.0.1"
+{:request-method     :get
+ :uri                "/greet"
+ :query-string       "name=Michael"
+ :query-params       {:name "Michael"}
  :params             {:name "Michael"}
  :headers            {"accept"     "*/*"
                       "host"       "localhost:8890"
                       "user-agent" "curl/8.7.1"}
+ :remote-addr        "127.0.0.1"
  :server-port        8890
  :content-length     0
- :query-params       {:name "Michael"}
  :content-type       nil
  :path-info          "/greet"
  :character-encoding "utf8"
- :uri                "/greet"
  :server-name        "localhost"
- :query-string       "name=Michael"
  :path-params        {}
  :body               nil
- :scheme             :http
- :request-method     :get}
+ :scheme             :http}
 ----
 
 This is a xref:reference:request-map.adoc[].
-It really is an ordinary Clojure map.
+Again, a generic Clojure map with specific keys.
 You access its values with the `get` and `get-in` functions.
 For now, we'll look at three interesting keys.
 
@@ -299,25 +301,23 @@ response.
 Do the restart/reload dance again, and then use `curl` to try a few different requests with parameters.
 
 ----
-$ curl http://localhost:8890/greet\?name=Michael <1>
+$ curl http://localhost:8890/greet\?name=Michael
 Hello, Michael
 $ curl http://localhost:8890/greet\?name=Pankaj
 Hello, Pankaj
 $ curl http://localhost:8890/greet\?name=Geeta
 Hello, Geeta
-$ curl http://localhost:8890/greet\?name=ไอรีนซีพีชาไอที <2>
+$ curl http://localhost:8890/greet\?name=ไอรีนซีพีชาไอที <1>
 Hello, ไอรีนซีพีชาไอที
-$ curl http://localhost:8890/greet\?name=No%20One%20To%20Be%20Trifled%20With <3>
+$ curl http://localhost:8890/greet\?name=No%20One%20To%20Be%20Trifled%20With <2>
 Hello, No One To Be Trifled With
 $ curl http://localhost:8890/greet\?name=
 Hello,
 $ curl http://localhost:8890/greet
 Hello,
 ----
-<1> The `?` character is usually meaningful to the shell, so we escape it with a leading `\`. This results in the URL
-  `\http://localhost:8890/greet?name=Michael` just like we want.
-<2> Unicode, amazingly, doesn't need to be URL-escaped.
-<3> ... but common characters such as space, need to be converted (to `%20`).
+<1> Unicode, amazingly, doesn't need to be URL-escaped.
+<2> ... but common characters such as space, need to be converted (to `%20`).
 
 Dang. We were doing really well right up until the end
 there. Obviously we need to do something smarter when the input is
@@ -474,7 +474,8 @@ include::example$hello-query/src/hello.clj[tags=greeting_with_404]
 ----
 
 Because there are now three possible conditions that can happen in
-`greet-handler`, I've changed from an clj:if[] to clj:cond[]
+`greet-handler`, I've changed from using an clj:if[] expression
+to a clj:cond[]
 expression. `cond` uses pairs of "condition / value" clauses. So if
 `(unmentionables greet-name)` returns any truthy value, then `cond` returns
 `nil` and stops evaluating. If `(empty? greet-name)` returns true, then `cond`
