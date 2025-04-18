@@ -128,6 +128,6 @@ you wrote to the project. By submitting a signed contributor's agreement,
 you are helping to ensure that your work will be available to the largest possible audience.
 
 It is an extra step, but there really is not much to executing the Pedestal contributor's agreement:
-You just need to complete the following online agreement to assign copyright to Cognitect.
+You just need to complete the following online agreement to assign copyright to Nubank.
 
 https://cla-assistant.io/pedestal/pedestal[Nubank Contributor Agreement]
