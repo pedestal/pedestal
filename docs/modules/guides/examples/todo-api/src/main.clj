@@ -1,8 +1,9 @@
 ;; tag::ns[]
 (ns main
-  (:require [io.pedestal.http :as http]
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.http.http-kit :as hk]
             [io.pedestal.http.route :as route]
-            [io.pedestal.test :as test]))
+            [io.pedestal.service.test :as test]))
 ;; end::ns[]
 
 ;; tag::response_partials[]
@@ -15,40 +16,39 @@
 ;; end::response_partials[]
 
 ;; tag::repository[]
-(defonce database (atom {}))                                ;; <1>
+(defonce *database (atom {}))                               ;; <1>
 ;; end::repository[]
 
 ;; tag::db_interceptor[]
 (def db-interceptor
-  {:name :database-interceptor
+  {:name :db-interceptor
    :enter
    (fn [context]
-     (update context :request assoc :database @database))   ;; <1>
+     (update context :request assoc :database @*database))  ;; <1>
    :leave
    (fn [context]
-     (if-let [[op & args] (:tx-data context)]               ;; <2>
-       (do
-         (apply swap! database op args)                     ;; <3>
-         (assoc-in context [:request :database] @database)) ;; <4>
+     (if-let [tx-data (:tx-data context)]                   ;; <2>
+       (let [database' (apply swap! *database tx-data)]     ;; <3>
+         (assoc-in context [:request :database] database')) ;; <4>
        context))})                                          ;; <5>
 ;; end::db_interceptor[]
 
 ;; tag::list_create[]
-(defn make-list [nm]
-  {:name nm
+(defn make-list [list-name]
+  {:name  list-name
    :items {}})
 
-(defn make-list-item [nm]
-  {:name nm
+(defn make-list-item [item-name]
+  {:name  item-name
    :done? false})
 
 (def list-create
   {:name :list-create
    :enter
    (fn [context]
-     (let [nm (get-in context [:request :query-params :name] "Unnamed List") ;; <1>
-           new-list (make-list nm)
-           db-id (str (gensym "l"))]                        ;; <2>
+     (let [list-name (get-in context [:request :query-params :name] "Unnamed List") ;; <1>
+           new-list  (make-list list-name)
+           db-id     (str (gensym "l"))]                    ;; <2>
        (assoc context :tx-data [assoc db-id new-list])))})  ;; <3>
 ;; end::list_create[]
 
@@ -57,19 +57,18 @@
   {:name :echo
    :enter
    (fn [context]
-     (let [request (:request context)
-           response (ok context)]
+     (let [request  (:request context)
+           response (ok request)]
        (assoc context :response response)))})
 
 (def routes
-  (route/expand-routes
-    #{["/todo" :post echo :route-name :list-create]
-      ["/todo" :get echo :route-name :list-query-form]
-      ["/todo/:list-id" :get echo :route-name :list-view]
-      ["/todo/:list-id" :post echo :route-name :list-item-create]
-      ["/todo/:list-id/:item-id" :get echo :route-name :list-item-view]
-      ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
-      ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]}))
+  #{["/todo" :post echo :route-name :list-create]
+    ["/todo" :get echo :route-name :list-query-form]
+    ["/todo/:list-id" :get echo :route-name :list-view]
+    ["/todo/:list-id" :post echo :route-name :list-item-create]
+    ["/todo/:list-id/:item-id" :get echo :route-name :list-item-view]
+    ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
+    ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]})
 ;; end::routes[]
 
 ;; tag::list_create_with_response[]
@@ -77,25 +76,25 @@
   {:name :list-create
    :enter
    (fn [context]
-     (let [nm (get-in context [:request :query-params :name] "Unnamed List")
-           new-list (make-list nm)
-           db-id (str (gensym "l"))
-           url (route/url-for :list-view :params {:list-id db-id})] ;; <1>
+     (let [list-name (get-in context [:request :query-params :name] "Unnamed List")
+           new-list  (make-list list-name)
+           db-id     (str (gensym "l"))
+           url       (route/url-for :list-view :params {:list-id db-id})] ;; <1>
        (assoc context
-              :response (created new-list "Location" url)
+              :response (created new-list "Location" url)   ;; <2>
               :tx-data [assoc db-id new-list])))})
 ;; end::list_create_with_response[]
 
 ;; tag::routes_with_list_create[]
 (def routes
-  (route/expand-routes
-    #{["/todo" :post [db-interceptor list-create]]          ;; <4>
-      ["/todo" :get echo :route-name :list-query-form]
-      ["/todo/:list-id" :get echo :route-name :list-view]
-      ["/todo/:list-id" :post echo :route-name :list-item-create]
-      ["/todo/:list-id/:item-id" :get echo :route-name :list-item-view]
-      ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
-      ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]}))
+  #{["/todo" :post [db-interceptor
+                    list-create]]            ;; <4>
+    ["/todo" :get echo :route-name :list-query-form]
+    ["/todo/:list-id" :get echo :route-name :list-view]
+    ["/todo/:list-id" :post echo :route-name :list-item-create]
+    ["/todo/:list-id/:item-id" :get echo :route-name :list-item-view]
+    ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
+    ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]})
 ;; end::routes_with_list_create[]
 
 ;; tag::list_view[]
@@ -106,7 +105,7 @@
   {:name :list-view
    :enter
    (fn [context]
-     (let [db-id (get-in context [:request :path-params :list-id]) ;; <2>
+     (let [db-id    (get-in context [:request :path-params :list-id]) ;; <2>
            the-list (when db-id
                       (find-list-by-id                      ;; <3>
                         (get-in context [:request :database])
@@ -135,8 +134,8 @@
      (let [list-id (get-in context [:request :path-params :list-id])
            item-id (and list-id
                         (get-in context [:request :path-params :item-id]))
-           item (and item-id
-                     (find-list-item-by-ids (get-in context [:request :database]) list-id item-id))]
+           item    (and item-id
+                        (find-list-item-by-ids (get-in context [:request :database]) list-id item-id))]
        (cond-> context
          item (assoc :result item))))})                     ;; <3>
 
@@ -151,52 +150,49 @@
    :enter
    (fn [context]
      (if-let [list-id (get-in context [:request :path-params :list-id])]
-       (let [nm (get-in context [:request :query-params :name] "Unnamed Item")
+       (let [nm       (get-in context [:request :query-params :name] "Unnamed Item")
              new-item (make-list-item nm)
-             item-id (str (gensym "i"))]
+             item-id  (str (gensym "i"))]
          (-> context
              (assoc :tx-data [list-item-add list-id item-id new-item])
              (assoc-in [:request :path-params :item-id] item-id))) ;; <5>
        context))})
 
-(def routes
-  (route/expand-routes
+#_(def routes
     #{["/todo" :post [db-interceptor list-create]]
       ["/todo" :get echo :route-name :list-query-form]
       ["/todo/:list-id" :get [entity-render db-interceptor list-view]]
       ["/todo/:list-id" :post [entity-render list-item-view db-interceptor list-item-create]]
       ["/todo/:list-id/:item-id" :get [entity-render list-item-view db-interceptor]]
       ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
-      ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]}))
+      ["/todo/:list-id/:item-id" :delete echo :route-name :list-item-delete]})
 ;; end::list_item_create[]
 
-;; tag::server[]
-(def service-map
-  {::http/routes routes
-   ::http/type :jetty
-   ::http/port 8890})
-
-(defn start []
-  (http/start (http/create-server service-map)))
+;; tag::connector[]
+(defn create-connector []
+  (-> (conn/default-connector-map 8890)
+      (conn/with-default-interceptors)
+      (conn/with-routes routes)
+      (hk/create-connector nil)))
 
 ;; For interactive development
-(defonce server (atom nil))                                 ;; <1>
+(defonce *connector (atom nil))                             ;; <1>
 
-(defn start-dev []
-  (reset! server                                            ;; <2>
-          (http/start (http/create-server
-                        (assoc service-map
-                               ::http/join? false)))))      ;; <3>
+(defn start []
+  (reset! *connector                                        ;; <2>
+          (conn/start! (create-connector))))
 
-(defn stop-dev []
-  (http/stop @server))
+(defn stop []
+  (conn/stop! @*connector)
+  (reset! *connector nil))
 
-(defn restart []                                            ;; <4>
-  (stop-dev)
-  (start-dev))
-;; end::server[]
+(defn restart []                                            ;; <3>
+  (stop)
+  (start))
+;; end::connector[]
+
 
 ;; tag::test_request[]
 (defn test-request [verb url]
-  (io.pedestal.test/response-for (::http/service-fn @server) verb url))
+  (test/response-for @*connector verb url))
 ;; end::test_request[]

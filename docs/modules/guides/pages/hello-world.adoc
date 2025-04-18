@@ -168,12 +168,12 @@ use the xref:reference:http-kit.adoc[] library.
 Where the :require says :as `something` it means we're making an
 _alias_ inside our namespace (the `hello` namespace).
 
-An alias is a prefix that can be used to name symbols defined inside a
-namespace; a `/` separates the namespace alias from the symbol inside the namespace. `conn/default-connector-map` is the same as
-`io.pedestal.connector/default-connector-map`, just with less to type.
+A namespace alias is a prefix that can be used to reference symbols defined inside a
+namespace; a `/` separates the namespace alias from the symbol. `conn/default-connector-map` is the same as
+`io.pedestal.connector/default-connector-map`, just with less for you to type.
 
-You can type the full name if you like, but those long namespace names add up quickly, especially
-if you are calling multiple functions from the namespace. And alias makes the code more concise and
+You may type the fully qualified name if you like, but those long namespace names add up quickly, especially
+if you are calling multiple functions from the namespace. And alias makes your code more concise and
 easier to read.
 
 Also, don't worry about the indentation ... Clojure
@@ -203,21 +203,22 @@ We're going to work our way up from the bottom:
 ----
 include::example$hello/src/hello.clj[tags=response]
 ----
-<1> Define  a function, using `defn`,  called `greet-handler` that takes a single argument, which we will call `_request`
+<1> Define  a function, using
+clj:defn[],  called `greet-handler` that takes a single argument, which we will call `_request`
 <2> Return a Clojure map with two keys and two values.
 
 A Clojure function returns the value of the last expression in the
 function. In this case, that will be the map that we construct just before
 the closing paren.
 
-[sidebar]
-****
+[TIP]
+====
 Most Clojure code consists of creating, querying, and modifying these kinds of maps, so the language includes syntax to create maps very succinctly:
 the curly braces mark the start and end of the map, and within are
-pairs of keys and values.  Likewise, a _vector_ is marked by square brackets (`[` and `]`) and a general _list_ by `(` and `)`.
-****
+pairs of keys and values.  Likewise, a _vector_ is marked by square brackets (`[` and `]`) and a general _list_ by `(` and `)` and a set by `#{` and `}`.
+====
 
-Clojure uses dynamic typing, that means keys and values inside a map may be different types. Generally, the keys are Clojure keywords, such as `:status`.
+Clojure uses dynamic typing, that means keys and values inside a map may be different types. Generally, the keys are Clojure keywords, such as :status.
 
 The returned map has two keys and their values:
 
@@ -232,7 +233,6 @@ That's the whole thing. When our function returns that map, Pedestal
 will translate the map into a full HTTP response complete appropriate
 HTTP headers, including `Content-Type`.
 
-[sidebar]
 Later on, we'll see how to take control
 of the xref:hello-world-content-types.adoc[whole response]. For now, we're
 just taking the easy road.
@@ -246,13 +246,15 @@ Clojure is a _functional language_, which means that whenever possible,
 we create simple functions that have no side effects: their behavior is defined
 only by the arguments passed in.
 
-[sidebar]
+[TIP]
+====
 Most handlers use information in the
 xref:reference:request-map.adoc[]
 passed into the function,
 but `greet-handler` is so trivial that it ignores the request;
 the `_` prefix on the parameter name, `_request`,
 is a Clojure convention for parameters that are present but purposely ignored.
+====
 
 This trivial `greet-handler` function is functional -- it can be tested entirely
 by invoking it, passing in a request map, and making assertions about at the response map it returns.
@@ -307,9 +309,8 @@ adding the specific library for your chosen service.
 
 In this guide, we're using
 xref:reference:http-kit.adoc[],  a fast,
-stable, and minimal HTTP server. Best of all, it doesn't require any
-installation ahead of time... we can start it up from inside our
-service. That makes our service more self-contained and portable.
+stable, and minimal HTTP server. Http-Kit doesn't handle secure communications over SSL,
+but it's great for local development or deployment behind a firewall that provides SSL.
 
 Adding `io.pedestal/pedestal.http-kit` as a dependency of our hello-world
 project adds the library and _all_ of its dependencies (over 40 at the
@@ -330,7 +331,8 @@ user=>
 [NOTE]
 The downloads only occur the _first_ time you run the service; subsequently the files will already be
 downloaded and ready to run.
-The exact libraries and versions downloaded will vary with the exact version of Pedestal.
+The exact libraries and versions downloaded will vary with the exact version of Pedestal listed in
+the `deps.edn` dependency.
 
 The `clj` tool will download dependencies as needed, add them to the classpath
 and start a REPL
@@ -338,7 +340,6 @@ footnote:[Read/Eval/Print/Loop.  In Clojure, you enter expressions at the prompt
 are parsed, executed and the result printed back to the console.  Anything you can do in a Clojure source file
 can also be done right at the prompt, including redefining existing functions. REPL-oriented development is powerfully productive, especially
 when combined with an IDE that can help you interact with your running REPL.]
-
 in the `user` namespace. Now we're able to
 enter Clojure code to evaluate it (turn it into a value). The first
 thing we need to do is tell Clojure to load our `hello` namespace:
@@ -398,6 +399,19 @@ handler function:
 include::example$hello/src/hello.clj[tags=routing]
 ----
 
+You probably noticed that `routes` is created with a
+clj:def[] and not with a clj:defn[].
+
+`def` is used for defining a _constant_.  The constant value is then linked to
+a symbol in the namespace.  This can be a single value (such as the set provided here) or
+it can be a more complex expression that gets evaluated, just once, and linked to the symbol.
+
+`defn` is used to define a function which has parameters and a body of expressions ...
+but in Clojure, a function is ultimately a kind of value.
+The function gets linked to a namespace symbol.  Under the covers, the `defn` macro itself makes use of
+the `def` macro.
+
+
 Clojure has a xref:reference:routing-quick-reference.adoc[number of ways to express routing]; the use
 of a set here (with `#{ ... }`) denotes xref:reference:table-syntax.adoc[table syntax], which is prefered.
 
@@ -407,8 +421,8 @@ This routing table is a single route; the route matches:
 * The URL `/greet`
 
 When routed in a live service, the `greet-handler` function will be invoked.
-We've named this route :greet; every route must have a unique
-name, though in many cases, Pedestal can automatically provide a reasonable name from other information you provide in the route.
+In Pedestal, every route must have a unique :route-name.
+We've named this route :greet.
 
 There's an informal contract here:  Pedestal expects that `greet-handler` is a function that can accept a single parameter, a request map.  Further, it expects that, as a handler function, it will return a response map.  Violating
 these rules can result in runtime exceptions.
@@ -433,10 +447,12 @@ include::example$hello/src/hello.clj[tags=connector]
 specific to Http-Kit.
 <5> The `start!` function starts the connector.
 
-[sidebar]
-The `->` macro is used to run a value through a series of functions; here, the result of calling
+[TIP]
+====
+The clj:->[] macro is used to run a value through a series of functions; here, the result of calling
 `default-connector-map` is passed to `with-default-interceptors`; the result of _that_ is passed to
 `with-routes`, and so forth. This is _very_ useful, concise, and common in Clojure code.
+====
 
 All we need to do now is run it.
 
