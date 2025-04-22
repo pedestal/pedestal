@@ -22,7 +22,7 @@ image::sawtooth-report.png[]
 == How to use it?
 
 Sawtooth is the default router; it will be the default for the :router key in the
-xref:connector-map.adoc, or is used as the default when no value for key :io.pedestal.http/router
+xref:connector-map.adoc[], or is used as the default when no value for key :io.pedestal.http/router
 is provided in the xref:service-map.adoc[].
 
 If you prefer to be explicit, set the value to :sawtooth.
