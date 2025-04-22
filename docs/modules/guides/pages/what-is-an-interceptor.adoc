@@ -21,7 +21,7 @@ After reading this guide, you will be able to:
 Pedestal exists to support the following goals:
 
 - Enable code reuse, especially for cross-cutting concerns.
-- Keep code as functional -- side-effect free -- as possible.
+- Keep code as functional -- free of side effects -- as possible.
 - Ensure that code can be easily tested.
 - Support asynchronous request flows.
 
@@ -94,11 +94,13 @@ A callback function, passed the context map, returns a possibly modified context
 :error::
 A callback function, passed the context map and an exception, returns a possibly modified context map.
 
-[sidebar]
+[NOTE]
 .Why not a Protocol?
+====
 This may look like a situation where a Clojure Protocol would make sense. However,
 a Protocol would have to define all four parts (a method corresponding to each of :name, :enter, :leave, and :error).
 This would not only be cumbersome, but would prevent some optimizations that occur inside Pedestal.
+====
 
 So the context map flows through each interceptor; first through the enter phase, then later
 through the leave phase:
@@ -224,7 +226,7 @@ Further details are in the xref:reference:error-handling.adoc[error handling ref
 One of Pedestal's core values is to create flexible utilities and use them in specific ways.
 One example of this approach is that the
 interceptor pipeline is not inherently tied to an HTTP request/response cycle; that is a _specific_
-application of the pipeline, setup via the xref:reference:servlet-interceptor.adoc[].
+application of the pipeline, setup via xref:reference:connector.adoc[] or the xref:reference:servlet-interceptor.adoc[].
 
 The same approach could be used for any number of other purposes, including:
 

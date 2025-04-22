@@ -26,15 +26,16 @@ been made private.
 
 Previously, it was assumed that there was a single specification for all routes; in trivial examples
 this might be a set (which, via the RouteSpecification protocol) is interpreted as a
-call to api:table-routes[ns=io.pedestal.http.route.definition.table]).
+call to api:table-routes[ns=io.pedestal.http.route.definition.table].
 
 Other applications might invoke `table/table-routes` directly.
 
-In either case, this single value is provided as the ::http/routes key of the
+In either case, this value is provided
+to api:with-routes[ns=io.pedestal.connector], or as the ::http/routes key of the
 xref:service-map.adoc[].
 
-A single set of routes is now considered a special case; the more general case is that
-multiple sets of routes will be mixed together to form the overall routing table.
+TIP: Pedestal 0.7 only supported a single set of routes; but `with-routes` supports any number
+of routes, which are merged together.
 
 The return type of `table-routes/routes`, and the other built-in route definitions
 (api:terse-routes[ns=io.pedestal.http.route.definition.terse] and
@@ -43,7 +44,7 @@ previously they returned a seq of route maps; they now return a
 api:RoutingFragment[ns=io.pedestal.http.route.types] (essentially, a wrapper around a seq
 of route maps).
 
-Likewise, the api:routes-from[] macro now accepts a variable number of expressions.
+Likewise, the api:routes-from[] macro (on which `with-routes` builds) now accepts a variable number of expressions.
 
 == ExpandableRoutes
 
@@ -56,13 +57,13 @@ Previously, `expand-routes` only accepted a single value; it now accepts one or 
 == RouterSpecification Protocol
 
 The RouterSpecification protocol was used to choose a different strategy based on whether the routing table
-was an actual value, or a function that returns a value; the protocol has been removed as there were only ever
-two implementations.
+was an actual value, or a function that returns a value; the protocol has been removed
+as there were only ever two implementations.
 
 == Router Protocol
 
-The Router protocol, and the containing io.pedestal.http.route.router namespace, have been removed; instead,
-each router contructor simply returns a router function.
+The Router protocol, and the containing io.pedestal.http.route.router namespace, have been removed;
+instead, each router contructor simply returns a router function.
 
 The contract has changed slightly; on a successful route, the router function returns a tuple of
 two values:

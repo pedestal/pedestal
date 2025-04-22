@@ -59,7 +59,7 @@ Becomes the somewhat weird map:
  :user id       "99"}
 ----
 
-The odd-looking keywords :after:page and :after:storyid are legal
+IMPORTANT: The odd-looking keywords :after:page and :after:storyid are legal
 Clojure keywords, but definitely not an idiomatic usage. The keyword
 `:user id` is even more unusual. Clojure keywords can include spaces,
 but the Clojure reader cannot parse a keyword literal with spaces in
@@ -122,10 +122,8 @@ according to the request's `Content-Type` header:
 | application/x-www-form-urlencoded
 | HTML form
 | Yes
-| :form-params footnote:[:form-params keys are automatically converted to keywords.]
-| Yes footnote:[Form parameter keys are not automatically converted to keywords when merged into the :params map.
-                      Use the api:keywordize-params[ns=io.pedestal.http.params] interceptor
-                      to convert :params keys to keywords.]
+| :form-params{empty}footnote:[:form-params keys are automatically converted to keywords.]
+| Yes
 
 | application/json
 | JSON
@@ -153,16 +151,19 @@ according to the request's `Content-Type` header:
 
 |===
 
+CAUTION: Form parameter keys are not automatically converted to keywords when merged into the :params map.Use the api:keywordize-params[ns=io.pedestal.http.params] interceptor
+to convert :params keys to keywords.
+
 If the request has any other content type, the body will not be
 altered and the request map will not be changed. That includes a `nil`
-content type if the request just doesn't have a `Content-Type` header.
+content type if the request doesn't include a Content-Type` header.
 
 If you need to customize the way `body-params` handles content types,
 or provide options to the built-in parsers, call it with a parser-map
 as an argument. You can get a good starting point by calling
 api:default-parser-map[ns=io.pedestal.http.body-params].
 
-=== File Upload
+== File Upload
 
 File upload is a special case of a request body. The request will have
 a multipart body with separate encoding for each.

@@ -49,6 +49,8 @@ footnote:current-and-child[Applies to the current route and any child routes.]
 4. (Optional) A constraints map with `^:constraints` metadata footnote:before-verb[], footnote:current-and-child[]
 5. Zero or more child route vectors
 
+include::partial$constraints.adoc[]
+
 === Syntax for api:expand-routes[ns=io.pedestal.http.route]
 
 [source,clojure]

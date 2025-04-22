@@ -51,6 +51,7 @@ Newly deprecated namespaces:
 - `io.pedestal.jetty.util`
 
 Other changes:
+- Metrics can now be configured to accept longs or doubles as their values.
 - _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
   do not use the Servlet API, and so are much lighter weight.
 - The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
@@ -65,12 +66,12 @@ Other changes:
 - New functions:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
 - New namespaces: 
-  - `io.pedestal.service` - Replaces `io.pedestal.http` for setting up a connector
+  - `io.pedestal.connector` - Replaces `io.pedestal.http` for setting up a connector
   - `io.pedestal.service.protocols` - Defines core protocols
-  - `io.pedestal.service.resources` - expose resources using _routes_ not _interceptors_
-  - `io.pedestal.service.dev` - development/debugging tools
-  - `io.pedestal.service.interceptors` - common interceptors
-  - `io.pedestal.service.test` - testing w/ Ring request and response (no Servlet API)
+  - `io.pedestal.service.resources` - Expose resources using _routes_ not _interceptors_
+  - `io.pedestal.connector.dev` - Development/debugging tools
+  - `io.pedestal.service.interceptors` - Common interceptors
+  - `io.pedestal.service.test` - Testing w/ Ring request and response (no Servlet API)
 - When converting a handler function to an Interceptor
   - Handler functions may now be asynchronous, returning a channel that conveys the response
   - The :name metadata on the _function_ will be used as the :name of the interceptor
@@ -78,7 +79,6 @@ Other changes:
   - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
   of the interceptor; now interceptors always have names and this does not occur
   - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
-- Metrics can now be configured to accept longs or doubles as their values.
 
 ## 0.7.2 - 1 Nov 2024
 

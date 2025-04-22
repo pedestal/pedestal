@@ -156,7 +156,7 @@ match `/users/miken/profile/photos/blue-wig.jpg`.
 
 What if our user IDs are all numeric? It would be convenient if the
 route would only match when the URL meets a valid pattern in the path
-parameters. That's the job of <<_constraints>>, discussed below.
+parameters. That's the job of <<constraints>>, discussed below.
 
 == Catch-all Parameters
 
@@ -271,6 +271,7 @@ feature, but still allows you to compose interceptors:
 This leaves your code in charge of composing interceptors using ordinary
 Clojure data manipulation.
 
+[#constraints]
 == Constraints
 
 As a convenience, you can supply a map of constraints, in the form of
@@ -305,7 +306,7 @@ literal in the route vector:
 [#considering-constraints]
 === Considering Constraints
 
-The thing about constraints is that they are not used to distinguish
+The thing about constraints is that they are _not_ used to distinguish
 between otherwise identical routes. They are not for disambiguation.
 Rather, constraints are used to _reject_ requests that _do_ match the rest of the route but
 _do not_ match the constraints.
@@ -315,8 +316,9 @@ What happens after such a rejection depends on which router is being used.
 |===
 | Router | Behavior on Failed Constraint
 
+| Sawtooth |  Abort and return a 404 response
 | Prefix tree | Abort and return a 404 response
-| Map tree    | Abort and return a 404 response
+| Map tree    | Abort and return a 404 response footnote:[Map tree doesn't support path parameters but can still constrain on query parameters.]
 | Linear search | Continue searching the remaining routes
 |===
 
@@ -415,8 +417,7 @@ This section describes URL generation, starting with how routes are named.
 
 The
 api:url-for-routes[ns=io.pedestal.http.route]
-function takes the *expanded* routing table footnote:[This is
-what's returned from api:table-routes[ns=io.pedestal.http.route.definition.table].]
+function takes the *expanded* routing table
 and creates and returns a function that uses the data to craft URL strings.
 
 The function accepts a route name and optional arguments
@@ -467,7 +468,7 @@ is stored in three places:
 
 The private variable allows the
 api:url-for[ns=io.pedestal.http.route]
-function to operate from any interceptor (or handler) code.
+function to operate from any interceptor (or handler) code, after routing has taken place.
 
 === Form Route Verbs
 
@@ -505,12 +506,12 @@ The `_method` parameter is used for xref:reference:verb-smuggling.adoc[verb smug
 
 == Using Routes in a Service
 
-The xref:your-first-api.adoc[] guide goes inot create detail about routes inside a Pedestal application, showing
+The xref:your-first-api.adoc[] guide goes into greater detail about routes inside a Pedestal application, showing
 how to build up a number of routes, using different paths and HTTP methods, into a consistent, REST API.
 
 == Restrictions on Wildcards and Path Parameters
 
-The map tree router is by far the fastest router in Pedestal. Part of
+The xref:reference:map-tree-router.adoc[] is by far the fastest router in Pedestal. Part of
 how it gets that speed, though, is by forbidding the use of dynamic
 path segments like wildcards and path parameters.
 

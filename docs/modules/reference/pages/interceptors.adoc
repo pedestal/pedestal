@@ -1,7 +1,6 @@
 = Interceptors
 
 [TIP]
-.*See the guide*
 --
 This is the detailed interceptor _reference_; if you are new to Pedestal
 you may want to start with the xref:guides:what-is-an-interceptor.adoc[].
@@ -10,10 +9,24 @@ you may want to start with the xref:guides:what-is-an-interceptor.adoc[].
 Interceptors are the basic unit of work in Pedestal. The
 core library provides interceptors that are generally useful for
 creating HTTP web services. Applications augment those with their own
-logic to handle.
+logic to handle everything specific the application's domain.
 
-An interceptor is a pair of unary functions footnote:[An optional third function is used for error handling.]
-An interceptor must provide at least one of :enter, :leave and :error.
+An interceptor is a Clojure record with four keys:
+
+- :name
+- :enter
+- :leave
+- :error
+
+The :name key is a keyword, often a namespace-qualified keyword.
+The :enter and :leave keys are unary functions.
+The :error key is used for error handling.
+
+An interceptor must
+provide a :name
+footnote:[Omitting the name may result in a deprecation warning; in the future it may cause a runtime exception.]
+and at least one of :enter, :leave and :error.
+
 Each function is called with a xref:context-map.adoc[] and must return either a context
 map or a {core_async} channel that will deliver a context map; the latter case triggers
 xref:guides:async.adoc[asynchronous request processing].
@@ -36,7 +49,9 @@ seqdiag {
 
 Either the :enter or :leave function may be omitted without harm.
 
-Logically speaking, interceptors form a queue.
+Before executing the interceptor chain, the interceptors are added
+to a queue, in the specific order of execution.
+
 During the :enter phase, the next interceptor is popped off the queue,
 pushed onto the leave stack, and its :enter function, if any, is executed.
 
@@ -86,8 +101,9 @@ The most important keys are :request, which holds the xref:request-map.adoc[], a
 [NOTE]
 ====
 Technically, the interceptor pipeline doesn't know about :request and :response, because
-the interceptor pipeline is not specically purposed with HTTP processing; the
-xref:servlet-interceptor.adoc[] adds these details.
+the interceptor pipeline is not specically purposed with HTTP processing; the Pedestal connector or
+xref:servlet-interceptor.adoc[]
+adds these details.
 ====
 
 Further keys are described in the xref:context-map.adoc[] reference.
@@ -121,6 +137,9 @@ size. Generally speaking, if any interceptor is asynchronous, all following non-
 Trivial interceptors do short computations or make changes to the context map; they do not perform any I/O or other
 operations that could block the thread they execute on, such as any file or socket I/O.
 
+If blocking operations are unavoidable, the interceptor should
+make use of the core.async `thread` macro.
+
 When an interceptor returns a channel, the request processing thread can be returned to the servlet container.
 This may allow another pending request to be processed while the initial request is parked, waiting for
 the channel returned by an interceptor to convey the new context map.
@@ -128,9 +147,13 @@ the channel returned by an interceptor to convey the new context map.
 
 == IntoInterceptor
 
-The protocol
-api:IntoInterceptor[ns=io.pedestal.interceptor]
-represents anything that can be used as an interceptor.
+An Interceptor is specifically an instance of the
+Interceptor record type.
+
+Pedestal is able to convert other values into interceptors
+using the
+api:IntoInterceptor[ns=io.pedestal.interceptor] protocol.
+
 Pedestal extends that protocol to the following types:
 
 [cols="1,3"]
@@ -196,7 +219,9 @@ the IntoInterceptor protocol, and returns an Interceptor record.
 
 This is not necessary when constructing interceptors used in routing
 because interceptor representations are transformed to Interceptor
-records during route expansion.
+records during route expansion.  Likewise, interceptors added
+to the xref:connector-map.adoc[] (via
+api:with-interceptor[ns=io.pedestal.connector]) are converted as they are added.
 --
 
 It's worth noting that when an interceptor queues additional interceptors for execution,
@@ -233,9 +258,13 @@ always provide ideal results.
 [WARNING]
 ====
 When using xref:terse-syntax.adoc[] or xref:verbose-syntax.adoc[] to define routes,
-the route name is used as a default on the handler interceptor, if it does not have its
-own name. This can cause interceptors to have different names after upgrading to 0.8.0.
-In the unlikely event that this behavior proves to be a problem, it can be
+a final interceptor with no specfic name (i.e., generated from a handler function)
+will have its name set to match the route name.
+
+In 0.8.0, handler functions will normally always have a name. So, when upgrading from
+0.7.x to 0.8.x, you might find that specific interceptors have different names.  This
+is unlikely to cause any issues, but in the unlikely event that this behavior
+proves to be a problem, it can be
 xref:config.adoc#disable-handler-names[disabled].
 ====
 
@@ -270,7 +299,10 @@ Pedestal supports defining interceptor-specific error handlers via the
 The io.pedestal/pedestal.service library includes a large set of interceptors
 that are specialized for HTTP request handling.
 Many of these interceptors are automatically added to the
-interceptor queue by the api:default-interceptors[] function,
+interceptor queue via
+api:with-default-interceptors[ns=io.pedestal.connector]
+or
+by the api:default-interceptors[] function,
 using information from the xref:service-map.adoc[].
 
 - api:allow-origin[ns=io.pedestal.http.cors]
@@ -289,3 +321,6 @@ Routing-related interceptors are provided by the io.pedestal/pedestal.route libr
 - api:path-params-decoder[ns=io.pedestal.http.route]
 - api:query-params[ns=io.pedestal.http.route]
 - api:router[ns=io.pedestal.http.route]
+
+But these are usually provided automatically, such as via
+api:with-routes[ns=io.pedestal.connector].

@@ -3,5 +3,6 @@
 https://github.com/http-kit/http-kit[Http-Kit] is a high-performance, non-blocking
 HTTP server for Clojure; it is small, fast, and has no dependencies.
 
-More information coming.
+Http-Kit supports HTTP but not HTTPS.  It does support xref:websockets.adoc[].
+
 

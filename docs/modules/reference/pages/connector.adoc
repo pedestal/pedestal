@@ -1,10 +1,12 @@
-= Connector
+= Pedestal Connector
 :reftext: connector
 :navtitle: Connector
 
 A Pedestal application always works in the context of a _network connector_ such as
 xref:jetty.adoc[]; the network connector is responsible for the low-level HTTP/HTTPs networking,
 including support for WebSockets and server-sent events.
+
+TIP: Pedestal connectors were added in version 0.8.0 and are the _preferred_ way of setting up your application.
 
 Once a request has been received, it is passed through
 an interceptor chain to be processed using the
