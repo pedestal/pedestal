@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service.test
+(ns io.pedestal.connector.test
   "Utilities for PedestalConnectors to implement testing, and functions used when writing such tests."
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]

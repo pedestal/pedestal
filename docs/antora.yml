@@ -25,3 +25,4 @@ asciidoc:
     base-java-version: 11
     otel: "link:https://opentelemetry.io/[Open Telemetry]"
     servlet-api: link:https://jakarta.ee/specifications/servlet/[Jakarta Servlet API]
+    clj-reload: link:https://tonsky.me/blog/clj-reload/[clj-reload]

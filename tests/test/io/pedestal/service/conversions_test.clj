@@ -10,12 +10,12 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.service.conversions-test
-  "Tests for the conversions that occur inside [[io.pedestal.service.test]]
+  "Tests for the conversions that occur inside [[io.pedestal.connector.test]]
   and [[io.pedestal.service.data]]."
   (:require [clojure.edn :as edn]
             [clojure.core.async :refer [go]]
             [clojure.java.io :as io]
-            [io.pedestal.service.test :as test]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.service.data :as data :refer [convert]]
             [clojure.test :refer [deftest is]])
   (:import (java.io ByteArrayInputStream InputStream)

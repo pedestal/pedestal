@@ -19,7 +19,7 @@
             [io.pedestal.http.jetty :as jetty]
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
-            [io.pedestal.service.test :as test]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.route.definition.table :as table]))
 
