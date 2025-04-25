@@ -253,9 +253,8 @@ gets queued into the context for later execution (after any interceptors already
 
 === Common interceptors
 
-The "terse" syntax uses hierarchically nested routes to reuse
-interceptors on subtrees. The table based syntax gives up that
-feature, but still allows you to compose interceptors:
+Because the table syntax is just data, it is easy to more dynamically construct
+the list of interceptors:
 
 [source,clojure]
 ----
@@ -267,9 +266,6 @@ feature, but still allows you to compose interceptors:
 ;; inside a call to table-routes
 ["/user/:user-id/private" :post (conj common-interceptors view-user)]
 ----
-
-This leaves your code in charge of composing interceptors using ordinary
-Clojure data manipulation.
 
 [#constraints]
 == Constraints
@@ -381,7 +377,7 @@ Pedestal will pick one for you. It uses the :name of the last
 interceptor in the interceptor vector.
 
 Route names must be unique, so if you use the same interceptor in the last position in multiple routes, you'll  have to
-supply the route name.
+supply the route name explicitly.
 
 === Using Route Names to Distinguish Handlers
 

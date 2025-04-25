@@ -200,7 +200,7 @@ it can be used to process other incoming requests. It will then wait for the cha
 and continue from there.  All remaining interceptors for the request
 will execute inside a thread from {core_async}'s dispatch thread pool.
 
-[TIP]
+[CAUTION]
 This only a thumbnail sketch; it doesn't address likely scenarios such as what if the user doesn't exist? What
 if there's a database failure?  What if reading the user from the database takes a really long time?
 

@@ -284,7 +284,7 @@ of which is (as much as possible) free of side effects, and easily testable.
 [NOTE]
 ====
 The approach we are taking here is especially well suited when using
-https://www.datomic.com/[Datomic] or
+https://www.datomic.com/[Datomic], https://github.com/replikativ/datahike[Datahike], or
 https://github.com/juji-io/datalevin[Datalevin] for persistent storage, but can work even
 when using a more traditional database.
 ====
