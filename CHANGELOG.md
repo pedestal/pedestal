@@ -17,6 +17,7 @@ to the Jakarta Servlet API from those that are more general.
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
+- Fix reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
   - Sawtooth identfies conflicting routes
   - Sawtooth is now the *default router*

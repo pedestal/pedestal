@@ -45,6 +45,10 @@
 (def sample-routes
   #{["/hello" :get [#'hello-handler] :route-name ::hello]})
 
+(defn indirect-sample-routes
+  [path]
+  #{[path :get [#'hello-handler] :route-name ::hello]})
+
 (defn- exercise
   [routing-table]
   {:pre [(internal/is-routing-table? routing-table)]}
@@ -54,9 +58,28 @@
           (fn [routes]
             (mapv #(dissoc % :path-re :interceptors) routes))))
 
+;; This is io.pedestal.http.route/routes-from if dev mode was always enabled.
 (defmacro routes-from
   [expr]
   (internal/create-routes-from-fn [expr] &env `route/expand-routes))
+
+(comment
+  (macroexpand-1 '(routes-from sample-routes))
+
+  (meta (routes-from sample-routes))
+
+
+  (macroexpand-1 '(routes-from (indirect-sample-routes "/greet")))
+
+
+
+  (let [path "/api/greet"
+        f (routes-from (indirect-sample-routes path))]
+    (clojure.pprint/pprint {:meta   (meta f)
+                            :result (f)}))
+
+  ;; End
+  )
 
 (deftest symbol-points-to-var
   (let [f          (routes-from sample-routes)
@@ -72,6 +95,12 @@
       (is (= (exercise (route/expand-routes alt-routes))
              (exercise (f)))))))
 
+(deftest route-is-a-function-call
+  (let [f      (routes-from (indirect-sample-routes "/greet"))
+        routes (route/expand-routes (indirect-sample-routes "/greet"))]
+    (is (= (exercise routes)
+           (exercise (f))))))
+
 (deftest local-symbol-is-simply-wrapped-as-function
   (let [local-routes #{["/hi" :get #'hello-handler :route-name ::hi]}
         f            (routes-from local-routes)]
@@ -81,7 +110,7 @@
 (deftest production-mode
   (let [output (with-redefs [dev-mode? false]
                  (eval `(route/routes-from sample-routes)))
-        _ (is (internal/is-routing-table? output))
+        _      (is (internal/is-routing-table? output))
         routes (:routes output)]
     ;; Close as we can get to "routing table" rather than a function that
     ;; evaluates to a routing table.
