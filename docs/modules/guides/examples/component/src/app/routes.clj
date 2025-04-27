@@ -14,7 +14,6 @@
 ;; end::routes[]
 
 ;; tag::routes2[]
-#_
 (def routes
   #{["/api/greet" :get get-greeting :route-name :greet]})
 ;; end::routes2[]

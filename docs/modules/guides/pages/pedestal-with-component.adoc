@@ -11,6 +11,7 @@ It's not uncommon for Pedestal to be setup to operate as a component with a Comp
 After reading this guide you will be able to:
 
 - Create a Component-based service using Pedestal.
+- Make updates to your service without restarting your REPL.
 - Test your service using Pedestal's test helpers.
 
 == Guide Assumptions
@@ -46,7 +47,7 @@ to every interceptor or handler function in a new :components key of the
 xref:reference:request-map.adoc[].  We'll also have a component with some mutable
 state to interact with from our handler.
 
-We will have a very flat system map:
+We can represent the system map as a diagram, showing components and their dependencies:
 
 [graphviz]
 ----
@@ -56,7 +57,15 @@ digraph G {
 }
 ----
 
-Now that we have a better idea of the layout, let's start building it.
+This is a very flat map; it shows that the :pedestal component
+depends on the :components component, which itself depends on
+the :greeter component.
+
+Real systems built with the Component library will often have dozens of
+components and even more dependencies, but this small start still demonstrates
+a valid pattern.
+
+Now that we have a better idea of the system layout, let's start building it.
 
 == Project and Dependencies
 
@@ -95,13 +104,11 @@ The `system-map` function defines a Component SystemMap in terms of key and valu
 Each key is a keyword, and each value is a map or Clojure record.  The `using` function
 identifies on which other components each component depends.
 
-Real Component applications often have dozens of components and myraid interconnections.
-
 One namespace down, at least two to go.  Let's work on the Pedestal component next.
 
 == Pedestal Component
 
-The Pedestal component will be responsible for configuring the Pedestal connector, and starting it.
+The :pedestal component will be responsible for configuring the Pedestal connector, and starting it.
 
 [source, clojure]
 .src/app/pedestal.clj
@@ -123,14 +130,18 @@ and handlers; we'll define a custom interceptor for that purpose:
 include::example$component/src/app/pedestal.clj[tags=inject]
 ----
 
-This is actually a function that returns an interceptor. When the interceptor is eventually
-executed in the :enter phase,
+This is actually a function that _returns_ an interceptor.
+When the interceptor is eventually executed in the :enter phase,
 it will modify the context map passed to it, injecting the components map into the request map for later
-access.  Where does the map of components come from?  Where almost there.
+access.  Where does the map of components come from?  We're almost there.
 
 === Lifecycle Protocol
 
-Let's start implementing the component:
+Let's start implementing the :pedestal component, as a Clojure record type.
+
+A Clojure record is a Clojure map that has certain built-in fields; in addition,
+a record can extend Clojure protocols. The result is a new class. The fields
+of the record are typically used to store dependencies and any local state, mutable or otherwise.
 
 [source,clojure]
 ----
@@ -165,9 +176,10 @@ is killed.
 
 That _may_ be true in production, but in development and testing, this is far from the case.
 
-You should always _undo_, in `stop`, what you did in `start`. In this example, we need to make
-sure that the Pedestal connector is stopped, or we could end up with a zombie thread
-keeping port 8890 locked.  Generally, our tests create a new system map, start it, run tests, then stop it ...
+You should always _undo_, in `stop`, the changes made in `start`.
+In this example, we need to make sure that the Pedestal connector is stopped,
+or we could end up with a zombie thread keeping port 8890 locked.
+Generally, our tests create a new system map, start it, run tests, then stop it ...
 but Component can also handle cases where the system map is created _once_ and repeatedly started and stopped.
 ====
 
@@ -185,7 +197,7 @@ That's pretty important later, when we want to work with REPL-oriented developme
 [CAUTION]
 .Don't `dissoc` in `stop`
 ====
-If we used `dissoc` here (instead of `assoc nil`), we would be removing a record key from a record; Clojure would quietly
+If we used clj:dissoc[] here (instead of `assoc nil`), we would be removing a record key from a record; Clojure would quietly
 convert from a Pedestal record to a standard Clojure map. This isn't a big deal, unless we try to start and stop
 the same system map repeatedly; the second start would not work because the Clojure map has no `start` method.
 ====
@@ -204,12 +216,11 @@ It's common to create a simple wrapper function, as shown here; quite often,
 components grow to need additional setup and initialization which can occur in this kind of
 creation function.
 
-Next in our top-down tour is
-
+A service that doesn't define any routes is not particularly useful so our next step is to provide at least one route.
 
 == Defining Routes
 
-The Pedestal component expects the symbol `app.routes/routes` to be the routes for the application.
+The :pedestal component expects the symbol `app.routes/routes` to be the routes for the application.
 Let's create that file now.
 
 We're going to define an endpoint for `GET /greet`; it will return a dynamic string: "Greeting #1", then "Greeting #2" and so forth on later requests.
@@ -228,7 +239,7 @@ include::example$component/src/app/routes.clj[tags=response]
 <2> The :components map provided by the ::inject-components interceptor.
 
 
-That's the handler, lets define the routes for the application.
+That's the handler, lets define the route that maps to the handler:
 
 ----
 include::example$component/src/app/routes.clj[tags=routes]
@@ -244,7 +255,7 @@ would be a function with arguments.
 The best handlers in a Pedestal application are very simple, dealing with the Pedestal logic and structure
 of the request and response maps, with all the real application-specific logic in a component or function.
 
-In our case, we have a Greeter component that builds the reponse body.  Let's create that now.
+In our case, we have a Greeter component that builds the response body.  Let's create that now.
 
 [source, clojure]
 .src/app/components/greeter.clj
@@ -253,7 +264,8 @@ include::example$component/src/app/components/greeter.clj[tags=gen-preamble]
 ----
 <1> Ignore this for now.
 
-That's the component and its lifecycle, now we can focus on the actual logic, which builds on it:
+That's the component and its lifecycle, including a place to store some internal state ... how many times
+the greeting was retrieved.  Next we can focus on the actual logic:
 
 [source,clojure]
 ----
@@ -307,6 +319,7 @@ user=>
 <1> The :test alias adds the `test` directory and some other dependencies to the classpath. The :dev-mode enables development mode.
 <2> Here's that handy command from `user.clj`.
 <3> In development mode, the routing table is printed to the console at startup (and whenever a change is detected).
+footnote:[Also, in the console it prints correctly: the verticle bar align and connect. It looks a bit jarring here.]
 <4> This is the printed representation of the Component system map.
 
 You can now interact with the started service. Start a second terminal window and use `curl` to access the `/greet` route:
@@ -330,13 +343,100 @@ You'll also see messages in the console of the server REPL:
 
 These messages are quite minimal because we haven't configured logging in any way.
 
+Two important areas remain: REPL oriented development, and testing.  Let's get a feel for how awesome the Clojure REPL is.
 
 == REPL oriented development
 
+Let's see if we can get a prettier response to the client.
+
+Let's make changes to the Greeter component:
+
+[source,clojure]
+.src/app/components/greeter.clj
+----
+include::example$component/src/app/components/greeter.clj[tags=gen2]
+----
+<1> `ordinal` returns "1st", "2nd", "3rd", "4th", etc.
+
+Just changing the source doesn't affect the running program, but we can use {clj-reload} to load the changes.
+
+[source]
+----
+user=> (clj-reload.core/reload)
+Unloading user
+Unloading app.system
+Unloading app.pedestal
+Unloading app.routes
+Unloading app.components.greeter
+Loading app.components.greeter
+Loading app.routes
+Loading app.pedestal
+Loading app.system
+Loading user
+Reloaded 5 namespaces in 54 ms
+{:unloaded [user app.system app.pedestal app.routes app.components.greeter], :loaded [app.components.greeter app.routes app.pedestal app.system user]}
+user=>
+----
+
+clj-reload has identified which files have changed, and has unloaded and reloaded all files affected by the changes.  The code continues to run; it isn't even necessary to `stop!` and `start!` the service.
+
+[source]
+----
+$ curl http://localhost:8890/greet
+Greetings for the 3rd time
+----
+
+We can also modify our routes, giving our API a different URL:
+
+[source,clojure]
+.src/app/routes.clj
+----
+include::example$component/src/app/routes.clj[tags=routes2]
+----
+
+Again, reload namespaces, then:
+
+[source]
+----
+$ curl http://localhost:8890/greet
+Not Found
+----
+
+That's actually successful ... we've changed our routes to respond to `/api/greet`, so the URL `/greet` is met with a 404 Not Found response.
 
 
+If you look in your REPL window, you'll see that your change has been adopted, and the new routing table printed:
+
+[source]
+----
+[] INFO io.pedestal.service.interceptors - {:msg "GET /greet", :line 40}
+Routing table:
+┏━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┓
+┃ Method ┃    Path    ┃  Name  ┃
+┣━━━━━━━━╋━━━━━━━━━━━━╋━━━━━━━━┫
+┃   :get ┃ /api/greet ┃ :greet ┃
+┗━━━━━━━━┻━━━━━━━━━━━━┻━━━━━━━━┛
+----
+
+Using the correct URL gets the expected result:
+
+[source]
+----
+$ curl http://localhost:8890/api/greet
+Greetings for the 4th time
+----
+
+At this point, we've seen that we can iterate quickly when in development mode.
+You should be aware that when running a system map when development mode is _disabled_,
+you will see that Pedestal gets "locked in" to the routes and many function definitions,
+even after code is changed and reloaded ... you'll often have to `(stop!)` and `(start!)` to see the effects of reloading namespaces.
+
+Fortunately, starting and stopping the system map is very quick, which is important when it comes to the next subject ... testing.
+
+// TODO: continue from here
 
 == Testing
+
 Let's move on to testing our new service. Recall that our service contains one
 route, `GET /greet`. We'd like to verify that it returns the proper
 greeting. Before we can jump in and do that, though, we need to create

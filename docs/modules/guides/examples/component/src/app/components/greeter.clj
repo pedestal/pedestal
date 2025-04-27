@@ -25,10 +25,10 @@
     (format "Greeting #%d\n" n)))
 ;; end::gen1[]
 
-#_;; tag::gen2[]
-        (defn generate-message!
-          [component]
-          (let [n (-> component :*count swap! inc)]
-            (format "Greetings for the %s time\n"
-                    (h/ordinal n))))
+;; tag::gen2[]
+(defn generate-message!
+  [component]
+  (let [n (-> component :*count (swap! inc))]
+    (format "Greetings for the %s time\n"
+            (h/ordinal n))))                                ;; <1>
 ;; end::gen2[]

@@ -7,7 +7,7 @@
 ;; end::ns[]
 
 ;; tag::inject[]
-(defn inject-components
+(defn- inject-components
   [components]
   {:name  ::inject-component
    :enter #(assoc-in % [:request :components] components)})
