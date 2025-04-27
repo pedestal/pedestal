@@ -264,7 +264,7 @@
     (>!! conn ["2" result-ch])
     (>!! conn "3")
 
-    (= :closed (<!!? result-ch))
+    (is (= :closed (<!!? result-ch)))
 
     (is (match? [[:text "1"]
                  [:text "2"]]

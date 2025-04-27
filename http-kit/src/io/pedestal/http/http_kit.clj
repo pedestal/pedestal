@@ -16,7 +16,7 @@
   implement any of the underlying Servlet API or WebSocket interfaces."
   (:require [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
-            [io.pedestal.service.data :as data]
+            [io.pedestal.service.data :as data :refer [convert]]
             [io.pedestal.service.protocols :as p]
             [io.pedestal.service.websocket :as ws]
             [org.httpkit.server :as hk]
@@ -24,7 +24,6 @@
             [io.pedestal.connector.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.http-kit.response :refer [convert-response-body]]
-            [io.pedestal.service.data :refer [convert]]
             [io.pedestal.interceptor.chain :as chain])
   (:import (org.httpkit.server AsyncChannel)))
 

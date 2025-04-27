@@ -101,7 +101,7 @@ The most important keys are :request, which holds the xref:request-map.adoc[], a
 [NOTE]
 ====
 Technically, the interceptor pipeline doesn't know about :request and :response, because
-the interceptor pipeline is not specically purposed with HTTP processing; the Pedestal connector or
+the interceptor pipeline is not specifically purposed with HTTP processing; the Pedestal connector or
 xref:servlet-interceptor.adoc[]
 adds these details.
 ====

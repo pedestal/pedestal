@@ -18,10 +18,9 @@
             [io.pedestal.connector.test :as test]
             [io.pedestal.service.data :as data :refer [convert]]
             [clojure.test :refer [deftest is]])
-  (:import (java.io ByteArrayInputStream InputStream)
+  (:import (java.io InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels Channels)
-           (javassist.bytecode ByteArray)))
+           (java.nio.channels Channels)))
 
 (deftest request-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
@@ -123,9 +122,9 @@
 
 (deftest data-byte-buffer-to-byte-array
   (let [content "we'll push this through the pipe"
-        result (->> (.getBytes content "UTF-8")
-                    (convert :byte-buffer)
-                    (convert :byte-array))]
+        result  (->> (.getBytes content "UTF-8")
+                     (convert :byte-buffer)
+                     (convert :byte-array))]
     (is (= content
            (slurp result)))))
 

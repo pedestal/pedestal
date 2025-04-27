@@ -20,7 +20,6 @@
             [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
             [io.pedestal.service.protocols :as p]
-            io.pedestal.connector.dev
             io.pedestal.http.cors
             io.pedestal.http.body-params
             io.pedestal.http.secure-headers

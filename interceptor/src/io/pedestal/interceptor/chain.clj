@@ -290,7 +290,8 @@
   "Like [[enqueue]] but accepting a variable number of arguments.
   If the last argument is itself a sequence of interceptors,
   they're unpacked and added to the context's execution queue."
-  [context & interceptors-and-seq] +(if (sequential? (last interceptors-and-seq))
+  [context & interceptors-and-seq]
+  (if (sequential? (last interceptors-and-seq))
     (enqueue context (apply list* interceptors-and-seq))
     (enqueue context interceptors-and-seq)))
 

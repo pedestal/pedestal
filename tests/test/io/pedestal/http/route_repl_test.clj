@@ -74,9 +74,8 @@
 
 
   (let [path "/api/greet"
-        f (routes-from (indirect-sample-routes path))]
-    (clojure.pprint/pprint {:meta   (meta f)
-                            :result (f)}))
+        f    (routes-from (indirect-sample-routes path))]
+    (pr {:meta (meta f) :result (f)}))
 
   ;; End
   )
