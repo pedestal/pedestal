@@ -84,7 +84,8 @@ the routing table may be a function that returns the routing table; in which cas
 function is rebuilt _on every request_.
 ====
 
-Generally, all of this is automatic; an application provides a route specification in the :io.pedestal.http/route key
+Generally, all of this is automatic; an application provides routes to
+the api:with-routes[ns=io.pedestal.connector] function, or provides a route specification in the :io.pedestal.http/route key
 of the xref:service-map.adoc[] (and perhaps a value for :io.pedestal.http/router) and a routing
 interceptor is automatically created.
 
@@ -116,8 +117,7 @@ This mapping from value type to specification type is the responsibility of the
 api:ExpandableRoutes[ns=io.pedestal.http.route] protocol, which is
 extended on Map, Set, and Vector.
 
-[sidebar]
-`ExpandableRoutes` is only needed when Pedestal is provided with routes as data (a Set, Vector, or Map)
+TIP: `ExpandableRoutes` is only needed when Pedestal is provided with routes as data (a Set, Vector, or Map)
 It is also perfectly valid to build the routes explicitly, by directly
 calling api:table-routes[ns=io.pedestal.http.route.definition.table].
 

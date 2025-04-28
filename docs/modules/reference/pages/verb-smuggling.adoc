@@ -19,8 +19,7 @@ At the same time, vanilla HTTP links and forms can only make use of two of these
 POST for forms.  This can be a problem, as a link may serve a different function (such as delete),
 and a form submission may be a POST to create a entity, or a PUT to update an entity.
 
-[sidebar]
-Of course, in modern web applications, this is less important, as all the critical interactions will
+TIP: Of course, in modern web applications, this is less important, as all the critical interactions will
 be driven from client-side code or via web sockets.
 
 Verb smuggling is a compromise; it allows ordinary HTTP links and forms, but defines a query parameter

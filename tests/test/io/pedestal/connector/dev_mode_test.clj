@@ -18,7 +18,7 @@
             [io.pedestal.connector.dev :as dev]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :refer [response]]
-            [io.pedestal.service.test :as test]))
+            [io.pedestal.connector.test :as test]))
 
 (defn hello-page
   [_request]
@@ -41,8 +41,8 @@
 (defn new-connector
   []
   (-> (connector/default-connector-map 8080)
+      (connector/with-interceptors dev/dev-interceptors)
       (connector/with-default-interceptors)
-      dev/with-dev-interceptors
       (dev/with-interceptor-observer {:omit          dev/default-debug-observer-omit
                                       :changes-only? true
                                       :tap?          true})

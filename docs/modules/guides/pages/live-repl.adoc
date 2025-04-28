@@ -75,9 +75,10 @@ So far, so good.  You can also see that Pedestal's default set of interceptors h
 headers to the response.
 
 Now we're ready to make a change.  Let's change the response body to be `Hello, Clojure World!`.
-We can change the `hello-handler` function, reload the namespace, and:
+We can change the `hello-handler` function, reload the namespace via `(require :reload org.example.hello)`, and retest
+with `http`:
 
-[source,bash]]
+[source,bash]
 ----
 > http -pb :9999/hello <1>
 Hello, World!
@@ -99,7 +100,8 @@ they executed.
 
 We could say *ugh, fine* and just adapt to a cycle where you reload your REPL code and then restart the server object, but
 that's slow and error-prone.
-We want a fast feedback cycle where that is not necessary, and that goal is _entirely_ achievable.
+We want a fast feedback cycle where that is not necessary.
+That goal is _entirely_ achievable.
 
 The first step is to stop the service by evaluating `(swap! server http/stop)`.
 
@@ -195,7 +197,7 @@ Hello, JVM World!
 
 *Success!* The route function is being evaluated *on every incoming request*.
 
-[WARNING]
+[CAUTION]
 .*Not For Production*
 ====
 Using a function, as we do here, is *absolutely not for production*.  Even a trivial
@@ -290,11 +292,13 @@ api:routes-from[ns=io.pedestal.http.route] macro:
 ----
 
 `routes-from` is aware of the xref:reference:dev-mode.adoc[Pedestal execution mode].  By default, `routes-from` operates in production mode, so
-`(route/routes-from routes)` evaluates to just `routes` - no deferred evaluation,
+`(route/routes-from routes)` evaluates to just `(route/expand-routes routes)` - no deferred evaluation,
 no rebuild of the routing table on each request,
 which is just what we want in production.
 
-However, in local development mode, `(route/routes-from routes)` expands (approximately) to `#(expand-routes (deref (var routes)))` ... the same code we used above, to delay route evaluation.
+However, in local development mode, `(route/routes-from routes)` expands (approximately
+footnote:[It's a bit more involved, to allow for how {clj-reload} operates.]
+) to `#(expand-routes (deref (var routes)))` ... the same code we used above, to delay route evaluation.
 
 Further, in local development mode, Pedestal will write a formatted routing table to the console at startup, and at any later time that the routing table changes:
 
@@ -313,6 +317,9 @@ api:url-for[ns=io.pedestal.http.route]
 or
 api:response-for[ns=io.pedestal.test]
 (used in your xref:unit-testing.adoc[unit tests]).
+
+TIP: Once you are using `routes-from`, it is no longer necessary to use a back-tick before the handler name in the
+routes. Once code is reloaded, the function will use the latest definitions of all the symbols in all the namespaces.
 
 ## Wrap Up
 

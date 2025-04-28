@@ -19,3 +19,9 @@ HTTP requests, this is when a handler or some other interceptor attaches a :resp
 
 Pedestal itself only provides a chain provider implementation for incoming HTTP request processing,
 in the form of the xref:servlet-interceptor.adoc[].
+
+Essentially, the chain provider configures the interceptor chain and answers the following questions:
+
+- When does the chain terminate early (for HTTP, when the :response key is attached)
+- What interceptors execute (some provided by the provider, the rest provided by the application)
+- What happens when execution first goes asynchronous (because an interceptor returns a {core_async} channel)?

@@ -9,12 +9,14 @@
   {:extra-paths ["test"
                  "test-resources"
                  "dev"]
-   :jvm-opts ["-Dio.pedestal.dev-mode=true"]
    :extra-deps {org.clojure/test.check     {:mvn/version "1.1.1"}
                 nubank/matcher-combinators {:mvn/version "3.9.1"}
                 io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1"
                  :git/sha "dfb30dd"}}}
+
+  :dev-mode
+  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}
 
   :run
   {:exec-fn  {{top/ns}}.{{main/ns}}.main/start-service}

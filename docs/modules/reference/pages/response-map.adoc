@@ -28,7 +28,7 @@ The function api:respond-with[] is the easiest way to add a response map to the 
 | :headers
 | N
 | map of String -> String
-| Response headers sent to the client. Header names are all converted to lower case.
+| Response headers sent to the client. Header names are case-sensitive.
 
 | :body
 | N

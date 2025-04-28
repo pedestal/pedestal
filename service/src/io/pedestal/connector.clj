@@ -16,6 +16,8 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.environment :refer [dev-mode?]]
+            [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
             [io.pedestal.service.protocols :as p]
             io.pedestal.http.cors
@@ -50,6 +52,12 @@
   "Appends a sequence of interceptors using [[with-interceptor]]."
   [connector-map interceptors]
   (reduce with-interceptor connector-map interceptors))
+
+(defn optionally-with-dev-mode-interceptors
+  "Conditionally adds [[dev-interceptors]] only when development mode is enabled."
+  [connector-map]
+  (cond-> connector-map
+    dev-mode? (with-interceptors dev/dev-interceptors)))
 
 (defmacro with-routes
   "A macro for adding a routing interceptor (and an interceptor to decode

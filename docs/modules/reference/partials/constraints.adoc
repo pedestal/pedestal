@@ -1,0 +1,2 @@
+CAUTION: Support for constraints exists today only for backwards compatibility;
+use of path parameter and query parameter constraints is xref:guides:defining-routes.adoc#considering-constraints[no longer advised].

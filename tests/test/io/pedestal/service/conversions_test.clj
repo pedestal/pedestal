@@ -10,18 +10,17 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.service.conversions-test
-  "Tests for the conversions that occur inside [[io.pedestal.service.test]]
+  "Tests for the conversions that occur inside [[io.pedestal.connector.test]]
   and [[io.pedestal.service.data]]."
   (:require [clojure.edn :as edn]
             [clojure.core.async :refer [go]]
             [clojure.java.io :as io]
-            [io.pedestal.service.test :as test]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.service.data :as data :refer [convert]]
             [clojure.test :refer [deftest is]])
-  (:import (java.io ByteArrayInputStream InputStream)
+  (:import (java.io InputStream)
            (java.nio ByteBuffer)
-           (java.nio.channels Channels)
-           (javassist.bytecode ByteArray)))
+           (java.nio.channels Channels)))
 
 (deftest request-input-stream-is-unchanged
   (let [input-stream (-> "pedestal-config.edn" io/resource io/input-stream)]
@@ -123,9 +122,9 @@
 
 (deftest data-byte-buffer-to-byte-array
   (let [content "we'll push this through the pipe"
-        result (->> (.getBytes content "UTF-8")
-                    (convert :byte-buffer)
-                    (convert :byte-array))]
+        result  (->> (.getBytes content "UTF-8")
+                     (convert :byte-buffer)
+                     (convert :byte-array))]
     (is (= content
            (slurp result)))))
 

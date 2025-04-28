@@ -8,6 +8,9 @@ Pedestal provides functions to create a xref:connector.adoc[].
 The service map contains general information that any Pedestal connector will need to create a network connector.
 This is supplemented by a connector-specific configuration map.
 
+TIP: Pedestal connectors were added in 0.8.0 as a replacement for the xref:service-map.adoc[] and the
+api:*[ns=io.pedestal.http] namespace.
+
 == Connector Map Keys
 
 An initial connector map can be created by api:default-connector-map[].
@@ -31,7 +34,7 @@ and handlers.
 
 == Default interceptors
 
-The api:with-default-interceptors[] function is used to add interceptors to the service map for much
+The api:with-default-interceptors[] function is used to add interceptors to the service map for
 common functionality.  It is passed the service map and an additional configuration map and will
 add interceptors for the following functionality:
 

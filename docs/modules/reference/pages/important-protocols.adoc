@@ -56,7 +56,7 @@ that will be passed to the routing contructor function.
 
 A connector encapsulates a network adapter, such as xref:jetty.adoc[]; a connector
 is responsible for configuring, starting, and stopping the network adapter. In addition,
-a connector can be used for testing.
+a connector can be used for testing, even without starting the network adapter.
 
 == Servlet Protocols
 

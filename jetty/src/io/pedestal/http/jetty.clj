@@ -20,7 +20,7 @@
             [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.service.protocols :as p]
-            [io.pedestal.service.test :as test]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.websocket :as ws])
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)

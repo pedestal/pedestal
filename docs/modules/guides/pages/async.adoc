@@ -85,15 +85,15 @@ Pedestal recognizes the difference here ... it's getting back a channel, not a m
 can return the request processing thread to the container. When the new context, including the :response
 map, is delivered, Pedestal will acquire a request processing thread and resume processing the request.
 
-[sidebar]
-****
+[NOTE]
+====
 This facility allows a single value to be placed on a channel per
 interceptor; for more extensive use of channels for SSE, see
 xref:reference:server-sent-events.adoc[].
 
 For more about streaming, see
 xref:reference:streaming.adoc[].
-****
+====
 
 == Async Interceptor Chains
 

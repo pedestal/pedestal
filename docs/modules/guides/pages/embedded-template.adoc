@@ -122,7 +122,7 @@ You can also fire up a REPL and start the service:
 
 
 ```
-$ clj -A:test
+$ clj -A:test:dev-mode <1>
 Clojure 1.12.0
 user=> (use 'dev)
 nil
@@ -137,6 +137,7 @@ Routing table:
 #object[io.pedestal.http.http_kit$create_connector$reify__17907 0x6e3f108c "io.pedestal.http.http_kit$create_connector$reify__17907@6e3f108c"]
 user=>
 ```
+<1> This activates both the :test and :dev-mode aliases; :dev-mode assists with reloading and is enables the printing of the routing table.
 
 From another window, you can open http://localhost:8080/index.html, to see
 a brief welcoming page.
@@ -243,13 +244,6 @@ Clojure 1.12.0
 user=> (use 'dev)
 nil
 user=> (go!)
-Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃  Path  ┃                 Name                 ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
-┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #object[io.pedestal.http.http_kit$create_connector$reify__17973 0x16a475d3 "io.pedestal.http.http_kit$create_connector$reify__17973@16a475d3"]
 user=>
 ```

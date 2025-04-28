@@ -3,7 +3,7 @@
   (:require [io.pedestal.connector :as conn]
             [io.pedestal.http.http-kit :as hk]
             [io.pedestal.http.route :as route]
-            [io.pedestal.service.test :as test]))
+            [io.pedestal.connector.test :as test]))
 
 ;; end::ns[]
 

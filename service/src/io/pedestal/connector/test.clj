@@ -9,7 +9,7 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.service.test
+(ns io.pedestal.connector.test
   "Utilities for PedestalConnectors to implement testing, and functions used when writing such tests."
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]
@@ -68,7 +68,9 @@
 ;; Need to keep this in sync with io.pedestal.http.impl.servlet-interceptor/WriteableBody
 
 (extend-protocol ResponseBodyCoercion
+
   nil
+
   (coerce-response-body [_] nil)
 
   String
@@ -95,20 +97,22 @@
 
   ReadableByteChannel
 
-
   (coerce-response-body [channel]
     (impl/byte-channel->input-stream channel))
 
   Channel                                                   ; from core.async
+
   (coerce-response-body [chan]
     (let [body-value (<!! chan)]
       (coerce-response-body body-value)))
 
   Fn
+
   (coerce-response-body [f]
     (impl/function->input-stream f))
 
   IPersistentCollection
+
   (coerce-response-body [coll]
     (-> coll pr-str coerce-response-body)))
 

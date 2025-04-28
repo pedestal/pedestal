@@ -26,6 +26,8 @@ Verbose syntax is composed of a sequence of maps; each map defines a single rout
 <5> :verbs is a mapping from keyword (:get, :post, etc.) to handler
 <6> :children is an optional list of routes nested within this route
 
+include::partial$constraints.adoc[]
+
 Handlers, the values in the :verbs map, can be a symbol or a map.
 
 A symbol will be resolved to a Var; the value in the Var will be converted to an Interceptor record.

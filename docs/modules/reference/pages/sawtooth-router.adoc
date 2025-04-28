@@ -21,13 +21,17 @@ image::sawtooth-report.png[]
 
 == How to use it?
 
-Sawtooth is the default router; it will be used when no value is specified for the :io.pedestal.http/router key
-of the xref:service-map.adoc[].  If you prefer to be explicit, set the value to :sawtooth.
+Sawtooth is the default router; it will be the default for the :router key in the
+xref:connector-map.adoc[], or is used as the default when no value for key :io.pedestal.http/router
+is provided in the xref:service-map.adoc[].
+
+If you prefer to be explicit, set the value to :sawtooth.
 
 == Caveats
 
 The behavior of Sawtooth is not defined when there _are_ route conflicts;
-prefix-tree expressly favors paths with path parameters over paths that are entirely static.
+The prefix-tree allows for route conflicts between static paths and those with path parameters, and silently
+prefers the path parameters routes over the static routes.
 
 == Additional Notes
 

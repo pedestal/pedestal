@@ -16,25 +16,21 @@ The preferred approach is to add routes for resources to your application.
 [source,clojure]
 ----
 (ns org.example.service
-  (:require [io.pedestal.http :as http]
-            [io.pedestal.http.resources :as resources]
-            [io.pedestal.http.route :as route]))
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.http.resources :as resources]))
 
-(defn create-server
+(defn create-connector
   []
-  (http/create-server
-    {::http/port 8890
-     ::http/type :jetty
-     ::http/join? false
-     ::http/routes (route/routes-from
-                     #{ ... }  <1>
-                     (resources/file-routes {:file-root "web/public"}))})) <2>
+  (-> (conn/default-connector-map 8890)
+      (conn/with-default-interceptors)
+      (conn/with-routes
+        #{ ... }  <1>
+        (resources/file-routes {:file-root "web/public"}))) <2>
 ----
-
 <1> This is where you would put the dynamic routes for your application.
 <2> This exposes any files stored in the `web/public` folder under the default URI path `/public`.
 
-The `routes-from` macro will expand and combine the routes together to form the full routing table.
+The api:with-routes[ns=io.pedestal.connector] macro will expand and combine the routes together to form the full routing table.
 
 The api:resource-routes[] function is analogous to `file-routes`, but returns routes that expose resources on the classpath.
 
@@ -50,7 +46,7 @@ Each of these functions take a single parameter, a map of options:
 | :resource-root   | -         | resource | Prefix on resources, limiting access to a safe subset of the classpath
 | :classloader     | -         | resource | Classloader used to find resources
 | :index-files?    | true      | file     | If true, paths that map to directories may return the index file for that directory.
-| :cache?          | true      |          | If true, then resource data is cached to in memory to speed up requests.
+| :cache?          | true      |          | If true, then resource data is cached in memory to improve throughput.
 | :fast?           | true      |          | If true, then fast, asynchronous responses may be used.
 | :allow-head?     | true      |          | If true, then additional routes are added to support the :head request method,
                                             returning empty bodies.
@@ -65,8 +61,8 @@ for any reasonably sized resource, the response time is sub-millisecond.
 === Options notes
 
 It is quite possible to use both `file` and `resource` together, as long as the :prefix is set so that routes do not overlap.
-If necessary, it's even possible to use these functions multiple times, but care must be taken with the :route-namespace to avoid
-route name collisions.
+If necessary, it's even possible to use these functions multiple times, but care must be taken with the :route-namespace
+option to avoid route name collisions.
 
 The :prefix option should start with a "/" and not end with one.
 
@@ -90,8 +86,7 @@ The :cache? option does not currently put an upper limit on how many resources g
 You will want to disable the :cache? option if you have more than a handful of resources that may be
 available, as there's no facility to access or clear the cache. If you have many hundreds of
 resources, or the resources may change over time, caching is not a good option.  You may want
-to implement your own cache as an
-xref:#table-options[interceptor around the resource routes].
+to implement your own cache as an interceptor around the resource routes.
 ====
 
 The :fast? option will attempt to convert matched files or resources into a java.nio.channel.Channel instance, for an xref:response-bodies.adoc#nio-channel[asynchronous response].
@@ -106,44 +101,40 @@ Finally, the options map will _also_ be passed to
 api:table-routes[ns=io.pedestal.http.route.definition.table], so you may use the keys it
 supports, particularly :scheme, :port, and :interceptors.
 
-[#service-map-options]
-== Service map options
+== Connector Options
 
 File and resource can also be exposed by configuration in the
 xref:service-map.adoc[]:
 
-[clojure]
+[source,clojure]
 ----
-(defn create-server
+(ns org.example.service
+  (:require [io.pedestal.connector :as conn]))
+
+(defn create-connector
   []
-  (http/create-server
-    {::http/port 8890
-     ::http/type :jetty
-     ::http/join? false
-     ::http/file-path "web/public"
-     ::http/routes (route/routes-from
-                     #{ ... })}))
+  (-> (conn/default-connector-map 8890)
+      (conn/with-default-interceptors)
+      (conn/with-file-access "web/public")
+      (conn/with-routes #{...})))
 ----
 
-This results in an interceptor being added to the default interceptor list; it is ordered
-immediately before the routing interceptor (created from the ::http/routes).
+api:with-file-access[ns=io.pedestal.connector] exposes the file system resources directly under the `/` URI.
+Alternately, api:with-resource-access[ns=io.pedestal.connector] exposes classpath resources.
 
 Because these are interceptors, and not routes, they are not visible in the routing table.
-They *can*  overlap with actual routes without an error: any requests that are not processed
+They *can* overlap with actual routes without an error: any requests that are not processed
 as resources will drop down into the routing interceptor.
-
-A second option, ::http/resource-path, is used to enable access to resources on the classpath.
 
 == io.pedestal.http.ring-middlewares
 
-The service map options are implemented in terms of two functions:
+The connector options are implemented in terms of two functions:
 
-* api:file[ns=io.pedestal.http.ring-middlewares] for the ::http/file-path option
-* api:resource[ns=io.pedestal.http.ring-middlewares] for the ::http/resource-path option
+* api:file[ns=io.pedestal.http.ring-middlewares]
+* api:resource[ns=io.pedestal.http.ring-middlewares]
 
 A third option, api:fast-resource[ns=io.pedestal.http.ring-middlewares], adds
 support for fast, asynchronous replies for large resources on the classpath.
 
 Each of these functions have additional options that can be configured when they are added
-explicitly as interceptors (rather than relying on the ::http/file-path or ::http/resource-path
-service map options).
+explicitly as interceptors.

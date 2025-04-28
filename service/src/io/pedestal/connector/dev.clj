@@ -18,7 +18,6 @@
             [clojure.pprint :refer [pprint]]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.connector :as connector]
             [io.pedestal.http.cors :as cors]
             [io.pedestal.service.impl :as impl]))
 
@@ -45,12 +44,10 @@
     {:name  ::exception-debug
      :error attach-formatted-exception-response}))
 
-(defn with-dev-interceptors
-  "Adds the [[dev-allow-origin]] and [[exception-debug]] interceptors; these should be used only during
+(def dev-interceptors
+  "[[dev-allow-origin]] and [[exception-debug]] interceptors; these should be used only during
   local development, and should come before other interceptors."
-  [connector-map]
-  (connector/with-interceptors connector-map
-                               [cors/dev-allow-origin uncaught-exception]))
+  [cors/dev-allow-origin uncaught-exception])
 
 (defn default-debug-observer-omit
   "Default for key paths to ignore when using [[debug-observer]].  This is primarily the
