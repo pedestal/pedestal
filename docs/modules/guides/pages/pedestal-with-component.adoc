@@ -7,6 +7,10 @@ into a _system map_.
 
 It's not uncommon for Pedestal to be setup to operate as a component with a Component system.
 
+TIP: This guide is a bit longer than the previous ones, but no single file or function is itself very long.
+The point of using Component is to adopt of structure that scales up to higher levels of complexity, and that
+adds a bit of connective tissue between the essential code snippets of the application.
+
 == What You Will Learn
 After reading this guide you will be able to:
 
@@ -61,11 +65,14 @@ This is a very flat map; it shows that the :pedestal component
 depends on the :components component, which itself depends on
 the :greeter component.
 
+What's the point of the :components component? It represents
+a subset of components that will be made available to interceptors and handlers. There's only one component inside :components now, but in a big application, there could be many such dependencies.
+
 Real systems built with the Component library will often have dozens of
 components and even more dependencies, but this small start still demonstrates
 a valid pattern.
 
-Now that we have a better idea of the system layout, let's start building it.
+Now that we have a better idea of the system layout, let's start building the project and wiring the components together.
 
 == Project and Dependencies
 
@@ -85,8 +92,8 @@ include::example$component/deps.edn[]
 == Component System Map
 
 We're going to build the application top-down, starting with the system map.
-footnote:[This isn't actually fair. The application was originally built bottom up, a little bit at a time.
-But that approach is confusing to explain.]
+footnote:[This isn't actually fair. The application was originally built bottom up, a little bit at a time. It's just easier to understand
+when described top to bottom.]
 
 The `app.system` namespace it the highest structure in the application; it defines all the
 components in the system, and how they depend on each other.
@@ -98,7 +105,7 @@ Create a `src` directory, and then an `app` directory beneath that.  That's wher
 ----
 include::example$component/src/app/system.clj[tag=ns]
 ----
-<2> These two namespaces haven't been written yet.
+<1> These two namespaces haven't been written yet.
 
 The `system-map` function defines a Component SystemMap in terms of key and value pairs.
 Each key is a keyword, and each value is a map or Clojure record.  The `using` function
@@ -293,9 +300,9 @@ include::example$component/test/user.clj[]
 <1> This is required to make use of {clj-reload}, which is key to REPL oriented development.
 <2> The system map will be stored in this global atom.
 
-Ok, *now* let's fire up these tires and kick that puppy!
+Ok, *now* let's fire up these tires up and kick the puppy!
 
-== Running It
+== Running The Application
 
 We'll use `clj` tool to run our
 example. This should be familiar to you if you read through the
@@ -316,10 +323,10 @@ Routing table:
 user=>
 ----
 
-<1> The :test alias adds the `test` directory and some other dependencies to the classpath. The :dev-mode enables development mode.
+<1> The :test alias adds the `test` directory and some other dependencies to the classpath. The :dev-mode alias enables development mode.
 <2> Here's that handy command from `user.clj`.
 <3> In development mode, the routing table is printed to the console at startup (and whenever a change is detected).
-footnote:[Also, in the console it prints correctly: the verticle bar align and connect. It looks a bit jarring here.]
+footnote:[Also, in the console it prints correctly: the verticle bars align properly and connect. It looks a bit jarring here.]
 <4> This is the printed representation of the Component system map.
 
 You can now interact with the started service. Start a second terminal window and use `curl` to access the `/greet` route:
@@ -343,13 +350,13 @@ You'll also see messages in the console of the server REPL:
 
 These messages are quite minimal because we haven't configured logging in any way.
 
-Two important areas remain: REPL oriented development, and testing.  Let's get a feel for how awesome the Clojure REPL is.
+Two important areas remain: REPL oriented development, and testing.  Let's start by getting a feel for how awesome the Clojure REPL is.
 
 == REPL oriented development
 
 Let's see if we can get a prettier response to the client.
 
-Let's make changes to the Greeter component:
+The body of the response is inside the Greeter component, so only that needs to change:
 
 [source,clojure]
 .src/app/components/greeter.clj
@@ -378,13 +385,15 @@ Reloaded 5 namespaces in 54 ms
 user=>
 ----
 
-clj-reload has identified which files have changed, and has unloaded and reloaded all files affected by the changes.  The code continues to run; it isn't even necessary to `stop!` and `start!` the service.
+clj-reload has identified which files have changed, and has unloaded and reloaded all files affected by the changes.  The code, including the system map and the Pedestal connector inside the :pedestal component, continues to run; it isn't even necessary to `stop!` and `start!` the service.
 
 [source]
 ----
 $ curl http://localhost:8890/greet
 Greetings for the 3rd time
 ----
+
+Because it's the 3rd request, we get the expected response. Even though code reloaded, the system map is unchanged, and the internal state of the :greeter component isn't affected ... just the functions and other symbols defined in re-loaded namespaces has changed.
 
 We can also modify our routes, giving our API a different URL:
 
@@ -427,156 +436,284 @@ Greetings for the 4th time
 ----
 
 At this point, we've seen that we can iterate quickly when in development mode.
-You should be aware that when running a system map when development mode is _disabled_,
+You should be aware that when running a system map when development mode is *not expressly enabled*
 you will see that Pedestal gets "locked in" to the routes and many function definitions,
 even after code is changed and reloaded ... you'll often have to `(stop!)` and `(start!)` to see the effects of reloading namespaces.
 
 Fortunately, starting and stopping the system map is very quick, which is important when it comes to the next subject ... testing.
 
-// TODO: continue from here
-
 == Testing
 
 Let's move on to testing our new service. Recall that our service contains one
-route, `GET /greet`. We'd like to verify that it returns the proper
-greeting. Before we can jump in and do that, though, we need to create
+route, `GET /api/greet`. We'd like to verify that a request to that endpoints returns the proper
+greeting response.
+
+Before we can jump in and do that, though, we need to create
 some helpers. Some are just useful in general, while others are
 specific to our component implementation. Don't worry, you won't have
 to write too much code. Let's do it!
 
 First create a `system_test.clj` file in the `src` directory.
 
-[source, clojure]
-.test/system_test.clj
-
+[source,clojure]
+.test/app/system_test.clj
 ----
 include::example$component/test/app/system_test.clj[tags=ns]
 ----
-The `system-test` namespace requires all the dependencies
+
+The `app.system-test` namespace requires all the dependencies
 necessary for testing.
 
-Now let's get to those helpers.
+We'll make use of the api:*[ns=io.pedestal.connector.test] namespace, which contains
+functions to make it easier to integration test a Pedestal application.
+We'll also make use of https://github.com/nubank/matcher-combinators[nubank/matcher-combinators],
+a testing library that makes it easy to make assertions about complex data, such as a response map.
 
-The `url-for` helper allows us to refer to routes by
-_route-name_. This is very useful, and is almost always adapted into new projects.
-----
-include::example$component/test/app/system_test.clj[tags=url-for]
-----
-We need to expand the routes before invoking Pedestal's
-api:url-for-routes[ns=io.pedestal.http.route] function.
+=== Create and manage the system
 
-The end result is that `url-for` is a function
+To integration test a system, we must be able to create and start the application's system map, and ensure it is shut down at the end of each test.
 
-The `service-fn` helper extracts the Pedestal ::http/service-fn from
-the started system. This helper allows us to keep focus on our
-tests rather than test initialization.
+In a full application we'd expect to do this constantly, and this is a place where a Clojure
+macro can be handy.
+
+[source,clojure]
 ----
-include::example$component/test/app/system_test.clj[tags=service-fn]
+include::example$component/test/app/system_test.clj[tag=with-system]
 ----
 
+This macro makes it possible to create the system from any expression, assigning it
+to a local symbol that can be referenced in the body of the macro.
 
-The `with-system` macro allows us to start/stop systems between test
-executions. We'll model its design on macros like `with-open` and
-`with-redefs` so that its shape and usage is familiar.
+This system is the base for the next part, a helper for running a request.
+
+=== Run a request
+
+Our second helper is used to test a request, returning a response.  It's built
+on top of the `response-for` function.
+
+[source,clojure]
 ----
-include::example$component/test/app/system_test.clj[tags=with-system]
+include::example$component/test/app/system_test.clj[tag=response]
 ----
+
+The api:response-for[ns=io.pedestal.connector.test] function needs the Pedestal connector, which is available from the
+system map.  With the connector, the method (such as :get), the URL, and any additional arguments, `response` can exercise your Pedestal application
+almost exactly as it would when receiving a real HTTP request ... just no HTTP is involved.
+
+`response-for` uses the interceptor chain to execute a request map (built from the arguments)
+as if it had arrived via HTTP, and returns a response map.
 
 Now that we've got our helpers implemented, let's move on to our
-test. Create a test named `greeting-test`.
+test.
+
+
+=== Test
+
+The test will exercise the `GET /api/greet` route of the application.
+
 ----
 include::example$component/test/app/system_test.clj[tags=test]
+))
 ----
-<1> `sut` (for _system under test_) will be bound to the started
-system by `with-system`. Notice how :test is passed as the system
-environment key; this ensures that the server does not start, and no HTTP port is bound.
-<2> Use the `service-fn` helper to extract the Pedestal service
-function from the started system.
-<3> Use Pedestal's `response-for` test helper to make a test request
-to the :greet route. Use the `url-for` helper to refer to the route
-by name.
-<4> We should get back a '200' status.
-<5> We should get back a response body of 'Hello, world!'
+<1> Now we see why the `with-system` macro is so useful.
+<2> The `(is (match? ...))` is provided by matcher-combinators.
+<3> The `response` function makes it simple to run the request.
 
-Now let's restart run the tests from the command line:
+Now let's run the tests from the command line:
+
+[source]
 ----
-> clj -X:test
+$ clj -X:test
 
 Running tests in #{"test"}
 
-Testing system-test
-[main] INFO io.pedestal.http - {:msg "GET /greet", :line 90}
+Testing app.system-test
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /api/greet", :line 40}
+
+Ran 1 tests containing 1 assertions.
+0 failures, 0 errors.
+$
+----
+
+We can run that test any number of times, and because the system is started fresh each time,
+it will always be the "1st" greeting.
+
+We should check that the :greeting component's state is working correctly.
+Add an assertion for a new request just after the first:
+
+----
+include::example$component/test/app/system_test.clj[tags=test2]
+----
+<1> `via` is used to transform the actual response body before comparing it to the expected body
+
+Run it again to see both assertions execute:
+
+[source]
+----
+$ clj -X:test
+
+Running tests in #{"test"}
+
+Testing app.system-test
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /api/greet", :line 40}
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /api/greet", :line 40}
 
 Ran 1 tests containing 2 assertions.
 0 failures, 0 errors.
->
 ----
 
-That's it! You now know the fundamentals necessary for implementing
-and testing your Component-based Pedestal services.
+=== What failure looks like
+
+Before we wrap up, we should take a quick peek at what failures look like.
+Changing the word "2nd" to "second" in our test code will result in a test failure:
+
+[source]
+----
+$ clj -X:test
+
+Running tests in #{"test"}
+
+Testing app.system-test
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /api/greet", :line 40}
+[main] INFO io.pedestal.service.interceptors - {:msg "GET /api/greet", :line 40}
+
+FAIL in (greeting-test) (system_test.clj:34)
+expected: (match? {:status 200, :body (m/via string/trim "Greetings for the second time")} (response system :get "/api/greet"))
+  actual: {:status 200,
+ :body
+ (mismatch
+  (expected "Greetings for the second time")
+  (actual "Greetings for the 2nd time")),
+ :headers
+ {:strict-transport-security "max-age=31536000; includeSubdomains",
+  :x-frame-options "DENY",
+  :x-content-type-options "nosniff",
+  :x-xss-protection "1; mode=block",
+  :x-download-options "noopen",
+  :x-permitted-cross-domain-policies "none",
+  :content-security-policy
+  "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;",
+  :content-type "text/plain"}}
+...
+$
+----
+
+On a failure. matcher-combinators does a good job of describing exactly what failed and what the actual data provided was.  It's not visible here, but the console output even includes
+some colors, red vs. green, to highlight what's wrong vs. what was expected.
+
+And that brings us to the end of this guide.
 
 == The Whole Shebang
 For reference, here are the complete contents of all the files.
 
-
-[source,clojure,subs="-callouts"]
-.src/pedestal.clj
-----
-include::example$component/src/app/pedestal.clj[tags=ns]
-
-include::example$component/src/app/pedestal.clj[tags=test?]
-
-include::example$component/src/app/pedestal.clj[tags=component-init]
-include::example$component/src/app/pedestal.clj[tags=component-start]
-include::example$component/src/app/pedestal.clj[tags=component-stop]
-
-include::example$component/src/app/pedestal.clj[tags=constructor]
-----
-
-
-
-[source,clojure,subs="-callouts"]
-.src/routes.clj
-----
-include::example$component/src/app/routes.clj[tags=response]
-
-include::example$component/src/app/routes.clj[tags=routes]
-----
-
-
-
-[source,clojure,subs="-callouts"]
-.src/system.clj
-----
-include::example$component/src/app/system.clj[tags=ns]
-
-include::example$component/src/app/system.clj[tags=app]
-
-include::example$component/src/app/system.clj[tags=init]
-----
-
-
-
-[source,clojure,subs="-callouts"]
-.test/system_test.clj
-----
-include::example$component/test/app/system_test.clj[tags=ns]
-
-include::example$component/test/app/system_test.clj[tags=url-for]
-
-include::example$component/test/app/system_test.clj[tags=service-fn]
-
-include::example$component/test/app/system_test.clj[tags=with-system]
-
-include::example$component/test/app/system_test.clj[tags=test]
-----
-
-
-[source,clojure,subs="-callouts"]
+[source.hide-callouts,clojure]
 .deps.edn
 ----
 include::example$component/deps.edn[]
 ----
+
+[source.hide-callouts,clojure]
+.src/app/pedestal.clj
+----
+(ns app.pedestal
+  (:require [com.stuartsierra.component :as component]
+            [io.pedestal.connector :as conn]
+            [io.pedestal.http.http-kit :as hk]
+            app.routes))
+
+(defn- inject-components
+  [components]
+  {:name  ::inject-component
+   :enter #(assoc-in % [:request :components] components)})
+
+(defrecord Pedestal [components connector]
+  component/Lifecycle
+
+  (start [this]
+    (assoc this :connector
+           (-> (conn/default-connector-map 8890)
+               (conn/with-interceptor (inject-components components))
+               (conn/optionally-with-dev-mode-interceptors)
+               (conn/with-default-interceptors)
+               (conn/with-routes app.routes/routes)
+               (hk/create-connector nil)
+               (conn/start!))))
+
+  (stop [this]
+    (conn/stop! connector)
+    (assoc this :connector nil)))
+
+(defn new-pedestal
+  []
+  (map->Pedestal {}))
+----
+
+[source.hide-callouts,clojure]
+.src/app/routes.clj
+----
+include::example$component/src/app/routes.clj[tags=response]
+
+include::example$component/src/app/routes.clj[tags=routes2]
+----
+
+
+
+[source.hide-callouts,clojure]
+.src/app/system.clj
+----
+include::example$component/src/app/system.clj[tags=ns;app]
+----
+
+[source.hide-callouts,clojure]
+.src/app/components/greeter.clj
+----
+include::example$component/src/app/components/greeter.clj[tags=gen-preamble;gen2]
+----
+
+[source.hide-callouts,clojure]
+.test/user.clj
+----
+include::example$component/test/user.clj[]
+----
+
+[source.hide-callouts,clojure]
+.test/app/system_test.clj
+----
+(ns app.system-test
+  (:require [clojure.test :refer [deftest is]]
+            [com.stuartsierra.component :as component]
+            [io.pedestal.connector.test :refer [response-for]]
+            matcher-combinators.test
+            [matcher-combinators.matchers :as m]
+            [clojure.string :as string]
+            app.system))
+
+(defmacro with-system
+  [[system-sym system-expr] & body]
+  `(let [~system-sym (component/start-system ~system-expr)]
+     (try
+       ~@body
+       (finally
+         (component/stop-system ~system-sym)))))
+
+(defn- response
+  [system method url & more]
+  (apply response-for (get-in system [:pedestal :connector]) method url more))
+
+(deftest greeting-test
+  (with-system [system (app.system/new-system)]
+               (is (match?
+                     {:status 200
+                      :body   "Greetings for the 1st time\n"}
+                     (response system :get "/api/greet")))
+               ;; end::test[]
+               ;; tag::test2[]
+               (is (match?
+                     {:status 200
+                      :body   (m/via string/trim "Greetings for the 2nd time")} ;; <4>
+                     (response system :get "/api/greet")))))
+----
+
 
 == The Path So Far
 At the beginning of this guide, we set out to create a Pedestal

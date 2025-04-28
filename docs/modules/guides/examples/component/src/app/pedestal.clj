@@ -5,14 +5,12 @@
             [io.pedestal.http.http-kit :as hk]
             app.routes))                                    ;; <2>
 ;; end::ns[]
-
 ;; tag::inject[]
 (defn- inject-components
   [components]
   {:name  ::inject-component
    :enter #(assoc-in % [:request :components] components)})
 ;; end::inject[]
-
 ;; tag::component[]
 (defrecord Pedestal [components connector]                  ;; <1>
   component/Lifecycle                                       ;; <2>
@@ -35,7 +33,6 @@
     (assoc this :connector nil))
   ;; end::stop[]
   )
-
 ;; tag::constructor[]
 (defn new-pedestal
   []

@@ -16,6 +16,7 @@
 (defn new-greeter
   []
   (map->Greeter {}))
+
 ;; end::gen-preamble[]
 
 ;; tag::gen1[]

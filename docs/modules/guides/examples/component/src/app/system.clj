@@ -2,7 +2,9 @@
 (ns app.system
   (:require [com.stuartsierra.component :as component]
             [app.components.greeter :as greeter]            ;; <1>
-            app.pedestal))
+            app.pedestal))                                  ;; <1>
+
+;; end::ns[]
 
 ;; tag::app[]
 (defn new-system
