@@ -1,4 +1,4 @@
 {:paths ["src"]
- :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-alpha-3"}
+ :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-alpha-4"}
          org.clojure/data.json         {:mvn/version "2.5.1"} ;; <1>
          org.slf4j/slf4j-simple        {:mvn/version "2.0.17"}}}
