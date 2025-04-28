@@ -72,7 +72,7 @@ Other changes:
   - `io.pedestal.service.resources` - Expose resources using _routes_ not _interceptors_
   - `io.pedestal.connector.dev` - Development/debugging tools
   - `io.pedestal.service.interceptors` - Common interceptors
-  - `io.pedestal.service.test` - Testing w/ Ring request and response (no Servlet API)
+  - `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
 - When converting a handler function to an Interceptor
   - Handler functions may now be asynchronous, returning a channel that conveys the response
   - The :name metadata on the _function_ will be used as the :name of the interceptor
