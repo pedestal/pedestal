@@ -9,7 +9,8 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.component.protocols
+(ns io.pedestal.interceptor.protocols
+  "Protocols that can be implemented by components which may then be converted into interceptors."
   {:added "0.8.0"})
 
 (defprotocol Handler
