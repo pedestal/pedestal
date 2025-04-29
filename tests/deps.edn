@@ -51,6 +51,7 @@
         io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
         io.pedestal/pedestal.common {:local/root "../common"}
         io.pedestal/pedestal.error {:local/root "../error"}
+        io.pedestal/pedestal.component {:local/root "../component"}
 
         io.github.hlship/trace {:mvn/version "1.4"}
         com.walmartlabs/test-reporting {:mvn/version "1.2"}

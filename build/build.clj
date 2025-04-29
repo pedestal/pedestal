@@ -38,6 +38,7 @@
    "service"
    "servlet"
    ;; And then the others:
+   "component"
    "jetty"
    "http-kit"
    "embedded"])
