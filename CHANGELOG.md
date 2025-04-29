@@ -5,7 +5,7 @@
 
 ## 0.8.0 - UNRELEASED
 
-The main focus of this release is to improve routing and upgrade to Jetty 12.
+The main focii of this release is to improve routing and upgrade to Jetty 12.
 The secondary focus is to further tease apart the aspects of Pedestal that are specific
 to the Jakarta Servlet API from those that are more general.
 
@@ -73,8 +73,9 @@ Other changes:
   - `io.pedestal.connector.dev` - Development/debugging tools
   - `io.pedestal.service.interceptors` - Common interceptors
   - `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
+  - `io.pedestal.interceptor.component` - unify Components and Interceptors
 - When converting a handler function to an Interceptor
-  - Handler functions may now be asynchronous, returning a channel that conveys the response
+  - Handler functions may now be *asynchronous*, returning a channel that conveys the response
   - The :name metadata on the _function_ will be used as the :name of the interceptor
   - Otherwise, a :name is derived from the function's class
   - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
