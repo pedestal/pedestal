@@ -14,8 +14,7 @@
             [io.pedestal.interceptor.component :as c]
             [io.pedestal.interceptor :refer [interceptor]]
             [com.stuartsierra.component :as component]
-            [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.interceptor.protocols :as p]))
+            [io.pedestal.interceptor.chain :as chain]))
 
 (defprotocol Track
   (track [this event]))
@@ -40,13 +39,13 @@
 
 (c/definterceptor jack [tracker]
 
-  p/OnEnter
+  c/OnEnter
 
   (enter [_ context]
     (track tracker [:enter :jack])
     context)
 
-  p/OnLeave
+  c/OnLeave
 
   (leave [_ context]
     (track tracker [:leave :jack])
@@ -54,7 +53,7 @@
 
 (c/definterceptor handler [tracker]
 
-  p/Handler
+  c/Handler
 
   (handle [_ request]
     (track tracker [:handle :handler request])
@@ -62,7 +61,7 @@
 
 (c/definterceptor fail [ex tracker]
 
-  p/OnEnter
+  c/OnEnter
 
   (enter [_ _]
     (track tracker [:enter :fail (ex-data ex)])
@@ -70,7 +69,7 @@
 
 (c/definterceptor fixer [ex tracker]
 
-  p/OnError
+  c/OnError
 
   (error [_ context thrown-ex]
     (track tracker [:error :fixer (ex-data thrown-ex)])

@@ -16,8 +16,26 @@
   [[IntoInterceptor]] and so can be used an interceptor."
   {:added "0.8.0"}
   (:require [io.pedestal.interceptor :as i]
-            [io.pedestal.interceptor.impl :as impl]
-            [io.pedestal.interceptor.protocols :as p]))
+            [io.pedestal.interceptor.impl :as impl]))
+
+(defprotocol Handler
+  (handle [_ request]
+    "Handles a request map and returns a response map, or a channel that conveys the response map."))
+
+(defprotocol OnEnter
+  (enter [_ context]
+    "Corresponds to the :enter phase of a standard interceptor; passed the context and returns the (new) context,
+    or a core.async channel that will convey the new context."))
+
+(defprotocol OnLeave
+  (leave [_ context]
+    "Corresponds to the :leave phase of a standard interceptor; passed the context and returns the (new) context,
+    or a core.async channel that will convey the new context."))
+
+(defprotocol OnError
+  (error [_ context exception]
+    "Corresponds to the :error phase of a standard interceptor; passed the context and an exception, and returns the (new) context,
+    or a core.async channel that will convey the new context."))
 
 (defn component->interceptor
   "Converts a component into an interceptor.   The component must implement
@@ -30,19 +48,19 @@
   [interceptor-name component]
   (assert (keyword? interceptor-name))
   (let [enter-fn        (or
-                          (when (satisfies? p/OnEnter component)
+                          (when (satisfies? OnEnter component)
                             (fn [context]
-                              (p/enter component context)))
-                          (when (satisfies? p/Handler component)
+                              (enter component context)))
+                          (when (satisfies? Handler component)
                             (impl/wrap-handler
                               (fn [request]
-                                (p/handle component request)))))
-        leave-fn        (when (satisfies? p/OnLeave component)
+                                (handle component request)))))
+        leave-fn        (when (satisfies? OnLeave component)
                           (fn [context]
-                            (p/leave component context)))
-        error-fn        (when (satisfies? p/OnError component)
+                            (leave component context)))
+        error-fn        (when (satisfies? OnError component)
                           (fn [context exception]
-                            (p/error component context exception)))
+                            (error component context exception)))
         interceptor-map (cond-> {:name interceptor-name}
                           enter-fn (assoc :enter enter-fn)
                           leave-fn (assoc :leave leave-fn)
