@@ -63,6 +63,7 @@
 
   The normal `map->record` and `->record` construction functions are generated.
   "
+  {:clj-kondo/lint-as 'clojure.core/defrecord}
   [record-name fields & opts+specs]
   (assert (simple-symbol? record-name))
   (let [interceptor-name (keyword (-> *ns* ns-name str) (name record-name))]
