@@ -127,5 +127,5 @@
                 (events context)))))
 
 (deftest interceptor-name-is-namespace-qualified
-  (is (= ::jack)
-      (-> (map->jack {}) interceptor :name)))
+  (is (= ::jack
+         (-> (map->jack {}) interceptor :name))))
