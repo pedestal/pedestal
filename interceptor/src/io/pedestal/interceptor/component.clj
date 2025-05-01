@@ -61,9 +61,7 @@
 
   The record implements the [[IntoInterceptor]] protocol; see [[component->interceptor]].
 
-  The normal `map->record` and `->record` construction functions are generated.
-  "
-  {:clj-kondo/lint-as 'clojure.core/defrecord}
+  The normal `map->record` and `->record` construction functions are generated."
   [record-name fields & opts+specs]
   (assert (simple-symbol? record-name))
   (let [interceptor-name (keyword (-> *ns* ns-name str) (name record-name))]
