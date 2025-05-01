@@ -15,7 +15,6 @@
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
   (:require [clojure.string :as string]
-            [clojure.core.async :refer [go <!]]
             [io.pedestal.internal :as i]
             [io.pedestal.interceptor.impl :as impl]
             [clj-commons.format.exceptions :as exceptions])
