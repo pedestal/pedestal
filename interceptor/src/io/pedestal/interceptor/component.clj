@@ -67,10 +67,72 @@
                           error-fn (assoc :error error-fn))]
     (i/interceptor interceptor-map)))
 
+(def ^:private method->protocol
+  {'handle `Handler
+   'enter   `OnEnter
+   'leave   `OnLeave
+   'error   `OnError})
+
+(defn- expand-opts+specs
+  "Decomposes the opts+specs to opts (an initial map),
+  and specs, a sequence compatible with defrecord.
+
+  Between opts and proper specs may come methods for the four
+  protocols defined in this namespace, in which case a proper protocol/method
+  is generated.  The point is that a definterceptor can specify a component method
+  without having to know about the component protocol, it is supplied automatically."
+  [opts+specs]
+  (let [head (first opts+specs)
+        opts (when (map? head)
+               head)]
+    (loop [output (if opts
+                    [opts]
+                    [])
+           [head & rest :as remaining] (if opts (rest opts+specs) opts+specs)]
+      (cond
+        (nil? head)
+        output
+
+        (symbol? head)
+        ;; We've reached formal protocol/methods
+        (into output remaining)
+
+        (not (list? head))
+        (throw (ex-info (str "Unexpected value for record spec: " head)
+                        {:value     head
+                         :remaining rest}))
+
+        :else
+        (let [method-name (first head)
+              protocol    (get method->protocol method-name)]
+          (if protocol
+            (recur (conj output protocol head)
+                   rest)
+            (throw (ex-info (str "Unexpected method: " method-name)
+                            {:method        head
+                             :valid-methods (keys method->protocol)}))))))))
+
 (defmacro definterceptor
-  "Defines a interceptor component, as a Clojure record. The interceptor's name will be
-  the record's name as a namespace qualified keyword.  The interceptor must extend
-  at least one of the [[Handler]], [[OnEnter]], [[OnLeave]], or [[OnError]] protocols.
+  "Defines an interceptor component, as a Clojure record. The interceptor's name will be
+  the record's name as a namespace qualified keyword.
+
+  After the optional options map, and before the normal protocol/method specs,
+  additional methods may be added:
+
+  - `(handle [this context])`
+  - `(enter [this context])`
+  - `(leave [this context])`
+  - `(error [this context exception])`
+
+  For each of these, `definterceptor` will provide the matching protocol.
+
+  Example:
+
+  ```
+  (definteceptor upcase []
+
+    (enter [_ context] (update-in context [:request :query-params :id] string/upper-case)))
+  ```
 
   The class name will match the record-name (which is typically kebab-cased).
   That is `(definterceptor foo-bar ...)` will generate the same class name as
@@ -82,12 +144,15 @@
   The normal `map->record` and `->record` construction functions are generated."
   [record-name fields & opts+specs]
   (assert (simple-symbol? record-name))
-  (let [interceptor-name (keyword (-> *ns* ns-name str) (name record-name))]
+  (let [interceptor-name (keyword (-> *ns* ns-name str) (name record-name))
+        opts+specs'      (expand-opts+specs opts+specs)]
     `(defrecord ~record-name ~fields
 
-       ~@opts+specs
+       ~@opts+specs'
 
        i/IntoInterceptor
 
        (~'-interceptor [~'this]
          (component->interceptor ~interceptor-name ~'this)))))
+
+

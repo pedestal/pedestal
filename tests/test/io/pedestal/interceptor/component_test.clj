@@ -14,7 +14,8 @@
             [io.pedestal.interceptor.component :as c]
             [io.pedestal.interceptor :refer [interceptor]]
             [com.stuartsierra.component :as component]
-            [io.pedestal.interceptor.chain :as chain]))
+            [io.pedestal.interceptor.chain :as chain]
+            [matcher-combinators.matchers :as m]))
 
 (defprotocol Track
   (track [this event]))
@@ -39,13 +40,9 @@
 
 (c/definterceptor jack [tracker]
 
-  c/OnEnter
-
   (enter [_ context]
     (track tracker [:enter :jack])
     context)
-
-  c/OnLeave
 
   (leave [_ context]
     (track tracker [:leave :jack])
@@ -53,15 +50,11 @@
 
 (c/definterceptor handler [tracker]
 
-  c/Handler
-
   (handle [_ request]
     (track tracker [:handle :handler request])
     ::response))
 
 (c/definterceptor fail [ex tracker]
-
-  c/OnEnter
 
   (enter [_ _]
     (track tracker [:enter :fail (ex-data ex)])
@@ -69,14 +62,26 @@
 
 (c/definterceptor fixer [ex tracker]
 
-  c/OnError
-
   (error [_ context thrown-ex]
     (track tracker [:error :fixer (ex-data thrown-ex)])
     (is (identical? ex (ex-cause thrown-ex)))
     (chain/clear-error context)))
 
-(defn execute [system-map base-context & interceptor-keys]
+(c/definterceptor mixed [*context]
+
+  (enter [_ context]
+    (reset! *context context)
+    context)
+
+  component/Lifecycle
+
+  (start [this]
+    (assoc this :*context (atom nil)))
+
+  (stop [this] this))
+
+
+(defn- execute [system-map base-context & interceptor-keys]
   (let [system       (component/start-system system-map)
         interceptors (->> (map #(get system %) interceptor-keys)
                           (map interceptor))]
@@ -125,6 +130,42 @@
     (is (match? [[:handle :handler ::request]]
                 (events context)))))
 
+(deftest supports-other-protocols
+  (let [system       (component/system-map
+                       :mixed (map->mixed {}))
+        init-context {:context :init}
+        context      (execute system init-context :mixed)]
+    (is (match? init-context context))
+    (is (match? init-context
+                (-> context :system :mixed :*context deref)))))
+
 (deftest interceptor-name-is-namespace-qualified
   (is (= ::jack
          (-> (map->jack {}) interceptor :name))))
+
+(deftest does-not-allow-unknown-methods
+
+  (when-let [e (is (thrown? Exception
+                            (eval
+                              '(io.pedestal.interceptor.component/definterceptor unknown [] (unknown [_ _] nil)))))]
+
+    (is (= "Unexpected method: unknown" (-> e ex-cause ex-message)))
+    (is (match? {:method        '(unknown [_ _] nil)
+                 :valid-methods (m/via set #{'handle 'enter 'leave 'error})}
+                (-> e ex-cause ex-data)))))
+
+(deftest unexpected-spec-value
+
+  (when-let [e (is (thrown? Exception
+                            (eval
+                              '(io.pedestal.interceptor.component/definterceptor unknown [] :whazzis (foo [_])))))]
+
+    (is (= "Unexpected value for record spec: :whazzis"
+           (-> e ex-cause ex-message)))
+    (is (match? {:value     :whazzis
+                 :remaining '[(foo [_])]}
+                (-> e ex-cause ex-data)))))
+
+
+
+
