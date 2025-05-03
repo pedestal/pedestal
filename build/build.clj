@@ -263,7 +263,7 @@
   by `clj -T:build advance-version :level :snapshot :commit true`."
   [options]
   (let [{:keys [level dry-run]} options
-        advance-levels #{:major :minor :patch :release :snapshot :beta :rc}
+        advance-levels #{:major :minor :patch :release :snapshot :beta :rc :alpha}
         _              (validate level advance-levels
                                  (str ":level must be one of: "
                                       (->> advance-levels (map name) (str/join ", "))))

@@ -51,6 +51,12 @@
   [context ^Throwable t]
   (assoc context ::error t))
 
+(defn clear-error
+  "Clears the error from the context."
+  {:added "0.8.0"}
+  [context]
+  (dissoc context ::error))
+
 (defn- begin-error
   [context stage interceptor throwable]
   (let [{:keys [execution-id]} context

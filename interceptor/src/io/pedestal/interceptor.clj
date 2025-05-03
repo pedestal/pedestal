@@ -15,7 +15,6 @@
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
   (:require [clojure.string :as string]
-            [clojure.core.async :refer [go <!]]
             [io.pedestal.internal :as i]
             [io.pedestal.interceptor.impl :as impl]
             [clj-commons.format.exceptions :as exceptions])
@@ -61,11 +60,7 @@
         interceptor-name (or (:name m)
                              (default-handler-name f))]
     {:name  interceptor-name
-     :enter (fn [context]
-              (let [response (-> context :request f)]
-                (if (impl/channel? response)
-                  (go (assoc context :response (<! response)))
-                  (assoc context :response response))))}))
+     :enter (impl/wrap-handler f)}))
 
 (defprotocol IntoInterceptor
 

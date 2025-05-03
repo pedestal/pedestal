@@ -1,7 +1,7 @@
 {:paths ["src"]
  :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-alpha-4"}
          com.stuartsierra/component    {:mvn/version "1.1.0"}
-         org.clj-commons/humanize      {:mvn/version "1.1"} ;; <1>
+         org.clj-commons/humanize      {:mvn/version "1.1"}
          org.slf4j/slf4j-simple        {:mvn/version "2.0.17"}}
  :aliases
  {:test
@@ -13,5 +13,5 @@
    :exec-fn     cognitect.test-runner.api/test}
 
   :dev-mode
-  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}}}             ;; <4>
+  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}}}
 

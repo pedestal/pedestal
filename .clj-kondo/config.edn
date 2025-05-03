@@ -11,4 +11,5 @@
 
 {:config-paths ["../error/resources/clj-kondo.exports/io.pedestal/pedestal.error"
                 "../log/resources/clj-kondo.exports/io.pedestal/pedestal.log"
+                "../interceptor/resources/clj-kondo.exports/io.pedestal/pedestal.interceptor"
                 "../route/resources/clj-kondo.exports/io.pedestal/pedestal.route"]}

@@ -716,6 +716,7 @@ include::example$component/test/user.clj[]
 
 
 == The Path So Far
+
 At the beginning of this guide, we set out to create a Pedestal
 component, demonstrate its usage as well as how to test it without
 starting the http server. In the process, we also introduced a few general purpose
@@ -723,7 +724,7 @@ test helpers.
 
 Keep in mind that Pedestal services are highly configurable. It's
 important to separate that configuration from the core component
-implementation. By limiting our component's responsibilities to http
-server and Pedestal provider life cycle support, we can use it in a
+implementation. By limiting our component's responsibilities to an HTTP
+server with Pedestal providing life cycle support, we can use it in a
 wide variety of Pedestal implementations.
 
