@@ -1,0 +1,17 @@
+{:paths ["src"]
+ :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-alpha-4"}
+         com.stuartsierra/component    {:mvn/version "1.1.0"}
+         org.clj-commons/humanize      {:mvn/version "1.1"}
+         org.slf4j/slf4j-simple        {:mvn/version "2.0.17"}}
+ :aliases
+ {:test
+  {:extra-paths ["test"]
+   :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
+                                                       :git/sha "dfb30dd"}
+                 nubank/matcher-combinators           {:mvn/version "3.9.1"} ;; <2>
+                 io.github.tonsky/clj-reload          {:mvn/version "0.9.4"}} ;; <3>
+   :exec-fn     cognitect.test-runner.api/test}
+
+  :dev-mode
+  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}}}
+
