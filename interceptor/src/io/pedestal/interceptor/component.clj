@@ -50,17 +50,17 @@
   (let [enter-fn        (or
                           (when (satisfies? OnEnter component)
                             (fn [context]
-                              (enter component context)))
+                              (.enter component context)))
                           (when (satisfies? Handler component)
                             (impl/wrap-handler
                               (fn [request]
-                                (handle component request)))))
+                                (.handle component request)))))
         leave-fn        (when (satisfies? OnLeave component)
                           (fn [context]
-                            (leave component context)))
+                            (.leave component context)))
         error-fn        (when (satisfies? OnError component)
                           (fn [context exception]
-                            (error component context exception)))
+                            (.error component context exception)))
         interceptor-map (cond-> {:name interceptor-name}
                           enter-fn (assoc :enter enter-fn)
                           leave-fn (assoc :leave leave-fn)

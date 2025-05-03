@@ -17,6 +17,8 @@
             [io.pedestal.interceptor.chain :as chain]
             [matcher-combinators.matchers :as m]))
 
+(set! *warn-on-reflection* true)
+
 (defprotocol Track
   (track [this event]))
 
