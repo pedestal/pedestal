@@ -220,13 +220,13 @@
            (route :new-user :post "/users")))))
 
 (deftest param-path-vs-literal-path-no-conflict
-  (is (= {:get-user #{:get-user-stats}
-          :get-page #{:get-page-stats}}
+  (is (= {:get-user #{:search-users}}
          (conflicts
            (route :get-users :get "/users")
            (route :get-user :get "/users/:id")
            (route :get-user-stats :get "/users/stats")
            (route :get-page :get "/pages/:id")
+           (route :search-users :get "/users/:search")
            (route :get-page-stats :get "/pages/stats")
            ; Not conflicts, different methods:
            (route :new-user :post "/users")
@@ -244,12 +244,12 @@
                      ["/user/:user-id" :get `get-user]
                      ["/user/:user-id" :post `create-user]
                      ;; A conflict:
-                     ["/user/search" :get `user-search]])))))]
+                     ["/user/:search" :get `user-search]])))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"
                   ":io.pedestal.http.sawtooth-test/get-user (GET /user/:user-id) conflicts with route:"
-                  " - :io.pedestal.http.sawtooth-test/user-search (GET /user/search)"])
+                  " - :io.pedestal.http.sawtooth-test/user-search (GET /user/:search)"])
           s))))
 
 (deftest multiple-conflicts
@@ -260,20 +260,14 @@
                   (table/table-routes
                     [["/pages" :get `list-pages]
                      ["/pages/:id" :get `get-page]
-                     ["/pages/search" :get `search-pages]
-                     ["/pages/*path" :any `page-content]
-                     ["/user" :get `get-users]
-                     ["/user/:user-id" :get `get-user]
-                     ["/user/:user-id" :post `create-user]
-                     ["/user/search" :get `user-search]])))))]
+                     ["/pages/:search" :get `search-pages]
+                     ["/pages/:file" :any `page-content]])))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"
                   ":io.pedestal.http.sawtooth-test/get-page (GET /pages/:id) conflicts with route:"
-                  " - :io.pedestal.http.sawtooth-test/search-pages (GET /pages/search)"
-                  ":io.pedestal.http.sawtooth-test/get-user (GET /user/:user-id) conflicts with route:"
-                  " - :io.pedestal.http.sawtooth-test/user-search (GET /user/search)"
-                  ":io.pedestal.http.sawtooth-test/page-content (ANY /pages/*path) conflicts with 2 routes:"
+                  " - :io.pedestal.http.sawtooth-test/search-pages (GET /pages/:search)"
+                  ":io.pedestal.http.sawtooth-test/page-content (ANY /pages/:file) conflicts with 2 routes:"
                   " - :io.pedestal.http.sawtooth-test/get-page (GET /pages/:id)"
-                  " - :io.pedestal.http.sawtooth-test/search-pages (GET /pages/search)"])
+                  " - :io.pedestal.http.sawtooth-test/search-pages (GET /pages/:search)"])
           s))))
