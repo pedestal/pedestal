@@ -13,6 +13,13 @@ second to route a request.
 Further, when the routing table consists only of static paths (that is, no path parameters), Sawtooth
 has performance nearly as fast as xref:map-tree-router.adoc[] (a fraction of a micro-second to route a request).
 
+Sawtooth prioritizes the routes in the routing table. A route path consists of _terms_; either literal strings,
+or path parameters, or the wild path parameter.  Generally speaking, a path with literal terms will be matched
+before a path with path parameters, and wild path parameter is considered last.
+
+xref:prefix-tree-router.adoc[] is less explicit on how it handle potential conflicts, and prefers path parameters
+over literal terms, the exact opposite of Sawtooth.
+
 Sawtooth's distinguishing characteristic is that it will, at startup, write (to standard error)
 a report describing any conflicting routes.
 This gives you, as the developer, feedback about routing problems.
@@ -38,6 +45,38 @@ prefers the path parameters routes over the static routes.
 Like the prefix-tree and map-tree routers, query and path
 constraints are not used in routing decisions. They are only used to
 invalidate a route match.
+
+Sawtooth's implementation is based on treating the path as a sequence of terms; each term may match a literal value in that
+position, shared by one or more routers, or may be a path parameter. This leads to sets of routes that match the same initial term.
+
+Sawtooth always considers the literal term matches first.
+
+For example, consider the following route paths:
+
+- /user/:id
+- /user/:id/profile
+- /user/search
+- /blog/:id
+
+None of these routes are in conflict.  If the request path is `/user/search` it will always match the last route.
+If the request path is `/user/12487` is will match the first route.  If the request path is `/user/12487/profile`, Sawtooth will
+match the second route - because routes that do not contain the wild-card path paramer must match the exact number of terms.
+
+In terms of operation, Sawtooth will match the first term (say "user"), and will only consider the first three routes,
+ignoring the fourth. It is then tasked with matching the request against the literal term `search` (third route),
+or it will match a term against `:id` (first route), or match a term  term followed by the literal term `profile` (second route).
+It's all about subdivide and conquer.
+
+Alternately, if the request path started with "/blog", only the fourth route would be considered.
+
+Sawtooth is also adaptive to the kinds of routes being matched; primarily, if a term leads to a set of routes that are literal only
+(no path parameters), that subset of the tree will be matched the way the xref:map-tree-router.adoc[] operates, which is
+much faster.
+
+Routes can define a matching hostname, port, scheme, or request method. Sawtooth effectively subdivides the overall
+set of routes based on these values (including the common case where a route responds for any port, any request method, etc.)
+Once past these broadly applied filters, Sawtooth spends the bulk of its execution time matching the request path against the various
+routes' paths.
 
 == References
 

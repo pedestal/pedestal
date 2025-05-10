@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -10,6 +10,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.route.sawtooth
+  "Sawtooth is the default router; it prioritizes literal paths over dynamic paths (those with path
+  parameters)."
   {:added "0.8.0"}
   (:require [io.pedestal.http.route.internal :as internal]
             [io.pedestal.http.route.sawtooth.impl :as impl]))

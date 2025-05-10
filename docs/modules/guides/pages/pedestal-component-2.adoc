@@ -1,18 +1,19 @@
 # Pedestal with Component (Redux)
 :default_api_ns: io.pedestal.interceptor.component
 
-As your xref:pedestal-with-component.adoc[Component-based Pedestal application] grows, you
-might see some growing pains.  The theory and practice of Component is that each component
-gets exactly the dependencies it specifically needs ... no more.
+As you imagine xref:pedestal-with-component.adoc[Component-based Pedestal application] expanding
+ins functionality, you might expect to see some growing pains.
 
-And yet, we have this :components component that, in a fully-featured application, can be
-expected to grow into a big grab-bag of dependencies. This is a
+At the center of the system is the :components component that, in a fully-featured application, can be
+expected to grow into a ever-expanding grab-bag of dependencies. This is a
 "https://en.wikipedia.org/wiki/Anti-pattern#Big_ball_of_mud[Big Ball of Mud]" - a design
 antipattern that Component was created to avoid.
 
+The theory and practice of Component is that each component
+gets exactly the dependencies it specifically needs ... no more.
+
 Pedestal has optional capabilities to define interceptors and handlers as components, each with
 individual dependencies. By embracing this approach, we end up with a more focused system map:
-
 
 [graphviz]
 ----
@@ -23,9 +24,11 @@ digraph G {
 }
 ----
 
-Again, with this tiny toy of an application, the structure is quite flat.
+Again, with this tiny toy of an application, the structure is quite flat, but one can imagine
+a real system with dozens of endpoints, complex interceptors, and many different components for different
+aspects of the overall application.
 
-Before we get started on how this is implemented, there are some tradeoffs to consider:
+Before we get started on how a revised version of the application is implemented, there are some tradeoffs to consider:
 
 - Greater complexity: more components and more dependencies
 - Reloading is for _functions_ not _objects_
