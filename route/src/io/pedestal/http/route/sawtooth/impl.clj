@@ -228,13 +228,6 @@
                 (m2 remaining-path params-map)
                 (m3 remaining-path params-map))))
 
-      4 (let [[m1 m2 m3 m4] matcher-fns]
-          (fn match-one-of-three [remaining-path params-map]
-            (or (m1 remaining-path params-map)
-                (m2 remaining-path params-map)
-                (m3 remaining-path params-map)
-                (m4 remaining-path params-map))))
-
       ;; Default, general case
       (fn [remaining-path params-map]
         (reduce (fn match-one-of-several [_ matcher]
@@ -376,11 +369,18 @@
                                  (assoc m match-value matcher)))
                              {}
                              grouped')]
-          ;; TODO: If there are only 1 or 2 keys in dispatch-map, may be better to just
-          ;; build something based on actual comparison rather than a very empty hash map.
-          (fn match-request-key [request]
-            (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
-              (matcher request))))))))
+          (case (count dispatch-map)
+
+            1
+            (let [[solo-value
+                   solo-matcher] (first dispatch-map)]
+              (fn match-request-key-solo [request]
+                (let [matcher (if (= solo-value (request-key request)) solo-matcher match-any-matcher)]
+                  (matcher request))))
+
+            (fn match-request-key [request]
+              (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
+                (matcher request)))))))))
 
 (defn create-matcher-from-routes
   "Given a routing table, constructs a function that can be passed a request map,

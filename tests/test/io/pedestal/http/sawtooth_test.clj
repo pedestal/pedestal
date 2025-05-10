@@ -182,6 +182,24 @@
     (is (match? [{:route-name ::orders} {:id "267"}]
                 (attempt :get "/api/product/267/orders")))))
 
+(deftest many-possible-matchers
+  ;; Force the code path where a reduce is used to find the matcher.
+
+  (let [routes  (table/table-routes
+                  [["/product/:id/gnip" :get identity :route-name ::gnip]
+                   ["/product/:id/gnop" :get identity :route-name ::gnop]
+                   ["/product/:id/biff" :get identity :route-name ::biff]
+                   ["/product/:id/bazz" :get identity :route-name ::bazz]])
+        router  (-> routes
+                    route/expand-routes
+                    sawtooth/router)
+        attempt (fn [suffix expected]
+                  (is (match? [{:route-name expected} {}]
+                              (router (request :get (str "/product/123/" suffix))))))]
+    (attempt "gnip" ::gnip)
+    (attempt "gnop" ::gnop)
+    (attempt "biff" ::biff)
+    (attempt "bazz" ::bazz)))
 
 (comment
   (def sawtooth-router (sawtooth/router dynamic-routing-table))
@@ -231,8 +249,6 @@
            ; Not conflicts, different methods:
            (route :new-user :post "/users")
            (route :update-user :post "/users/:id")))))
-
-
 
 (deftest report-simple-conflict
   (let [s (tc/with-err-str
