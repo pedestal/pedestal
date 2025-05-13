@@ -37,6 +37,7 @@ tmp/
 */.classpath
 */.project
 */.settings
+**/.run
 
 # OS X
 .DS_Store
