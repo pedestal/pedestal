@@ -1,2 +1,2 @@
 {:lint-as
- {io.pedestal.interceptor.component/definterceptor clojure.core/defrecord}}
+ {io.pedestal.interceptor/definterceptor clojure.core/defrecord}}
