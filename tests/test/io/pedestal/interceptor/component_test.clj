@@ -11,8 +11,7 @@
 
 (ns io.pedestal.interceptor.component-test
   (:require [clojure.test :refer [deftest is]]
-            [io.pedestal.interceptor.component :as c]
-            [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.interceptor :refer [interceptor definterceptor]]
             [com.stuartsierra.component :as component]
             [io.pedestal.interceptor.chain :as chain]
             [matcher-combinators.matchers :as m]))
@@ -40,7 +39,7 @@
 (defn events [context]
   (-> context :system :tracker :*events deref))
 
-(c/definterceptor jack [tracker]
+(definterceptor jack [tracker]
 
   (enter [_ context]
     (track tracker [:enter :jack])
@@ -50,26 +49,26 @@
     (track tracker [:leave :jack])
     context))
 
-(c/definterceptor handler [tracker]
+(definterceptor handler [tracker]
 
   (handle [_ request]
     (track tracker [:handle :handler request])
     ::response))
 
-(c/definterceptor fail [ex tracker]
+(definterceptor fail [ex tracker]
 
   (enter [_ _]
     (track tracker [:enter :fail (ex-data ex)])
     (throw ex)))
 
-(c/definterceptor fixer [ex tracker]
+(definterceptor fixer [ex tracker]
 
   (error [_ context thrown-ex]
     (track tracker [:error :fixer (ex-data thrown-ex)])
     (is (identical? ex (ex-cause thrown-ex)))
     (chain/clear-error context)))
 
-(c/definterceptor mixed [*context]
+(definterceptor mixed [*context]
 
   (enter [_ context]
     (reset! *context context)
@@ -149,7 +148,7 @@
 
   (when-let [e (is (thrown? Exception
                             (eval
-                              '(io.pedestal.interceptor.component/definterceptor unknown [] (unknown [_ _] nil)))))]
+                              '(io.pedestal.interceptor/definterceptor unknown [] (unknown [_ _] nil)))))]
 
     (is (= "Unexpected method: unknown" (-> e ex-cause ex-message)))
     (is (match? {:method        '(unknown [_ _] nil)
@@ -160,7 +159,7 @@
 
   (when-let [e (is (thrown? Exception
                             (eval
-                              '(io.pedestal.interceptor.component/definterceptor unknown [] :whazzis (foo [_])))))]
+                              '(io.pedestal.interceptor/definterceptor unknown [] :whazzis (foo [_])))))]
 
     (is (= "Unexpected value for record spec: :whazzis"
            (-> e ex-cause ex-message)))

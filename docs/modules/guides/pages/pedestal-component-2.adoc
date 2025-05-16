@@ -1,5 +1,5 @@
 # Pedestal with Component (Redux)
-:default_api_ns: io.pedestal.interceptor.component
+:default_api_ns: io.pedestal.interceptor
 
 As you imagine xref:pedestal-with-component.adoc[Component-based Pedestal application] expanding
 ins functionality, you might expect to see some growing pains.
@@ -72,7 +72,7 @@ include::example$component2/src/app/components/handlers.clj[]
 The `definterceptor` macro streamlines the process of creating a record type for a component; it automatically adds the protocol (api:Handler[],
 api:OnEnter[], api:OnLeave[], or api:OnError[]).
 
-It also quietly adds an implementation of api:IntoInterceptor[ns=io.pedestal.interceptor].
+It also quietly adds an implementation of api:IntoInterceptor[].
 
 ## routes namespace
 
