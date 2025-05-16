@@ -35,58 +35,58 @@
    macros will only supply a String body, but other code may pass other types."
 
   (-level-enabled? [t level-key]
-                   "Given the log level as a keyword,
-                   return a boolean if that log level is currently enabled.")
+    "Given the log level as a keyword,
+    return a boolean if that log level is currently enabled.")
   (-trace [t body]
-          [t body throwable]
-          "Log a TRACE message,
-          and optionally handle a special Throwable/Exception related to the message.
-          The body may be any of Clojure's literal data types, but a map or string is encouraged.")
+    [t body throwable]
+    "Log a TRACE message,
+    and optionally handle a special Throwable/Exception related to the message.
+    The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-debug [t body]
-          [t body throwable]
-          "Log a DEBUG message,
-          and optionally handle a special Throwable/Exception related to the message.
-          The body may be any of Clojure's literal data types, but a map or string is encouraged.")
+    [t body throwable]
+    "Log a DEBUG message,
+    and optionally handle a special Throwable/Exception related to the message.
+    The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-info [t body]
-         [t body throwable]
-         "Log an INFO message,
-         and optionally handle a special Throwable/Exception related to the message.
-         The body may be any of Clojure's literal data types, but a map or string is encouraged.")
+    [t body throwable]
+    "Log an INFO message,
+    and optionally handle a special Throwable/Exception related to the message.
+    The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-warn [t body]
-         [t body throwable]
-         "Log a WARN message,
-         and optionally handle a special Throwable/Exception related to the message.
-         The body may be any of Clojure's literal data types, but a map or string is encouraged.")
+    [t body throwable]
+    "Log a WARN message,
+    and optionally handle a special Throwable/Exception related to the message.
+    The body may be any of Clojure's literal data types, but a map or string is encouraged.")
   (-error [t body]
-          [t body throwable]
-          "Log an ERROR message,
-          and optionally handle a special Throwable/Exception related to the message.
-          The body may be any of Clojure's literal data types, but a map or string is encouraged."))
+    [t body throwable]
+    "Log an ERROR message,
+    and optionally handle a special Throwable/Exception related to the message.
+    The body may be any of Clojure's literal data types, but a map or string is encouraged."))
 
 (defprotocol LoggingMDC
 
   (-get-mdc [t k]
-            [t k not-found]
-            "Given a String key and optionally a `not-found` value (which should be a String),
-            lookup the key in the MDC and return the value (A String);
-            Returns nil if the key isn't present, or `not-found` if value was supplied.")
+    [t k not-found]
+    "Given a String key and optionally a `not-found` value (which should be a String),
+    lookup the key in the MDC and return the value (A String);
+    Returns nil if the key isn't present, or `not-found` if value was supplied.")
   (-put-mdc [t k v]
-            "Given a String key and a String value,
-            Add an entry to the MDC,
-            and return the MDC instance.
+    "Given a String key and a String value,
+    Add an entry to the MDC,
+    and return the MDC instance.
 
-            If k is nil, the original MDC is returned.")
+    If k is nil, the original MDC is returned.")
   (-remove-mdc [t k]
-               "Given a String key,
-               remove the key-value entry in the MDC if the key is present
-               And return the MDC instance.")
+    "Given a String key,
+    remove the key-value entry in the MDC if the key is present
+    And return the MDC instance.")
   (-clear-mdc [t]
-              "Remove all entries within the MDC
-              and return the MDC instance.")
+    "Remove all entries within the MDC
+    and return the MDC instance.")
   (-set-mdc [t m]
-            "Given a map (of String keys and String values),
-            Copy all key-values from the map to the MDC
-            and return the MDC instance."))
+    "Given a map (of String keys and String values),
+    Copy all key-values from the map to the MDC
+    and return the MDC instance."))
 
 (defn- format-body
   ^String [body]
@@ -217,42 +217,71 @@
   []
   @*default-formatter)
 
-(def ^{:deprecated "0.7.0"} log-level-dispatch
+(def ^:private log-level-dispatch
+  "Used internally by the logging macros to map from a level keyword to a fully qualified
+  protocol method name on [[LoggerSource]]."
+  {:trace `-trace
+   :debug `-debug
+   :info  `-info
+   :warn  `-warn
+   :error `-error})
+
+(def ^{:added "0.8.0"}
+  level->method
   "Used internally by the logging macros to map from a level keyword to a protocol method on
   [[LoggerSource]]."
   {:trace -trace
    :debug -debug
    :info  -info
-   :warn  :error
-   -warn  -error})
+   :warn  -warn
+   :error -error})
 
-(defn- log-expr [form level keyvals]
+(defn- log-expr
+  ;; level may be a keyword (the normal case) or an expression whose value is a keyword
+  ;; at runtime.
+  [form level keyvals]
   ;; Pull out :exception, otherwise preserve order
-  (let [keyvals-map (apply array-map keyvals)
-        exception' (:exception keyvals-map)
-        logger' (gensym "logger")  ; for nested syntax-quote
-        string' (gensym "string")
-        log-method' (symbol "io.pedestal.log" (str "-" (name level)))
-        formatter   (::formatter keyvals-map)]
+  (let [keyvals-map   (apply array-map keyvals)
+        exception'    (:exception keyvals-map)
+        logger'       (gensym "logger-")                    ; for nested syntax-quote
+        string'       (gensym "string-")
+        static-level? (keyword? level)
+        level'        (if static-level?
+                        level
+                        (gensym "level-"))
+        level-init    (when-not static-level?
+                        (list level' level))
+        method'       (if static-level?
+                        (get log-level-dispatch level)
+                        (gensym "log-method-"))
+        method-init   (when-not static-level?
+                        (list method'
+                              `(or (get level->method ~level')
+                                   (throw (ex-info (str "Unknown logging level: " ~level')
+                                                   {:level ~level'})))))
+        formatter     (::formatter keyvals-map)
+        log-line      (-> form meta :line)]
     `(let [~logger' ~(or (::logger keyvals-map)
-                         `(make-logger ~(name (ns-name *ns*))))]
-       (when (io.pedestal.log/-level-enabled? ~logger' ~level)
+                         `(make-logger ~(name (ns-name *ns*))))
+           ~@level-init]
+       (when (io.pedestal.log/-level-enabled? ~logger' ~level')
          (let [formatter# ~(if formatter
                              formatter
                              `(default-formatter))
                ~string' (binding [*print-length* 80]
                           (formatter# ~(assoc (dissoc keyvals-map
-                                                 :exception
-                                                 ::logger
-                                                 ::formatter)
-                                         :line (:line (meta form)))))]
+                                                      :exception
+                                                      ::logger
+                                                      ::formatter)
+                                              :line log-line)))
+               ~@method-init]
            ~(if exception'
-              `(~log-method' ~logger'
-                             ~(with-meta string'
-                                         {:tag 'java.lang.String})
-                             ~(with-meta exception'
-                                         {:tag 'java.lang.Throwable}))
-              `(~log-method' ~logger' ~string')))))))
+              `(~method' ~logger'
+                 ~(with-meta string'
+                             {:tag 'java.lang.String})
+                 ~(with-meta exception'
+                             {:tag 'java.lang.Throwable}))
+              `(~method' ~logger' ~string')))))))
 
 (defmacro trace [& keyvals] (log-expr &form :trace keyvals))
 
@@ -263,6 +292,12 @@
 (defmacro warn [& keyvals] (log-expr &form :warn keyvals))
 
 (defmacro error [& keyvals] (log-expr &form :error keyvals))
+
+(defmacro log
+  "Logs at a runtime-determined level. level must evaluate to a keyword (:trace, :debug, etc.)."
+  {:added "0.8.0"}
+  [level & keyvals]
+  (log-expr &form level keyvals))
 
 (defmacro spy
   "Logs expr and its value at DEBUG level, returns value."
@@ -358,17 +393,17 @@
   "
   [ctx-map & body]
   (if (empty? ctx-map)                                      ;; Optimize for the code-gen/dynamic case where the map may be empty
-      `(do
-         ~@body)
-      `(let [old-ctx# *mdc-context*]
-         ;; Note: /formatter goes into the MDC context but is filtered out when formatting.
-         ;; This is to allow formatting in the finally block to use the formatter, if any,
-         ;; of the old context.
-         (binding [*mdc-context* (merge old-ctx# ~ctx-map)]
-           (put-formatted-mdc *mdc-context*)
-           (try
-             ~@body
-             (finally
-               ;; This still seems to be the hard way to do this, as it feels like we should just
-               ;; capture the previously written formatted string and revert to that on exit.
-               (put-formatted-mdc old-ctx#)))))))
+    `(do
+       ~@body)
+    `(let [old-ctx# *mdc-context*]
+       ;; Note: /formatter goes into the MDC context but is filtered out when formatting.
+       ;; This is to allow formatting in the finally block to use the formatter, if any,
+       ;; of the old context.
+       (binding [*mdc-context* (merge old-ctx# ~ctx-map)]
+         (put-formatted-mdc *mdc-context*)
+         (try
+           ~@body
+           (finally
+             ;; This still seems to be the hard way to do this, as it feels like we should just
+             ;; capture the previously written formatted string and revert to that on exit.
+             (put-formatted-mdc old-ctx#)))))))

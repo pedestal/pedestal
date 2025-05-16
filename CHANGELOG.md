@@ -67,6 +67,7 @@ Other changes:
 - New functions and macros:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
   - `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
+  - `io.pedestal.log/log` - logs with level determined at runtime
 - New namespaces: 
   - `io.pedestal.connector` - Replaces `io.pedestal.http` for setting up a connector
   - `io.pedestal.service.protocols` - Defines core protocols
@@ -82,6 +83,7 @@ Other changes:
   - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
   of the interceptor; now interceptors always have names and this does not occur
   - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
+- The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
 
 ## 0.7.2 - 1 Nov 2024
 
