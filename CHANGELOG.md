@@ -64,8 +64,9 @@ Other changes:
 - It is now possible to specify the maximum number of concurrent threads with the 
   Jetty HTTP2 and HTTP2C connection factories
 - Much of `io.pedestal.http` has been deprecated, with the active code moving to new namespaces
-- New functions:
+- New functions and macros:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
+  - `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
 - New namespaces: 
   - `io.pedestal.connector` - Replaces `io.pedestal.http` for setting up a connector
   - `io.pedestal.service.protocols` - Defines core protocols

@@ -1,8 +1,8 @@
 (ns app.components.handlers
-  (:require [io.pedestal.interceptor.component :as c]
+  (:require [io.pedestal.interceptor :refer [definterceptor]]
             [app.components.greeter :as greeter]))
 
-(c/definterceptor get-greeting                              ;; <1>
+(definterceptor get-greeting                                ;; <1>
   [greeter]                                                 ;; <2>
   
   (handle [_ _request]                                      ;; <3>
