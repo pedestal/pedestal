@@ -18,6 +18,7 @@
             [io.pedestal.connector.dev :as dev]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :refer [response]]
+            [io.pedestal.environment :as env]
             [io.pedestal.connector.test :as test]))
 
 (defn hello-page
@@ -99,7 +100,8 @@
   (let [response (response-for :get "/fail")
         {:keys [body]} response]
     (is (match? {:status 500
-                 :headers {:content-type "text/plain"}}
+                 :headers {:content-type "text/plain"
+                           :access-control-allow-origin "*"}}
                 response))
 
     ;; The full output is quite verbose, but these parts indicate that the exception has been formatted
@@ -108,3 +110,11 @@
     (is (string/includes? body "Error processing request!"))
     (is (string/includes? body "io.pedestal.connector.dev-mode-test/fail-page"))
     (is (string/includes? body "java.lang.IllegalStateException: Gentlemen, failure is not an option"))))
+
+(deftest dev-interceptors
+  (with-redefs [env/dev-mode? (constantly true)]
+    (let [{:keys [interceptors]} (-> (connector/default-connector-map 9999)
+                                     (connector/optionally-with-dev-mode-interceptors))]
+      (is (= [:io.pedestal.http.cors/dev-allow-origin
+              :io.pedestal.connector.dev/uncaught-exception]
+             (map :name interceptors))))))

@@ -30,7 +30,8 @@
              :exception exception)
   (response/respond-with context
                          500
-                         {"Content-Type" "text/plain"}
+                         {"Content-Type"                "text/plain"
+                          "Access-Control-Allow-Origin" "*"}
                          (with-out-str (println "Error processing request!")
                                        (println "Exception:\n")
                                        (println (impl/format-exception exception))
@@ -41,11 +42,11 @@
   "A development-mode interceptor that captures exceptions, formats them using org.clj-commons/pretty, and generates a
    status 500 text response of the formatted exception."
   (interceptor
-    {:name  ::exception-debug
+    {:name  ::uncaught-exception
      :error attach-formatted-exception-response}))
 
 (def dev-interceptors
-  "[[dev-allow-origin]] and [[exception-debug]] interceptors; these should be used only during
+  "[[dev-allow-origin]] and [[uncaught-exception]] interceptors; these should be used only during
   local development, and should come before other interceptors."
   [cors/dev-allow-origin uncaught-exception])
 
