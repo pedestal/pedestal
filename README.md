@@ -15,10 +15,10 @@ Pedestal features:
 - Asynchronous request handling
 - Server Sent Events and WebSockets as first class citizens
 - Integrated logging, metrics, and tracing
-- Default integration with [Jetty 12](https://eclipse.dev/jetty/)
+- Default integration with [Jetty 12](https://eclipse.dev/jetty/) and [Http-Kit](https://github.com/http-kit/http-kit)
 
 You can stand up a basic Pedestal server in just a few lines of code
-(see the tutorials in the documentation), but Pedestal is designed to grow with you, 
+(see the [guides in the documentation](https://pedestal.io/pedestal/0.7/guides/hello-world.html)), but Pedestal is designed to grow with you, 
 as your application matures and expands.
 
 See the [full documentation](http://pedestal.io) for far more detail about
@@ -43,7 +43,7 @@ From the `tests` subdirectory, execute `clj -X:test`.
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2024 Cognitect, Inc.
+Copyright 2014-2025 Cognitect, Inc.
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
