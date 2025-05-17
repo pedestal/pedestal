@@ -260,7 +260,10 @@
                                    (throw (ex-info (str "Unknown logging level: " ~level')
                                                    {:level ~level'})))))
         formatter     (::formatter keyvals-map)
-        log-line      (-> form meta :line)]
+        log-line      (-> form meta :line)
+        keyvals-map'  (-> keyvals-map
+                          (dissoc :exception ::logger ::formatter)
+                          (assoc :line log-line))]
     `(let [~logger' ~(or (::logger keyvals-map)
                          `(make-logger ~(name (ns-name *ns*))))
            ~@level-init]
@@ -269,11 +272,7 @@
                              formatter
                              `(default-formatter))
                ~string' (binding [*print-length* 80]
-                          (formatter# ~(assoc (dissoc keyvals-map
-                                                      :exception
-                                                      ::logger
-                                                      ::formatter)
-                                              :line log-line)))
+                          (formatter# ~keyvals-map'))
                ~@method-init]
            ~(if exception'
               `(~method' ~logger'
