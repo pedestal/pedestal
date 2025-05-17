@@ -268,9 +268,7 @@
                          `(make-logger ~(name (ns-name *ns*))))
            ~@level-init]
        (when (io.pedestal.log/-level-enabled? ~logger' ~level')
-         (let [formatter# ~(if formatter
-                             formatter
-                             `(default-formatter))
+         (let [formatter# ~(or formatter `(default-formatter))
                ~string' (binding [*print-length* 80]
                           (formatter# ~keyvals-map'))
                ~@method-init]
