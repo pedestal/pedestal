@@ -1,15 +1,15 @@
 = Using Pedestal With Component
 
 link:{component_home}[Component] is a popular and non-intrusive library for organizing
-Clojure logic; it makes it easy to define _components_, as maps or Clojure records, and organize them, with intra-component
+Clojure logic; it makes it easy to define _components_, as maps or Clojure records, and organize them, with inter-component
 dependencies,
 into a _system map_.
 
-It's not uncommon for Pedestal to be setup to operate as a component with a Component system.
+It's not uncommon for Pedestal to be setup to operate as one component within a Component system.
 
 TIP: This guide is a bit longer than the previous ones, but no single file or function is itself very long.
-The point of using Component is to adopt of structure that scales up to higher levels of complexity, and that
-adds a bit of connective tissue between the essential code snippets of the application.
+The point of using Component is to adopt a structure that scales up to higher levels of complexity, and that
+requires a bit of connective tissue between the essential code snippets of the application.
 
 == What You Will Learn
 After reading this guide you will be able to:
@@ -57,7 +57,7 @@ We can represent the system map as a diagram, showing components and their depen
 ----
 digraph G {
  ":pedestal" -> ":components";
-":components" -> ":greeter";
+ ":components" -> ":greeter";
 }
 ----
 
@@ -66,7 +66,9 @@ depends on the :components component, which itself depends on
 the :greeter component.
 
 What's the point of the :components component? It represents
-a subset of components that will be made available to interceptors and handlers. There's only one component inside :components now, but in a big application, there could be many such dependencies.
+a subset of components that will be made available to interceptors and handlers.
+There's curerntly only a single component inside :components now, but in a realistic application,
+there would be many such dependencies.
 
 Real systems built with the Component library will often have dozens of
 components and even more dependencies, but this small start still demonstrates
@@ -111,7 +113,7 @@ The `system-map` function defines a Component SystemMap in terms of key and valu
 Each key is a keyword, and each value is a map or Clojure record.  The `using` function
 identifies on which other components each component depends.
 
-One namespace down, at least two to go.  Let's work on the Pedestal component next.
+Let's work on the Pedestal component next.
 
 == Pedestal Component
 
@@ -138,7 +140,7 @@ include::example$component/src/app/pedestal.clj[tags=inject]
 ----
 
 This is actually a function that _returns_ an interceptor.
-When the interceptor is eventually executed in the :enter phase,
+When that interceptor is eventually executed in the :enter phase,
 it will modify the context map passed to it, injecting the components map into the request map for later
 access.  Where does the map of components come from?  We're almost there.
 
@@ -155,8 +157,8 @@ of the record are typically used to store dependencies and any local state, muta
 include::example$component/src/app/pedestal.clj[tags=component]
 )
 ----
-<1> Create a Pedestal record. This record will contain a `components` field, whose value
-will be supplied from another component, and a `connector` field, managed by the Pedestal component.
+<1> Define the Pedestal record. This record will contain a `components` field, whose value
+will be supplied as another component from the system, and a `connector` field, managed by the Pedestal component itself.
 <2> Include the _component/Lifecycle_ protocol since we'll be
 implementing its methods next.
 
@@ -176,12 +178,12 @@ include::example$component/src/app/pedestal.clj[tags=start]
 This `start` method goes _inside_ `defrecord`, after the `components/Lifecycle` line.
 
 [TIP]
-.Every start deserves a stop
+.Every `start` deserves a `stop`
 ====
-You might think that there's no need to add `stop` since your service will run until it's process
-is killed.
+You might think that there's no need to add the `stop` method, since the
+service will run until it's process is killed.
 
-That _may_ be true in production, but in development and testing, this is far from the case.
+That _may_ be true in production, but in development and testing, this may not be the case.
 
 You should always _undo_, in `stop`, the changes made in `start`.
 In this example, we need to make sure that the Pedestal connector is stopped,
@@ -204,9 +206,9 @@ That's pretty important later, when we want to work with REPL-oriented developme
 [CAUTION]
 .Don't `dissoc` in `stop`
 ====
-If we used clj:dissoc[] here (instead of `assoc nil`), we would be removing a record key from a record; Clojure would quietly
+If we used clj:dissoc[] here (instead of `assoc` with value  `nil`), we would be removing a record key from a record; Clojure would quietly
 convert from a Pedestal record to a standard Clojure map. This isn't a big deal, unless we try to start and stop
-the same system map repeatedly; the second start would not work because the Clojure map has no `start` method.
+the same system map repeatedly; the second start would not work correctly because the Clojure map has no `start` method.
 ====
 
 Now that we've got our component, we need a way to
@@ -253,16 +255,16 @@ include::example$component/src/app/routes.clj[tags=routes]
 ----
 
 [TIP]
-In this simple example, we use `def`, as the routes are entirely static.
+In this simple example, we use `def`, not `defn`, as the routes are entirely static.
 In many applications, some parts of the routes would be more dynamic, and `routes`
 would be a function with arguments.
 
-== Greeting Component
+== Greeter Component
 
-The best handlers in a Pedestal application are very simple, dealing with the Pedestal logic and structure
+The best handlers in a Pedestal application are very simple, dealing with the Pedestal logic and the structure
 of the request and response maps, with all the real application-specific logic in a component or function.
 
-In our case, we have a Greeter component that builds the response body.  Let's create that now.
+In our case, we have a :greeter component that builds the response body.  Let's create that now.
 
 [source, clojure]
 .src/app/components/greeter.clj

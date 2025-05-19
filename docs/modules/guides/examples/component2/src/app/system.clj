@@ -18,8 +18,8 @@
 
     :route-source
     (component/using
-      (app.routes/new-routes-source)
-      {:get-greeting :handler/get-greeting})                ;; <1>
+      {}                                                    ;; <1>
+      {:get-greeting :handler/get-greeting})                ;; <2>
 
     :pedestal
     (component/using
