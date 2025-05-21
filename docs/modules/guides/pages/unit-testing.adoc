@@ -10,7 +10,7 @@ chain and end-to-end response generation levels.
 ====
 This document described unit testing when using
 api:*[ns=io.pedestal.connector], the
-xref:0.7@pedestal:guides:unit-testing.adoc[0.7 version of this documentation] discusses the
+xref:0.7@unit-testing.adoc[0.7 version of this documentation] discusses the
 equivalent work when using api:*[ns=io.pedestal.http].
 ====
 
