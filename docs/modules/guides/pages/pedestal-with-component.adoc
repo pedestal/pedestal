@@ -468,7 +468,7 @@ necessary for testing.
 
 We'll make use of the api:*[ns=io.pedestal.connector.test] namespace, which contains
 functions to make it easier to integration test a Pedestal application.
-We'll also make use of https://github.com/nubank/matcher-combinators[nubank/matcher-combinators],
+We'll also make use of {matcher-combinators},
 a testing library that makes it easy to make assertions about complex data, such as a response map.
 
 === Create and manage the system
