@@ -1,17 +1,18 @@
 = Unit testing
 :default_api_ns: io.pedestal.connector.test
+:page-toclevels: 4
 
 It is a good practice to separate core business logic from handler,
-and more generally, interceptor code. This separation of concerns has
+and more generally, interceptor code.This separation of concerns has
 many benefits, including facilitating testing at the interceptor, interceptor
 chain and end-to-end response generation levels.
 
 [TIP]
 ====
-This document described unit testing when using
-api:*[ns=io.pedestal.connector], the
+This document describes unit testing when using
+api:*[ns=io.pedestal.connector] APIs to create your service, the
 xref:0.7@unit-testing.adoc[0.7 version of this documentation] discusses the
-equivalent work when using api:*[ns=io.pedestal.http].
+equivalent work when using the api:*[ns=io.pedestal.http] APIs.
 ====
 
 == Testing interceptors in isolation
@@ -85,10 +86,11 @@ without starting up an HTTP service.
 This style of testing ensures that routing is correct, and it fully exercises routing, interceptors,
 and any business logic.
 
-The `response-for` function works with initialized, but *not started*,
+The `response-for` function works with an initialized, but *not started*,
 xref:reference:connector.adoc[].
 
-At a minimum, it is used to build a xref:reference:request-map.adoc[] and returns a
+`response-for` will build  a xref:reference:request-map.adoc[], and have the connector execute it (as if it
+was a request that came in from an HTTP request).  `response-for` returns a slightly modified version of the
 xref:reference:response-map.adoc[].
 
 [source,clojure]
@@ -100,8 +102,21 @@ xref:reference:response-map.adoc[].
 === response-for arguments
 
 * The Pedestal connector
-* The _verb_ (aka, HTTP reqeust method) as a keyword (i.e., :get, :post, :delete, etc...).
+* The _verb_ (aka, HTTP reqeust method) as a keyword (i.e., :get, :post, :delete, etc...)
 * The _url_ is a complete URL, or relative to the root of the service
+
+The provided URL is parsed; if it is a _complete_ URL then the following keys
+will be set in the request map:
+
+* :scheme (defaults to :http)
+* :server-name (defaults to "localhost")
+* :server-port (defaults to -1)
+
+In addition, the :uri and :query-string keys will be set from the URI.
+
+The :uri starts with a leading slash and extends to the end of the URL, or the start of the query string.
+
+The query-string is anything following a `?`.
 
 Following the three required arguments are further optional arguments, as key/value pairs.
 
@@ -134,7 +149,8 @@ enables a conversion to something easier for tests.  The default is :string (tre
 
 To assist with testing, the headers in the response map are modified; normally they consist
 of string values and string keys; `response-for` converts the keys to lower case keywords.  For example,
-the "Content-Type" header will be converted to :content-type.  The values are unchanged, but keywords are
+the "Content-Type" header will be converted to :content-type.  The values
+are unchanged, but keywords are
 easier to oeprate on in test assertions.
 
 === Testing GET requests
@@ -198,14 +214,16 @@ If testing an HTTP form submission, it is similar except for how the content is 
                           :body "username=test@test.com&password=my-pwd")))
 ----
 
-=== Testing Async interactions
+=== Testing Async Processing
 
 Nothing special needs to be done when testing routes which include
-async interactions. The `response-for` helper forces asynchronous
-request processing to complete before returning a value.
+async processing, `response-for` will only return once a response has been generated, even if
+request processing goes asynchronous.
 
 == Testing WebSockets and SSE
 
 Truly asynchronous operations, such as xref:reference:websockets.adoc[] and xref:reference:server-sent-events.adoc[]
-can't be tested using `response-for`; it is necessary to fully start the connector and have a client send proper requests
-to the service - this is integration testing, beyond the scope of this document.
+can't be tested using `response-for` as it blocks until a single response is produced.
+
+To test these kinds of asynchronous operations, it is necessary to fully start the connector and have a
+client send proper requests to the service - this is integration testing, beyond the scope of this document.
