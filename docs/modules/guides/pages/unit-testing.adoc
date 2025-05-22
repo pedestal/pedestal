@@ -2,10 +2,29 @@
 :default_api_ns: io.pedestal.connector.test
 :page-toclevels: 4
 
-It is a good practice to separate core business logic from handler,
-and more generally, interceptor code.This separation of concerns has
-many benefits, including facilitating testing at the interceptor, interceptor
-chain and end-to-end response generation levels.
+
+We believe in testing, and Pedestal's design encourages you to write useful,
+meaningful, simple tests.
+
+Your application will consist of some amount of the following categories of code
+(going from most application-specific to least):
+
+* Business logic
+* Handler functions (calling business logic)
+* Application-specific interceptors
+* Pedestal-provided interceptors
+
+This guide focuses on unit testing of your application-specific interceptors and handlers.
+However, as they say, the whole is more than the sum of the parts ... that is, your handlers
+will often rely on the incoming request being setup in specific ways due to the interceptors
+that execute before it; such as the way the
+api:body-params[ns=io.pedestal.http.body-params]
+interceptor parses the :body InputStream as JSON or EDN data, and stores that into the
+request map as :json-params or :edn-params.
+
+At least some of your testing should be "full stack", to exercise these parts: the routing
+logic, and transformations of the request and response map.  Pedestal
+makes it fast and easy to test the whole stack in this way.
 
 [TIP]
 ====
@@ -14,6 +33,8 @@ api:*[ns=io.pedestal.connector] APIs to create your service, the
 xref:0.7@unit-testing.adoc[0.7 version of this documentation] discusses the
 equivalent work when using the api:*[ns=io.pedestal.http] APIs.
 ====
+
+We'll start with isolated testing of interceptors, before moving on to grander things.
 
 == Testing interceptors in isolation
 
@@ -29,20 +50,30 @@ Given the following interceptor:
 ----
 (def widget-finder
      (interceptor/interceptor
-      {:enter (fn [ctx]
-                (assoc ctx :widget {:id 1 :title "foobar"} ))}))
+      {:enter (fn [context]
+                (assoc context :widget {:id 1 :title "foobar"} ))}))
 ----
+
+This is the barest form of an interceptor; it ignores the incoming context and blindly adds a new key to it.
 
 We can test it either directly:
 
 [source,clojure]
 ----
-(let [test-fn (:enter widget-finder)]
-  (is (= {:id 1 :title "foobar"} (:widget (test-fn {})))))
+(let [enter-fn (:enter widget-finder)]
+  (is (= {:id 1 :title "foobar"}
+         (:widget (enter-fn {})))))
 ----
 
-Or using the interceptor chain api:execute[ns=io.pedestal.interceptor.chain]
-function:
+\... but because its so simple, we can pass an empty context to the interceptor and still assert
+that is makes the desires change to the context.
+
+== Testing multiple interceptors
+
+To test one or more interceptors' behavior as part of the interceptor chain, it is nearly as easy; we
+can levarage
+api:execute[ns=io.pedestal.interceptor.chain] to execute a chain of interceptors, and get the final context
+map.
 
 [source,clojure]
 ----
@@ -52,7 +83,7 @@ function:
 [CAUTION]
 ====
 The value, `widget-finder` in this example, must be an interceptor, not a map that can
-be converted into an interceptor.  The api:interceptor[ns=io.pedestal.interceptor] macro
+be converted into an interceptor.  The api:interceptor[ns=io.pedestal.interceptor] function
 ensures this.
 ====
 
@@ -62,18 +93,22 @@ We can extend this approach to test coordination across multiple interceptors as
 ----
 (def widget-renderer
   (interceptor/interceptor
-   {:leave (fn [ctx]
-             (if-let [widget (:widget ctx)]
-               (assoc ctx :response {:status 200
-                                     :body   (format "Widget ID %d, Title '%s'"
+   {:leave (fn [context]
+             (if-let [widget (:widget context)]
+               (assoc context :response {:status 200
+                                         :body   (format "Widget ID %d, Title '%s'"
                                                      (:id widget)
                                                      (:title widget))})
-               (assoc ctx :response {:status 404 :body "Not Found"})))}))
+               (assoc context :response {:status 404
+                                         :body "Not Found"})))}))
 
 (is (= "Widget ID 1, Title 'foobar'"
        (get-in (chain/execute {} [widget-renderer widget-finder])
                [:response :body])))
 ----
+
+However, once you find yourself testing a few interceptors together this way, it may make more sense to test
+the entire stack, starting from the incoming request map.
 
 == Testing your service with `response-for`
 
@@ -99,24 +134,37 @@ xref:reference:response-map.adoc[].
    ...)
 ----
 
+[TIP]
+====
+Another example of `response-for` use is in the xref:pedestal-with-component.adoc#testing[Pedestal with Component] guide.
+====
+
 === response-for arguments
 
-* The Pedestal connector
-* The _verb_ (aka, HTTP reqeust method) as a keyword (i.e., :get, :post, :delete, etc...)
-* The _url_ is a complete URL, or relative to the root of the service
+`response-for` has three required arguments, followed by optional named arguments.
 
-The provided URL is parsed; if it is a _complete_ URL then the following keys
+
+The first three arguments are:
+
+* The Pedestal connector
+* The HTTP request method, a keyword (:get, :post, :delete, ...)
+* The _url_ as a complete URL, or relative to the root of the service
+
+The provided URL is parsed; if it is a _complete_ URL (starting with "http://" or "https://") then the following keys
 will be set in the request map:
 
 * :scheme (defaults to :http)
 * :server-name (defaults to "localhost")
 * :server-port (defaults to -1)
 
-In addition, the :uri and :query-string keys will be set from the URI.
+Remember that xref:reference:routing-quick-reference.adoc[request routing] may take into account the scheme,
+server name, and port, as well as the request method and path.
 
-The :uri starts with a leading slash and extends to the end of the URL, or the start of the query string.
+In addition, the :uri and :query-string keys will be set from the URI:
 
-The query-string is anything following a `?`.
+* The :uri starts with a leading slash and extends to the end of the URL, or the start of the query string.
+
+* The :query-string is anything following a `?`.
 
 Following the three required arguments are further optional arguments, as key/value pairs.
 
@@ -143,7 +191,10 @@ additional :body types.
 ==== :as
 
 The response body will normally be nil or an InputStream; the :as parameter
-enables a conversion to something easier for tests.  The default is :string (treat the response as a UTF-8 encoded byte stream), but the values :byte-buffer and :stream are also allowed.
+enables a conversion to something easier for tests.
+
+The default conversion is :string (treat the response as a UTF-8 encoded byte stream),
+but the values :byte-buffer and :stream are also allowed.
 
 === response map
 
@@ -188,13 +239,15 @@ the response status for good measure):
 
 === Testing POST
 
-POST'ing to a service endpoint can be tested by using the :post verb
+POSTing to a service endpoint can be tested by using the :post verb
 and specifying a request :body. The route under test typically
 includes the
 api:body-params[ns=io.pedestal.http.body-params]
-interceptor to support request payload parsing - which is driven
-by the `Content-Type` header, which identifies how to parse the body, so the header
-must be specified:
+interceptor to support request payload parsing.
+
+`body-params` uses the `Content-Type` header to identify how to parse the body; different content types
+result in different keys being added to the request. In any case, it is essential that the content type
+to be specified as part of the `response-for` call.
 
 [source,clojure]
 ----
@@ -204,7 +257,7 @@ must be specified:
                           :body "{\"foo\":\"bar\"}")))
 ----
 
-If testing an HTTP form submission, it is similar except for how the content is encoded and described.
+If testing an HTTP form submission, the approach is similar except for how the content is encoded and described.
 
 [source,clojure]
 ----
@@ -214,6 +267,7 @@ If testing an HTTP form submission, it is similar except for how the content is 
                           :body "username=test@test.com&password=my-pwd")))
 ----
 
+[#async]
 === Testing Async Processing
 
 Nothing special needs to be done when testing routes which include

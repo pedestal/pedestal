@@ -491,7 +491,7 @@ This system is the base for the next part, a helper for running a request.
 === Run a request
 
 Our second helper is used to test a request, returning a response.  It's built
-on top of the `response-for` function.
+on top of the api:response-for[ns=io.pedestal.connector.test] function.
 
 [source,clojure]
 ----
@@ -499,7 +499,7 @@ include::example$component/test/app/system_test.clj[tag=response]
 ----
 
 The api:response-for[ns=io.pedestal.connector.test] function needs the Pedestal connector, which is available from the
-system map.  With the connector, the method (such as :get), the URL, and any additional arguments, `response` can exercise your Pedestal application
+system map. With the connector, the method (such as :get), the URL, and any additional arguments, `response` can exercise your Pedestal application
 almost exactly as it would when receiving a real HTTP request ... just no HTTP is involved.
 
 `response-for` uses the interceptor chain to execute a request map (built from the arguments)
@@ -508,7 +508,7 @@ as if it had arrived via HTTP, and returns a response map.
 Now that we've got our helpers implemented, let's move on to our
 test.
 
-
+[#testing]
 === Test
 
 The test will exercise the `GET /api/greet` route of the application.
