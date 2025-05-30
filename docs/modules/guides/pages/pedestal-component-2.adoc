@@ -72,8 +72,8 @@ include::example$component2/src/app/components/handlers.clj[]
 The `definterceptor` macro streamlines the process of creating a record type for a component; when it sees particular method names (`handle`, `enter`, `leave`, or `error`) it automatically adds the corresponding protocol (api:Handler[],
 api:OnEnter[], api:OnLeave[], or api:OnError[]).  This allows interceptors defined this way to be very concise.
 
-`definterceptor` also quietly adds an implementation of api:IntoInterceptor[]; `defintercetptor` provides :enter, :leave, and :error keys
-as necessary, to match the methods; the functions automatically invoke the corresponding method.  It _just works_.
+`definterceptor` also quietly adds an implementation of api:IntoInterceptor[]; `definterceptor` provides :enter, :leave, and :error keys
+as necessary, to match the protocols; the functions automatically invoke the corresponding method.  It _just works_.
 
 ## routes namespace
 
@@ -92,13 +92,16 @@ include::example$component2/src/app/routes.clj[]
 
 ## pedestal namespace
 
+In the previous version, the :pedestal component defined routes and added the dependency-injecting component; in
+this version, the component obtains the routes from the :route-source component.
+
 [source,clojure]
 .src/app/pedestal.clj
 ----
 include::example$component2/src/app/pedestal.clj[]
 ----
 <1> The component has a dependency on `route-source`, and manages the `connector` field.
-<2> This is where the RouteSource component is used.
+<2> This is where the :route-source component is used.
 
 ## system namespace
 
@@ -115,12 +118,12 @@ include::example$component2/src/app/system.clj[]
 
 ## Other code
 
-All the other namespaces (primariy, the tests) are unchanged between the two
+All the other namespaces (primarily, the tests) are unchanged between the two
 versions of the application.
 
 == The Path So Far
 
-In the guide we extended the prior application to fully leverage the capabilities
+In this guide we extended the prior application to fully leverage the capabilities
 of the Component library. We demonstrated how the `definterceptor` macro streamlines
-creating components that acts as both components and interceptors (or handlers), and we saw how each component had only explicit dependencies on exactly what
-other components it directly interacts with.
+creating components that act as both components and interceptors (or handlers), and we saw how each component
+can have only explicit dependencies on exactly what other components it directly interacts with.

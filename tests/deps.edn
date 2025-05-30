@@ -58,6 +58,9 @@
         com.walmartlabs/test-reporting {:mvn/version "1.2"}
         com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}
 
+        ;; For testing of SSEs
+       cloud.prefab/sse-handler {:mvn/version "1.0.0"}
+
         ;; For proper reloading of code in REPL
         io.github.tonsky/clj-reload {:mvn/version "0.9.6"}
 

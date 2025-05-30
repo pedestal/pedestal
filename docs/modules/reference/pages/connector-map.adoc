@@ -83,3 +83,6 @@ Factory functions:
 Functions in the
 api:*[ns=io.pedestal.connector.dev] namespace provide additional support that may be used
 when developing and testing locally, but should not be used in production.
+
+The api:optionally-with-dev-mode-interceptors[] function adds useful development-time interceptors,
+but only if xref:dev-mode.adoc[] is enabled.
