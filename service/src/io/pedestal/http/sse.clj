@@ -32,49 +32,45 @@
 (def ^:private DATA_FIELD (get-bytes "data: "))
 (def ^:private ID_FIELD (get-bytes "id: "))
 
-(defn- mk-data
-  ([name data]
-   (mk-data name data nil))
-  ([name data id]
-   (let [bab (ByteArrayBuilder.)]
-     (when name
-       (.write bab ^bytes EVENT_FIELD)
-       (.write bab ^bytes (get-bytes name))
-       (.write bab ^bytes CRLF))
+(defn- event->bytes
+  [name data id]
+  (let [bab (ByteArrayBuilder.)]
+    (when name
+      (.write bab ^bytes EVENT_FIELD)
+      (.write bab ^bytes (get-bytes name))
+      (.write bab ^bytes CRLF))
 
-     (doseq [part (string/split data #"\r?\n")]
-       (.write bab ^bytes DATA_FIELD)
-       (.write bab ^bytes (get-bytes part))
-       (.write bab ^bytes CRLF))
+    (doseq [part (string/split data #"\r?\n")]
+      (.write bab ^bytes DATA_FIELD)
+      (.write bab ^bytes (get-bytes part))
+      (.write bab ^bytes CRLF))
 
-     (when (not-empty id)
-       (.write bab ^bytes ID_FIELD)
-       (.write bab ^bytes (get-bytes id))
-       (.write bab ^bytes CRLF))
+    (when (not-empty id)
+      (.write bab ^bytes ID_FIELD)
+      (.write bab ^bytes (get-bytes id))
+      (.write bab ^bytes CRLF))
 
-     (.write bab ^bytes CRLF)
-     (.toByteArray bab))))
+    (.write bab ^bytes CRLF)
+    (.toByteArray bab)))
 
 (def ^:private payload-size-fn (metrics/histogram ::payload-size nil))
 
 (defn- send-event
-  ([response-channel name data]
-   (send-event response-channel name data nil))
-  ([response-channel name data id]
-   (send-event response-channel name data id async/>!!))
-  ([response-channel name data id put-fn]
-   (log/trace :msg "writing event to stream"
-              :name name
-              :data data
-              :id id)
-   (payload-size-fn (count data))
-   (try
-     (put-fn response-channel  (mk-data name data id))
-     (catch Throwable t
-       (async/close! response-channel)
-       (log/error :msg "exception sending event"
-                  :throwable t)
-       (throw t)))))
+  [response-channel name data id]
+  (log/trace :msg "writing event to stream"
+             :name name
+             :data data
+             :id id)
+  (try
+    (let [event-bytes (event->bytes name data id)]
+      ;; In 0.7 and earlier, this was the size of data, which isn't the full payload size.
+      (payload-size-fn (count event-bytes))
+      (async/put! response-channel event-bytes))
+    (catch Throwable t
+      (async/close! response-channel)
+      (log/error :msg "exception sending event"
+                 :throwable t)
+      (throw t))))
 
 (def ^:private *active-streams (atom 0))
 
@@ -111,7 +107,7 @@
             (let [event-name (if (map? event) (str (:name event)) nil)
                   event-data (if (map? event) (str (:data event)) (str event))
                   event-id   (if (map? event) (str (:id event)) nil)]
-              (if (send-event response-channel event-name event-data event-id async/put!)
+              (if (send-event response-channel event-name event-data event-id)
                 (recur)
                 (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))
 

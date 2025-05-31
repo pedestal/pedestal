@@ -56,9 +56,9 @@
     (is (= "http://foo.com:8080" allow-origin)
         "The origin is allowed")))
 
-(def sse-interceptor
+(def count-interceptor
   (interceptor/interceptor
-    {:name  ::sse
+    {:name  ::count
      :enter (fn [context]
               (let [path-params (get-in context [:request :path-params])
                     n           (-> path-params :count parse-long)
@@ -75,6 +75,37 @@
                 (sse/start-stream process-fn
                                   context
                                   1)))}))
+
+(def ticker-interceptor
+  (interceptor/interceptor
+    {:name  ::ticker
+     :enter (fn [context]
+              (let [process-fn (fn [ch _context]
+                                 (go
+                                   (doseq [t ["NU" "IBM" "AMZ"]]
+                                     (<! (timeout 100))
+                                     (>! ch t))
+                                   (<! (timeout 100))
+                                   (close! ch)))]
+                (sse/start-stream process-fn
+                                  context
+                                  1
+                                  ;; A function that returns the buffer size (just to get code coverage)
+                                  (constantly 10))))}))
+
+(def multi-line-interceptor
+  (interceptor/interceptor
+    {:name  ::multi-line
+     :enter (fn [context]
+              (let [process-fn (fn [ch _context]
+                                 (put! ch
+                                       "Choose immutability\nand see where that takes you.")
+                                 (close! ch))]
+                (sse/start-stream process-fn
+                                  context
+                                  1
+                                  ;; A function that returns the buffer size (just to get code coverage)
+                                  (constantly 10))))}))
 
 (defn sse-session
   [url]
@@ -119,33 +150,75 @@
   (-> (conn/default-connector-map 9876)
       (conn/with-interceptor cors/dev-allow-origin)
       conn/with-default-interceptors
-      (conn/with-routes #{["/api/sse/:count/:id" :get sse-interceptor]})))
+      (conn/with-routes #{["/api/sse/:count/:id" :get count-interceptor]
+                          ["/api/sse/ticker" :get ticker-interceptor]
+                          ["/api/sse/multi" :get multi-line-interceptor]})))
+
+(defn- end-to-end
+  [id]
+  (let [ch (sse-session (str "http://localhost:9876/api/sse/3/" id))]
+
+    (is (match?
+          [:message {:name "count"
+                     :data "1...\n"
+                     :id   id}] (<!!? ch)))
+
+    (is (match?
+          [:message {:name "count"
+                     :data "2...\n"
+                     :id   id}] (<!!? ch)))
+
+    (is (match?
+          [:message {:name "count"
+                     :data "3...\n"
+                     :id   id}] (<!!? ch)))
+
+    (is (= [:complete] (<!!? ch)))
+
+    ;; And the channel is closed
+    (is (= nil (<!!? ch))))
+
+  (let [ch (sse-session "http://localhost:9876/api/sse/ticker")]
+
+    (is (match?
+          [:message {:name "message"
+                     :data "NU\n"
+                     :id   ""}] (<!!? ch)))
+
+    (is (match?
+          [:message {:name "message"
+                     :data "IBM\n"
+                     :id   ""}] (<!!? ch)))
+
+    (is (match?
+          [:message {:name "message"
+                     :data "AMZ\n"
+                     :id   ""}] (<!!? ch)))
+
+    (is (= [:complete] (<!!? ch)))
+
+    ;; And the channel is closed
+    (is (= nil (<!!? ch))))
+
+  (let [ch (sse-session "http://localhost:9876/api/sse/multi")]
+
+    (is (match?
+          [:message {:data "Choose immutability\nand see where that takes you.\n"}]
+          (<!!? ch)))
+
+
+    (is (= [:complete] (<!!? ch)))
+
+    ;; And the channel is closed
+    (is (= nil (<!!? ch)))))
 
 (deftest jetty-end-to-end
   (let [conn (-> (new-connector)
                  (jetty/create-connector nil)
                  (conn/start!))]
     (try
-      (let [ch (sse-session "http://localhost:9876/api/sse/3/abcde")]
-
-        (is (match? [:message {:name "count"
-                               :data "1...\n"
-                               :id   "abcde"}] (<!!? ch)))
-
-        (is (match? [:message {:name "count"
-                               :data "2...\n"
-                               :id   "abcde"}] (<!!? ch)))
-
-        (is (match? [:message {:name "count"
-                               :data "3...\n"
-                               :id   "abcde"}] (<!!? ch)))
-
-        (is (= [:complete] (<!!? ch)))
-
-        ;; And the channel is closed
-        (is (= nil (<!!? ch))))
+      (end-to-end "jetty12")
       (finally
-
         (conn/stop! conn)))))
 
 (deftest hk-end-to-end
@@ -153,24 +226,9 @@
                  (hk/create-connector nil)
                  (conn/start!))]
     (try
-      (let [ch (sse-session "http://localhost:9876/api/sse/3/abcde")]
-
-        (is (match? [:message {:name "count"
-                               :data "1...\n"
-                               :id   "abcde"}] (<!!? ch)))
-
-        (is (match? [:message {:name "count"
-                               :data "2...\n"
-                               :id   "abcde"}] (<!!? ch)))
-
-        (is (match? [:message {:name "count"
-                               :data "3...\n"
-                               :id   "abcde"}] (<!!? ch)))
-
-        (is (= [:complete] (<!!? ch)))
-
-        ;; And the channel is closed
-        (is (= nil (<!!? ch))))
+      (end-to-end "hk2.9.0")
       (finally
-
         (conn/stop! conn)))))
+
+
+
