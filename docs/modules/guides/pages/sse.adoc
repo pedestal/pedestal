@@ -1,5 +1,7 @@
 = Server Sent Events
 
+WARNING: This document is out of date and will be updated.
+
 == Welcome
 
 Server-sent events (SSE) make it possible to stream events to a client application.

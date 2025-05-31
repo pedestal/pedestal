@@ -15,7 +15,7 @@
   "Support for Server Sent Events."
   (:require [io.pedestal.metrics :as metrics]
             [ring.util.response :as ring-response]
-            [clojure.core.async :as async]
+            [clojure.core.async :as async :refer [go chan >! <! timeout alts! put! close! thread]]
             [io.pedestal.log :as log]
             [io.pedestal.internal :as i]
             [io.pedestal.interceptor :as interceptor]
@@ -65,9 +65,9 @@
     (let [event-bytes (event->bytes name data id)]
       ;; In 0.7 and earlier, this was the size of data, which isn't the full payload size.
       (payload-size-fn (count event-bytes))
-      (async/put! response-channel event-bytes))
+      (put! response-channel event-bytes))
     (catch Throwable t
-      (async/close! response-channel)
+      (close! response-channel)
       (log/error :msg "exception sending event"
                  :throwable t)
       (throw t))))
@@ -87,15 +87,15 @@
   `response-channel`."
   [{:keys [event-channel response-channel heartbeat-delay on-client-disconnect]}]
   (metrics/gauge ::active-streams nil #(deref *active-streams))
-  (async/go
+  (go
     (swap! *active-streams inc)
     (try
       (loop []
-        (let [hb-timeout (async/timeout (* 1000 heartbeat-delay))
-              [event port] (async/alts! [event-channel hb-timeout])]
+        (let [hb-timeout (timeout (* 1000 heartbeat-delay))
+              [event port] (alts! [event-channel hb-timeout])]
           (cond
             (= port hb-timeout)
-            (if (async/>! response-channel CRLF)
+            (if (>! response-channel CRLF)
               (recur)
               (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
@@ -114,8 +114,8 @@
             :else
             (log/info :msg "Event channel has closed. Shutting down SSE stream."))))
       (finally
-        (async/close! event-channel)
-        (async/close! response-channel)
+        (close! event-channel)
+        (close! response-channel)
         (swap! *active-streams dec)
         (when on-client-disconnect (on-client-disconnect))))))
 
@@ -145,7 +145,8 @@
 
   Arguments:
   - stream-ready-fn: passed the channel on which events may be conveyed, and the context
-  - heartbeat-delay: time, in seconds, between heartbeats
+  - context - interceptor context
+  - heartbeat-delay: time, in seconds, between heartbeats (defaults to 1)
   - bufferfn-or-n: a channel buffer size, or a no-args function that returns a buffer or buffer size
 
   Options:
@@ -153,24 +154,26 @@
 
   Returns the context with a :response key, and a :response-channel key (the channel to which events
   may be written)."
+  ([stream-ready-fn context]
+   (start-stream stream-ready-fn context 1))
   ([stream-ready-fn context heartbeat-delay]
    (start-stream stream-ready-fn context heartbeat-delay 10))
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n]
    (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n opts]
    (let [{:keys [on-client-disconnect]} opts
-         response-channel (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         response-channel (chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          response         (-> (ring-response/response response-channel)
                               (ring-response/content-type "text/event-stream")
                               (ring-response/charset "UTF-8")
                               (ring-response/header "Connection" "close")
                               (ring-response/header "Cache-Control" "no-cache")
                               (update :headers merge (:cors-headers context)))
-         event-channel    (async/chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         event-channel    (chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
          context*         (assoc context
                                  :response-channel response-channel
                                  :response response)]
-     (async/thread
+     (thread
        (stream-ready-fn event-channel context*))
      (start-dispatch-loop (merge {:event-channel    event-channel
                                   :response-channel response-channel

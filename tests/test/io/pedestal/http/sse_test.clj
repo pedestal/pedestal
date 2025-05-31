@@ -72,9 +72,7 @@
                                               :id   id}))
                                     (<! (timeout 100))
                                     (close! ch)))]
-                (sse/start-stream process-fn
-                                  context
-                                  1)))}))
+                (sse/start-stream process-fn context)))}))
 
 (def ticker-interceptor
   (interceptor/interceptor
@@ -101,11 +99,7 @@
                                  (put! ch
                                        "Choose immutability\nand see where that takes you.")
                                  (close! ch))]
-                (sse/start-stream process-fn
-                                  context
-                                  1
-                                  ;; A function that returns the buffer size (just to get code coverage)
-                                  (constantly 10))))}))
+                (sse/start-stream process-fn context)))}))
 
 (defn sse-session
   [url]
@@ -154,81 +148,67 @@
                           ["/api/sse/ticker" :get ticker-interceptor]
                           ["/api/sse/multi" :get multi-line-interceptor]})))
 
+(defn expect-messages
+  [uri & messages]
+  (let [ch (sse-session uri)]
+    (doseq [expected-message messages]
+      (is (match? [:message expected-message] (<!!? ch))))
+
+    ;; At which point the exchange is complete
+    (is (= [:complete] (<!!? ch)))
+
+    ;; And the channel closes
+    (is (= nil) (<!!? ch))))
+
 (defn- end-to-end
-  [id]
-  (let [ch (sse-session (str "http://localhost:9876/api/sse/3/" id))]
+  [id connector-fn]
+  (let [conn (-> (new-connector)
+                 (connector-fn nil)
+                 (conn/start!))]
+    (try
+      (expect-messages (str "http://localhost:9876/api/sse/3/" id)
 
-    (is (match?
-          [:message {:name "count"
-                     :data "1...\n"
-                     :id   id}] (<!!? ch)))
+                       ;; The trailing line feed is as specified in the SSE Spec
+                       {:name "count"
+                        :data "1...\n"
+                        :id   id}
 
-    (is (match?
-          [:message {:name "count"
-                     :data "2...\n"
-                     :id   id}] (<!!? ch)))
+                       {:name "count"
+                        :data "2...\n"
+                        :id   id}
 
-    (is (match?
-          [:message {:name "count"
-                     :data "3...\n"
-                     :id   id}] (<!!? ch)))
+                       {:name "count"
+                        :data "3...\n"
+                        :id   id})
 
-    (is (= [:complete] (<!!? ch)))
+      (expect-messages "http://localhost:9876/api/sse/ticker"
 
-    ;; And the channel is closed
-    (is (= nil (<!!? ch))))
+                       ;;"message" is a default indicated in the SSE Spec
+                       {:name "message"
+                        :data "NU\n"
+                        :id   ""}
 
-  (let [ch (sse-session "http://localhost:9876/api/sse/ticker")]
+                       {:name "message"
+                        :data "IBM\n"
+                        :id   ""}
 
-    (is (match?
-          [:message {:name "message"
-                     :data "NU\n"
-                     :id   ""}] (<!!? ch)))
+                       {:name "message"
+                        :data "AMZ\n"
+                        :id   ""})
 
-    (is (match?
-          [:message {:name "message"
-                     :data "IBM\n"
-                     :id   ""}] (<!!? ch)))
+      (expect-messages "http://localhost:9876/api/sse/multi"
 
-    (is (match?
-          [:message {:name "message"
-                     :data "AMZ\n"
-                     :id   ""}] (<!!? ch)))
+                       ;; Split into multiple data: fields, then reassembled
+                       {:data "Choose immutability\nand see where that takes you.\n"})
 
-    (is (= [:complete] (<!!? ch)))
-
-    ;; And the channel is closed
-    (is (= nil (<!!? ch))))
-
-  (let [ch (sse-session "http://localhost:9876/api/sse/multi")]
-
-    (is (match?
-          [:message {:data "Choose immutability\nand see where that takes you.\n"}]
-          (<!!? ch)))
-
-
-    (is (= [:complete] (<!!? ch)))
-
-    ;; And the channel is closed
-    (is (= nil (<!!? ch)))))
+      (finally
+        (conn/stop! conn)))))
 
 (deftest jetty-end-to-end
-  (let [conn (-> (new-connector)
-                 (jetty/create-connector nil)
-                 (conn/start!))]
-    (try
-      (end-to-end "jetty12")
-      (finally
-        (conn/stop! conn)))))
+  (end-to-end "jetty12" jetty/create-connector))
 
 (deftest hk-end-to-end
-  (let [conn (-> (new-connector)
-                 (hk/create-connector nil)
-                 (conn/start!))]
-    (try
-      (end-to-end "hk2.9.0")
-      (finally
-        (conn/stop! conn)))))
+  (end-to-end "hk2.9.0" hk/create-connector))
 
 
 
