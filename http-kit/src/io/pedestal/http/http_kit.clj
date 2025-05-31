@@ -47,10 +47,10 @@
               context)}))
 
 (defn- prepare-response
-  [response]
+  [request response]
   (let [{:keys [body]} response
         content-type (get-in response [:headers "Content-Type"])
-        [default-content-type body'] (convert-response-body body)]
+        [default-content-type body'] (convert-response-body body request)]
     (-> response
         (assoc :body body')
         (cond->
@@ -60,9 +60,9 @@
 (def ^:private response-converter
   (interceptor
     {:name  ::response-converter
-     :leave (fn [{:keys [response] :as context}]
+     :leave (fn [{:keys [request response] :as context}]
               (if (response/response? response)
-                (update context :response prepare-response)
+                (assoc context :response (prepare-response request response))
                 (do
                   (log/error :msg "Invalid response"
                              :response response)

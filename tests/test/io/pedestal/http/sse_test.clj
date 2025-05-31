@@ -12,7 +12,8 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.sse-test
-  (:require [io.pedestal.http.jetty :as jetty]
+  (:require [io.pedestal.http.http-kit :as hk]
+            [io.pedestal.http.jetty :as jetty]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.connector :as conn]
@@ -147,3 +148,29 @@
 
         (conn/stop! conn)))))
 
+(deftest hk-end-to-end
+  (let [conn (-> (new-connector)
+                 (hk/create-connector nil)
+                 (conn/start!))]
+    (try
+      (let [ch (sse-session "http://localhost:9876/api/sse/3/abcde")]
+
+        (is (match? [:message {:name "count"
+                               :data "1...\n"
+                               :id   "abcde"}] (<!!? ch)))
+
+        (is (match? [:message {:name "count"
+                               :data "2...\n"
+                               :id   "abcde"}] (<!!? ch)))
+
+        (is (match? [:message {:name "count"
+                               :data "3...\n"
+                               :id   "abcde"}] (<!!? ch)))
+
+        (is (= [:complete] (<!!? ch)))
+
+        ;; And the channel is closed
+        (is (= nil (<!!? ch))))
+      (finally
+
+        (conn/stop! conn)))))

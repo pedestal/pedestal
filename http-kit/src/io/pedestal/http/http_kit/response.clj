@@ -12,7 +12,8 @@
 (ns io.pedestal.http.http-kit.response
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
   (:require [io.pedestal.service.impl :as impl]
-            [clojure.core.async :refer [<!!]])
+            [clojure.core.async :refer [<! close! go-loop]]
+            [org.httpkit.server :as hk])
   (:import (clojure.core.async.impl.protocols ReadPort)
            (clojure.lang Fn IPersistentCollection)
            (java.io File InputStream)
@@ -22,51 +23,66 @@
 
 (defprotocol HttpKitResponse
 
-  (convert-response-body [body]
+  (convert-response-body [body request]
     "Converts a body value to a type compatible with HttpKit.
 
     Returns a tuple of the default content type to use (or nil), and the body converted to an acceptible type for Http-Kit."))
 
+
+(defn- pipe-async-channel
+  [request response-ch]
+  (let [{:keys [async-channel]} request]
+    (go-loop []
+      ;; HttpKit does support most of types supported by Pedestal, with the exception
+      ;; of Fn, IPersistentCollection, and ReadableByteChannel.
+      (if-let [chunk (<! response-ch)]
+        ;; Need to verify that send! is not blocking, or we'll need to add a `thread` call here.
+        (do
+          (hk/send! async-channel chunk false)
+          (recur))
+        (hk/close async-channel)))
+    async-channel))
+
 (extend-protocol HttpKitResponse
 
   nil
-  (convert-response-body [_] [nil nil])
+  (convert-response-body [_ _] [nil nil])
 
   AsyncChannel
-  (convert-response-body [ch] [nil ch])
+  (convert-response-body [ch _] [nil ch])
 
   String
-  (convert-response-body [s] ["text/plain" s])
+  (convert-response-body [s _] ["text/plain" s])
 
   InputStream
-  (convert-response-body [stream] ["application/octet-stream" stream])
+  (convert-response-body [stream _] ["application/octet-stream" stream])
 
   File
-  (convert-response-body [file] ["application/octet-stream" file])
+  (convert-response-body [file _] ["application/octet-stream" file])
 
   ByteBuffer
-  (convert-response-body [buffer]
+  (convert-response-body [buffer _]
     ["application/octet-stream" (impl/byte-buffer->input-stream buffer)])
 
   ReadableByteChannel
-  (convert-response-body [channel]
+  (convert-response-body [channel _]
     ["application/octet-stream" (impl/byte-channel->input-stream channel)])
 
   Fn
-  (convert-response-body [f]
+  (convert-response-body [f _]
     ["application/octet-stream" (impl/function->input-stream f)])
 
   IPersistentCollection
-  (convert-response-body [coll]
+  (convert-response-body [coll _]
     ["application/edn" (pr-str coll)])
 
-  ReadPort                                                   ; core.async
-  (convert-response-body [ch]
-    (convert-response-body (<!! ch))))
+  ReadPort                                                  ; core.async
+  (convert-response-body [ch request]
+    ["application/octet-stream" (pipe-async-channel request ch)]))
 
 (extend (Class/forName "[B")
 
   HttpKitResponse
 
-  {:convert-response-body (fn [byte-array]
+  {:convert-response-body (fn [byte-array _]
                             ["application/octet-stream" byte-array])})
