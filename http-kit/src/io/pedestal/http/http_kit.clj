@@ -21,6 +21,7 @@
             [io.pedestal.service.protocols :as p]
             [io.pedestal.service.websocket :as ws]
             [org.httpkit.server :as hk]
+            [clojure.core.async :refer [chan close!]]
             [io.pedestal.http.http-kit.impl :as impl]
             [io.pedestal.connector.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
@@ -37,14 +38,40 @@
    :legacy-return-value? false})
 
 (defn- async-responder
-  [*channel]
+  [*async-channel]
   (interceptor
     {:name  ::async-responder
      :leave (fn [context]
-              (when-let [channel @*channel]
+              ;; *async-channel will contain the HK AsyncChannel, but only if
+              ;; the chain execution went async.
+              ;;
+              ;; There are two scenarios here:
+              ;; 1. Creation of the :response was deferred, but the response is normal (text or streamable data)
+              ;; 2. For SSE or WebSocket upgrade requests, the body is the AsyncChannel, and the channel should
+              ;; not be closed, as async processes may still need to stream data.  They are responsible for
+              ;; eventually closing the async channel.
+              (when-let [channel @*async-channel]
                 (when-let [{:keys [response]} context]
-                  (hk/send! channel response))
-                (hk/close channel))
+                  ;; Case 1 is handled here:
+                  (when (not= channel (:body response))
+                    (hk/send! channel response)
+                    (hk/close channel))))
+              context)}))
+
+(defn ^:private response-committer
+  [committed-ch]
+  (interceptor
+    {:name  ::response-committer
+     :leave (fn [context]
+              (let [{:keys [response]} context
+                    {:keys [body]} response]
+                ;; With the HK lifecycle, this block here *must* be the first to send!
+                ;; so that the status code & headers get written. Other-wise they are lost.
+                (when (and (instance? AsyncChannel body)
+                           (not (.isWebSocket ^AsyncChannel body)))
+                  (hk/send! body (assoc response :body nil) false)))
+              ;; Now it is safe for other async processes to begin writing.
+              (close! committed-ch)
               context)}))
 
 (defn- prepare-response
@@ -79,19 +106,23 @@
         *server      (atom nil)
         root-handler (fn [request]
                        (let [{:keys [uri async-channel]} request
-                             request'       (assoc request :path-info uri)
-                             *async-channel (atom nil)
-                             interceptors'  (into [(async-responder *async-channel)
-                                                   response-converter]
-                                                  interceptors)
-                             context        (-> initial-context
-                                                (assoc :request request'
-                                                       :websocket-channel-source async-channel)
-                                                (chain/on-enter-async (fn [_]
-                                                                        (reset! *async-channel (or async-channel
-                                                                                                   (throw (ex-info "No async channel in request map"
-                                                                                                                   {:request request}))))))
-                                                (chain/execute interceptors'))]
+                             response-commited-ch (chan)
+                             request'             (assoc request
+                                                         :io.pedestal.http.request/response-commited-ch response-commited-ch
+                                                         :path-info uri)
+                             *async-channel       (atom nil)
+                             interceptors'        (into [(async-responder *async-channel)
+                                                        (response-committer response-commited-ch)
+                                                         response-converter]
+                                                        interceptors)
+                             context              (-> initial-context
+                                                      (assoc :request request'
+                                                             :websocket-channel-source async-channel)
+                                                      (chain/on-enter-async (fn [_]
+                                                                              (reset! *async-channel (or async-channel
+                                                                                                         (throw (ex-info "No async channel in request map"
+                                                                                                                         {:request request}))))))
+                                                      (chain/execute interceptors'))]
                          ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
                          (if-let [async-channel @*async-channel]
                            ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
@@ -148,60 +179,60 @@
         {:keys [on-close]} ws-opts
         ;; Http-Kit always wants to setup on-receive before the open, so we do that but allow
         ;; for the actual callback to be provided after the open callback.
-        *on-text    (atom nil)
-        *on-binary  (atom nil)
-        *proc       (atom nil)
-        ws-channel  (reify ws/WebSocketChannel
+        *on-text   (atom nil)
+        *on-binary (atom nil)
+        *proc      (atom nil)
+        ws-channel (reify ws/WebSocketChannel
 
-                      (on-text [_ callback]
-                        (when @*on-text
-                          (throw (ex-info "on-text callback has already been set"
-                                          {:ch ch})))
+                     (on-text [_ callback]
+                       (when @*on-text
+                         (throw (ex-info "on-text callback has already been set"
+                                         {:ch ch})))
 
-                        (reset! *on-text callback)
+                       (reset! *on-text callback)
 
-                        nil)
+                       nil)
 
-                      (on-binary [_ format callback]
-                        (when @*on-binary
-                          (throw (ex-info "on-binary callback has already been set"
-                                          {:ch ch})))
+                     (on-binary [_ format callback]
+                       (when @*on-binary
+                         (throw (ex-info "on-binary callback has already been set"
+                                         {:ch ch})))
 
-                        (reset! *on-binary (fn [ws-channel proc raw-binary]
-                                             (callback ws-channel proc (convert format raw-binary))))
+                       (reset! *on-binary (fn [ws-channel proc raw-binary]
+                                            (callback ws-channel proc (convert format raw-binary))))
 
-                        nil)
+                       nil)
 
-                      (send-text! [_ string]
-                        (hk/send! ch string))
+                     (send-text! [_ string]
+                       (hk/send! ch string))
 
-                      (send-binary! [_ data]
-                        (let [data' (if (bytes? data)
-                                      data
-                                      (convert :input-stream data))]
-                          (hk/send! ch data')))
+                     (send-binary! [_ data]
+                       (let [data' (if (bytes? data)
+                                     data
+                                     (convert :input-stream data))]
+                         (hk/send! ch data')))
 
-                      (close! [_]
-                        (hk/close ch)
+                     (close! [_]
+                       (hk/close ch)
 
-                        nil))
-        on-receive  (fn [_ message]
-                      (let [*callback (if (string? message) *on-text *on-binary)
-                            f         @*callback]
-                        (when f
-                          (f ws-channel @*proc message))))
-        ch-opts     (cond-> {:on-receive on-receive
-                             :on-open    (fn [_]
-                                           (when-let [f (:on-open ws-opts)]
-                                             (reset! *proc (f ws-channel request)))
+                       nil))
+        on-receive (fn [_ message]
+                     (let [*callback (if (string? message) *on-text *on-binary)
+                           f         @*callback]
+                       (when f
+                         (f ws-channel @*proc message))))
+        ch-opts    (cond-> {:on-receive on-receive
+                            :on-open    (fn [_]
+                                          (when-let [f (:on-open ws-opts)]
+                                            (reset! *proc (f ws-channel request)))
 
-                                           (when-let [f (:on-text ws-opts)]
-                                             (ws/on-text ws-channel f))
+                                          (when-let [f (:on-text ws-opts)]
+                                            (ws/on-text ws-channel f))
 
-                                           (when-let [f (:on-binary ws-opts)]
-                                             (ws/on-binary ws-channel :byte-buffer f)))}
-                      on-close (assoc :on-close
-                                      (fn [_ status-code]
+                                          (when-let [f (:on-binary ws-opts)]
+                                            (ws/on-binary ws-channel :byte-buffer f)))}
+                     on-close (assoc :on-close
+                                     (fn [_ status-code]
                                         (on-close ws-channel @*proc status-code))))
         hk-response (hk/as-channel request ch-opts)]
     ;; The :status is needed to keep the interceptor terminator checker from complaining.
