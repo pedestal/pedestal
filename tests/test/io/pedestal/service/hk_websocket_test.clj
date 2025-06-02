@@ -86,6 +86,7 @@
     ::oneshot
     (assoc default-ws-opts
            :on-text (fn [conn _ text]
+                      #trace/result text
                       (websocket/send-text! conn (str "oneshot: " text))
                       (websocket/close! conn)))))
 

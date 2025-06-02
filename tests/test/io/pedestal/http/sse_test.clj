@@ -85,11 +85,12 @@
                                      (>! ch t))
                                    (<! (timeout 100))
                                    (close! ch)))]
-                (sse/start-stream process-fn
-                                  context
-                                  1
-                                  ;; A function that returns the buffer size (just to get code coverage)
-                                  (constantly 10))))}))
+                (go
+                  (sse/start-stream process-fn
+                                    context
+                                    1
+                                    ;; A function that returns the buffer size (just to get code coverage)
+                                    (constantly 10)))))}))
 
 (def multi-line-interceptor
   (interceptor/interceptor
@@ -181,6 +182,7 @@
                         :data "3...\n"
                         :id   id})
 
+      ;; Note that ticker uses an async interceptor, the others are sync
       (expect-messages "http://localhost:9876/api/sse/ticker"
 
                        ;;"message" is a default indicated in the SSE Spec
@@ -210,5 +212,23 @@
 (deftest hk-end-to-end
   (end-to-end "hk2.9.0" hk/create-connector))
 
+(defonce *conn (atom nil))
 
+(defn start []
+  (reset! *conn (-> (new-connector)
+                    (hk/create-connector nil)
+                    conn/start!))
+  :started)
+
+(defn stop []
+  (conn/stop! @*conn)
+  (reset! *conn nil)
+  :stopped)
+
+(comment
+
+
+  (start)
+  (stop)
+  )
 

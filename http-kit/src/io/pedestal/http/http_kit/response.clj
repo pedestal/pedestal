@@ -13,7 +13,7 @@
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
   {:added "0.8.0"}
   (:require [io.pedestal.service.impl :as impl]
-            [clojure.core.async :refer [<! close! go-loop]]
+            [clojure.core.async :refer [<! go]]
             [org.httpkit.server :as hk])
   (:import (clojure.core.async.impl.protocols ReadPort)
            (clojure.lang Fn IPersistentCollection)
@@ -30,18 +30,23 @@
     Returns a tuple of the default content type to use (or nil), and the body converted to an acceptible type for Http-Kit."))
 
 
-(defn- pipe-async-channel
+(defn- pipe-async-response-channel
   [request response-ch]
-  (let [{:keys [async-channel]} request]
-    (go-loop []
-      ;; HttpKit does support most of types supported by Pedestal, with the exception
-      ;; of Fn, IPersistentCollection, and ReadableByteChannel.
-      (if-let [chunk (<! response-ch)]
-        ;; Need to verify that send! is not blocking, or we'll need to add a `thread` call here.
-        (do
+  (let [{:keys [async-channel]} request
+        committed-ch (:io.pedestal.http.request/response-commited-ch request)]
+    (go
+      ;; Wait for response to be committed before sending any additional content down.
+      (<! committed-ch)
+      (loop []
+        ;; HttpKit does support most of types supported by Pedestal, with the exception
+        ;; of Fn, IPersistentCollection, and ReadableByteChannel.
+        (when-let [chunk (<! response-ch)]
+          ;; Need to verify that send! is not blocking, or we'll need to add a `thread` call here.
           (hk/send! async-channel chunk false)
-          (recur))
-        (hk/close async-channel)))
+          (recur)))
+      (hk/close async-channel))
+    ;; Return the async channel as the body; this will trigger an initial
+    ;; send! of the status/headers, then commited-ch will close, un-parking the loop above.
     async-channel))
 
 (extend-protocol HttpKitResponse
@@ -49,6 +54,7 @@
   nil
   (convert-response-body [_ _] [nil nil])
 
+  ;; Pass Http-Kit Async Channel right through; this occurs for SSE or WebSocket requests
   AsyncChannel
   (convert-response-body [ch _] [nil ch])
 
@@ -78,8 +84,8 @@
     ["application/edn" (pr-str coll)])
 
   ReadPort                                                  ; core.async
-  (convert-response-body [ch request]
-    ["application/octet-stream" (pipe-async-channel request ch)]))
+  (convert-response-body [response-ch request]
+    ["application/octet-stream" (pipe-async-response-channel request response-ch)]))
 
 (extend (Class/forName "[B")
 

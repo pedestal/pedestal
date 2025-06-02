@@ -15,7 +15,7 @@
   "Support for Server Sent Events."
   (:require [io.pedestal.metrics :as metrics]
             [ring.util.response :as ring-response]
-            [clojure.core.async :as async :refer [go chan >! <! timeout alts! put! close! thread]]
+            [clojure.core.async :refer [go chan >! <!! timeout alts! put! close! thread]]
             [io.pedestal.log :as log]
             [io.pedestal.internal :as i]
             [io.pedestal.interceptor :as interceptor]
@@ -27,7 +27,7 @@
 (defn- get-bytes [^String s]
   (.getBytes s UTF-8))
 
-(def ^:private CRLF (get-bytes "\r\n"))
+(def ^:private EOL (get-bytes "\n"))
 (def ^:private EVENT_FIELD (get-bytes "event: "))
 (def ^:private DATA_FIELD (get-bytes "data: "))
 (def ^:private ID_FIELD (get-bytes "id: "))
@@ -38,19 +38,19 @@
     (when name
       (.write bab ^bytes EVENT_FIELD)
       (.write bab ^bytes (get-bytes name))
-      (.write bab ^bytes CRLF))
+      (.write bab ^bytes EOL))
 
     (doseq [part (string/split-lines data)]
       (.write bab ^bytes DATA_FIELD)
       (.write bab ^bytes (get-bytes part))
-      (.write bab ^bytes CRLF))
+      (.write bab ^bytes EOL))
 
     (when id
       (.write bab ^bytes ID_FIELD)
       (.write bab ^bytes (get-bytes id))
-      (.write bab ^bytes CRLF))
+      (.write bab ^bytes EOL))
 
-    (.write bab ^bytes CRLF)
+    (.write bab ^bytes EOL)
     (.toByteArray bab)))
 
 (def ^:private payload-size-fn (metrics/histogram ::payload-size nil))
@@ -111,7 +111,7 @@
               [event port] (alts! [event-channel hb-timeout])]
           (cond
             (= port hb-timeout)
-            (if (>! response-channel CRLF)
+            (if (>! response-channel EOL)
               (recur)
               (log/info :msg "Response channel was closed when sending heartbeat. Shutting down SSE stream."))
 
@@ -179,25 +179,28 @@
    (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn context heartbeat-delay bufferfn-or-n opts]
    (let [{:keys [on-client-disconnect]} opts
-         response-channel (chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
-         response         (-> (ring-response/response response-channel)
-                              (ring-response/content-type "text/event-stream")
-                              (ring-response/charset "UTF-8")
-                              (ring-response/header "Connection" "close")
-                              (ring-response/header "Cache-Control" "no-cache")
-                              (update :headers merge (:cors-headers context)))
-         event-channel    (chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
-         context*         (assoc context
-                                 :response-channel response-channel
-                                 :response response)]
+         response-channel     (chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         response             (-> (ring-response/response response-channel)
+                                  (ring-response/content-type "text/event-stream")
+                                  (ring-response/charset "UTF-8")
+                                  (ring-response/header "Connection" "close")
+                                  (ring-response/header "Cache-Control" "no-cache")
+                                  (update :headers merge (:cors-headers context)))
+         event-channel        (chan (if (fn? bufferfn-or-n) (bufferfn-or-n) bufferfn-or-n))
+         context*             (assoc context
+                                     :response-channel response-channel
+                                     :response response)
+         response-commited-ch (get-in context [:request :io.pedestal.http.request/response-commited-ch])]
      (thread
-       (stream-ready-fn event-channel context*))
-     (start-dispatch-loop (merge {:event-channel    event-channel
-                                  :response-channel response-channel
-                                  :heartbeat-delay  heartbeat-delay
-                                  :context          context*}
-                                 (when on-client-disconnect
-                                   {:on-client-disconnect #(on-client-disconnect context*)})))
+       (when response-commited-ch
+         (<!! response-commited-ch))
+       (stream-ready-fn event-channel context*)
+       (start-dispatch-loop (merge {:event-channel    event-channel
+                                    :response-channel response-channel
+                                    :heartbeat-delay  heartbeat-delay
+                                    :context          context*}
+                                   (when on-client-disconnect
+                                     {:on-client-disconnect #(on-client-disconnect context*)}))))
      context*)))
 
 (defn ^{:deprecated "0.8.0"} start-event-stream

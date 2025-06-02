@@ -32,6 +32,12 @@ https://docs.oracle.com/javaee/7/tutorial/servlets012.htm[asynchronous processin
 This returns the thread to the container's request processing thread pool,
 and the container will (efficiently) stream the contents of the buffer or channel to the client.
 
+[NOTE]
+====
+This applies to xref:jetty.adoc[] (which is Servlet based) but not to xref:http-kit.adoc[], which
+is not servlet based.
+====
+
 == Core Async Channel
 
 When a {core_async} channel delivers a message, that message is written

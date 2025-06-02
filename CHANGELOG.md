@@ -12,15 +12,15 @@ to the Jakarta Servlet API from those that are more general.
 **BREAKING CHANGES:**
 
 - Clojure 1.11 is now the minimum supported version
+- The new Sawtooth router is now the *default router*
 - Anonymous interceptors are deprecated
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
 - Fix reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
-- A new router, `io.pedestal.http.route.sawtooth`, has been added
-  - Sawtooth identfies conflicting routes
-  - Sawtooth is now the *default router*
+- Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both 
+  are acceptible according to the SSE specification)
 - `io.pedestal.test` has been rewritten, nearly from scratch
   - The Servlet API mocks are now Java classes, not `reify`-ed classes
   - A request body may now be a java.io.File
@@ -52,6 +52,9 @@ Newly deprecated namespaces:
 - `io.pedestal.jetty.util`
 
 Other changes:
+- A new router, `io.pedestal.http.route.sawtooth`, has been added
+    - Sawtooth identfies conflicting routes
+    - Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
 - Metrics can now be configured to accept longs or doubles as their values.
 - _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
   do not use the Servlet API, and so are much lighter weight.
