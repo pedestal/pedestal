@@ -27,3 +27,4 @@ asciidoc:
     servlet-api: link:https://jakarta.ee/specifications/servlet/[Jakarta Servlet API]
     clj-reload: link:https://tonsky.me/blog/clj-reload/[clj-reload]
     matcher-combinators: link:https://github.com/nubank/matcher-combinators[matcher-combinators]
+    sse: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events[Server-sent events]

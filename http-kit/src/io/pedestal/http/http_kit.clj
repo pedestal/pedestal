@@ -14,6 +14,7 @@
 
   Http-Kit provides features similar to the Servlet API, including WebSockets, but does not
   implement any of the underlying Servlet API or WebSocket interfaces."
+  {:added "0.8.0"}
   (:require [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
             [io.pedestal.service.data :as data :refer [convert]]
@@ -47,10 +48,10 @@
               context)}))
 
 (defn- prepare-response
-  [response]
+  [request response]
   (let [{:keys [body]} response
         content-type (get-in response [:headers "Content-Type"])
-        [default-content-type body'] (convert-response-body body)]
+        [default-content-type body'] (convert-response-body body request)]
     (-> response
         (assoc :body body')
         (cond->
@@ -60,9 +61,9 @@
 (def ^:private response-converter
   (interceptor
     {:name  ::response-converter
-     :leave (fn [{:keys [response] :as context}]
+     :leave (fn [{:keys [request response] :as context}]
               (if (response/response? response)
-                (update context :response prepare-response)
+                (assoc context :response (prepare-response request response))
                 (do
                   (log/error :msg "Invalid response"
                              :response response)

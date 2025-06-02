@@ -10,6 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.http-kit.specs
+  {:added "0.8.0"}
   (:require [clojure.spec.alpha :as s]
             [io.pedestal.http.http-kit :as http-kit]
             [io.pedestal.connector.specs :as connector]))

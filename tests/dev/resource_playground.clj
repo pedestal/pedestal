@@ -2,6 +2,9 @@
   "Used to compare performance of different resource exposing techniques (service-map configuration vs. routes"
   (:require [io.pedestal.http :as http]
             [io.pedestal.service.resources :as resources]
+            [io.pedestal.http.route.prefix-tree :as pf]
+            [criterium.core :as c]
+            [io.pedestal.http.route.sawtooth :as saw]
             [io.pedestal.http.route :as route]))
 
 (defn version-handler
@@ -69,4 +72,33 @@
 ;; (times were worse with both interceptors and routes enabled).
 ;; Ran each ab command several times in a row, until the numbers
 ;; looked reasonably stable.
+
+(comment                                                    ; do
+  (def routes (route/expand-routes #{["/api/release-cycle/:version/cancel" :get identity :route-name :cancel]
+                                     ["/api/release-cycle/resume-current" :get identity :route-name :resume]}))
+
+  (def pf (pf/router routes))
+  (def saw (saw/router routes))
+
+
+  (pf {:request-method :get
+           :path-info "/api/release-cycle/resume-current"}) ; => nil
+
+  (println "**** PREFIX-TREE")
+
+  (c/quick-bench
+    (pf {:request-method :get
+                      :path-info      "/api/release-cycle/1.2.3/cancel"})) ;=> :cancel route
+
+  (println "**** SAWTOOTH")
+
+  (saw {:request-method :get
+       :path-info "/api/release-cycle/resume-current"})     ; => :resume route
+
+  (c/quick-bench
+    (saw {:request-method :get
+          :path-info      "/api/release-cycle/1.2.3/cancel"})) ; => :cancel route
+
+  )
+
 

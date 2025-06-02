@@ -39,6 +39,19 @@ to the stream, using any of the synchronous dispatches above. The
 message from the channel must not be another channel, it must be a value that
 can be immediately acted upon.
 
+[WARNING]
+====
+At this time, the xref:http-kit.adoc[] support does not handle the following types conveyed in the channel:
+
+* Function
+* Collections
+* ReadableByteChannel
+
+However, the support is sufficient for xref:server-sent-events.adoc[].
+
+====
+
+
 == Function
 
 When the body is, in fact, a function, then Pedestal will invoke the function with a

@@ -58,13 +58,13 @@ For example, consider the following route paths:
 - /user/search
 - /blog/:id
 
-None of these routes are in conflict.  If the request path is `/user/search` it will always match the last route.
+None of these routes are in conflict.  If the request path is `/user/search` it will always match the third route.
 If the request path is `/user/12487` is will match the first route.  If the request path is `/user/12487/profile`, Sawtooth will
 match the second route - because routes that do not contain the wild-card path paramer must match the exact number of terms.
 
 In terms of operation, Sawtooth will match the first term (say "user"), and will only consider the first three routes,
 ignoring the fourth. It is then tasked with matching the request against the literal term `search` (third route),
-or it will match a term against `:id` (first route), or match a term  term followed by the literal term `profile` (second route).
+or it will match a term against `:id` (first route), or match a term followed by the literal term `profile` (second route).
 It's all about subdivide and conquer.
 
 Alternately, if the request path started with "/blog", only the fourth route would be considered.

@@ -33,7 +33,10 @@
           false
           (deliver *response-promise @*response)))
 
-      (send! [_ data]
+      (send! [this data]
+        (hk/send! this data false))
+
+      (send! [this data close?]
         (when @*response
           (throw (ex-info "Mock Channel can only capture single response map"
                           {:response @*response
@@ -44,10 +47,8 @@
                           {:response @*response
                            :data     data})))
 
-        (reset! *response data))
+        (reset! *response data)
 
-      (send! [this data close?]
-        (hk/send! this data)
         (when close? (hk/close this)))
 
       (on-receive [_ _] (nyi "on-receive"))
