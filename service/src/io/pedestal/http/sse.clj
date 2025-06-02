@@ -40,12 +40,12 @@
       (.write bab ^bytes (get-bytes name))
       (.write bab ^bytes CRLF))
 
-    (doseq [part (string/split data #"\r?\n")]
+    (doseq [part (string/split-lines data)]
       (.write bab ^bytes DATA_FIELD)
       (.write bab ^bytes (get-bytes part))
       (.write bab ^bytes CRLF))
 
-    (when (not-empty id)
+    (when id
       (.write bab ^bytes ID_FIELD)
       (.write bab ^bytes (get-bytes id))
       (.write bab ^bytes CRLF))
@@ -71,6 +71,22 @@
       (log/error :msg "exception sending event"
                  :throwable t)
       (throw t))))
+
+(defn extract-string
+  [map-or-str k]
+  (let [value (when (map? map-or-str)
+                (get map-or-str k))]
+    (cond
+      (nil? value)
+      nil
+
+      (string? value)
+      (if (string/blank? value)
+        nil
+        value)
+
+      :else
+      (str value))))
 
 (def ^:private *active-streams (atom 0))
 
@@ -104,9 +120,10 @@
             ;; {:name "my-event" :data "some message data here"}
             ;; .. and optionally supply IDs (strings) that make sense to your application
             ;; {:name "my-event" :data "some message data here" :id "1234567890ae"}
-            (let [event-name (if (map? event) (str (:name event)) nil)
-                  event-data (if (map? event) (str (:data event)) (str event))
-                  event-id   (if (map? event) (str (:id event)) nil)]
+            (let [event-name (extract-string event :name)
+                  event-data (str
+                               (if (map? event) (:data event) event))
+                  event-id   (extract-string event :id)]
               (if (send-event response-channel event-name event-data event-id)
                 (recur)
                 (log/info :msg "Response channel was closed when sending event. Shutting down SSE stream.")))

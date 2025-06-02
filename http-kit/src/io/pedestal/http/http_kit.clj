@@ -14,6 +14,7 @@
 
   Http-Kit provides features similar to the Servlet API, including WebSockets, but does not
   implement any of the underlying Servlet API or WebSocket interfaces."
+  {:added "0.8.0"}
   (:require [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
             [io.pedestal.service.data :as data :refer [convert]]

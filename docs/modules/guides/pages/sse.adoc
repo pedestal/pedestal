@@ -16,7 +16,6 @@ xref:reference:websockets.adoc[Pedestal also supports].
 
 After reading this guide, you will be able to:
 
-- Basics of SSEs
 - Configure Pedestal to accept SSE connections.
 - Send events from Pedestal over the connection using {core_async}.
 - Connect to the server-sent event stream from a JavaScript client.

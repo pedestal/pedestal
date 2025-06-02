@@ -11,6 +11,7 @@
 
 (ns io.pedestal.http.http-kit.response
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
+  {:added "0.8.0"}
   (:require [io.pedestal.service.impl :as impl]
             [clojure.core.async :refer [<! close! go-loop]]
             [org.httpkit.server :as hk])

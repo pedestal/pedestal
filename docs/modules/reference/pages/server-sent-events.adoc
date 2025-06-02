@@ -10,12 +10,12 @@ Rather, SSE sends all its events as part of a single response stream.
 
 The stream is kept alive over time by sending events and/or periodic heart-beat data.
 In the event that the stream is closed for some reason, the client can send a request to re-open it and events notifications can continue.
-All modern browsers have built in support for SSE via the
+All modern browsers have built in support for SSE via the }
 link:https://developer.mozilla.org/en-US/docs/Web/API/EventSource[EventSource API].
 
 == Making an SSE Interceptor
 
-To define an endpoint that will send SSE, make a route with an interceptor
+To define an endpoint that will send events, define a route with an interceptor
 that invokes api:start-stream[] from its :enter callback.
 
 `start-stream` requires a "ready function." The ready function will be called later, when Pedestal has prepared the HTTP response and informed the client that an SSE stream is starting.
@@ -24,11 +24,11 @@ that invokes api:start-stream[] from its :enter callback.
 
 `start-stream` sets up the following conditions:
 
-- Send HTTP response headers to tell the client that an event stream is starting
-- Initiate a timed heartbeat to keep the connection alive
+- Sends HTTP response headers to tell the client that an event stream is starting
+- Initiates a timed heartbeat to keep the connection alive
 
 After that, it will call the ready function with two arguments: a {core_async}
-channel for the events and the current interceptor context.
+channel used to publish events to the client, and the current interceptor context.
 
 == Ready Function
 
@@ -36,9 +36,23 @@ The ready function may put events into the channel to send them to the client.
 Events are maps with keys :name, :data, and :id.
 All values should be strings (but will be converted to strings via clj:str[] if not).
 
-Only the :data is required.
+The :name key allows a single SSE event stream to server different purposes; the client can
+use the name to decide how to interpret and act on the event data.
 
-Alternately, the event may be a single value, and not a map; this value is treated as if it were a map with just the :data key.
+The :id is passed from the server to the client, and is intended to facilite tracing.
+
+Only the :data key is required.
+
+Alternately, the event may be a single value, and not a map; in this case, the value is
+the data of the event; in this case, the event will only be data - no name or id.
+
+[NOTE]
+====
+When the data, converted to a string, consists of multiple lines, Pedestal will send
+an event with multiple data values.  This is per the SSE specification, and the data will be
+reassembled on the client.
+====
+
 
 When the ready function has finished sending events, it should close the channel.
 Pedestal will then clean up the connection.
