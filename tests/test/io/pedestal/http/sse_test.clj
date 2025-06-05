@@ -28,7 +28,7 @@
            (java.net URI)
            (java.net.http HttpClient HttpRequest HttpResponse HttpResponse$BodyHandlers)
            (java.time Duration)
-           (java.util.concurrent Flow$Subscriber Flow$Subscription)))
+           (java.util.concurrent Flow$Subscriber)))
 
 (deftest sse-start-stream
   (let [fake-context        {:request {:headers {"origin" "http://foo.com:8080"}}}
@@ -159,7 +159,7 @@
     (is (= [:complete] (<!!? ch)))
 
     ;; And the channel closes
-    (is (= nil) (<!!? ch))))
+    (is (= nil (<!!? ch)))))
 
 (defn- end-to-end
   [id connector-fn]

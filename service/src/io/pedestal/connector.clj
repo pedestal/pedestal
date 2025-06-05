@@ -141,28 +141,6 @@
                         (io.pedestal.http.secure-headers/secure-headers)
                         route/query-params])))
 
-(defn with-file-access
-  "Adds an interceptor exposing access to files on the file system, routed at file-path; this uses
-  [[file]]. The URI `/` maps to the contents of the directory at `file-path`.
-
-  This should be called just before adding a routing interceptor.
-
-  This is an alternative to [[file-routes]], and should only be used when file routing would conflict
-  with other routes."
-  [connector-map file-path]
-  (with-interceptor connector-map (ring-middlewares/file file-path)))
-
-(defn with-resource-access
-  "Adds an interceptor exposing access to resources on the classpath system, routed at root-path; this uses
-  [[file]]. The URI `/` maps to the contents of the classpath with a prefix of `root-path`.
-
-  This should be called just before adding a routing interceptor.
-
-  This is an alternative to [[resource-routes]], and should only be used when resource routing would conflict
-  with other routes."
-  [connector-map root-path]
-  (with-interceptor connector-map (ring-middlewares/resource root-path)))
-
 (defn start!
   "A convienience function for starting the connector.
 

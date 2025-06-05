@@ -4,7 +4,7 @@
             [matcher-combinators.matchers :as m]
             [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
-            [io.pedestal.service.test :as test :refer [response-for]]
+            [io.pedestal.connector.test :as test :refer [response-for]]
             [{{top/ns}}.{{main/ns}}.connector :refer [connector-map]]))
 
 (def ^:dynamic *connector* nil)

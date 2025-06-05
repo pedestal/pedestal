@@ -128,16 +128,20 @@ user=> (use 'dev)
 nil
 user=> (go!)
 Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃  Path  ┃                 Name                 ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
-┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃  Path  ┃                     Name                     ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃   :get ┃ /*path ┃ :io.pedestal.service.resources/get-resource  ┃
+┃  :head ┃ /*path ┃ :io.pedestal.service.resources/head-resource ┃
+┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello         ┃
+┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet         ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #object[io.pedestal.http.http_kit$create_connector$reify__17907 0x6e3f108c "io.pedestal.http.http_kit$create_connector$reify__17907@6e3f108c"]
 user=>
 ```
-<1> This activates both the :test and :dev-mode aliases; :dev-mode assists with reloading and is enables the printing of the routing table.
+<1> This activates both the :test and :dev-mode aliases; :dev-mode assists with reloading and
+is what enables the printing of the routing table. The full routing table contains both the routes
+defined for your app (`/hello`) and the routes for access to static resources (at `/*path`).
 
 From another window, you can open http://localhost:8080/index.html, to see
 a brief welcoming page.
@@ -195,6 +199,9 @@ Hello, Pedestal User.
 
 $
 ```
+
+The majority of those headers are contributed by the various default interceptors; they
+establish a base-line for security concerns.
 
 
 ## Starting the service
