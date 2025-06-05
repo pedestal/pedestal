@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -193,3 +193,16 @@
   (let [f (::satisfies-constraints? route)]
     (f request path-param-values)))
 
+
+(defn symbol->keyword
+  [s]
+  (let [resolved (resolve s)
+        {ns :ns n :name} (meta resolved)]
+    (if resolved
+      (keyword (name (ns-name ns)) (name n))
+      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
+
+(defn capture-constraint
+  "Add parenthesis to a regex in order to capture its value during evaluation."
+  [[k v]]
+  [k (re-pattern (str "(" v ")"))])

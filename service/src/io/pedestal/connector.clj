@@ -28,7 +28,10 @@
 (defn default-connector-map
   "Creates a default connector map for the given port and optional host.  host defaults to \"localhost\"
   which is appropriate for local testing (accessible only from the local host),
-  but \"0.0.0.0\" (accessible from any TCP/IP connection) is a better option when deployed."
+  but \"0.0.0.0\" (accessible from any TCP/IP connection) is a better option when deployed.
+
+  The :router key defaults to :sawtooth; this can also be one of :map-tree, :prefix-tree, or
+  :linear-search, or it can be a custom function to create a router function."
   ([port]
    (default-connector-map "localhost" port))
   ([host port]
@@ -40,13 +43,13 @@
     :join?           false}))
 
 (defn with-interceptor
-  "Appends to the :interceptors in the conector map, or does nothing if interceptor is nil.
+  "Appends to the :interceptors in the conector map, or returns the connector-map unchanged if interceptor is nil.
 
   interceptor must be an interceptor record, or convertable to an interceptor record."
   [connector-map interceptor]
-  (if interceptor
-    (update connector-map :interceptors conj (interceptor/interceptor interceptor))
-    connector-map))
+  (cond-> connector-map
+    interceptor
+    (update  :interceptors conj (interceptor/interceptor interceptor))))
 
 (defn with-interceptors
   "Appends a sequence of interceptors using [[with-interceptor]]."
@@ -65,12 +68,7 @@
   This is generally the last step in building the interceptor chain.
 
   This is a wrapper around the [[routes-from]] macro, which helps with
-  developing at the REPL.
-
-  The router-constructor is a function that is passed the expanded routes and returns
-  a routing interceptor.  It may also be one of :sawtooth, :map-tree, :prefix-tree,
-  or :linear-search (the four built-in router constructors). :sawtooth is
-  a good default for new applications especially.
+  live code updates when developing at the REPL.
 
   The provided route-fragments must extend the [[ExpandableRoutes]] protocol; these will
   either be [[RoutingFragment]]s (from directly invoking a function such as

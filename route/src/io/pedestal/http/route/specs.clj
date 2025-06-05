@@ -184,7 +184,6 @@
 (s/def ::routing-entry (s/keys
                          :req-un [::path
                                   ::method
-                                  ::path-re
                                   ::path-parts
                                   ::interceptors
                                   ::route-name]
@@ -196,8 +195,6 @@
                                   ::path-constraints
                                   ::query-constraints]))
 
-;; An RE that matches a path, and also defines capture groups for the :path-params
-(s/def ::path-re is-re?)
 (s/def ::method ::verb)
 (s/def ::path-parts (s/coll-of ::path-part))
 (s/def ::path-part (s/or :literal string?

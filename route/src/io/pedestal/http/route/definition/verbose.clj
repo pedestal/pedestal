@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -16,7 +16,7 @@
 
   Note that functions marked with ^:no-doc are internal, and may be converted to private
   in a future release."
-  (:require [io.pedestal.http.route.definition :as definition]
+  (:require [io.pedestal.http.route.internal :as internal]
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.types :as types]
             [io.pedestal.interceptor :refer [interceptor?] :as i]
@@ -48,14 +48,14 @@
   [m]
   (cond
     (symbol? m)
-    (let [handler-name (definition/symbol->keyword m)]
+    (let [handler-name (internal/symbol->keyword m)]
       {:route-name handler-name
        :handler    (resolve-interceptor m handler-name)})
 
     (instance? IPersistentMap m)
     (let [{:keys [route-name handler interceptors]} m
           handler-name     (cond
-                             (symbol? handler) (definition/symbol->keyword handler)
+                             (symbol? handler) (internal/symbol->keyword handler)
                              (interceptor? handler) (:name handler))
           interceptor      (resolve-interceptor
                              handler (or route-name handler-name))
@@ -85,7 +85,6 @@
   [dna [verb handler]]
   (-> dna
       (merge {:method verb})
-      (path/merge-path-regex)
       (merge dna)
       (add-terminal-info (handler-map handler))))
 
@@ -97,11 +96,11 @@
   constraint's key identifies a path-param."
   [{path-params :path-params :as dna} constraints verbs]
   (if (empty? verbs)
-    (update dna :path-constraints merge (map definition/capture-constraint constraints))
+    (update dna :path-constraints merge (map internal/capture-constraint constraints))
     (let [path-param? (fn [[k _]] (some #{k} path-params))
           [path-constraints query-constraints] ((juxt filter remove) path-param? constraints)]
       (-> dna
-          (update :path-constraints merge (into {} (map definition/capture-constraint path-constraints)))
+          (update :path-constraints merge (into {} (map internal/capture-constraint path-constraints)))
           (update :query-constraints merge query-constraints)))))
 
 (defn- undoubleslash
@@ -143,4 +142,4 @@
 (defn expand-verbose-routes
   "Expand route-maps into a routing table of route entries."
   [route-maps]
-  (types/->RoutingFragmentImpl (mapcat (partial generate-route-entries default-dna) route-maps)))
+  (types/fragment (mapcat (partial generate-route-entries default-dna) route-maps)))

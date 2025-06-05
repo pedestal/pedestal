@@ -1451,8 +1451,7 @@
         test-bad-request  {:path-info "/app" :request-method :foo}
         expand-route-path (fn [route] (->> (:path route)
                                            path/parse-path
-                                           (merge route)
-                                           path/merge-path-regex))
+                                           (merge route)))
         test-routers      [(map-tree/router test-routes)
                            (prefix-tree/router test-routes)
                            (linear-search/router (mapv expand-route-path test-routes))]]
@@ -1556,7 +1555,7 @@
 
 (deftest table-routes-interceptor-opt-is-prefix
 
-  (let [routes  (table/table-routes {:interceptors [i-1 i-2]}
+  (let [routes  (table-routes {:interceptors [i-1 i-2]}
                                     [["/root/one" :get table-route-handler :route-name :one]
                                      ["/root/two" :get [i-3 table-route-handler] :route-name :two]
                                      ["/root/three" :get [table-route-handler] :route-name :three]])
@@ -1566,3 +1565,4 @@
            :two   {:interceptors [i-1 i-2 i-3 table-route-handler]}
            :three {:interceptors [i-1 i-2 table-route-handler]}}
           by-name))))
+

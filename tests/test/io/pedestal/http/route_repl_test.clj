@@ -56,7 +56,7 @@
   (update routing-table
           :routes
           (fn [routes]
-            (mapv #(dissoc % :path-re :interceptors) routes))))
+            (mapv #(dissoc % :interceptors) routes))))
 
 ;; This is io.pedestal.http.route/routes-from if dev mode was always enabled.
 (defmacro routes-from

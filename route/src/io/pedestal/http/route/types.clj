@@ -27,3 +27,10 @@
   RoutingFragment
   (fragment-routes [_] routes))
 
+(defn fragment
+  [routes]
+  ;; The vec is necessary for tests to pass, otherwise lazy evaluation
+  ;; get in the way and AssertionError is not thrown until too late. It does
+  ;; not harm.
+  (->RoutingFragmentImpl (vec routes)))
+
