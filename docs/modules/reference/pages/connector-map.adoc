@@ -55,12 +55,6 @@ It is intended as _scaffolding_: useful only at the outset of a new project, but
 removed and replaced with application specific setup once development is fully underway.
 ====
 
-== Files and Resources
-
-The api:with-file-access[] and api:with-resource-access[] functions add interceptors that will expose
-file system or class path resources to the client; this is an alternative to xref:resources.adoc[exposing
-files and resources via routes].
-
 == Routing
 
 The api:with-routes[] macro is used to set the routes for your service.
