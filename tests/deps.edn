@@ -59,10 +59,10 @@
         com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}
 
         ;; For testing of SSEs
-       cloud.prefab/sse-handler {:mvn/version "1.0.0"}
+       cloud.prefab/sse-handler {:mvn/version "1.0.1"}
 
         ;; For proper reloading of code in REPL
-        io.github.tonsky/clj-reload {:mvn/version "0.9.6"}
+        io.github.tonsky/clj-reload {:mvn/version "0.9.7"}
 
         io.github.cognitect-labs/test-runner
         {:git/tag "v0.5.1" :git/sha "dfb30dd"}}

@@ -9,7 +9,7 @@
    :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
                                                        :git/sha "dfb30dd"}
                  nubank/matcher-combinators           {:mvn/version "3.9.1"} ;; <2>
-                 io.github.tonsky/clj-reload          {:mvn/version "0.9.6"}} ;; <3>
+                 io.github.tonsky/clj-reload          {:mvn/version "0.9.7"}} ;; <3>
    :exec-fn     cognitect.test-runner.api/test}
 
   :dev-mode
