@@ -91,10 +91,12 @@
   ReadableByteChannel
 
   (default-content-type [_] "application/octet-stream")
+  (write-body-to-stream [_ _])
 
   ByteBuffer
 
   (default-content-type [_] "application/octet-stream")
+  (write-body-to-stream [_ _])
 
   nil
   (default-content-type [_] nil)
