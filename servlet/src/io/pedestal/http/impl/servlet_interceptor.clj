@@ -304,7 +304,7 @@
              :exception exception
              :context context)
   (send-error context "Internal server error: exception")
-  context)
+  conte/xt)
 
 (defn- create-stylobate
   [options]

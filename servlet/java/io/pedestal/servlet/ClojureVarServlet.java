@@ -1,4 +1,4 @@
-/* Copyright 2023 Nubank NA
+/* Copyright 2023-2025 Nubank NA
  * Copyright 2013 Relevance, Inc.
  * Copyright 2014-2019 Cognitect, Inc.
 
@@ -14,7 +14,6 @@
 package io.pedestal.servlet;
 
 import clojure.lang.IFn;
-import clojure.java.api.Clojure;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.GenericServlet;
@@ -52,8 +51,6 @@ import jakarta.servlet.ServletResponse;
 public class ClojureVarServlet extends GenericServlet {
     private IFn serviceFn;
     private IFn destroyFn;
-    private static final IFn REQUIRE = Clojure.var("clojure.core", "require");
-    private static final IFn SYMBOL = Clojure.var("clojure.core", "symbol");
 
     /** Does nothing. Initialization happens in the init method. */
     public ClojureVarServlet() {}
@@ -64,9 +61,9 @@ public class ClojureVarServlet extends GenericServlet {
     @Override
     public void init() throws ServletException {
         ServletConfig config = this.getServletConfig();
-        IFn initFn = getVar(config, "init");
-        serviceFn = getVar(config, "service");
-        destroyFn = getVar(config, "destroy");
+        IFn initFn = Util.getVar(config, "init");
+        serviceFn = Util.getVar(config, "service");
+        destroyFn = Util.getVar(config, "destroy");
 
         if (serviceFn == null) {
             throw new ServletException("Missing required parameter 'service'");
@@ -91,30 +88,5 @@ public class ClojureVarServlet extends GenericServlet {
         }
     }
 
-    private static IFn getVar(ServletConfig config, String param)
-        throws ServletException {
-
-        String varName = config.getInitParameter(param);
-        if (varName == null) { return null; }
-
-        String[] parts = varName.split("/", 2);
-        String namespace = parts[0];
-        String name = parts.length > 1 ? parts[1] : null;
-        if (namespace == null || name == null) {
-            throw new ServletException("Invalid namespace-qualified symbol '"
-                                       + varName + "'");
-        }
-
-        try {
-            REQUIRE.invoke(SYMBOL.invoke(namespace));
-        } catch(Throwable t) {
-            throw new ServletException("Failed to load namespace '"
-                                       + namespace + "'", t);
-        }
-
-        // If the Var doesn't already exist, this creates it, but it will throw
-        // a reasonable exception when invoked.
-        return Clojure.var(namespace, name);
-    }
 }
 
