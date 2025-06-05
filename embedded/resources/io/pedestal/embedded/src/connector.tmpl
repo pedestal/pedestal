@@ -1,6 +1,7 @@
 (ns {{top/ns}}.{{main/ns}}.connector
   "Defines the connector configuration for the {{name}} project."
   (:require [io.pedestal.connector :as connector]
+            [io.pedestal.service.resources :as resources]
             [io.pedestal.environment :as env]
             [io.pedestal.connector.dev :as dev]
             [{{top/ns}}.{{main/ns}}.routes :as routes]))
@@ -16,16 +17,18 @@
   (let [{:keys [dev-mode? trace? join?]
          :or {dev-mode? env/dev-mode?
               join? false}} opts]
-    (-> (connector/default-connector-map 8080)
-        (assoc :join? join?)
-        (cond->
-           dev-mode? dev/with-dev-interceptors
+    (->  (connector/default-connector-map 8080)
+         (cond->
+           join? (assoc :join? true)
+           dev-mode? (connector/with-interceptors dev/dev-interceptors)
            trace? dev/with-interceptor-observer)
-        ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
-        ;; with an application-specific set of calls to with-interceptor.
-        connector/with-default-interceptors
-        ;; This kind of file or resource access is separate from routing and must come first.
-        (connector/with-resource-access "public")
-        ;; Routing is generally the last interceptors added.
-        (connector/with-routes (routes/routes)))))
+         ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
+         ;; with an application-specific series of calls to with-interceptor.
+         connector/with-default-interceptors
+         ;; Routing is generally the last interceptors added.
+         ;; This adds application's API routes plus static files stored
+         ;; as resources.
+         (connector/with-routes
+           (routes/routes)
+           (resources/resource-routes {:resource-root "public"})))))
 

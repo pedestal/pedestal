@@ -54,7 +54,7 @@
 (extend-protocol PrepareRequestBody
 
   nil
-  (->servlet-input-stream [_]
+  (body->input-stream [_]
     (body->input-stream ""))
 
   String

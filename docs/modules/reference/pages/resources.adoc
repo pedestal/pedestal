@@ -41,7 +41,7 @@ Each of these functions take a single parameter, a map of options:
 |===
 | Option | Default | Only | Description
 
-| :prefix          | "/public" |          | The path prefix for the exposed resources.
+| :prefix          | "/" |          | The path prefix for the exposed resources.
 | :root-path       | -         | file     | Path to root directory to expose.
 | :resource-root   | -         | resource | Prefix on resources, limiting access to a safe subset of the classpath
 | :classloader     | -         | resource | Classloader used to find resources
@@ -55,7 +55,7 @@ Each of these functions take a single parameter, a map of options:
 |===
 
 Using the defaults, which enable fast responses and caching, the route-based resources are demonstrably faster
-than the xref:#service-map-options[interceptor-based] resources, especially for large resources ... though
+than the interceptor-based resource access, especially for large resources ... though
 for any reasonably sized resource, the response time is sub-millisecond.
 
 === Options notes
@@ -64,7 +64,7 @@ It is quite possible to use both `file` and `resource` together, as long as the 
 If necessary, it's even possible to use these functions multiple times, but care must be taken with the :route-namespace
 option to avoid route name collisions.
 
-The :prefix option should start with a "/" and not end with one.
+The :prefix option should start with a "/" and not end with one (with the exception that the default prefix, "/", is allowed).
 
 For the :index-files? option, Pedestal will identify requests that map to a directory, not to a specific file.
 Pedestal will search for one of the following:
@@ -99,42 +99,5 @@ The default used when the :classloader option is nil is the context class loader
 
 Finally, the options map will _also_ be passed to
 api:table-routes[ns=io.pedestal.http.route.definition.table], so you may use the keys it
-supports, particularly :scheme, :port, and :interceptors.
+supports; particularly :scheme, :port, and :interceptors.
 
-== Connector Options
-
-File and resource can also be exposed by configuration in the
-xref:service-map.adoc[]:
-
-[source,clojure]
-----
-(ns org.example.service
-  (:require [io.pedestal.connector :as conn]))
-
-(defn create-connector
-  []
-  (-> (conn/default-connector-map 8890)
-      (conn/with-default-interceptors)
-      (conn/with-file-access "web/public")
-      (conn/with-routes #{...})))
-----
-
-api:with-file-access[ns=io.pedestal.connector] exposes the file system resources directly under the `/` URI.
-Alternately, api:with-resource-access[ns=io.pedestal.connector] exposes classpath resources.
-
-Because these are interceptors, and not routes, they are not visible in the routing table.
-They *can* overlap with actual routes without an error: any requests that are not processed
-as resources will drop down into the routing interceptor.
-
-== io.pedestal.http.ring-middlewares
-
-The connector options are implemented in terms of two functions:
-
-* api:file[ns=io.pedestal.http.ring-middlewares]
-* api:resource[ns=io.pedestal.http.ring-middlewares]
-
-A third option, api:fast-resource[ns=io.pedestal.http.ring-middlewares], adds
-support for fast, asynchronous replies for large resources on the classpath.
-
-Each of these functions have additional options that can be configured when they are added
-explicitly as interceptors.
