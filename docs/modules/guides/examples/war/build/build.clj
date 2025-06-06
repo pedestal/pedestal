@@ -12,11 +12,11 @@
   (let [work-dir    (fs/path "target/archive")
         lib-dir     (fs/path work-dir "WEB-INF/lib")
         classes-dir (fs/path work-dir "WEB-INF/classes")
-        basis       (b/create-basis)]
+        basis       (b/create-basis)]                       ;; <1>
     (fs/delete-tree work-dir)
     (fs/create-dirs lib-dir)
     (fs/create-dirs classes-dir)
-    (doseq [file (-> basis :classpath keys sort)]
+    (doseq [file (-> basis :classpath keys sort)]           ;; <2>
       (let [path (fs/path file)]
         (println "Copying" (fs/file-name path))
         (if (fs/directory? path)
@@ -24,5 +24,5 @@
           (fs/copy path lib-dir))))
     (println "Copying web.xml")
     (fs/copy "web.xml" (fs/path work-dir "WEB-INF"))
-    (fs/zip (fs/path "target/app.war") [work-dir] {:root "target/archive"})
+    (fs/zip (fs/path "target/app.war") [work-dir] {:root "target/archive"}) ;; <3>
     (println "Created target/app.war")))

@@ -16,4 +16,4 @@
 (defn create-bridge
   "Invoked from the Servlet to create the bridge between Servlet API and Pedestal."
   [servlet]
-  (servlet/create-bridge servlet (connection-map) nil))
+  (servlet/create-bridge servlet (connection-map)))
