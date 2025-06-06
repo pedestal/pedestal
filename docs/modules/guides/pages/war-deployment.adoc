@@ -1,4 +1,5 @@
 = WAR Deployment
+:experimental:
 
 Pedestals primary mode of deployment is _embedded_: the Pedestal application starts up and,
 along the way, launches a servlet container (such as xref:reference:jetty.adoc[]) and configures it to receive
@@ -229,7 +230,7 @@ What's next:
 
 Again, there will be a lot of downloads the first time you run this script ... but in the end, Jetty starts up and immediately deploys the ROOT.war file.
 
-Jetty will continue to run until you enter kbd:[Ctrl+C], so in another window, you can use `curl` to send a request to the application:
+Jetty will continue to run until you enter kbd:[Ctrl-C], so in another window, you can use `curl` to send a request to the application:
 
 ```
 $ curl -v localhost:8080/hello
