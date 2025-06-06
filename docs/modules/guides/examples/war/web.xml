@@ -1,0 +1,19 @@
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         id="WebApp_ID" version="3.0">
+    <servlet-mapping>
+        <servlet-name>connector</servlet-name>
+        <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>connector</servlet-name>
+        <servlet-class>io.pedestal.servlet.ConnectorServlet</servlet-class>
+        <init-param>
+            <param-name>io.pedestal.connector.bridge-fn</param-name>
+            <param-value>org.example.war.service/create-bridge</param-value>
+        </init-param>
+    </servlet>
+</web-app>
