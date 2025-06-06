@@ -61,6 +61,7 @@ Other changes:
 - _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
   do not use the Servlet API, and so are much lighter weight.
 - The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
+  - `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
 - WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
 - The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
   now in the `pedestal.servlet` module.
