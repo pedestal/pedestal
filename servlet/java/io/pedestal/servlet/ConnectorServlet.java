@@ -36,7 +36,7 @@ public class ConnectorServlet extends GenericServlet {
             throw new ServletException("Missing required parameter 'createBridge'");
         }
 
-        bridge = (ConnectorBridge) createFn.invoke(this, config);
+        bridge = (ConnectorBridge) createFn.invoke(this);
     }
 
 

@@ -31,8 +31,7 @@
               (respond-with context 200 (::salutation context))))})
 
 (defn create-bridge
-  [^Servlet servlet ^ServletConfig config]
-  (is (instance? ServletConfig config))
+  [^Servlet servlet]
   (servlet/create-bridge servlet
                          (-> (conn/default-connector-map -1)
                              (conn/with-default-interceptors)
@@ -40,8 +39,7 @@
                                                       ::salutation "Salutations!"})
                              (conn/with-routes
                                #{["/hello" :get hello]
-                                 ["/hello-async" :get hello-async]}))
-                         nil))
+                                 ["/hello-async" :get hello-async]}))))
 
 (defn- expect [path expected-response async?]
   (let [mock-state      (MockState. (str "http://locahost:8080/" path) "GET" "http" "locahost" 8080 path "" {} nil)
