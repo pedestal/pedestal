@@ -21,11 +21,17 @@ class Util {
     private static final IFn REQUIRE = Clojure.var("clojure.core", "require");
     private static final IFn SYMBOL = Clojure.var("clojure.core", "symbol");
 
-    static IFn getVar(ServletConfig config, String param)
+    static IFn getVar(ServletConfig config, String param, boolean required)
             throws ServletException {
 
         String varName = config.getInitParameter(param);
-        if (varName == null) { return null; }
+        if (varName == null) {
+            if (required) {
+                throw new ServletException(String.format("Missing required parameter '%s'", param));
+            }
+
+            return null;
+        }
 
         String[] parts = varName.split("/", 2);
         String namespace = parts[0];

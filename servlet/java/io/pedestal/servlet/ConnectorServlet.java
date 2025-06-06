@@ -30,12 +30,8 @@ public class ConnectorServlet extends GenericServlet {
     @Override
     public void init() throws ServletException {
         ServletConfig config = this.getServletConfig();
-        IFn createFn = Util.getVar(config, "createBridge");
-
-        if (createFn == null) {
-            throw new ServletException("Missing required parameter 'createBridge'");
-        }
-
+        IFn createFn = Util.getVar(config, "io.pedestal.connector.bridge-fn", true);
+        
         bridge = (ConnectorBridge) createFn.invoke(this);
     }
 

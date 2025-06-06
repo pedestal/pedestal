@@ -44,7 +44,7 @@
 (defn- expect [path expected-response async?]
   (let [mock-state      (MockState. (str "http://locahost:8080/" path) "GET" "http" "locahost" 8080 path "" {} nil)
         servlet         (ConnectorServlet.)
-        params          {"createBridge" "io.pedestal.connector-servlet-test/create-bridge"}
+        params          {"io.pedestal.connector.bridge-fn" "io.pedestal.connector-servlet-test/create-bridge"}
         config          (reify ServletConfig
                           (getInitParameter [_ k]
                             (get params k)))
