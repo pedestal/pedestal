@@ -28,7 +28,12 @@ In `io.pedestal.websocket`, the following functions are deprecated:
 
 In `io.pedestal.interceptor`
 - Support for the deferred interceptors (via :interceptor or :interceptorfn metadata) was removed
-- Anonymous interceptor are deprecated
+- Anonymous interceptors are deprecated
+
+=== Suppressing Warnings
+
+The number of warnings has grown considerably in 0.8.0, leading to a future where deprecated functions
+may actually be removed.  It is now possible to xref:reference:config.adoc#suppress-deprecation-warnings[suppress deprecation warnings].
 
 == 0.7.0
 

@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -66,18 +66,17 @@
 (extend-protocol ExpandableVerbAction
   Symbol
   (expand-verb-action [symbol]
-    ^{:noun "expanding a quoted symbol as a terse route verb action"
-      :in   "0.8.0"}
     (deprecated ::symbol
-      symbol))
+      :noun "expanding a quoted symbol as a terse route verb action"
+      :in "0.8.0")
+    symbol)
 
   IPersistentList
   (expand-verb-action [l]
-    ^{:in   "0.8.0"
-      :noun "expanding a quoted list form as a terse route verb action"}
-    (deprecated
-      ::persistent-list
-      (expand-verb-action (eval l))))
+    (deprecated ::persistent-list
+      :in "0.8.0"
+      :noun "expanding a quoted list form as a terse route verb action")
+    (expand-verb-action (eval l)))
 
   APersistentVector
   (expand-verb-action [vector]

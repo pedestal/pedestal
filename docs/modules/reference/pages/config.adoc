@@ -80,6 +80,14 @@ If true, then Pedestal will not automatically convert
 xref:interceptors.adoc#handler[handler function] class names to an interceptor name (the interceptor
 will be anonymous instead).
 
+[#suppress-deprecation-warnings]
+=== io.pedestal.suppress-deprecation-warnings / PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS
+
+- type: boolean
+- default: false
+
+If true, then deprecation warnings are suppressed.
+
 === io.pedestal.telemetry.metric-source / PEDESTAL_METRICS_SOURCE
 
 - type: function

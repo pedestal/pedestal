@@ -80,17 +80,17 @@
 
   IPersistentList
   (-interceptor [l]
-    ^{:noun "conversion of expressions to interceptors"
-      :in   "0.7.0"}
     (i/deprecated ::expression
-      (-interceptor (eval l))))
+      :noun "conversion of expressions to interceptors"
+      :in "0.7.0")
+    (-interceptor (eval l)))
 
   Cons
   (-interceptor [c]
-    ^{:noun "conversion of expressions to interceptors"
-      :in   "0.7.0"}
     (i/deprecated ::expression
-      (-interceptor (eval c))))
+      :noun "conversion of expressions to interceptors"
+      :in "0.7.0")
+    (-interceptor (eval c)))
 
   Symbol
   (-interceptor [sym] (-interceptor (resolve sym)))
@@ -128,8 +128,9 @@
 (defn- anon-deprecated
   [interceptor]
   (when-not (:name interceptor)
-    ^{:in   "0.8.0"
-      :noun "anonymous (unnamed) interceptors"} (i/deprecated ::anon-interceptor))
+    (i/deprecated ::anon-interceptor
+      :in "0.8.0"
+      :noun "anonymous (unnamed) interceptors"))
   true)
 
 (defn interceptor
