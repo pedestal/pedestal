@@ -2,11 +2,14 @@
   (:require [clojure.string :as string]
             [io.pedestal.connector.test :as test]
             [io.pedestal.http.http-kit.impl :as impl]
+            [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.log :as log]
             [io.pedestal.service.data :as data]
             [io.pedestal.service.protocols :as p]
             [ring.core.protocols :as rcp]
-            [ring.util.request :as request])
+            [ring.util.request :as request]
+            [ring.util.response :as response])
   (:import (clojure.lang IPersistentCollection)
            (com.sun.net.httpserver HttpExchange HttpHandler HttpServer HttpsExchange)
            (java.io OutputStream)
@@ -19,7 +22,6 @@
 (defn ->ring-request
   [^HttpExchange http-exchange]
   (let [request-uri (.getRequestURI http-exchange)
-        context-path (.getPath (.getHttpContext http-exchange))
         uri (.getPath request-uri)
         query-string (.getQuery request-uri)
         headers (.getRequestHeaders http-exchange)
@@ -58,35 +60,50 @@
 
 
 (defprotocol IWriteBodyToStream
-  (-write-body-to-stream [body response response-body])
+  (-as-ring-body [body])
   (-default-content-type [body]))
 
 (extend-protocol IWriteBodyToStream
   ByteBuffer
   (-default-content-type [_] "application/octet-stream")
-  (-write-body-to-stream [body _ ^OutputStream response-body]
-    (with-open [c (Channels/newChannel response-body)]
-      (.write c body)))
+  (-as-ring-body [body]
+    (reify rcp/StreamableResponseBody
+      (write-body-to-stream [_ _ output-stream]
+        (with-open [c (Channels/newChannel ^OutputStream output-stream)]
+          (.write c body)))))
   ReadableByteChannel
   (-default-content-type [_] "application/octet-stream")
-  (-write-body-to-stream [body _ ^OutputStream response-body]
-    (with-open [input-stream (Channels/newInputStream body)]
-      (.transferTo input-stream response-body)))
+  (-as-ring-body [body]
+    (reify rcp/StreamableResponseBody
+      (write-body-to-stream [_ _ output-stream]
+        (with-open [input-stream (Channels/newInputStream body)]
+          (.transferTo input-stream ^OutputStream output-stream)))))
   String
-  (-default-content-type [_]
-    "text/plain")
-  (-write-body-to-stream [body response response-body]
-    (rcp/write-body-to-stream body response response-body))
+  (-default-content-type [_] "text/plain")
+  (-as-ring-body [body] body)
   IPersistentCollection
-  (-default-content-type [_]
-    "application/edn")
-  (-write-body-to-stream [body response response-body]
-    (-write-body-to-stream (pr-str body) response response-body))
+  (-default-content-type [_] "application/edn")
+  (-as-ring-body [body] (pr-str body))
   Object
-  (-default-content-type [_]
-    "application/octet-stream")
-  (-write-body-to-stream [body response response-body]
-    (rcp/write-body-to-stream body response response-body)))
+  (-default-content-type [_] "application/octet-stream")
+  (-as-ring-body [body] body))
+
+(def response-converter
+  (interceptor/interceptor
+    {:name  ::response-converter
+     :leave (fn [{:keys [response] :as context}]
+              (if (response/response? response)
+                (assoc context :response (let [{:keys [body]} response
+                                               content-type (get-in response [:headers "Content-Type"])
+                                               default-content-type (some-> body -default-content-type)]
+                                           (cond-> response
+                                             (some? body) (assoc :body (-as-ring-body body))
+                                             (and (nil? content-type) default-content-type)
+                                             (assoc-in [:headers "Content-Type"] default-content-type))))
+                (do
+                  (log/error :msg "Invalid response"
+                    :response response)
+                  (dissoc context :response))))}))
 
 (defn create-connector
   [{:keys [port host #_join? initial-context interceptors]} {:keys [context-path]
@@ -97,15 +114,14 @@
         root-handler (fn [ring-request]
                        (let [request (request/set-context ring-request (if (next context-path)
                                                                          context-path
-                                                                         ""))
-                             {:keys [headers body]
-                              :as   response} (-> initial-context
-                                                (assoc :request request)
-                                                (chain/execute interceptors)
-                                                :response)]
-                         (if (get headers "Content-Type")
-                           response
-                           (assoc response :headers (assoc headers "Content-Type" (-default-content-type body))))))
+                                                                         ""))]
+                         (-> initial-context
+                           (assoc :request request)
+                           (chain/execute
+                             (into [response-converter]
+                               interceptors))
+                           (doto (->> (def _aaaaa)))
+                           :response)))
         *http-server (delay (doto (HttpServer/create addr 0)
                               (.createContext context-path
                                 (reify HttpHandler
@@ -124,7 +140,7 @@
                                                                0)]
                                           (.sendResponseHeaders http-exchange status content-length)
                                           (with-open [response-body (.getResponseBody http-exchange)]
-                                            (-write-body-to-stream body response response-body))))))))))]
+                                            (rcp/write-body-to-stream body response response-body))))))))))]
     (reify
       p/PedestalConnector
       (start-connector! [this]
@@ -146,6 +162,4 @@
                            {:status 500
                             :body   "Async response not produced after 1 second"})
                          sync-response)]
-          ;; The response has been converted to support what Http-Kit allows, but we need to further narrow to support
-          ;; the test contract (nil or InputStream).
           (update response :body test/coerce-response-body))))))

@@ -17,8 +17,7 @@
             [clojure.core.async :refer [go]]
             [io.pedestal.http.response :as response]
             [io.pedestal.connector :as connector]
-            [io.pedestal.http.jdk-httpserver :as hk]
-            #_[io.pedestal.http.http-kit :as hk]
+            [io.pedestal.http.http-kit :as hk]
             io.pedestal.http.http-kit.specs
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
@@ -104,8 +103,8 @@
                :body   "Hello Mr. Client!"}
               (response-for :post "/hello"
                             :headers {:content-type "application/json"}
-                            :body (json/generate-string {:name "Mr. Client"})))))
-
+                            :body (json/generate-string {:name "Mr. Client"})
+                            ))))
 
 (deftest chain-goes-async
   (is (match? {:status  200
