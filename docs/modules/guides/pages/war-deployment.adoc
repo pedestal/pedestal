@@ -13,8 +13,9 @@ containers and other kinds of virtualization), this is a long term
 feature of Pedestal that is still supported.
 
 
-In this deployed mode, the servlet container will instantiate an instance of a Pedestal-provided
-servlet class; when it initializes, the servlet will create a bridge from the Servlet world into the Pedestal world.  We'll cover the details below.
+In this deployment mode, the servlet container will instantiate an instance of a Pedestal-provided
+servlet class; when the servlet initializes, it will create a bridge from the Servlet world into the Pedestal world.
+We'll cover the details below.
 
 == Structure of a WAR File
 
@@ -68,7 +69,7 @@ and if the WAR file makes use of WebSockets it _must_ include the WebSocket API 
 and implementation files (classes implementing those interfaces).  These should be matched to the
 servlet container, so we're using the Jetty implementations here.
 
-Even though this application doesn't used WebSockets, the Pedestal libraries _do_ have WebSocket support built-in, so these dependencies must be included, even if they won't be actively used.
+Even though this application doesn't use WebSockets, the Pedestal libraries _do_ have WebSocket support built-in, so these dependencies must be included, even if they won't be actively used.
 
 == Clojure Service
 
@@ -105,7 +106,7 @@ Inside all this XML are three basic constructors:
 
 - The servlet handles _every_ request passed to it (that's the `/*`)
 - The servlet is class ConnectorServlet, provided by the `pedestal-servlet` library
-- The servlet invokes `org.example.war.service/create-bridge` function when it initializes
+- The servlet invokesthe function `org.example.war.service/create-bridge` when it initializes
 
 So, the request comes into the Jetty servlet container and it decides which WAR deployment it belongs to, then which servlet _inside_ the WAR deployment is responsible, then asks the servlet
 to do the work, which passes through the ConnectorBridge and into Pedestal to do the actual work.
@@ -113,7 +114,7 @@ to do the work, which passes through the ConnectorBridge and into Pedestal to do
 == Creating the WAR file
 
 To create a WAR file, we need to package up the sources, the deployment descriptor, and any
-libraries, such as `pedestal.servlet` and all the transitive dependencies. We can do this
+libraries, such as `pedestal.servlet` (and all the its transitive dependencies). We can do this
 in a quick-and-dirty style using a small amount of Clojure code.
 
 When we discussed dependencies, there was a :build alias: this build alias sets up `build`
@@ -271,5 +272,5 @@ provided by the default interceptors.
 Deploying a Pedestal application as a WAR file is a completely viable approach, especially
 useful when the Pedestal application must work with pure-Java servlets and servlet filters.
 
-In fact, the Clojure code in the smallest part of the effort - much work was needed to package up the code into a WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
+In fact, the Clojure code is the smallest part of the effort - much work was needed to package up the code into a WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
 
