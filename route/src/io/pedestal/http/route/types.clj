@@ -29,8 +29,8 @@
 
 (defn fragment
   [routes]
-  ;; The vec is necessary for tests to pass, otherwise lazy evaluation
-  ;; get in the way and AssertionError is not thrown until too late. It does
-  ;; not harm.
+  ;; The vec is necessary for specific tests to pass, otherwise lazy evaluation
+  ;; gets in the way and AssertionError is not thrown until too late. It does
+  ;; no harm.
   (->RoutingFragmentImpl (vec routes)))
 
