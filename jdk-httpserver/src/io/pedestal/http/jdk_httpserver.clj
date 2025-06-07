@@ -61,13 +61,8 @@
       (.write c body)))
   ReadableByteChannel
   (-write-body-to-stream [body _ ^OutputStream response-body]
-    (let [bb (ByteBuffer/allocate #_0x10000 65536)]
-      (loop []
-        (let [n (ReadableByteChannel/.read body bb)]
-          (when (pos-int? n)
-            (.write response-body (.array bb) 0 n)
-            (.clear bb)
-            (recur))))))
+    (with-open [input-stream (Channels/newInputStream body)]
+      (.transferTo input-stream response-body)))
   Object
   (-write-body-to-stream [body response response-body]
     (rcp/write-body-to-stream body response response-body)))
