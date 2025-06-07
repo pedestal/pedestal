@@ -55,10 +55,10 @@
 
   Float
   (attr-kv-pair [v k]
-    [(AttributeKey/doubleKey k) (double v)])
+    [(AttributeKey/doubleKey k) (double v)]))
 
   ;; We don't/can't handle arrays, and nils are not allowed here
-  )
+
 
 (defn to-str
   [v]

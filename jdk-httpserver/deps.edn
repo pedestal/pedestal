@@ -6,7 +6,8 @@
 
  :aliases
  {:local
-  {:extra-deps    {io.pedestal/pedestal.servlet                   {:local/root "../servlet"}
+  {:extra-deps    {io.pedestal/pedestal.http-kit                  {:local/root "../http-kit"}
+                   io.pedestal/pedestal.servlet                   {:local/root "../servlet"}
                    org.slf4j/slf4j-simple                         {:mvn/version "2.0.17"}
                    jakarta.websocket/jakarta.websocket-api        {:mvn/version "2.2.0"}
                    jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.2.0"}}
@@ -16,6 +17,7 @@
                    ;; :local alias isn't carried through when resolving the local dependencies.
                    io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
                    io.pedestal/pedestal.route       {:local/root "../route"}
+                   io.pedestal/pedestal.http-kit    {:local/root "../http-kit"}
                    io.pedestal/pedestal.servlet     {:local/root "../servlet"}
                    io.pedestal/pedestal.telemetry   {:local/root "../telemetry"}
                    io.pedestal/pedestal.common      {:local/root "../common"}}}}}

@@ -3,7 +3,10 @@
             [clojure.string :as string]
             [io.pedestal.http :as http]
             [io.pedestal.http.container :as container]
-            [io.pedestal.log :as log])
+            [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.log :as log]
+            [io.pedestal.service.protocols :as p]
+            [ring.core.protocols :as rcp])
   (:import (com.sun.net.httpserver Headers HttpExchange HttpHandler HttpServer HttpsExchange)
            (jakarta.servlet AsyncContext Servlet ServletInputStream ServletOutputStream)
            (jakarta.servlet.http HttpServletRequest HttpServletResponse)
@@ -15,6 +18,41 @@
            (java.util Collections Map)))
 
 (set! *warn-on-reflection* true)
+
+(defn ->ring-request
+  [^HttpExchange http-exchange]
+  (let [uri (.getRequestURI http-exchange)
+        path-info (.getPath uri)
+        query-string (.getQuery uri)
+        headers (HttpExchange/.getRequestHeaders http-exchange)]
+    (cond-> {:body           (.getRequestBody http-exchange)
+             :headers        (into {}
+                               (map (fn [[k v]]
+                                      ;; TODO: Handle multiple headers?
+                                      [k (first v)]))
+                               headers)
+             :protocol       (.getProtocol http-exchange)
+             #_:remote-addr
+             :request-method (-> http-exchange
+                               .getRequestMethod
+                               string/lower-case
+                               keyword)
+             :scheme         (if (instance? HttpsExchange http-exchange)
+                               :https
+                               :http)
+             :server-name    (str (or (.getHost (HttpExchange/.getRequestURI http-exchange))
+                                    (some-> headers (.getFirst "host") (string/split #":") first)))
+             :server-port    (-> http-exchange
+                               .getHttpContext
+                               .getServer
+                               .getAddress
+                               .getPort)
+             #_:ssl-client-cert
+             :uri            path-info
+             ;; TODO: Handle context/path-info
+             :path-info      path-info}
+      query-string (assoc :query-string query-string))))
+
 
 #_org.eclipse.jetty.server.Request
 (defn http-exchange->http-servlet-request
@@ -177,3 +215,41 @@
                  (HttpServer/.stop server 0)
                  (log/info :stopped :server))}))
 
+(defn create-connector
+  [{:keys [port host #_join? initial-context interceptors]}]
+  (let [;; TODO: context-path
+        context-path "/"
+        addr (if (string? host)
+               (InetSocketAddress. ^String host (int port))
+               (InetSocketAddress. port))
+        server (HttpServer/create addr 0)]
+    (HttpServer/.createContext server context-path
+      (reify HttpHandler
+        (handle [_this http-exchange]
+          (let [{:keys [response]} (-> initial-context
+                                     (assoc :request (->ring-request http-exchange))
+                                     (chain/execute interceptors))
+                {:keys [status headers body]} response
+                response-headers (.getResponseHeaders http-exchange)]
+            (doseq [[k v] headers]
+              (.add response-headers k (str v)))
+            (if body
+              (let [content-length (or (some-> response-headers
+                                         (.getFirst "Content-Length")
+                                         parse-long)
+                                     0)]
+                (with-open [output-stream (.getResponseBody http-exchange)]
+                  (HttpExchange/.sendResponseHeaders http-exchange status content-length)
+                  (rcp/write-body-to-stream body response output-stream)))
+              (HttpExchange/.sendResponseHeaders http-exchange status -1))))))
+    (reify
+      p/PedestalConnector
+      (start-connector! [this]
+        (HttpServer/.start server)
+        this)
+      (stop-connector! [this]
+        (HttpServer/.stop server 0)
+        this)
+      AutoCloseable
+      (close [this]
+        (HttpServer/.stop server 0)))))

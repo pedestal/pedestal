@@ -2,6 +2,8 @@
   (:require [clojure.edn :as edn]
             [clojure.test :refer [deftest is]]
             [io.pedestal.http :as http]
+            [io.pedestal.connector :as conn]
+            [io.pedestal.http.jdk-httpserver :as jdk-httpserver]
             [io.pedestal.interceptor :as interceptor])
   (:import (java.net URI)
            (java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers HttpResponse$BodyHandlers)
@@ -10,6 +12,30 @@
 
 (set! *warn-on-reflection* true)
 
+#_io.pedestal.http.jetty-test
+(deftest greet-handler
+  (with-open [conn (-> (conn/default-connector-map 8080)
+                     (conn/with-default-interceptors)
+                     (conn/with-routes
+                       #{["/greet" :get (fn [req]
+                                          {:status 200
+                                           :body   "Hello, world!"})
+                          :route-name :greet-handler]})
+                     jdk-httpserver/create-connector
+                     conn/start!)
+              http-client (HttpClient/newHttpClient)]
+    (is (= "Hello, world!"
+          (-> http-client
+            (.send (-> "http://localhost:8080/greet"
+                     URI/create
+                     HttpRequest/newBuilder
+                     (.timeout (Duration/ofSeconds 1))
+                     .build)
+              (HttpResponse$BodyHandlers/ofString))
+            .body)))))
+
+
+;; TODO: Moveto connecotr
 (defn hello-world
   [_request]
   {:status  200
