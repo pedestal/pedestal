@@ -36,19 +36,3 @@
         #".*\Qadditional key :path conflicts with standard route key\E.*"
         (table-routes [["/api/foo" :get identity :path :conflict]]))))
 
-
-(comment
-
-  ;; This is used to verify the content in routing-quick-reference.adoc
-
-  (:routes
-    (io.pedestal.http.route/expand-routes
-      #{#_ {:app-name :example-app
-         :scheme   :https
-         :host     "example.com"}
-        ["/department/:id/employees" :get [identity]
-         :route-name :org.example.app/employee-search
-         :constraints {:name  #".+"
-                       :order #"(asc|desc)"}]}))
-
-  )
