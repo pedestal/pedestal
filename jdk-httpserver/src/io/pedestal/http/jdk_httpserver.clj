@@ -2,7 +2,8 @@
   (:require [clojure.string :as string]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.service.protocols :as p]
-            [ring.core.protocols :as rcp])
+            [ring.core.protocols :as rcp]
+            [ring.util.request :as request])
   (:import (com.sun.net.httpserver HttpExchange HttpHandler HttpServer HttpsExchange)
            (java.io OutputStream)
            (java.net InetSocketAddress)
@@ -13,9 +14,10 @@
 
 (defn ->ring-request
   [^HttpExchange http-exchange]
-  (let [uri (.getRequestURI http-exchange)
-        path-info (.getPath uri)
-        query-string (.getQuery uri)
+  (let [request-uri (.getRequestURI http-exchange)
+        context-path (.getPath (.getHttpContext http-exchange))
+        uri (.getPath request-uri)
+        query-string (.getQuery request-uri)
         headers (HttpExchange/.getRequestHeaders http-exchange)]
     (cond-> {:body           (.getRequestBody http-exchange)
              :headers        (into {}
@@ -43,9 +45,9 @@
                                .getAddress
                                .getPort)
              #_:ssl-client-cert
-             :uri            path-info
-             ;; TODO: Handle context/path-info
-             :path-info      path-info}
+             :uri            uri
+             :context-path   context-path}
+      :always (request/set-context context-path)
       query-string (assoc :query-string query-string))))
 
 
@@ -71,10 +73,9 @@
     (rcp/write-body-to-stream body response response-body)))
 
 (defn create-connector
-  [{:keys [port host #_join? initial-context interceptors]} & _]
-  (let [;; TODO: context-path
-        context-path "/"
-        addr (if (string? host)
+  [{:keys [port host #_join? initial-context interceptors]} {:keys [context-path]
+                                                             :or   {context-path "/"}}]
+  (let [addr (if (string? host)
                (InetSocketAddress. ^String host (int port))
                (InetSocketAddress. port))
         server (HttpServer/create addr 0)]
@@ -87,11 +88,12 @@
                 {:keys [status headers body]} response
                 response-headers (.getResponseHeaders http-exchange)]
             (doseq [[k v] headers]
+              ;; TODO: Handle collections on value?!
               (.add response-headers k (str v)))
             (if (nil? body)
               (HttpExchange/.sendResponseHeaders http-exchange status -1)
               (let [content-length (or (some-> response-headers
-                                         (.getFirst "Content-Length")
+                                         (.getFirst "content-length")
                                          parse-long)
                                      0)]
                 (HttpExchange/.sendResponseHeaders http-exchange status content-length)

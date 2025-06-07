@@ -92,7 +92,7 @@
     `(let [conn#
            (-> (conn/default-connector-map (:port ~opts))
              (conn/with-interceptor (interceptor/interceptor ~handler))
-             (~create-connector-sym {})
+             (~create-connector-sym (:connector-opts ~opts))
              conn/start!)]
        (try
          ~@bodies
@@ -148,3 +148,21 @@
     (let [response (http-get "http://localhost:4347")]
       (is (= (:status response) 200))
       (is (= (:body response) "Hello World")))))
+
+(defn echo-paths
+  [request]
+  {:status  200
+   :headers {"Content-Type" "application/edn"}
+   :body    (prn-str (select-keys request [:uri :path-info :context-path]))})
+
+(deftest with-context-path
+  (with-server echo-paths {:port           4347
+                           :connector-opts {:context-path "/hello"}}
+    (let [response (http-get "http://localhost:4347/hello/world")]
+      (is (= {:uri          "/hello/world"
+              :path-info    "/world"
+              :context-path "/hello"}
+            (-> response
+              :body
+              edn/read-string
+              #_(doto clojure.pprint/pprint)))))))
