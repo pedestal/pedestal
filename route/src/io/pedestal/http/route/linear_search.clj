@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,10 +13,12 @@
 
 (ns io.pedestal.http.route.linear-search
   (:require [io.pedestal.http.route.definition :as definition]
+            [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.internal :as internal]))
 
 (defn- path-matcher [route]
-  (let [{:keys [path-re path-params]} route]
+  (let [{:keys [path-params]} route
+        path-re (path/path-regex route)]
     (fn [req]
       (when req
        (when-let [m (re-matches path-re (:path-info req))]

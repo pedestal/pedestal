@@ -7,11 +7,11 @@ https://github.com/seancorfield/deps-new[deps-new], a tool used to generate new 
 If you are a Leiningen user, it is relative straight forward to create an equivalent `project.clj` from the
 generated `deps.edn`.
 
-The _embedded_ part indicates that the template is configured to work using
-xref:reference:jetty.adoc[], and it starts Jetty from within a running Clojure application
+The _embedded_ name indicates that the template is configured to work using
+xref:reference:http-kit.adoc[], and it starts Http-Kit from within the running Clojure application
 (an alternate, supported, but far less common approach is to
-xref:war-deployment.adoc[bundle a Pedestal application into
-a WAR] and deploy into Jetty, or another servlet container).
+xref:war-deployment.adoc[bundle a Pedestal application into a WAR]
+and deploy into xref:reference:jetty.adoc[Jetty], or another servlet container).
 
 == Setting up deps-new
 
@@ -24,9 +24,8 @@ to the :aliases map:
 
     :1.12 {:override-deps {org.clojure/clojure {:mvn/version "1.12.0"}}}
 
-TIP: This step is only necessary if Clojure 1.12 is not your default; for most
-users, Clojure 1.12 will be available.  Check by running the `clojure` command; it will tell you the your default version.
-
+TIP: This step is only necessary if Clojure 1.12 (or better) is not your default; for most
+users, Clojure 1.12 (or better) _will_ be the default.  Check by running the command `clojure -version`.
 
 == Creating a project
 
@@ -42,19 +41,19 @@ The command for this is somewhat arcane:
 
 [subs=attributes]
 ```
-clojure -A:1.12 -Tnew create :template \
+clojure -Tnew create :template \
   io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} \
   :name com.blueant/peripheral
 ```
 
-TIP: The `-A:1.12` option references the global alias you set up earlier and, again,
-is only needed if Clojure 1.12 is not your default.  Clojure 1.12 is only needed to initially construct your project, to build or run your project, Clojure 1.10 or above is all that's needed.
+TIP: Add the `-A:1.12` option immediately after `clojure` if Clojure 1.12 (or better) is not your default.
+Clojure 1.12 is only needed to initially construct your project; to later build or run your project, Clojure {base-clojure-version} or above is all that's needed.
 
 Example:
 
 [subs=attributes]
 ```
-$ clojure -A:1.12 -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} :name com.blueant/peripheral
+$ clojure -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedestal/embedded#{libs_version} :name com.blueant/peripheral
 
 Resolving io.github.pedestal/pedestal as a git dependency
 Creating project from io.pedestal/embedded in peripheral
@@ -82,16 +81,16 @@ $ tree peripheral
 │   └── com
 │       └── blueant
 │           └── peripheral
+│               ├── connector.clj
 │               ├── main.clj
 │               ├── routes.clj
-│               ├── service.clj
 │               └── telemetry_init.clj
 ├── start-jaeger.sh
 ├── test
 │   └── com
 │       └── blueant
 │           └── peripheral
-│               └── service_test.clj
+│               └── connector_test.clj
 └── test-resources
     ├── logback-test.xml
     └── pedestal-test-config.edn
@@ -123,30 +122,35 @@ You can also fire up a REPL and start the service:
 
 
 ```
-$ clj -A:test
-Clojure 1.11.1
+$ clj -A:test:dev-mode <1>
+Clojure 1.12.0
 user=> (use 'dev)
 nil
-user=> (go)
+user=> (go!)
 Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃  Path  ┃                 Name                 ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
-┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-#:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__17265 0x6853bae "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__17265@6853bae"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__17934 0x26714a4a "io.pedestal.http.jetty$server$fn__17934@26714a4a"], :resource-path "public", :interceptors [#Interceptor{:name :io.pedestal.http.impl.servlet-interceptor/exception-debug} #Interceptor{:name :io.pedestal.http.cors/dev-allow-origin} #Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.ring-middlewares/resource} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes #object[com.blueant.peripheral.service$service_map$fn__17845 0x7589371f "com.blueant.peripheral.service$service_map$fn__17845@7589371f"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x46a4eecd "io.pedestal.http.servlet.FnServlet@46a4eecd"], :server #object[org.eclipse.jetty.server.Server 0x1cc1ddad "Server@1cc1ddad{STARTED}[11.0.18,sto=0]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__17936 0x6953f5fc "io.pedestal.http.jetty$server$fn__17936@6953f5fc"]}
+┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Method ┃  Path  ┃                     Name                     ┃
+┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃   :get ┃ /*path ┃ :io.pedestal.service.resources/get-resource  ┃
+┃  :head ┃ /*path ┃ :io.pedestal.service.resources/head-resource ┃
+┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello         ┃
+┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet         ┃
+┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+#object[io.pedestal.http.http_kit$create_connector$reify__17907 0x6e3f108c "io.pedestal.http.http_kit$create_connector$reify__17907@6e3f108c"]
 user=>
 ```
+<1> This activates both the :test and :dev-mode aliases; :dev-mode assists with reloading and
+is what enables the printing of the routing table. The full routing table contains both the routes
+defined for your app (`/hello`) and the routes for access to static resources (at `/*path`).
 
 From another window, you can open http://localhost:8080/index.html, to see
 a brief welcoming page.
 
-The `dev` namespace provides the functions `go`, `start`, and `stop`.
+The `dev` namespace provides the functions `go!`, `start!`, and `stop!`.
 
 The :test alias sets up the classpath so that the `dev` namespace is
 available, and enables
-xref:live-repl.adoc[REPL oriented development mode], including
+xref:live-repl.adoc[REPL oriented development mode], one aspect of which is
 the output of the routing table as the service started.
 
 Because the application is running in debug mode,
@@ -156,20 +160,22 @@ context map.
 ```
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.cors/dev-allow-origin, :stage :enter, :execution-id 1, :context-changes {:added {[:request :headers "origin"] ""}}, :line 128}
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.tracing/tracing, :stage :enter, :execution-id 1, :context-changes {:added {[:bindings] ..., [:io.pedestal.http.tracing/otel-context-cleanup] ..., [:io.pedestal.http.tracing/prior-otel-context] ..., [:io.pedestal.http.tracing/otel-context] ..., [:io.pedestal.http.tracing/span] ...}}, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http/log-request, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.service.interceptors/log-request, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/query-params, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/method-param, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.ring-middlewares/resource, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/router, :stage :enter, :execution-id 1, :context-changes {:added {[:request :url-for] ..., [:request :path-params] [], [:route] ..., [:url-for] ...}, :changed {[:bindings] ..., [:io.pedestal.interceptor.chain/queue] ...}}, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/path-params-decoder, :stage :enter, :execution-id 1, :context-changes {:changed {[:request :path-params] {:from [], :to {}}}, :added {[:io.pedestal.http.route/path-params-decoded?] true}}, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor "#Interceptor{}", :stage :enter, :execution-id 1, :context-changes {:added {[:response] {:status 200, :body ...}}}, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.secure-headers/secure-headers, :stage :leave, :execution-id 1, :context-changes {:added {[:response :headers] {"Strict-Transport-Security" "max-age=31536000; includeSubdomains", "X-Frame-Options" "DENY", "X-Content-Type-Options" "nosniff", "X-XSS-Protection" "1; mode=block", "X-Download-Options" "noopen", "X-Permitted-Cross-Domain-Policies" "none", "Content-Security-Policy" "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}}, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.ring-middlewares/content-type-interceptor, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http/not-found, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.body-params/body-params, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/query-params, :stage :enter, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.ring-middlewares/resource, :stage :enter, :execution-id 1, :context-changes {:added {[:response] {:status 200, :headers {"Content-Length" "167", "Last-Modified" "Thu, 27 Mar 2025 23:04:20 GMT"}, :body ...}}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/router, :stage :enter, :execution-id 1, :context-changes {:added {[:route] ...}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.route/path-params-decoder, :stage :enter, :execution-id 1, :context-changes {:added {[:io.pedestal.http.route/path-params-decoded?] true}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.secure-headers/secure-headers, :stage :leave, :execution-id 1, :context-changes {:added {[:response :headers "X-Frame-Options"] "DENY", [:response :headers "X-XSS-Protection"] "1; mode=block", [:response :headers "X-Download-Options"] "noopen", [:response :headers "Strict-Transport-Security"] "max-age=31536000; includeSubdomains", [:response :headers "X-Permitted-Cross-Domain-Policies"] "none", [:response :headers "X-Content-Type-Options"] "nosniff", [:response :headers "Content-Security-Policy"] "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.ring-middlewares/content-type-interceptor, :stage :leave, :execution-id 1, :context-changes {:added {[:response :headers "Content-Type"] "text/html"}}, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.service.interceptors/not-found, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
 DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.tracing/tracing, :stage :leave, :execution-id 1, :context-changes {:changed {[:bindings] ...}, :removed {[:io.pedestal.http.tracing/otel-context-cleanup] ..., [:io.pedestal.http.tracing/prior-otel-context] ..., [:io.pedestal.http.tracing/otel-context] ..., [:io.pedestal.http.tracing/span] ...}}, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl.servlet-interceptor/ring-response, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
-DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.impl.servlet-interceptor/stylobate, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.http-kit/response-converter, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
+DEBUG io.pedestal.interceptor.chain.debug - {:interceptor :io.pedestal.http.http-kit/async-responder, :stage :leave, :execution-id 1, :context-changes nil, :line 128}
 ```
+
+TIP: The generated `logback-test.xml` file can be changed to control what is logged and in what format.
 
 You can also use `curl` or link:https://github.com/httpie/cli[http] to make a request:
 
@@ -178,20 +184,24 @@ $ http --json post :8080/hello name="Pedestal User"
 HTTP/1.1 200 OK
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: text/plain
-Date: Fri, 12 Jul 2024 18:52:06 GMT
+Date: Thu, 27 Mar 2025 23:06:12 GMT
+Server: Pedestal/http-kit
 Strict-Transport-Security: max-age=31536000; includeSubdomains
-Transfer-Encoding: chunked
 X-Content-Type-Options: nosniff
 X-Download-Options: noopen
 X-Frame-Options: DENY
 X-Permitted-Cross-Domain-Policies: none
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
+content-length: 21
 
 Hello, Pedestal User.
 
 
->
+$
 ```
+
+The majority of those headers are contributed by the various default interceptors; they
+establish a base-line for security concerns.
 
 
 ## Starting the service
@@ -200,23 +210,23 @@ Alternately, you can start the service directly without starting a REPL:
 
 ```
 $ clj -X:run
-INFO  com.blueant.peripheral.main - {:msg "Service com.blueant/peripheral startup", :port 8080, :line 9}
+INFO  com.blueant.peripheral.main - {:msg "Service com.blueant/peripheral startup", :port 8080, :line 10}
 ```
 
 At this point, the service is running; you can use another window to execute HTTP requests. If you open
 a browser window to http://localhost:8080/index.html, you'll see the following logged to the service's console:
 
 ```
-INFO  io.pedestal.http - {:msg "GET /index.html", :line 83}
-INFO  io.pedestal.http - {:msg "GET /favicon.ico", :line 83}
+INFO  io.pedestal.service.interceptors - {:msg "GET /index.html", :line 40}
+INFO  io.pedestal.service.interceptors - {:msg "GET /favicon.ico", :line 40}
 ```
 
 
 ## Gathering Telemetry
 
-The template includes very basic support for  gathering and reporting telementry using {otel}.
+The template includes very basic support for gathering and reporting telementry using {otel}.
 For local work, this is best accomplished
-by running a Docker container with the link:https://www.jaegertracing.io/[Jaeger] server running; the container
+by launching a Docker container to run the link:https://www.jaegertracing.io/[Jaeger] service; the container
 will collect telemetry from the running application, and also provides a user interface to examine
 the traces produced by the application.
 
@@ -236,26 +246,25 @@ Stop your old REPL session, if necessary, and start a new one:
 ```
 $ clj -A:test:otel-agent
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
-[otel.javaagent 2024-03-01 16:32:45:144 -0800] [main] INFO io.opentelemetry.javaagent.tooling.VersionLogger - opentelemetry-javaagent - version: 2.1.0
-Clojure 1.11.1
+[otel.javaagent 2025-03-27 16:12:48:691 -0700] [main] INFO io.opentelemetry.javaagent.tooling.VersionLogger - opentelemetry-javaagent - version: 2.14.0
+Clojure 1.12.0
 user=> (use 'dev)
 nil
-user=> (go)
-Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃  Path  ┃                 Name                 ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet ┃
-┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-#:io.pedestal.http{:port 8080, :service-fn #object[io.pedestal.http.impl ...
->
+user=> (go!)
+#object[io.pedestal.http.http_kit$create_connector$reify__17973 0x16a475d3 "io.pedestal.http.http_kit$create_connector$reify__17973@16a475d3"]
+user=>
 ```
 
 The :otel-agent alias enables the Open Telementry Java Agent; a Java Agent is a special library that "hooks into"
 the Java Virtual Machine, and can instrument classes as they are loaded from disk, or from JAR files.  In this
-case, the agent will add code that initializes open telemetry in our application, and instrument the Jetty classes
+case, the agent will add code that initializes open telemetry in our application, and instrument the classes
 to capture the real times when requests arrive and responses are sent.
+
+[NOTE]
+====
+If you enable the use of xref:reference:jetty.adoc[], then Open Telemetry can do a slightly better job instrumenting;
+it has special hooks for Jetty classes that don't exist for Http-Kit.
+====
 
 In a separate window, you can open http://localhost:8080/hello or http://localhost:8080/index.html.  Your application
 will handle the requests while gathering and sending tracing data to the Jaeger server running inside the Docker container.
@@ -269,15 +278,10 @@ You can then select a specific trace to get more details about it:
 
 image::jaeger-ui-trace.png[]
 
-You'll notice that the single _request_ has two overlapping _traces_; the outer trace was started and ended by the
-Open Telemetry java agent; the inner trace is just the part that Pedestal (not Jetty) is responsible for.
-
 [NOTE]
 ====
 You don't _need_ to run your application with the Java agent in order to gather and send traces; however, the alternative
 involves quite a bit more setup, and many additional dependencies for all the necessary Open Telemetry libraries.
-Even then, without the Java agent, you will not get the most accurate measurements as you'll only get the _inner_ measurement
-covering the span of time Pedestal was handling the request.
 ====
 
 ## Other build commands
@@ -286,7 +290,6 @@ The `lint` command uses link:https://github.com/clj-kondo/clj-kondo[clj-kondo] t
 
 ```
 $ clj -T:build lint
-WARNING: update-vals already refers to: #'clojure.core/update-vals in namespace: clj-kondo.impl.analysis.java, being replaced by: #'clj-kondo.impl.utils/update-vals
 linting took 137ms, errors: 0, warnings: 0
 clj-kondo approves ☺️
 ```

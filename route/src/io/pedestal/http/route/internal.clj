@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -106,17 +106,39 @@
       (print-routing-table-with-header routing-table)
       routing-table)))
 
+(defn dynamic-resolve
+  [ns-sym value-sym]
+  (deref (ns-resolve ns-sym value-sym)))
+
+(defn rewrite-for-reload
+  "When reloading a namespace, it is necessary to re-resolve the var either being loaded,
+  or the function (and perhaps direct function arguments).  This is because clj-reload
+  discards the original Namespace (and Vars within) and causes a new Namespace and new Vars
+  to be created.  The function created via routes/routes-from will hold orphaned references
+  to the old Vars."
+  [env]
+  (let [ref-ns (ns-name *ns*)]
+    (fn rewrite [expr]
+      (cond
+        (and (symbol? expr)
+             (not (contains? env expr)))
+        `(dynamic-resolve '~ref-ns '~expr)
+
+        (list? expr)
+        (map rewrite expr)
+
+        :else
+        expr))))
+
 (defn create-routes-from-fn
   "Core of the route/routes-from macro."
   [route-spec-exprs env expand-routes]
-  (let [exprs (map (fn [expr]
-                     (if (and (symbol? expr)
-                              (not (contains? env expr)))
-                       `(deref (var ~expr))
-                       expr))
-                   route-spec-exprs)]
-    `(fn []
-       (~expand-routes ~@exprs))))
+  (let [exprs (map (rewrite-for-reload env) route-spec-exprs)
+        code  `(fn []
+                 (~expand-routes ~@exprs))]
+    ;; This is very handy and, of course, only occurs in development mode.
+    `(with-meta ~code
+                {:code '~code})))
 
 (defn- satisfies-query-constraints
   "Given a map of query constraints, return a predicate function of
@@ -148,8 +170,8 @@
   the request satisfies all path and query constraints."
   {:added "0.8.0"}
   [{:keys [query-constraints path-constraints] :as route}]
-  (let [qc? (satisfies-query-constraints query-constraints)
-        pc? (satisfies-path-constraints path-constraints)
+  (let [qc?                    (satisfies-query-constraints query-constraints)
+        pc?                    (satisfies-path-constraints path-constraints)
         satisfies-constraints? (cond (and query-constraints path-constraints)
                                      (fn [request path-param-values]
                                        (and (qc? request) (pc? path-param-values)))
@@ -171,3 +193,16 @@
   (let [f (::satisfies-constraints? route)]
     (f request path-param-values)))
 
+
+(defn symbol->keyword
+  [s]
+  (let [resolved (resolve s)
+        {ns :ns n :name} (meta resolved)]
+    (if resolved
+      (keyword (name (ns-name ns)) (name n))
+      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
+
+(defn capture-constraint
+  "Add parenthesis to a regex in order to capture its value during evaluation."
+  [[k v]]
+  [k (re-pattern (str "(" v ")"))])

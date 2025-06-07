@@ -32,16 +32,16 @@ Responsible for converting the :response key in the context, when present,
 into a response delivered to the client; this may include
 xref:streaming.adoc[async streaming].
 
-## Partial Responses
+== Partial Responses
 
 In very rare cases, different interceptors may provide different parts of response.
-Ultimately, the response must be a valid Ring response, but different interceptors may
-provide different parts of the response (the :body or certain values in the :headers map).
+Ultimately, the response must be a valid Ring response, but it is not uncommon
+for one interceptor to, say, rewrite the :body, and another interceptor to set up the `Content-Type` header.
 
 If your application requires this, be very careful about early termination.
 
-   1. Put the initial value into the response map in the last :enter
+1. Put the initial value into the response map in the last :enter
    function, then use the :leave functions to refine that value.
-   2. Put the initial value into the context under a different key and
+2. Put the initial value into the context under a different key and
    refine that value in either :enter or :leave functions. When
    the response is complete, transfer the response map to the :response key.

@@ -5,26 +5,27 @@
 
 ## 0.8.0 - UNRELEASED
 
-The main focus of this release is to improve routing and upgrade to Jetty 12.
+The main focii of this release is to improve routing and upgrade to Jetty 12.
 The secondary focus is to further tease apart the aspects of Pedestal that are specific
 to the Jakarta Servlet API from those that are more general.
 
 **BREAKING CHANGES:**
 
 - Clojure 1.11 is now the minimum supported version
+- The new Sawtooth router is now the *default router*
 - Anonymous interceptors are deprecated
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occured
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
-- A new router, `io.pedestal.http.route.sawtooth`, has been added
-  - Sawtooth identfies conflicting routes
-  - Sawtooth is now the *default router*
+- Fix reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
+- Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both 
+  are acceptible according to the SSE specification)
 - `io.pedestal.test` has been rewritten, nearly from scratch
-  - The Servlet API mocks are now Java classes, not `reify`-ed classes
+  - The Servlet API mocks are now standard Java classes, not `reify`-ed classes
   - A request body may now be a java.io.File
 - `io.pedestal.http.servlet` 
-  - The `reify`'ed `FnServlet` class is now a proper Java class, `io.pedestal.servlet.FnServlet`
+  - The `reify`'ed `FnServlet` class is now a standard Java class, `io.pedestal.servlet.FnServlet`
   - The new `FnServlet` extends `HttpServlet` not `Servlet`
 - Deleted deprecated namespaces:
   - `io.pedestal.http.request`
@@ -43,40 +44,53 @@ to the Jakarta Servlet API from those that are more general.
   - `io.pedestal.http.impl.servlet-interceptor`
     - `stylobate`
     - `terminator-injector`
-- Other deleted namespaces:
+- Other deleted vars and namespaces:
+  - `io.pedestal.http.route.definition/symbol->keyword`
+  - `io.pedestal.http.route.definition/capture-constraint`
   - `io.pedestal.http.request.servlet-support`
 
-Newly deprecated namespaces:
+Newly deprecated namespaces (these may be removed or made non-public in the future):
 - `io.pedestal.jetty.container`
 - `io.pedestal.jetty.util`
 
 Other changes:
-
+- A new router, `io.pedestal.http.route.sawtooth`, has been added
+    - Sawtooth identfies conflicting routes
+    - Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
+- Metrics can now be configured to accept longs or doubles as their values.
+- _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
+  do not use the Servlet API, and so are much lighter weight.
+- The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
+  - `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
 - WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
 - The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
   now in the `pedestal.servlet` module.
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
+- Table routes may now include extra key/value pairs
 - It is now possible to specify the maximum number of concurrent threads with the 
   Jetty HTTP2 and HTTP2C connection factories
 - Much of `io.pedestal.http` has been deprecated, with the active code moving to new namespaces
-- New functions:
+- New functions and macros:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
+  - `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
+  - `io.pedestal.log/log` - logs with level determined at runtime
 - New namespaces: 
-  - `io.pedestal.service` - Replaces `io.pedestal.http` for setting up a connector
-  - `io.pedestal.service.protocols` - Defined core protocols
-  - `io.pedestal.service.resources` - expose resources using _routes_ not _interceptors_
-  - `io.pedestal.service.dev` - development/debugging tools
-  - `io.pedestal.service.interceptors` - common interceptors
-  - `io.pedestal.service.test` - testing w/ Ring request and response (no Servlet API)
+  - `io.pedestal.connector` - Replaces `io.pedestal.http` for setting up a connector
+  - `io.pedestal.service.protocols` - Defines core protocols
+  - `io.pedestal.service.resources` - Expose resources using _routes_ not _interceptors_
+  - `io.pedestal.connector.dev` - Development/debugging tools
+  - `io.pedestal.service.interceptors` - Common interceptors
+  - `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
+  - `io.pedestal.interceptor.component` - unify Components and Interceptors
 - When converting a handler function to an Interceptor
+  - Handler functions may now be *asynchronous*, returning a channel that conveys the response
   - The :name metadata on the _function_ will be used as the :name of the interceptor
   - Otherwise, a :name is derived from the function's class
   - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
-    of the interceptor; now interceptors always have names and this does not occur
+  of the interceptor; now interceptors always have names and this does not occur
   - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
-  - Handler functions may now be asynchronous, returning a channel that conveys the response
-- Metrics can now be configured to accept longs or doubles as their values.
+- The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
 
 ## 0.7.2 - 1 Nov 2024
 

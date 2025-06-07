@@ -18,7 +18,6 @@
             [clojure.pprint :refer [pprint]]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.connector :as connector]
             [io.pedestal.http.cors :as cors]
             [io.pedestal.service.impl :as impl]))
 
@@ -31,7 +30,8 @@
              :exception exception)
   (response/respond-with context
                          500
-                         {"Content-Type" "text/plain"}
+                         {"Content-Type"                "text/plain"
+                          "Access-Control-Allow-Origin" "*"}
                          (with-out-str (println "Error processing request!")
                                        (println "Exception:\n")
                                        (println (impl/format-exception exception))
@@ -42,15 +42,13 @@
   "A development-mode interceptor that captures exceptions, formats them using org.clj-commons/pretty, and generates a
    status 500 text response of the formatted exception."
   (interceptor
-    {:name  ::exception-debug
+    {:name  ::uncaught-exception
      :error attach-formatted-exception-response}))
 
-(defn with-dev-interceptors
-  "Adds the [[dev-allow-origin]] and [[exception-debug]] interceptors; these should be used only during
+(def dev-interceptors
+  "[[dev-allow-origin]] and [[uncaught-exception]] interceptors; these should be used only during
   local development, and should come before other interceptors."
-  [connector-map]
-  (connector/with-interceptors connector-map
-                               [cors/dev-allow-origin uncaught-exception]))
+  [cors/dev-allow-origin uncaught-exception])
 
 (defn default-debug-observer-omit
   "Default for key paths to ignore when using [[debug-observer]].  This is primarily the
@@ -76,7 +74,7 @@
   to identify changes to the context, and some data in the context that might be
   logged can be verbose, sensitive, or both.
 
-  This modifies the :initial-context key of the service map."
+  This modifies the :initial-context key of the connector map."
   ([connector-map]
    (with-interceptor-observer connector-map {:omit default-debug-observer-omit}))
   ([connector-map debug-observer-options]

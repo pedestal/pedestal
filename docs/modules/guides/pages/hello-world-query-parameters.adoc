@@ -73,7 +73,6 @@ http://localhost:8890/greet?name=Michael
 Because query parameters are so common, Pedestal handles them
 automatically. You can try that URL with your service right now.
 
-
 As a reminder, we're running the server by using
 the https://clojure.org/guides/deps_and_cli[clj] tool to start an
 interactive session (called a REPL, rhymes with ripple) then starting
@@ -86,107 +85,97 @@ interactive development.
 It's really not optimal to be restarting your REPL in order to restart
 the service every time you need to make a change. In real Clojure
 development, we rarely restart the REPL. Instead, we make our system
-friendly to interactive development. The main problem so far is that
-starting the HTTP service doesn't return. We can fix that by adding a
-key to the map that says "return instead of waiting for the server to
-stop."
+friendly to interactive development.
 
 [source,clojure]
 .src/hello.clj
 ----
-include::example$hello-query/src/hello.clj[tags=server]
+include::example$hello-query/src/hello.clj[tags=connector]
 ----
-<1> `defonce` here means we can recompile this file in the same REPL
-without overwriting the value in this atom.
+<1> clj:defonce[] here means we can recompile this file in the same REPL
+without overwriting the `*connector` symbol's value.
 <2> `reset!` replaces the current value in the atom with the new value.
-<3> Tell Pedestal not to wait for the server to exit. You set ::http/join?
-to true when running in production so that your main function does not exit
-and terminate the process.
-<4> This is a quick way to bounce the server.
+<3> This is a quick way to bounce the server after reloading code.
 
-
-The key ::http/join? does the trick. We can now run `start-dev` in
-our REPL sessions. Instead of waiting forever, the REPL thread now
-returns, prints the value of the server (an ugly mess!) and lets us
-continue interacting. This is how we are going to start things in dev
-from now on. Let's try it out.
-
-First, let's start the service.
+First, let's start the Pedestal connector.
 
 ----
-$ clj <1>
-Clojure 1.11.1
+$ clj
+Clojure 1.12.0
 user=> (require 'hello)
 nil
-user=> (hello/start-dev)
-[main] INFO org.eclipse.jetty.server.Server - jetty-11.0.18; built: 2023-10-27T02:14:36.036Z; git: 5a9a771a9fbcb9d36993630850f612581b78c13f; jvm 11.0.19+7-LTS
-[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@549db1c6{/,null,AVAILABLE}
-[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@2d3b708a{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
-[main] INFO org.eclipse.jetty.server.Server - Started Server@5770b59f{STARTING}[11.0.18,sto=0] @15614ms
-#:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835 0x4e27c500 "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835@4e27c500"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15089 0x6dbd38e8 "io.pedestal.http.jetty$server$fn__15089@6dbd38e8"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{}], :route-name :greet, :path-params []}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x1a183473 "io.pedestal.http.servlet.FnServlet@1a183473"], :server #object[org.eclipse.jetty.server.Server 0x351bfccc "Server@351bfccc{STARTED}[9.4.52.v20230823]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15091 0x2d7956fb "io.pedestal.http.jetty$server$fn__15091@2d7956fb"]}
+user=> (hello/start)
+#object[io.pedestal.http.http_kit$create_connector$reify__15862 0x3b85a820 "io.pedestal.http.http_kit$create_connector$reify__15862@3b85a820"]
 user=>
 ----
-<1> The `$` is the shell prompt; once you execute `clj`, you are inside the Clojure REPL and the `user=>` is it's prompt.
 
-Whatever happened to "no news is good news?" Believe it or not, that
-is all successful output. The big glob at the end is the value of the
-server. It's a big map with all the state in it. The most important
-thing to do with it is _hang on to it_ so we can stop the server
-later. We do that by putting it in an
-http://clojure.org/reference/atoms[atom].
+The `start` function has done four things:
 
-Now we can use `start-dev`, `stop-dev`, and `restart` as we make changes.
+- It has created the connector (via `create-connector`)
+- It has started the connector
+- It has stored the connector in an http://clojure.org/reference/atoms[atom] (a mutable container).
+- It has returned the connector, which the Clojure REPL has printed.
+
+[TIP]
+====
+A convention for mutable objects, such as atoms, is to prefix their name with a `*`.  This is a reminder that
+we must use the special prefix `@` to _dereference_ the actual value (the connector object) from the container
+(the atom).
+====
+
+Now we can use `start`, `stop`, and `restart` functions as we make changes.  Mostly, we'll make code changes,
+reload the `hello` namespace, and call `restart` to quickly stop the connector and start a new one.
 
 == Moving along
 
 From another window, let's send a request with a query parameter.
 
 ----
-$ curl -i http://localhost:8890/greet\?name=Michael
+$ curl -i http://localhost:8890/greet\?name=Michael <1>
 HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 17:45:24 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
 X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
 Content-Type: text/plain
-Transfer-Encoding: chunked
+content-length: 14
+Server: Pedestal/http-kit
+Date: Fri, 11 Apr 2025 23:37:30 GMT
 
-Hello, world!%
+Hello, world!
 ----
+<1> The backslash before `name` is needed because otherwise the shell will treat the `?` specially.
 
 What we've demonstrated is that Pedestal can route the incoming request, `GET /greet?name=Michael` and isn't
-confused by the presence of the query parameter. Ultimately, the `respond-hello` function was invoked,
-and did its job. To update `respond-hello` to match our goal, we first have to discuss the
+confused by the presence of the query parameter. Ultimately, the `greet-handler` function was invoked,
+and did its job. To update `greet-handler` to match our goal, we first have to discuss the
 `request` argument passed to it.
 
 Also, if you look in the console of your REPL, you'll see that Pedestal logged the request:
 
 ```
-[qtp81639554-16] INFO io.pedestal.http - {:msg "GET /greet", :line 80}
+[] INFO io.pedestal.service.interceptors - {:msg "GET /greet", :line 40}
 ```
 
-You'll see slightly different results; the `qtp` part is the thread name, for example. The point is, you can look
+You'll may see slightly different results, but the takeaway is that you can look
 in the REPL session to verify that requests are being processed by your server.
 
 == The Request Map
 
-Here's a reminder of what `respond-hello` currently looks like:
+Here's a reminder of what `greet-handler` currently looks like:
 
 [source,clojure]
 ----
 include::example$hello/src/hello.clj[tags=response]
 ----
-<1> The function takes one argument, which we call `request`
-<2> And it returns a map.
+<1> The function takes one argument, which we call `_request`
+<2> ... and it returns a map.
 
-We aren't using the request argument right now, so we don't really
-know what it is. (Well, it's probably not too hard to guess that it
-has to do with the HTTP request that Pedestal received. From the title
-of this section, you probably also deduced that it's a map!)
+We aren't using the `_request` argument right now, so we don't really
+know what information it provides.
 
 Let's take a look at that request by echoing it back to the
 client. This is a common debugging trick that you can use.
@@ -195,7 +184,8 @@ client. This is a common debugging trick that you can use.
 ----
 include::example$hello-query/src/hello.clj[tags=response_debug_body]
 ----
-<1> Instead of returning the string "Hello, world!" we return the _entire_ request as the response body.
+<1> We're actually using the parameter now, so no more leading `_` on the parameter name.
+<2> Instead of returning the string "Hello, world!" we return the _entire_ request as the response body.
 
 
 Make sure you've update the `hello.clj` file, then restart your service with that new definition:
@@ -204,92 +194,87 @@ Make sure you've update the `hello.clj` file, then restart your service with tha
 user=> (require :reload 'hello)
 nil
 user=> (hello/restart)
-[main] INFO org.eclipse.jetty.server.AbstractConnector - Stopped ServerConnector@4ab4f6d7{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
-[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Stopped o.e.j.s.ServletContextHandler@1227013b{/,null,STOPPED}
-[main] INFO org.eclipse.jetty.server.Server - jetty-9.4.52.v20230823; built: 2023-08-23T19:29:37.669Z; git: abdcda73818a1a2c705da276edb0bf6581e7997e; jvm 11.0.19+7-LTS
-[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@699a53d4{/,null,AVAILABLE}
-[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@62832e24{HTTP/1.1, (http/1.1, h2c)}{localhost:8890}
-[main] INFO org.eclipse.jetty.server.Server - Started @667023ms
-#:io.pedestal.http{:port 8890, :service-fn #object[io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835 0x1adcd53b "io.pedestal.http.impl.servlet_interceptor$interceptor_service_fn$fn__14835@1adcd53b"], :host "localhost", :type :jetty, :start-fn #object[io.pedestal.http.jetty$server$fn__15089 0x4474a287 "io.pedestal.http.jetty$server$fn__15089@4474a287"], :interceptors [#Interceptor{:name :io.pedestal.http/log-request} #Interceptor{:name :io.pedestal.http/not-found} #Interceptor{:name :io.pedestal.http.ring-middlewares/content-type-interceptor} #Interceptor{:name :io.pedestal.http.route/query-params} #Interceptor{:name :io.pedestal.http.route/method-param} #Interceptor{:name :io.pedestal.http.secure-headers/secure-headers} #Interceptor{:name :io.pedestal.http.route/router} #Interceptor{:name :io.pedestal.http.route/path-params-decoder}], :routes ({:path "/greet", :method :get, :path-re #"/\Qgreet\E", :path-parts ["greet"], :interceptors [#Interceptor{}], :route-name :greet, :path-params []}), :servlet #object[io.pedestal.http.servlet.FnServlet 0x47c90585 "io.pedestal.http.servlet.FnServlet@47c90585"], :server #object[org.eclipse.jetty.server.Server 0x50091386 "Server@50091386{STARTED}[9.4.52.v20230823]"], :join? false, :stop-fn #object[io.pedestal.http.jetty$server$fn__15091 0x7cf6ea5b "io.pedestal.http.jetty$server$fn__15091@7cf6ea5b"]}
+#object[io.pedestal.http.http_kit$create_connector$reify__15862 0x6f4fa62f "io.pedestal.http.http_kit$create_connector$reify__15862@6f4fa62f"]
 user=>
 ```
 
 Again, this is in two steps: `(require :reload ...)` to update all the Clojure code, then `(hello/restart)`
-to stop the service and start a replacement, using the update functions.
+to stop the connector and start a replacement, using the update functions.
 
-
-With the update code live, you can use `curl` again to see the change in the service's behavior:
+With the updated code live, you can use `curl` again to see the change in the service's behavior:
 
 ----
-
 $ curl -i http://localhost:8890/greet\?name=Michael
 HTTP/1.1 200 OK
-Date: Thu, 12 Oct 2023 17:54:46 GMT
 Strict-Transport-Security: max-age=31536000; includeSubdomains
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-Xss-Protection: 1; mode=block
 X-Download-Options: noopen
 X-Permitted-Cross-Domain-Policies: none
 Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
-Content-Type: application/edn
-Transfer-Encoding: chunked
+Content-Type: application/edn <1>
+content-length: 763
+Server: Pedestal/http-kit
+Date: Fri, 11 Apr 2025 23:42:09 GMT
 
-{:protocol "HTTP/1.1", :async-supported? true, :remote-addr "127.0.0.1", :params {:name "Michael"}, :servlet-response #object[org.eclipse.jetty.server.Response 0x702ce13 "HTTP/1.1 200 \nDate: Thu, 12 Oct 2023 17:54:46 GMT\r\nStrict-Transport-Security: max-age=31536000; includeSubdomains\r\nX-Frame-Options: DENY\r\nX-Content-Type-Options: nosniff\r\nX-XSS-Protection: 1; mode=block\r\nX-Download-Options: noopen\r\nX-Permitted-Cross-Domain-Policies: none\r\nContent-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;\r\nContent-Type: application/edn\r\n\r\n"], :servlet #object[io.pedestal.http.servlet.FnServlet 0x47c90585 "io.pedestal.http.servlet.FnServlet@47c90585"], :headers {"accept" "*/*", "user-agent" "curl/8.1.2", "host" "localhost:8890"}, :server-port 8890, :servlet-request #object[org.eclipse.jetty.server.Request 0x74cc13e0 "Request(GET //localhost:8890/greet?name=Michael)@74cc13e0"], :query-params {:name "Michael"}, :path-info "/greet", :url-for #object[clojure.lang.Delay 0x340f2def {:status :pending, :val nil}], :uri "/greet", :server-name "localhost", :query-string "name=Michael", :path-params {}, :body #object[org.eclipse.jetty.server.HttpInputOverHTTP 0x20486b9d "HttpInputOverHTTP@20486b9d[c=0,q=0,[0]=null,s=STREAM]"], :scheme :http, :request-method :get, :context-path ""}%
+{:remote-addr "127.0.0.1", :start-time 360038830750564, :params {:name "Michael"}, :headers {"accept" "*/*", "host" "localhost:8890", "user-agent" "curl/8.7.1"}, :async-channel #object[org.httpkit.server.AsyncChannel 0x525383f "/127.0.0.1:8890<->/127.0.0.1:63835"], :server-port 8890, :content-length 0, :websocket? false, :query-params {:name "Michael"}, :content-type nil, :path-info "/greet", :character-encoding "utf8", :url-for #object[clojure.lang.Delay 0x4adfdcd0 {:status :pending, :val nil}], :uri "/greet", :server-name "localhost", :query-string "name=Michael", :path-params {}, :body nil, :scheme :http, :request-method :get}
 ----
+<1> Pedestal uses the `application/edn` content type when the response :body is a Clojure map.  EDN is to Clojure
+as JSON is to JavaScript.
 
-Yikes!
+Yikes! There's a lot of content in the request map echoed back to us, and it's in one huge line.
 
-We need to unpack that a bit to make sense out of it. It's a Clojure
-map, just printed all in one long line. I'll reformat it with some
-line breaks. Syntax highlighting will help us read it too. Feel free
-to paste this map into your favorite text editor with Clojure syntax
-highlighting to pick it apart yourself.
-
-I'm also going to omit several keys. They will be relevant later,
-but they're not interesting now. And anyway, they don't print very
-readably because they're objects rather than data.
+We need to unpack that a bit to make sense out of it.  Let's add some line breaks and indentation
+to make it easier to read. We'll also omit several keys. They may be relevant later,
+but they're a distraction now.
 
 Here's what we are left with.
 
 [source,clojure]
 ----
-{
- :protocol         "HTTP/1.1",
- :async-supported? true,
- :remote-addr      "127.0.0.1",
- :path-info        "/greet",
- :uri              "/greet",
- :query-string     "name=Michael",
- :query-params     {:name "Michael"},
- :params           {:name "Michael"},
- :headers          {"user-agent" "curl/7.47.0", "accept" "*/*", "host" "localhost:8890"},
- :server-port      8890,
- :server-name      "localhost",
- :path-params      [],
- :scheme           :http,
- :request-method   :get
-}
+{:request-method     :get
+ :uri                "/greet"
+ :query-string       "name=Michael"
+ :query-params       {:name "Michael"}
+ :params             {:name "Michael"}
+ :headers            {"accept"     "*/*"
+                      "host"       "localhost:8890"
+                      "user-agent" "curl/8.7.1"}
+ :remote-addr        "127.0.0.1"
+ :server-port        8890
+ :content-length     0
+ :content-type       nil
+ :path-info          "/greet"
+ :character-encoding "utf8"
+ :server-name        "localhost"
+ :path-params        {}
+ :body               nil
+ :scheme             :http}
 ----
 
 This is a xref:reference:request-map.adoc[].
-It really is just a Clojure map.
-You access its values with `get` and `get-in`.
+Again, a generic Clojure map with specific keys.
+You access its values with the `get` and `get-in` functions.
 For now, we'll look at three interesting keys.
 
 The whole query string appears under the :query-string key. That's
-the portion of the URL after, but not including, the '?'
-character. The query string can be a pain to deal with. It is
-URL-encoded and may have multiple parameters with delimiters. Pedestal
-slices that up into a map of parameters for you, which is attached to
-the :query-params key. Each parameter name gets turned into a
+the portion of the URL after, but not including, the `?`
+character. The query string can be a pain to deal with.
+It is
+URL-encoded, which means that some common characters, such as spaces and punctuation, are
+converted into sequences of several characters.  There's also delimeters between
+name/value pairs in the query string.
+
+Pedestal parses and slices all that up into a map of parameters for you, which is attached to
+the request map as the :query-params key.
+Each parameter name is converted  into a
 keyword. Parameter values are always strings, though, so you may still
 have to parse them a bit.
 
-You see that :params duplicates the same map as
-:query-params. Pedestal merges all the different kinds of parameters
-into one map for convenience. Most of the time, I know when I want a
-query parameter so I just use :query-params, though.
+Pedestal has several different sources of parameters in the request, which we'll cover in more detail later.
+The :params key is the merged map of all params from all sources; :query-params is just the parameters
+from the query string.  You get to choose which of these is right for your particular handler.
 
 == Using the Parameter
 
@@ -301,48 +286,113 @@ a nested map. Let's dig it out and add it to our response.
 ----
 include::example$hello-query/src/hello.clj[tags=response]
 ----
-<1> Extract the parameter, bind it to the name `nm`.
+<1> Extract the parameter, bind it to the name `greet-name`.
 <2> For the response body, concatenate "Hello," and the parameter into a string.
+
+[TIP]
+====
+The clj:let[] form is used to define one or more local symbols, much like a block-scoped
+local variable in a more traditional language.
+====
 
 Here we can just grab the value right out of the map and use it in the
 response.
 
-[sidebar]
-You might notice that I'm using `nm` instead of spelling out
-`name`. That's because I've been bitten many times in the past by a
-subtle issue. There is a clojure.core function called `name`. If I ever change
-my mind about what to call the parameter, I might end up using
-`greeter` in one place but forget and leave `name` in another
-place. In that case, I'd be returning a stringified representation of
-_the `clojure.core/name` function_ instead of my parameter value! I've
-done this often enough that I just avoid shadowing core library
-symbols as a policy.
-
 Do the restart/reload dance again, and then use `curl` to try a few different requests with parameters.
 
 ----
-$ curl http://localhost:8890/greet\?name=Michael <1>
+$ curl http://localhost:8890/greet\?name=Michael
 Hello, Michael
 $ curl http://localhost:8890/greet\?name=Pankaj
 Hello, Pankaj
 $ curl http://localhost:8890/greet\?name=Geeta
 Hello, Geeta
-$ curl http://localhost:8890/greet\?name=ไอรีนซีพีชาไอที
+$ curl http://localhost:8890/greet\?name=ไอรีนซีพีชาไอที <1>
 Hello, ไอรีนซีพีชาไอที
-$ curl http://localhost:8890/greet\?name=No%20One%20To%20Be%20Trifled%20With
+$ curl http://localhost:8890/greet\?name=No%20One%20To%20Be%20Trifled%20With <2>
 Hello, No One To Be Trifled With
 $ curl http://localhost:8890/greet\?name=
 Hello,
 $ curl http://localhost:8890/greet
 Hello,
 ----
-<1> The `?` character is usually meaningful to the shell, so we escape it with a leading `\`. This results in a the URL
-  `\http://localhost:8890/greet?name=Michael` just like we want.
+<1> Unicode, amazingly, doesn't need to be URL-escaped.
+<2> ... but common characters such as space, need to be converted (to `%20`).
 
 Dang. We were doing really well right up until the end
 there. Obviously we need to do something smarter when the input is
 missing. Bad user input is a way of life on the web, so let's not make
 an error out of this. Instead, we just won't personalize the greeting.
+
+## Sidequest: Why `greet-name`?
+
+You might have noticed that the `name` query parameter in the URL shows up as the :name key in the
+:query-params map, but ultimately ends up in a local symbol, `greet-name`.
+
+It is tempting to just use the symbol `name` here as well, for consistency,
+rather than the longer and less obvious `greet-name`.
+
+Long experience has shown that some symbol names, those that conflict with
+functions and macros automatically imported from the `clojure.core` namespace, can cause you
+great frustration.  Using `name` here _shadows_ the function `clojure.core/name`.
+
+Consider this easy mistake:
+
+[source,clojure]
+.src/hello.clj
+----
+include::example$hello-query/src/hello.clj[tags=response_sidequest]
+----
+
+This looks correct at a glance, but consider what happens when it is executed:
+
+```
+$ curl -i  http://localhost:8890/greet\?name=Michael
+HTTP/1.1 200 OK
+Strict-Transport-Security: max-age=31536000; includeSubdomains
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-Xss-Protection: 1; mode=block
+X-Download-Options: noopen
+X-Permitted-Cross-Domain-Policies: none
+Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+Content-Type: text/plain
+content-length: 34
+Server: Pedestal/http-kit
+Date: Sat, 12 Apr 2025 00:16:42 GMT
+
+Hello, clojure.core$name@6b202ecb
+```
+
+`clojure.core$name@6b202ecb` is how the `clojure.core/name` function is printed as a string.
+We can verify that in the REPL:
+
+```
+user=> (str clojure.core/name)
+"clojure.core$name@6b202ecb"
+```
+
+So because we used `greet-name` in one place and `name` in the other we got _really strange_ results;
+this is partly because Clojure, as a dynamically typed language, is very permissive ... to a point:
+
+[quote,Stuart Halloway]
+This is Clojure ... we don't slap your wrists when you are wrong, we just punish you deeply for it later.
+
+So, the moral of the story is to avoid shadowing names!  With that, let us continue on to handling bad input
+in the request.
+
+## Handling Bad Input
+
+In those last couple of `curl` calls, we did not properly pass up a `name` query parameter:
+
+----
+$ curl http://localhost:8890/greet\?name=
+Hello,
+$ curl http://localhost:8890/greet
+Hello,
+----
+
+This is not desirable behavior; we should do better than returning half a sentence.
 
 [source,clojure]
 .src/hello.clj
@@ -350,8 +400,8 @@ an error out of this. Instead, we just won't personalize the greeting.
 include::example$hello-query/src/hello.clj[tags=response_logic]
 ----
 <1> Both nil and a zero-length string count as empty.
-<2> This is our fallback response.
-<3> And our personalized greeting.
+<2> This is our fallback greeting message.
+<3> And our personalized greeting message.
 <4> Generating the response.
 
 Again, reload and restart, then try new requests with `curl`:
@@ -371,7 +421,6 @@ too many concerns. This function parses inputs, applies "domain"
 logic, and deals with creating a response body. It would be better to
 refactor this to separate those concerns.
 
-
 [source,clojure]
 .src/hello.clj
 ----
@@ -384,13 +433,13 @@ include::example$hello-query/src/hello.clj[tags=response_logic_refactor]
 This version separates the concerns nicely. One big benefit is that
 the `greeting-for` function is now easier to test. It's just a pure
 function - no side effects - that doesn't require any HTTP or Pedestal machinery to exercise.
-Likewise, that `ok` function is side-effect free and quite easy to test.
+Likewise, that `ok` function is also side effect free and quite easy to test.
 Both functions are likely to get more complex, but each one will only deal with its own
 complexity.
 
 In this example, we're treating the case of an empty name the same as
 if the name parameter just isn't included. See if you can make the
-handler more strict so it will return a "400 Bad Request" response if
+handler more strict: it should return a "400 Bad Request" response if
 the name parameter is present but zero length.
 
 == Conditional Responses
@@ -398,7 +447,7 @@ the name parameter is present but zero length.
 There are some names that should not be spoken. Let's enhance our
 service to avoid them. This will be a relatively simple change. We can
 hardcode the names as a set, then use that set as a function. (Clojure
-sets are functions that test for the presence of their argument in the
+sets act as functions that test for the presence of their argument in the
 set itself.)
 
 This part needs to go before `greeting-for` because we'll use it to
@@ -410,13 +459,13 @@ make a decision in that function.
 include::example$hello-query/src/hello.clj[tags=not_to_be_named]
 ----
 
-Now we need to think about our greeting function. Right now it returns
+Now we need to think about our `greeting-for` function. Right now it returns
 a string. We want to make sure the user gets a 404 if the query names
 one of the forbidden ones. We could have `greeting-for` directly
 return the response map, but that starts to entangle the concerns we
 just factored out. We'll do the simplest thing that could possibly
-work: is `greeting-for` returns `nil`, that means the request failed.
-
+work: when `greeting-for` returns `nil` (instead of a string),
+that means the request failed.
 
 [source,clojure]
 .src/hello.clj
@@ -425,21 +474,25 @@ include::example$hello-query/src/hello.clj[tags=greeting_with_404]
 ----
 
 Because there are now three possible conditions that can happen in
-`respond-hello`, I've changed from an clj:if[] to clj:cond[]
+`greet-handler`, I've changed from using an clj:if[] expression
+to a clj:cond[]
 expression. `cond` uses pairs of "condition / value" clauses. So if
-`(unmentionables nm)` returns any truthy value, then `cond` returns
-`nil` and stops evaluating. If `(empty? nm)` returns true, then `cond`
+`(unmentionables greet-name)` returns any truthy value, then `cond` returns
+`nil` and stops evaluating. If `(empty? greet-name)` returns true, then `cond`
 returns the literal string "Hello, world!\n" and nothing else. If
 neither of those happened, then `cond` sees the keyword :else as a
 condition{empty}footnote:[Using :else for this purpose is just a common Clojure convention, any non-false/non-nil value would
-work equally well.]and the code continues to build the string the same way as before.
+work equally well.]
+and the code continues to build the string the same way as before.
 
-[sidebar]
+[NOTE]
+====
 A nested `if` would also have worked here. In fact `cond` is a macro
 that expands into a series of nested `if` expressions. All three of
 these conditions are kind of parallel in significance, so I like that
 they appear to be parallel in the structure of the code. The shape of
 the code mirrors the shape of my thinking about these cases.
+====
 
 The second thing you'll notice is that the handler now makes a
 decision whether to call our `ok` helper or the new function
@@ -462,17 +515,18 @@ Hello, He who must not be named
 ----
 
 Looks like it mostly works, though it has some trouble with different
-capitalization. Take a look at the docs for http://clojure.github.io/clojure/clojure.string-api.html[`clojure.string`] and see
+capitalization. Take a look at the docs for
+clj:*[ns=clojure.string] and see
 if you can figure out how to make the comparison case-insensitive.
 
 [#whole-shebang]
 == The Whole Shebang
 
 Once again, we built this thing in small steps, so it may seem like
-there was a lot to deal with. The final product is still pretty small
-though. Here's all the final code.
+there was a lot to deal with. The final product is still compact and to the point.
+Here's all the final code.
 
-[source,clojure]
+[source.hide-callouts,clojure]
 .src/hello.clj
 ----
 include::example$hello-query/src/hello.clj[tags=ns]
@@ -483,10 +537,10 @@ include::example$hello-query/src/hello.clj[tags=greeting_with_404]
 
 include::example$hello-query/src/hello.clj[tags=routing]
 
-include::example$hello-query/src/hello.clj[tags=server]
+include::example$hello-query/src/hello.clj[tags=connector]
 ----
 
-[source,clojure,subs="-callouts"]
+[source.hide-callouts,clojure]
 .deps.edn
 ----
 include::example$hello-query/deps.edn[]
@@ -507,9 +561,7 @@ the request.
 
 == Where to Next?
 
-So far, almost all our responses have been plain text. (When we
-returned the request map in the body, the content type was actually
-`application/edn` but we can ignore that for now.)
+So far, almost all our responses have been plain text.
 
 Plain text is ugly, so we want to be able to return HTML. Rich clients
 don't like HTML so much, so we also want to return JSON sometimes. The

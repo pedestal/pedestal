@@ -1,3 +1,3 @@
-{:paths ["src"] ;; <1>
- :deps  {io.pedestal/pedestal.jetty {:mvn/version "0.8.0-SNAPSHOT"} ;; <2>
-         org.slf4j/slf4j-simple     {:mvn/version "2.0.10"}}}
+{:paths ["src"]                                                       ;; <1>
+ :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-alpha-7"} ;; <2>
+         org.slf4j/slf4j-simple        {:mvn/version "2.0.17"}}}

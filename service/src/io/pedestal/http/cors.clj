@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -30,33 +30,33 @@
 (defn- preflight
   [{request :request :as context} origin {:keys [creds max-age methods]}]
   (let [requested-headers (get-in request [:headers "access-control-request-headers"])
-        cors-headers (merge  {"Access-Control-Allow-Origin" origin
-                              "Access-Control-Allow-Headers"
-                              (str "Content-Type, "
-                                   (when requested-headers (str requested-headers ", "))
-                                   (convert-header-names (keys (:headers request))))
-                              "Access-Control-Allow-Methods" (if methods
-                                                               methods
-                                                               "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS")}
-                             (when creds {"Access-Control-Allow-Credentials" (str creds)})
-                             (when max-age {"Access-Control-Max-Age" (str max-age)}))]
+        cors-headers      (merge {"Access-Control-Allow-Origin"  origin
+                                  "Access-Control-Allow-Headers"
+                                  (str "Content-Type, "
+                                       (when requested-headers (str requested-headers ", "))
+                                       (convert-header-names (keys (:headers request))))
+                                  "Access-Control-Allow-Methods" (if methods
+                                                                   methods
+                                                                   "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS")}
+                                 (when creds {"Access-Control-Allow-Credentials" (str creds)})
+                                 (when max-age {"Access-Control-Max-Age" (str max-age)}))]
     (log/info :msg "cors preflight"
               :requested-headers requested-headers
               :headers (:headers request)
               :cors-headers cors-headers)
     (preflight-fn)
-    (assoc context :response {:status 200
+    (assoc context :response {:status  200
                               :headers cors-headers})))
 
 (defn- normalize-args
   [arg]
   (if (map? arg)
     (update arg :allowed-origins
-               (fn [x] (if (fn? x)
-                         x
-                         (let [x-set (into #{} x)]
-                           ;; We could just return x-set, but this adheres to the old API
-                           (fn [origin] (x-set origin))))))
+            (fn [x] (if (fn? x)
+                      x
+                      (let [x-set (into #{} x)]
+                        ;; We could just return x-set, but this adheres to the old API
+                        (fn [origin] (x-set origin))))))
     (normalize-args {:allowed-origins arg})))
 
 (defn allow-origin
@@ -64,7 +64,7 @@
 
   * a sequence of strings
   * a function of one argument that returns a truthy value when an origin is allowed
-  * a map
+  * a map of options
 
   For a map, the expected keys are:
   
@@ -72,19 +72,24 @@
   * :creds - true or false, indicates whether client is allowed to send credentials
   * :max-age - a long, indicates the number of seconds a client should cache the response from a preflight request
   * :methods - a string, indicates the accepted HTTP methods.  Defaults to \"GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS\"
-  "
+  * :level - logging level, defaults to :debug
+
+  The :level option was added in 0.8.0 (previously, logging was always at the :info level)."
   [allowed-origins]
-  (let [{:keys [creds allowed-origins] :as args} (normalize-args allowed-origins)
+  (let [{:keys [creds allowed-origins level]
+         :or   {level :debug}
+         :as   args} (normalize-args allowed-origins)
         origin-real-fn (metrics/counter ::origin-real nil)]
     (interceptor
-      {:name ::allow-origin
+      {:name  ::allow-origin
        :enter (fn [context]
-                (let [origin (get-in context [:request :headers "origin"])
-                      allowed (allowed-origins origin)
+                (let [origin            (get-in context [:request :headers "origin"])
+                      allowed           (allowed-origins origin)
                       preflight-request (= :options (get-in context [:request :request-method]))]
-                  (log/info :msg "cors request processing"
-                            :origin origin
-                            :allowed allowed)
+                  (log/log level
+                           :msg "cors request processing"
+                           :origin origin
+                           :allowed allowed)
                   (cond
                     ;; origin is allowed and this is preflight
                     (and origin allowed preflight-request)
@@ -108,8 +113,9 @@
                   (let [cors-headers (merge cors-headers
                                             {"Access-Control-Expose-Headers"
                                              (convert-header-names (keys (:headers response)))})]
-                    (log/info :msg "cors response processing"
-                              :cors-headers cors-headers)
+                    (log/log level
+                             :msg "cors response processing"
+                             :cors-headers cors-headers)
                     (update-in context [:response :headers] merge cors-headers))
                   context))})))
 
@@ -119,7 +125,7 @@
   This is used in development, and added by default by the
   [[dev-interceptors]] function."
   (interceptor
-    {:name ::dev-allow-origin
+    {:name  ::dev-allow-origin
      :enter (fn [context]
               (let [origin (get-in context [:request :headers "origin"])]
                 (log/debug :msg "cors dev processing"

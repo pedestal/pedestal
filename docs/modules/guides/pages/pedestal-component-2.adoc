@@ -1,0 +1,129 @@
+# Pedestal with Component (Redux)
+:default_api_ns: io.pedestal.interceptor
+
+As you imagine a xref:pedestal-with-component.adoc[Component-based Pedestal application] expanding
+its functionality, you might expect to see some growing pains.
+
+At the center of the system is the :components component that, in a fully-featured application, can be
+expected to grow into a ever-expanding grab-bag of dependencies. This is a
+"https://en.wikipedia.org/wiki/Anti-pattern#Big_ball_of_mud[Big Ball of Mud]" - a design
+antipattern that Component was created to avoid.
+
+The theory and practice of Component is that each component
+gets exactly the dependencies it specifically needs ... no more.
+
+Pedestal has optional capabilities to define interceptors and handlers as components, each with
+individual dependencies. By embracing this approach, we end up with a more focused system map:
+
+[graphviz]
+----
+digraph G {
+ ":pedestal" -> ":route-source";
+ ":route-source" -> ":handler/get-greeting" [label=":get-greeting"];
+ ":handler/get-greeting" -> ":greeter";
+}
+----
+
+Again, with this tiny toy of an application, the structure is quite flat, but one can imagine
+a real system with dozens of endpoints, complex interceptors, and many different components for different
+aspects of the overall application.
+
+Before we get started on how a revised version of the application is implemented, there are some tradeoffs to consider:
+
+- Greater complexity: more components and more dependencies
+- Reloading is for _functions_ not _objects_
+- Debugging into methods is harder footnote:[This is my personal experience using Cursive and IntelliJ.  Often, it is not possible to set breakpoints inside methods.]
+
+To expand on that reloading issue: when you reload namespace changes, all functions and values are revaluated and
+replaced. For functions, the fully qualified function name will be shared between the old code and the new.
+
+For Clojure records, after reloading namespaces, the old record _instance_ (in the system map) will still be in place, with the old JVM class for that instance. So, changing the implementation of
+a method of a record will _not_ see any effect, at least until the system map is rebuilt and restarted.
+
+So, keep those concerns in mind while we describe the revised application.
+This time, we can build from the bottom up, starting with the greeter component.
+
+## :greeter component
+
+[source,clojure]
+.src/app/components/greeter.clj
+----
+include::example$component2/src/app/components/greeter.clj[]
+----
+
+This namespace is unchanged from the prior guide.
+
+## handlers namespace
+
+A new namespace, for components that are interceptors or handlers, has been
+created.
+
+[source,clojure]
+.src/app/components/handlers.clj
+----
+include::example$component2/src/app/components/handlers.clj[]
+----
+<1> api:definterceptor[] extends the behavior of clj:defrecord[].
+<2> As with a record, we start with fields of the record.
+<3> The `handle` method is allowed and `definterceptor` automatically adds the correspondng api:Handler[] protocol.
+<4> The implementation can directly reference the `greeter` field.
+<5> It's always good form to provide a function to create a new component instance.
+
+The `definterceptor` macro streamlines the process of creating a record type for a component; when it sees particular method names (`handle`, `enter`, `leave`, or `error`) it automatically adds the corresponding protocol (api:Handler[],
+api:OnEnter[], api:OnLeave[], or api:OnError[]).  This allows interceptors defined this way to be very concise.
+
+`definterceptor` also quietly adds an implementation of api:IntoInterceptor[]; `definterceptor` provides :enter, :leave, and :error keys
+as necessary, to match the protocols; the functions automatically invoke the corresponding method.  It _just works_.
+
+## routes namespace
+
+Next up the component heirarchy is the component used to generate the application's
+routes. The component depends on the handlers and other interceptor components that are referenced
+in the routes.
+
+[source,clojure]
+.src/app/routes.clj
+----
+include::example$component2/src/app/routes.clj[]
+----
+<1> Amazingly, no dependencies are needed for this namespace.
+<2> The `routes` function is provided with the RoutesSource component and can extract the `get-greeting` dependency.
+<3> The :route-name option can now be omitted, and the name of the interceptor is used as the route name.
+
+## pedestal namespace
+
+In the previous version, the :pedestal component defined routes and added the dependency-injecting component; in
+this version, the component obtains the routes from the :route-source component.
+
+[source,clojure]
+.src/app/pedestal.clj
+----
+include::example$component2/src/app/pedestal.clj[]
+----
+<1> The component has a dependency on `route-source`, and manages the `connector` field.
+<2> This is where the :route-source component is used.
+
+## system namespace
+
+This all comes together in the `app.system` namespace where all components
+and dependencies get declared:
+
+[source,clojure]
+.src/app/system.clj
+----
+include::example$component2/src/app/system.clj[]
+----
+<1> A simple, empty map can be used as a component when it doesn't implement `Lifeycle` or some other protocol.
+<2> A map can be used to define dependencies when the local key does not match the system map key.
+
+## Other code
+
+All the other namespaces (primarily, the tests) are unchanged between the two
+versions of the application.
+
+== The Path So Far
+
+In this guide we extended the prior application to fully leverage the capabilities
+of the Component library. We demonstrated how the `definterceptor` macro streamlines
+creating components that act as both components and interceptors (or handlers), and we saw how each component
+can have only explicit dependencies on exactly what other components it directly interacts with.

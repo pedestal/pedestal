@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -27,6 +27,8 @@
          ~remaining-path (when-not at-end?#
                            (.substring path# (inc slashx#)))]
      ~@body))
+
+(defn- return-nil [_request] nil)
 
 (defn- categorize-by
   [pred coll]
@@ -72,50 +74,28 @@
   [set v]
   (conj (or set #{}) v))
 
-(defn- tokens-match?
-  [path-tokens other-tokens]
-  (and (= (count path-tokens)
-          (count other-tokens))
-       (->> (map vector path-tokens other-tokens)
-            (every? (fn [[p o]]
-                      (or (keyword? p)
-                          (keyword? o)
-                          (= p o)))))))
-
-(defn- wild-tokens-match?
-  [path-tokens other-tokens]
-  (loop [[l-token & more-l-tokens] path-tokens
-         [r-token & more-r-tokens] other-tokens]
-    (cond
-      ;; They can't both exhaust at the same time because at least one
-      ;; ends with a :wild.
-      (or (nil? l-token)
-          (nil? r-token))
-      false
-
-      (or (= :wild l-token)
-          (= :wild r-token))
-      true
-
-      (or (keyword? l-token)
-          (keyword? r-token)
-          (= l-token r-token))
-      (recur more-l-tokens more-r-tokens)
-
-      ;; Found a mismatched literal term
-      :else
-      false)))
+(defn- unmatched-tokens
+  [path]
+  (->> path :unmatched-terms (mapv :token)))
 
 (defn- path-conflicts?
   [path other-path]
-  (let [path-tokens    (->> path :unmatched-terms (mapv :token))
-        path-category  (:category path)
-        other-tokens   (->> other-path :unmatched-terms (mapv :token))
-        other-category (:category other-path)]
-    (if (or (= :wild path-category)
-            (= :wild other-category))
-      (wild-tokens-match? path-tokens other-tokens)
-      (tokens-match? path-tokens other-tokens))))
+  ;; With priorities, it's just a case of whether every token matches.  When actual
+  ;; matching at runtime, for each term, a literal will be matched before a param, which will
+  ;; be matched before a wild.
+  ;;
+  ;; However, this means that /foo/:bar/baz and /foo/gnip/:gnop also do not conflict.
+  ;;
+  ;; /foo/gnip/:gnop will have higher priority, because the differentiating literal term
+  ;; comes earlier.  Only if /foo/gnip/:gnop fails to match will /foo/:bar/baz be considered.
+  ;;
+  ;; foo/gnip/baz will match /foo/gnip/:gnop, and not /foo/:bar/baz
+  ;;
+  ;; Likewise, /foo/bar/*baz and /foo/:bar/:baz do not conflict, because
+  ;; /foo:bar/baz will be considered first (param before wild) and only if that fails to match
+  ;; will /foo/bar/*baz match.
+  (= (unmatched-tokens path)
+     (unmatched-tokens other-path)))
 
 (defn- collect-path-conflicts
   [conflicts path other-paths]
@@ -267,6 +247,8 @@
   (let [path->route (reduce (fn [m path]
                               (assoc m
                                      (let [tokens (->> path :unmatched-terms (mapv :token))]
+                                       ;; nil is a valid key that matches when all the unmatched tokens in the path
+                                       ;; have been consumed by prior matchers.
                                        (when (seq tokens)
                                          (string/join "/" tokens)))
                                      (:route path)))
@@ -291,6 +273,9 @@
                                     (fn [m [literal-token paths-for-token]]
                                       (let [paths-for-token' (mapv drop-first-in-path paths-for-token)
                                             matched'         (conj matched literal-token)
+                                            ;; There may be multiple paths with the same first token (i.e., /foo/bar/baz and /foo/gnip) so
+                                            ;; it may be necessary to strip off "/foo" and subdivide again.  But when
+                                            ;; there's just one, we can build a single matcher function.
                                             matcher          (if (= 1 (count paths-for-token'))
                                                                (->> paths-for-token' first (matcher-from-path matched'))
                                                                (subdivide-by-path matched' paths-for-token'))]
@@ -322,9 +307,13 @@
         by-first-token          (group-by #(-> % :unmatched-terms first :token) other-paths)
         {params :param
          wilds  :wild} by-first-token
-        ;; wilds is technically plural *but* should not ever be more than 1 (unless conflicts exist)
+        ;; wilds is technically plural but should not ever be more than 1 (unless conflicts exist)
         by-first-literal-token  (dissoc by-first-token :param :wild)
-        literal-matcher         (matcher-by-first-token matched by-first-literal-token)
+        literal-matcher         (when (seq by-first-literal-token)
+                                  (matcher-by-first-token matched by-first-literal-token))
+        ;; This is where "priority" comes in ... this order ensures that a literal path matcher
+        ;; will match before any path where the first term is a param, and all of those before the (should be zero or one)
+        ;; that are wild.
         all-matchers            (cond-> []
                                   completed-paths-matcher (conj completed-paths-matcher)
                                   literal-matcher (conj literal-matcher)
@@ -363,7 +352,7 @@
                                                         (assoc matched route-key match-any-value)
                                                         match-any-routes
                                                         *conflicts)
-                              (fn [_request] nil))]
+                              return-nil)]
       ;; So, if none of the routes care about this particular request key, then we can optimize:
       ;; we can skip right to the match-any-matcher as if we looked it up in the dispatch-map
       ;; and did not find a match.
@@ -380,14 +369,21 @@
                                  (assoc m match-value matcher)))
                              {}
                              grouped')]
-          ;; TODO: If there are only 1 or 2 keys in dispatch-map, may be better to just
-          ;; or build something based on actual comparison rather than a very empty hash map.
-          (fn match-request-key [request]
-            (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
-              (matcher request))))))))
+          (case (count dispatch-map)
+
+            1
+            (let [[solo-value
+                   solo-matcher] (first dispatch-map)]
+              (fn match-request-key-solo [request]
+                (let [matcher (if (= solo-value (request-key request)) solo-matcher match-any-matcher)]
+                  (matcher request))))
+
+            (fn match-request-key [request]
+              (let [matcher (get dispatch-map (request-key request) match-any-matcher)]
+                (matcher request)))))))))
 
 (defn create-matcher-from-routes
-  "Given a routing table, returns a function that can be passed a request map,
+  "Given a routing table, constructs a function that can be passed a request map,
   and returns a tuple of [route params-map] or nil if no match.
 
   This function returns a tuple of [matcher-fn conflicts]."

@@ -1,20 +1,22 @@
 {:paths ["src"
          "resources"]
- :deps {org.clojure/clojure            {:mvn/version "1.12.0"}
-        io.pedestal/pedestal.service   {:mvn/version "0.8.0-SNAPSHOT"}
-        io.pedestal/pedestal.jetty     {:mvn/version "0.8.0-SNAPSHOT"}
+ :deps {org.clojure/clojure            {:mvn/version "1.12.1"}
+        io.pedestal/pedestal.service   {:mvn/version "0.8.0-alpha-7"}
+        io.pedestal/pedestal.http-kit  {:mvn/version "0.8.0-alpha-7"}
         ch.qos.logback/logback-classic {:mvn/version "1.5.17"}}
  :aliases
  {:test
   {:extra-paths ["test"
                  "test-resources"
                  "dev"]
-   :jvm-opts ["-Dio.pedestal.dev-mode=true"]
    :extra-deps {org.clojure/test.check     {:mvn/version "1.1.1"}
                 nubank/matcher-combinators {:mvn/version "3.9.1"}
                 io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1"
                  :git/sha "dfb30dd"}}}
+
+  :dev-mode
+  {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}
 
   :run
   {:exec-fn  {{top/ns}}.{{main/ns}}.main/start-service}
@@ -31,7 +33,7 @@
 
   :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.7"}
                  slipset/deps-deploy           {:mvn/version "0.2.2"}
-                 org.clj-commons/pretty        {:mvn/version "3.3.1"}
-                 clj-kondo/clj-kondo           {:mvn/version "2025.02.20"}
-                 io.github.tonsky/clj-reload   {:mvn/version "0.9.0"}}
+                 org.clj-commons/pretty        {:mvn/version "3.3.2"}
+                 clj-kondo/clj-kondo           {:mvn/version "2025.06.05"}
+                 io.github.tonsky/clj-reload   {:mvn/version "0.9.7"}}
           :ns-default build}}}

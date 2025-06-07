@@ -24,7 +24,7 @@
 
 (def ^:private default-opts
   {:allow-head?     true
-   :prefix          "/public"
+   :prefix          "/"
    :route-namespace "io.pedestal.service.resources"
    :index-files?    true
    :cache?          true
@@ -61,7 +61,8 @@
 (defn- valid-prefix?
   [s]
   (and (string? s)
-       (not (string/ends-with? s "/"))))
+       (or (= "/" s)
+           (not (string/ends-with? s "/")))))
 
 (defn- wrap-with-cache
   [delegate-supplier]
@@ -88,7 +89,11 @@
         handler-data-supplier (fn [request]
                                 (let [{:keys [path]} (:path-params request)]
                                   (response-supplier' (clean-path (or path "")))))
-        route-path            (str prefix "/*path")
+        ;; Avoid // in the route path when prefix is just "/" (as opposed to something like
+        ;; "/public".
+        route-path            (str prefix
+                                   (when (not= prefix "/") "/")
+                                   "*path")
         get-handler           (create-get-handler handler-data-supplier
                                                   (if fast? :streamable-body :response-body))
         head-handler          (create-head-handler handler-data-supplier)
@@ -130,12 +135,7 @@
                           (.getContextClassLoader (Thread/currentThread)))
         *cache        (when cache?
                         (atom {}))
-        ;; Exposing the entire classpath is not a great idea, but that's what
-        ;; the ::http/resource-path service map option does anyway, so we
-        ;; need to support that.
-        path-prefix   (if (= resource-root "")
-                        ""
-                        (str resource-root "/"))]
+        path-prefix   (str resource-root "/")]
     (fn [path]
       (when-let [url (io/resource (str path-prefix path) class-loader')]
         (impl/resource-data url *cache)))))
@@ -154,7 +154,7 @@
 (defn- valid-root-path?
   [path]
   (and (string? path)
-       (not (string/ends-with? path "/")))) []
+       (not (string/ends-with? path "/"))))
 
 (defn- create-file-supplier
   [root-path opts]

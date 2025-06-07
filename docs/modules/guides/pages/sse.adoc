@@ -1,5 +1,7 @@
 = Server Sent Events
 
+WARNING: This document is out of date and will be updated.
+
 == Welcome
 
 Server-sent events (SSE) make it possible to stream events to a client application.
@@ -32,6 +34,20 @@ just skip those sections.
 == Getting Help if You're Stuck
 
 include::partial$getting-help.adoc[]
+
+== Server Sent Events Overview
+
+In typical client/server interactions, the client, usually a web browser, sends a single request to the server,
+and the server responds with a single response.
+
+With SSEs, this is a bit different.  The client still sends a single request, and receives a single response,
+but it doesn't get the response all at once.  The response body "stays open", and the server can keep appending
+more content to it.
+
+With SSEs, the response content type is `text/event-stream`.  This event stream consists of
+multiple "events", short text-based messages.
+
+
 
 == Where We Are Going
 

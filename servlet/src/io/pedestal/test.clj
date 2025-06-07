@@ -24,7 +24,7 @@
             [clojure.core.async :refer [put! close!]]
             [clojure.java.io :as io]
             [io.pedestal.internal :refer [deprecated]]
-            [io.pedestal.service.test :as test])
+            [io.pedestal.connector.test :as test])
   (:import (jakarta.servlet.http HttpServlet)
            (java.io ByteArrayInputStream InputStream BufferedInputStream File)
            (java.nio.channels Channels ReadableByteChannel)
@@ -54,7 +54,7 @@
 (extend-protocol PrepareRequestBody
 
   nil
-  (->servlet-input-stream [_]
+  (body->input-stream [_]
     (body->input-stream ""))
 
   String
@@ -225,7 +225,7 @@
    is enabled.  It also disables ANSI colors in any Pedestal console output
    (such as deprecation warnings).
 
-   DEPRECATED: Use io.pedestal.service.test/disable-routing-table-output-fixture instead."
+   DEPRECATED: Use io.pedestal.connector.test/disable-routing-table-output-fixture instead."
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   [f]

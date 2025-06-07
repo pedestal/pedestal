@@ -8,9 +8,12 @@ Pedestal provides functions to create a xref:connector.adoc[].
 The service map contains general information that any Pedestal connector will need to create a network connector.
 This is supplemented by a connector-specific configuration map.
 
-== Service Map Keys
+TIP: Pedestal connectors were added in 0.8.0 as a replacement for the xref:service-map.adoc[] and the
+api:*[ns=io.pedestal.http] namespace.
 
-An initial service map can be created by api:default-connector-map[].
+== Connector Map Keys
+
+An initial connector map can be created by api:default-connector-map[].
 
 [cols="s,d,d", options="header", grid="rows"]
 |===
@@ -18,6 +21,7 @@ An initial service map can be created by api:default-connector-map[].
 
 | :port | Number | Port for the network connector to receive connections on
 | :host | String | Hostname to listen on, defaults to "localhost"
+| :router | Keyword or fn | Routing constructor to use, default is xref:sawtooth-router.adoc[:sawtooth]
 | :interceptors | Vector | Interceptor to used when processing requests.
 | :initial-context | Map | Initial context that will be used when executing the interceptor chain
 | :join? | Boolean | If true (the default is false) then the current thread will block when the connector is started.
@@ -30,7 +34,7 @@ and handlers.
 
 == Default interceptors
 
-The api:with-default-interceptors[] function is used to add interceptors to the service map for much
+The api:with-default-interceptors[] function is used to add interceptors to the service map for
 common functionality.  It is passed the service map and an additional configuration map and will
 add interceptors for the following functionality:
 
@@ -51,18 +55,9 @@ It is intended as _scaffolding_: useful only at the outset of a new project, but
 removed and replaced with application specific setup once development is fully underway.
 ====
 
-If the value for ::http/secure-headers is present, it may contain
-keys and string values for the security headers. Any other keys will be ignored.
-
-== Files and Resources
-
-The api:with-file-access[] and api:with-resource-access[] functions add interceptors that will expose
-file system or class path resources to the client; this is an alternative to xref:resources.adoc[exposing
-files and resources via routes].
-
 == Routing
 
-The api:with-routing[] macro is used to add a router and routes to your service.
+The api:with-routes[] macro is used to set the routes for your service.
 It is a macro because it sets up a REPL-friendly
 workflow (when in xref:dev-mode.adoc[development mode]).
 
@@ -79,15 +74,9 @@ Factory functions:
 
 == Development Mode
 
-Additional functions in the
+Functions in the
 api:*[ns=io.pedestal.connector.dev] namespace provide additional support that may be used
 when developing and testing locally, but should not be used in production.
 
-== Spec Validation
-
-The service map can grow quite complex, with options controlling everything from routing, to
-security, to container-specific options.
-
-The service map may be validated via {clojure_spec}; this involves loading the
-appropriate xref:specs.adoc[spec namespaces] and using
-Clojure's built-in link:https://clojure.org/guides/spec#_instrumentation_and_testing[instrumention and testing support].
+The api:optionally-with-dev-mode-interceptors[] function adds useful development-time interceptors,
+but only if xref:dev-mode.adoc[] is enabled.

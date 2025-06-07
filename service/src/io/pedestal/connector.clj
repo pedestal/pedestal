@@ -16,53 +16,59 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.tracing :as tracing]
             [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.environment :refer [dev-mode?]]
+            [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.ring-middlewares :as ring-middlewares]
             [io.pedestal.service.protocols :as p]
             io.pedestal.http.cors
             io.pedestal.http.body-params
-            io.pedestal.http.csrf
             io.pedestal.http.secure-headers
             [io.pedestal.service.interceptors :as interceptors]))
 
 (defn default-connector-map
   "Creates a default connector map for the given port and optional host.  host defaults to \"localhost\"
   which is appropriate for local testing (accessible only from the local host),
-  but \"0.0.0.0\" (accessible from any TCP/IP connection) is a better option when deployed."
+  but \"0.0.0.0\" (accessible from any TCP/IP connection) is a better option when deployed.
+
+  The :router key defaults to :sawtooth; this can also be one of :map-tree, :prefix-tree, or
+  :linear-search, or it can be a custom function to create a router function."
   ([port]
    (default-connector-map "localhost" port))
   ([host port]
    {:port            port
     :host            host
+    :router          :sawtooth
     :interceptors    []
     :initial-context {}
     :join?           false}))
 
 (defn with-interceptor
-  "Appends to the :interceptors in the conector map, or does nothing if interceptor is nil.
+  "Appends to the :interceptors in the conector map, or returns the connector-map unchanged if interceptor is nil.
 
   interceptor must be an interceptor record, or convertable to an interceptor record."
   [connector-map interceptor]
-  (if interceptor
-    (update connector-map :interceptors conj (interceptor/interceptor interceptor))
-    connector-map))
+  (cond-> connector-map
+    interceptor
+    (update  :interceptors conj (interceptor/interceptor interceptor))))
 
 (defn with-interceptors
   "Appends a sequence of interceptors using [[with-interceptor]]."
   [connector-map interceptors]
   (reduce with-interceptor connector-map interceptors))
 
-(defmacro with-routing
+(defn optionally-with-dev-mode-interceptors
+  "Conditionally adds [[dev-interceptors]] only when development mode is enabled."
+  [connector-map]
+  (cond-> connector-map
+    dev-mode? (with-interceptors dev/dev-interceptors)))
+
+(defmacro with-routes
   "A macro for adding a routing interceptor (and an interceptor to decode
   path parameters) to the connector map.
   This is generally the last step in building the interceptor chain.
 
   This is a wrapper around the [[routes-from]] macro, which helps with
-  developing at the REPL.
-
-  The router-constructor is a function that is passed the expanded routes and returns
-  a routing interceptor.  It may also be one of :sawtooth, :map-tree, :prefix-tree,
-  or :linear-search (the four built-in router constructors). :sawtooth is
-  a good default for new applications especially.
+  live code updates when developing at the REPL.
 
   The provided route-fragments must extend the [[ExpandableRoutes]] protocol; these will
   either be [[RoutingFragment]]s (from directly invoking a function such as
@@ -75,11 +81,12 @@
 
   - A routing interceptor
   - A [[path-params-decoder]]"
-  [connector-map router-constructor & route-fragments]
-  `(with-interceptors ~connector-map
-                      [(route/router (route/routes-from ~@route-fragments)
-                                     ~router-constructor)
-                       route/path-params-decoder]))
+  [connector-map & route-fragments]
+  `(let [connector-map# ~connector-map]
+     (with-interceptors connector-map#
+                        [(route/router (route/routes-from ~@route-fragments)
+                                       (:router connector-map#))
+                         route/path-params-decoder])))
 
 (defn with-default-interceptors
   "Sets up a default set of interceptors for _early_ development of an application.
@@ -99,9 +106,9 @@
   Request tracing            | Make request observable via Open Telemetry    | [[request-tracing-interceptor]]
   Request logging            | Log incoming request method and URI           | [[log-request]]
   Allowed origins (optional) | Only allow requests from specified origins    | [[allow-origin]]
+  Not Found                  | Report lack of response as a status 404       | [[not-found]]
   Session support (optional) | Persist data between requests                 | [[session]]
   Body params                | Parse JSON, EDN, etc. body into appropriate  parameters (:edn-body, :json-body, etc.) | [[body-params]]
-  Cross site request forgery | Detect forged requests                        | [[anti-forgery]]
   Default content type       | Set response content type from request file extension, if not otherwise set | [[content-type]]
   Query parameters           | Decode request :query-string to :query-params | [[query-params]]
   Secure headers             | Ensures a number of security-related headers  | [[secure-headers]]
@@ -123,36 +130,14 @@
                         interceptors/log-request
                         (when allowed-origins
                           (io.pedestal.http.cors/allow-origin allowed-origins))
+                        interceptors/not-found
                         (when session-options
                           (ring-middlewares/session session-options))
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
                         route/query-params
                         (io.pedestal.http.body-params/body-params)
-                        (io.pedestal.http.csrf/anti-forgery)
                         (io.pedestal.http.secure-headers/secure-headers)
                         route/query-params])))
-
-(defn with-file-access
-  "Adds an interceptor exposing access to files on the file system, routed at file-path; this uses
-  [[file]]. The URI `/` maps to the contents of the directory at `file-path`.
-
-  This should be called just before adding a routing interceptor.
-
-  This is an alternative to [[file-routes]], and should only be used when file routing would conflict
-  with other routes."
-  [connector-map file-path]
-  (with-interceptor connector-map (ring-middlewares/file file-path)))
-
-(defn with-resource-access
-  "Adds an interceptor exposing access to resources on the classpath system, routed at root-path; this uses
-  [[file]]. The URI `/` maps to the contents of the classpath with a prefix of `root-path`.
-
-  This should be called just before adding a routing interceptor.
-
-  This is an alternative to [[resource-routes]], and should only be used when resource routing would conflict
-  with other routes."
-  [connector-map root-path]
-  (with-interceptor connector-map (ring-middlewares/resource root-path)))
 
 (defn start!
   "A convienience function for starting the connector.

@@ -104,7 +104,7 @@
   [routes & body]
   `(let [conn# (-> (connector/default-connector-map 8080)
                    (connector/with-default-interceptors)
-                   (connector/with-routing :sawtooth ~routes)
+                   (connector/with-routes ~routes)
                    (io.pedestal.http.jetty/create-connector nil))]
      (try
        (connector/start! conn#)

@@ -1,4 +1,4 @@
-; Copyright 2021-2024 Nubank NA
+; Copyright 2021-2025 Nubank NA
 ; Copyright 2018-2021 Relevance, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -14,7 +14,9 @@
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.data.json :as json]
-            [io.pedestal.log :as log]))
+            [io.pedestal.log :as log]
+            [matcher-combinators.matchers :as m]
+            [clojure.edn :as edn]))
 
 (def *events (atom nil))
 
@@ -40,24 +42,32 @@
   (swap! *events conj (vec data))
   nil)
 
+(defn events
+  []
+  (let [result @*events]
+    (swap! *events empty)
+    result))
+
 (def test-logger
   (reify log/LoggerSource
 
     (-level-enabled? [_ _] true)
 
+    (-debug [_ body]
+      (event :debug body))
+
     (-info [_ body]
       (event :info body))))
-
 
 (deftest honors-logger
   ;; clj-kondo seems to be confused by the meta data, or the info macro
   #_:clj-kondo/ignore
   ^{:line 8888} (log/info ::log/logger test-logger :key :value)
-  (is (= [[:info
-           "{:key :value, :line 8888}"]]
-         @*events))
-
-  (let [m (read-string (-> @*events first second))]
+  (let [events (events)
+        _      (is (= [[:info
+                        "{:key :value, :line 8888}"]]
+                      events))
+        m      (read-string (-> events first second))]
     (is (= #{:line :key} (-> m keys set)))
     (is (= :value (:key m)))))
 
@@ -77,7 +87,7 @@
 
   (is (= [[:info
            "{:KEY :VALUE, :LINE :OVERRIDE, :MORE-INFO {:THIS :THAT}}"]]
-         @*events)))
+         (events))))
 
 (deftest uses-default-formatter-if-not-specified
   (with-redefs [log/default-formatter (constantly json/json-str)
@@ -85,5 +95,20 @@
     ^{:line 9999} (log/info :this :that)
     (is (= [[:info
              "{\"this\":\"that\",\"line\":9999}"]]
-           @*events))))
+           (events)))))
+
+(defn- dyna
+  [level k v]
+  (with-redefs [log/make-logger (constantly test-logger)]
+    (log/log level k v)))
+
+(deftest dynamic-logging
+
+  (dyna :debug :take 1)
+  (dyna :info :take 2)
+
+  (is (match? [[:debug (m/via edn/read-string {:take 1})]
+               [:info (m/via edn/read-string {:take 2})]]
+              (events))))
+
 

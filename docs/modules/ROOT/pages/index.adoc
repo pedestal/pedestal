@@ -1,21 +1,48 @@
 = What is Pedestal?
 :page-role: -toc
 
-image::animated-front-page-sample.gif[float="right",width=300]
 
-Pedestal is a set of libraries that we use to build web services and applications. Pedestal runs in the back-end and can handle
+Pedestal is a sturdy and reliable base for services, APIs, and applications. Pedestal runs in the back-end and can handle
 anything from tiny static web sites, to traditional page oriented applications, to dynamic single page applications utilizing server-sent events and WebSockets.
 
-Pedestal scales up with your needs.
+Pedestal was created to bring Clojure's key attributes, *Focus*, *Empowerment*, and *Simplicity*, to the domain of  Clojure web development.
 
-We wrote Pedestal to bring Clojure's key attributes, *Focus*, *Empowerment*, and *Simplicity*, to the domain of  Clojure web development.
+[source.front-page-sample,clojure]
+----
+(ns front-page
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.http.http-kit :as hk]))
+
+(defn- greet-handler
+  [_request]
+  {:status 200
+   :body   "Hello, world!"})
+
+(defn start!
+  []
+  (-> (conn/default-connector-map 8080)
+      (conn/with-default-interceptors)
+      (conn/with-routes
+        #{["/greet" :get greet-handler]})
+      (hk/create-connector nil)
+      (conn/start!)))
+----
+
+Pedestal applications can start *tiny*, but Pedestal scales up with your needs.
 
 This documentation is for Pedestal version *{libs_version}*.
 
 image:https://github.com/pedestal/pedestal/workflows/CI/badge.svg[CI]
 link:https://clojars.org/io.pedestal/pedestal.service[image:https://img.shields.io/clojars/v/io.pedestal/pedestal.service.svg[]]
 
-Pedestal requires Clojure 1.10 or later, and works with Servlet API 5.0 and Java 11 and up.
+Pedestal requires Clojure {base-clojure-version} or later.
+
+Pedestal provides integrations with:
+
+* xref:reference:jetty.adoc[] and Servlet API 5
+* xref:reference:http-kit.adoc[]
+
+\... with more integrations coming.
 
 == Features
 
@@ -41,14 +68,15 @@ When you need more power, it's ready for you.
 
 === Testable
 
-Pedestal's core interceptor model breaks request processing into small pieces that are simple, often free of side effects, and therefore easy to
-test; then lets you stack those pieces up to form your full application.
-
+Pedestal embraces testability as a first-class concern.
+The core interceptor model breaks request processing into small pieces that are simple, often free of side effects, and therefore easy to
+test; then lets you stack those pieces up to form your full application. Pedestal provides a testing API that can fully exercise your
+synchronous and asynchronous code without actually starting a web server.
 
 === Streaming
 
 Pedestal supports creating dynamic applications with server-sent events and WebSockets.
-Pedestal leverages Clojure's extraordinary asynchronous capabilities and Java's efficient NIO operations.
+Pedestal leverages Clojure's extraordinary asynchronous capabilities and Java's efficient non-blocking IO runtime.
 
 === Composable and Extensible
 

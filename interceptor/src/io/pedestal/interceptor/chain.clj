@@ -51,6 +51,12 @@
   [context ^Throwable t]
   (assoc context ::error t))
 
+(defn clear-error
+  "Clears the error from the context."
+  {:added "0.8.0"}
+  [context]
+  (dissoc context ::error))
+
 (defn- begin-error
   [context stage interceptor throwable]
   (let [{:keys [execution-id]} context
@@ -291,7 +297,7 @@
   If the last argument is itself a sequence of interceptors,
   they're unpacked and added to the context's execution queue."
   [context & interceptors-and-seq]
-  (if (seq? (last interceptors-and-seq))
+  (if (sequential? (last interceptors-and-seq))
     (enqueue context (apply list* interceptors-and-seq))
     (enqueue context interceptors-and-seq)))
 

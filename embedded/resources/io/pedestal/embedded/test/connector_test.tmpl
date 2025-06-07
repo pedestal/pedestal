@@ -1,0 +1,40 @@
+(ns {{top/ns}}.{{main/ns}}.connector-test
+  (:require [clojure.test :refer [deftest is use-fixtures]]
+            [cheshire.core :as json]
+            [matcher-combinators.matchers :as m]
+            [io.pedestal.connector :as connector]
+            [io.pedestal.http.http-kit :as hk]
+            [io.pedestal.connector.test :as test :refer [response-for]]
+            [{{top/ns}}.{{main/ns}}.connector :refer [connector-map]]))
+
+(def ^:dynamic *connector* nil)
+
+(use-fixtures :once
+              test/disable-routing-table-output-fixture
+              (fn [f]
+                (let [connector (-> (connector-map {:dev-mode false})
+                                    (hk/create-connector nil)
+                                    connector/start!)]
+                  (try
+                    (binding [*connector* connector]
+                      (f))
+                    (finally
+                      (connector/stop! connector))))))
+
+(deftest can-access-hello
+  (is (match? {:status 200
+               :body "Hello"}
+              (response-for *connector* :get "/hello"))))
+
+(deftest can-access-public-resources
+  (is (match? {:status 200
+               :body (m/regex #"\QThis is the root index file for the {{name}} project.\E")}
+              (response-for *connector* :get "/index.html"))))
+
+(deftest can-access-greet
+  (is (match? {:status 200
+               :body "Hello, Pedestal User."}
+              (response-for *connector* :post "/hello"
+                :body (json/generate-string {:name "Pedestal User"})
+                :headers {"Content-Type" "application/json"}))))
+

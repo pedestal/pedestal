@@ -12,9 +12,18 @@
 (ns ^:no-doc io.pedestal.interceptor.impl
   "Internal namespace subject to change at any time."
   {:added "0.8.0"}
-  (:require clojure.core.async.impl.protocols)
+  (:require clojure.core.async.impl.protocols
+            [clojure.core.async :refer [go <!]])
   (:import (clojure.core.async.impl.protocols ReadPort)))
 
 (defn channel?
   [c]
   (instance? ReadPort c))
+
+(defn wrap-handler
+  [handler-fn]
+  (fn [context]
+    (let [response (-> context :request handler-fn)]
+      (if (channel? response)
+        (go (assoc context :response (<! response)))
+        (assoc context :response response)))))

@@ -1,9 +1,36 @@
-# Decision Log
+= Decision Log
 
 Document design and architecture decisions.
 
 A lighter-weight alternative to
 https://github.com/joelparkerhenderson/architecture-decision-record[Architecture Decision Record (ADR)].
+
+== HTTP vs. Servlet API (Mar 2025)
+
+Traditionally, Pedestal has always been a layer on top of the {servlet-api}; when deployed as a WAR,
+Pedestal uses a statically defined HttpServlet class to "bridge" into Pedestal.  When used in
+the more common embedded pattern, Pedestal starts servlet container and configures an HttpServlet
+inside it. You can see this in the
+api:*[ns=io.pedestal.http] namespace, where the xref:reference:service-map.adoc[] is used to define a
+handling _function_ that is ultimately wrapped as a handling _servlet_ that is passed into the code
+that starts the service.
+
+Over the last few years, there have been more Java and Clojure implementations of HTTP handling that do not conform to
+the Servlet API, such as xref:reference:http-kit.adoc[].  Leveraging the Servlet API is important for
+deploying as a WAR file, so these alternate implementations are not compatible with that style of deployment.
+But for the far more common embedded service model, where the container is embedded in the Pedestal application and
+started from with it, these alternate HTTP implements
+are quite enticing: simpler, smaller, and with fewer, if any, dependencies.
+
+However, this necessitates a split between the HTTP-related parts of Pedestal and those that are more
+specifically based on the Servlet API.
+
+This split manifests in several changes:
+
+* A new module, `io.pedestal/pedestal.servlet` was created; it has all the Servlet API dependencies.
+* Servlet-dependent namespaces were moved from `io.pedestal/pedestal.service` to `io.pedestal/pedestal.servlet`.
+* An alterative way to configure and start an embedded HTTP implementation was created as the Pedestal connector,
+  and the api:*[ns=io.pedestal.connector] namespace.
 
 == Websocket Routes (Feb 2025)
 
@@ -38,7 +65,7 @@ empty) Java classes to the build.
 
 Using this approach, the `FnServlet` was also converted from reified type to a Java class; this class
 is provided by tfhe api:servlet[ns=io.pedestal.http.servlet] function, and in an embedded Pedestal application,
-represents the initial bridge from the Java Servlet API to the Clojure and Pedestal implementations.
+represents the initial bridge from the {servlet-api} to the Clojure and Pedestal implementations.
 
 == Resource Routes (Jan 2025)
 
@@ -56,7 +83,7 @@ efficiency when serving such resources.
 Whether support for the interceptor-based approach for resources remains fully supported, or is
 deprecated, is an outstanding question.
 
-- The route-based resources are demonstrably faster than interceptor-based.
+The route-based resources are demonstrably faster than interceptor-based.
 
 == Jetty 12 (Dec 2024)
 

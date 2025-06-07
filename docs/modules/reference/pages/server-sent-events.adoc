@@ -1,45 +1,64 @@
 = Server-Sent Events
+:default_api_ns: io.pedestal.http.sse
 
 The Pedestal service library includes support for
-http://www.w3.org/TR/eventsource/[Server-Sent Events] (SSE).
+{sse} (SSE).
+
 The SSE protocol defines a mechanism for sending event notifications from a server to a client using a form of long polling.
 However, unlike conventional long polling, SSE does not send each event as a separate response, with an expectation that the client will make a new request in between each one.
 Rather, SSE sends all its events as part of a single response stream.
+
 The stream is kept alive over time by sending events and/or periodic heart-beat data.
 In the event that the stream is closed for some reason, the client can send a request to re-open it and events notifications can continue.
-All modern browsers have built in support for SSE via the
+All modern browsers have built in support for SSE via the }
 link:https://developer.mozilla.org/en-US/docs/Web/API/EventSource[EventSource API].
 
 == Making an SSE Interceptor
 
-To define an endpoint that will send SSE, make a route with an interceptor created by
-api:start-event-stream[ns=io.pedestal.http.sse].
-Note that `start-event-stream` is not itself an interceptor, but rather a function that returns an interceptor.
+To define an endpoint that will send events, define a route with an interceptor
+that invokes api:start-stream[] from its :enter callback.
 
-`start-event-stream` requires a "ready function." The ready function will be called later, when Pedestal has prepared the HTTP response and informed the client that an SSE stream is starting.
+`start-stream` requires a "ready function." The ready function will be called later, when Pedestal has prepared the HTTP response and informed the client that an SSE stream is starting.
 
 == Request Processing
 
-When a request reaches the SSE interceptor, it will:
+`start-stream` sets up the following conditions:
 
-- Pause interceptor execution
-- Send HTTP response headers to tell the client that an event stream is starting
-- Initiate a timed heartbeat to keep the connection alive
+- Sends HTTP response headers to tell the client that an event stream is starting
+- Initiates a timed heartbeat to keep the connection alive
 
 After that, it will call the ready function with two arguments: a {core_async}
-channel for the events and the current interceptor context.
+channel used to publish events to the client, and the current interceptor context.
 
 == Ready Function
 
 The ready function may put events into the channel to send them to the client.
-Events are maps with keys :name and :data.
-Both take string values.
+Events are maps with keys :name, :data, and :id.
+All values should be strings (but will be converted to strings via clj:str[] if not).
+
+The :name key allows a single SSE event stream to server different purposes; the client can
+use the name to decide how to interpret and act on the event data.
+
+The :id is passed from the server to the client, and is intended to facilite tracing.
+
+Only the :data key is required.
+
+Alternately, the event may be a single value, and not a map; in this case, the value is
+the data of the event; in this case, the event will only be data - no name or id.
+
+[NOTE]
+====
+When the data, converted to a string, consists of multiple lines, Pedestal will send
+an event with multiple data values.  This is per the SSE specification, and the data will be
+reassembled on the client.
+====
+
 
 When the ready function has finished sending events, it should close the channel.
 Pedestal will then clean up the connection.
 
 If a client closes its connection, Pedestal will close the event channel.
-The next time the ready function tries to put a message into the event channel, the `put` call will return false.
+The next time the ready function tries to put a message into the event channel, the put call (`>!`, `>!!`, or `put!`) will return false.
 The ready function must detect this and clean up any resources it allocated.
 
 == Example
@@ -48,19 +67,25 @@ Here is an example that shows how an SSE event stream can be used.
 
 [source,clojure]
 ----
-(defn stream-ready [event-chan context]
-  (dotimes [_ 20]
-    (async/>!! event-chan {:name "foo" :data "bar"})
+(ns org.example.sse-routes
+  (:require [clojure.core.async :refer [>!! close!]
+            [io.pedestal.http.sse :as sse]
+            [io.pedestal.interceptor :refer [interceptor]]]))
+
+(defn on-stream-ready
+  [event-chan _context]
+  (dotimes [i 20]
+    (>!! event-chan {:name "countdown" :data i})
     (Thread/sleep 1000))
-  (async/close! event-chan))
+  (close! event-chan))
+
+(def events-interceptor
+  (interceptor
+   {:name ::events
+    :enter (fn [context]
+              (sse/start-stream on-stream-ready context))}))
 
 (def route-table
-  #{["/events" :get [(start-event-stream stream-ready)] :route-name ::events]})
+  #{["/events" :get events-interceptor]})
 ----
 
-== Further Interceptor Processing
-
-When an SSE interceptor starts the event stream, it sends a partial HTTP response to the client.
-Any downstream interceptors can examine the xref:context-map.adoc[], including the xref:response-map.adoc[].
-But since the response has already been sent, they cannot alter it.
-Interceptors that attempt to alter the response (for example, by setting cookies or other headers) will log an exception indicating that the data could not be sent.

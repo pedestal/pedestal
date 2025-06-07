@@ -16,7 +16,7 @@
             [net.lewisship.build :refer [requiring-invoke deploy-jar]]
             [clojure.tools.build.api :as b]
             [babashka.fs :as fs]
-            [clj-commons.ansi :as ansi]
+            [clj-commons.ansi :refer [perr pout]]
             [net.lewisship.build.versions :as v]))
 
 
@@ -145,20 +145,19 @@
                                         options))]
     (kondo-print! results)
     (when (pos? (get-in results [:summary :error] 0))
-      (ansi/pcompose [:bold.red "Linter found errors."])
+      (perr [:bold.red "Linter found errors."])
       (System/exit -1)))
 
-  (ansi/pcompose [:bold.green "clj-kondo approves 😉"]))
+  (pout [:bold.green "clj-kondo approves 😉"]))
 
 (defn- workspace-dirty?
   []
   (not (str/blank? (b/git-process {:git-args "status -s"}))))
 
-
 (defn- ensure-workspace-clean
   []
   (when (workspace-dirty?)
-    (ansi/pcompose [:red [:bold "ERROR: "] "workspace contains changes, those must be committed first"])
+    (perr [:red [:bold "ERROR: "] "workspace contains changes, those must be committed first"])
     (System/exit 1)))
 
 (defn deploy-all
@@ -239,7 +238,7 @@
   the stability suffix is for non-release versions; it can be \"-SNAPSHOT\" or
   \"-beta-<index>\" or \"-rc-<index>\".
 
-  :level - :major, :minor, :patch, :snapshot, :beta, :rc, :release
+  :level - :major, :minor, :patch, :snapshot, :beta, :rc, :alpha, :release
   :dry-run - print new version number, but don't update
   :commit - see update-version
   :tag - see update-version
@@ -263,7 +262,7 @@
   by `clj -T:build advance-version :level :snapshot :commit true`."
   [options]
   (let [{:keys [level dry-run]} options
-        advance-levels #{:major :minor :patch :release :snapshot :beta :rc}
+        advance-levels #{:major :minor :patch :release :snapshot :beta :rc :alpha}
         _              (validate level advance-levels
                                  (str ":level must be one of: "
                                       (->> advance-levels (map name) (str/join ", "))))

@@ -12,7 +12,7 @@
 (ns io.pedestal.service.hk-websocket-test
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
-            [clojure.core.async :refer [put! >!! close! chan]]
+            [clojure.core.async :refer [go put! >!! close! chan]]
             io.pedestal.http.http-kit
             [io.pedestal.http.route.definition.table :as table]
             [matcher-combinators.matchers :as m]
@@ -81,13 +81,18 @@
                           (put! ch
                                 (str (- count i)))))
                       (put! ch "Launch!")))))
+
 (def oneshot
-  (websocket/websocket-interceptor
-    ::oneshot
-    (assoc default-ws-opts
-           :on-text (fn [conn _ text]
-                      (websocket/send-text! conn (str "oneshot: " text))
-                      (websocket/close! conn)))))
+  (interceptor
+    {:name  ::oneshot
+     :enter (fn [context]
+              (go
+                (websocket/upgrade-request-to-websocket
+                  context
+                  (assoc default-ws-opts
+                         :on-text (fn [conn _ text]
+                                    (websocket/send-text! conn (str "oneshot: " text))
+                                    (websocket/close! conn))))))}))
 
 (def routes
   (table/table-routes
@@ -102,7 +107,7 @@
   [routes & body]
   `(let [conn# (-> (connector/default-connector-map 8080)
                    (connector/with-default-interceptors)
-                   (connector/with-routing :sawtooth ~routes)
+                   (connector/with-routes ~routes)
                    (io.pedestal.http.http-kit/create-connector nil))]
      (try
        (connector/start! conn#)
@@ -175,6 +180,7 @@
       (is (match? [(m/via str "Launch!")]
                   (expect-event :response))))))
 
+;; This test *also* demonstrates an async interceptor that upgrades to a WebSocket.
 
 (deftest server-closes-channel
   (with-connector routes
@@ -264,7 +270,7 @@
     (>!! conn ["2" result-ch])
     (>!! conn "3")
 
-    (= :closed (<!!? result-ch))
+    (is (= :closed (<!!? result-ch)))
 
     (is (match? [[:text "1"]
                  [:text "2"]]

@@ -14,20 +14,23 @@
 
   Http-Kit provides features similar to the Servlet API, including WebSockets, but does not
   implement any of the underlying Servlet API or WebSocket interfaces."
+  {:added "0.8.0"}
   (:require [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
+            [io.pedestal.service.data :as data :refer [convert]]
             [io.pedestal.service.protocols :as p]
             [io.pedestal.service.websocket :as ws]
             [org.httpkit.server :as hk]
+            [clojure.core.async :refer [chan close!]]
             [io.pedestal.http.http-kit.impl :as impl]
-            [io.pedestal.service.test :as test]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.http-kit.response :refer [convert-response-body]]
-            [io.pedestal.service.data :refer [convert]]
             [io.pedestal.interceptor.chain :as chain])
   (:import (org.httpkit.server AsyncChannel)))
 
-(def ^:private default-options
+(def default-options
+  "Default options used when setting up Http-Kit server."
   {:server-header        "Pedestal/http-kit"
    :error-logger         (fn [message error]
                            (log/error :message message :ex error))
@@ -36,21 +39,47 @@
    :legacy-return-value? false})
 
 (defn- async-responder
-  [*channel]
+  [*async-channel]
   (interceptor
     {:name  ::async-responder
      :leave (fn [context]
-              (when-let [channel @*channel]
+              ;; *async-channel will contain the HK AsyncChannel, but only if
+              ;; the chain execution went async.
+              ;;
+              ;; There are two scenarios here:
+              ;; 1. Creation of the :response was deferred, but the response is normal (text or streamable data)
+              ;; 2. For SSE or WebSocket upgrade requests, the body is the AsyncChannel, and the channel should
+              ;; not be closed, as async processes may still need to stream data.  They are responsible for
+              ;; eventually closing the async channel.
+              (when-let [channel @*async-channel]
                 (when-let [{:keys [response]} context]
-                  (hk/send! channel response))
-                (hk/close channel))
+                  ;; Case 1 is handled here:
+                  (when (not= channel (:body response))
+                    (hk/send! channel response)
+                    (hk/close channel))))
+              context)}))
+
+(defn ^:private response-committer
+  [committed-ch]
+  (interceptor
+    {:name  ::response-committer
+     :leave (fn [context]
+              (let [{:keys [response]} context
+                    {:keys [body]} response]
+                ;; With the HK lifecycle, this block here *must* be the first to send!
+                ;; so that the status code & headers get written. Other-wise they are lost.
+                (when (and (instance? AsyncChannel body)
+                           (not (.isWebSocket ^AsyncChannel body)))
+                  (hk/send! body (assoc response :body nil) false)))
+              ;; Now it is safe for other async processes to begin writing.
+              (close! committed-ch)
               context)}))
 
 (defn- prepare-response
-  [response]
+  [request response]
   (let [{:keys [body]} response
         content-type (get-in response [:headers "Content-Type"])
-        [default-content-type body'] (convert-response-body body)]
+        [default-content-type body'] (convert-response-body body request)]
     (-> response
         (assoc :body body')
         (cond->
@@ -60,17 +89,20 @@
 (def ^:private response-converter
   (interceptor
     {:name  ::response-converter
-     :leave (fn [{:keys [response] :as context}]
+     :leave (fn [{:keys [request response] :as context}]
               (if (response/response? response)
-                (update context :response prepare-response)
+                (assoc context :response (prepare-response request response))
                 (do
                   (log/error :msg "Invalid response"
                              :response response)
                   (dissoc context :response))))}))
 
 (defn create-connector
-  [service-map options]
-  (let [{:keys [host port interceptors initial-context join?]} service-map
+  "Creates a Pedestal connector around an Http-Kit network connector.  The connector map is used to specify
+  the :ip and :port keys of the options passed to org.httpkit.server/run-server.  Other options are as provided
+  in the options map, or from [[default-options]]."
+  [connector-map options]
+  (let [{:keys [host port interceptors initial-context join?]} connector-map
         options'     (merge default-options
                             options
                             {:ip   host
@@ -78,19 +110,23 @@
         *server      (atom nil)
         root-handler (fn [request]
                        (let [{:keys [uri async-channel]} request
-                             request'       (assoc request :path-info uri)
-                             *async-channel (atom nil)
-                             interceptors'  (into [(async-responder *async-channel)
-                                                   response-converter]
-                                                  interceptors)
-                             context        (-> initial-context
-                                                (assoc :request request'
-                                                       :websocket-channel-source async-channel)
-                                                (chain/on-enter-async (fn [_]
-                                                                        (reset! *async-channel (or async-channel
-                                                                                                   (throw (ex-info "No async channel in request map"
-                                                                                                                   {:request request}))))))
-                                                (chain/execute interceptors'))]
+                             response-commited-ch (chan)
+                             request'             (assoc request
+                                                         :io.pedestal.http.request/response-commited-ch response-commited-ch
+                                                         :path-info uri)
+                             *async-channel       (atom nil)
+                             interceptors'        (into [(async-responder *async-channel)
+                                                        (response-committer response-commited-ch)
+                                                         response-converter]
+                                                        interceptors)
+                             context              (-> initial-context
+                                                      (assoc :request request'
+                                                             :websocket-channel-source async-channel)
+                                                      (chain/on-enter-async (fn [_]
+                                                                              (reset! *async-channel (or async-channel
+                                                                                                         (throw (ex-info "No async channel in request map"
+                                                                                                                         {:request request}))))))
+                                                      (chain/execute interceptors'))]
                          ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
                          (if-let [async-channel @*async-channel]
                            ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
@@ -127,8 +163,9 @@
       (test-request [_ ring-request]
         (let [*async-response (promise)
               channel         (impl/mock-channel *async-response)
-              request         (assoc ring-request
-                                     :async-channel channel)
+              request         (-> ring-request
+                                  (update :body data/->input-stream)
+                                  (assoc :async-channel channel))
               sync-response   (root-handler request)
               response        (if (= (:body sync-response) channel)
                                 (or (deref *async-response 1000 nil)
@@ -137,7 +174,7 @@
                                 sync-response)]
           ;; The response has been converted to support what Http-Kit allows, but we need to further narrow to support
           ;; the test contract (nil or InputStream).
-          (update response :body test/convert-response-body))))))
+          (update response :body test/coerce-response-body))))))
 
 (defn- initialize-websocket*
   "Knit together Pedestal's lifecycle with Http-Kit's."
@@ -146,60 +183,60 @@
         {:keys [on-close]} ws-opts
         ;; Http-Kit always wants to setup on-receive before the open, so we do that but allow
         ;; for the actual callback to be provided after the open callback.
-        *on-text    (atom nil)
-        *on-binary  (atom nil)
-        *proc       (atom nil)
-        ws-channel  (reify ws/WebSocketChannel
+        *on-text   (atom nil)
+        *on-binary (atom nil)
+        *proc      (atom nil)
+        ws-channel (reify ws/WebSocketChannel
 
-                      (on-text [_ callback]
-                        (when @*on-text
-                          (throw (ex-info "on-text callback has already been set"
-                                          {:ch ch})))
+                     (on-text [_ callback]
+                       (when @*on-text
+                         (throw (ex-info "on-text callback has already been set"
+                                         {:ch ch})))
 
-                        (reset! *on-text callback)
+                       (reset! *on-text callback)
 
-                        nil)
+                       nil)
 
-                      (on-binary [_ format callback]
-                        (when @*on-binary
-                          (throw (ex-info "on-binary callback has already been set"
-                                          {:ch ch})))
+                     (on-binary [_ format callback]
+                       (when @*on-binary
+                         (throw (ex-info "on-binary callback has already been set"
+                                         {:ch ch})))
 
-                        (reset! *on-binary (fn [ws-channel proc raw-binary]
-                                             (callback ws-channel proc (convert format raw-binary))))
+                       (reset! *on-binary (fn [ws-channel proc raw-binary]
+                                            (callback ws-channel proc (convert format raw-binary))))
 
-                        nil)
+                       nil)
 
-                      (send-text! [_ string]
-                        (hk/send! ch string))
+                     (send-text! [_ string]
+                       (hk/send! ch string))
 
-                      (send-binary! [_ data]
-                        (let [data' (if (bytes? data)
-                                      data
-                                      (convert :input-stream data))]
-                          (hk/send! ch data')))
+                     (send-binary! [_ data]
+                       (let [data' (if (bytes? data)
+                                     data
+                                     (convert :input-stream data))]
+                         (hk/send! ch data')))
 
-                      (close! [_]
-                        (hk/close ch)
+                     (close! [_]
+                       (hk/close ch)
 
-                        nil))
-        on-receive  (fn [_ message]
-                      (let [*callback (if (string? message) *on-text *on-binary)
-                            f         @*callback]
-                        (when f
-                          (f ws-channel @*proc message))))
-        ch-opts     (cond-> {:on-receive on-receive
-                             :on-open    (fn [_]
-                                           (when-let [f (:on-open ws-opts)]
-                                             (reset! *proc (f ws-channel request)))
+                       nil))
+        on-receive (fn [_ message]
+                     (let [*callback (if (string? message) *on-text *on-binary)
+                           f         @*callback]
+                       (when f
+                         (f ws-channel @*proc message))))
+        ch-opts    (cond-> {:on-receive on-receive
+                            :on-open    (fn [_]
+                                          (when-let [f (:on-open ws-opts)]
+                                            (reset! *proc (f ws-channel request)))
 
-                                           (when-let [f (:on-text ws-opts)]
-                                             (ws/on-text ws-channel f))
+                                          (when-let [f (:on-text ws-opts)]
+                                            (ws/on-text ws-channel f))
 
-                                           (when-let [f (:on-binary ws-opts)]
-                                             (ws/on-binary ws-channel :byte-buffer f)))}
-                      on-close (assoc :on-close
-                                      (fn [_ status-code]
+                                          (when-let [f (:on-binary ws-opts)]
+                                            (ws/on-binary ws-channel :byte-buffer f)))}
+                     on-close (assoc :on-close
+                                     (fn [_ status-code]
                                         (on-close ws-channel @*proc status-code))))
         hk-response (hk/as-channel request ch-opts)]
     ;; The :status is needed to keep the interceptor terminator checker from complaining.

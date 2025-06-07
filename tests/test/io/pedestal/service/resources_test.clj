@@ -39,6 +39,22 @@
                  :body    "<h1>WOOT!</h1>\n"}
                 (responder :get "/res/index.html")))))
 
+(deftest get-index-files-resource-fails
+  ;; We don't (can't?) support index files for classpath resources.
+  (let [responder (create-responder)]
+    (is (match? {:status 404}
+                (responder :get "/res")))))
+
+(deftest resources-with-default-prefix
+  (let [responder        (-> {::http/port   8888
+                              ::http/routes (route/routes-from
+                                              (resources/resource-routes {:resource-root "clojure"}))}
+                             test/create-responder)
+        expected-content (-> "clojure/test.clj" io/resource slurp)]
+    (is (match? {:status 200
+                 :body   expected-content}
+                (responder :get "/test.clj")))))
+
 (deftest ignores-extra-slashes-in-path
   (let [responder (create-responder)]
     (is (match? {:status  200

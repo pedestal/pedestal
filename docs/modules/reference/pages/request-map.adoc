@@ -1,3 +1,4 @@
+
 = Request Map
 :reftext: request map
 :navtitle: Request Map
@@ -32,7 +33,8 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | :content-type
 | N
 | String
-| Present if sent by client footnote:[May not be set automatically by some chain providers (i.e., such as the AWS API Gateway api:provider[ns=io.pedestal.http.aws.lambda.utils]).]. Content type of the request body.
+| Content type of the request body footnote:[This was a required property of earlier versions
+of the Ring request specification, and is kept for compatibility reasons.].
 
 | :content-length
 | N
@@ -121,6 +123,8 @@ Pedestal uses an extended version of the link:https://github.com/ring-clojure/ri
 | String
 | The part of this request's URL from the protocol name up to the query string in the first line of the HTTP request
 |===
+
+WARNING: The :servlet, :servlet-request, and :servlet-response will not be present when the created around a xref:connector.adoc[]. They are holdovers from the xref:servlet-interceptor.adoc[] approach.
 
 Many more keys are added to the request map by the
 xref:default-interceptors.adoc[default interceptors], many of the new keys are related to parsing query parameters and the

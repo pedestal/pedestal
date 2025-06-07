@@ -91,10 +91,12 @@
   ReadableByteChannel
 
   (default-content-type [_] "application/octet-stream")
+  (write-body-to-stream [_ _])
 
   ByteBuffer
 
   (default-content-type [_] "application/octet-stream")
+  (write-body-to-stream [_ _])
 
   nil
   (default-content-type [_] nil)
@@ -480,6 +482,7 @@
 
         :on-error
         ;; Would be nice to add, but ...
+        nil
 
         :on-close
         (when-let [f (:on-close ws-opts)]
@@ -525,7 +528,7 @@
                                config
                                {})
       ;; Note that the creation of the FnEndpoint happens later (I believe once this request has been processed)
-      ;; so we can't attached the WebSocketChannel instance here ... we don't it.  That makes the :on-load
+      ;; so we can't attach the WebSocketChannel instance here.  That makes the :on-load
       ;; callback important, as that's the only way the application can find the WSC in order to send messages
       ;; to the client, etc.
       (-> context

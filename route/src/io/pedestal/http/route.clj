@@ -435,7 +435,6 @@
   ;; a second time.
   (when-not (seq route-specs)
     (throw (IllegalArgumentException. "Must provide at least one routing specification")))
-
   (->> route-specs
        (map check-satifies-expandable-routes)
        (map -expand-routes)
@@ -481,7 +480,6 @@
                     routes        (:routes routing-table)
                     router-fn     (router-ctor routes)]
                 (route-context context router-fn routing-table)))}))
-
 
 (def router-implementations
   "Maps from the common router implementations (:map-tree, :prefix-tree, :sawtooth,
@@ -651,12 +649,14 @@
  onto Fn, which requires that the returned routing specification be expanded.
 
  Further, when the expression is a non-local symbol, it is assumed to identify a Var holding the unexpanded routing specification;
- to avoid capturing the Var's value, the expansion de-references the named Var before passing it to expand-routes."
+ to avoid capturing the Var's value, the expansion resolved and de-references the Var before passing it to expand-routes.
+
+ This expansion of non-local symbols also applies to lists (that is, function calls), where the function being called
+ and the parameters are (recursively) so expanded."
   {:added "0.7.0"}
   [& route-exprs]
   (if-not dev-mode?
     `(expand-routes ~@route-exprs)
-    ;; Internals awkwardly broken out for testing purposes
     (internal/create-routes-from-fn route-exprs &env `expand-routes)))
 
 

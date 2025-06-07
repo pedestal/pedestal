@@ -27,7 +27,9 @@ tmp/
 .*.swo
 *.tmp
 *.bak
-.clj-kondo/.cache/
+.clj-kondo/*
+**/.clj-kondo/.cache
+!.clj-kondo/config.edn
 .cpcache/
 
 # Editors (IntelliJ / Eclipse)

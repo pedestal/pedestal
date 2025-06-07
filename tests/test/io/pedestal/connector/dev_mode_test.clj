@@ -16,10 +16,10 @@
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.connector :as connector]
             [io.pedestal.connector.dev :as dev]
-            [matcher-combinators.matchers :as m]
             [clojure.pprint :refer [pprint]]
             [ring.util.response :refer [response]]
-            [io.pedestal.service.test :as test]))
+            [io.pedestal.environment :as env]
+            [io.pedestal.connector.test :as test]))
 
 (defn hello-page
   [_request]
@@ -42,12 +42,12 @@
 (defn new-connector
   []
   (-> (connector/default-connector-map 8080)
+      (connector/with-interceptors dev/dev-interceptors)
       (connector/with-default-interceptors)
-      dev/with-dev-interceptors
       (dev/with-interceptor-observer {:omit          dev/default-debug-observer-omit
                                       :changes-only? true
                                       :tap?          true})
-      (connector/with-routing :sawtooth routes)
+      (connector/with-routes routes)
       (hk/create-connector nil)))
 
 (def *connector (atom nil))
@@ -83,7 +83,7 @@
 (deftest debug-observer-is-active
   (is (match? {:status 200
                :headers {:content-type "text/plain"}
-               :body   (m/via slurp "HELLO")}
+               :body "HELLO"}
               (response-for :get "/hello")))
 
   ;; Just want to verify that *some* taps occurred. Going into more detail
@@ -93,14 +93,15 @@
 (deftest empty-string-default-for-origin
   (is (match? {:status 200
                ;; Note: empty string, not null, due to dev-allow-origin
-               :body   (m/via slurp "{:origin \"\"}")}
+               :body   "{:origin \"\"}"}
               (response-for :get "/echo/origin"))))
 
 (deftest uncaught-exception-reporting
   (let [response (response-for :get "/fail")
-        body (-> response :body slurp)]
+        {:keys [body]} response]
     (is (match? {:status 500
-                 :headers {:content-type "text/plain"}}
+                 :headers {:content-type "text/plain"
+                           :access-control-allow-origin "*"}}
                 response))
 
     ;; The full output is quite verbose, but these parts indicate that the exception has been formatted
@@ -109,3 +110,11 @@
     (is (string/includes? body "Error processing request!"))
     (is (string/includes? body "io.pedestal.connector.dev-mode-test/fail-page"))
     (is (string/includes? body "java.lang.IllegalStateException: Gentlemen, failure is not an option"))))
+
+(deftest dev-interceptors
+  (with-redefs [env/dev-mode? (constantly true)]
+    (let [{:keys [interceptors]} (-> (connector/default-connector-map 9999)
+                                     (connector/optionally-with-dev-mode-interceptors))]
+      (is (= [:io.pedestal.http.cors/dev-allow-origin
+              :io.pedestal.connector.dev/uncaught-exception]
+             (map :name interceptors))))))
