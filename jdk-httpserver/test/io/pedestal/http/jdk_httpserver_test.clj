@@ -1,5 +1,6 @@
 (ns io.pedestal.http.jdk-httpserver-test
-  (:require [clojure.edn :as edn]
+  (:require [clojure.core.async :as async]
+            [clojure.edn :as edn]
             [clojure.test :refer [deftest is]]
             [io.pedestal.connector :as conn]
             [io.pedestal.http.jdk-httpserver]
@@ -166,3 +167,13 @@
               :body
               edn/read-string
               #_(doto clojure.pprint/pprint)))))))
+
+
+(def async-route
+  {:name  ::async-route
+   :enter (fn [context]
+            (async/go (assoc context :response {:status 204})))})
+(deftest with-async-route
+  (with-server async-route {:port 4347}
+    (let [response (http-get "http://localhost:4347/hello/world")]
+      (is (= 204 (:status response))))))

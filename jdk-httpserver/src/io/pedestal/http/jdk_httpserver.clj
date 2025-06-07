@@ -92,7 +92,8 @@
   (interceptor/interceptor
     {:name  ::response-converter
      :leave (fn [{:keys [response] :as context}]
-              (if (response/response? response)
+              (if (response/response? (merge {:headers {}}
+                                        response))
                 (assoc context :response (let [{:keys [body]} response
                                                content-type (get-in response [:headers "Content-Type"])
                                                default-content-type (some-> body -default-content-type)]
@@ -112,15 +113,14 @@
                (InetSocketAddress. ^String host (int port))
                (InetSocketAddress. port))
         root-handler (fn [ring-request]
-                       (let [request (request/set-context ring-request (if (next context-path)
-                                                                         context-path
-                                                                         ""))]
+                       (let [request (request/set-context ring-request (case context-path
+                                                                         "/" ""
+                                                                         context-path))]
                          (-> initial-context
                            (assoc :request request)
                            (chain/execute
                              (into [response-converter]
                                interceptors))
-                           (doto (->> (def _aaaaa)))
                            :response)))
         *http-server (delay (doto (HttpServer/create addr 0)
                               (.createContext context-path
