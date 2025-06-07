@@ -1,41 +1,27 @@
 (ns io.pedestal.http.jdk-httpserver-test
   (:require [clojure.edn :as edn]
             [clojure.test :refer [deftest is]]
-            [io.pedestal.http :as http]
             [io.pedestal.connector :as conn]
-            [io.pedestal.http.jdk-httpserver :as jdk-httpserver]
+            [io.pedestal.http.jdk-httpserver]
             [io.pedestal.interceptor :as interceptor])
   (:import (java.net URI)
            (java.net.http HttpClient HttpRequest HttpRequest$BodyPublishers HttpResponse$BodyHandlers)
            (java.nio ByteBuffer)
-           (java.nio.channels Pipe)))
+           (java.nio.channels Pipe)
+           (java.time Duration)))
 
 (set! *warn-on-reflection* true)
 
-#_io.pedestal.http.jetty-test
-(deftest greet-handler
-  (with-open [conn (-> (conn/default-connector-map 8080)
-                     (conn/with-default-interceptors)
-                     (conn/with-routes
-                       #{["/greet" :get (fn [req]
-                                          {:status 200
-                                           :body   "Hello, world!"})
-                          :route-name :greet-handler]})
-                     jdk-httpserver/create-connector
-                     conn/start!)
-              http-client (HttpClient/newHttpClient)]
-    (is (= "Hello, world!"
-          (-> http-client
-            (.send (-> "http://localhost:8080/greet"
-                     URI/create
-                     HttpRequest/newBuilder
-                     (.timeout (Duration/ofSeconds 1))
-                     .build)
-              (HttpResponse$BodyHandlers/ofString))
-            .body)))))
+(comment
+  (System/setProperty "io.pedestal.http.jdk-httpserver-test.create-connector"
+    (str `io.pedestal.http.jdk-httpserver/create-connector))
 
+  (System/setProperty "io.pedestal.http.jdk-httpserver-test.create-connector"
+    (str `io.pedestal.http.jetty/create-connector))
 
-;; TODO: Moveto connecotr
+  (System/setProperty "io.pedestal.http.jdk-httpserver-test.create-connector"
+    (str `io.pedestal.http.http-kit/create-connector)))
+
 (defn hello-world
   [_request]
   {:status  200
@@ -58,6 +44,8 @@
                                   :servlet-request
                                   :servlet-response
                                   :servlet-context
+                                  :async-channel
+                                  :io.pedestal.http.request/response-commited-ch
                                   :pedestal.http.impl.servlet-interceptor/protocol
                                   :pedestal.http.impl.servlet-interceptor/async-supported?))}
    :body    (:body request)})
@@ -68,8 +56,8 @@
    :body    (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))})
 
 (defn hello-bytechannel [_request]
-  (let [p    (Pipe/open)
-        b    (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))
+  (let [p (Pipe/open)
+        b (ByteBuffer/wrap (.getBytes "Hello World" "UTF-8"))
         sink (.sink p)]
     (.write sink b)
     (.close sink)
@@ -83,6 +71,7 @@
     URI/create
     HttpRequest/newBuilder
     (cond-> body (.method "GET" (HttpRequest$BodyPublishers/ofString body)))
+    (.timeout (Duration/ofMillis 100))
     .build
     (as-> % (.send (HttpClient/newHttpClient) % (HttpResponse$BodyHandlers/ofString)))
     (as-> % {:status  (.statusCode %)
@@ -96,17 +85,19 @@
 
 (defmacro with-server
   [handler opts & bodies]
-  `(let [service-map# (-> {::http/join?        false
-                           ::http/interceptors [(interceptor/interceptor ~handler)]
-                           ::http/type         :jdk-httpserver
-                           ::http/port         (:port ~opts)}
-                        http/default-interceptors
-                        http/create-server
-                        http/start)]
-     (try
-       ~@bodies
-       (finally
-         (http/stop service-map#)))))
+  (let [create-connector-sym (symbol (System/getProperty "io.pedestal.http.jdk-httpserver-test.create-connector" "io.pedestal.http.jdk-httpserver/create-connector"))]
+    (when-not (requiring-resolve create-connector-sym)
+      (throw (ex-info "Can't find create-connector"
+               {:sym create-connector-sym})))
+    `(let [conn#
+           (-> (conn/default-connector-map (:port ~opts))
+             (conn/with-interceptor (interceptor/interceptor ~handler))
+             (~create-connector-sym {})
+             conn/start!)]
+       (try
+         ~@bodies
+         (finally
+           (conn/stop! conn#))))))
 
 (deftest http-roundrip
   (with-server hello-world {:port 4347}
@@ -138,11 +129,7 @@
                           (get-in response [:headers "request-map"]))]
         (is (= (:query-string request-map) "surname=jones&age=123"))
         (is (= (:uri request-map) "/foo/bar/baz"))
-        ;; This are no longer part of the Ring Spec, and are removed from the base request protocol
-        ;(is (= (:content-length request-map) 5))
-        ;(is (= (:character-encoding request-map) "UTF-8"))
         (is (= (:request-method request-map) :get))
-        ;(is (= (:content-type request-map) "text/plain; charset=UTF-8"))
         (is (= (:remote-addr request-map) "127.0.0.1"))
         (is (= (:scheme request-map) :http))
         (is (= (:server-name request-map) "localhost"))
