@@ -1,148 +1,275 @@
 = WAR Deployment
+:experimental:
 
-Java web applications are commonly deployed to *web containers*, also
-called Servlet containers or application servers. Web containers
-manage the runtime environment and lifecycle of an application.
-Popular web containers include http://www.eclipse.org/jetty/[Jetty],
-http://tomcat.apache.org/[Tomcat], and
-http://www.jboss.org/[JBoss].
-Some hosting services such as http://aws.amazon.com/elasticbeanstalk/[AWS Elastic Beanstalk] also function as web
-containers.
+Pedestals primary mode of deployment is _embedded_: the Pedestal application starts up and,
+along the way, launches a servlet container (such as xref:reference:jetty.adoc[]) and configures it to receive
+requests and process them.
 
-To deploy an application to a web container, you must package it as a
-http://docs.oracle.com/javaee/6/tutorial/doc/bnaby.html[Web Archive]
-(WAR) file. A WAR file is just a Java [JAR] file with
-a particular internal layout and a `.war` extension.
-
-## Step One: Prepare Your Project
-
-When running your application locally
-xref:live-repl.adoc[at the REPL], you will want to
-have your choice of servlet container running inside your JVM, and so the
-servlet container, and the Pedestal adaptor for the container, will be a dependency
-of your project.
-
-In this mode, you are running the servlet container ~embedded~ within your application; you application
-starts and, as part of that, starts the servlet container.
-
-For example, if you are using Jetty, then you'll want the `io.pedestal/pedestal.jetty` library.
-
-This is a perfectly fine way to run your applications in production, but since you are reading
-this page, you are interested in deploying as a WAR instead, and the rules are slightly different.
-
-By contrast, a WAR file should **not** contain dependencies on the servlet container.
-At runtime, the servlet container starts up, then creates a new class loader to load your WAR.
-Having the servlet container's classes present in the WAR will create deployment conflicts.
-
-A WAR file contains all the dependencies of your application, but it
-should **not** contain any dependencies which would conflict with the
-web container itself.
-
-You should ensure that your application only depends on the `io.pedestal/pedestal.service`
-library; the dependency on a container (such as `pedestal.jetty`) should be in a dev-only or test-only path.
-
-## Step Two: Configure Your Servlets
-
-A WAR file must contain a special file called `web.xml` which tells
-the web container how to configure the application.
-
-In the root directory of your project, create a file called `web.xml`
-like the following example:
-
-    <?xml version="1.0" encoding="UTF-8"?>
-    <web-app xmlns="http://java.sun.com/xml/ns/javaee"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
-             version="3.0"
-             metadata-complete="true">
-      <description>Pedestal HTTP Servlet</description>
-      <display-name>Pedestal HTTP Servlet</display-name>
-      <servlet>
-        <servlet-name>PedestalServlet</servlet-name>
-        <servlet-class>io.pedestal.servlet.ClojureVarServlet</servlet-class>
-        <init-param>
-          <param-name>init</param-name>
-          <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-init</param-value>
-        </init-param>
-        <init-param>
-          <param-name>service</param-name>
-          <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-service</param-value>
-        </init-param>
-        <init-param>
-          <param-name>destroy</param-name>
-          <param-value>YOUR_APP_SERVER_NAMESPACE/servlet-destroy</param-value>
-        </init-param>
-      </servlet>
-      <servlet-mapping>
-        <servlet-name>PedestalServlet</servlet-name>
-        <url-pattern>/*</url-pattern>
-      </servlet-mapping>
-    </web-app>
-
-Replace `YOUR_APP_SERVER_NAMESPACE` with the "server" namespace
-generated for your application by the Pedestal template. If your app
-is called "myapp" then this would be the namespace `myapp.server`.
-
-The template-generated source file at `src/myapp/server.clj` should contain
-functions named `servlet-init`, `servlet-destroy`, and
-`servlet-service`.
-
-**Note:** The `url-pattern` in the XML above must match the routes
-your Pedestal application is expected to handle **and** must match the
-conventions of your web container. For example, if you are deploying
-an application in the file `myapp.war`, a typical web container will
-expect it to have `<url-pattern>/myapp/*</url-pattern>`. Therefore, your
-application should have routes that begin with `/myapp/`.
-
-If your application will be deployed as the "root" web application in
-the container, then you should leave `<url-pattern>/*</url-pattern>` as
-shown in the example above. Consult the documentation of your web
-container for more details on Servlet mappings.
-
-## Step Three: Build the WAR (leinigen)
-
-NOTE: These instruction are out of date, surely there are Leiningen plugins to do this all?
-
-Working from a standard Unix shell (or Cygwin on Windows), run the
-following commands in your project directory.
-
-You will need both  https://github.com/technomancy/leiningen[Leiningen] and
-http://maven.apache.org/[Maven] installed to run these commands.
+An alternate, and older, approach is to bundle the application as a WAR (Web Archive) file and deploy that
+into a running servlet container.  Although there's far less call for this kind of multi-tenant application hosting
+in modern times (since the advent of
+https://www.docker.com/[Docker]
+containers and other kinds of virtualization), this is a long term
+feature of Pedestal that is still supported.
 
 
-Getting dependencies:
+In this deployed mode, the servlet container will instantiate an instance of a Pedestal-provided
+servlet class; when it initializes, the servlet will create a bridge from the Servlet world into the Pedestal world.  We'll cover the details below.
 
-    lein clean
-    lein pom
-    mvn dependency:copy-dependencies -DoutputDirectory=target/war/WEB-INF/lib
+== Structure of a WAR File
 
-Copying your application files:
+We've mentioned deployments and WAR files, so let's detour into some more specifics about what a WAR file actually is.
 
-    mkdir -p target/war/WEB-INF/classes
-    cp -R src/* config/* resources/* target/war/WEB-INF/classes
+A WAR file is an archive file, like a .zip or .jar file, with a particular structure.
 
-Copying `web.xml`:
+* `WEB-INF/web.xml` -- file: deployment descriptor needed by the container
+* `WEB-INF/classes` -- directory: classpath resources: resource files and compiled Clojure namespaces
+* `WEB-INF/lib` -- directory: contains additional libraries that are needed by the application, such as Clojure and Pedestal
 
-    cp web.xml target/war/WEB-INF
+This structure provides the servlet container with the information it needs to set up a classloader speficially for the deployed WAR file, and direct incoming HTTP requests into it.
 
-Creating the WAR file:
+== Overview
 
-    jar cvf target/YOUR_APPLICATION.war -C target/war WEB-INF
+In this guide we'll show a very simple application, yet another "hello world" service.
 
-Replace `YOUR_APPLICATION` with the name of your application.
+We'll show how to package up the application's sources, resources, and library dependencies into a WAR file.
 
-## Step Three: Build the WAR (deps.edn)
+Finally, we'll demonstrate how to deploy the WAR file into a Jetty service running inside a Docker container.
 
-[NOTE]
-====
-Forthcoming; but the essentials are the same: package your resources, Clojure sources,
-and (rarely present) compiled Java classes to `target/war/WEB-INF/classes`, and your
-dependencies to `target/war/WEB-INF/lib`, then zip everything up.
-====
+You'll need to have Docker installed as part of this guide.
 
-## Step Four: Deploy
+== Dependencies
 
-Consult the documentation of your web container to find out how to
-deploy an application from a WAR file. For many web containers, it may
-be a simple matter of copying the `.war` file into a "webapps"
-directory.
+As with the other examples, we'll define the dependencies of our project using a `deps.edn` file.
+
+
+[source,clojure]
+.deps.edn
+----
+include::example$war/deps.edn[]
+----
+<1> WebSocket classes must be included even if not used by the application.
+<2> Used when compiling the project into a WAR file.
+
+The main dependency is on `io.pedestal/pedestal.servlet`; all other necessary Pedestal dependencies
+are provided as transitive dependencies from this.  `pedestal.servlet`
+is not linked to any particular implementation of the Servlet API.
+
+In a servlet container deployment, the WAR file normally does _not_ have dependencies on
+the Servlet API; the servlet container, which has control over the classpath of the deployed
+WAR, adds the Servlet API in automatically.  `pedestal.servlet` does not have a dependency on
+the Servlet API
+--- well, actually, it does under development and when compiling some Java classes, but it doesn't
+export those dependencies to projects like this one.
+
+However, using WebSockets is different
+footnote:[Perhaps because they were introduced relatively recently.]
+and if the WAR file makes use of WebSockets it _must_ include the WebSocket API (mostly interfaces)
+and implementation files (classes implementing those interfaces).  These should be matched to the
+servlet container, so we're using the Jetty implementations here.
+
+Even though this application doesn't used WebSockets, the Pedestal libraries _do_ have WebSocket support built-in, so these dependencies must be included, even if they won't be actively used.
+
+== Clojure Service
+
+[source,clojure]
+.src/org/example/war/service.clj
+----
+include::example$war/src/org/example/war/service.clj[]
+----
+
+Our application is very simple, it responds to the URL `GET /hello` and responds with a snippet of text.
+
+This is all the code for our application (!) --- we've skimped on writing tests.
+
+The `connection-map` function is used to create a connection map as if we were going to
+create a xref:reference:connector.adoc[] ... but we stop short.  In fact, all we really care
+about at the end are the :interceptors and :initial-context keys of this connection map.
+
+The magic happens in the `create-bridge` function; this will be invoked from the
+servlet to create the ConnectorBridge object.  The
+api:create-bridge[ns=io.pedestal.connector.servlet] function does the heavy lifting.
+
+This bridge object has a `service` method that is passed the HttpServletRequest
+and HttpServletResponse and does all the Pedestal-related processing.
+
+== Deployment Descriptor
+
+[source,xml]
+.web.xml
+----
+include::example$war/web.xml[]
+----
+
+Inside all this XML are three basic constructors:
+
+- The servlet handles _every_ request passed to it (that's the `/*`)
+- The servlet is class ConnectorServlet, provided by the `pedestal-servlet` library
+- The servlet invokes `org.example.war.service/create-bridge` function when it initializes
+
+So, the request comes into the Jetty servlet container and it decides which WAR deployment it belongs to, then which servlet _inside_ the WAR deployment is responsible, then asks the servlet
+to do the work, which passes through the ConnectorBridge and into Pedestal to do the actual work.
+
+== Creating the WAR file
+
+To create a WAR file, we need to package up the sources, the deployment descriptor, and any
+libraries, such as `pedestal.servlet` and all the transitive dependencies. We can do this
+in a quick-and-dirty style using a small amount of Clojure code.
+
+When we discussed dependencies, there was a :build alias: this build alias sets up `build`
+as a classpath root, and brings in dependencies on `io.github.clojure/tools.build` (for reading
+the `deps.edn` file) and `babashka/fs` (for copying files and building archives).
+
+[source,xml]
+.build/build.clj
+----
+include::example$war/build/build.clj[]
+----
+<1> Create the _basis_
+<2> Iterate over the classpath entries and copy them into the working directory
+<3> Zip up the working directory to create the WAR file
+
+A _basis_ is a fully expanded definition of the contents of the `deps.edn` file, including all
+the source roots, direct dependencies, and transitive dependencies.  We use all that to copy
+files to a working directory, and then we package it all together as a WAR file.
+
+The command `clojure -T:build war` will run this code:
+
+```
+$ clojure -T:build war
+Copying cheshire-6.0.0.jar
+Copying transit-clj-1.0.333.jar
+Copying transit-java-1.0.371.jar
+Copying jackson-core-2.18.3.jar
+...
+Copying ring-core-1.14.1.jar
+Copying tigris-0.1.2.jar
+Copying resources
+Copying src
+Copying web.xml
+Created target/app.war
+$
+```
+
+NOTE: The first time through it may take some time to download the 13 MB of dependencies.
+
+This is just a minimal example; a more complete version might:
+
+* https://clojure.org/reference/compilation[AOT-compile] your application and its dependencies
+* Generate the web.xml file automatically
+* Package up static resources that Jetty can serve automatically, outside of Pedestal
+* Add other servlets or servlet filters to augment what Pedestal is doing
+
+
+Now that we have a WAR file, we can show how to deploy it.
+
+== Docker and Jetty
+
+We'll make use of Docker to simplify deployment ... really, to not leave a mess on your
+computer after we're done.
+
+
+[source]
+.Dockerfile
+----
+include::example$war/Dockerfile[]
+----
+
+This Docker file starts with a standard Jetty 12 image and sets it up to deploy WAR files.
+
+The WAR files go in the `/var/lib/jetty/webapps` folder inside the Docker image, and the special
+name `ROOT.war` is recognized by Jetty as a WAR file that deploys without any kind of prefix
+on the path.
+
+You can build this manually with `docker build ...`, but our final step is to show a simple
+script file that puts all the pieces together.
+
+== Running Jetty
+
+To simplify things, we'll provide a script that puts everything together and ensures that Jetty is running:
+
+[source,bash]
+.run.sh
+----
+include::example$war/run.sh[]
+----
+
+This script builds the WAR file, then builds the Docker image and tags it as `war-demo`.
+Finally, it starts Docker executing the image in a new container, and it binds port 8080
+on your computer to port 8080 inside the Docker container.  That's the default port that Jetty uses.
+
+If we run that script:
+
+```
+$ ./run.sh
+Copying cheshire-6.0.0.jar
+Copying transit-clj-1.0.333.jar
+...
+Copying src
+Copying web.xml
+Created target/app.war
+[+] Building 1.6s (9/9) FINISHED                                                                                                    docker:desktop-linux
+ => [internal] load build definition from Dockerfile
+...
+ => => writing image sha256:5b54af80cb94b25da6b86f7e82fa6115eca301c11fedafae120275122ad74664                                                        0.0s
+ => => naming to docker.io/library/war-demo                                                                                                         0.0s
+
+What's next:
+    View a summary of image vulnerabilities and recommendations → docker scout quickview
+/usr/lib/jvm/java-21-amazon-corretto/bin/java -Djava.io.tmpdir=/tmp/jetty -Djetty.home=/usr/local/jetty -Djetty.base=/var/lib/jetty -Djava.io.tmpdir=/tmp/jetty --class-path /var/lib/jetty/resources:/usr/local/jetty/lib/logging/slf4j-api-2.0.17.jar:/usr/local/jetty/lib/logging/jetty-slf4j-impl-12.0.22.jar:/usr/local/jetty/lib/jetty-http-12.0.22.jar:/usr/local/jetty/lib/jetty-server-12.0.22.jar:/usr/local/jetty/lib/jetty-xml-12.0.22.jar:/usr/local/jetty/lib/jetty-util-12.0.22.jar:/usr/local/jetty/lib/jetty-io-12.0.22.jar:/usr/local/jetty/lib/jetty-deploy-12.0.22.jar:/usr/local/jetty/lib/jetty-session-12.0.22.jar:/usr/local/jetty/lib/jetty-security-12.0.22.jar:/usr/local/jetty/lib/jetty-ee-12.0.22.jar org.eclipse.jetty.xml.XmlConfiguration java.io.tmpdir=/tmp/jetty java.version=21.0.7 jetty.base=/var/lib/jetty jetty.base.uri=file:///var/lib/jetty jetty.home=/usr/local/jetty jetty.home.uri=file:///usr/local/jetty jetty.webapp.addHiddenClasses=org.eclipse.jetty.logging.,file:///usr/local/jetty/lib/logging/,org.slf4j. runtime.feature.alpn=true slf4j.version=2.0.17 /usr/local/jetty/etc/jetty-bytebufferpool.xml /usr/local/jetty/etc/jetty-threadpool.xml /usr/local/jetty/etc/jetty.xml /usr/local/jetty/etc/jetty-deploy.xml /usr/local/jetty/etc/sessions/id-manager.xml /usr/local/jetty/etc/jetty-ee-webapp.xml /usr/local/jetty/etc/jetty-http.xml --env ee10 -cp /usr/local/jetty/lib/jakarta.servlet-api-6.0.0.jar -cp /usr/local/jetty/lib/jetty-ee10-servlet-12.0.22.jar -cp /usr/local/jetty/lib/jetty-ee10-webapp-12.0.22.jar contextHandlerClass=org.eclipse.jetty.ee10.webapp.WebAppContext /usr/local/jetty/etc/jetty-ee10-webapp.xml /usr/local/jetty/etc/jetty-ee10-deploy.xml
+2025-06-06 23:27:34.455:INFO :oejs.Server:main: jetty-12.0.22; built: 2025-06-02T15:25:31.946Z; git: 335c9ab44a5591f0ea941bf350e139b8c4f5537c; jvm 21.0.7+6-LTS
+2025-06-06 23:27:34.476:INFO :oejdp.ScanningAppProvider:main: Deployment monitor ee10 in [file:///var/lib/jetty/webapps/] at intervals 0s
+2025-06-06 23:27:34.482:INFO :oejd.DeploymentManager:main: addApp: App@279fedbd[ee10,null,/var/lib/jetty/webapps/ROOT.war]
+2025-06-06 23:27:34.768:INFO :oejew.StandardDescriptorProcessor:main: NO JSP Support for /, did not find org.eclipse.jetty.ee10.jsp.JettyJspServlet
+2025-06-06 23:27:34.788:INFO :oejsh.ContextHandler:main: Started oeje10w.WebAppContext@5a5338df{ROOT,/,b=file:///tmp/jetty-0_0_0_0-8080-ROOT_war-_-any-10435194439566279050/webapp/,a=AVAILABLE,h=oeje10s.SessionHandler@418c5a9c{STARTED}}{/var/lib/jetty/webapps/ROOT.war}
+2025-06-06 23:27:34.827:INFO :oejes.ServletContextHandler:main: Started oeje10w.WebAppContext@5a5338df{ROOT,/,b=file:///tmp/jetty-0_0_0_0-8080-ROOT_war-_-any-10435194439566279050/webapp/,a=AVAILABLE,h=oeje10s.SessionHandler@418c5a9c{STARTED}}{/var/lib/jetty/webapps/ROOT.war}
+2025-06-06 23:27:34.829:INFO :oejs.DefaultSessionIdManager:main: Session workerName=node0
+2025-06-06 23:27:34.836:INFO :oejs.AbstractConnector:main: Started ServerConnector@2796aeae{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+2025-06-06 23:27:34.846:INFO :oejs.Server:main: Started oejs.Server@8f4ea7c{STARTING}[12.0.22,sto=0] @677ms
+```
+
+Again, there will be a lot of downloads the first time you run this script ... but in the end, Jetty starts up and immediately deploys the ROOT.war file.
+
+Jetty will continue to run until you enter kbd:[Ctrl-C], so in another window, you can use `curl` to send a request to the application:
+
+```
+$ curl -v localhost:8080/hello
+* Host localhost:8080 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:8080...
+* Connected to localhost (::1) port 8080
+> GET /hello HTTP/1.1
+> Host: localhost:8080
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Server: Jetty(12.0.22)
+< Strict-Transport-Security: max-age=31536000; includeSubdomains
+< X-Frame-Options: DENY
+< X-Content-Type-Options: nosniff
+< X-XSS-Protection: 1; mode=block
+< X-Download-Options: noopen
+< X-Permitted-Cross-Domain-Policies: none
+< Content-Security-Policy: object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;
+< Content-Type: text/plain
+< Transfer-Encoding: chunked
+<
+* Connection #0 to host localhost left intact
+Greetings from inside the WAR file.
+$
+```
+
+The `-v` option shows the headers and data sent and received; you can not only see the
+content provided by the `hello` handler function, but you can also see all the headers
+provided by the default interceptors.
+
+== Conclusion
+
+Deploying a Pedestal application as a WAR file is a completely viable approach, especially
+useful when the Pedestal application must work with pure-Java servlets and servlet filters.
+
+In fact, the Clojure code in the smallest part of the effort - much work was needed to package up the code into a WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
+

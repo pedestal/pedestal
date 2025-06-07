@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -16,22 +16,6 @@
   or router.")
 
 (def schemes #{:http :https})
-(def allowed-keys #{:route-name :app-name :path :method :scheme :host :port :interceptors :path-re :path-parts :path-params :path-constraints :query-constraints :matcher})
-
-;; TODO: Move these public fn's to a private namespace
-
-(defn symbol->keyword
-  [s]
-  (let [resolved (resolve s)
-        {ns :ns n :name} (meta resolved)]
-    (if resolved
-      (keyword (name (ns-name ns)) (name n))
-      (throw (ex-info "Could not resolve symbol" {:symbol s})))))
-
-(defn capture-constraint
-  "Add parenthesis to a regex in order to capture its value during evaluation."
-  [[k v]]
-  [k (re-pattern (str "(" v ")"))])
 
 (defn- uniquely-add-route-path
   "Append `route-path` to `route-paths` if route-paths doesn't contain it
@@ -73,11 +57,5 @@
                       {:non-unique-names non-unique-names})))
     routing-table))
 
-#_
-(defn ensure-routes-integrity
-  [route-maps]
-  (-> route-maps
-      prioritize-constraints
-      verify-unique-route-names))
 
 

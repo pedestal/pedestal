@@ -22,10 +22,10 @@ to the Jakarta Servlet API from those that are more general.
 - Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both 
   are acceptible according to the SSE specification)
 - `io.pedestal.test` has been rewritten, nearly from scratch
-  - The Servlet API mocks are now Java classes, not `reify`-ed classes
+  - The Servlet API mocks are now standard Java classes, not `reify`-ed classes
   - A request body may now be a java.io.File
 - `io.pedestal.http.servlet` 
-  - The `reify`'ed `FnServlet` class is now a proper Java class, `io.pedestal.servlet.FnServlet`
+  - The `reify`'ed `FnServlet` class is now a standard Java class, `io.pedestal.servlet.FnServlet`
   - The new `FnServlet` extends `HttpServlet` not `Servlet`
 - Deleted deprecated namespaces:
   - `io.pedestal.http.request`
@@ -44,10 +44,12 @@ to the Jakarta Servlet API from those that are more general.
   - `io.pedestal.http.impl.servlet-interceptor`
     - `stylobate`
     - `terminator-injector`
-- Other deleted namespaces:
+- Other deleted vars and namespaces:
+  - `io.pedestal.http.route.definition/symbol->keyword`
+  - `io.pedestal.http.route.definition/capture-constraint`
   - `io.pedestal.http.request.servlet-support`
 
-Newly deprecated namespaces:
+Newly deprecated namespaces (these may be removed or made non-public in the future):
 - `io.pedestal.jetty.container`
 - `io.pedestal.jetty.util`
 
@@ -59,11 +61,13 @@ Other changes:
 - _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
   do not use the Servlet API, and so are much lighter weight.
 - The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
+  - `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
 - WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
 - The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
   now in the `pedestal.servlet` module.
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
+- Table routes may now include extra key/value pairs
 - It is now possible to specify the maximum number of concurrent threads with the 
   Jetty HTTP2 and HTTP2C connection factories
 - Much of `io.pedestal.http` has been deprecated, with the active code moving to new namespaces

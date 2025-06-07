@@ -17,6 +17,15 @@ they are _named_.
 In addition, the xref:sawtooth-router.adoc[] is now the default router; the others are kept primarily for
 backwards compatibility.
 
+== Table Routes
+
+It is now possible to set a list of prefix interceptors that apply to all routes defined by a call to
+api:table-routes[ns=io.pedestal.http.route.definition.table].
+
+It is now allowed to define additional key/value pairs at the end of the route (after :route-name and/or :constraints).
+These routes will be available at runtime after routing, allowing for generic interceptors that act based on values
+stored in the route map.
+
 == Private Functions
 
 Many of the namespaces used in routing had internal functions not marked as private; these have

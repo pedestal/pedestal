@@ -74,7 +74,7 @@
   to identify changes to the context, and some data in the context that might be
   logged can be verbose, sensitive, or both.
 
-  This modifies the :initial-context key of the service map."
+  This modifies the :initial-context key of the connector map."
   ([connector-map]
    (with-interceptor-observer connector-map {:omit default-debug-observer-omit}))
   ([connector-map debug-observer-options]

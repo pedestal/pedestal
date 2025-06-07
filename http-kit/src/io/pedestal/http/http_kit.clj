@@ -29,7 +29,8 @@
             [io.pedestal.interceptor.chain :as chain])
   (:import (org.httpkit.server AsyncChannel)))
 
-(def ^:private default-options
+(def default-options
+  "Default options used when setting up Http-Kit server."
   {:server-header        "Pedestal/http-kit"
    :error-logger         (fn [message error]
                            (log/error :message message :ex error))
@@ -97,8 +98,11 @@
                   (dissoc context :response))))}))
 
 (defn create-connector
-  [service-map options]
-  (let [{:keys [host port interceptors initial-context join?]} service-map
+  "Creates a Pedestal connector around an Http-Kit network connector.  The connector map is used to specify
+  the :ip and :port keys of the options passed to org.httpkit.server/run-server.  Other options are as provided
+  in the options map, or from [[default-options]]."
+  [connector-map options]
+  (let [{:keys [host port interceptors initial-context join?]} connector-map
         options'     (merge default-options
                             options
                             {:ip   host

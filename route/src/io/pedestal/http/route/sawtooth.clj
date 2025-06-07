@@ -16,12 +16,6 @@
   (:require [io.pedestal.http.route.internal :as internal]
             [io.pedestal.http.route.sawtooth.impl :as impl]))
 
-(defn- find-route [matcher request]
-  (when-let [[route path-params] (matcher request)]
-    (when (internal/satisfies-constraints? request route path-params)
-      ;; tests fail if path-params is nil
-      [route (or path-params {})])))
-
 (defn router
   [routes]
   (let [[matcher conflicts] (->> routes
@@ -31,4 +25,7 @@
     (when (seq conflicts)
       (impl/report-conflicts conflicts routes))
     (fn [request]
-      (find-route matcher request))))
+      (when-let [[route path-params] (matcher request)]
+        (when (internal/satisfies-constraints? request route path-params)
+          ;; tests fail if path-params is nil
+          [route (or path-params {})])))))
