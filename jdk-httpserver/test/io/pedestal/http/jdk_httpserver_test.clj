@@ -153,15 +153,15 @@
   [request]
   {:status  200
    :headers {"Content-Type" "application/edn"}
-   :body    (prn-str (select-keys request [:uri :path-info :context-path]))})
+   :body    (prn-str (select-keys request [:uri :path-info :context]))})
 
 (deftest with-context-path
   (with-server echo-paths {:port           4347
                            :connector-opts {:context-path "/hello"}}
     (let [response (http-get "http://localhost:4347/hello/world")]
-      (is (= {:uri          "/hello/world"
-              :path-info    "/world"
-              :context-path "/hello"}
+      (is (= {:uri       "/hello/world"
+              :path-info "/world"
+              :context   "/hello"}
             (-> response
               :body
               edn/read-string
