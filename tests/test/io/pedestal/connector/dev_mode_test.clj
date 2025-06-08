@@ -12,7 +12,7 @@
 (ns io.pedestal.connector.dev-mode-test
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
-            [io.pedestal.http.jdk-httpserver :as hk]
+            [io.pedestal.http.http-kit :as hk]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.connector :as connector]
             [io.pedestal.connector.dev :as dev]
