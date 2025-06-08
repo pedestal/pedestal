@@ -103,8 +103,8 @@
                :body   "Hello Mr. Client!"}
               (response-for :post "/hello"
                             :headers {:content-type "application/json"}
-                            :body (json/generate-string {:name "Mr. Client"})
-                            ))))
+                            :body (json/generate-string {:name "Mr. Client"})))))
+
 
 (deftest chain-goes-async
   (is (match? {:status  200

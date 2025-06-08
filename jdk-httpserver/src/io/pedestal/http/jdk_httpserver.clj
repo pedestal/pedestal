@@ -1,5 +1,6 @@
 (ns io.pedestal.http.jdk-httpserver
-  (:require [clojure.string :as string]
+  (:require [clojure.core.async :as async]
+            [clojure.string :as string]
             [io.pedestal.connector.test :as test]
             [io.pedestal.http.http-kit.impl :as impl]
             [io.pedestal.interceptor :as interceptor]
@@ -106,6 +107,17 @@
                     :response response)
                   (dissoc context :response))))}))
 
+
+(def convey-response
+  (interceptor/interceptor
+    {:name  ::convey-response
+     :leave (fn [{:keys [response]
+                  :as   context}]
+              (when (some? response)
+                (some-> context ::response-ch (async/put! response)))
+              context)}))
+
+
 (defn create-connector
   [{:keys [port host #_join? initial-context interceptors]} {:keys [context-path]
                                                              :or   {context-path "/"}}]
@@ -113,15 +125,19 @@
                (InetSocketAddress. ^String host (int port))
                (InetSocketAddress. port))
         root-handler (fn [ring-request]
-                       (let [request (request/set-context ring-request (case context-path
+                       (let [response-ch (async/promise-chan)
+                             request (request/set-context ring-request (case context-path
                                                                          "/" ""
                                                                          context-path))]
                          (-> initial-context
-                           (assoc :request request)
+                           (assoc :request request
+                                  ::response-ch response-ch)
                            (chain/execute
-                             (into [response-converter]
+                             (into [convey-response
+                                    response-converter]
                                interceptors))
-                           :response)))
+                           :response)
+                         (async/<!! response-ch)))
         *http-server (delay (doto (HttpServer/create addr 0)
                               (.createContext context-path
                                 (reify HttpHandler
