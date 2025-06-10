@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -21,7 +21,6 @@
             [io.pedestal.http.route.prefix-tree :as prefix-tree]
             [io.pedestal.http.route.sawtooth.impl :as impl]
             [matcher-combinators.matchers :as m]))
-
 
 (use-fixtures :once tc/no-ansi-fixture)
 
@@ -287,3 +286,18 @@
                   " - :io.pedestal.http.sawtooth-test/get-page (GET /pages/:id)"
                   " - :io.pedestal.http.sawtooth-test/search-pages (GET /pages/:search)"])
           s))))
+
+(deftest param-suffix-with-insufficient-terms-to-match
+  ;; See https://github.com/pedestal/pedestal/issues/924
+  (let [routes                    #{["/contacts/:id" :get (constantly {:status 200}) :route-name :get-contact]
+                                    ["/repos/:org/:project" :get (constantly {:status 200}) :route-name :get-repo]}
+        router-fn (sawtooth/router (route/expand-routes routes))]
+    (is (nil?
+          (router-fn (request :get "/contacts"))))
+
+    (is (nil?
+          (router-fn (request :get "/repos"))))
+
+    (is (nil?
+          (router-fn (request :ge "/repos/pedestal"))))))
+
