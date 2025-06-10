@@ -37,12 +37,13 @@ link:https://clojars.org/io.pedestal/pedestal.service[image:https://img.shields.
 
 Pedestal requires Clojure {base-clojure-version} or later.
 
-Pedestal provides integrations with:
+Pedestal is agnostic about the underlying HTTP library; it works with both the {servlet-api} and non-servlet libraries via
+network connectors; it currently provides connectors for:
 
 * xref:reference:jetty.adoc[] and Servlet API 5
 * xref:reference:http-kit.adoc[]
 
-\... with more integrations coming.
+\... with more connectors coming.
 
 == Features
 

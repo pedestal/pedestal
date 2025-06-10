@@ -124,7 +124,8 @@ of the Ring request specification, and is kept for compatibility reasons.].
 | The part of this request's URL from the protocol name up to the query string in the first line of the HTTP request
 |===
 
-WARNING: The :servlet, :servlet-request, and :servlet-response will not be present when the created around a xref:connector.adoc[]. They are holdovers from the xref:servlet-interceptor.adoc[] approach.
+WARNING: The :servlet, :servlet-request, and :servlet-response will not be present when the created around a xref:connector.adoc[].
+They are provided by the xref:servlet-interceptor.adoc[], and so, only available inside a xref:guides:war-deployment.adoc[].
 
 Many more keys are added to the request map by the
 xref:default-interceptors.adoc[default interceptors], many of the new keys are related to parsing query parameters and the

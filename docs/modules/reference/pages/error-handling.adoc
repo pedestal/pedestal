@@ -30,11 +30,11 @@ As a result, Pedestal unifies
 error handling for synchronous interceptors and asynchronous
 interceptors.
 
-You can supply your own :error handling interceptor anywhere in the interceptor queue.
+You can supply your own error handling interceptor anywhere in the interceptor queue.
 
 == Error Function
 
-Pedestal will call the function bound to :error on an interceptor with two arguments:
+Pedestal will call the function bound to the :error key of an interceptor with two arguments:
 
 - The xref:context-map.adoc[context map]
 - An `ExceptionInfo` instance
@@ -133,7 +133,7 @@ Here is an example from the test suite:
     :else
     (assoc context :io.pedestal.interceptor.chain/error ex)))
 
-,,,
+...
 
 (def routes
   (route/expand-routes

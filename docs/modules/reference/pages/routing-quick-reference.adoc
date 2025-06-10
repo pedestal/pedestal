@@ -23,8 +23,8 @@ for operations (status, metrics, management, and so forth) on a different port.
 ====
 Defining routes and setting up the servlet container are two separate functions; just because you have
 a route mapped to a port or host doesn't mean that the servlet container is configured to accept
-requests for that port or host. You have to connect those dots by setting up the servlet container's
-configuration in the xref:connector-map.adoc[] (or xref:service-map.adoc[]).
+requests for that port or host. It is your responsibility to connect those dots by setting up the servlet container's
+configuration in the xref:connector-map.adoc[].
 ====
 
 == Library
@@ -36,7 +36,7 @@ routers. It can be used independently of the pedestal-service library.
 == Route Specifications vs. Routing Functions vs. Routing Interceptor
 
 Pedestal is data driven, and the routing information starts in one form (as data) and is then
-transformed in a couple of stages to reach a final result that can be used to route incoming requests.
+transformed in a series of stages to reach a final result that can be used to route incoming requests.
 
 The start is the route specification.
 Pedestal has three built-in formats for route specification:

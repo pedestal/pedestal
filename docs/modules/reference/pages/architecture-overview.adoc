@@ -167,32 +167,5 @@ Pedestal connector.
 
 Support for this is primarily in the api:*[ns=io.pedestal.connector] namespace.
 
-=== Servlet Chain Provider
-
-WARNING: At this point, the Servlet Chain Provider approach is intended only for legacy Pedestal applications, or the rare cases where a Pedestal application must be deployed as a xref:guides:war-deployment.adoc[WAR].
-
-The chain provider is a bridge between the Servlet API world
-(HttpServlet, HttpServletRequest, and so forth) and Pedestal's model
-(the interceptor chain, the request and response maps).
-
-Pedestal includes a servlet chain provider out of the box, in
-the io.pedestal/pedestal.servlet module. This provider connects
-any servlet container to an interceptor chain. The
-api:create-servlet[]
-function orchestrates this work. This is strictly a convenience
-function that takes a xref:service-map.adoc[] of everything
-needed to run an HTTP service.
-
-It is possible to create other chain providers. The
-{repo_root}/tree/master/samples/fast-pedestal[fast-pedestal
-sample] shows how to do this with Jetty.
-
-WARNING: This example is very out of date.
-
-See the following namespaces for the HTTP chain provider:
-
-- api:*[]
-- api:*[ns=io.pedestal.http.impl.servlet-interceptor]
-
 
 

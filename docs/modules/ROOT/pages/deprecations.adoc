@@ -2,7 +2,8 @@
 
 == 0.8.0
 
-The focus of release 0.8 is to improve and unify routing, and to support xref:reference:jetty.adoc[], but a secondary focus
+The focus of release 0.8 is to improve and unify routing, and to support xref:reference:jetty.adoc[]
+and xref:reference:http-kit.adoc[], but a secondary focus
 is to remove dead code.
 
 Many functions, macros, and even namespaces deprecated in 0.7.0 have been fully removed in 0.8.0.
@@ -30,10 +31,16 @@ In `io.pedestal.interceptor`
 - Support for the deferred interceptors (via :interceptor or :interceptorfn metadata) was removed
 - Anonymous interceptors are deprecated
 
+All of api:*[ns=io.pedestal.http] has been deprecated in favor of api:*[ns=io.pedestal.connector].
+
 === Suppressing Warnings
 
-The number of warnings has grown considerably in 0.8.0, leading to a future where deprecated functions
-may actually be removed.  It is now possible to xref:reference:config.adoc#suppress-deprecation-warnings[suppress deprecation warnings].
+The number of warnings concerning deprecated functions has grown considerably in 0.8.0;
+although in the future many of these functions may actually be removed, it still causes considerable noise
+(which may drive users to move to the new APIs).  However, this also results in a flurry of output when
+an applicaton is first started, which can be annoying during development.
+
+It is now possible to xref:reference:config.adoc#suppress-deprecation-warnings[suppress deprecation warnings].
 
 == 0.7.0
 

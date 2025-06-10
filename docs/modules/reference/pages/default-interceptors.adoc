@@ -1,59 +1,5 @@
 = Default Interceptors
 
-== Description
-
-If your xref:service-map.adoc[] does not include the key
-:io.pedestal.http/interceptors, then Pedestal will create a vector of
-default interceptors for you.
-
-The default interceptors are added to your service map when you call
-either
-api:create-servlet[], or api:create-server[].
-
-This document explains which interceptors are added under different
-conditions. Each interceptor has its own documentation that describes
-its specific behavior.
-
-== Modifying the Default Stack
-
-If your service map already includes the key
-:io.pedestal.http/interceptors when you call one of the `create-`
-functions, then Pedestal won't add the default interceptors. So what
-should you do if you want to use the default interceptors, but want to
-add your own interceptors to the default stack?
-
-The solution is to call
-api:default-interceptors[]
-yourself, _before_ calling `create-server` or `create-servlet`. That
-way, `default-interceptors` can build the default stack, then your
-application code has an opportunity to modify it. By the time you call
-`create-server` or `create-servlet`, the
-:io.pedestal.http/interceptors key will have your modified version
-of the default interceptors.
-
-Here is an example of adding interceptors to perform authentication
-and authorization on every request. (Assuming we have a namespace
-`auth` with functions to construct these interceptors given a
-configuration.)
-
-[source,clojure]
-----
-(defn service
-  [service-map authn-config authz-config]
-  (-> service-map
-      (http/default-interceptors)                                                 ;; <1>
-      (update ::http/interceptors conj (auth/authentication-interceptor authn-config)) ;; <2>
-      (update ::http/interceptors conj (auth/authorization-interceptor authz-config))  ;; <3>
-      (http/create-server)))                                                      ;; <4>
-----
-<1> Attach the default interceptors to our service map
-<2> Modify the defaults to add authentication.
-<3> modify the defaults to add authorization.
-<4> Create the server as usual. This would normally attach the defaults, but will skip that because we've set them up ourselves.
-
-
-== Default Interceptors
-
 Some of the default interceptors are conditional. Pedestal adds them
 when other parts of the service map indicate a need for an
 interceptor. These will be noted below.

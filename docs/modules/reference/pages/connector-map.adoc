@@ -8,7 +8,7 @@ Pedestal provides functions to create a xref:connector.adoc[].
 The service map contains general information that any Pedestal connector will need to create a network connector.
 This is supplemented by a connector-specific configuration map.
 
-TIP: Pedestal connectors were added in 0.8.0 as a replacement for the xref:service-map.adoc[] and the
+TIP: Pedestal connectors were added in 0.8.0 as a replacement for the service map and the
 api:*[ns=io.pedestal.http] namespace.
 
 == Connector Map Keys
@@ -29,13 +29,12 @@ An initial connector map can be created by api:default-connector-map[].
 
 The created Pedestal connector will often prefix the supplied interceptors with ones specific to the connector.
 
-TIP: Supplying an :initial-context is a way to provide useful data, functions, or components to all interceptors
-and handlers.
+TIP: Supplying an :initial-context is a way to provide useful data, functions, or components to all interceptors.
 
 == Default interceptors
 
 The api:with-default-interceptors[] function is used to add interceptors to the service map for
-common functionality.  It is passed the service map and an additional configuration map and will
+common functionality.  It is passed the connector map and an additional configuration map and will
 add interceptors for the following functionality:
 
 * Request tracing
@@ -59,12 +58,13 @@ removed and replaced with application specific setup once development is fully u
 
 The api:with-routes[] macro is used to set the routes for your service.
 It is a macro because it sets up a REPL-friendly
-workflow (when in xref:dev-mode.adoc[development mode]).
+workflow (when in xref:dev-mode.adoc[development mode]) --- in development mode,
+code changes will be reflected immediately, without restarting the application.
 
 == Creating the Pedestal connector
 
-The service map is passed to a Pedestal connector factory function, along with a map of configuration
-specific to the Pedestal connector, and returns a
+The connector map is passed to a Pedestal connector factory function, along with a map of configuration
+specific to the specific factor, and returns a
 api:PedestalConnector[ns=io.pedestal.service.protocols] object, which can be started with api:start![].
 
 Factory functions:

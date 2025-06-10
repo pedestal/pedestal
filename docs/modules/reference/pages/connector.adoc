@@ -29,8 +29,6 @@ By contrast, the older Jetty support can run as a service (that is, in terms of 
 
 Pedestal applications are primarily run in _embedded_ mode, where the network connector is a library that is part of the runtime classpath.
 
-The xref:service-map.adoc[] is passed to a connector factory function.
-
 Pedestal connectors implement the api:PedestalConnector[ns=io.pedestal.service.protocols] protocol.  When started,
 the Pedestal connector will create, configure, and start the network connector.
 
@@ -44,6 +42,5 @@ WAR deployments have a different lifecycle, as the network connector (such as xr
 running process, that unpacks and loads the contents of the WAR file.  This means that there isn't a Pedestal connector,
 just the xref:servlet-interceptor.adoc[].
 
-This all requires some careful setup, including omitting certain dependencies from the classpath.
+The xref:guides:war-deployment.adoc[] guide describes this is more detail.
 
-WARNING: More discussion of WAR deployment is forthcoming.

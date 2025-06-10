@@ -2,6 +2,8 @@
 :reftext: service map
 :navtitle: Service Map
 
+WARNING: This document is going to be retired. Content about default interceptors should move elsewhere.
+
 [WARNING]
 ====
 The service map is used with the

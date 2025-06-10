@@ -5,10 +5,6 @@ Streaming uses memory efficiently and can allow you to return a
 response larger than the service's memory. It also allows a client to
 start consuming data as quickly as possible.
 
-Streaming responses are a feature of the
-xref:servlet-interceptor.adoc[].
-Steaming behavior is enabled based on the type of the body of the xref:response-map.adoc[].
-
 |===
 | Body Type | Streamed? | Async?
 

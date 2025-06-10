@@ -108,7 +108,7 @@ the :leave phase begins.
 
 | :route
 | xref:routing-quick-reference.adoc[route map]
-| Added after request routing takes place, this is either the specifically match route map, or nil
+| Added after request routing takes place, this is either the specifically matched route map, or nil
   to indicate that the request could not be mapped to a route.
 
 |===
