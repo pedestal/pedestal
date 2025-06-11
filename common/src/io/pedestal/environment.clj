@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -15,7 +15,7 @@
   (:require [io.pedestal.internal :as i]))
 
 (def dev-mode?
-  "Set to the boolean value of the system property `io.pedestal.dev-mode`.
+  "True when running in development mode; this is set from configuration and is generally false.
 
   Development mode exists to assist in setting up a useful REPL-oriented workflow for local development and testing.
   It should never be enabled in production."
