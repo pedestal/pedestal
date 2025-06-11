@@ -93,6 +93,7 @@ Other changes:
   of the interceptor; now interceptors always have names and this does not occur
   - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
 - The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
+- Development mode is now configured as with other values, rather than strictly a JVM system property
 
 ## 0.7.2 - 1 Nov 2024
 

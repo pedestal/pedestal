@@ -5,28 +5,18 @@ Pedestal can operate in two different modes: production, and local development.
 Local development mode changes the behavior of a handful of macros and functions to support
 xref:guides:live-repl.adoc[live development at the REPL].
 
-Development mode is enabled by setting value of JVM system property `io.pedestal.dev-mode` to `true` at startup.
-
-From the command line, this can be accomplished by using the `-J` switch:
-
-    clj -J-Dio.pedestal.dev-mode=true ...
-
-Alternately, you can update your `deps.edn` file, associating a JVM option with an alias:
-
-[source]
-----
-   ...
-   :aliases
-     {:dev-mode
-       {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}
-   ...
-----
-
-You can then reference the alias when starting a REPL session:
-
-    clj -A:dev-mode ...
+Development mode is enabled via a
+xref:config.adoc#dev-mode[configuration value].
 
 The var api:dev-mode?[ns=io.pedestal.environment] stores the boolean result derived from reading the system property;
 there is no mechanism for turning development mode on or off during execution.
 
-
+[CAUTION]
+====
+Certain macros, such as
+api:with-routes[ns=io.pedestal.connector],
+change their behavior when in development mode.  If you are AOT compling
+your applicatgion prior to deployment, you must ensure that development mode is *off*
+when compiling, or you may get development mode behavior (and decreased performance)
+in your deployed production application.
+====

@@ -11,11 +11,16 @@
 
 (ns io.pedestal.environment
   "Information about the running environment for the Pedestal application."
-  {:added "0.7.0"})
+  {:added "0.7.0"}
+  (:require [io.pedestal.internal :as i]))
 
 (def dev-mode?
   "Set to the boolean value of the system property `io.pedestal.dev-mode`.
 
   Development mode exists to assist in setting up a useful REPL-oriented workflow for local development and testing.
   It should never be enabled in production."
-  (Boolean/getBoolean "io.pedestal.dev-mode"))
+  (i/read-config
+    "io.pedestal.dev-mode"
+    "PEDESTAL_DEV_MODE"
+    :as :boolean
+    :default false))
