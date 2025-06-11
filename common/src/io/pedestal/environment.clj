@@ -15,7 +15,8 @@
   (:require [io.pedestal.internal :as i]))
 
 (def dev-mode?
-  "True when running in development mode; this is set from configuration and is generally false.
+  "True when running in development mode; this is set from configuration
+  (JVM property `io.pedestal.dev-mode` or environment variable `PEDESTAL_DEV_MODE`) and is generally false.
 
   Development mode exists to assist in setting up a useful REPL-oriented workflow for local development and testing.
   It should never be enabled in production."

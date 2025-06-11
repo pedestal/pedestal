@@ -16,7 +16,7 @@ there is no mechanism for turning development mode on or off during execution.
 Certain macros, such as
 api:with-routes[ns=io.pedestal.connector],
 change their behavior when in development mode.  If you are AOT compling
-your applicatgion prior to deployment, you must ensure that development mode is *off*
+your application prior to deployment, you must ensure that development mode is *off*
 when compiling, or you may get development mode behavior (and decreased performance)
 in your deployed production application.
 ====

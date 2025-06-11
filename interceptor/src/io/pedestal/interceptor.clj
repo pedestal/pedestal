@@ -73,7 +73,9 @@
   IPersistentMap
   (-interceptor [m] (map->Interceptor m))
 
-  ; This is the `handler` case
+  ;; This is the `handler` case which is somewhat entrenched here, even though
+  ;; it is technically specific to the pedestal.service module (HTTP handling, with
+  ;; request and response maps).
   Fn
   (-interceptor [f]
     (-interceptor (fn->interceptor f)))

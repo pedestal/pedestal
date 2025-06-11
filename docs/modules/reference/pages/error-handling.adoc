@@ -19,7 +19,7 @@ in the xref:context-map.adoc[context map].
 
 As long as there is an error attached to that key, Pedestal will not
 invoke the usual :enter and :leave functions. Instead, it looks
-for the next interceptor in the chain that has an :error function
+for the next interceptor in the stacj that has an :error function
 attached to it.
 
 This error handling proceeds the same way regardless of whether
@@ -46,7 +46,7 @@ defined in its exception data map:
 | Key | Type | Description
 
 | :execution-id
-| long
+| _opaque_ footnote:[No guarantees are made on what the execution id's type or structure is.]
 | Unique value that identifies one "run" through the interceptors.
 
 | :stage
