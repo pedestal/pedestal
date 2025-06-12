@@ -162,8 +162,8 @@
                       "PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS"
                       :as :boolean)))
 
-(defn deprecation-warning
-  [label in noun]
+(defn deprecated
+  [label & {:keys [in noun]}]
   (when-not @*suppress?
     (when-not (contains? @*deprecations label)
       (swap! *deprecations conj label)
@@ -179,10 +179,6 @@
          " and may be removed in a future release"]
         [:bold "\nCall stack: ... "]
         (call-stack 4)))))
-
-(defmacro deprecated
-  [label & {:keys [in noun]}]
-  `(deprecation-warning ~label ~in ~noun))
 
 (defn reset-deprecations
   []
