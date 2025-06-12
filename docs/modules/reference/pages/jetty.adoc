@@ -5,6 +5,8 @@
 
 link:https://jetty.org/docs/jetty/12/index.html[Jetty 12] is the default xref:connector.adoc[connector] used with Pedestal.
 
+Jetty supports xref:streaming.adoc[].
+
 == Container Options
 
 The provided container options are generally sufficient for most applications which use HTTP or HTTPs; some options

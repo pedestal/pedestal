@@ -51,7 +51,7 @@ A WebSocket upgrade request has _no_ response.  If your application includes int
 examine or modify the :response key of the xref:context-map.adoc[] (in the :leave or :error phase), they may need to be adjusted for
 an entirely missing :response key.
 
-If some interceptor does attach a response key, it will be ignored by the xref:servlet-interceptor.adoc[].
+If some interceptor does attach a response key, it will be ignored once the request has been upgraded to a WebSocket request.
 
 ====
 
@@ -177,7 +177,7 @@ convert EDN data to JSON before transmitting it to the client as a text message.
 == Upgrading from Pedestal 0.7
 
 In Pedestal 0.7, WebSockets are specified using the :io.pedestal.http/websockets key of
-the xref:service-map.adoc[].  This approach is supported in Pedestal 0.8, but is *deprecated*, and may
+the service map.  This approach is supported in Pedestal 0.8, but is *deprecated*, and may
 be removed in a later release entirely.
 
 WebSocket requests are routed entirely outside of the xref:interceptors.adoc[interceptor chain], so they do not

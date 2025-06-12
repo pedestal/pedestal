@@ -120,7 +120,7 @@ this case, processing continues with the next interceptor.
 If the interceptor is expected to take a long time to return a result, it may
 instead return a {core_async} channel. Pedestal will yield the request processing thread back
 to the network adapter (so that it can process other incoming requests) and
-wait for a value to be produced.
+wait for a value to be conveyed on the channel.
 
 Only one value will be consumed from the returned channel, and the value *must* be a context map.
 
@@ -296,25 +296,12 @@ Pedestal supports defining interceptor-specific error handlers via the
 
 == Pedestal Interceptors
 
-The io.pedestal/pedestal.service library includes a large set of interceptors
+The io.pedestal/pedestal.service library includes a large
+xref:default-interceptors.adoc[set of interceptors]
 that are specialized for HTTP request handling.
 Many of these interceptors are automatically added to the
 interceptor queue via
-api:with-default-interceptors[ns=io.pedestal.connector]
-or
-by the api:default-interceptors[] function,
-using information from the xref:service-map.adoc[].
-
-- api:allow-origin[ns=io.pedestal.http.cors]
-- api:anti-forgery[ns=io.pedestal.http.csrf]
-- api:body-params[ns=io.pedestal.http.body-params]
-- api:dev-allow-origin[ns=io.pedestal.http.cors]
-- api:method-param[ns=io.pedestal.http.route]
-- api:negotiate-content[ns=io.pedestal.http.content-negotiation]
-- api:path-params-decoder[ns=io.pedestal.http.route]
-- api:query-params[ns=io.pedestal.http.route]
-- several from api:*[ns=io.pedestal.http.ring-middlewares] (see also
-  xref:ring.adoc[])
+api:with-default-interceptors[ns=io.pedestal.connector].
 
 Routing-related interceptors are provided by the io.pedestal/pedestal.route library:
 

@@ -4,7 +4,7 @@ Limited parts of Pedestal are described using
 link:https://clojure.org/guides/spec[Clojure specs].
 
 This includes the structure of the
-xref:service-map.adoc[], and the various kinds of
+xref:connector-map.adoc[], and the various kinds of
 xref:routing-quick-reference.adoc[route specifications].
 
 Use of spec is entirely optional; specs are confined to their own namespaces

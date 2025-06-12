@@ -19,7 +19,7 @@ in the xref:context-map.adoc[context map].
 
 As long as there is an error attached to that key, Pedestal will not
 invoke the usual :enter and :leave functions. Instead, it looks
-for the next interceptor in the chain that has an :error function
+for the next interceptor in the stacj that has an :error function
 attached to it.
 
 This error handling proceeds the same way regardless of whether
@@ -30,11 +30,11 @@ As a result, Pedestal unifies
 error handling for synchronous interceptors and asynchronous
 interceptors.
 
-You can supply your own :error handling interceptor anywhere in the interceptor queue.
+You can supply your own error handling interceptor anywhere in the interceptor queue.
 
 == Error Function
 
-Pedestal will call the function bound to :error on an interceptor with two arguments:
+Pedestal will call the function bound to the :error key of an interceptor with two arguments:
 
 - The xref:context-map.adoc[context map]
 - An `ExceptionInfo` instance
@@ -46,7 +46,7 @@ defined in its exception data map:
 | Key | Type | Description
 
 | :execution-id
-| long
+| _opaque_ footnote:[No guarantees are made on what the execution id's type or structure is.]
 | Unique value that identifies one "run" through the interceptors.
 
 | :stage
@@ -133,7 +133,7 @@ Here is an example from the test suite:
     :else
     (assoc context :io.pedestal.interceptor.chain/error ex)))
 
-,,,
+...
 
 (def routes
   (route/expand-routes
@@ -165,9 +165,6 @@ are processed.
 Some exceptions should not be logged; by default, Pedestal will identify
 an exception that indicates a broken pipe to the client when sending the response; such errors will not be
 logged but will be quietly ignored.
-
-This logic can be altered using the xref:service-map.adoc[] :io.pedestal.http/service-fn-options key;
-the value is itself a map, and the key :exception-analyzer can be specified.
 
 An exception analyzer function is passed the xref:context-map.adoc[] and the unhandled exception;
 it may return nil to prevent the exception from being logged, or return the exception itself,

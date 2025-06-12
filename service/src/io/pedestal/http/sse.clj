@@ -223,17 +223,15 @@
   ([stream-ready-fn heartbeat-delay bufferfn-or-n]
    (start-event-stream stream-ready-fn heartbeat-delay bufferfn-or-n {}))
   ([stream-ready-fn heartbeat-delay bufferfn-or-n opts]
-   ^{:in "0.8.0"}
-   (i/deprecated `start-event-stream
-     (interceptor/interceptor
-       {:name  (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
-        :enter (fn [context]
-                 (log/trace :msg "switching to sse")
-                 (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))}))))
+   (i/deprecated `start-event-stream :in "0.8.0")
+   (interceptor/interceptor
+     {:name  (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
+      :enter (fn [context]
+               (log/trace :msg "switching to sse")
+               (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))
 
 (defn ^{:deprecated "0.7.0"} sse-setup
   "See start-event-stream. This function is for backward compatibility."
   [& args]
-  ^{:in "0.7.0"}
-  (i/deprecated `sse-setup
-    (apply start-event-stream args)))
+  (i/deprecated `sse-setup :in "0.7.0")
+  (apply start-event-stream args))

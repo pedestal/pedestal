@@ -207,10 +207,10 @@
                                                                (^void accept [_this ^ServletContext _context
                                                                               ^ServerContainer container]
                                                                  (when websockets
-                                                                   ^{:in   "0.8.0"
-                                                                     :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)"}
                                                                    (deprecated ::websockets
-                                                                     (ws/add-endpoints container websockets))))))
+                                                                     :in "0.8.0"
+                                                                     :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)")
+                                                                   (ws/add-endpoints container websockets)))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.

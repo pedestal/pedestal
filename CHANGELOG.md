@@ -52,6 +52,7 @@ to the Jakarta Servlet API from those that are more general.
 Newly deprecated namespaces (these may be removed or made non-public in the future):
 - `io.pedestal.jetty.container`
 - `io.pedestal.jetty.util`
+- `io.pedestal.http`
 
 Other changes:
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
@@ -59,18 +60,18 @@ Other changes:
     - Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
 - Metrics can now be configured to accept longs or doubles as their values.
 - _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
-  do not use the Servlet API, and so are much lighter weight.
+  do not use the Servlet API, and so are much lighter weight
 - The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
   - `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
 - WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
 - The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
-  now in the `pedestal.servlet` module.
+  now in the `pedestal.servlet` module
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the route
 - Table routes may now include extra key/value pairs
 - It is now possible to specify the maximum number of concurrent threads with the 
   Jetty HTTP2 and HTTP2C connection factories
-- Much of `io.pedestal.http` has been deprecated, with the active code moving to new namespaces
+- Deprecation warnings may not be suppressed
 - New functions and macros:
   - `io.pedestal.test/create-responder` - useful piece needed in most tests
   - `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
@@ -83,6 +84,7 @@ Other changes:
   - `io.pedestal.service.interceptors` - Common interceptors
   - `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
   - `io.pedestal.interceptor.component` - unify Components and Interceptors
+  - `io.pedestal.connector.servlet` - bridge to Pedestal from a WAR deployment
 - When converting a handler function to an Interceptor
   - Handler functions may now be *asynchronous*, returning a channel that conveys the response
   - The :name metadata on the _function_ will be used as the :name of the interceptor
@@ -91,6 +93,7 @@ Other changes:
   of the interceptor; now interceptors always have names and this does not occur
   - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
 - The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
+- Development mode is now configured as with other values, rather than strictly a JVM system property
 
 ## 0.7.2 - 1 Nov 2024
 

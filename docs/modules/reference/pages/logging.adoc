@@ -113,7 +113,12 @@ instance of java.lang.Exception.
   APIs expect a string message).  The default is clj:pr-str[] (via api:default-formatter[]).
 |===
 
-== spy macro
+=== log macro
+
+The macro api:log[] expects a logging level, as a keyword, as its first parameter,
+followed by key/value parameters. This allows the logging level to be decided at runtime, rather than when the namespace is first loaded.
+
+=== spy macro
 
 The api:spy[] macro takes an expression, evaluates it, and returns it.  Before returning, it logs the expression
 (as key :spy) and the result (as key :value) at debug level. This is often useful during

@@ -8,9 +8,18 @@
 The _context map_ is passed to each interceptor's :enter and
 :leave functions, and is one of two arguments passed to an interceptor's :error function.
 
+The context map is the mechanism by which different interceptors communicate with
+each other.  It is common to provide access to common data and components (for example,
+a database connection pool, or a thread pool) by providing
+such common elements in the initial context, which can be specified
+as the :initial-context key of the xref:connector-map.adoc[].
+
+== Common Keys
+
 Pedestal makes use of a number of keys in the context map described below as part
-of its public API. Further keys may also be present and are officially undefined and
+of its public API. Further namespace keys may also be present and are officially undefined and
 are considered an implementation detail subject to change at any time.
+
 
 [cols="s,d,d", options="header", grid="rows"]
 |===
@@ -43,6 +52,8 @@ checks may be added to the context with api:terminate-when[].
 
 NOTE: The io.pedestal.interceptor.chain/queue key is removed from the context map once an interceptor chain begins processing the :leave stage.
 
+It is encouraged that when you add your own values to the context map, you do so using
+namespace-qualified keywords, to provide a safeguard against key collisions.
 
 == :bindings
 
@@ -108,7 +119,7 @@ the :leave phase begins.
 
 | :route
 | xref:routing-quick-reference.adoc[route map]
-| Added after request routing takes place, this is either the specifically match route map, or nil
+| Added after request routing takes place, this is either the specifically matched route map, or nil
   to indicate that the request could not be mapped to a route.
 
 |===

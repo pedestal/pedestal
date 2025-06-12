@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -30,29 +30,27 @@
    - a keyword representation of DispatcherType (see `dispatch-types`)
    - `:all` which generates an EnumSet of all DispatcherTypes"
   ^EnumSet [dispatches]
-  ^{:in "0.8.0"}
-  (deprecated `dispatcher-set
-    (cond
-      (instance? EnumSet dispatches) dispatches
-      (instance? DispatcherType dispatches) (EnumSet/of dispatches)
-      (= :all dispatches) (EnumSet/allOf DispatcherType)
-      (dispatch-types dispatches) (EnumSet/of (dispatch-types dispatches))
-      :else (throw
-              (ex-info
-                (str "You can only dispatch on an established dispatch type,
+  (deprecated `dispatcher-set :in "0.8.0")
+  (cond
+    (instance? EnumSet dispatches) dispatches
+    (instance? DispatcherType dispatches) (EnumSet/of dispatches)
+    (= :all dispatches) (EnumSet/allOf DispatcherType)
+    (dispatch-types dispatches) (EnumSet/of (dispatch-types dispatches))
+    :else (throw
+            (ex-info
+              (str "You can only dispatch on an established dispatch type,
                    EnumSet thereof, or shorthand keyword.
                    Unaccepted: " dispatches)
-                {:accepted-keywords (keys dispatch-types)
-                 :attempted         dispatches})))))
+              {:accepted-keywords (keys dispatch-types)
+               :attempted         dispatches}))))
 
 (defn  filter-holder
   ^FilterHolder  [^Filter servlet-filter init-params]
-  ^{:in "0.8.0"}
-  (deprecated `filter-holder
-    (let [holder (FilterHolder. servlet-filter)]
-      (doseq [[k v] init-params]
-        (.setInitParameter holder k v))
-      holder)))
+  (deprecated `filter-holder :in "0.8.0")
+  (let [holder (FilterHolder. servlet-filter)]
+    (doseq [[k v] init-params]
+      (.setInitParameter holder k v))
+    holder))
 
 (defn  add-servlet-filter
   "Add a ServletFilter to a ServletContextHandler,
@@ -62,19 +60,18 @@
     :path - The pathSpec string that applies to the filter; defaults to '/*'
     :dispatches - A keyword signaling the defaults to :request"
   ^ServletContextHandler [^ServletContextHandler context filter-opts]
-  ^{:in "0.8.0"}
-  (deprecated `add-servlet-filter
-    (let [{servlet-filter :filter
-           path           :path
-           dispatches     :dispatches
-           :or            {path       "/*"
-                           dispatches :request}} filter-opts
-          dispatch-set (dispatcher-set dispatches)]
-      ;; Try out best to avoid the Reflection hit
-      (cond
-        (class? servlet-filter) (.addFilter context ^Class servlet-filter ^String path ^EnumSet dispatch-set)
-        (instance? FilterHolder servlet-filter) (.addFilter context ^FilterHolder servlet-filter ^String path ^EnumSet dispatch-set)
-        (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set)
-        :else (.addFilter context ^Filter servlet-filter ^String path dispatch-set))
-      context)))
+  (deprecated `add-servlet-filter :in "0.8.0")
+  (let [{servlet-filter :filter
+         path           :path
+         dispatches     :dispatches
+         :or            {path       "/*"
+                         dispatches :request}} filter-opts
+        dispatch-set (dispatcher-set dispatches)]
+    ;; Try out best to avoid the Reflection hit
+    (cond
+      (class? servlet-filter) (.addFilter context ^Class servlet-filter ^String path ^EnumSet dispatch-set)
+      (instance? FilterHolder servlet-filter) (.addFilter context ^FilterHolder servlet-filter ^String path ^EnumSet dispatch-set)
+      (string? servlet-filter) (.addFilter context ^String servlet-filter ^String path ^EnumSet dispatch-set)
+      :else (.addFilter context ^Filter servlet-filter ^String path dispatch-set))
+    context))
 

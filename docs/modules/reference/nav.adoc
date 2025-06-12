@@ -14,7 +14,6 @@
 ** HTTP Handling
 *** xref:servlet-interceptor.adoc[]
 *** xref:connector-map.adoc[]
-*** xref:service-map.adoc[]
 *** xref:request-map.adoc[]
 *** xref:response-map.adoc[]
 *** xref:response-bodies.adoc[]

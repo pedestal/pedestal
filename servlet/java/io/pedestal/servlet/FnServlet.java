@@ -25,7 +25,7 @@ import java.io.IOException;
  *
  * initFn (optional): passed servlet and ServletConfig instance
  * serviceFn (required): passed servlet, HttpServletRequest, HttpServletResponse
- * destroyFn (optiona): passed servlet
+ * destroyFn (optional): passed servlet
  *
  * @since 0.8.0
  */
@@ -42,7 +42,7 @@ public class FnServlet extends HttpServlet
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        if (initFn!= null) {
+        if (initFn != null) {
             initFn.invoke(this, config);
         }
     }

@@ -12,7 +12,7 @@ tradeoff is acceptable to your service.
 
 == How to use it?
 
-Add the key :io.pedestal.http/router to the xref:service-map.adoc[] with the
+Set the key :router in the xref:connector-map.adoc[] to the
 value :linear-search.
 
 == Caveats

@@ -13,20 +13,9 @@ containers and other kinds of virtualization), this is a long term
 feature of Pedestal that is still supported.
 
 
-In this deployed mode, the servlet container will instantiate an instance of a Pedestal-provided
-servlet class; when it initializes, the servlet will create a bridge from the Servlet world into the Pedestal world.  We'll cover the details below.
-
-== Structure of a WAR File
-
-We've mentioned deployments and WAR files, so let's detour into some more specifics about what a WAR file actually is.
-
-A WAR file is an archive file, like a .zip or .jar file, with a particular structure.
-
-* `WEB-INF/web.xml` -- file: deployment descriptor needed by the container
-* `WEB-INF/classes` -- directory: classpath resources: resource files and compiled Clojure namespaces
-* `WEB-INF/lib` -- directory: contains additional libraries that are needed by the application, such as Clojure and Pedestal
-
-This structure provides the servlet container with the information it needs to set up a classloader speficially for the deployed WAR file, and direct incoming HTTP requests into it.
+In this deployment mode, the servlet container will instantiate an instance of a Pedestal-provided
+servlet class; when the servlet initializes, it will create a bridge from the Servlet world into the Pedestal world.
+We'll cover the details below.
 
 == Overview
 
@@ -38,9 +27,21 @@ Finally, we'll demonstrate how to deploy the WAR file into a Jetty service runni
 
 You'll need to have Docker installed as part of this guide.
 
+== Structure of a WAR File
+
+We've mentioned deployments and WAR files, so let's detour into some more specifics about what a WAR file actually is.
+
+A WAR file is an archive file, like a .zip or .jar file, with a particular structure.
+
+* `WEB-INF/web.xml` -- file: deployment descriptor needed by the container
+* `WEB-INF/classes` -- directory of resource files and compiled Clojure namespaces
+* `WEB-INF/lib` -- directory containing additional libraries that are needed by the application, such as Clojure and Pedestal
+
+This structure provides the servlet container with the information it needs to set up a classloader specifically for the deployed WAR file, and direct incoming HTTP requests into it.
+
 == Dependencies
 
-As with the other examples, we'll define the dependencies of our project using a `deps.edn` file.
+As with the other guides, we'll define the dependencies of our project using a `deps.edn` file.
 
 
 [source,clojure]
@@ -68,7 +69,7 @@ and if the WAR file makes use of WebSockets it _must_ include the WebSocket API 
 and implementation files (classes implementing those interfaces).  These should be matched to the
 servlet container, so we're using the Jetty implementations here.
 
-Even though this application doesn't used WebSockets, the Pedestal libraries _do_ have WebSocket support built-in, so these dependencies must be included, even if they won't be actively used.
+Even though this application doesn't use WebSockets, the Pedestal libraries _do_ have WebSocket support built-in, so these dependencies must be included, even if they won't be actively used.
 
 == Clojure Service
 
@@ -105,7 +106,7 @@ Inside all this XML are three basic constructors:
 
 - The servlet handles _every_ request passed to it (that's the `/*`)
 - The servlet is class ConnectorServlet, provided by the `pedestal-servlet` library
-- The servlet invokes `org.example.war.service/create-bridge` function when it initializes
+- The servlet invokesthe function `org.example.war.service/create-bridge` when it initializes
 
 So, the request comes into the Jetty servlet container and it decides which WAR deployment it belongs to, then which servlet _inside_ the WAR deployment is responsible, then asks the servlet
 to do the work, which passes through the ConnectorBridge and into Pedestal to do the actual work.
@@ -113,7 +114,7 @@ to do the work, which passes through the ConnectorBridge and into Pedestal to do
 == Creating the WAR file
 
 To create a WAR file, we need to package up the sources, the deployment descriptor, and any
-libraries, such as `pedestal.servlet` and all the transitive dependencies. We can do this
+libraries, such as `pedestal.servlet` (and all the its transitive dependencies). We can do this
 in a quick-and-dirty style using a small amount of Clojure code.
 
 When we discussed dependencies, there was a :build alias: this build alias sets up `build`
@@ -175,14 +176,18 @@ computer after we're done.
 include::example$war/Dockerfile[]
 ----
 
-This Docker file starts with a standard Jetty 12 image and sets it up to deploy WAR files.
+A Dockerfile describes how to build a Docker image -- a snapshot of a virtual computer
+running some kind of Linux with everything installed and configured and ready to go.
+Most of the work was done for us in the image we extend from, and standard jetty 12 image.
+
+It's just a matter of enabling WAR deployments and copying the `app.war` file into the image.
 
 The WAR files go in the `/var/lib/jetty/webapps` folder inside the Docker image, and the special
 name `ROOT.war` is recognized by Jetty as a WAR file that deploys without any kind of prefix
 on the path.
 
-You can build this manually with `docker build ...`, but our final step is to show a simple
-script file that puts all the pieces together.
+You can build this manually with `docker build ...`, and run it with `docker run ...` ...
+but our final step is to show a simple script file that puts all the pieces together
 
 == Running Jetty
 
@@ -228,7 +233,7 @@ What's next:
 2025-06-06 23:27:34.846:INFO :oejs.Server:main: Started oejs.Server@8f4ea7c{STARTING}[12.0.22,sto=0] @677ms
 ```
 
-Again, there will be a lot of downloads the first time you run this script ... but in the end, Jetty starts up and immediately deploys the ROOT.war file.
+Again, there will be a lot of downloads the first time you run this script ... but in the end, Jetty starts up and immediately deploys the `ROOT.war` file.
 
 Jetty will continue to run until you enter kbd:[Ctrl-C], so in another window, you can use `curl` to send a request to the application:
 
@@ -269,7 +274,7 @@ provided by the default interceptors.
 == Conclusion
 
 Deploying a Pedestal application as a WAR file is a completely viable approach, especially
-useful when the Pedestal application must work with pure-Java servlets and servlet filters.
+useful when the Pedestal application must work along-side pure-Java servlets and servlet filters.
 
-In fact, the Clojure code in the smallest part of the effort - much work was needed to package up the code into a WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
+In fact, the Clojure code is the smallest part of this guide - much work was needed to package up the code into a WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
 
