@@ -166,9 +166,6 @@ Some exceptions should not be logged; by default, Pedestal will identify
 an exception that indicates a broken pipe to the client when sending the response; such errors will not be
 logged but will be quietly ignored.
 
-This logic can be altered using the xref:service-map.adoc[] :io.pedestal.http/service-fn-options key;
-the value is itself a map, and the key :exception-analyzer can be specified.
-
 An exception analyzer function is passed the xref:context-map.adoc[] and the unhandled exception;
 it may return nil to prevent the exception from being logged, or return the exception itself,
 or an alternate exception, to have that be the exception that is logged.

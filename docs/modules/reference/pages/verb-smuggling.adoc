@@ -27,8 +27,9 @@ that "smuggles" in the true request method.
 The api:method-param[ns=io.pedestal.http.route] interceptor extracts that query parameter value, converts
 it to a keyword, and updates the xref:request-map.adoc[] :request-method key.
 
-By default, the query parameter name is `_method`, but this can be configured in the xref:service-map.adoc[].
-It can even be configured to smuggle the verb via an HTTP header or a value stored in the request body.
+By default, the query parameter name is `_method`, but this can be configured
+when invoking the `method-param` function.
+
 
 
 

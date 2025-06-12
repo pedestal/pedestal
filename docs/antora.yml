@@ -28,3 +28,4 @@ asciidoc:
     clj-reload: link:https://tonsky.me/blog/clj-reload/[clj-reload]
     matcher-combinators: link:https://github.com/nubank/matcher-combinators[matcher-combinators]
     sse: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events[Server-sent events]
+    ring-spec: https://github.com/ring-clojure/ring/blob/master/SPEC.md[Ring request specification]

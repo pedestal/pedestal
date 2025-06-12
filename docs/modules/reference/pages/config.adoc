@@ -1,7 +1,7 @@
 = Configuration
 :page-toclevels: 1
 
-Pedestal primarily is configured via the xref:service-map.adoc[]; however, there are sub-systems within
+Pedestal primarily is configured via the xref:connector-map.adoc[]; however, there are sub-systems within
 Pedestal that can operate outside a service, or before a service map is used to create and start a server.
 
 These sub-systems are:

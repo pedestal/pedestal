@@ -136,8 +136,7 @@
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
                         route/query-params
                         (io.pedestal.http.body-params/body-params)
-                        (io.pedestal.http.secure-headers/secure-headers)
-                        route/query-params])))
+                        (io.pedestal.http.secure-headers/secure-headers)])))
 
 (defn start!
   "A convienience function for starting the connector.
