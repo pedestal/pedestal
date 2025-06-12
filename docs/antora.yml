@@ -1,7 +1,7 @@
 name: pedestal
 title: Pedestal
 version: 0.8
-prerelease: true
+prerelease: false
 nav:
   - modules/ROOT/nav.adoc
   - modules/guides/nav.adoc
@@ -20,7 +20,7 @@ asciidoc:
     api_doc_root: http://pedestal.io/api/0.8
     # Necessary to support the API link in the UI template (header dropdown):
     page-api_doc_root: "{api_doc_root}"
-    libs_version: 0.8.0-alpha-7
+    libs_version: 0.8.0-beta-1
     base-clojure-version: 1.11
     base-java-version: 11
     otel: "link:https://opentelemetry.io/[Open Telemetry]"

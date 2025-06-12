@@ -15,8 +15,8 @@
  :deps {org.clojure/clojure {:mvn/version "1.12.1"}
         org.clojure/core.async {:mvn/version "1.8.741"}
        org.clj-commons/pretty {:mvn/version "3.3.2"}
-        io.pedestal/pedestal.log {:mvn/version "0.8.0-alpha-7"}
-        io.pedestal/pedestal.common {:mvn/version "0.8.0-alpha-7"}}
+        io.pedestal/pedestal.log {:mvn/version "0.8.0-beta-1"}
+        io.pedestal/pedestal.common {:mvn/version "0.8.0-beta-1"}}
  :aliases
  {:local
   {:override-deps {io.pedestal/pedestal.log    {:local/root "../log"}
