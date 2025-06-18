@@ -1,5 +1,5 @@
 = WebSockets
-:default_api_ns: io.pedestal.websocket
+:default_api_ns: io.pedestal.service.websocket
 
 link:https://en.wikipedia.org/wiki/WebSocket[WebSockets] are an asynchronous and bidirectional connection between
 a client and a server.  Once a Websocket connection is established, either
@@ -36,14 +36,13 @@ Other annotations cover receiving text or binary messages from the client.
 == WebSockets in Pedestal
 
 POJOs and annotations make sense in Java, but do not fit well with Clojure, so Pedestal redefines this in terms
-of maps and Clojure functions as callbacks footnote:[Pedestal provides a Java class, `FnEndpont`, as the bridge between
-the Jakarta APIs and Clojure].
+of maps and Clojure functions as callbacks.
 
 Under Pedestal, a WebSocket request is routed like any other request, but the final interceptor
 must invoke
 api:upgrade-request-to-websocket[]
 instead of attaching a response.
-In many cases, the final interceptor is created via api:websocket-upgrade[].
+In many cases, the final interceptor is created via api:websocket-interceptor[].
 
 [NOTE]
 ====
@@ -52,13 +51,12 @@ examine or modify the :response key of the xref:context-map.adoc[] (in the :leav
 an entirely missing :response key.
 
 If some interceptor does attach a response key, it will be ignored once the request has been upgraded to a WebSocket request.
-
 ====
 
 
-== WebSocket Endpoint Map
+== WebSocket Options
 
-The behavior of the endpoint is defined in terms of a _websocket endpoint map_ which provides configuration for the WebSocket,
+The behavior of the endpoint is defined in terms of a _websocket options_ which provides configuration for the WebSocket,
 as well as callbacks for specific events in the WebSocket lifecyle.
 
 .Callbacks
@@ -66,47 +64,23 @@ as well as callbacks for specific events in the WebSocket lifecyle.
 | Key | Signature | Description
 
 | :on-open
-| (Session, EndpointConfig) -> Object
-| Invoked when the client first opens a connection.
+| (WebSocketChannel, Map) -> Object
+| Invoked when the client first opens a connection. Passed the channel and the xref:request-map.adoc[],
+  returns the _process object_.
 
 | :on-close
-| (Object, Session, CloseReason) -> nil
-| Invoked when the socket is closed, allowing any resources to be freed.
-
-| :on-error
-| (Object, Session, Throwable) -> nil
-| Passed any unexpected exception.
+| (WebSocketChannel, Object, Keyword) -> nil
+| Invoked when the socket is closed, allowing any resources to be freed. The callback is passed
+  a keyword indicating why the channel was closed.
 
 | :on-text
-| (Object, String) -> nil
-| Passed a text message from the client, as a single String.
+| (WebSocketChannel, String) -> nil
+| Callback: passed a received text message from the client, as a single String.
 
 | :on-binary
-| (Object, ByteBuffer) -> nil
-| Passed a binary message, as a single ByteBuffer.
+| (WebSocketChannel, ByteBuffer) -> nil
+| Callback: passed a received binary message, as a single ByteBuffer.
 
-| :configure
-| (ServerEndpointConfig$Builder) -> nil
-
-| Allows additional configuration using an instance of
-https://javadoc.io/static/jakarta.websocket/jakarta.websocket-api/2.2.0/jakarta/websocket/ClientEndpointConfig.Builder.html[ClientEndpointConfig.Builder].
-
-  This configuration occurs before the request is upgraded to a connection, and provides access to other configuration
-  options, such as encoders and decoders, that are not yet exposed by Pedestal's API.
-
-|===
-
-.Configuration
-|===
-| Key | Type | Description
-
-| :subprotocols
-| vector of String
-| Optional, specifies sub-protocols for the websocket connection
-
-| :idle-timeout-ms
-| long
-| Sets the max idle timeout for the websocket to a fixed value.
 |===
 
 Essentially, the :on-open callback is invoked when the client initiates the connection.
@@ -126,27 +100,34 @@ If no :on-open callback is provided, the value will be nil, and it will not be p
 to the client, only receive via the :on-text and :on-binary callbacks.
 ====
 
+[CAUTION]
+====
+When the container passes a ByteBuffer to the :on-message callback it is important that any reference to the ByteBuffer
+ends when the callback returns.
+
+The container will likely clear and resuse the ByteBuffer after code returns from the callback.
+
+Get the necessary data out of the ByteBuffer, or make a _deep_ copy of it, if your code needs the ByteBuffer's content
+past the end of the callback.
+
+Don't rely on `.asReadOnlyBuffer`; that makes a _shallow_ copy -- this can lead to truly awful bugs,
+because the underlying byte array or direct memory is shared and mutable.
+====
+
 The :on-text and :on-binary callbacks are invoked when a text or binary message from the client
 is received.
 
-== Limitiations
-
-The Jakarta WebSocket API supports receiving _partial_ messages, useful when streaming very large objects.
-The :on-text and :on-binary callbacks only support _whole_ objects.
-
-Likewise, the underlying APIs do provide support for streaming transmissions to the client, but
-the built-in approach to transmitting messages does not.
-
 == Transmitting Messages
 
-The Session passed to the :on-open callback contains further objects that are used to transmit
+The api:WebSocketChannel[] is passed to the :on-open callback contains further objects that are used to transmit
 messages to the client.
 
 Pedestal provides utility functions to make it easier to  transmit messages, in the form of
 a {core_async} channel.
 
-The function api:start-ws-connection[] is passed the Session and options, and sets up a transmission loop, driven
-by a channel, which is returns.
+The function api:start-ws-connection[] is passed the channel and options, and sets up a transmission loop,
+driven by a channel, which is returned.
+
 The transmission loop receives values from the channel, and transmits those values to the client.
 
 * A String is sent as a text message
@@ -158,20 +139,20 @@ The transmission loop receives values from the channel, and transmits those valu
 
 [IMPORTANT]
 ====
-Closing the channel will shut down the transmission loop, and close the WebSocket session.
+Closing the channel will shut down the transmission loop, and close the underlying web socket connection.
 ====
 
 As currently implemented, the transmission of messages is not fully asynchronous: the processing loop waits for
 each transmission to complete before it advances to the next value in the channel.
 
-The function api:on-open-start-ws-connection[]  wraps around `start-ws-connection`;
-it is passed options used to create the transmission loop, and returns a function that can be included in the websocket map as the :on-open callback.
+== Limitiations
 
-== WebSocketSendAsync
+The Jakarta WebSocket API supports receiving _partial_ messages, useful when streaming very large objects.
+The :on-text and :on-binary callbacks only support _whole_ objects.
 
-The api:WebSocketSendAsync[] protocol does the actual work of  transmitting a value (String
-or ByteBuffer) asynchronously. This protocol could be extended to, for example,
-convert EDN data to JSON before transmitting it to the client as a text message.
+Likewise, the underlying APIs do provide support for streaming transmissions to the client, but
+the built-in approach to transmitting messages does not.
+
 
 [#upgrade]
 == Upgrading from Pedestal 0.7
