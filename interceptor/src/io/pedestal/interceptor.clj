@@ -184,17 +184,20 @@
   (let [enter-fn        (or
                           (when (satisfies? OnEnter component)
                             (fn [context]
-                              (.enter component context)))
+                              ;; Looking for efficiency here and avoiding another protocol method lookup
+                              ;; even if it is not 100% correct (i.e., you could extend OnEnter onto some
+                              ;; other type).  This is intended to work with definterceptor.
+                              (.enter ^io.pedestal.interceptor.OnEnter component context)))
                           (when (satisfies? Handler component)
                             (impl/wrap-handler
                               (fn [request]
-                                (.handle component request)))))
+                                (.handle ^io.pedestal.interceptor.Handler component request)))))
         leave-fn        (when (satisfies? OnLeave component)
                           (fn [context]
-                            (.leave component context)))
+                            (.leave ^io.pedestal.interceptor.OnLeave component context)))
         error-fn        (when (satisfies? OnError component)
                           (fn [context exception]
-                            (.error component context exception)))
+                            (.error ^io.pedestal.interceptor.OnError component context exception)))
         interceptor-map (cond-> {:name interceptor-name}
                           enter-fn (assoc :enter enter-fn)
                           leave-fn (assoc :leave leave-fn)
@@ -203,9 +206,9 @@
 
 (def ^:private method->protocol
   {'handle `Handler
-   'enter   `OnEnter
-   'leave   `OnLeave
-   'error   `OnError})
+   'enter  `OnEnter
+   'leave  `OnLeave
+   'error  `OnError})
 
 (defn- expand-opts+specs
   "Decomposes the opts+specs to opts (an initial map),
