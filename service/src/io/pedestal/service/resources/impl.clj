@@ -20,7 +20,7 @@
            (java.nio.channels Channels FileChannel)
            (java.nio.file OpenOption StandardOpenOption)
            (java.util Date)
-           (java.util.jar JarFile)))
+           (java.util.jar JarEntry JarFile JarFile$JarFileEntry)))
 
 ;; This adapts some of the ideas from ring.util.response
 
@@ -46,7 +46,7 @@
   (BufferedInputStream. is 8192))
 
 (defn- make-streamable-file-body
-  [file]
+  [^File file]
   (fn [request]
     (if (should-stream? request (.length file))
       ;; This is mutable and should not be cached:
@@ -56,7 +56,7 @@
       file)))
 
 (defn- make-streamable-jar-entry-body
-  [jar-file jar-entry]
+  [^JarFile jar-file ^JarEntry jar-entry]
   (fn [request]
     (let [is ^InputStream (buffered (.getInputStream jar-file jar-entry))]
       (if (should-stream? request (.getSize jar-entry))
@@ -81,15 +81,15 @@
          result#))))
 
 (defmethod resource-data :file
-  [url *cache]
-  (when-let [file (from-cache *cache url (io/as-file url))]
+  [^URL url *cache]
+  (when-let [^File file (from-cache *cache url (io/as-file url))]
     {:last-modified   (util.io/last-modified-date file)
      :content-length  (.length file)
      :response-body   (fn [_] file)
      :streamable-body (make-streamable-file-body file)}))
 
 (defmethod resource-data :jar
-  [url *cache]
+  [^URL url *cache]
   (let [[_ file-path entry-path] (re-matches
                                    #"(?x)
     file:
@@ -100,8 +100,8 @@
         _             (assert file-path)
         _             (assert entry-path)
         ;; This opens the jar file, there's nothing to close it.
-        jar-file      (from-cache *cache file-path (-> file-path io/file JarFile.))
-        jar-entry     (.getJarEntry jar-file entry-path)
+        ^JarFile jar-file (from-cache *cache file-path (-> file-path io/file JarFile.))
+        jar-entry (.getJarEntry jar-file entry-path)
         ;; This should exist because we start at the URL for the file within the Jar
         _             (assert jar-entry)
         last-modified (-> jar-entry .getLastModifiedTime .toMillis Date.)]
@@ -134,7 +134,7 @@
       (find-file-starting-with dir "index.")))
 
 (defn url-for-file
-  [root-file path index-files?]
+  [^File root-file path index-files?]
   (when-not (traversal? path)
     (let [file  (if (= "" path)
                   root-file
