@@ -28,7 +28,7 @@
 (def ^:private preflight-fn (metrics/counter ::preflight nil))
 
 (defn- preflight
-  [{request :request :as context} origin {:keys [creds max-age methods]}]
+  [{request :request :as context} level origin {:keys [creds max-age methods]}]
   (let [requested-headers (get-in request [:headers "access-control-request-headers"])
         cors-headers      (merge {"Access-Control-Allow-Origin"  origin
                                   "Access-Control-Allow-Headers"
@@ -40,7 +40,8 @@
                                                                    "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS")}
                                  (when creds {"Access-Control-Allow-Credentials" (str creds)})
                                  (when max-age {"Access-Control-Max-Age" (str max-age)}))]
-    (log/info :msg "cors preflight"
+    (log/log level
+             :msg "cors preflight"
               :requested-headers requested-headers
               :headers (:headers request)
               :cors-headers cors-headers)
@@ -93,7 +94,7 @@
                   (cond
                     ;; origin is allowed and this is preflight
                     (and origin allowed preflight-request)
-                    (preflight context origin args)
+                    (preflight  context level origin args)
 
                     ;; origin is allowed and this is real
                     (and origin allowed (not preflight-request))
