@@ -90,6 +90,9 @@ capable of transmitting messages to the client asynchronously.
 It is the responsibility of the :on-open callback to create such a process, and to shut it down
 from an :on-close callback.
 
+The :on-text and :on-binary callbacks are invoked when a text or binary message from the client
+is received.
+
 [TIP]
 ====
 Whatever value is returned from the :on-open callback is retained, and passed as the second
@@ -111,8 +114,6 @@ Don't rely on `.asReadOnlyBuffer`; that makes a _shallow_ copy -- this can lead 
 because the underlying byte array or direct memory is shared and mutable.
 ====
 
-The :on-text and :on-binary callbacks are invoked when a text or binary message from the client
-is received.
 
 == Transmitting Messages
 
