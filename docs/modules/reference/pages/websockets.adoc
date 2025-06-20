@@ -74,11 +74,11 @@ as well as callbacks for specific events in the WebSocket lifecyle.
   a keyword indicating why the channel was closed.
 
 | :on-text
-| (WebSocketChannel, String) -> nil
+| (WebSocketChannel, Object, String) -> nil
 | Callback: passed a received text message from the client, as a single String.
 
 | :on-binary
-| (WebSocketChannel, ByteBuffer) -> nil
+| (WebSocketChannel, Object, ByteBuffer) -> nil
 | Callback: passed a received binary message, as a single ByteBuffer.
 
 |===
@@ -92,7 +92,7 @@ from an :on-close callback.
 
 [TIP]
 ====
-Whatever value is returned from the :on-open callback is retained, and passed as the first
+Whatever value is returned from the :on-open callback is retained, and passed as the second
 argument to the :on-close, :on-error, :on-text, and :on-binary callbacks.
 This can be a single value, such as a {core_async} channel, or a map, or whatever your application needs it to be.
 
@@ -102,10 +102,10 @@ to the client, only receive via the :on-text and :on-binary callbacks.
 
 [CAUTION]
 ====
-When the container passes a ByteBuffer to the :on-message callback it is important that any reference to the ByteBuffer
+When the container passes a ByteBuffer to the :on-binary callback it is important that any reference to the ByteBuffer
 ends when the callback returns.
 
-The container will likely clear and resuse the ByteBuffer after code returns from the callback.
+The container will likely clear and resuse the ByteBuffer after executing your callback.
 
 Get the necessary data out of the ByteBuffer, or make a _deep_ copy of it, if your code needs the ByteBuffer's content
 past the end of the callback.
@@ -119,20 +119,20 @@ is received.
 
 == Transmitting Messages
 
-The api:WebSocketChannel[] is passed to the :on-open callback contains further objects that are used to transmit
-messages to the client.
+The api:WebSocketChannel[] that is passed to the :on-open callback contains further methods that are used to transmit
+text or binary messages to the client.
 
 Pedestal provides utility functions to make it easier to  transmit messages, in the form of
 a {core_async} channel.
 
-The function api:start-ws-connection[] is passed the channel and options, and sets up a transmission loop,
-driven by a channel, which is returned.
+The function api:start-ws-connection[] is passed the WebSocketChannel and an
+options map, and sets up a transmission loop, driven by a core.async channel, which is returned.
 
-The transmission loop receives values from the channel, and transmits those values to the client.
+The transmission loop receives values from the returned channel, and transmits those values to the client.
 
 * A String is sent as a text message
 * A ByteBuffer is sent as a binary message
-* A vector is used to monitor the result, asynchronously.
+* A vector is used to monitor the result, asynchronously:
   ** The first element is the value to transmit (String or ByteBuffer)
   ** The second element is a channel that will convey the transmission result
   ** The result is either :success, or an Exception (if unable to transmit the message)
