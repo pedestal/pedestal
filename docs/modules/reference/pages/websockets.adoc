@@ -95,9 +95,6 @@ from an :on-close callback.
 Whatever value is returned from the :on-open callback is retained, and passed as the second
 argument to the :on-close, :on-error, :on-text, and :on-binary callbacks.
 This can be a single value, such as a {core_async} channel, or a map, or whatever your application needs it to be.
-
-If no :on-open callback is provided, the value will be nil, and it will not be possible to transmit messages
-to the client, only receive via the :on-text and :on-binary callbacks.
 ====
 
 [CAUTION]
@@ -105,7 +102,7 @@ to the client, only receive via the :on-text and :on-binary callbacks.
 When the container passes a ByteBuffer to the :on-binary callback it is important that any reference to the ByteBuffer
 ends when the callback returns.
 
-The container will likely clear and resuse the ByteBuffer after executing your callback.
+The container will likely clear and reuse the ByteBuffer after executing your callback.
 
 Get the necessary data out of the ByteBuffer, or make a _deep_ copy of it, if your code needs the ByteBuffer's content
 past the end of the callback.
