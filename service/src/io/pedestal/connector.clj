@@ -120,11 +120,13 @@
   ------            |---
   :allowed-origins  | Passed to [[allow-origin]]
   :session-options  | If non-nil, passed to [[session]]
-  :extra-mime-types | Passed to [[content-type]]"
+  :extra-mime-types | Passed to [[content-type]]
+  :secure-headers   | Passed to [[secure-headers]]"
   [connector-map & {:as options}]
   (let [{:keys [allowed-origins
                 session-options
-                extra-mime-types]} options]
+                extra-mime-types
+                secure-headers]} options]
     (with-interceptors connector-map
                        [(tracing/request-tracing-interceptor)
                         interceptors/log-request
@@ -136,7 +138,7 @@
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
                         route/query-params
                         (io.pedestal.http.body-params/body-params)
-                        (io.pedestal.http.secure-headers/secure-headers)])))
+                        (io.pedestal.http.secure-headers/secure-headers secure-headers)])))
 
 (defn start!
   "A convienience function for starting the connector.

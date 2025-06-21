@@ -1,0 +1,17 @@
+<configuration scan="true" scanPeriod="1 seconds">
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-5level %logger - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="debug">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="org.eclipse.jetty" level="warn"/>
+    <logger name="io.pedestal" level="warn"/>
+    <logger name="io.pedestal.interceptor.chain.debug" level="debug"/>
+
+</configuration>

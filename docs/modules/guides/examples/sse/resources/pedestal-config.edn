@@ -1,0 +1,2 @@
+{:io.pedestal.telemetry.metric-source org.example.sse.telemetry-init/metric-source
+ :io.pedestal.telemetry.tracing-source org.example.sse.telemetry-init/tracing-source}
