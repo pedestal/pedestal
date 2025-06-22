@@ -1,7 +1,7 @@
 = Configuration
 :page-toclevels: 1
 
-Pedestal primarily is configured via the xref:service-map.adoc[]; however, there are sub-systems within
+Pedestal primarily is configured via the xref:connector-map.adoc[]; however, there are sub-systems within
 Pedestal that can operate outside a service, or before a service map is used to create and start a server.
 
 These sub-systems are:
@@ -11,10 +11,17 @@ These sub-systems are:
 - xref:metrics.adoc[]
 - Tracing
 
-For all but Developer Mode{empty}footnote:[Developer mode is the exception, as it resolves to
-a boolean value, rather than a function to execute.], Pedestal operates in terms of a configuration function: The configuration
-function is specified in one of several ways, and this is resolved to a particular var in a namespace, which
-is invoked to return a needed value.
+
+== Configuration Values
+
+Configuration values are one of the following types:
+
+- boolean
+- keyword
+- function
+
+For functions config types, the value is converted to a fully qualified symbol and that is resolved
+to a function.
 
 == Configuration Order
 
@@ -38,6 +45,26 @@ only be on the classpath during local testing (typically, stored in `test-resour
 When necessary, these values can be overrridden when deployed to a staging or production deployment using
 environment variables or JVM system properties.
 
+If you only occasionally need to set a configuration value, this can be done from the
+command line by using the `-J` switch:
+
+    clj -J-Dio.pedestal.dev-mode=true ...
+
+Alternately, you can update your `deps.edn` file, associating a JVM option with an alias:
+
+[source]
+----
+   ...
+   :aliases
+     {:dev-mode
+       {:jvm-opts ["-Dio.pedestal.dev-mode=true"]}
+   ...
+----
+
+You can then reference the alias when starting a REPL session:
+
+    clj -A:dev-mode ...
+
 == EDN Configuration Files
 
 The contents of `pedestal-config.edn` (and `pedestal-test-config.edn`) are EDN maps.
@@ -56,6 +83,13 @@ of configuration has its own interpretation of the Var.
 The following section list the current configuration values; each heading identifies the JVM system property,
 then the equivalent environment variable.
 
+[#dev-mode]
+=== io.pedestal.dev-mode / PEDESTAL_DEV_MODE
+
+- type: boolean
+
+Enables xref:dev-mode.adoc[].
+
 === io.pedestal.log.overrideLogger / PEDESTAL_LOGGER
 
 - type: function
@@ -73,12 +107,22 @@ When not specified, clj:pr-str[] is used.
 [#disable-handler-names]
 === io.pedestal.interceptor.disable-default-handler-names / PEDESTAL_DISABLE_DEFAULT_HANDLER_NAMES
 
+
 - type: boolean
 - default: false
 
 If true, then Pedestal will not automatically convert
 xref:interceptors.adoc#handler[handler function] class names to an interceptor name (the interceptor
 will be anonymous instead).
+
+[#suppress-deprecation-warnings]
+=== io.pedestal.suppress-deprecation-warnings / PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS
+
+- type: boolean
+
+- default: false
+
+If true, then deprecation warnings are suppressed.
 
 === io.pedestal.telemetry.metric-source / PEDESTAL_METRICS_SOURCE
 

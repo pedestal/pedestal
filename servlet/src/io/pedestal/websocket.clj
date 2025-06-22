@@ -190,20 +190,18 @@
   Returns nil."
   {:deprecated "0.8.0"}
   [^ServerContainer container ^String path ws-endpoint-map]
-  ^{:in "0.8.0"}
-  (deprecated `add-endpoint
-              (let [config (create-server-endpoint-config path ws-endpoint-map)]
-                (.addEndpoint container config)
-                nil)))
+  (deprecated `add-endpoint :in "0.8.0")
+  (let [config (create-server-endpoint-config path ws-endpoint-map)]
+    (.addEndpoint container config)
+    nil))
 
 (defn add-endpoints
   "Adds all websocket endpoints in the path-map."
   {:deprecated "0.8.0"}
   [^ServerContainer container websockets-map]
-  ^{:in "0.8.0"}
-  (deprecated `add-endpoints
-    (doseq [[path endpoint] websockets-map]
-      (add-endpoint container path endpoint))))
+  (deprecated `add-endpoints :in "0.8.0")
+  (doseq [[path endpoint] websockets-map]
+    (add-endpoint container path endpoint)))
 
 (defprotocol WebSocketSendAsync
   (ws-send-async [msg ^RemoteEndpoint$Async remote-endpoint]

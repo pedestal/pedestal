@@ -1,130 +1,63 @@
 = Default Interceptors
+:default_api_ns: io.pedestal.service.interceptors
 
-== Description
+Pedestal provides a "default set" of interceptors when using
+the api:with-default-interceptors[ns=io.pedestal.channel] function.
 
-If your xref:service-map.adoc[] does not include the key
-:io.pedestal.http/interceptors, then Pedestal will create a vector of
-default interceptors for you.
-
-The default interceptors are added to your service map when you call
-either
-api:create-servlet[], or api:create-server[].
-
-This document explains which interceptors are added under different
-conditions. Each interceptor has its own documentation that describes
-its specific behavior.
-
-== Modifying the Default Stack
-
-If your service map already includes the key
-:io.pedestal.http/interceptors when you call one of the `create-`
-functions, then Pedestal won't add the default interceptors. So what
-should you do if you want to use the default interceptors, but want to
-add your own interceptors to the default stack?
-
-The solution is to call
-api:default-interceptors[]
-yourself, _before_ calling `create-server` or `create-servlet`. That
-way, `default-interceptors` can build the default stack, then your
-application code has an opportunity to modify it. By the time you call
-`create-server` or `create-servlet`, the
-:io.pedestal.http/interceptors key will have your modified version
-of the default interceptors.
-
-Here is an example of adding interceptors to perform authentication
-and authorization on every request. (Assuming we have a namespace
-`auth` with functions to construct these interceptors given a
-configuration.)
-
-[source,clojure]
-----
-(defn service
-  [service-map authn-config authz-config]
-  (-> service-map
-      (http/default-interceptors)                                                 ;; <1>
-      (update ::http/interceptors conj (auth/authentication-interceptor authn-config)) ;; <2>
-      (update ::http/interceptors conj (auth/authorization-interceptor authz-config))  ;; <3>
-      (http/create-server)))                                                      ;; <4>
-----
-<1> Attach the default interceptors to our service map
-<2> Modify the defaults to add authentication.
-<3> modify the defaults to add authorization.
-<4> Create the server as usual. This would normally attach the defaults, but will skip that because we've set them up ourselves.
-
-
-== Default Interceptors
-
-Some of the default interceptors are conditional. Pedestal adds them
-when other parts of the service map indicate a need for an
-interceptor. These will be noted below.
 
 These are presented in the order that they appear in the interceptor
 vector. That means their :enter functions will be called in the order
 they appear in this document, and their :leave functions are called
 in reverse order.
 
-The following identifies the interceptor by their var or function, in the order they are
-added by `default-interceptors`.
+The following identifies the interceptor by their var or function, in the order they may be
+added by `with-default-interceptors`.
 
-=== api:request-tracing-interceptor[ns=io.pedestal.http.tracing]
+== api:request-tracing-interceptor[ns=io.pedestal.http.tracing]
 
-Always added, unless the :io.pedestal.http/tracing options is set to nil.
+Collects {otel} data.
 
-=== api:log-request[]
+== api:log-request[]
 
-Always added. Logs each request at `info` level. See xref:logging.adoc[]
+Logs each request at `info` level. See xref:logging.adoc[]
 to configure loggers and logging levels.
 
-=== api:allow-origin[]
+== api:allow-origin[ns=io.pedestal.http.cors]
 
-Added when the service map has a value for :io.pedestal.http/allowed-origins.
+Added only when the options include :allowed-origins.
 
-=== api:not-found[]
+== api:not-found[]
 
-Always added. However, if the service map includes a value for
-:io.pedestal.http/not-found-interceptor, then that interceptor will
-be used in this position instead of the built-in.
+Provides a 404 Not Found response when not :response is yet added to the context map; typically
+because the incoming request could not be matched to a route.
 
-=== api:session[ns=io.pedestal.http.ring-middlewares]
+== api:session[ns=io.pedestal.http.ring-middlewares]
 
-Added when the service map has a value for
-:io.pedestal.http/enable-session or :io.pedestal.http/enable-csrf.
+Adds support for per-client session tracking; added to the connector map when :session-options are provided.
 
-=== api:anti-forgery[ns=io.pedestal.http.csrf]
+== api:content-type[ns=io.pedestal.http.ring-middlewares]
 
-Added when the service map includes a value for :io.pedestal.http/enable-csrf.
+Applies a `Content-Type` header to a response if missing by mapping the
+file name extension in the request's URI.
 
-=== api:content-type[ns=io.pedestal.http.ring-middlewares]
+== api:query-params[ns=io.pedestal.http.route]
 
-Always added.
+Parses the :query-string into the :query-params map added to the request.
 
-=== api:query-params[ns=io.pedestal.http.route]
+== api:body-params[ns=io.pedestal.http.body-params]
 
-Always added.
+Uses the request's `Content-Type` header to determine
+xref:parameters.adoc#body-parameters[how to parse the request :body into data].
 
-=== api:method-param[ns=io.pedestal.http.route]
+== api:secure-headers[ns=io.pedestal.http.secure-headers]
 
-Always added.
+Adds security-related headers to the outgoing response.
 
-=== api:resource[ns=io.pedestal.http.ring-middlewares]
 
-Added when the service map has a value for :io.pedestal.http/resource-path.
-
-=== api:file[ns=io.pedestal.http.ring-middlewares]
-
-Added when the service map has a value for :io.pedestal.http/file-path.
-
-=== api:secure-headers[ns=io.pedestal.http.secure-headers]
-
-Added when the service map has a non-nil value for
-:io.pedestal.http/secure-headers or when the service map does not
-include the key :io.pedestal.http/secure-headers at all.
-
-=== api:router[ns=io.pedestal.http.route]
-
-Always added.
-
-=== api:path-params-decoder[ns=io.pedestal.http.route]
-
-Added unless :io.pedestal.http/path-params-decoder is not is set to nil.
+[CAUTION]
+====
+`with-default-interceptors` is intended as scaffolding; a Pedestal application
+should replace the call to `with-default-interceptors` with the exact interceptors
+it requires, configured according the application's needs.
+====
 

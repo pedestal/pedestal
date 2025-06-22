@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2015-2016 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -446,9 +446,8 @@
   the request satisfies all path and query constraints."
   {:deprecated "0.8.0"}
   [route]
-  ^{:in "0.8.0"}
-  (internal/deprecated `add-satisfies-constraints?
-    (route.internal/add-satisfies-constraints? route)))
+  (internal/deprecated `add-satisfies-constraints? :in "0.8.0")
+  (route.internal/add-satisfies-constraints? route))
 
 (defn router
   "Given a sequence of routes, return a router function."

@@ -40,8 +40,7 @@ call to api:table-routes[ns=io.pedestal.http.route.definition.table].
 Other applications might invoke `table/table-routes` directly.
 
 In either case, this value is provided
-to api:with-routes[ns=io.pedestal.connector], or as the ::http/routes key of the
-xref:service-map.adoc[].
+to api:with-routes[ns=io.pedestal.connector].
 
 TIP: Pedestal 0.7 only supported a single set of routes; but `with-routes` supports any number
 of routes, which are merged together.

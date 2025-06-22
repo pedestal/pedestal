@@ -3,7 +3,7 @@
 
 Although most of Pedestal is focused on _dynamic_ routes, nearly all HTTP-based applications will have some amount of static resources that need to be client accessible as well.
 
-These resources take the form of either plain files on the file system, or virtual files available on the https://docs.oracle.com/javase/tutorial/essential/environment/paths.html:[Java classpath].
+These resources take the form of either plain files on the host's file system, or virtual resource files available on the https://docs.oracle.com/javase/tutorial/essential/environment/paths.html:[Java classpath].
 
 The classpath includes not just the code of your application, but the code for the Pedestal library, and any other dependencies you have defined for your project.
 
@@ -28,7 +28,7 @@ The preferred approach is to add routes for resources to your application.
         (resources/file-routes {:file-root "web/public"}))) <2>
 ----
 <1> This is where you would put the dynamic routes for your application.
-<2> This exposes any files stored in the `web/public` folder under the default URI path `/public`.
+<2> This exposes any files stored in the `web/public` folder under the default URI path `/`.
 
 The api:with-routes[ns=io.pedestal.connector] macro will expand and combine the routes together to form the full routing table.
 
@@ -97,7 +97,9 @@ The default used when the :classloader option is nil is the context class loader
 [#table-options]
 === Table route options
 
-Finally, the options map will _also_ be passed to
+The arguments to these above functions are used to create a set of table routes.
+
+The options map will _also_ be passed to
 api:table-routes[ns=io.pedestal.http.route.definition.table], so you may use the keys it
 supports; particularly :scheme, :port, and :interceptors.
 

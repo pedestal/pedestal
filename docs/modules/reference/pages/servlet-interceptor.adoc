@@ -2,10 +2,11 @@
 
 The servlet interceptor footnote:[Poorly named, for historical reasons, as it is neither a servlet nor an interceptor, but actually the bridge between the two.] is the bridge between the Java Servlet API and Pedestal's
 interceptor chain. It is created when an application calls
-api:create-server[] or api:create-servlet[]; ultimately, the function
-api:service-fn[],
-calls api:http-interceptor-service-fn[ns=io.pedestal.http.impl.servlet-interceptor],
-results in the ::http/service-fn context map key; this is a function that accepts
+api:create-bridge[ns=io.pedestal.connector.servlet]
+which is turn calls
+calls api:http-interceptor-service-fn[ns=io.pedestal.http.impl.servlet-interceptor].
+
+This results in a service function that accepts
 the servlet, servlet request and servlet response (as defined by the Servlet API)
 and executes an interceptor chain, as a xref:chain-providers.adoc[chain provider],
 to handle an incoming HTTP request.

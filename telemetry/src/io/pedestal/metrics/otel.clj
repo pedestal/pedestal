@@ -15,8 +15,8 @@
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.telemetry.internal :as i])
   (:import (io.opentelemetry.api.common Attributes)
-           (io.opentelemetry.api.metrics DoubleCounter DoubleHistogram
-                                         LongCounter LongHistogram Meter ObservableDoubleMeasurement ObservableLongMeasurement)
+           (io.opentelemetry.api.metrics DoubleCounter DoubleGaugeBuilder DoubleHistogram
+                                         DoubleHistogramBuilder LongCounter LongCounterBuilder LongHistogram Meter ObservableDoubleMeasurement ObservableLongMeasurement)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
@@ -41,42 +41,44 @@
 (defn- new-counter
   [^Meter meter metric-name attributes]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
-        as-doubles?          (use-doubles? attributes)
-        ^LongCounter counter (-> (.counterBuilder meter (convert-metric-name metric-name))
-                                 (cond->
-                                   as-doubles? .ofDoubles
-                                   description (.setDescription description)
-                                   unit (.setUnit unit))
-                                 .build)
-        attributes'          (map->Attributes attributes)]
+        as-doubles? (use-doubles? attributes)
+        ^LongCounterBuilder builder'
+                    (-> (.counterBuilder meter (convert-metric-name metric-name))
+                        (cond->
+                          description (.setDescription description)
+                          unit (.setUnit unit)))
+        attributes' (map->Attributes attributes)]
     (if as-doubles?
-      (fn
-        ([]
-         (.add ^DoubleCounter counter 1.0 attributes'))
-        ([^double increment]
-         (.add ^DoubleCounter counter increment attributes')))
-      (fn
-        ([]
-         (.add ^LongCounter counter 1 attributes'))
-        ([^long increment]
-         (.add ^LongCounter counter increment attributes'))))))
+      (let [counter (-> builder' .ofDoubles .build)]
+        (fn
+          ([]
+           (.add counter 1.0 attributes'))
+          ([^double increment]
+           (.add counter increment attributes'))))
+      (let [counter (.build builder')]
+        (fn
+          ([]
+           (.add counter 1 attributes'))
+          ([^long increment]
+           (.add counter increment attributes')))))))
 
 (defn- new-histogram
   [^Meter meter metric-name attributes]
   (let [{:io.pedestal.metrics/keys [description unit]} attributes
         as-longs?   (not (use-doubles? attributes))
-        histogram   (-> (.histogramBuilder meter (convert-metric-name metric-name))
+        ^DoubleHistogramBuilder builder
+                    (-> (.histogramBuilder meter (convert-metric-name metric-name))
                         (cond->
-                          as-longs? .ofLongs
                           description (.setDescription description)
-                          unit (.setUnit unit))
-                        .build)
+                          unit (.setUnit unit)))
         attributes' (map->Attributes attributes)]
     (if as-longs?
-      (fn [^long value]
-        (.record ^LongHistogram histogram value attributes'))
-      (fn [^double value]
-        (.record ^DoubleHistogram histogram value attributes')))))
+      (let [histogram (-> builder .ofLongs .build)]
+        (fn [^long value]
+          (.record ^LongHistogram histogram value attributes')))
+      (let [histogram (.build builder)]
+        (fn [^double value]
+          (.record histogram value attributes'))))))
 
 (defn- new-gauge
   [^Meter meter metric-name attributes value-fn]
@@ -89,13 +91,15 @@
                           (.record ^ObservableLongMeasurement measurement (value-fn) attributes')))
                       (reify Consumer
                         (accept [_ measurement]
-                          (.record ^ObservableDoubleMeasurement measurement (value-fn) attributes'))))]
-    (-> (.gaugeBuilder meter (convert-metric-name metric-name))
-        (cond->
-          as-longs? .ofLongs
-          description (.setDescription description)
-          unit (.setUnit unit))
-        (.buildWithCallback callback))))
+                          (.record ^ObservableDoubleMeasurement measurement (value-fn) attributes'))))
+        ^DoubleGaugeBuilder builder
+                    (-> (.gaugeBuilder meter (convert-metric-name metric-name))
+                        (cond->
+                          description (.setDescription description)
+                          unit (.setUnit unit)))]
+    (if as-longs?
+      (-> builder .ofLongs (.buildWithCallback callback))
+      (.buildWithCallback builder callback))))
 
 ;; Future work:
 ;; Tag to configure granularity of the timer

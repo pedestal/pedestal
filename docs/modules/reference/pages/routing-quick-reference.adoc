@@ -1,5 +1,5 @@
 = Routing Quick Reference
-::default_api_ns: io.pedestal.http.route
+:default_api_ns: io.pedestal.http.route
 
 _Routing_ is the process by which an incoming request is analyzed to determine how it
 will be processed by Pedestal.
@@ -23,8 +23,8 @@ for operations (status, metrics, management, and so forth) on a different port.
 ====
 Defining routes and setting up the servlet container are two separate functions; just because you have
 a route mapped to a port or host doesn't mean that the servlet container is configured to accept
-requests for that port or host. You have to connect those dots by setting up the servlet container's
-configuration in the xref:connector-map.adoc[] (or xref:service-map.adoc[]).
+requests for that port or host. It is your responsibility to connect those dots by setting up the servlet container's
+configuration in the xref:connector-map.adoc[].
 ====
 
 == Library
@@ -36,12 +36,12 @@ routers. It can be used independently of the pedestal-service library.
 == Route Specifications vs. Routing Functions vs. Routing Interceptor
 
 Pedestal is data driven, and the routing information starts in one form (as data) and is then
-transformed in a couple of stages to reach a final result that can be used to route incoming requests.
+transformed in a series of stages to reach a final result that can be used to route incoming requests.
 
 The start is the route specification.
 Pedestal has three built-in formats for route specification:
 table, terse, and verbose.  Table is the newest format footnote:[But still old - the table format dates back to 2016]
-and is the preferred format; the others are maintained for compatibility.
+and is the preferred format; the others are maintained for backwards compatibility reasons.
 
 For each of the built-in formats, there is a function that can convert that specific format
 into a _routing fragment_. One or more fragments are then combined to form the routing table.
@@ -80,7 +80,8 @@ with different limitations and trade-offs.  The default is Sawtooth (api:router[
 The router constructor returns a _Routing function_ encapsulating the routing table and the strategy.
 
 The routing function is passed the request and returns a vector of two values on success: the matching route, then the map
-of path parameters.  On failure, the routing function returns nil.
+of path parameters.  On failure, when the incoming request can not be matched to
+a route, the routing function returns nil.
 
 The routing interceptor is built around the routing function; its job
 it to combine the routing function and the current request to identify the route, if any,
@@ -90,14 +91,14 @@ xref:request-map.adoc[], and queues up route-specific interceptors to handle the
 [TIP]
 ====
 There are actually two different implementations of the interceptor; the production one is used
-in the normal case, where the routing table is an actual value.  During development,
+in the normal case, where the routing table is an actual value.  Under
+xref:dev-mode.adoc[development mode],
 the routing table may be a function that returns the routing table; in which case, the routing
 function is rebuilt _on every request_.
 ====
 
 Generally, all of this is automatic; an application provides routes to
-the api:with-routes[ns=io.pedestal.connector] function, or provides a route specification in the :io.pedestal.http/route key
-of the xref:service-map.adoc[] (and perhaps a value for :io.pedestal.http/router) and a routing
+the api:with-routes[ns=io.pedestal.connector] function and a routing
 interceptor is automatically created.
 
 == Route Specifications
@@ -126,14 +127,14 @@ function converts any kind of specification(s) into a routing table:
 
 This mapping from value type to specification type is the responsibility of the
 api:ExpandableRoutes[ns=io.pedestal.http.route] protocol, which is
-extended on Map, Set, and Vector.
+extended on to the Map, Set, and Vector classes.
 
-TIP: `ExpandableRoutes` is only needed when Pedestal is provided with routes as data (a Set, Vector, or Map)
+TIP: ExpandableRoutes is only needed when Pedestal is provided with routes as data (a Set, Vector, or Map)
 It is also perfectly valid to build the routes explicitly, by directly
 calling api:table-routes[ns=io.pedestal.http.route.definition.table].
 
 It's not impossible that your application has specific needs that can't be met by any of the
-built-in formats and, as is often the case in Pedestal.
+built-in formats.
 To support a new syntax, come up with a syntax that resolves to new record type that implements the
 ExpandableRoutes protocol.
 
@@ -144,8 +145,8 @@ formats, plus the results of directly calling a definition function, such as
 [#routing-table]
 == Routing Table
 
-The expanded routing table is a wrapper object containing a :routes key;
-The routes is a seq of routing maps, with the following structure:
+The expanded routing table is a wrapper object containing a :routes key,
+a seq of routing maps, with the following structure:
 
 [source,clojure]
 ----
@@ -207,24 +208,14 @@ but also allows for different trade-offs in the algorithm used by each Router.  
 can provide its own router rather than use one of Pedestal's.
 
 When configuring Pedestal using a xref:connector-map.adoc[], the :router key (which defaults to :sawtooth)
-is the name of a built-in router constructor function, or a specific router constructor function.
-
-When your application starts a Pedestal service with
-api:create-servlet[ns=io.pedestal.http] or
-api:create-server[ns=io.pedestal.http],
-Pedestal creates a router, using the following keys from the service map:
-
-|===
-| Key | Meaning
-
-| :io.pedestal.http/routes | A route specification
-| :io.pedestal.http/router | Key to select a router, or a function that constructs a router from a routing table
-|===
-
-When the router is specified as a keyword, it selects one of the built-in algorithms:
+is the name of a built-in router constructor function:
 
 |===
 | Keyword | Router | Performance
+
+| :sawtooth (default router)
+| xref:sawtooth-router.adoc[Sawtooth]
+| High performance, better conflict resolution, reports conflicts
 
 | :map-tree
 | xref:map-tree-router.adoc[Map Tree]
@@ -235,9 +226,6 @@ When the router is specified as a keyword, it selects one of the built-in algori
 | xref:prefix-tree-router.adoc[Prefix Tree]
 | High performance, space efficient
 
-| :sawtooth (default router)
-| xref:sawtooth-router.adoc[Sawtooth]
-| High performance, better conflict resolution, reports conflicts
 
 | :linear-search
 | xref:linear-search-router.adoc[Linear Search]
@@ -245,11 +233,13 @@ When the router is specified as a keyword, it selects one of the built-in algori
 
 |===
 
+Alternately, the :router key may be a application-provided router constructor function.
+
 == Routing Interceptor
 
 The function api:router[ns=io.pedestal.http.route] is where it all comes together;
-this function is passed the routing table and the router type; from that it creates
-the router function, and then, at the end, creates an interceptor that performs routing, which it returns.
+this function is passed the routing table and the router type (that is, the value for the :router key in the connection map); from that it creates
+the routing function, and then, at the end, creates an interceptor that performs routing, which it returns.
 
 During request execution, on a successful routing, the following keys are added in the context map:
 

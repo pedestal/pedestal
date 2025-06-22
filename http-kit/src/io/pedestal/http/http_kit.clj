@@ -108,6 +108,7 @@
                             {:ip   host
                              :port port})
         *server      (atom nil)
+        initial-context' (response/terminate-when-response initial-context)
         root-handler (fn [request]
                        (let [{:keys [uri async-channel]} request
                              response-commited-ch (chan)
@@ -119,7 +120,7 @@
                                                         (response-committer response-commited-ch)
                                                          response-converter]
                                                         interceptors)
-                             context              (-> initial-context
+                             context              (-> initial-context'
                                                       (assoc :request request'
                                                              :websocket-channel-source async-channel)
                                                       (chain/on-enter-async (fn [_]

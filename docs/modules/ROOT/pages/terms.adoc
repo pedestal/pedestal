@@ -3,15 +3,16 @@
 Understanding Pedestal comes with the challenge of unpacking a number of terms - some specific to Pedestal, others
 inherited from the underlying technologies Pedestal extends from.
 
-chain provider::
-Creates and executes an interceptor chain, with some behaviors reflecting a specific domain - the normal domain
-is processing HTTP requests.
 
 clj::
 Also called "tools.deps", this is the name of a build tool for Clojure.
 link:https://clojure.org/reference/deps_and_cli[clj] is more recent than Leiningen and has a very different model, but can perform the same key functions:
 downloading dependencies (from Maven repositories and elsewhere) and running Clojure programs.
 Projects with a `deps.edn` file at the root are built using `clj`.
+
+connector map::
+The xref:reference:connector-map.adoc[] is used to configure a Pedestal connector, primarily
+in terms of interceptors and routing.
 
 context map::
 The xref:reference:context-map.adoc[] contains data about the ongoing request; a context map is passed to
@@ -89,17 +90,12 @@ server::
 A server is responsible for low-level communication with HTTP clients; A _server map_ is created from the service map,
 and can be used to start and stop the server. Many examples use the xref:reference:jetty.adoc[] server implementation.
 
-service map::
-The xref:reference:service-map.adoc[] is a collection of data that is used to setup request routing and interceptors,
-and ultimately create a server.
 
 servlet::
 The standard Java term for a request handler - a link:https://en.wikipedia.org/wiki/Jakarta_Servlet[servlet]
 operates in the context of a server and processes incoming requests.
 In Pedestal, a generic servlet is created and configured, and feeds incoming requests into a pipeline of interceptors.
 
-servlet interceptor::
-A chain provider specific to handling HTTP requests from a servlet.
 
 SLF4J::
 The link:https://www.slf4j.org/[Simple Logging Facade for Java], a generic wrapper around several competing

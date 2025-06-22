@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -403,17 +403,16 @@
   the `interceptor-key` functions are invoked in order. As this happens, the
   Interceptors are pushed on to a stack."
   ([context interceptor-key]
-   ^{:in "0.7.0"}
-   (i/deprecated `execute-only
-     (let [context (some-> context
-                           begin
-                           (process-all interceptor-key)
-                           terminate
-                           process-any-errors
-                           end)]
-       (if-let [ex (::error context)]
-         (throw ex)
-         context))))
+   (i/deprecated `execute-only :in "0.7.0")
+   (let [context (some-> context
+                         begin
+                         (process-all interceptor-key)
+                         terminate
+                         process-any-errors
+                         end)]
+     (if-let [ex (::error context)]
+       (throw ex)
+       context)))
   ([context interceptor-key interceptors]
    (execute-only (enqueue context interceptors) interceptor-key)))
 

@@ -229,6 +229,5 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   [f]
-  ^{:in "0.8.0"}
-  (deprecated `disable-routing-table-output-fixture
-    (test/disable-routing-table-output-fixture f)))
+  (deprecated `disable-routing-table-output-fixture :in "0.8.0")
+  (test/disable-routing-table-output-fixture f))

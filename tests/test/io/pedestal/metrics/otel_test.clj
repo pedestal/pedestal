@@ -369,9 +369,9 @@
                                            :domain               "clojure"}
                                           f)
         setup-events       (events)
-        _                  (is (match? [[:ofLongs "example.gauge"]
-                                        [:setDescription "example.gauge" "gauge description"]
+        _                  (is (match? [[:setDescription "example.gauge" "gauge description"]
                                         [:setUnit "example.gauge" "yawns"]
+                                        [:ofLongs "example.gauge"]
                                         [:buildWithCallback :long "example.gauge" (m/pred some?)]]
                                        setup-events))
         ^Consumer callback (extract-callback setup-events)
@@ -494,9 +494,9 @@
   (let [update-fn (metrics/histogram :histogram.test {:domain               "clojure"
                                                       ::metrics/description "histogram description"
                                                       ::metrics/unit        "laughs"})]
-    (is (match? [[:ofLongs "histogram.test"]
-                 [:setDescription "histogram.test" "histogram description"]
+    (is (match? [[:setDescription "histogram.test" "histogram description"]
                  [:setUnit "histogram.test" "laughs"]
+                 [:ofLongs "histogram.test"]
                  [:build-long "histogram.test"]]
                 (events)))
 

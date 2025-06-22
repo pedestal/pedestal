@@ -53,7 +53,7 @@
      :uri          uri
      :query-string query-string}))
 
-(defn  format-exception
+(defn format-exception
   "Private function - do not use."
   [exception]
   (binding [ansi/*color-enabled* false]

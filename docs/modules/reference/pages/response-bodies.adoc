@@ -26,17 +26,13 @@ type of the value in the :body key of the xref:response-map.adoc[].
 
 [#nio-channel]
 == nio Channel
-When the response body is a ByteBuffer or an NIO Channel, then Pedestal will convert
-the response to
-https://docs.oracle.com/javaee/7/tutorial/servlets012.htm[asynchronous processing].
+When the response body is a ByteBuffer or an NIO Channel, then the
+Pedestal connector _may_ convert the response to
+https://docs.oracle.com/javaee/7/tutorial/servlets012.htm[asynchronous processing]
+(if this is supported by the network connector).
+
 This returns the thread to the container's request processing thread pool,
 and the container will (efficiently) stream the contents of the buffer or channel to the client.
-
-[NOTE]
-====
-This applies to xref:jetty.adoc[] (which is Servlet based) but not to xref:http-kit.adoc[], which
-is not servlet based.
-====
 
 == Core Async Channel
 

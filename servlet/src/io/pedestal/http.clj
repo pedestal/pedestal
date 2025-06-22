@@ -20,7 +20,11 @@
   a server (based on Jetty or Tomcat, or others).
 
   In addition, there is support here for deploying a Pedestal application as part of a
-  WAR file, via the ClojureVarServlet."
+  WAR file, via the ClojureVarServlet.
+
+  This namespace has been deprecated in 0.8.0 and users are encouraged to
+  migrate to the io.pedestal.connector namespace."
+  {:deprecated "0.8.0"}
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.ring-middlewares :as middlewares]
             [io.pedestal.http.csrf :as csrf]
@@ -64,9 +68,8 @@
   DEPRECATED: Use io.pedestal.http.response/edn-response instead."
   {:deprecated "0.8.0"}
   [obj]
-  ^{:in "0.8.0"}
-  (deprecated `edn-response
-    (response/edn-response obj)))
+  (deprecated `edn-response :in "0.8.0")
+  (response/edn-response obj))
 
 (defn json-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format.
@@ -103,9 +106,8 @@
   DEPRECATED: Use io.pedestal.http.response/response? instead."
   {:deprecated "0.8.0"}
   [resp]
-  ^{:in "0.8.0"}
-  (deprecated `response?
-    (response/response? resp)))
+  (deprecated `response? :in "0.8.0")
+  (response/response? resp))
 
 (def ^{:deprecated "0.8.0"} not-found
   "An interceptor that returns a 404 when routing failed to resolve a route, or no :response
@@ -145,13 +147,11 @@
 
   DEPRECATED: Use io.pedestal.service.interceptors/transit-body-interceptor instead."
   ([iname default-content-type transit-format]
-   ^{:in "0.8.0"}
-   (deprecated `transit-body-interceptor
-     (interceptors/transit-body-interceptor iname default-content-type transit-format {})))
+   (deprecated `transit-body-interceptor :in "0.8.0")
+   (interceptors/transit-body-interceptor iname default-content-type transit-format {}))
   ([iname default-content-type transit-format transit-opts]
-   ^{:in "0.8.0"}
-   (deprecated `transit-body-interceptor
-     (interceptors/transit-body-interceptor iname default-content-type transit-format transit-opts))))
+   (deprecated `transit-body-interceptor :in "0.8.0")
+   (interceptors/transit-body-interceptor iname default-content-type transit-format transit-opts)))
 
 (def ^{:deprecated "0.8.0"} transit-json-body
   "Set the Content-Type header to \"application/transit+json\" and convert the body to
@@ -221,6 +221,7 @@
   Note that none of the default interceptors will parse the content of the request body (for POST or other requests);
   individual _routes_ that are of type POST should include the [[body-params]] interceptor to do so."
   [service-map]
+  (deprecated `default-interceptors :in "0.8.0")
   (let [{::keys [interceptors
                  request-logger
                  routes
@@ -255,9 +256,10 @@
                               (nil? routes) nil
                               ;; This checks for an expanded route; a seq of maps, each presumably a route.
                               (and (seq? routes) (every? map? routes))
-                              ^{:in "0.8.0"
-                                :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map"}
-                              (internal/deprecated ::route-maps-seq
+                              (do
+                                (internal/deprecated ::route-maps-seq
+                                  :in "0.8.0"
+                                  :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map")
                                 (route/expand-routes {:children routes}))
                               :else (throw (ex-info (str "Routes specified in the service map don't fulfill the contract, "
                                                          "they must be expanded routes, a function that returns expanded routes, or a RoutingFragment")
@@ -287,6 +289,7 @@
 
   This should normally be invoked after [[default-interceptors]]."
   [service-map]
+  (deprecated `dev-interceptors :in "0.8.0")
   (update service-map ::interceptors
           #(into [cors/dev-allow-origin servlet-interceptor/exception-debug] %)))
 
@@ -297,9 +300,8 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   [key-path]
-  ^{:in "0.8.0"}
-  (deprecated `default-debug-observer-omit
-    (dev/default-debug-observer-omit key-path)))
+  (deprecated `default-debug-observer-omit :in "0.8.0")
+  (dev/default-debug-observer-omit key-path))
 
 (defn ^{:added "0.7.0"}
   enable-debug-interceptor-observer
@@ -315,6 +317,7 @@
   ([service-map]
    (enable-debug-interceptor-observer service-map {:omit dev/default-debug-observer-omit}))
   ([service-map debug-observer-options]
+   (deprecated `enable-debug-interceptor-observer :in "0.8.0")
    (update service-map ::initial-context
            chain/add-observer (chain.debug/debug-observer debug-observer-options))))
 
@@ -324,6 +327,7 @@
   that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
   [{::keys [interceptors initial-context service-fn-options]
     :as    service-map}]
+  (deprecated `service-fn :in "0.8.0")
   (assoc service-map ::service-fn
          (servlet-interceptor/http-interceptor-service-fn interceptors initial-context service-fn-options)))
 
@@ -331,6 +335,7 @@
   "Converts the service-fn in the service map to a servlet instance."
   [{service-fn ::service-fn
     :as        service-map}]
+  (deprecated `servlet :in "0.8.0")
   (assoc service-map ::servlet
          (servlet/servlet :service service-fn)))
 
@@ -344,6 +349,7 @@
 
   Note: Additional options are passed to default-interceptors if :interceptors is not set."
   [service-map]
+  (deprecated `create-servlet :in "0.8.0")
   (-> service-map
       default-interceptors
       service-fn
@@ -354,6 +360,7 @@
   "Called from [[create-provider]], uses the ::chain-provider or ::type key of the service map
   to create the chain provider. "
   [service-map]
+  (deprecated `interceptor-chain-provider :in "0.8.0")
   (let [{::keys [chain-provider type]} service-map]
     (cond
       (fn? chain-provider) (chain-provider service-map)
@@ -369,6 +376,7 @@
   "Applies [[default-interceptors]] (if not already applied) and creates the interceptor chain
   provider (the basis for starting an embedded servlet container)."
   [service-map]
+  (deprecated `create-provider :in "0.8.0")
   (-> service-map
       default-interceptors
       interceptor-chain-provider))
@@ -412,6 +420,7 @@
 
    A typical embedded app will call [[create-server]], rather than calling this function directly."
   [service-map]
+  (deprecated `server :in "0.8.0")
   (let [{type ::type
          :or  {type :jetty}} service-map
         ;; Ensure that if a host arg was supplied, we default to a safe option, "localhost"
@@ -445,6 +454,7 @@
   ([service-map]
    (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
+   (deprecated `create-server :in "0.8.0")
    (init-fn)
    (-> service-map
        create-provider                                      ;; Creates/connects a backend to the interceptor chain
@@ -459,6 +469,7 @@
 
   Returns the server map unchanged."
   [server-map]
+  (deprecated `start :in "0.8.0")
   ((::start-fn server-map))
   server-map)
 
@@ -467,6 +478,7 @@
 
   Returns the server map unchanged."
   [server-map]
+  (deprecated `stop :in "0.8.0")
   ((::stop-fn server-map))
   server-map)
 
@@ -474,14 +486,17 @@
 
 (defn servlet-init
   [service config]
+  (deprecated `servlet-init :in "0.8.0")
   (let [service (create-servlet service)]
     (.init ^Servlet (::servlet service) config)
     service))
 
 (defn servlet-destroy [service]
+  (deprecated `servlet-destroy :in "0.8.0")
   (dissoc service ::servlet))
 
 (defn servlet-service [service servlet-req servlet-resp]
+  (deprecated `servlet-service :in "0.8.0")
   (.service ^Servlet (::servlet service) servlet-req servlet-resp))
 
 (defn respond-with
@@ -491,14 +506,11 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   ([context status]
-   ^{:in "0.8.0"}
-   (deprecated `respond-with
-     (response/respond-with context status)))
+   (deprecated `respond-with :in "0.8.0")
+   (response/respond-with context status))
   ([context status body]
-   ^{:in "0.8.0"}
-   (deprecated `respond-with
-     (response/respond-with context status body)))
+   (deprecated `respond-with :in "0.8.0")
+   (response/respond-with context status body))
   ([context status headers body]
-   ^{:in "0.8.0"}
-   (deprecated `respond-with
-     (response/respond-with context status headers body))))
+   (deprecated `respond-with :in "0.8.0")
+   (response/respond-with context status headers body)))

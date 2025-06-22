@@ -17,9 +17,11 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-public class ConnectorServlet extends GenericServlet {
+public class ConnectorServlet implements Servlet {
 
+    private ServletConfig config;
     private ConnectorBridge bridge;
+
 
     /**
      * Does nothing. Initialization happens in the init method.
@@ -27,14 +29,20 @@ public class ConnectorServlet extends GenericServlet {
     public ConnectorServlet() {
     }
 
+
     @Override
-    public void init() throws ServletException {
-        ServletConfig config = this.getServletConfig();
+    public void init(ServletConfig config) throws ServletException {
+        this.config = config;
+
         IFn createFn = Util.getVar(config, "io.pedestal.connector.bridge-fn", true);
-        
+
         bridge = (ConnectorBridge) createFn.invoke(this);
     }
 
+    @Override
+    public ServletConfig getServletConfig() {
+        return config;
+    }
 
     /**
      *  Casts the request and response to the HttpServletRequest to HttpServletResponse, and passes
@@ -43,6 +51,11 @@ public class ConnectorServlet extends GenericServlet {
     @Override
     public void service(ServletRequest request, ServletResponse response) {
         bridge.service((HttpServletRequest) request, (HttpServletResponse) response);
+    }
+
+    @Override
+    public String getServletInfo() {
+        return "Pedestal Connector";
     }
 
     @Override

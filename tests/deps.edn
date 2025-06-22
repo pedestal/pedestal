@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -15,57 +15,59 @@
          "bench"
          "resources"]
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
- :deps {criterium/criterium {:mvn/version "0.4.6"}
+ :deps  {criterium/criterium                            {:mvn/version "0.4.6"}
 
-        nubank/matcher-combinators {:mvn/version "3.9.1"}
-        nubank/mockfn {:mvn/version "0.7.0"}
-        expound/expound {:mvn/version "0.9.0"}
-        medley/medley {:mvn/version "1.4.0"}
+         nubank/matcher-combinators                     {:mvn/version "3.9.1"}
+         nubank/mockfn                                  {:mvn/version "0.7.0"}
+         expound/expound                                {:mvn/version "0.9.0"}
+         medley/medley                                  {:mvn/version "1.4.0"}
 
-        org.clojure/java.classpath {:mvn/version "1.1.0"}
-        org.clojure/tools.namespace {:mvn/version "1.5.0"}
-        org.clojure/data.json {:mvn/version "2.5.1"}
-        clj-http/clj-http {:mvn/version "3.13.0"}
+         org.clojure/java.classpath                     {:mvn/version "1.1.0"}
+         org.clojure/tools.namespace                    {:mvn/version "1.5.0"}
+         org.clojure/data.json                          {:mvn/version "2.5.1"}
+         clj-http/clj-http                              {:mvn/version "3.13.0"}
 
-        ;; For test io.pedestal.http.jetty-util-test
-        ;; But io.pedestal.http.jetty-util is deprecated
+         ;; For test io.pedestal.http.jetty-util-test
+         ;; But io.pedestal.http.jetty-util is deprecated
 
-        org.eclipse.jetty/jetty-servlets {:mvn/version "11.0.25"}
+         org.eclipse.jetty/jetty-servlets               {:mvn/version "11.0.25"}
 
-        hato/hato {:mvn/version "1.0.0"}
+         hato/hato                                      {:mvn/version "1.0.0"}
 
-        ;; These are extra deps from service/deps.edn
-        jakarta.servlet/jakarta.servlet-api {:mvn/version "6.1.0"}
-        jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.2.0"}
+         ;; These are extra deps from service/deps.edn
+         jakarta.servlet/jakarta.servlet-api            {:mvn/version "6.1.0"}
+         jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.2.0"}
 
-        ;; Include *all* the other modules
-        io.pedestal/pedestal.log {:local/root "../log"}
-        io.pedestal/pedestal.servlet {:local/root "../servlet"}
-        ;; Recapitulate transitive dependencies of pedestal.servlet since the
-        ;; :local alias isn't carried through when resolving the local dependencies.
-        io.pedestal/pedestal.service {:local/root "../service"}
-        io.pedestal/pedestal.interceptor {:local/root "../interceptor"}
-        io.pedestal/pedestal.route {:local/root "../route"}
-        io.pedestal/pedestal.jetty {:local/root "../jetty"}
-        io.pedestal/pedestal.http-kit {:local/root "../http-kit"}
-        io.pedestal/pedestal.telemetry {:local/root "../telemetry"}
-        io.pedestal/pedestal.common {:local/root "../common"}
-        io.pedestal/pedestal.error {:local/root "../error"}
+         ;; Include *all* the other modules
+         io.pedestal/pedestal.log                       {:local/root "../log"}
+         io.pedestal/pedestal.servlet                   {:local/root "../servlet"}
+         ;; Recapitulate transitive dependencies of pedestal.servlet since the
+         ;; :local alias isn't carried through when resolving the local dependencies.
+         io.pedestal/pedestal.service                   {:local/root "../service"}
+         io.pedestal/pedestal.interceptor               {:local/root "../interceptor"}
+         io.pedestal/pedestal.route                     {:local/root "../route"}
+         io.pedestal/pedestal.jetty                     {:local/root "../jetty"}
+         io.pedestal/pedestal.http-kit                  {:local/root "../http-kit"}
+         io.pedestal/pedestal.telemetry                 {:local/root "../telemetry"}
+         io.pedestal/pedestal.common                    {:local/root "../common"}
+         io.pedestal/pedestal.error                     {:local/root "../error"}
 
-       com.stuartsierra/component {:mvn/version "1.1.0"}
+         com.stuartsierra/component                     {:mvn/version "1.1.0"}
 
-        io.github.hlship/trace {:mvn/version "1.4"}
-        com.walmartlabs/test-reporting {:mvn/version "1.2"}
-        com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}
+         io.github.hlship/trace                         {:mvn/version "1.4"}
+         com.walmartlabs/test-reporting                 {:mvn/version "1.2"}
+         com.clojure-goes-fast/clj-async-profiler       {:mvn/version "1.6.2"}
 
-        ;; For testing of SSEs
-       cloud.prefab/sse-handler {:mvn/version "1.0.1"}
+         ch.qos.logback/logback-classic                 {:mvn/version "1.5.18"}
 
-        ;; For proper reloading of code in REPL
-        io.github.tonsky/clj-reload {:mvn/version "0.9.7"}
+         ;; For testing of SSEs
+         cloud.prefab/sse-handler                       {:mvn/version "1.0.1"}
 
-        io.github.cognitect-labs/test-runner
-        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         ;; For proper reloading of code in REPL
+         io.github.tonsky/clj-reload                    {:mvn/version "0.9.7"}
+
+         io.github.cognitect-labs/test-runner
+         {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
 
 
  :aliases

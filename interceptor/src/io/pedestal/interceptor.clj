@@ -73,24 +73,26 @@
   IPersistentMap
   (-interceptor [m] (map->Interceptor m))
 
-  ; This is the `handler` case
+  ;; This is the `handler` case which is somewhat entrenched here, even though
+  ;; it is technically specific to the pedestal.service module (HTTP handling, with
+  ;; request and response maps).
   Fn
   (-interceptor [f]
     (-interceptor (fn->interceptor f)))
 
   IPersistentList
   (-interceptor [l]
-    ^{:noun "conversion of expressions to interceptors"
-      :in   "0.7.0"}
     (i/deprecated ::expression
-      (-interceptor (eval l))))
+      :noun "conversion of expressions to interceptors"
+      :in "0.7.0")
+    (-interceptor (eval l)))
 
   Cons
   (-interceptor [c]
-    ^{:noun "conversion of expressions to interceptors"
-      :in   "0.7.0"}
     (i/deprecated ::expression
-      (-interceptor (eval c))))
+      :noun "conversion of expressions to interceptors"
+      :in "0.7.0")
+    (-interceptor (eval c)))
 
   Symbol
   (-interceptor [sym] (-interceptor (resolve sym)))
@@ -128,8 +130,9 @@
 (defn- anon-deprecated
   [interceptor]
   (when-not (:name interceptor)
-    ^{:in   "0.8.0"
-      :noun "anonymous (unnamed) interceptors"} (i/deprecated ::anon-interceptor))
+    (i/deprecated ::anon-interceptor
+      :in "0.8.0"
+      :noun "anonymous (unnamed) interceptors"))
   true)
 
 (defn interceptor
@@ -181,17 +184,20 @@
   (let [enter-fn        (or
                           (when (satisfies? OnEnter component)
                             (fn [context]
-                              (.enter component context)))
+                              ;; Looking for efficiency here and avoiding another protocol method lookup
+                              ;; even if it is not 100% correct (i.e., you could extend OnEnter onto some
+                              ;; other type).  This is intended to work with definterceptor.
+                              (.enter ^io.pedestal.interceptor.OnEnter component context)))
                           (when (satisfies? Handler component)
                             (impl/wrap-handler
                               (fn [request]
-                                (.handle component request)))))
+                                (.handle ^io.pedestal.interceptor.Handler component request)))))
         leave-fn        (when (satisfies? OnLeave component)
                           (fn [context]
-                            (.leave component context)))
+                            (.leave ^io.pedestal.interceptor.OnLeave component context)))
         error-fn        (when (satisfies? OnError component)
                           (fn [context exception]
-                            (.error component context exception)))
+                            (.error ^io.pedestal.interceptor.OnError component context exception)))
         interceptor-map (cond-> {:name interceptor-name}
                           enter-fn (assoc :enter enter-fn)
                           leave-fn (assoc :leave leave-fn)
@@ -200,9 +206,9 @@
 
 (def ^:private method->protocol
   {'handle `Handler
-   'enter   `OnEnter
-   'leave   `OnLeave
-   'error   `OnError})
+   'enter  `OnEnter
+   'leave  `OnLeave
+   'error  `OnError})
 
 (defn- expand-opts+specs
   "Decomposes the opts+specs to opts (an initial map),

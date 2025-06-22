@@ -142,16 +142,18 @@
 (defn- tail-param-matcher
   [param-id route]
   (fn match-tail-param [remaining-path params-map]
-    (with-split-path remaining-path [term more-path]
-                     (when (nil? more-path)
-                       [route (assoc params-map param-id term)]))))
+    (when remaining-path
+      (with-split-path remaining-path [term more-path]
+                       (when (nil? more-path)
+                         [route (assoc params-map param-id term)])))))
 
 (defn- param-matcher
   [param-id next-fn]
   (fn match-param [remaining-path params-map]
-    (with-split-path remaining-path [term more-path]
-                     (when more-path
-                       (next-fn more-path (assoc params-map param-id term))))))
+    (when remaining-path
+      (with-split-path remaining-path [term more-path]
+                       (when more-path
+                         (next-fn more-path (assoc params-map param-id term)))))))
 
 (defn- wild-matcher
   ;; Wild is always at the end

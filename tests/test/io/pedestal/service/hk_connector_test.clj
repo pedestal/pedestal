@@ -15,14 +15,14 @@
             [clojure.edn :as edn]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [go]]
-            [io.pedestal.http.response :as response]
+            [io.pedestal.http.response :refer [respond-with]]
             [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
             io.pedestal.http.http-kit.specs
             [matcher-combinators.matchers :as m]
             [ring.util.response :refer [response]]
             [io.pedestal.connector.test :as test]
-            [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.interceptor :refer [interceptor definterceptor]]
             [io.pedestal.http.route.definition.table :as table]))
 
 (defn hello-page
@@ -34,13 +34,13 @@
     {:name  ::async-hello
      :enter (fn [context]
               (go
-                (response/respond-with context 200 "ASYNC HELLO")))}))
+                (respond-with context 200 "ASYNC HELLO")))}))
 
 (def async-bytes
   (interceptor
     {:name  ::async-bytes
      :enter (fn [context]
-              (go (response/respond-with context 200
+              (go (respond-with context 200
                                          (.getBytes "ASYNC BYTES" "UTF-8"))))}))
 
 (defn no-response
@@ -60,6 +60,14 @@
   {:status 200
    :body   (str "Hello " (get-in request [:json-params :name]) "!")})
 
+(definterceptor early []
+  (enter [_ context]
+         (respond-with context 200 "early response")))
+
+(definterceptor late []
+  (enter [_ context]
+         (respond-with context 200 "late response")))
+
 (def routes
   (table/table-routes
     {}
@@ -69,7 +77,8 @@
      ["/async/hello" :get async-hello]
      ["/async/bytes" :get async-bytes]
      ["/async/no-response" :get async-no-response]
-     ["/echo/headers" :get echo-headers :route-name ::echo-headers]]))
+     ["/echo/headers" :get echo-headers :route-name ::echo-headers]
+     ["/early" :get [(->early) (->late)] :route-name ::early]]))
 
 (def *connector (atom nil))
 
@@ -103,8 +112,7 @@
                :body   "Hello Mr. Client!"}
               (response-for :post "/hello"
                             :headers {:content-type "application/json"}
-                            :body (json/generate-string {:name "Mr. Client"})
-                            ))))
+                            :body (json/generate-string {:name "Mr. Client"})))))
 
 (deftest chain-goes-async
   (is (match? {:status  200
@@ -134,3 +142,8 @@
   (is (match? {:status 404
                :body   "Not Found"}
               (response-for :get "/async/no-response"))))
+
+(deftest early-return-when-response-added
+  (is (match? {:status 200
+               :body   "early response"}
+              (response-for :get "/early"))))

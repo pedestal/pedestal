@@ -5,7 +5,7 @@
             [net.lewisship.trace :as trace]
             [io.pedestal.environment :refer [dev-mode?]]))
 
-(set! *warn-on-reflection* true)
+(alter-var-root #'*warn-on-reflection* (constantly true))
 
 (repl/install-pretty-exceptions)
 (trace/setup-default)
