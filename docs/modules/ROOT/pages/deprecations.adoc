@@ -24,10 +24,12 @@ xref:reference:websockets.adoc#upgrade[WebSocket upgrade requests] are now route
 (the ::http/websockets service map key) has been deprecated.
 
 In `io.pedestal.websocket`, the following functions are deprecated:
+
 - add-endpoint
 - add-endpoints
 
-In `io.pedestal.interceptor`
+In `io.pedestal.interceptor`:
+
 - Support for the deferred interceptors (via :interceptor or :interceptorfn metadata) was removed
 - Anonymous interceptors are deprecated
 
