@@ -138,12 +138,12 @@ Try this new function out at the REPL:
 [source,clojure]
 ----
 pedrepl.server> (print-routes)
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path   ┃ Name                        ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /      ┃ :pedrepl.service/home-page  ┃
-┃ :get   ┃ /about ┃ :pedrepl.service/about-page ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┌────────┬────────┬─────────────────────────────┐
+│ Method │  Path  │             Name            │
+├────────┼────────┼─────────────────────────────┤
+│   :get │      / │ :pedrepl.service/home-page  │
+│   :get │ /about │ :pedrepl.service/about-page │
+└────────┴────────┴─────────────────────────────┘
 nil
 ----
 

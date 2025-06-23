@@ -304,11 +304,11 @@ Further, in local development mode, Pedestal will write a formatted routing tabl
 
 ```
 Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃ Path   ┃ Name                    ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃ :get   ┃ /hello ┃ :io.example.hello/hello ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┌────────┬────────┬─────────────────────────┐
+│ Method │  Path  │           Name          │
+├────────┼────────┼─────────────────────────┤
+│   :get │ /hello │ :io.example.hello/hello │
+└────────┴────────┴─────────────────────────┘
 ```
 
 This output is especially useful to know the correct route name to pass to
