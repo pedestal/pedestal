@@ -100,11 +100,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.50.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.51.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

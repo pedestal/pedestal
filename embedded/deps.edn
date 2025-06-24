@@ -10,4 +10,4 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0"}}}
+ :deps {org.clojure/clojure {:mvn/version "1.12.1"}}}

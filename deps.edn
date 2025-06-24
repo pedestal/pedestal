@@ -20,13 +20,13 @@
           borkdude/rewrite-edn {:mvn/version "0.4.9"}
           clj-kondo/clj-kondo {:mvn/version "2025.06.05"}
           org.clj-commons/pretty {:mvn/version "3.4.1"}
-          babashka/fs {:mvn/version "0.5.25"}}}
+          babashka/fs {:mvn/version "0.5.26"}}}
 
   ;; Invoked via clj -T:build cve-check
   :nvd
   {:deps {nvd-clojure/nvd-clojure {:mvn/version "5.0.0"}
           ;; See https://github.com/jeremylong/DependencyCheck/issues/6817
-          org.owasp/dependency-check-maven {:mvn/version "12.1.1"}}
+          org.owasp/dependency-check-maven {:mvn/version "12.1.3"}}
    :paths ["cve-check-resources"]
    :jvm-opts ["-Dclojure.main.report=stderr"]
    :exec-fn nvd.task/check}
