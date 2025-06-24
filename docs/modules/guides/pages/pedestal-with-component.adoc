@@ -316,11 +316,11 @@ $ clj -A:test:dev-mode <1>
 Clojure 1.12.0
 user=> (start!) <2>
 Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓ <3>
-┃ Method ┃  Path  ┃  Name  ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━┫
-┃   :get ┃ /greet ┃ :greet ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━┛
+┌────────┬────────┬────────┐ <3>
+│ Method │  Path  │  Name  │
+├────────┼────────┼────────┤
+│   :get │ /greet │ :greet │
+└────────┴────────┴────────┘
 #<SystemMap> <4>
 user=>
 ----
@@ -422,11 +422,11 @@ If you look in your REPL window, you'll see that your change has been adopted, a
 ----
 [] INFO io.pedestal.service.interceptors - {:msg "GET /greet", :line 40}
 Routing table:
-┏━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┓
-┃ Method ┃    Path    ┃  Name  ┃
-┣━━━━━━━━╋━━━━━━━━━━━━╋━━━━━━━━┫
-┃   :get ┃ /api/greet ┃ :greet ┃
-┗━━━━━━━━┻━━━━━━━━━━━━┻━━━━━━━━┛
+┌────────┬────────────┬────────┐
+│ Method │    Path    │  Name  │
+├────────┼────────────┼────────┤
+│   :get │ /api/greet │ :greet │
+└────────┴────────────┴────────┘
 ----
 
 Using the correct URL gets the expected result:

@@ -128,14 +128,14 @@ user=> (use 'dev)
 nil
 user=> (go!)
 Routing table:
-┏━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Method ┃  Path  ┃                     Name                     ┃
-┣━━━━━━━━╋━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃   :get ┃ /*path ┃ :io.pedestal.service.resources/get-resource  ┃
-┃  :head ┃ /*path ┃ :io.pedestal.service.resources/head-resource ┃
-┃   :get ┃ /hello ┃ :com.blueant.peripheral.routes/hello         ┃
-┃  :post ┃ /hello ┃ :com.blueant.peripheral.routes/greet         ┃
-┗━━━━━━━━┻━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+┌────────┬────────┬──────────────────────────────────────────────┐
+│ Method │  Path  │                     Name                     │
+├────────┼────────┼──────────────────────────────────────────────┤
+│   :get │ /*path │ :io.pedestal.service.resources/get-resource  │
+│  :head │ /*path │ :io.pedestal.service.resources/head-resource │
+│   :get │ /hello │ :com.blueant.peripheral.routes/hello         │
+│  :post │ /hello │ :com.blueant.peripheral.routes/greet         │
+└────────┴────────┴──────────────────────────────────────────────┘
 #object[io.pedestal.http.http_kit$create_connector$reify__17907 0x6e3f108c "io.pedestal.http.http_kit$create_connector$reify__17907@6e3f108c"]
 user=>
 ```
