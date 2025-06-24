@@ -128,7 +128,7 @@ you can think of a namespace as similar to a Java package name.
 ----
 include::example$hello/src/hello.clj[tags=ns]
 ----
-<1> This namespace is called 'hello'. This almost always matches the filename.
+<1> This namespace is called `hello`. This almost always matches the filename.
 <2> We need to use the `io.pedestal.connector` namespace, abbreviated as `conn`.
 <3> We need to use the `io.pedestal.http.http-kit` namespace, abbreviated as `hk`.
 
@@ -137,7 +137,7 @@ that other namespaces can use to reference the functions and constants
 provided by the `hello` namespace.
 
 The :require clause is how the `hello` namespace identifies other namespaces
-it uses; requiring a namespace loads its source and, optionally, creates an _alias_ for the namespace.
+it uses; requiring a namespace loads that namespace's source and, optionally, creates an _alias_ for the namespace.
 
 This is very similar to using `import` in Java or `require` in
 Ruby. It just makes some names from other namespaces available to us
@@ -167,7 +167,8 @@ namespace provides _symbols_ and those symbols are the names of functions, macro
 Where the :require says :as `something` it means we're making an
 _alias_ inside our namespace (the `hello` namespace).
 
-Because `hello` has required the `io.pedestal.connector` namespace, it can make use of functions in that namespace, such as `io.pedestal.connector/with-default-interceptors`.  This is the truest form, where every symbol a namespace has a full name that includes the namespace.
+Because `hello` has required the `io.pedestal.connector` namespace, it can make use of functions in that namespace, such as `io.pedestal.connector/with-default-interceptors`.  This is the truest form, where every symbol
+from a namespace has a full name that includes the namespace.
 
 That's cumbersome to type again and again, which is why we set up the alias; `conn/with-default-interceptors` is exactly the same, but more concise and more readable.
 
@@ -242,12 +243,12 @@ The returned map has two keys and their values:
 |===
 
 That's the whole thing. When our function returns that map, Pedestal
-will translate the map into a full HTTP response complete appropriate
+will translate the map into a full HTTP response complete with appropriate
 HTTP headers, including `Content-Type`.
 
 Later on, we'll see how to take control
 of the xref:hello-world-content-types.adoc[whole response]. For now, we're
-just taking the easy road and let Pedestal's defaults do the work.
+just taking the easy road and letting Pedestal's defaults do the work.
 
 There's absolutely nothing special about this map. It's a plain old
 Clojure map - this is typical of how Clojure operates, we don't use classes, we
@@ -296,7 +297,7 @@ link:https://clojure.org/guides/deps_and_cli[learn more], then come
 back and we'll continue.
 
 Now we can make a `deps.edn` that tells the `clj` tool what libraries our
-service needs. This goes in the main directory `hello`:
+service needs. This goes in the main directory, `hello`:
 
 
 [source,clojure]
