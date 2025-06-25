@@ -58,6 +58,9 @@
 ;; end::not_to_be_named[]
 
 ;; tag::greeting_with_404[]
+(defn ok [message]
+  {:status 200 :body message})
+
 (defn not-found []
   {:status 404 :body "Not found\n"})
 
