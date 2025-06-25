@@ -531,7 +531,7 @@ understand how and when each line of code gets invoked.
 [source.hide-callouts,clojure]
 .src/hello.clj
 ----
-include::example$hello-content/src/hello.clj[tags=ns;continuo;coerce_refactored_comm;coerce_body_2;routes_refactored;connector]
+include::example$hello-content/src/hello.clj[tags=ns;not_to_be_named;continuo;coerce_refactored_comm;coerce_body_2;routes_refactored;connector]
 ----
 
 == The Path So Far
