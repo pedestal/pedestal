@@ -24,7 +24,10 @@
            trace? dev/with-interceptor-observer)
          ;; with-default-interceptors is only to be used for initial scaffolding and should be replaced
          ;; with an application-specific series of calls to with-interceptor.
-         (connector/with-default-interceptors {:allowed-origins ["localhost"]})
+         (connector/with-default-interceptors :secure-headers {:content-security-policy-settings {:object-source "none"
+                                                                                                  :default-src   "'self' localhost:* ws://localhost:*"
+                                                                                                  :script-src    "'self' localhost:* 'unsafe-inline'"
+                                                                                                  :style-src     "'self' 'unsafe-inline'"}})
          ;; Routing is generally the last interceptors added.
          ;; This adds application's API routes plus static files stored
          ;; as resources.

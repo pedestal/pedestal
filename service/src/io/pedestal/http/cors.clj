@@ -85,25 +85,25 @@
       {:name  ::allow-origin
        :enter (fn [context]
                 (let [origin            (get-in context [:request :headers "origin"])
-                      allowed           (allowed-origins origin)
-                      preflight-request (= :options (get-in context [:request :request-method]))]
+                      allowed?          (allowed-origins origin)
+                      options-request?  (= :options (get-in context [:request :request-method]))]
                   (log/log level
                            :msg "cors request processing"
                            :origin origin
-                           :allowed allowed)
+                           :allowed allowed?)
                   (cond
                     ;; origin is allowed and this is preflight
-                    (and origin allowed preflight-request)
-                    (preflight  context level origin args)
+                    (and origin allowed? options-request?)
+                    (preflight context level origin args)
 
                     ;; origin is allowed and this is real
-                    (and origin allowed (not preflight-request))
+                    (and origin allowed? (not options-request?))
                     (do (origin-real-fn)
                         (assoc context :cors-headers (merge {"Access-Control-Allow-Origin" origin}
                                                             (when creds {"Access-Control-Allow-Credentials" (str creds)}))))
 
                     ;; origin is not allowed
-                    (and origin (not allowed))
+                    (and origin (not allowed?))
                     (assoc context :response {:status 403 :body "Forbidden" :headers {}})
 
                     ;; no origin
