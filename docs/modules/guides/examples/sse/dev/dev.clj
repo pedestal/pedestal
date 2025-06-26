@@ -37,13 +37,20 @@
   (init)
   (start!))
 
+(defn restart!
+  "Stops and restarts the connector."
+  []
+  (stop!)
+  (go!))
+
 (comment
   ;; For REPL development, this can be evaluated:
 
   (go!)
   (start!)
   (stop!)
+  (restart!)
 
   ;;
-)
+  )
 

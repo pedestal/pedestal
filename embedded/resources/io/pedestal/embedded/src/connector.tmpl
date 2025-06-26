@@ -27,7 +27,7 @@
          connector/with-default-interceptors
          ;; Routing is generally the last interceptors added.
          ;; This adds application's API routes plus static files stored
-         ;; as resources.
+         ;; as classpath resources.
          (connector/with-routes
            (routes/routes)
            (resources/resource-routes {:resource-root "public"})))))
