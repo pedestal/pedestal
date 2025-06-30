@@ -427,7 +427,7 @@ The function gets linked to a namespace symbol.  Under the covers, the `defn` ma
 the `def` macro.
 
 
-Clojure has a xref:reference:routing-quick-reference.adoc[number of ways to express routing]; the use
+Pedestal has a xref:reference:routing-quick-reference.adoc[number of ways to express routing]; the use
 of a set here (with `#{ ... }`) denotes xref:reference:table-syntax.adoc[table syntax], which is prefered.
 
 This routing table is a single route; the route matches:
