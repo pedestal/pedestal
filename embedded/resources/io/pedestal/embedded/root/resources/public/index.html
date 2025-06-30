@@ -1,10 +1,48 @@
-<html>
- <head>
-     <title>{{raw-name}}</title>
- </head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pedestal Demo • Build Better APIs</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/app.css" />
+</head>
 <body>
+  <header class="site-header">
+    <div class="container">
+      <div class="header-content">
+        <div class="brand">
+          <img class="logo" src="/pedestal-glyph.png"
+               width="42" height="42" alt="Pedestal logo">
+          <span class="brand-name">Pedestal</span>
+        </div>
+      </div>
+    </div>
+  </header>
 
-<p>This is the root index file for the {{raw-name}} project.</p>
+  <main>
+    <section class="hero cta">
+      <div class="container">
+        <h1 class="hero-title">Hi from Pedestal!</h1>
+        <div class="hero-subtitle">
+          <p class="project-name"><strong>{{raw-name}}</strong> is up and running.</p>
+          <p class="call-to-action">Time to build.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="https://clojurians.slack.com/messages/pedestal/" class="btn btn-primary">Join our Community</a>
+        </div>
+      </div>
+    </section>
+  </main>
 
+  <footer class="site-footer">
+    <div class="container">
+      <p>Built with <a href="https://pedestal.io">Pedestal</a></p>
+    </div>
+  </footer>
 </body>
 </html>
