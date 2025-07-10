@@ -296,7 +296,7 @@ link:https://clojure.org/guides/deps_and_cli[learn more], then come
 back and we'll continue.
 
 Now we can make a `deps.edn` that tells the `clj` tool what libraries our
-service needs. This goes in the main directory `hello`:
+service needs. This goes in the main directory `hello-world`:
 
 
 [source,clojure]
