@@ -20,7 +20,7 @@
            (java.nio.channels Channels FileChannel)
            (java.nio.file OpenOption StandardOpenOption)
            (java.util Date)
-           (java.util.jar JarEntry JarFile JarFile$JarFileEntry)))
+           (java.util.jar JarEntry JarFile)))
 
 ;; This adapts some of the ideas from ring.util.response
 

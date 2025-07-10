@@ -15,8 +15,8 @@
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.telemetry.internal :as i])
   (:import (io.opentelemetry.api.common Attributes)
-           (io.opentelemetry.api.metrics DoubleCounter DoubleGaugeBuilder DoubleHistogram
-                                         DoubleHistogramBuilder LongCounter LongCounterBuilder LongHistogram Meter ObservableDoubleMeasurement ObservableLongMeasurement)
+           (io.opentelemetry.api.metrics DoubleGaugeBuilder DoubleHistogramBuilder LongCounterBuilder
+                                         LongHistogram Meter ObservableDoubleMeasurement ObservableLongMeasurement)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
