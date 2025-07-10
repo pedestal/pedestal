@@ -199,6 +199,7 @@
 
 (defn- mock-ws-channel
   [acceptor *closed?]
+  #_:clj-kondo/ignore
   (reify websocket/WebSocketChannel
 
     (send-text! [_ message]

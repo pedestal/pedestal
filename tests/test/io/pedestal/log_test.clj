@@ -49,6 +49,7 @@
     result))
 
 (def test-logger
+  #_:clj-kondo/ignore
   (reify log/LoggerSource
 
     (-level-enabled? [_ _] true)

@@ -166,6 +166,7 @@
          (names-and-stages))))
 
 (def capture-logger
+  #_:clj-kondo/ignore
   (reify log/LoggerSource
 
     (-level-enabled? [_ level] (= level :debug))

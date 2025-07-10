@@ -49,3 +49,4 @@ logs/
 # Docs
 autodoc/
 codox
+**/.lsp
