@@ -94,15 +94,21 @@
       ;; In 0.7 and earlier, was a namespaced key
       (::http-configuration options)
       ;; Otherwise, build on the fly
-      (let [{:keys [insecure-ssl?]} options
+      (let [{:keys [sni-host-check? insecure-ssl?]} options
             http-conf ^HttpConfiguration (HttpConfiguration.)]
+        (when insecure-ssl?
+          (deprecated :insecure-ssl? :in "0.8.0" :noun "prefer :sni-host-check? which is more specific"))
         (doto http-conf
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
           (.setSendServerVersion false)
-          ;; :insecure-ssl? is useful for local development, as otherwise "localhost"
-          ;; is not allowed as a valid host name, resulting in 400 statuses.
-          (.addCustomizer (SecureRequestCustomizer. (not insecure-ssl?)))))))
+          ;; :sni-host-check? is useful for enabling or disabling the Server Name Indication check during TLS handshake.
+          ;; Set this to false for local development and when using DNS wildcard certificates since
+          ;; "localhost" is not allowed as a valid server name by the TLS spec and the definitive server name
+          ;; is not known when using a DNS wildcard certificate until the TLS handshake has completed.
+          ;; You will receive HTTP 400 statuses from the browser when this is enabled and you use localhost
+          ;; or a DNS wildcard certificate.
+          (.addCustomizer (SecureRequestCustomizer. (not (or sni-host-check? insecure-ssl?))))))))
 
 (defn- needed-pool-size
   "Jetty calculates a needed number of threads per acceptors and selectors,
