@@ -25,7 +25,7 @@
          org.clojure/java.classpath                     {:mvn/version "1.1.0"}
          org.clojure/tools.namespace                    {:mvn/version "1.5.0"}
          org.clojure/data.json                          {:mvn/version "2.5.1"}
-         clj-http/clj-http                              {:mvn/version "3.13.0"}
+         clj-http/clj-http                              {:mvn/version "3.13.1"}
 
          ;; For test io.pedestal.http.jetty-util-test
          ;; But io.pedestal.http.jetty-util is deprecated
@@ -64,7 +64,7 @@
          cloud.prefab/sse-handler                       {:mvn/version "1.0.1"}
 
          ;; For proper reloading of code in REPL
-         io.github.tonsky/clj-reload                    {:mvn/version "0.9.7"}
+         io.github.tonsky/clj-reload                    {:mvn/version "0.9.8"}
 
          io.github.cognitect-labs/test-runner
          {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
@@ -100,11 +100,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.50.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.50.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.51.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.51.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"
