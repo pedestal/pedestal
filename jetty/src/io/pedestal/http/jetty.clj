@@ -95,9 +95,14 @@
       (::http-configuration options)
       ;; Otherwise, build on the fly
       (let [{:keys [sni-host-check? insecure-ssl?]} options
-            http-conf ^HttpConfiguration (HttpConfiguration.)]
+            http-conf ^HttpConfiguration (HttpConfiguration.)
+            sni-enabled? (cond
+                           (and (nil? sni-host-check?)
+                                (nil? insecure-ssl?))  true
+                           sni-host-check?             sni-host-check?
+                           insecure-ssl?               (not insecure-ssl?))]
         (when insecure-ssl?
-          (deprecated :insecure-ssl? :in "0.8.0" :noun "prefer :sni-host-check? which is more specific"))
+          (deprecated :insecure-ssl? :in "0.8.0" :noun "prefer :sni-host-check? which is more specific but inverse to :insecure-ssl?"))
         (doto http-conf
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
@@ -106,7 +111,7 @@
           ;; using DNS wildcard certificates since "localhost" is not a valid server name according to the TLS spec and the definitive
           ;; server name is not known when using a DNS wildcard certificate after the TLS handshake. You will receive HTTP 400 statuses
           ;; from the browser when this is enabled and you use localhost or a DNS wildcard certificate.
-          (.addCustomizer (SecureRequestCustomizer. (or sni-host-check? (not insecure-ssl?))))))))
+          (.addCustomizer (SecureRequestCustomizer. sni-enabled?))))))
 
 (defn- needed-pool-size
   "Jetty calculates a needed number of threads per acceptors and selectors,
