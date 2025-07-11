@@ -102,13 +102,11 @@
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
           (.setSendServerVersion false)
-          ;; :sni-host-check? is useful for enabling or disabling the Server Name Indication check during TLS handshake.
-          ;; Set this to false for local development and when using DNS wildcard certificates since
-          ;; "localhost" is not allowed as a valid server name by the TLS spec and the definitive server name
-          ;; is not known when using a DNS wildcard certificate until the TLS handshake has completed.
-          ;; You will receive HTTP 400 statuses from the browser when this is enabled and you use localhost
-          ;; or a DNS wildcard certificate.
-          (.addCustomizer (SecureRequestCustomizer. (not (or sni-host-check? insecure-ssl?))))))))
+          ;; :sni-host-check? Perform Server Name Indication check during TLS handshake (default true). Set this to false for local development and when
+          ;; using DNS wildcard certificates since "localhost" is not a valid server name according to the TLS spec and the definitive
+          ;; server name is not known when using a DNS wildcard certificate after the TLS handshake. You will receive HTTP 400 statuses
+          ;; from the browser when this is enabled and you use localhost or a DNS wildcard certificate.
+          (.addCustomizer (SecureRequestCustomizer. (or sni-host-check? (not insecure-ssl?))))))))
 
 (defn- needed-pool-size
   "Jetty calculates a needed number of threads per acceptors and selectors,
