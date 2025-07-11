@@ -47,15 +47,14 @@ jobs:
       - name: Execute tests (Clojure 1.11)
         working-directory: tests
         run: clojure -X:test:1.11
+      - name: Lint with clj-kondo
+        run: clojure -T:build lint
       - name: Collect Code Coverage
         working-directory: tests
         run: clojure -M:coverage
       - name: CVE Vulnerabilities Check
-        if: true #temporary
         id: cve-check
         run: clojure -T:build cve-check
-      - name: Lint with clj-kondo
-        run: clojure -T:build lint
       - name: Upload cve-check-results.html
         if: ${{ !cancelled() && steps.cve-check.conclusion }}
         uses: actions/upload-artifact@v4.6.2
