@@ -1,0 +1,104 @@
+= Using Pedestal With SSL
+
+If you wish to terminate SSL on the container for your application, you should use a connector
+that supports this, such as xref:reference:jetty.adoc[].  Take care that xref:reference:http-kit.adoc[]
+does not support SSL so if you prefer that connector, you will have deploy an SSL capable proxy in
+front of your application.  This guide will use xref:reference:jetty.adoc[] to serve the same
+application on an unencrypted HTTP port as well as an SSL protected/encrypted HTTPS port.
+
+== Guide Assumptions
+This guide is for users who are familiar with:
+
+- Clojure
+- Pedestal
+- Clojure's CLI tooling
+- SSL certificate handling and setup
+
+If you are new to Pedestal, you may want to go back to the xref:hello-world.adoc[] guide.
+
+If you're unfamiliar with SSL certificate setup on xref:reference:jetty.adoc[], you should follow their
+link:{https://jetty.org/docs/jetty/12/operations-guide/keystore/index.html}[Configuring SSL/TLS KeyStores Guide].
+
+== Getting Help if You're Stuck
+
+include::partial$getting-help.adoc[]
+
+== Where We Are Going
+
+In this guide, we're going to present the earlier xref:hello-world.adoc[] guide with
+SSL configured.  Pedestal will configure the connector to watch the keystore where
+the certificates are stored and transparently load new certificates without down time
+when they are updated, for example every 60 days using the letsencrypt service.
+Certificates are typically issued with a 90 day expiry to increase security and to
+encourage automated issuing and replacement.
+
+== Before We Begin
+
+Obtain a certificate in PEM format and place it into a file that is readable by
+your application.  You can follow the "Configuring SSL/TLS KeyStores Guide" to
+make one yourself for testing if you do not yet have one.  The following example
+assumes that it will be in the project root in a file called "server.p12" but
+this file should be placed in a sensible and secure location and the path to
+the key store file is configurable.
+
+== Project and Dependencies
+
+Similarly to the first example, create a project directory to contain the project sources,
+then create a `deps.edn` file, which includes the jetty connector that can handle SSL.
+
+[source,clojure]
+.deps.edn
+----
+include::example$hello-ssl/deps.edn[]
+----
+<1> The SSL capable Jetty connector.
+
+== The Simple Application
+
+The following application only answers GET requests on / and replies with a message
+that includes the server name sent in the Host header and protocol scheme (HTTP or HTTPS).
+Once you have acquired an SSL certificate in PEM format and put it into the file server.p12,
+most of the interesting changes happen in the `:container-options` map which we add to
+the default connector map.  You can read more about container options in the
+xref:reference:jetty.adoc[] reference.
+
+[source, clojure]
+.src/hello_ssl.clj
+----
+include::example$hello-ssl/src/hello_ssl.clj[]
+----
+<1> A message including the server name and protocol scheme.
+<2> The port on which to server unencrypted content.
+<3> Indicate that SSL is also required.  Not strictly necessary since setting the next value implies this one.
+<4> The port on which to serve encrypted content.
+<5> The path to the SSL certificate file.
+<6> The password that is necessary to access the SSL certificate. Usually accessed from a secrets vault or less securely from an environment variable.
+<7> Disable the Server Name Indication check when running on localhost or when using a DNS wildcard certificate.  Default is true and you should not change this unless you need to.
+<8> The number of seconds between checks for new certificates.  60 seconds is the default so this setting is not strictly necessary and is included for demonstration.
+
+== Running The Application
+
+We'll use `clj` tool to run our
+example. This should be familiar to you if you read through the
+xref:hello-world.adoc[].
+
+From the project's root directory, fire up a REPL, and start the system.
+----
+$ clj -M:run <1>
+[main] INFO org.eclipse.jetty.server.Server - jetty-12.0.22; built: 2025-06-02T15:25:31.946Z; git: 335c9ab44a5591f0ea941bf350e139b8c4f5537c; jvm 21.0.4+7-LTS
+[main] INFO org.eclipse.jetty.session.DefaultSessionIdManager - Session workerName=node0
+[main] INFO org.eclipse.jetty.server.handler.ContextHandler - Started oeje10s.ServletContextHandler@16c2da2c{ROOT,/,b=null,a=AVAILABLE,h=oeje10s.SessionHandler@94b4ce6{STARTED}}
+[main] INFO org.eclipse.jetty.ee10.servlet.ServletContextHandler - Started oeje10s.ServletContextHandler@16c2da2c{ROOT,/,b=null,a=AVAILABLE,h=oeje10s.SessionHandler@94b4ce6{STARTED}}
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@8f340ff{HTTP/1.1, (http/1.1, h2c)}{127.0.0.1:8080}
+[main] INFO org.eclipse.jetty.util.ssl.SslContextFactory - x509=X509@57f7590f(1,h=[yourservername.com, localhost, 127.0.0.1],a=[]) for Server@3255707f[provider=null,keyStore=file:///.../server.p12,trustStore=null]
+[main] INFO org.eclipse.jetty.server.AbstractConnector - Started ServerConnector@e01664e{SSL, (ssl, http/1.1)}{127.0.0.1:8443}
+[main] INFO org.eclipse.jetty.server.Server - Started oejs.Server@43f41fe0{STARTING}[12.0.22,sto=0] @4047ms
+----
+
+<1> The :run alias calls the start function in the hello-ssl namespace.
+
+You can now interact with the started service.  Open a web browser to http://localhost:8080/ and https://localhost:8080/
+to see SSL in action.  Take care that if you self generated your SSL certificate, your browser will warn you that the
+certificate is not trusted and may prevent you from seeing the encrypted content.  Follow Jetty's
+link:{https://jetty.org/docs/jetty/12/operations-guide/keystore/index.html}[Configuring SSL/TLS KeyStores Guide]
+for more information regarding certificate trust.
