@@ -35,7 +35,7 @@
                                      ServerConnector
                                      SslConnectionFactory)
            (org.eclipse.jetty.util.thread QueuedThreadPool ThreadPool)
-           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
+           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server KeyStoreScanner)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (jakarta.servlet Servlet ServletContext)
            (java.security KeyStore)
@@ -77,13 +77,17 @@
 
 (defn- ssl-conn-factory
   "Create an SslConnectionFactory instance."
-  [options]
-  (let [{:keys [alpn container-options]} options]
-    (SslConnectionFactory.
-      (ssl-context-factory container-options)
-      (if alpn
-        (.getProtocol ^ALPNServerConnectionFactory alpn)
-        "http/1.1"))))
+  [server options]
+  (let [{:keys [alpn container-options]}    options
+        {:keys [keystore-scal-interval]
+         :or   {keystore-scal-interval 60}} container-options
+        ssl-context                         (ssl-context-factory container-options)
+        factory                             (SslConnectionFactory. ssl-context (if alpn
+                                                                                 (.getProtocol ^ALPNServerConnectionFactory alpn)
+                                                                                 "http/1.1"))]
+    (.addBean server (doto (KeyStoreScanner. ssl-context)
+                       (.setScanInterval keystore-scal-interval)))
+    factory))
 
 (defn- http-configuration
   "Provides an HttpConfiguration that can be consumed by connection factories.
@@ -193,7 +197,7 @@
                                   (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
                                     (.setDefaultProtocol "http/1.1")))
         ssl                     (when (or ssl? ssl-port h2?)
-                                  (ssl-conn-factory (assoc options :alpn alpn)))
+                                  (ssl-conn-factory server (assoc options :alpn alpn)))
         http-connector          (when port
                                   (doto (add-connection-factories server [http http2c])
                                     (.setReuseAddress reuse-addr?)

@@ -39,6 +39,7 @@
                    ::ssl-context-factory
                    ::keystore
                    ::key-password
+                   ::keystore-scal-interval
                    ::truststore
                    ::trust-password
                    ::client-auth
@@ -62,6 +63,7 @@
 (s/def ::h2? boolean?)
 (s/def ::insecure-ssl? boolean?)
 (s/def ::sni-host-check? boolean?)
+(s/def ::keystore-scal-interval pos-int?)
 (s/def ::connection-factory-fns (s/coll-of fn?))
 (s/def ::ssl-context-factory (is-a SslContextFactory))
 (s/def ::keystore ::string-or-keystore)
