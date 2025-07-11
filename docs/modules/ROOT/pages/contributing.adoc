@@ -36,11 +36,7 @@ From the `tests` directory, execute `clj -X:test`.
 == Contributing to Pedestal
 
 Thanks for your interest in helping out with Pedestal! Let this document
-serve as your guide. (This is a copy of
-https://github.com/pedestal/pedestal/blob/master/CONTRIBUTING.md[CONTRIBUTING.md]
-in the main https://github.com/pedestal/pedestal/[Pedestal repo]. If
-you ever see a discrepancy, it's probably because this document is out
-of date relative to that one.)
+serve as your guide.
 
 === Looking for work?
 
@@ -112,6 +108,14 @@ everything. Here is the workflow we recommend:
 4. Run `clj -X:test` from the `tests` directory.
 5. Run `clj -T:build lint` from the root directory.
 6. Commit, push, and submit a pull request.
+
+== Signed Commits
+
+We prefer that you sign the commits on any PRs you contribute.  It ensures that commits are, in fact,
+yours.
+
+GitHub has a
+https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits[guide for setting up signed commits].
 
 == Contributor's Agreement
 

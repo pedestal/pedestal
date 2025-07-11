@@ -296,7 +296,7 @@ link:https://clojure.org/guides/deps_and_cli[learn more], then come
 back and we'll continue.
 
 Now we can make a `deps.edn` that tells the `clj` tool what libraries our
-service needs. This goes in the main directory `hello`:
+service needs. This goes in the main directory `hello-world`:
 
 
 [source,clojure]
@@ -427,7 +427,7 @@ The function gets linked to a namespace symbol.  Under the covers, the `defn` ma
 the `def` macro.
 
 
-Clojure has a xref:reference:routing-quick-reference.adoc[number of ways to express routing]; the use
+Pedestal has a xref:reference:routing-quick-reference.adoc[number of ways to express routing]; the use
 of a set here (with `#{ ... }`) denotes xref:reference:table-syntax.adoc[table syntax], which is prefered.
 
 This routing table is a single route; the route matches:

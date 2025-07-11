@@ -32,7 +32,7 @@ Primary support is on the [#pedestal channel of Clojurians Slack](https://clojur
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributing to Pedestal.
+See [the Pedestal Contributor's guide](https://pedestal.io/pedestal/0.8/contributing.html) for details on contributing to Pedestal.
 
 ### Running the tests
 

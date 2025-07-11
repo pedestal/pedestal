@@ -4,14 +4,16 @@
             [io.pedestal.connector :as conn]
             [io.pedestal.http.http-kit :as hk]
             [io.pedestal.http.content-negotiation :as content-negotiation])) ;; <2>
-
 ;; end::ns[]
+
+;; tag::not_to_be_named[]
 
 (def unmentionables #{"YHWH"
                       "Voldemort"
                       "Mxyzptlk"
                       "Rumplestiltskin"
                       "曹操"})
+;; end::not_to_be_named[]
 
 
 ;; tag::ok_html[]
