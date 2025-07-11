@@ -4,19 +4,21 @@
   <!-- Feel free to tweak it, version-control it and remove any comment. -->
   <!-- You can find suppression examples in https://jeremylong.github.io/DependencyCheck/general/suppression.html -->
   <!-- We're suppressing these as there are no replacements.  It's a ticking time bomb that will eventually fail builds. -->
-    <suppress until="2024-01-01">
+    <suppress until="2026-01-01">
         <notes><![CDATA[
-   file name: jackson-databind-2.15.2.jar
+   file name: clojure-1.11.1.jar
    ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
-        <cve>CVE-2023-35116</cve>
+        <packageUrl regex="true">^pkg:maven/org\.clojure/clojure@.*$</packageUrl>
+        <cve>CVE-2024-22871</cve>
     </suppress>
-    <suppress until="2024-01-01">
+    <suppress>
+        <!-- https://nvd.nist.gov/vuln/detail/CVE-2025-48976 recommends upgrading to 2.0.0-M4 which
+             we already have, so I feel this result is a false positive. -->
         <notes><![CDATA[
-   file name: jetty-jakarta-websocket-api-2.0.0.jar
+   file name: commons-fileupload2-core-2.0.0-M4.jar
    ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jetty\.toolchain/jetty\-jakarta\-websocket\-api@.*$</packageUrl>
-        <cpe>cpe:/a:eclipse:jetty</cpe>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.commons/commons-fileupload2-core@.*$</packageUrl>
+        <cve>CVE-2025-48976</cve>
     </suppress>
 </suppressions>
 
