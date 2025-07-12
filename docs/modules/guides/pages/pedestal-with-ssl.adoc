@@ -97,7 +97,7 @@ $ clj -M:run <1>
 
 <1> The :run alias calls the start function in the hello-ssl namespace.
 
-You can now interact with the started service.  Open a web browser to http://localhost:8080/ and https://localhost:8080/
+You can now interact with the started service.  Open a web browser to http://localhost:8080/ and https://localhost:8443/
 to see SSL in action.  Take care that if you self generated your SSL certificate, your browser will warn you that the
 certificate is not trusted and may prevent you from seeing the encrypted content.  Follow Jetty's
 link:{https://jetty.org/docs/jetty/12/operations-guide/keystore/index.html}[Configuring SSL/TLS KeyStores Guide]
