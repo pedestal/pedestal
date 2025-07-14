@@ -29,7 +29,7 @@
 - Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 - The `io.pedestal/pedestal.service-tools` library has been removed
 - Significant changes to `io.pedestal.http.route` have occurred
-- Fix reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
+- Fixed reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
 - Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both
   are acceptible according to the SSE specification)
 - `io.pedestal.test` has been rewritten, nearly from scratch
@@ -69,6 +69,7 @@ Other changes:
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
     - Sawtooth identifies conflicting routes
     - Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
+- Deprecation warnings may now be suppressed
 - Metrics can now be configured to accept longs or doubles as their values.
 - _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
   do not use the Servlet API, and so are much lighter weight
@@ -79,10 +80,9 @@ Other changes:
   now in the `pedestal.servlet` module
 - Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the routes in the table
-- Table routes may now include application-defined key/value pairs
+- Table routes may now include application-defined key/value pairs in addition to :route-name and :constraints
 - The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
 - It is now possible to specify the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection factories
-- Deprecation warnings may now be suppressed
 - New functions and macros:
     - `io.pedestal.test/create-responder` - useful piece needed in most tests
     - `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
@@ -96,7 +96,7 @@ Other changes:
     - `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
     - `io.pedestal.connector.servlet` - bridge to Pedestal from a WAR deployment
 - When converting a handler function to an Interceptor
-    - Handler functions may now be *asynchronous*, returning a channel that conveys the response
+    - Handler functions may now be *asynchronous*, returning a channel that conveys the response map
     - The :name metadata on the _function_ will be used as the :name of the interceptor
     - Otherwise, a :name is derived from the function's class
     - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
@@ -104,6 +104,7 @@ Other changes:
     - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
 - The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
 - Development mode is now configured as with other values, rather than strictly via a JVM system property
+- The embedded template now generates a less rudimentary index page, with basic styling
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/17?closed=1)
 

@@ -58,10 +58,8 @@ $ clojure -Tnew create :template io.github.pedestal/pedestal%embedded%io.pedesta
 Resolving io.github.pedestal/pedestal as a git dependency
 Creating project from io.pedestal/embedded in peripheral
 $ tree peripheral
-├── CHANGELOG.md
-├── LICENSE
-├── README.md
 ├── build.clj
+├── CHANGELOG.md
 ├── deps.edn
 ├── dev
 │   ├── com
@@ -72,11 +70,15 @@ $ tree peripheral
 │   └── user.clj
 ├── doc
 │   └── intro.md
+├── LICENSE
+├── README.md
 ├── resources
 │   ├── logback.xml
 │   ├── pedestal-config.edn
 │   └── public
-│       └── index.html
+│       ├── app.css
+│       ├── index.html
+│       └── pedestal-glyph.png
 ├── src
 │   └── com
 │       └── blueant
@@ -95,7 +97,7 @@ $ tree peripheral
     ├── logback-test.xml
     └── pedestal-test-config.edn
 
-17 directories, 20 files
+17 directories, 22 files
 >
 ```
 
@@ -144,7 +146,9 @@ is what enables the printing of the routing table. The full routing table contai
 defined for your app (`/hello`) and the routes for access to static resources (at `/*path`).
 
 From another window, you can open http://localhost:8080/index.html, to see
-a brief welcoming page.
+a brief welcoming page:
+
+image:embedded-index-page.png[Generated Index Page]
 
 The `dev` namespace provides the functions `go!`, `start!`, and `stop!`.
 
