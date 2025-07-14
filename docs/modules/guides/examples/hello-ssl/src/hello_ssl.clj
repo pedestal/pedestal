@@ -12,7 +12,7 @@
   (-> (conn/default-connector-map 8080)                                                                        ;; <2>
       (assoc :container-options {:ssl?                    true                                                 ;; <3>
                                  :ssl-port                8443                                                 ;; <4>
-                                 :keystore                "server.p12"                                         ;; <5>
+                                 :keystore                "./server.p12"                                       ;; <5>
                                  :key-password            "your-keystore-password-here"                        ;; <6>
                                  :sni-host-check?         false                                                ;; <7>
                                  :keystore-scal-interval  60})                                                 ;; <8>

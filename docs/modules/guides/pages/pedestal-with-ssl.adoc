@@ -71,7 +71,7 @@ include::example$hello-ssl/src/hello_ssl.clj[]
 <2> The port on which to server unencrypted content.
 <3> Indicate that SSL is also required.  Not strictly necessary since setting the next value implies this one.
 <4> The port on which to serve encrypted content.
-<5> The path to the SSL certificate file.
+<5> The path to the SSL certificate file which MUST include the directory name.  If you use a relative path without any directory name you will get a NullPointerException.
 <6> The password that is necessary to access the SSL certificate. Usually accessed from a secrets vault or less securely from an environment variable.
 <7> Disable the Server Name Indication check when running on localhost or when using a DNS wildcard certificate.  Default is true and you should use true in production unless you use a wildcard certificate.
 <8> The number of seconds between checks for new certificates.  60 seconds is the default so this setting is not strictly necessary and is included for demonstration.
