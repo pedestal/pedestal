@@ -102,9 +102,9 @@
             http-conf ^HttpConfiguration (HttpConfiguration.)
             sni-enabled? (cond
                            (and (nil? sni-host-check?)
-                                (nil? insecure-ssl?))  true
-                           sni-host-check?             sni-host-check?
-                           insecure-ssl?               (not insecure-ssl?))]
+                                (nil? insecure-ssl?))   true
+                           (not (nil? sni-host-check?)) sni-host-check?
+                           :else                        (not insecure-ssl?))]
         (when insecure-ssl?
           (deprecated :insecure-ssl? :in "0.8.0" :noun "prefer :sni-host-check? which is more specific but inverse to :insecure-ssl? which"))
         (doto http-conf
