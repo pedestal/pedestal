@@ -37,7 +37,7 @@ encourage automated issuing and replacement.
 Obtain a certificate in PEM format and place it into a file that is readable by
 your application.  You can follow the "Configuring SSL/TLS KeyStores Guide" to
 make one yourself for testing if you do not yet have one.  The following example
-assumes that it will be in the project root in a file called "server.p12" but
+assumes that it will be in the project root in a file called `./server.p12` but
 this file should be placed in a sensible and secure location and the path to
 the key store file is configurable.
 
@@ -57,8 +57,8 @@ include::example$hello-ssl/deps.edn[]
 
 The following application only answers GET requests on / and replies with a message
 that includes the server name sent in the Host header and protocol scheme (HTTP or HTTPS).
-Once you have acquired an SSL certificate in PEM format and put it into the file server.p12,
-most of the interesting changes happen in the `:container-options` map which we add to
+Once you have acquired an SSL certificate in PEM format and put it into the file `./server.p12`,
+most of the interesting changes happen in the :container-options map which we add to
 the default connector map.  You can read more about container options in the
 xref:reference:jetty.adoc[] reference.
 
@@ -68,7 +68,7 @@ xref:reference:jetty.adoc[] reference.
 include::example$hello-ssl/src/hello_ssl.clj[]
 ----
 <1> A message including the server name and protocol scheme.
-<2> The port on which to server unencrypted content.
+<2> The port on which to serve unencrypted content.
 <3> Indicate that SSL is also required.  Not strictly necessary since setting the next value implies this one.
 <4> The port on which to serve encrypted content.
 <5> The path to the SSL certificate file which MUST include the directory name.  If you use a relative path without any directory name you will get a NullPointerException.

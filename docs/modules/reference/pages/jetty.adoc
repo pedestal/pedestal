@@ -104,7 +104,7 @@ using DNS wildcard certificates since "localhost" is not a valid server name acc
 server name is not known when using a DNS wildcard certificate after the TLS handshake. You will receive HTTP 400 statuses
 from the browser when this is enabled and you use localhost or a DNS wildcard certificate.
 
-| :keystore-scal-interval
+| :keystore-scan-interval
 | Integer
 | The interval in seconds to scan for an updated keystore/certificate replacement (default 60).  This is only relevant when
 SSL is configured.  When the keystore is updated, the service will reload certificates with no downtime.
