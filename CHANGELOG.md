@@ -64,6 +64,7 @@ Newly deprecated namespaces (these may be removed or made non-public in the futu
 - `io.pedestal.jetty.container`
 - `io.pedestal.jetty.util`
 - `io.pedestal.http`
+- `io.pedestal.http.test`
 
 Other changes:
 - A new router, `io.pedestal.http.route.sawtooth`, has been added
