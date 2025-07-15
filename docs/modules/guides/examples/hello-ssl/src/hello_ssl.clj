@@ -12,7 +12,7 @@
    :enter (fn [{:keys [request route] :as context}]
             (if (-> request :scheme (= :http))                                                                 ;; <2>
               (let [{:keys [server-name uri query-string]} request
-                    redirect-url (format "https://%s:%s%s%s%s" server-name secure-port uri (if query-string "?" "") (or query-string ""))]
+                    redirect-url (format "https://%s:%s%s%s" server-name secure-port uri (if query-string (str "?" query-string) ""))]
                 (log/info :in ::redirect-to-secure :route-name (:route-name route) :server-name server-name :redirect-url redirect-url)
                 (assoc context :response {:status 302 :headers {"Location" redirect-url}}))                    ;; <3>
               context))})
