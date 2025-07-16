@@ -27,6 +27,8 @@
          org.clojure/data.json                          {:mvn/version "2.5.1"}
          clj-http/clj-http                              {:mvn/version "3.13.1"}
 
+         cheshire/cheshire                              {:mvn/version "6.0.0"}
+
          ;; For test io.pedestal.http.jetty-util-test
          ;; But io.pedestal.http.jetty-util is deprecated
 

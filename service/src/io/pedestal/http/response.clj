@@ -11,13 +11,14 @@
 
 (ns io.pedestal.http.response
   "Utilities used to write Ring responses."
-  {:added  "0.7.0"}
-  (:require [cheshire.core :as json]
+  {:added "0.7.0"}
+  (:require [charred.api :as json]
             [clojure.java.io :as io]
             [cognitect.transit :as transit]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [ring.util.response :as ring-response])
-  (:import (java.io OutputStreamWriter)))
+  (:import (charred JSONWriter)
+           (java.io OutputStreamWriter Writer)))
 
 ;; Support for things in io.pedestal.http that are deprecated in 0.7.0
 
@@ -48,9 +49,21 @@
       (writer-fn obj writer)
       (.flush writer))))
 
+(defn- write-json-noclose
+  ;; Calling json/write-json closes the writer, which doesn't work with Pedestal and Servlet API.
+  ;; Instead, we create a writer via json/json-writer-fn and write the object to it.
+  [obj ^Writer stream-writer]
+  (let [writer-fn               (json/json-writer-fn nil)
+        ^JSONWriter json-writer (writer-fn stream-writer)]
+    (.writeObject json-writer obj)
+    ;; The feels dirty, but some JSON could still be in the JSONWriter's internal writer
+    ;; that wraps stream-writer, and that needs to be flushed but not closed, and
+    ;; JSONWriter implements a close() but not a flush().
+    (.flush (.-w json-writer))))
+
 (defn stream-json
   [obj]
-  (stream-xform obj json/generate-stream))
+  (stream-xform obj write-json-noclose))
 
 (defn stream-transit
   [obj transit-format transit-opts]
@@ -61,7 +74,7 @@
 
 (defn edn-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
-  {:added "0.8.0"
+  {:added      "0.8.0"
    :deprecated "0.8.0"}
   [obj]
   (data-response #(pr obj) "application/edn;charset=UTF-8"))

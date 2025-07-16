@@ -24,7 +24,6 @@
 
          ;; Ring 1.11 is the first version to support Servlet API 4.0
          ring/ring-core                   {:mvn/version "1.14.2"}
-         cheshire/cheshire                {:mvn/version "6.0.0"}
          org.clojure/tools.reader         {:mvn/version "1.5.2"}
          com.cognitect/transit-clj        {:mvn/version "1.0.333"}
          commons-codec/commons-codec      {:mvn/version "1.18.0"}
