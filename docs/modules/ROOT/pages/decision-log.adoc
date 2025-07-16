@@ -7,7 +7,7 @@ https://github.com/joelparkerhenderson/architecture-decision-record[Architecture
 
 == JSON Parsing (Jul 2025)
 
-Pedestal has long built its JSON parsing and streaming support on
+Pedestal has https://github.com/pedestal/pedestal/issues/110[long built] its JSON parsing and streaming support on
 https://github.com/dakrone/cheshire[cheshire], but in this release, the code was changed
 to https://github.com/cnuernber/charred[charred].
 
