@@ -11,7 +11,7 @@
 
 (ns io.pedestal.service.hk-connector-test
   "Tests when running Http-Kit using io.pedestal.connector.test/response-for (rather than HTTP)."
-  (:require [cheshire.core :as json]
+  (:require [charred.api :as json]
             [clojure.edn :as edn]
             [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :refer [go]]
@@ -112,7 +112,7 @@
                :body   "Hello Mr. Client!"}
               (response-for :post "/hello"
                             :headers {:content-type "application/json"}
-                            :body (json/generate-string {:name "Mr. Client"})))))
+                            :body (json/write-json-str {:name "Mr. Client"})))))
 
 (deftest chain-goes-async
   (is (match? {:status  200

@@ -1,4 +1,4 @@
-; Copyright 2023-2024 Nubank NA
+; Copyright 2023-2025 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -14,7 +14,7 @@
   (:require [criterium.core :as c]
             #_:clj-kondo/ignore
             [net.lewisship.trace :refer [trace]]
-            [cheshire.core :as cheshire]
+            [charred.api :as json]
             [io.pedestal.http :as service]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.body-params :refer [body-params]]
@@ -28,7 +28,7 @@
   #_(trace :request request)
   {:status 200
    :headers {"content-type" "application/json"}
-   :body (-> request :json-params cheshire/generate-string)})
+   :body (-> request :json-params json/write-json-str)})
 
 (def eat-exception
   (interceptor
@@ -55,7 +55,7 @@
   [url body-data]
   (response-for service-fn :post url
                 :headers {"Content-Type" "application/json"}
-                :body (cheshire/generate-string body-data)))
+                :body (json/write-json-str body-data)))
 
 (comment
   (c/with-progress-reporting
