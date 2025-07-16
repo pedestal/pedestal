@@ -106,7 +106,7 @@
                            (not (nil? sni-host-check?)) sni-host-check?
                            :else                        (not insecure-ssl?))]
         (when insecure-ssl?
-          (deprecated :insecure-ssl? :in "0.8.0" :noun "prefer :sni-host-check? which is more specific but inverse to :insecure-ssl? which"))
+          (deprecated :insecure-ssl? :in "0.8.0" :noun ":insecure-ssl? Jetty option"))
         (doto http-conf
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
@@ -255,7 +255,9 @@
   server)
 
 (defn server
-  "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
+  "Called from [[io.pedestal.http/server]] to create a Jetty server instance.
+   The container option :insecure-ssl? is deprecate in favor of :sni-host-check?
+   which is more precise but inverse to the deprecated key."
   [service-map options]
   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
     {::server  server

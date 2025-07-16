@@ -117,11 +117,11 @@
 
 (deftest https-round-trip
   (with-server hello-world {:port              4347
-                            :container-options {:ssl-port      4348
+                            :container-options {:ssl-port        4348
                                                 ;; I
-                                                :insecure-ssl? true
-                                                :keystore      "test/io/pedestal/http/keystore.jks"
-                                                :key-password  "password"}}
+                                                :sni-host-check? false
+                                                :keystore        "test/io/pedestal/http/keystore.jks"
+                                                :key-password    "password"}}
                (let [response (http/get "https://localhost:4348" {:insecure? true})]
                  (is (= (:status response) 200))
                  (is (= (:body response) "Hello World")))))
@@ -129,11 +129,11 @@
 
 (deftest https-round-trip-with-ssl
   (with-server hello-world {:port              4347
-                            :container-options {:ssl?          true
-                                                :insecure-ssl? true
-                                                :ssl-port      4348
-                                                :keystore      "test/io/pedestal/http/keystore.jks"
-                                                :key-password  "password"}}
+                            :container-options {:ssl?            true
+                                                :sni-host-check? false
+                                                :ssl-port        4348
+                                                :keystore        "test/io/pedestal/http/keystore.jks"
+                                                :key-password    "password"}}
                (let [response (http/get "https://localhost:4348" {:insecure? true})]
                  (is (= (:status response) 200))
                  (is (= (:body response) "Hello World")))))
