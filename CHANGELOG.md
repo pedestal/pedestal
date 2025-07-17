@@ -32,6 +32,9 @@
 - Fixed reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
 - Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both
   are acceptible according to the SSE specification)
+- Exceptions in interceptors:
+  - The caught exception is now the `ex-cause` of the exception provided (in earlier releases, it was the :exception key of the data)
+  - The logic for when to suppress an exception thrown from the error handling interceptor has been simplified: always suppress except when the interceptor rethrows the exact error passed to it
 - `io.pedestal.test` has been rewritten, nearly from scratch
     - The Servlet API mocks are now standard Java classes, not `reify`-ed classes
     - A request body may now be a java.io.File
