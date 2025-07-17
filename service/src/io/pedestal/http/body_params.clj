@@ -79,7 +79,7 @@
                              (->> (edn/read edn-options))))))))
 
 (defn custom-json-parser
-  "Return a funtion that, given a request, will read the body of request
+  "Return a function that, given a request, will read the body of request
   using a JSON parser via charred.api/read-json. Provided options are merged onto
   defaults:
 
