@@ -157,28 +157,32 @@
 
 (def *deprecations (atom #{}))
 
-(def ^:private *suppress?
+(def *suppress?
   (delay (read-config "io.pedestal.suppress-deprecation-warnings"
                       "PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS"
                       :as :boolean)))
 
-(defn deprecated
+(defn deprecated*
+  [label in noun]
+  (when-not (contains? @*deprecations label)
+    (swap! *deprecations conj label)
+    (perr
+      [:yellow
+       [:bold "WARNING: "]
+       (or noun label)
+       " "
+       (if in
+         (list "was deprecated in version "
+               [:bold in])
+         "has been deprecated")
+       " and may be removed in a future release"]
+      [:bold "\nCall stack: ... "]
+      (call-stack 4))))
+
+(defmacro deprecated
   [label & {:keys [in noun]}]
-  (when-not @*suppress?
-    (when-not (contains? @*deprecations label)
-      (swap! *deprecations conj label)
-      (perr
-        [:yellow
-         [:bold "WARNING: "]
-         (or noun label)
-         " "
-         (if in
-           (list "was deprecated in version "
-                 [:bold in])
-           "has been deprecated")
-         " and may be removed in a future release"]
-        [:bold "\nCall stack: ... "]
-        (call-stack 4)))))
+  `(when-not @*suppress?
+     (deprecated* ~label ~in ~noun)))
 
 (defn reset-deprecations
   []

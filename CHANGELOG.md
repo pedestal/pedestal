@@ -30,7 +30,6 @@
 * Many APIs deprecated in Pedestal 0.7.0 have been removed outright
 * The `io.pedestal/pedestal.service-tools` library has been removed
 * Significant changes to `io.pedestal.http.route` have occurred
-* Fixed reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
 * Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both are acceptible according to the SSE specification)
 * Exceptions in interceptors:
     * The caught exception is now the `ex-cause` of the exception provided (in earlier releases, it was the :exception
@@ -78,9 +77,10 @@ Other changes:
     * Sawtooth identifies conflicting routes
     * Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
 * Deprecation warnings may now be suppressed
+* Fixed reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
 * Metrics can now be configured to accept longs or doubles as their values.
-* _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
-  do not use the Servlet API, and so are much lighter weight
+* _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit
+  * Connectors do not use the Servlet API, and so are much lighter weight
   * The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
   * `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
 * WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
