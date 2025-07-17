@@ -31,6 +31,7 @@
                    ::context-path
                    ::ssl?
                    ::insecure-ssl?
+                   ::sni-host-check?
                    ::ssl-port
                    ::h2?
                    ::h2c?
@@ -38,6 +39,7 @@
                    ::ssl-context-factory
                    ::keystore
                    ::key-password
+                   ::keystore-scal-interval
                    ::truststore
                    ::trust-password
                    ::client-auth
@@ -59,6 +61,9 @@
 (s/def ::ssl-port pos-int?)
 (s/def ::h2c? boolean?)
 (s/def ::h2? boolean?)
+(s/def ::insecure-ssl? boolean?)
+(s/def ::sni-host-check? boolean?)
+(s/def ::keystore-scal-interval pos-int?)
 (s/def ::connection-factory-fns (s/coll-of fn?))
 (s/def ::ssl-context-factory (is-a SslContextFactory))
 (s/def ::keystore ::string-or-keystore)

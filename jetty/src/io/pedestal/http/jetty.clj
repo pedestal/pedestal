@@ -35,7 +35,7 @@
                                      ServerConnector
                                      SslConnectionFactory)
            (org.eclipse.jetty.util.thread QueuedThreadPool ThreadPool)
-           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server)
+           (org.eclipse.jetty.util.ssl SslContextFactory SslContextFactory$Server KeyStoreScanner)
            (org.eclipse.jetty.alpn.server ALPNServerConnectionFactory)
            (jakarta.servlet Servlet ServletContext)
            (java.security KeyStore)
@@ -77,13 +77,17 @@
 
 (defn- ssl-conn-factory
   "Create an SslConnectionFactory instance."
-  [options]
-  (let [{:keys [alpn container-options]} options]
-    (SslConnectionFactory.
-      (ssl-context-factory container-options)
-      (if alpn
-        (.getProtocol ^ALPNServerConnectionFactory alpn)
-        "http/1.1"))))
+  [server options]
+  (let [{:keys [alpn container-options]}    options
+        {:keys [keystore-scal-interval]
+         :or   {keystore-scal-interval 60}} container-options
+        ssl-context                         (ssl-context-factory container-options)
+        factory                             (SslConnectionFactory. ssl-context (if alpn
+                                                                                 (.getProtocol ^ALPNServerConnectionFactory alpn)
+                                                                                 "http/1.1"))]
+    (.addBean server (doto (KeyStoreScanner. ssl-context)
+                       (.setScanInterval keystore-scal-interval)))
+    factory))
 
 (defn- http-configuration
   "Provides an HttpConfiguration that can be consumed by connection factories.
@@ -94,15 +98,24 @@
       ;; In 0.7 and earlier, was a namespaced key
       (::http-configuration options)
       ;; Otherwise, build on the fly
-      (let [{:keys [insecure-ssl?]} options
-            http-conf ^HttpConfiguration (HttpConfiguration.)]
+      (let [{:keys [sni-host-check? insecure-ssl?]} options
+            http-conf ^HttpConfiguration (HttpConfiguration.)
+            sni-enabled? (cond
+                           (and (nil? sni-host-check?)
+                                (nil? insecure-ssl?))   true
+                           (not (nil? sni-host-check?)) sni-host-check?
+                           :else                        (not insecure-ssl?))]
+        (when insecure-ssl?
+          (deprecated :insecure-ssl? :in "0.8.0" :noun ":insecure-ssl? Jetty option"))
         (doto http-conf
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
           (.setSendServerVersion false)
-          ;; :insecure-ssl? is useful for local development, as otherwise "localhost"
-          ;; is not allowed as a valid host name, resulting in 400 statuses.
-          (.addCustomizer (SecureRequestCustomizer. (not insecure-ssl?)))))))
+          ;; :sni-host-check? Perform Server Name Indication check during TLS handshake (default true). Set this to false for local development and when
+          ;; using DNS wildcard certificates since "localhost" is not a valid server name according to the TLS spec and the definitive
+          ;; server name is not known when using a DNS wildcard certificate after the TLS handshake. You will receive HTTP 400 statuses
+          ;; from the browser when this is enabled and you use localhost or a DNS wildcard certificate.
+          (.addCustomizer (SecureRequestCustomizer. sni-enabled?))))))
 
 (defn- needed-pool-size
   "Jetty calculates a needed number of threads per acceptors and selectors,
@@ -184,7 +197,7 @@
                                   (doto (ALPNServerConnectionFactory. "h2,h2-17,h2-14,http/1.1")
                                     (.setDefaultProtocol "http/1.1")))
         ssl                     (when (or ssl? ssl-port h2?)
-                                  (ssl-conn-factory (assoc options :alpn alpn)))
+                                  (ssl-conn-factory server (assoc options :alpn alpn)))
         http-connector          (when port
                                   (doto (add-connection-factories server [http http2c])
                                     (.setReuseAddress reuse-addr?)
@@ -242,7 +255,9 @@
   server)
 
 (defn server
-  "Called from [[io.pedestal.http/server]] to create a Jetty server instance."
+  "Called from [[io.pedestal.http/server]] to create a Jetty server instance.
+   The container option :insecure-ssl? is deprecate in favor of :sni-host-check?
+   which is more precise but inverse to the deprecated key."
   [service-map options]
   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
     {::server  server
