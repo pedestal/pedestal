@@ -144,7 +144,7 @@
       (QueuedThreadPool. ^Integer max-threads)))
 
 (defn- add-connection-factories
-  [^Server server factories]
+  ^ServerConnector [^Server server factories]
   (let [factories' (into-array ConnectionFactory (remove nil? factories))
         conn       (ServerConnector. server factories')]
     (.addConnector server conn)

@@ -11,7 +11,7 @@
 
 (ns io.pedestal.service.hk-http-test
   "Test Http-Kit connector using HTTP requests (to fully exercise async code paths)."
-  (:require [cheshire.core :as json]
+  (:require [charred.api :as json]
             [io.pedestal.http.http-kit :as http-kit]
             [clojure.test :refer [deftest is use-fixtures]]
             [io.pedestal.http.response :as response]
@@ -97,4 +97,4 @@
         @(client/post (str base-url "/hello")
                       {:as      :stream
                        :headers {"content-type" "application/json"}
-                       :body    (json/generate-string {:name "Mr. Client"})}))))
+                       :body    (json/write-json-str {:name "Mr. Client"})}))))

@@ -16,11 +16,11 @@
   the content type header.  This results in new keys on the request map, depending on the type
   of data parsed."
   (:require [clojure.edn :as edn]
-            [cheshire.core :as json]
-            [cheshire.parse :as parse]
+            [charred.api :as json]
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
             [cognitect.transit :as transit]
+            [io.pedestal.internal :refer [deprecated]]
             [ring.middleware.params :as params])
   (:import (java.io EOFException InputStream InputStreamReader PushbackReader)
            (java.util.regex Pattern)))
@@ -78,37 +78,38 @@
                              PushbackReader.
                              (->> (edn/read edn-options))))))))
 
-(defn- json-read
-  "Parse json stream, supports parser-options with key-val pairs:
-
-    :bigdec Boolean value which defines if numbers are parsed as BigDecimal
-            or as Number with simplest/smallest possible numeric value.
-            Defaults to false.
-    :key-fn Key coercion, where true coerces keys to keywords, false leaves
-            them as strings, or a function to provide custom coercion.
-    :array-coerce-fn Define a collection to be used for array values by name."
-  [reader & options]
-  (let [{:keys [bigdec key-fn array-coerce-fn]
-         :or   {bigdec          false
-                key-fn          keyword
-                array-coerce-fn nil}} options]
-    (binding [parse/*use-bigdecimals?* bigdec]
-      (json/parse-stream (PushbackReader. reader) key-fn array-coerce-fn))))
-
 (defn custom-json-parser
-  "Return a json-parser fn that, given a request, will read the body of the
-  request with `json/parse-stream`. options are key-val pairs that will be passed along
-  to `json/parse-stream`."
-  [& options]
-  (fn [request]
-    (let [encoding (or (:character-encoding request) "UTF-8")]
-      (assoc request
-             :json-params
-             (apply json-read
-                    (InputStreamReader.
-                      ^InputStream (:body request)
-                      ^String encoding)
-                    options)))))
+  "Return a function that, given a request, will read the body of request
+  using a JSON parser via charred.api/read-json. Provided options are merged onto
+  defaults:
+
+  - :key-fn - keyword
+  - :eof-error? - false
+  - :eof-value - nil
+
+  The deprecated :array-coerce-fn is supported in 0.8.0, but overrides the :value-fn
+  option, if provided."
+  [& {:as options}]
+  (let [{:keys [array-coerce-fn]
+         :as   full-options} (merge {:key-fn     keyword
+                                     :eof-error? false
+                                     :eof-value  nil} options)]
+    (let [value-fn (when array-coerce-fn
+                     (deprecated ::array-coerce-fn
+                       :noun ":array-coerce-fn option to io.pedestal.http.body-params/custom-json-parser")
+                     (fn [k v]
+                       (into (array-coerce-fn k) v)))
+          options' (cond-> full-options
+                     value-fn (assoc :value-fn value-fn))]
+      (fn [request]
+        (let [encoding (or (:character-encoding request) "UTF-8")]
+          (assoc request
+                 :json-params
+                 (json/read-json
+                   (InputStreamReader.
+                     ^InputStream (:body request)
+                     ^String encoding)
+                   options')))))))
 
 (defn custom-transit-parser
   "Return a transit-parser fn that, given a request, will read the

@@ -40,9 +40,19 @@ All of api:*[ns=io.pedestal.http] has been deprecated in favor of api:*[ns=io.pe
 The number of warnings concerning deprecated functions has grown considerably in 0.8.0;
 although in the future many of these functions may actually be removed, it still causes considerable noise
 (which may drive users to move to the new APIs).  However, this also results in a flurry of output when
-an applicaton is first started, which can be annoying during development.
+an application is first started, which can be annoying during development.
 
 It is now possible to xref:reference:config.adoc#suppress-deprecation-warnings[suppress deprecation warnings].
+
+=== JSON Parsing
+
+The library used for JSON streaming and parsing switched from
+https://github.com/dakrone/cheshire[cheshire]
+to
+https://github.com/cnuernber/charred[charred].
+
+The :array-coerce-fn option that was passed to cheshire
+(via api:custom-json-parser[ns=io.pedestal.http.body-params]) is deprecated.
 
 == 0.7.0
 

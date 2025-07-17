@@ -5,6 +5,20 @@ Document design and architecture decisions.
 A lighter-weight alternative to
 https://github.com/joelparkerhenderson/architecture-decision-record[Architecture Decision Record (ADR)].
 
+== JSON Parsing (Jul 2025)
+
+Pedestal has https://github.com/pedestal/pedestal/issues/110[long built] its JSON parsing and streaming support on
+https://github.com/dakrone/cheshire[cheshire], but in this release, the code was changed
+to https://github.com/cnuernber/charred[charred].
+
+The rationale here is that cheshire depends on the
+https://github.com/FasterXML/jackson[Jackson] Java libraries, which are
+notoriously challenging to work with, as Jackson is comprised of a collection of small Java libraries that
+are frequently at the root of https://en.wikipedia.org/wiki/Dependency_hell[dependency hell].
+
+The new (to Pedestal) charred library is self-contained (no dependencies) and as fast as Jackson
+in tests.
+
 == HTTP vs. Servlet API (Mar 2025)
 
 Traditionally, Pedestal has always been a layer on top of the {servlet-api}; when deployed as a WAR,

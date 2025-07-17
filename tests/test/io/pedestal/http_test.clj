@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -20,7 +20,7 @@
             [io.pedestal.http :as service]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.http.route :as route]
-            [cheshire.core :as cheshire]
+            [charred.api :as json]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
@@ -287,7 +287,7 @@
           service/json-response
           :body)
       output-stream)
-    (is (= (cheshire/generate-string obj)
+    (is (= (json/write-json-str obj)
            (slurp-output-stream output-stream)))))
 
 (defn- create-temp-file [content]
