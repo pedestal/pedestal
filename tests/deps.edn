@@ -22,16 +22,7 @@
          expound/expound                                {:mvn/version "0.9.0"}
          medley/medley                                  {:mvn/version "1.4.0"}
 
-         org.clojure/java.classpath                     {:mvn/version "1.1.0"}
-         org.clojure/tools.namespace                    {:mvn/version "1.5.0"}
-         org.clojure/data.json                          {:mvn/version "2.5.1"}
          clj-http/clj-http                              {:mvn/version "3.13.1"}
-
-         ;; For test io.pedestal.http.jetty-util-test
-         ;; But io.pedestal.http.jetty-util is deprecated
-
-         org.eclipse.jetty/jetty-servlets               {:mvn/version "11.0.25"}
-
          hato/hato                                      {:mvn/version "1.0.0"}
 
          ;; These are extra deps from service/deps.edn
