@@ -7,122 +7,129 @@
 
 *OVERVIEW:*
 
-- Routing
-    - New Sawtooth router favors literal paths over those with path parameters, and can report any routing conflicts
-    - WebSocket upgrade requests now go through routing, the same as any other endpoint (previously handled as special case)
-    - Static files (file system or on JVM classpath) now also go through routing (previously handled via interceptors)
-- Servlet Support
-    - Upgraded to Jetty 12
-- Non-Servlet Support
-    - Pedestal APIs that require Jakarta Servlet APIs are now in a new module, io.pedestal/pedestal.servlet
-    - Pedestal now supports non-servlet based HTTP libraries, such as [Http-Kit](https://github.com/http-kit/http-kit)
-- Developer Experience
-    - `io.pedestal.http` replaced with simpler, streamlined `io.pedestal.connector`
-    - Improved REPL-oriented development, compatible with [clj-reload](https://github.com/tonsky/clj-reload)
-    - New `definterceptor` to create a record type that can be used as an interceptor
-    - Significant improvements to all documentation
+* Routing
+    * New Sawtooth router favors literal paths over those with path parameters, and can report any routing conflicts
+    * WebSocket upgrade requests now go through routing, the same as any other endpoint (previously handled as special case)
+    * Static files (file system or on JVM classpath) now also go through routing (previously handled via interceptors)
+* Servlet Support
+    * Upgraded to Jetty 12
+* Non-Servlet Support
+    * Pedestal APIs that require Jakarta Servlet APIs are now in a new module, io.pedestal/pedestal.servlet
+    * Pedestal now supports non-servlet based HTTP libraries, such as [Http-Kit](https://github.com/http-kit/http-kit)
+* Developer Experience
+    * `io.pedestal.http` replaced with simpler, streamlined `io.pedestal.connector`
+    * Improved REPL-oriented development, compatible with [clj-reload](https://github.com/tonsky/clj-reload)
+    * New `definterceptor` to create a record type that can be used as an interceptor
+    * Significant improvements to all documentation
 
 *BREAKING CHANGES:*
-- Clojure 1.11 is now the minimum supported version
-- The new Sawtooth router is now the *default router*
-- Anonymous interceptors are deprecated
-- Many APIs deprecated in Pedestal 0.7.0 have been removed outright
-- The `io.pedestal/pedestal.service-tools` library has been removed
-- Significant changes to `io.pedestal.http.route` have occurred
-- Fixed reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
-- Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both
-  are acceptible according to the SSE specification)
-- Exceptions in interceptors:
-  - The caught exception is now the `ex-cause` of the exception provided (in earlier releases, it was the :exception key of the data)
-  - The logic for when to suppress an exception thrown from the error handling interceptor has been simplified: always suppress except when the interceptor rethrows the exact error passed to it
-- `io.pedestal.test` has been rewritten, nearly from scratch
-    - The Servlet API mocks are now standard Java classes, not `reify`-ed classes
-    - A request body may now be a java.io.File
-- `io.pedestal.http.servlet`
-    - The `reify`'ed `FnServlet` class is now a standard Java class, `io.pedestal.servlet.FnServlet`
-    - The new `FnServlet` extends `HttpServlet` not `Servlet`
-- Deleted deprecated namespaces:
-    - `io.pedestal.http.request`
-    - `io.pedestal.http.request.lazy`
-    - `io.pedestal.http.request.zerocopy`
-- Deleted vars (previously deprecated):
-    - `io.pedestal.http`
-        - `json-print`
-    - `io.pedestal.http.body-params`
-        - `add-ring-middleware`
-        - `edn-parser`
-        - `json-parser`
-        - `transit-parser`
-    - `io.pedestal.http.ring-middlewares`
-        - `response-fn-adapter`
-    - `io.pedestal.http.impl.servlet-interceptor`
-        - `stylobate`
-        - `terminator-injector`
-- Other deleted vars and namespaces:
-    - `io.pedestal.http.route.definition/symbol->keyword`
-    - `io.pedestal.http.route.definition/capture-constraint`
-    - `io.pedestal.http.request.servlet-support`
+
+* Clojure 1.11 is now the minimum supported version
+* The new Sawtooth router is now the *default router*
+* Anonymous interceptors are deprecated
+* Many APIs deprecated in Pedestal 0.7.0 have been removed outright
+* The `io.pedestal/pedestal.service-tools` library has been removed
+* Significant changes to `io.pedestal.http.route` have occurred
+* Fixed reloading behavior when namespaces are reloaded via [clj-reload](https://github.com/tonsky/clj-reload)
+* Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both are acceptible according to the SSE specification)
+* Exceptions in interceptors:
+    * The caught exception is now the `ex-cause` of the exception provided (in earlier releases, it was the :exception
+      key of the data)
+    * The logic for when to suppress an exception thrown from the error handling interceptor has been simplified: always
+      suppress except when the interceptor rethrows the exact error passed to it
+* `io.pedestal.test` has been rewritten, nearly from scratch
+    * The Servlet API mocks are now standard Java classes, not `reify`-ed classes
+    * A request body may now be a java.io.File
+* `io.pedestal.http.servlet`
+    * The `reify`'ed `FnServlet` class is now a standard Java class, `io.pedestal.servlet.FnServlet`
+    * The new `FnServlet` extends `HttpServlet` not `Servlet`
+* Deleted deprecated namespaces:
+    * `io.pedestal.http.request`
+    * `io.pedestal.http.request.lazy`
+    * `io.pedestal.http.request.zerocopy`
+* Deleted vars (previously deprecated):
+    * `io.pedestal.http`
+        * `json-print`
+    * `io.pedestal.http.body-params`
+        * `add-ring-middleware`
+        * `edn-parser`
+        * `json-parser`
+        * `transit-parser`
+    * `io.pedestal.http.ring-middlewares`
+        * `response-fn-adapter`
+    * `io.pedestal.http.impl.servlet-interceptor`
+        * `stylobate`
+        * `terminator-injector`
+* Other deleted vars and namespaces:
+    * `io.pedestal.http.route.definition/symbol->keyword`
+    * `io.pedestal.http.route.definition/capture-constraint`
+    * `io.pedestal.http.request.servlet-support`
 
 Newly deprecated namespaces (these may be removed or made non-public in the future):
-- `io.pedestal.jetty.container`
-- `io.pedestal.jetty.util`
-- `io.pedestal.http`
-- `io.pedestal.http.test`
+
+* `io.pedestal.jetty.container`
+* `io.pedestal.jetty.util`
+* `io.pedestal.http`
+* `io.pedestal.http.test`
 
 Other changes:
-- A new router, `io.pedestal.http.route.sawtooth`, has been added
-    - Sawtooth identifies conflicting routes
-    - Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
-- Deprecation warnings may now be suppressed
-- Metrics can now be configured to accept longs or doubles as their values.
-- _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
+
+* A new router, `io.pedestal.http.route.sawtooth`, has been added
+    * Sawtooth identifies conflicting routes
+    * Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
+* Deprecation warnings may now be suppressed
+* Metrics can now be configured to accept longs or doubles as their values.
+* _Pedestal Connectors_ are a new abstraction around an HTTP library such as Jetty or Http-Kit; connectors
   do not use the Servlet API, and so are much lighter weight
-- The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
-    - `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
-- WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
-- The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
+  * The `io.pedestal.connector` namespace is used to configure and start a Pedestal connector
+  * `io.pedestal.connector.servlet` and new Java class ConnectorServlet allow for WAR deployments
+* WebSockets are now routable using new function `io.pedestal.websocket/upgrade-request-to-websocket`
+* The `pedestal.service` module has been broken up; all the parts specific to the Jakarta Servlet API are
   now in the `pedestal.servlet` module
-- Table routes may now specify :interceptors (in the options map); these are prefixed on any
+* Table routes may now specify :interceptors (in the options map); these are prefixed on any
   interceptors provided by the routes in the table
-- Table routes may now include application-defined key/value pairs in addition to :route-name and :constraints
-- The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
-- It is now possible to specify the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection factories
-- New functions and macros:
-    - `io.pedestal.test/create-responder` - useful piece needed in most tests
-    - `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
-    - `io.pedestal.log/log` - logs with level determined at runtime
-- New namespaces:
-    - `io.pedestal.connector` - Replaces `io.pedestal.http` for setting up a connector
-    - `io.pedestal.service.protocols` - Defines core protocols
-    - `io.pedestal.service.resources` - Expose resources using _routes_ not _interceptors_
-    - `io.pedestal.connector.dev` - Development/debugging tools
-    - `io.pedestal.service.interceptors` - Common interceptors
-    - `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
-    - `io.pedestal.connector.servlet` - bridge to Pedestal from a WAR deployment
-- When converting a handler function to an Interceptor
-    - Handler functions may now be *asynchronous*, returning a channel that conveys the response map
-    - The :name metadata on the _function_ will be used as the :name of the interceptor
-    - Otherwise, a :name is derived from the function's class
-    - Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
+* Table routes may now include application-defined key/value pairs in addition to :route-name and :constraints
+* The first argument to `io.pedestal.http.route.definition.table/table-routes` may now be nil or a map
+* It is now possible to specify the maximum number of concurrent threads with the Jetty HTTP2 and HTTP2C connection
+  factories
+* New functions and macros:
+    * `io.pedestal.test/create-responder` - useful piece needed in most tests
+    * `io.pedestal.interceptor/definterceptor` - easily create component records that transform into interceptors
+    * `io.pedestal.log/log` - logs with level determined at runtime
+* New namespaces:
+    * `io.pedestal.connector` - Replaces `io.pedestal.http` for setting up a connector
+    * `io.pedestal.service.protocols` - Defines core protocols
+    * `io.pedestal.service.resources` - Expose resources using _routes_ not _interceptors_
+    * `io.pedestal.connector.dev` - Development/debugging tools
+    * `io.pedestal.service.interceptors` - Common interceptors
+    * `io.pedestal.connector.test` - Testing w/ Ring request and response (no Servlet API)
+    * `io.pedestal.connector.servlet` - bridge to Pedestal from a WAR deployment
+* When converting a handler function to an Interceptor
+    * Handler functions may now be *asynchronous*, returning a channel that conveys the response map
+    * The :name metadata on the _function_ will be used as the :name of the interceptor
+    * Otherwise, a :name is derived from the function's class
+    * Previously, with the terse or verbose routing specifications, the route name would overwrite the (missing) name
       of the interceptor; now interceptors always have names and this does not occur
-    - Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
-- The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
-- Development mode is now configured as with other values, rather than strictly via a JVM system property
-- The embedded template now generates a less rudimentary index page, with basic styling
+    * Extracting default interceptor names from handlers can also be turned off, reverting to 0.7.x behavior
+* The `io.pedestal.http.cors/allow-origin` interceptor now, by default, logs at level debug (was level info previously)
+* Development mode is now configured as with other values, rather than strictly via a JVM system property
+* The embedded template now generates a less rudimentary index page, with basic styling
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/17?closed=1)
 
 ## 0.7.2 - 1 Nov 2024
 
 Changes:
-- Correctly detect when a response can not be returned due to the client disconnecting
+
+* Correctly detect when a response can not be returned due to the client disconnecting
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/20?closed=1)
 
 ## 0.7.1 -- 27 Sep 2024
 
 Changes:
-- Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
+
+* Correctly report the tracing span status: [PR](https://github.com/pedestal/pedestal/pull/860)
 
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/19?closed=1)
@@ -141,38 +148,47 @@ observability functions provided by the io.pedestal/pedestal.log library.
 
 *BREAKING CHANGES:*
 
-- Library pedestal.jetty has been upgraded from Jetty 9 to Jetty 11
-- Library pedestal.immutant has been removed
-- Library pedestal.tomcat has been removed
-- Library pedestal.aws has been removed
-- Namespace `io.pedestal.http.jetty.websockets` has been removed, and replaced with `io.pedestal.http.websockets`
-- Namespace `io.pedestal.interceptor.error` has been moved to a new library, io.pedestal/pedestal.error
-- Library pedestal.service no longer has a dependency on org.clojure/core.match; the new pedestal.error library has that dependency
-- Interceptors that attach an invalid :response value (not a map, for example) will now cause an exception to be thrown
-- Interceptors may now attach a partial :response map, containing just a :status key
+* Library pedestal.jetty has been upgraded from Jetty 9 to Jetty 11
+* Library pedestal.immutant has been removed
+* Library pedestal.tomcat has been removed
+* Library pedestal.aws has been removed
+* Namespace `io.pedestal.http.jetty.websockets` has been removed, and replaced with `io.pedestal.http.websockets`
+* Namespace `io.pedestal.interceptor.error` has been moved to a new library, io.pedestal/pedestal.error
+* Library pedestal.service no longer has a dependency on org.clojure/core.match; the new pedestal.error library has that
+  dependency
+* Interceptors that attach an invalid :response value (not a map, for example) will now cause an exception to be thrown
+* Interceptors may now attach a partial :response map, containing just a :status key
 
 Other changes:
-- When using `io.pedestal.http/dev-interceptors`, uncaught exceptions are now formatted using [org.clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
-- Pedestal is now compatible with Clojure 1.10.1 and above
-- In `io.pedestal.interceptor.chain`:
-    - New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to following interceptors
-    - New function `on-enter-async` is used to register a callback invoked when execution first goes asynchronous
-    - New function `queue` is used to peek at what interceptors remain on the queue
-    - New function `add-observer` to add a callback after each interceptor executes in each stage
-- New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe and log changes to the context made by interceptors
-- New function `io.pedestal.http/enable-debug-interceptor-observer` to setup `debug-observer`
-- New service map keys have been introduced:
-    - Support handling of uncaught exceptions
-    - May now specify an initial context map
-    - May now specify an interceptor responsible for request tracing
-- There is now a clojure.spec specification for the structure of the service map, and for the structure of the different route specifications and the expanded routing table
-- Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
-- Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
-- Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
-- Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration files to inform clj-kondo about their macros
-- New function `io.pedestal.http/respond-with` to streamline adding a :response to the interceptor context
-- Easier application configuration: logger, metrics, and tracing configuration can occur inside a `pedestal-config.edn` file (or `pedestal-test-config.edn` for tests), as well as via JVM system properties and environment variables
-- Improvements to REPL-based development, including printing the expanded routing table at startup (when in development mode)
+
+* When using `io.pedestal.http/dev-interceptors`, uncaught exceptions are now formatted
+  using [org.clj-commons/pretty](https://github.com/clj-commons/pretty) in the response sent to the client
+* Pedestal is now compatible with Clojure 1.10.1 and above
+* In `io.pedestal.interceptor.chain`:
+    * New macros `bind` and `unbind` make it easier for interceptors to manipulate dynamic variables exposed to
+      following interceptors
+    * New function `on-enter-async` is used to register a callback invoked when execution first goes asynchronous
+    * New function `queue` is used to peek at what interceptors remain on the queue
+    * New function `add-observer` to add a callback after each interceptor executes in each stage
+* New function `io.pedestal.interceptor.chain.debug/debug-observer` to observe and log changes to the context made by
+  interceptors
+* New function `io.pedestal.http/enable-debug-interceptor-observer` to setup `debug-observer`
+* New service map keys have been introduced:
+    * Support handling of uncaught exceptions
+    * May now specify an initial context map
+    * May now specify an interceptor responsible for request tracing
+* There is now a clojure.spec specification for the structure of the service map, and for the structure of the different
+  route specifications and the expanded routing table
+* Added a deps-new template, io.pedestal/embedded, for creating a new Pedestal project around embedded Jetty
+* Use of many deprecated functions and macros now cause deprecation warnings to be printed to stderr
+* Metrics and tracing have been reimplemented from the ground up around [Open Telemetry](https://opentelemetry.io/)
+* Libraries pedestal.log and pedestal.error contain [clj-kondo](https://github.com/clj-kondo/clj-kondo) configuration
+  files to inform clj-kondo about their macros
+* New function `io.pedestal.http/respond-with` to streamline adding a :response to the interceptor context
+* Easier application configuration: logger, metrics, and tracing configuration can occur inside a `pedestal-config.edn`
+  file (or `pedestal-test-config.edn` for tests), as well as via JVM system properties and environment variables
+* Improvements to REPL-based development, including printing the expanded routing table at startup (when in development
+  mode)
 
 [Closed Issues](https://github.com/pedestal/pedestal/milestone/12?closed=1)
 
