@@ -35,13 +35,15 @@
 
 (defn- throwable->ex-info
   [^Throwable t execution-id interceptor-name stage]
-  (let [throwable-str (pr-str (type t))]
-    (ex-info (str throwable-str " in Interceptor " interceptor-name " - " (.getMessage t))
+  (let [throwable-str (pr-str (type t))
+        message       (.getMessage t)
+        message'      (when message
+                        (str " - " message))]
+    (ex-info (str throwable-str " in Interceptor " interceptor-name message')
              (merge {:execution-id   execution-id
                      :stage          stage
                      :interceptor    interceptor-name
-                     :exception-type (keyword throwable-str)
-                     :exception      t}
+                     :exception-type (keyword throwable-str)}
                     (ex-data t))
              t)))
 
@@ -58,6 +60,8 @@
   (dissoc context ::error))
 
 (defn- begin-error
+  "Invoked when invoking a callback of an interceptor results in a thrown exception. Sets things
+  up to rewind the stack looking for an :error handling interceptor."
   [context stage interceptor throwable]
   (let [{:keys [execution-id]} context
         interceptor-name (name-for interceptor)]
@@ -121,7 +125,7 @@
     context))
 
 (defn- try-error
-  "Invokes the :error interceptor."
+  "Invokes the interceptor's :error callback."
   [context interceptor error]
   (if-let [callback (get interceptor :error)]
     (let [context-in (dissoc context ::error)]
@@ -129,13 +133,20 @@
         (let [context-out (callback context-in error)]
           (notify-observer interceptor :error context-in context-out))
         (catch Throwable t
-          (if (identical? (type t) (-> error ex-data :exception type))
+          ;; The error handling interceptor can rethrow the wrapped exception OR it can
+          ;; rethrow the actual/original exception.
+          (if (identical? t error)
             (do
               (log/debug :rethrow t :execution-id (::excecution-id context))
               context)
             (let [execution-id (::excecution-id context)]
-              (log/debug :throw t :suppressed (:exception-type error) :execution-id execution-id)
+              (log/debug :exception t
+                         :suppressed (:exception-type error)
+                         :execution-id execution-id)
               (-> context
+                  ;; A brand new exception, representing a fault in the exception handling of
+                  ;; the interceptor: create a new wrapper for the new exception, and
+                  ;; store the old as suppressed.
                   (with-error (throwable->ex-info t execution-id (name-for interceptor) :error))
                   (update ::suppressed conj error)))))))
     context))

@@ -93,23 +93,23 @@
   (let [{:keys [array-coerce-fn]
          :as   full-options} (merge {:key-fn     keyword
                                      :eof-error? false
-                                     :eof-value  nil} options)]
-    (let [value-fn (when array-coerce-fn
-                     (deprecated ::array-coerce-fn
-                       :noun ":array-coerce-fn option to io.pedestal.http.body-params/custom-json-parser")
-                     (fn [k v]
-                       (into (array-coerce-fn k) v)))
-          options' (cond-> full-options
-                     value-fn (assoc :value-fn value-fn))]
-      (fn [request]
-        (let [encoding (or (:character-encoding request) "UTF-8")]
-          (assoc request
-                 :json-params
-                 (json/read-json
-                   (InputStreamReader.
-                     ^InputStream (:body request)
-                     ^String encoding)
-                   options')))))))
+                                     :eof-value  nil} options)
+        value-fn (when array-coerce-fn
+                   (deprecated ::array-coerce-fn
+                     :noun ":array-coerce-fn option to io.pedestal.http.body-params/custom-json-parser")
+                   (fn [k v]
+                     (into (array-coerce-fn k) v)))
+        options' (cond-> full-options
+                   value-fn (assoc :value-fn value-fn))]
+    (fn [request]
+      (let [encoding (or (:character-encoding request) "UTF-8")]
+        (assoc request
+               :json-params
+               (json/read-json
+                 (InputStreamReader.
+                   ^InputStream (:body request)
+                   ^String encoding)
+                 options'))))))
 
 (defn custom-transit-parser
   "Return a transit-parser fn that, given a request, will read the

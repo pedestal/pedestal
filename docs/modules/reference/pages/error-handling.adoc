@@ -1,4 +1,5 @@
 = Error Handling
+:default_api_ns: io.pedestal.interceptor.chain
 
 Pedestal must do something useful when an interceptor throws an
 exception. It would not be useful to bubble up the runtime call stack,
@@ -19,10 +20,10 @@ in the xref:context-map.adoc[context map].
 
 As long as there is an error attached to that key, Pedestal will not
 invoke the usual :enter and :leave functions. Instead, it looks
-for the next interceptor in the stacj that has an :error function
+for the next interceptor in the stack that has an :error function
 attached to it.
 
-This error handling proceeds the same way regardless of whether
+This error handling will proceed the same, regardless of whether
 interceptors in the chain returned a xref:context-map.adoc[context map] or
 async channel. (See
 xref:interceptors.adoc#return[Interceptor Return Values] for details on async return.)
@@ -62,11 +63,9 @@ defined in its exception data map:
 | Keyword
 | Keywordized form of the exception's Java class name
 
-| :exception
-| Throwable
-| The caught exception.
-
 |===
+
+The exception originally caught is provided as the clj:ex-cause[] of the provided exception.
 
 The context map does _not_ contain the
 :io.pedestal.interceptor.chain/error key. The :error function can do
@@ -75,17 +74,20 @@ one of the following things:
 1. Return the context map. This is "catching" the error. Because the
 context map has no error bound to it, Pedestal will exit error
 handling and execute any remaining :leave handlers.
-2. Return the context map with the exception re-attached at
-:io.pedestal.interceptor.chain/error. This indicates that the
+2. Return the context map with the exception re-attached (using
+  api:with-error[]).  This indicates that the
 handler doesn't recognize that exception and declines to handle
 it. Pedestal will continue looking for a handler.
-3. Throw a new exception. This indicates that the interceptor _should_
-have been able to handle the error, but something went wrong. Pedestal
-will start looking for a handler for this new exception.
+3. Throw a new exception. This indicates that the interceptor _intended_
+to handle the error, but something went wrong. Pedestal
+will start looking for a error handler for this new exception.
 
 In that last case, Pedestal keeps track of the exceptions that were
 overridden. These are in a seq bound to
 :io.pedestal.interceptor.chain/suppressed in the context map.
+
+The interceptor may also rethrow the error passed to it rather than re-attach
+the error, but this is discouraged.
 
 Most commonly, the interceptor will return the context map with a :response
 map; this will trigger normal response processing by invoking any remaining interceptors' :leave functions.

@@ -285,7 +285,8 @@
   (interceptor
     {:name  ::rethrowing-error-handling-interceptor
      :error (fn [_ctx ex]
-              (throw (:exception (ex-data ex))))}))
+              ;; Rethrow the wrapper, not the original exception
+              (throw ex))}))
 
 (def throwing-error-handling-interceptor
   (interceptor
@@ -298,21 +299,40 @@
     {:name  ::error-handling-interceptor
      :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
 
+(deftest throwing-the-exception-is-not-a-suppression
+  (let [ctx (chain/execute {} [error-handling-interceptor
+                               rethrowing-error-handling-interceptor
+                               failing-interceptor])]
+    ;; When an exception handling interceptor re-throws the existing exception,
+    ;; then the original wrapped exception propagates up.
+    (is (match? {:stage       :enter
+                 :interceptor ::failing-interceptor}
+                (-> ctx :caught-exception ex-data)))
+    (is (= 0 (-> (ctx ::chain/suppressed) count)))))
+
+
 (deftest chain-execution-error-suppression-test
   (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
       "The `io.pedestal.interceptor.chain/suppressed` key should not be set when an exception is handled.")
-  (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor rethrowing-error-handling-interceptor failing-interceptor])))
-      "The `io.pedestal.interceptor.chain/suppressed` key should not be set when the same exception type is rethrown.")
-  (let [ctx (chain/execute {} [error-handling-interceptor throwing-error-handling-interceptor failing-interceptor])]
+
+  (let [ctx (chain/execute {} [error-handling-interceptor
+                               throwing-error-handling-interceptor
+                               failing-interceptor])]
+    ;; Check that correct data is captured; the error handling interceptor was invoked
+    ;; in stage :error and threw a new exception.
+    (is (match? {:stage          :error
+                 :interceptor    ::throwing-error-handling-interceptor
+                 :exception-type :java.lang.Exception}
+                (-> ctx :caught-exception ex-data)))
+
     (is (= 1 (count (::chain/suppressed ctx)))
-        "There should be a suppressed error when a different exception type is thrown.")
-    (is (= :java.lang.ArithmeticException (-> ctx ::chain/suppressed first ex-data :exception-type))
-        "The suppressed exception should be the original exception.")
-    (testing "The caught exception is the new exception."
-      (let [{:keys [exception-type exception]} (-> ctx :caught-exception ex-data)]
-        (is (= :java.lang.Exception exception-type))
-        (is (= "Just testing the error-handler, this is not a real exception"
-               (ex-message exception)))))))
+        "There should be a suppressed error when a different exception is thrown")
+
+    (is (match? {:exception-type :java.lang.ArithmeticException
+                 :stage          :enter
+                 :interceptor    ::failing-interceptor}
+                (-> ctx ::chain/suppressed first ex-data))
+        "The suppressed exception should be the original exception wrapper")))
 
 (def ^:dynamic *bindable* :default)
 
