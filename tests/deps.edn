@@ -22,6 +22,11 @@
          expound/expound                                {:mvn/version "0.9.0"}
          medley/medley                                  {:mvn/version "1.4.0"}
 
+         ;; For test io.pedestal.http.jetty-util-test
+         ;; But io.pedestal.http.jetty-util is deprecated
+
+         org.eclipse.jetty/jetty-servlets               {:mvn/version "11.0.25"}
+
          clj-http/clj-http                              {:mvn/version "3.13.1"}
          hato/hato                                      {:mvn/version "1.0.0"}
 

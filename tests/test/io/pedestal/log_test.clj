@@ -13,7 +13,7 @@
 (ns io.pedestal.log-test
   (:require [clojure.string :as string]
             [clojure.test :refer [deftest is use-fixtures]]
-            [clojure.data.json :as json]
+            [charred.api :as json]
             [io.pedestal.log :as log]
             [matcher-combinators.matchers :as m]
             [clojure.edn :as edn]))
@@ -91,7 +91,7 @@
          (events))))
 
 (deftest uses-default-formatter-if-not-specified
-  (with-redefs [log/default-formatter (constantly json/json-str)
+  (with-redefs [log/default-formatter (constantly json/write-json-str)
                 log/make-logger       (constantly test-logger)]
     ^{:line 9999} (log/info :this :that)
     (is (= [[:info
