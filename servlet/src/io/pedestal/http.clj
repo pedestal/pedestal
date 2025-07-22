@@ -41,7 +41,6 @@
             [io.pedestal.service.interceptors :as interceptors]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]
-            [io.pedestal.service.protocols :as sp]
             [io.pedestal.http.response :as response]
             [clojure.string :as string]
             [io.pedestal.log :as log])
@@ -52,13 +51,6 @@
 (try
   (require 'io.pedestal.http.jetty)
   (catch Exception _))
-
-(extend-protocol sp/ResponseBufferSize
-
-  HttpServletResponse
-
-  (response-buffer-size [response]
-    (.getBufferSize response)))
 
 ;; edn and json response formats
 

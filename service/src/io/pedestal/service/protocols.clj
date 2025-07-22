@@ -18,7 +18,7 @@
   is not a dependency available to the pedestal.service module."
 
   (response-buffer-size [this]
-    "Returns the buffer size, in bytes, available to this response, or nil if it can not be determined."))
+    "Returns the buffer size, in bytes, available to this response, or nil if it cannot be determined."))
 
 ;; Cover the case where the servlet response object is not available.
 
