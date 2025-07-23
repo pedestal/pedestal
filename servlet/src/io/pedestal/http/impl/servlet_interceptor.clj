@@ -14,6 +14,7 @@
 (ns io.pedestal.http.impl.servlet-interceptor
   "Interceptors for adapting the Java HTTP Servlet interfaces."
   (:require [clojure.java.io :as io]
+            [io.pedestal.service.protocols :as sp]
             [clojure.core.async :as async]
             [io.pedestal.http.response :as response]
             [io.pedestal.interceptor.chain :as chain]
@@ -39,7 +40,12 @@
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
-;;; HTTP Response
+(extend-protocol sp/ResponseBufferSize
+
+  HttpServletResponse
+
+  (response-buffer-size [response]
+    (.getBufferSize response)))
 
 (defprotocol WriteableBody
   (default-content-type [body] "Get default HTTP content-type for `body`.")

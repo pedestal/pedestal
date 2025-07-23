@@ -24,10 +24,12 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.servlet :as servlet]
             [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
+            [io.pedestal.service.resources :as resources]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.jetty :as jetty]
             io.pedestal.http.jetty.specs)
-  (:import (org.eclipse.jetty.util.thread QueuedThreadPool)
+  (:import (jakarta.servlet.http HttpServletResponse)
+           (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
            (java.nio ByteBuffer)
@@ -262,6 +264,26 @@
                                             "text/plain"))
                            (is (= (:body response) "Hello World"))
                            (is (= (url-for :hello) "/context/hello"))))))
+
+(def small-buffer-size
+  (interceptor
+    {:name  ::small-buffer-size
+     :enter (fn [context]
+              (let [^HttpServletResponse response (get-in context [:request :servlet-response])]
+                (.setBufferSize response 1000))
+              context)}))
+
+(deftest access-an-async-response
+  (with-service-server (-> service-map
+                           (assoc ::bootstrap/routes
+                                  (route/expand-routes
+                                    (resources/file-routes {:file-root "file-root"})))
+                           bootstrap/default-interceptors
+                           (update ::bootstrap/interceptors conj small-buffer-size))
+                       (is (match?
+                             {:status 200
+                              :body   (slurp "file-root/sub/image.jpg")}
+                             (http/get "http://localhost:4347/sub/image.jpg")))))
 
 (defn hello-page2 [_request]
   {:status  200

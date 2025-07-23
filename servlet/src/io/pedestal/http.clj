@@ -41,24 +41,15 @@
             [io.pedestal.service.interceptors :as interceptors]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.interceptor.chain.debug :as chain.debug]
-            [io.pedestal.service.protocols :as sp]
             [io.pedestal.http.response :as response]
             [clojure.string :as string]
             [io.pedestal.log :as log])
-  (:import (jakarta.servlet Servlet)
-           (jakarta.servlet.http HttpServletResponse)))
+  (:import (jakarta.servlet Servlet)))
 
 ;; This is the majority case; attempting to require it here helps with applications that AOT.
 (try
   (require 'io.pedestal.http.jetty)
   (catch Exception _))
-
-(extend-protocol sp/ResponseBufferSize
-
-  HttpServletResponse
-
-  (response-buffer-size [response]
-    (.getBufferSize response)))
 
 ;; edn and json response formats
 
