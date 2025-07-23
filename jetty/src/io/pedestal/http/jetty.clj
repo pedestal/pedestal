@@ -17,7 +17,7 @@
             [clojure.string :as string]
             [io.pedestal.http.response :as response]
             [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.internal :refer [deprecated]]
+            [io.pedestal.internal :refer [deprecated with-deprecations-suppressed]]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.service.protocols :as p]
             [io.pedestal.connector.test :as test]
@@ -223,7 +223,8 @@
                                                                    (deprecated ::websockets
                                                                      :in "0.8.0"
                                                                      :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)")
-                                                                   (ws/add-endpoints container websockets)))))
+                                                                   (with-deprecations-suppressed
+                                                                     (ws/add-endpoints container websockets))))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.
@@ -277,7 +278,7 @@
   (let [{:keys [interceptors initial-context join?]} service-map
         ;; The options may include an :exception-analyzer function.
         service-fn        (si/http-interceptor-service-fn interceptors initial-context options)
-        servlet           (servlet/servlet :service service-fn)
+        servlet           (with-deprecations-suppressed (servlet/servlet :service service-fn))
         ;; Mixing service-map and options; another bit of relic that maybe can be fixed
         ;; with changes to io.pedestal.http (that are probably ok to do as it only concerns implementation
         ;; details).
