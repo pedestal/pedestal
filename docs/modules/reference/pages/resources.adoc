@@ -1,7 +1,7 @@
 = Resources
-:default_api_ns: io.pedestal.http.resources
+:default_api_ns: io.pedestal.service.resources
 
-Although most of Pedestal is focused on _dynamic_ routes, nearly all HTTP-based applications will have some amount of static resources that need to be client accessible as well.
+Although most of Pedestal is focused on _dynamic_ routes, nearly all HTTP-based applications will have some number of static resources that need to be client-accessible as well.
 
 These resources take the form of either plain files on the host's file system, or virtual resource files available on the https://docs.oracle.com/javase/tutorial/essential/environment/paths.html:[Java classpath].
 
@@ -17,7 +17,7 @@ The preferred approach is to add routes for resources to your application.
 ----
 (ns org.example.service
   (:require [io.pedestal.connector :as conn]
-            [io.pedestal.http.resources :as resources]))
+            [io.pedestal.service.resources :as resources]))
 
 (defn create-connector
   []
