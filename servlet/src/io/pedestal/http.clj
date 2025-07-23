@@ -44,8 +44,7 @@
             [io.pedestal.http.response :as response]
             [clojure.string :as string]
             [io.pedestal.log :as log])
-  (:import (jakarta.servlet Servlet)
-           (jakarta.servlet.http HttpServletResponse)))
+  (:import (jakarta.servlet Servlet)))
 
 ;; This is the majority case; attempting to require it here helps with applications that AOT.
 (try
