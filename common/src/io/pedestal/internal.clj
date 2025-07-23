@@ -157,10 +157,10 @@
 
 (def *deprecations (atom #{}))
 
-(def *suppress?
-  (delay (read-config "io.pedestal.suppress-deprecation-warnings"
-                      "PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS"
-                      :as :boolean)))
+(def ^:dynamic *suppress?*
+  (read-config "io.pedestal.suppress-deprecation-warnings"
+               "PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS"
+               :as :boolean))
 
 (defn deprecated*
   [label in noun]
@@ -181,8 +181,16 @@
 
 (defmacro deprecated
   [label & {:keys [in noun]}]
-  `(when-not @*suppress?
-     (deprecated* ~label ~in ~noun)))
+  ;; When running normally, `deprecated` is has zero runtime cost.
+  ;; When enabled at macro expansion time, it may still be disabled later, at runtime.
+  (when-not *suppress?*
+    `(when-not *suppress?*
+       (deprecated* ~label ~in ~noun))))
+
+(defmacro with-deprecations-suppressed
+  [& body]
+  `(binding [*suppress?* true]
+     ~@body))
 
 (defn reset-deprecations
   []
