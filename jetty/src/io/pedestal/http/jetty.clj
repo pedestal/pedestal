@@ -278,7 +278,7 @@
   (let [{:keys [interceptors initial-context join?]} service-map
         ;; The options may include an :exception-analyzer function.
         service-fn        (si/http-interceptor-service-fn interceptors initial-context options)
-        servlet           (with-deprecations-suppressed (servlet/servlet :service service-fn))
+        servlet           (servlet/servlet :service service-fn)
         ;; Mixing service-map and options; another bit of relic that maybe can be fixed
         ;; with changes to io.pedestal.http (that are probably ok to do as it only concerns implementation
         ;; details).

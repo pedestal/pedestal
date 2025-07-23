@@ -19,7 +19,7 @@
   (:import (io.pedestal.servlet FnServlet)
            (jakarta.servlet.http HttpServlet)))
 
-(defn ^{:deprecated "0.8.0"} servlet
+(defn servlet
   "Returns an instance of jakarta.servlet.HttpServlet using provided
   functions for its implementation.
 
@@ -42,5 +42,4 @@
   container) use the Java class io.pedestal.servlet.ClojureVarServlet."
   ^HttpServlet [& {:keys [init service destroy]}]
   {:pre [(fn? service)]}
-  (deprecated `servlet :in "0.8.0")
   (FnServlet. init service destroy))
