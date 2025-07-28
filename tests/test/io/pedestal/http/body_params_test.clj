@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2025 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -14,7 +14,8 @@
 (ns io.pedestal.http.body-params-test
   (:require [clojure.instant :as inst]
             [io.pedestal.http.body-params :refer [body-params default-parser-map]]
-            [clojure.test :refer [deftest is]])
+            [clojure.test :refer [deftest is]]
+            [matcher-combinators.matchers :as m])
   (:import (java.io ByteArrayInputStream)))
 
 (defn byte-context [content-type ^bytes body-bytes]
@@ -46,6 +47,13 @@
         new-context (i-using-opts json-context)
         new-request (:request new-context)]
     (is (= (:json-params new-request) {"foo" "BAR"}))))
+
+(deftest content-type-with-no-body
+  (let [json-context {:request {:content-type "application/json"
+                                :headers {"content-type" "application/json"}}}
+        result (i json-context)]
+    (is (match? {:request {:json-params m/absent}}
+                result))))
 
 (defn json-request
   [json-context options]
