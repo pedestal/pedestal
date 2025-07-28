@@ -43,10 +43,13 @@
 
 
 (defn- parse-content-type
-  "Runs the request through the appropriate parser"
+  "Runs the request through the appropriate parser.  Returns the request unchanged if the :body
+  is nil (or absent)."
   [parser-map request]
-  (let [parser-fn (parser-for parser-map (:content-type request))]
-    (parser-fn request)))
+  (if (-> request :body some?)
+    (let [parser-fn (parser-for parser-map (:content-type request))]
+      (parser-fn request))
+    request))
 
 (defn add-parser
   "Adds a parser to the parser map; content type can either be a string (to exactly match the content type),
@@ -187,7 +190,9 @@
   - :edn-params
   - :form-params
   - :transit-params
-  "
+
+  When the body is absent (or nil), then the request is not changed (no new keys are added, no
+  parsing is attempted)."
   ([] (body-params (default-parser-map)))
   ([parser-map]
    (interceptor
