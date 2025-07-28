@@ -57,6 +57,7 @@
   (are [status req] (= (:status req) status)
     200 (response-for app :head url)
     200 (response-for app :get url)
+    200 (response-for app :options url)
     403 (response-for app :post url)
     403 (response-for app :put url)
     403 (response-for app :patch url)

@@ -88,9 +88,8 @@
          stored-token
          (crypto/eq? user-token stored-token))))
 
-(defn- get-request? [{method :request-method}]
-  (or (= :head method)
-      (= :get method)))
+(defn- apply-to-request? [{method :request-method}]
+  (contains? #{:get :head :options} method))
 
 (defn access-denied-response [body]
   {:status  403
@@ -145,7 +144,7 @@
         :enter (fn [context]
                  (let [{:keys [request]} context
                        token (session-token request)]
-                   (if (and (not (get-request? request))
+                   (if (and (not (apply-to-request? request))
                             (not (valid-request? request token-reader)))
                      (error-handler context)
                      (assoc-in context [:request anti-forgery-token] token))))
