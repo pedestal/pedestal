@@ -31,6 +31,7 @@
 * The `io.pedestal/pedestal.service-tools` library has been removed
 * Significant changes to `io.pedestal.http.route` have occurred
 * Server-Sent Events have been changed; fields are now terminated with a single `\n` rather than a `\r\n` (both are acceptible according to the SSE specification)
+* The `io.pedestal.http.body-params/body-params` interceptor now does nothing if the request :body is nil
 * Exceptions in interceptors:
     * The caught exception is now the `ex-cause` of the exception provided (in earlier releases, it was the :exception
       key of the data)
