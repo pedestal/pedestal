@@ -15,7 +15,6 @@
   "Generic Servlet adapter that closes over its implementation
   functions; this dynamically creates a Servlet instance that can be used with
   a servlet container such as Jetty."
-  (:require [io.pedestal.internal :refer [deprecated]])
   (:import (io.pedestal.servlet FnServlet)
            (jakarta.servlet.http HttpServlet)))
 
