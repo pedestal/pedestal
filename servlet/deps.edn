@@ -26,7 +26,7 @@
          ring/ring-core                   {:mvn/version "1.14.2"}
          org.clojure/tools.reader         {:mvn/version "1.5.2"}
          com.cognitect/transit-clj        {:mvn/version "1.0.333"}
-         commons-codec/commons-codec      {:mvn/version "1.18.0"}
+         commons-codec/commons-codec      {:mvn/version "1.19.0"}
          crypto-random/crypto-random      {:mvn/version "1.2.1"
                                            :exclusions  [commons-code/commons-codec]}
          crypto-equality/crypto-equality  {:mvn/version "1.0.1"}}
