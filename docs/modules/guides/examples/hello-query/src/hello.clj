@@ -15,8 +15,8 @@
 
 ;; tag::response[]
 (defn greet-handler [request]
-  (let [green-name (get-in request [:query-params :name])]  ;; <1>
-    {:status 200 :body (str "Hello, " green-name "\n")}))   ;; <2>
+  (let [greet-name (get-in request [:query-params :name])]  ;; <1>
+    {:status 200 :body (str "Hello, " greet-name "\n")}))   ;; <2>
 ;; end::response[]
 
 ;; tag::response_sidequest[]
