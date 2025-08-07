@@ -50,3 +50,4 @@ logs/
 autodoc/
 codox
 **/.lsp
+*/.clj-kondo
