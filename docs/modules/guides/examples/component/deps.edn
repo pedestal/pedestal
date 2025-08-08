@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-beta-3"}
+ :deps  {io.pedestal/pedestal.http-kit {:mvn/version "0.8.0-rc-1"}
          com.stuartsierra/component    {:mvn/version "1.1.0"}
          org.clj-commons/humanize      {:mvn/version "1.1"} ;; <1>
          org.slf4j/slf4j-simple        {:mvn/version "2.0.17"}}
