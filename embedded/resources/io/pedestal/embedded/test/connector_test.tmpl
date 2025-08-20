@@ -1,6 +1,6 @@
 (ns {{top/ns}}.{{main/ns}}.connector-test
   (:require [clojure.test :refer [deftest is use-fixtures]]
-            [cheshire.core :as json]
+            [charred.api :as json]
             [matcher-combinators.matchers :as m]
             [io.pedestal.connector :as connector]
             [io.pedestal.http.http-kit :as hk]
@@ -28,13 +28,13 @@
 
 (deftest can-access-public-resources
   (is (match? {:status 200
-               :body (m/regex #"\QThis is the root index file for the {{name}} project.\E")}
+               :body (m/regex #"\Q<strong>{{name}}</strong> is up and running.\E")}
               (response-for *connector* :get "/index.html"))))
 
 (deftest can-access-greet
   (is (match? {:status 200
                :body "Hello, Pedestal User."}
               (response-for *connector* :post "/hello"
-                :body (json/generate-string {:name "Pedestal User"})
+                :body (json/write-json-str {:name "Pedestal User"})
                 :headers {"Content-Type" "application/json"}))))
 

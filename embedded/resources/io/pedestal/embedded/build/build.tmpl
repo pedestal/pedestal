@@ -1,7 +1,7 @@
 (ns build
   (:refer-clojure :exclude [test])
   (:require [clojure.tools.build.api :as b]
-            [clj-commons.ansi :refer [pcompose]]
+            [clj-commons.ansi :refer [pout]]
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib '{{group/id}}/{{artifact/id}})
@@ -97,8 +97,8 @@
         results      (kondo-run! lint-options)]
       (kondo-print! results)
       (when (pos? (get-in results [:summary :errors] 0))
-        (pcompose [:red [:bold "ERROR"] ": clj-kondo found errors 😢"])
+        (pout [:red [:bold "ERROR"] ": clj-kondo found errors 😢"])
         (System/exit -1))
-      (pcompose [:bold.green "clj-kondo approves ☺️"])))
+      (pout [:bold.green "clj-kondo approves ☺️"])))
 
 
