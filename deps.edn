@@ -14,12 +14,12 @@
  {:build
   {:ns-default build
    :paths ["build" "tests/resources"]
-   :deps {io.github.hlship/build-tools {:git/tag "0.11.0" :git/sha "8c67d1"}
+   :deps {io.github.hlship/build-tools {:git/tag "0.12.1" :git/sha "05f3ae"}
           io.github.hlship/trace {:mvn/version "1.4"}
           io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.9"}
           clj-kondo/clj-kondo {:mvn/version "2025.07.28"}
-          org.clj-commons/pretty {:mvn/version "3.6.2"}
+          org.clj-commons/pretty {:mvn/version "3.6.3"}
           babashka/fs {:mvn/version "0.5.26"}}}
 
   ;; Invoked via clj -T:build cve-check

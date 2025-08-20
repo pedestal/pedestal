@@ -58,5 +58,5 @@
                 jakarta.websocket/jakarta.websocket-client-api {:mvn/version "2.2.0"}
                 jakarta.websocket/jakarta.websocket-api        {:mvn/version "2.2.0"}}}
   ;; clj -T:build <command>
-  :build {:deps       {io.github.hlship/build-tools {:git/tag "0.11.0" :git/sha "8c67d11"}}
+  :build {:deps       {io.github.hlship/build-tools {:git/tag "0.12.1" :git/sha "05f3aeb"}}
           :ns-default build}}}
