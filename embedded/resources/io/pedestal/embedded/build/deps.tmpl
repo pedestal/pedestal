@@ -10,7 +10,7 @@
                  "test-resources"
                  "dev"]
    :extra-deps {org.clojure/test.check     {:mvn/version "1.1.1"}
-                nubank/matcher-combinators {:mvn/version "3.9.1"}
+                nubank/matcher-combinators {:mvn/version "3.9.2"}
                 io.github.cognitect-labs/test-runner
                 {:git/tag "v0.5.1"
                  :git/sha "dfb30dd"}}}
@@ -31,9 +31,9 @@
               ;; https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
               "-javaagent:target/opentelemetry-javaagent.jar"]}
 
-  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.7"}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.10"}
                  slipset/deps-deploy           {:mvn/version "0.2.2"}
-                 org.clj-commons/pretty        {:mvn/version "3.3.2"}
-                 clj-kondo/clj-kondo           {:mvn/version "2025.06.05"}
-                 io.github.tonsky/clj-reload   {:mvn/version "0.9.7"}}
+                 org.clj-commons/pretty        {:mvn/version "3.6.2"}
+                 clj-kondo/clj-kondo           {:mvn/version "2025.07.28"}
+                 io.github.tonsky/clj-reload   {:mvn/version "0.9.8"}}
           :ns-default build}}}
