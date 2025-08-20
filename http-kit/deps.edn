@@ -12,7 +12,7 @@
  :deps  {org.clojure/clojure          {:mvn/version "1.12.1"}
          io.pedestal/pedestal.log     {:mvn/version "0.8.0-rc-1"}
          io.pedestal/pedestal.service {:mvn/version "0.8.0-rc-1"}
-         http-kit/http-kit            {:mvn/version "2.9.0-beta1"}}
+         http-kit/http-kit            {:mvn/version "2.8.1"}}
 
  :aliases
  {:local
