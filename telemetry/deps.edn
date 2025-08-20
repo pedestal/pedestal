@@ -11,7 +11,7 @@
 
 {:paths ["src"]
  :deps {org.clojure/clojure {:mvn/version "1.12.1"}
-        io.pedestal/pedestal.common {:mvn/version "0.8.0-rc-1"}
+        io.pedestal/pedestal.common {:mvn/version "0.8.0-rc-2"}
         io.opentelemetry/opentelemetry-api {:mvn/version "1.53.0"}}
 
  :aliases
