@@ -158,7 +158,8 @@
   (let [{:keys [host port websockets container-options]} options
         {:keys [ssl? ssl-port max-streams
                 h2? h2c? connection-factory-fns
-                context-configurator context-path configurator daemon? reuse-addr?]
+                context-configurator context-path configurator daemon? reuse-addr?
+                ws-idle-timeout ws-max-text-size ws-max-binary-size]
          :or   {configurator identity
                 context-path "/"
                 h2c?         true
@@ -219,6 +220,12 @@
                                                              (reify JakartaWebSocketServletContainerInitializer$Configurator
                                                                (^void accept [_this ^ServletContext _context
                                                                               ^ServerContainer container]
+                                                                 (when ws-idle-timeout
+                                                                   (.setDefaultMaxSessionIdleTimeout container ws-idle-timeout))
+                                                                 (when ws-max-text-size
+                                                                   (.setDefaultMaxTextMessageBufferSize container ws-max-text-size))
+                                                                 (when ws-max-binary-size
+                                                                   (.setDefaultMaxBinaryMessageBufferSize container ws-max-binary-size))
                                                                  (when websockets
                                                                    (deprecated ::websockets
                                                                      :in "0.8.0"
