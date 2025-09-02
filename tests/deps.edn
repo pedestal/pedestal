@@ -84,7 +84,7 @@
   {:override-deps {org.clojure/clojure {:mvn/version "1.12.2"}}}
 
   :1.11
-  {:override-deps {org.clojure/clojure {:mvn/version "1.12.2"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.11.4"}}}
 
   ;; clj -X:test
   :test
