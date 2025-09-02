@@ -13,7 +13,7 @@
 {:paths ["src"
          "java"
          "target/classes"]
- :deps  {org.clojure/clojure              {:mvn/version "1.12.1"}
+ :deps  {org.clojure/clojure              {:mvn/version "1.12.2"}
          io.pedestal/pedestal.log         {:mvn/version "0.8.0-rc-2"}
          io.pedestal/pedestal.telemetry   {:mvn/version "0.8.0-rc-2"}
          io.pedestal/pedestal.interceptor {:mvn/version "0.8.0-rc-2"}

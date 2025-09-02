@@ -12,7 +12,7 @@
 
 {:paths ["src"
          "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.12.1"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.2"}
         org.clojure/core.async {:mvn/version "1.8.741"}
         org.clj-commons/pretty {:mvn/version "3.6.3"}
         io.pedestal/pedestal.log {:mvn/version "0.8.0-rc-2"}
