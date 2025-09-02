@@ -20,7 +20,7 @@
           borkdude/rewrite-edn {:mvn/version "0.4.9"}
           clj-kondo/clj-kondo {:mvn/version "2025.07.28"}
           org.clj-commons/pretty {:mvn/version "3.6.3"}
-          babashka/fs {:mvn/version "0.5.26"}}}
+          babashka/fs {:mvn/version "0.5.27"}}}
 
   ;; Invoked via clj -T:build cve-check
   :nvd
