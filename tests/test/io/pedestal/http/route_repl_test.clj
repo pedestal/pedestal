@@ -136,13 +136,13 @@
                   (internal/print-routing-table routes))]
     ;; Note: sorted by path
     (is (= "
-┌──────────┬────────┬──────────┬──────┬────────┬─────────┬────────────┐
-│ App name │ Scheme │   Host   │ Port │ Method │   Path  │    Name    │
-├──────────┼────────┼──────────┼──────┼────────┼─────────┼────────────┤
-│    :main │ :https │     main │ 8080 │   :get │       / │ :root-page │
-│   :admin │  :http │ internal │ 9090 │  :post │  /reset │ :reset     │
-│   :admin │  :http │ internal │ 9090 │   :get │ /status │ :status    │
-└──────────┴────────┴──────────┴──────┴────────┴─────────┴────────────┘
+┌────────┬──────┬────────┬────┬──────┬───────┬──────────┐
+│App name│Scheme│  Host  │Port│Method│  Path │   Name   │
+├────────┼──────┼────────┼────┼──────┼───────┼──────────┤
+│   :main│:https│    main│8080│  :get│      /│:root-page│
+│  :admin│ :http│internal│9090│ :post│ /reset│:reset    │
+│  :admin│ :http│internal│9090│  :get│/status│:status   │
+└────────┴──────┴────────┴────┴──────┴───────┴──────────┘
 " out-str))))
 
 (deftest static-routes-printed-once
@@ -153,11 +153,11 @@
                                  (internal/wrap-routing-table expanded-routes))))]
     (is (= "
 Routing table:
-┌────────┬────────┬─────────────────────────────────────────┐
-│ Method │  Path  │                   Name                  │
-├────────┼────────┼─────────────────────────────────────────┤
-│   :get │ /hello │ :io.pedestal.http.route-repl-test/hello │
-└────────┴────────┴─────────────────────────────────────────┘
+┌──────┬──────┬───────────────────────────────────────┐
+│Method│ Path │                  Name                 │
+├──────┼──────┼───────────────────────────────────────┤
+│  :get│/hello│:io.pedestal.http.route-repl-test/hello│
+└──────┴──────┴───────────────────────────────────────┘
 " out-str))))
 
 (deftest dynamic-routes-printed-at-startup-and-when-changed
@@ -173,11 +173,11 @@ Routing table:
         wrapped         @*wrapped
         _               (is (= "
 Routing table:
-┌────────┬────────┬─────────────────────────────────────────┐
-│ Method │  Path  │                   Name                  │
-├────────┼────────┼─────────────────────────────────────────┤
-│   :get │ /hello │ :io.pedestal.http.route-repl-test/hello │
-└────────┴────────┴─────────────────────────────────────────┘
+┌──────┬──────┬───────────────────────────────────────┐
+│Method│ Path │                  Name                 │
+├──────┼──────┼───────────────────────────────────────┤
+│  :get│/hello│:io.pedestal.http.route-repl-test/hello│
+└──────┴──────┴───────────────────────────────────────┘
 " out-str))
         out-str         (with-out-str
                           (is (= expanded-routes (wrapped))))
@@ -190,11 +190,9 @@ Routing table:
                           (is (= new-routes (wrapped))))]
     (is (= out-str "
 Routing table:
-┌────────┬────────┬─────────────────────────────────────────┐
-│ Method │  Path  │                   Name                  │
-├────────┼────────┼─────────────────────────────────────────┤
-│  :post │ /login │ :io.pedestal.http.route-repl-test/login │
-└────────┴────────┴─────────────────────────────────────────┘
+┌──────┬──────┬───────────────────────────────────────┐
+│Method│ Path │                  Name                 │
+├──────┼──────┼───────────────────────────────────────┤
+│ :post│/login│:io.pedestal.http.route-repl-test/login│
+└──────┴──────┴───────────────────────────────────────┘
 "))))
-
-
