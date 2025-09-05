@@ -229,6 +229,17 @@
                  :body   content}
                 (responder :get "/res/util/async.clj")))))
 
+(deftest access-resource-from-jar-with-spaces-test
+  ;; see tests build.clj for generation of test jar
+  ;; and tests deps.edn :paths for how we include it on classpath
+  (let [responder (create-responder #(assoc %
+                                            :resource-root "pedestal/test"
+                                            :prefix "/res space"))
+        content   (-> "pedestal/test/path with spaces/some data.edn" io/resource slurp)]
+    (is (match? {:status 200
+                 :body   content}
+                (responder :get "/res space/path with spaces/some data.edn")))))
+
 (deftest get-large-file
   (let [responder (create-responder)
         content   (slurp "file-root/sub/image.jpg")]
