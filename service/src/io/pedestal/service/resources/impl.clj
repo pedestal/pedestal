@@ -16,7 +16,7 @@
             [io.pedestal.service.protocols :as sp]
             [ring.util.io :as util.io])
   (:import (java.io BufferedInputStream File InputStream)
-           (java.net URL)
+           (java.net URL URI)
            (java.nio.channels Channels FileChannel)
            (java.nio.file OpenOption StandardOpenOption)
            (java.util Date)
@@ -99,6 +99,8 @@
                                    (.getPath url))
         _             (assert file-path)
         _             (assert entry-path)
+        file-path     (-> file-path URI. .getPath)
+        entry-path    (-> entry-path URI. .getPath)
         ;; This opens the jar file, there's nothing to close it.
         ^JarFile jar-file (from-cache *cache file-path (-> file-path io/file JarFile.))
         jar-entry (.getJarEntry jar-file entry-path)

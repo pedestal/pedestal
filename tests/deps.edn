@@ -11,6 +11,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["test"
+         "test with spaces/jar with spaces.jar" ;; created by: clojure -T:build create-jar-with-spaces
          "dev"
          "bench"
          "resources"]
@@ -85,6 +86,11 @@
 
   :1.11
   {:override-deps {org.clojure/clojure ^:antq/exclude {:mvn/version "1.11.4"}}}
+
+  :build
+  {:ns-default build
+   :deps {io.github.clojure/tools.build {:mvn/version "0.10.10"}
+          babashka/fs {:mvn/version "0.5.27"}}}
 
   ;; clj -X:test
   :test
