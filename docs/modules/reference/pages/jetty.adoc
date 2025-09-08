@@ -125,6 +125,19 @@ SSL is configured.  When the keystore is updated, the service will reload certif
 server. Use when advanced customization is required. The default
 `HttpConfiguration` is listed below.
 
+| :ws-idle-timeout
+| long
+| Sets the default time in milliseconds after which any web socket sessions in this container will be closed if it has been inactive, or 0 for no timeout.
+
+| :ws-max-binary-size
+| long
+| Sets the default maximum size of incoming binary message that this container will buffer.
+
+| :ws-max-text-size
+| long
+| Sets the maximum size of incoming text message that this container will buffer.
+
+
 |===
 
 == Default HttpConfiguration

@@ -264,7 +264,7 @@
 
 (defn server
   "Called from [[io.pedestal.http/server]] to create a Jetty server instance.
-   The container option :insecure-ssl? is deprecate in favor of :sni-host-check?
+   The container option :insecure-ssl? is deprecated in favor of :sni-host-check?
    which is more precise but inverse to the deprecated key."
   [service-map options]
   (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
@@ -309,4 +309,3 @@
 
       (test-request [_ request]
         (test/execute-interceptor-chain test-context test-interceptors request)))))
-

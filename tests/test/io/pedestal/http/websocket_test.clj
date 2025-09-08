@@ -24,7 +24,7 @@
     [net.lewisship.trace :refer [trace]]
     [io.pedestal.async-events :as async-events :refer [<event!! expect-event write-event]]
     [io.pedestal.websocket :as websocket])
-  (:import (jakarta.websocket CloseReason CloseReason$CloseCodes)
+  (:import (jakarta.websocket CloseReason CloseReason$CloseCodes Session)
     #_:clj-kondo/ignore
            (java.net.http WebSocket)
            (java.nio ByteBuffer)))
@@ -66,6 +66,21 @@
                          :on-text (fn [_ text]
                                     (write-event :text (str prefix " " text)))))))}))
 
+(def extract-ws-config-interceptor
+  (interceptor/interceptor
+    {:name  ::extract-ws-config
+     :enter (fn [context]
+              (websocket/upgrade-request-to-websocket
+                context
+
+                (assoc default-endpoint-map
+                       :on-open (fn [^Session session _config]
+                                  (let [ws-config {:idle-timeout (.getMaxIdleTimeout session)
+                                                   :max-text     (.getMaxTextMessageBufferSize session)
+                                                   :max-binary   (.getMaxBinaryMessageBufferSize session)}]
+                                    (write-event :text (pr-str ws-config)))))))}))
+
+
 (defn ws-server
   [websockets]
   (http/create-server (cond-> {::http/type   jetty/server
@@ -75,7 +90,13 @@
                                                (table/table-routes {}
                                                                    [["/routed/ws/echo/:prefix"
                                                                      :get
-                                                                     echo-prefix-interceptor]]))}
+                                                                     echo-prefix-interceptor]
+                                                                    ["/routed/ws/config"
+                                                                     :get
+                                                                     extract-ws-config-interceptor]]))
+                               ::http/container-options {:ws-idle-timeout    9999
+                                                         :ws-max-text-size   8888
+                                                         :ws-max-binary-size 7777}}
                         websockets (assoc ::http/websockets websockets))))
 
 (defmacro with-server
@@ -141,6 +162,19 @@
 
                  (is (= [:text "back goodbye"]
                         (<event!!))))))
+
+(deftest can-override-default-ws-configuration
+  (with-server nil
+               (let [session @(ws/websocket "ws://localhost:8080/routed/ws/config" {})]
+
+                 (let [text-event (<event!!)
+                       [kind text] text-event]
+                   (is (= :text kind))
+
+                   (is (= {:idle-timeout 9999
+                           :max-binary   7777
+                           :max-text     8888}
+                          (read-string text)))))))
 
 
 (deftest client-sends-binary
