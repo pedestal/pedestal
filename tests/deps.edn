@@ -70,7 +70,7 @@
  :aliases
  ;; clj -M:coverage
  {:coverage
-  {:paths      ["test" "resources"]
+  {:paths      ["test" "test with spaces/jar with spaces.jar" "resources"]
    :extra-deps {cloverage/cloverage {:mvn/version "1.2.4"}}
    :jvm-opts   ["-Dcollecting-coverage=true"]
    :main-opts  ["--main" "cloverage.coverage"
