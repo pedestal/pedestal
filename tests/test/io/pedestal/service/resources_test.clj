@@ -232,9 +232,12 @@
 (deftest access-resource-from-jar-with-spaces-test
   ;; see tests build.clj for generation of test jar
   ;; and tests deps.edn :paths for how we include it on classpath
-  (let [responder (create-responder #(assoc %
-                                            :resource-root "pedestal/test"
-                                            :prefix "/res space"))
+
+  (let [service-map {::http/port   8888
+                     ::http/routes (route/routes-from
+                                     (resources/resource-routes {:resource-root "pedestal/test"
+                                                                 :prefix "/res space"}))}
+        responder (test/create-responder service-map)
         content   (-> "pedestal/test/path with spaces/some data.edn" io/resource slurp)]
     (is (match? {:status 200
                  :body   content}
