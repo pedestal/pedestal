@@ -1,5 +1,5 @@
 {:paths   ["src"]
- :deps    {io.pedestal/pedestal.jetty {:mvn/version "0.8.0-rc-3"} ;; <1>
+ :deps    {io.pedestal/pedestal.jetty {:mvn/version "0.8.0"} ;; <1>
            org.slf4j/slf4j-simple     {:mvn/version "2.0.17"}}
  :aliases {:run {:main-opts ["-m" "hello-ssl"]
                  :exec-fn hello-ssl/start}}}
