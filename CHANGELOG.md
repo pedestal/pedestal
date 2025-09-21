@@ -80,7 +80,7 @@ Other changes:
 * A new router, `io.pedestal.http.route.sawtooth`, has been added
     * Sawtooth identifies conflicting routes
     * Sawtooth prefers literal routes over routes with path parameters (i.e., `/users/search` vs. `/users/:id`)
-    * Sawtooth is the now the default router
+    * Sawtooth is now the default router
 * When converting a handler function to an Interceptor
     * Handler functions may now be *asynchronous*, returning a channel that conveys the response map
     * The :name metadata on the _function_ will be used as the :name of the interceptor
