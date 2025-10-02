@@ -13,7 +13,7 @@ to https://github.com/cnuernber/charred[charred].
 
 The rationale here is that cheshire depends on the
 https://github.com/FasterXML/jackson[Jackson] Java libraries, which are
-notoriously challenging to work with, as Jackson is comprised of a collection of small Java libraries that
+notoriously challenging to work with, as Jackson comprises a collection of small Java libraries that
 are frequently at the root of https://en.wikipedia.org/wiki/Dependency_hell[dependency hell].
 
 The new (to Pedestal) charred library is self-contained (no dependencies) and as fast as Jackson
@@ -23,7 +23,7 @@ in tests.
 
 Traditionally, Pedestal has always been a layer on top of the {servlet-api}; when deployed as a WAR,
 Pedestal uses a statically defined HttpServlet class to "bridge" into Pedestal.  When used in
-the more common embedded pattern, Pedestal starts servlet container and configures an HttpServlet
+the more common embedded pattern, Pedestal starts a servlet container and configures an HttpServlet
 inside it. You can see this in the
 api:*[ns=io.pedestal.http] namespace, where the xref:0.7@reference:service-map.adoc[] is used to define a
 handling _function_ that is ultimately wrapped as a handling _servlet_ that is passed into the code
@@ -33,7 +33,7 @@ Over the last few years, there have been more Java and Clojure implementations o
 the Servlet API, such as xref:reference:http-kit.adoc[].  Leveraging the Servlet API is important for
 deploying as a WAR file, so these alternate implementations are not compatible with that style of deployment.
 But for the far more common embedded service model, where the container is embedded in the Pedestal application and
-started from with it, these alternate HTTP implements
+started from within it, these alternate HTTP implementations
 are quite enticing: simpler, smaller, and with fewer, if any, dependencies.
 
 However, this necessitates a split between the HTTP-related parts of Pedestal and those that are more
@@ -78,15 +78,15 @@ We feel that the end result is more complete and maintainable, at the cost of ad
 empty) Java classes to the build.
 
 Using this approach, the `FnServlet` was also converted from reified type to a Java class; this class
-is provided by tfhe api:servlet[ns=io.pedestal.http.servlet] function, and in an embedded Pedestal application,
+is provided by the api:servlet[ns=io.pedestal.http.servlet] function, and in an embedded Pedestal application,
 represents the initial bridge from the {servlet-api} to the Clojure and Pedestal implementations.
 
 == Resource Routes (Jan 2025)
 
 Routing is a central concept in Pedestal, and so it causes friction when other important concepts
 are inconsistent with it.  One common example is how Pedestal makes file system or class path resources
-available; this happens outside of routing - by default, it occurs just before the router interceptor
-in the default interceprtor stack.
+available as endpoints; this happens outside of routing - by default, it occurs just before the router interceptor
+in the default interceptor stack.
 
 Having resources operating outside of routing means that there can be conflicts between resources and routes that go undiagnosed.  It also means that it is not possible to
 reverse the URI for a resource in the way that is possible for endpoints defined in the routing table.
@@ -141,7 +141,7 @@ has specific rules for dealing with any path conflicts, but did a bad job of emi
 about such conflicts.
 
 xref:reference:sawtooth-router.adoc[Sawtooth]
-was created to address these concerns; it's behavior when conflicts occur is not defined
+was created to address these concerns; its behavior when conflicts occur is not defined
 (in the sense that when there are path conflicts, we don't specify which path will be selected), but
 Sawtooth was designed to do a good job of identifying routing conflicts.
 
@@ -157,8 +157,3 @@ The final decision was whether to make sawtooth the _default_ router; this seeme
 given its reasonable performance, and improved ergonomics.  The other routers, prefix tree included,
 continue to exist for backwards compatibility reasons, and to support cases where Sawtooth
 is not the best fit.
-
-
-
-
-
