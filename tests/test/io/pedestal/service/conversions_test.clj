@@ -16,7 +16,7 @@
             [clojure.core.async :refer [go]]
             [clojure.java.io :as io]
             [io.pedestal.connector.test :as test]
-            [io.pedestal.service.data :as data :refer [convert]]
+            [io.pedestal.service.data :refer [convert]]
             [clojure.test :refer [deftest is]])
   (:import (java.io InputStream)
            (java.nio ByteBuffer)
@@ -136,7 +136,3 @@
     (is (= {:format        :pipe
             :known-formats [:byte-array :byte-buffer :input-stream]}
            (ex-data e)))))
-
-
-
-

@@ -82,7 +82,7 @@
 
 (deftest debug-observer-is-active
   (is (match? {:status 200
-               :headers {:content-type "text/plain"}
+               :headers {"Content-Type" "text/plain"}
                :body "HELLO"}
               (response-for :get "/hello")))
 
@@ -100,8 +100,8 @@
   (let [response (response-for :get "/fail")
         {:keys [body]} response]
     (is (match? {:status 500
-                 :headers {:content-type "text/plain"
-                           :access-control-allow-origin "*"}}
+                 :headers {"Content-Type" "text/plain"
+                           "Access-Control-Allow-Origin" "*"}}
                 response))
 
     ;; The full output is quite verbose, but these parts indicate that the exception has been formatted

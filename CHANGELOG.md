@@ -3,6 +3,14 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
+## 0.8.1 - UNRELEASED
+
+*BREAKING CHANGES:*
+
+In `io.pedestal.connector.test`, the response header keys are now unchanged; previously they were converted from strings to keywords, after lower-casing them.
+
+[Closed Issues](https://github.com/pedestal/pedestal/milestone/23?closed=1)
+
 ## 0.8.0 - 20 Sep 2025
 
 *OVERVIEW:*
