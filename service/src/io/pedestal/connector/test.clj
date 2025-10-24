@@ -14,7 +14,6 @@
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]
             [clojure.java.io :as io]
-            [clojure.string :as string]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.service.impl :as impl]
