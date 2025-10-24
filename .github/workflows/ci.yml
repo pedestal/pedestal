@@ -20,7 +20,7 @@ jobs:
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@13.4
         with:
-          cli: 1.12.2.1565
+          cli: 1.12.3.1577
 
       - name: Cache Clojure dependencies
         uses: actions/cache@v4
@@ -57,7 +57,7 @@ jobs:
         run: clojure -T:build cve-check
       - name: Upload cve-check-results.html
         if: ${{ !cancelled() && steps.cve-check.conclusion }}
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5
         with:
           name: cve-check-results.html
           path: target/nvd/dependency-check-report.html
