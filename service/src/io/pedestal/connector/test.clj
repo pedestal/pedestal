@@ -14,7 +14,6 @@
   {:added "0.8.0"}
   (:require [clj-commons.ansi :as ansi]
             [clojure.java.io :as io]
-            [clojure.string :as string]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.service.impl :as impl]
@@ -166,14 +165,7 @@
 (defn- create-request-headers
   [headers]
   (reduce-kv (fn [m k v]
-               (assoc m (-> k name string/lower-case) (name v)))
-             {}
-             headers))
-
-(defn- convert-response-headers
-  [headers]
-  (reduce-kv (fn [m k v]
-               (assoc m (-> k string/lower-case keyword) v))
+               (assoc m (name k) (name v)))
              {}
              headers))
 
@@ -200,9 +192,6 @@
 
   The :body of the response map will be either nil, or an InputStream.
 
-  In the response; the :headers map is converted; keys are converted to lower-case
-  and converted to keywords.
-
   The response body is normally returned as a string, but the :as option allows
   for the body to be coerced to an InputStream or ByteBuffer.
 
@@ -223,7 +212,4 @@
                       (impl/parse-url url))
                     inject-content-type)]
     (-> (p/test-request connector request)
-        (update :headers convert-response-headers)
         (convert-response-body as))))
-
-

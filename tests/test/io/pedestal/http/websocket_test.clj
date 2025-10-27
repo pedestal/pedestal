@@ -165,16 +165,15 @@
 
 (deftest can-override-default-ws-configuration
   (with-server nil
-               (let [session @(ws/websocket "ws://localhost:8080/routed/ws/config" {})]
+               (let [_session @(ws/websocket "ws://localhost:8080/routed/ws/config" {})
+                     text-event (<event!!)
+                     [kind text] text-event]
+                 (is (= :text kind))
 
-                 (let [text-event (<event!!)
-                       [kind text] text-event]
-                   (is (= :text kind))
-
-                   (is (= {:idle-timeout 9999
-                           :max-binary   7777
-                           :max-text     8888}
-                          (read-string text)))))))
+                 (is (= {:idle-timeout 9999
+                         :max-binary   7777
+                         :max-text     8888}
+                        (read-string text))))))
 
 
 (deftest client-sends-binary

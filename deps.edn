@@ -18,15 +18,15 @@
           io.github.hlship/trace {:mvn/version "1.4"}
           io.aviso/logging {:mvn/version "1.0"}
           borkdude/rewrite-edn {:mvn/version "0.4.9"}
-          clj-kondo/clj-kondo {:mvn/version "2025.07.28"}
-          org.clj-commons/pretty {:mvn/version "3.6.4"}
+          clj-kondo/clj-kondo {:mvn/version "2025.10.23"}
+          org.clj-commons/pretty {:mvn/version "3.6.7"}
           babashka/fs {:mvn/version "0.5.27"}}}
 
   ;; Invoked via clj -T:build cve-check
   :nvd
-  {:deps {nvd-clojure/nvd-clojure {:mvn/version "5.1.0"}
+  {:deps {nvd-clojure/nvd-clojure {:mvn/version "5.2.0"}
           ;; See https://github.com/jeremylong/DependencyCheck/issues/6817
-          org.owasp/dependency-check-maven {:mvn/version "12.1.3"}}
+          org.owasp/dependency-check-maven {:mvn/version "12.1.8"}}
    :paths ["cve-check-resources"]
    :jvm-opts ["-Dclojure.main.report=stderr"]
    :exec-fn nvd.task/check}
