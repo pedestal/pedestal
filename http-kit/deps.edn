@@ -10,8 +10,8 @@
 
 {:paths ["src"]
  :deps  {org.clojure/clojure          {:mvn/version "1.12.3"}
-         io.pedestal/pedestal.log     {:mvn/version "0.8.0"}
-         io.pedestal/pedestal.service {:mvn/version "0.8.0"}
+         io.pedestal/pedestal.log     {:mvn/version "0.8.1"}
+         io.pedestal/pedestal.service {:mvn/version "0.8.1"}
          http-kit/http-kit            {:mvn/version "2.8.1"}}
 
  :aliases
