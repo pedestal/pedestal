@@ -36,7 +36,7 @@ The ready function may put events into the channel to send them to the client.
 Events are maps with keys :name, :data, and :id.
 All values should be strings (but will be converted to strings via clj:str[] if not).
 
-The :name key allows a single SSE event stream to server different purposes; the client can
+The :name key allows a single SSE event stream to serve different purposes; the client can
 use the name to decide how to interpret and act on the event data.
 
 The :id is passed from the server to the client, and is intended to facilite tracing.
