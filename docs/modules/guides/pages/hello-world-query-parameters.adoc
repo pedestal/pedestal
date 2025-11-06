@@ -160,7 +160,7 @@ Also, if you look in the console of your REPL, you'll see that Pedestal logged t
 [] INFO io.pedestal.service.interceptors - {:msg "GET /greet", :line 40}
 ```
 
-You'll may see slightly different results, but the takeaway is that you can look
+You may see slightly different results, but the takeaway is that you can look
 in the REPL session to verify that requests are being processed by your server.
 
 == The Request Map
@@ -263,7 +263,7 @@ the portion of the URL after, but not including, the `?`
 character. The query string can be a pain to deal with.
 It is
 URL-encoded, which means that some common characters, such as spaces and punctuation, are
-converted into sequences of several characters.  There's also delimeters between
+converted into sequences of several characters.  There's also delimiters between
 name/value pairs in the query string.
 
 Pedestal parses and slices all that up into a map of parameters for you, which is attached to
