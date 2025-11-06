@@ -120,7 +120,7 @@ $ mkdir src
 
 Now we're going to create a file under `src` to hold our code. Call it
 `src/hello.clj`. It's going to start with a _namespace declaration_. This
-tell Clojure what namespace to put the code into. If you're familiar with Java,
+tells Clojure what namespace to put the code into. If you're familiar with Java,
 you can think of a namespace as similar to a Java package name.
 
 [source, clojure]
@@ -167,7 +167,7 @@ namespace provides _symbols_ and those symbols are the names of functions, macro
 Where the :require says :as `something` it means we're making an
 _alias_ inside our namespace (the `hello` namespace).
 
-Because `hello` has required the `io.pedestal.connector` namespace, it can make use of functions in that namespace, such as `io.pedestal.connector/with-default-interceptors`.  This is the truest form, where every symbol a namespace has a full name that includes the namespace.
+Because `hello` has required the `io.pedestal.connector` namespace, it can make use of functions in that namespace, such as `io.pedestal.connector/with-default-interceptors`.  This is the truest form, where every symbol in a namespace has a full name that includes the namespace.
 
 That's cumbersome to type again and again, which is why we set up the alias; `conn/with-default-interceptors` is exactly the same, but more concise and more readable.
 
@@ -242,7 +242,7 @@ The returned map has two keys and their values:
 |===
 
 That's the whole thing. When our function returns that map, Pedestal
-will translate the map into a full HTTP response complete appropriate
+will translate the map into a full HTTP response complete with appropriate
 HTTP headers, including `Content-Type`.
 
 Later on, we'll see how to take control
