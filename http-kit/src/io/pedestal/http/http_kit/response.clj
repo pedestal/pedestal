@@ -34,6 +34,9 @@
   [request response-ch]
   (let [{:keys [async-channel]} request
         committed-ch (:io.pedestal.http.request/response-commited-ch request)]
+    ;; Register handler to detect client disconnection and close the response channel
+    (hk/on-close async-channel (fn [_status]
+                                  (close! response-ch)))
     (go
       ;; Wait for response to be committed before sending any additional content down.
       (<! committed-ch)
