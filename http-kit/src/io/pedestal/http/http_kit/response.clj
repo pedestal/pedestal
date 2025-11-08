@@ -13,7 +13,7 @@
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
   {:added "0.8.0"}
   (:require [io.pedestal.service.impl :as impl]
-            [clojure.core.async :refer [<! go]]
+            [clojure.core.async :refer [<! go close!]]
             [org.httpkit.server :as hk])
   (:import (clojure.core.async.impl.protocols ReadPort)
            (clojure.lang Fn IPersistentCollection)
@@ -34,6 +34,9 @@
   [request response-ch]
   (let [{:keys [async-channel]} request
         committed-ch (:io.pedestal.http.request/response-commited-ch request)]
+    ;; Register handler to detect client disconnection and close the response channel
+    (hk/on-close async-channel (fn [_status]
+                                  (close! response-ch)))
     (go
       ;; Wait for response to be committed before sending any additional content down.
       (<! committed-ch)
