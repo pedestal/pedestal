@@ -104,9 +104,9 @@
     ;; Follows the same standard as
     ;; https://github.com/clojure/clojure/blob/clojure-1.12.3/src/clj/clojure/core_print.clj#L104-L115
     ;; Results in:
-    #_#object[org.eclipse.jetty.ee10.servlet.ServletApiResponse
-              0x00000000
-              "org.eclipse.jetty.ee10.servlet.ServletApiResponse@0x00000000"]
+    ;; #object[org.eclipse.jetty.ee10.servlet.ServletApiResponse
+    ;;         0x00000000
+    ;;         "org.eclipse.jetty.ee10.servlet.ServletApiResponse@0x00000000"
     [this ^Writer w]
     (let [class-name (-> this class .getName)
           id (System/identityHashCode this)]
