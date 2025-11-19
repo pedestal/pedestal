@@ -29,6 +29,7 @@
   "
   [binding-vector & match-forms]
   `(interceptor/interceptor
-     {:error (fn ~binding-vector
+     {:name  ::error
+      :error (fn ~binding-vector
                (match/match [(ex-data ~(second binding-vector))]
                             ~@match-forms))}))
