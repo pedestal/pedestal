@@ -10,9 +10,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.2"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
         org.clojure/core.async {:mvn/version "1.6.673"}
-        io.pedestal/pedestal.log {:mvn/version "0.6.3"}
+        io.pedestal/pedestal.log {:mvn/version "0.6.5"}
         ;; Error interceptor tooling
         org.clojure/core.match {:mvn/version "1.0.1"
                                 :exclusions [org.clojure/clojurescript]}}

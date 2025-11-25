@@ -10,9 +10,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.2"}
-        io.pedestal/pedestal.log {:mvn/version "0.6.3"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.6.3"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
+        io.pedestal/pedestal.log {:mvn/version "0.6.5"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.6.5"}
 
         javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}
         com.amazonaws/aws-java-sdk-core {:mvn/version "1.12.499"
