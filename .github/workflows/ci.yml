@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'corretto'
       - name: Setup Clojure
         uses: DeLaGuardo/setup-clojure@13.4
@@ -36,15 +36,28 @@ jobs:
         run: |
           clojure -version
           clojure -M -e '*clojure-version*'
-      - name: Dependencies and Prep
-        working-directory: service
-        run: clojure -X:deps:local prep
-      - name: Compile services
-        working-directory: service
+      - name: Local Install
+        run: clojure -T:build install
+      - name: Compile servlet module
+        working-directory: servlet
         run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
-      - name: Execute tests
+      - name: Execute tests (Clojure 1.12)
         working-directory: tests
-        run: clojure -X:test
-      - name: Vulnerabilities Check
-        working-directory: jetty
-        run: clojure -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
+        run: clojure -X:test:1.12
+      - name: Execute tests (Clojure 1.11)
+        working-directory: tests
+        run: clojure -X:test:1.11
+      - name: Lint with clj-kondo
+        run: clojure -T:build lint
+      - name: Collect Code Coverage
+        working-directory: tests
+        run: clojure -M:coverage
+      - name: CVE Vulnerabilities Check
+        id: cve-check
+        run: clojure -T:build cve-check
+      - name: Upload cve-check-results.html
+        if: ${{ !cancelled() && steps.cve-check.conclusion }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: cve-check-results.html
+          path: target/nvd/dependency-check-report.html
