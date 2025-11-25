@@ -38,8 +38,8 @@ jobs:
           clojure -M -e '*clojure-version*'
       - name: Local Install
         run: clojure -T:build install
-      - name: Compile servlet module
-        working-directory: servlet
+      - name: Compile service module
+        working-directory: service
         run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
       - name: Execute tests (Clojure 1.12)
         working-directory: tests
