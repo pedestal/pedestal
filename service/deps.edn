@@ -10,10 +10,10 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src" "target/classes"]
- :deps {org.clojure/clojure {:mvn/version "1.11.2"}
-        io.pedestal/pedestal.log {:mvn/version "0.6.3"}
-        io.pedestal/pedestal.interceptor {:mvn/version "0.6.3"}
-        io.pedestal/pedestal.route {:mvn/version "0.6.3"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
+        io.pedestal/pedestal.log {:mvn/version "0.6.5"}
+        io.pedestal/pedestal.interceptor {:mvn/version "0.6.5"}
+        io.pedestal/pedestal.route {:mvn/version "0.6.5"}
 
         ;; channels
 
@@ -25,14 +25,16 @@
                         :exclusions [org.clojure/clojure
                                      org.clojure/tools.reader
                                      crypto-random/crypto-random
-                                     crypto-random/crypto-equality]}
+                                     crypto-random/crypto-equality
+                                     commons-fileupload/commons-fileupload]}
         cheshire/cheshire {:mvn/version "5.11.0"}
         org.clojure/tools.reader {:mvn/version "1.3.6"}
         com.cognitect/transit-clj {:mvn/version "1.0.329"}
         commons-codec/commons-codec {:mvn/version "1.15"}
         crypto-random/crypto-random {:mvn/version "1.2.1"
                                      :exclusions [commons-code/commons-codec]}
-        crypto-equality/crypto-equality {:mvn/version "1.0.1"}}
+        crypto-equality/crypto-equality {:mvn/version "1.0.1"}
+        commons-fileupload/commons-fileupload {:mvn/version "1.6.0"}}
 
  ;; Requires `clj -X:deps prep`  when downloaded as a git checkout (if via Maven repo, the class will
  ;; already be compiled into the artifact).
@@ -52,7 +54,7 @@
   ;; Normally javax.servlet-api comes from the runtime container (e.g., Jetty) but we need it here
   ;; to compile our servlet.
   :servlet-api
-  {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.1.0"}}}
+  {:extra-deps {javax.servlet/javax.servlet-api {:mvn/version "3.0.1"}}}
   ;; clj -T:build <command>
   :build {:deps {io.github.hlship/build-tools {:git/tag "0.8" :git/sha "0a0c26a"}}
           :ns-default build}}}

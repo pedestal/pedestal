@@ -46,3 +46,10 @@ logs/
 # Docs
 autodoc/
 codox
+ 
+.clj-kondo/
+**/.cpcache
+.idea
+**/*.iml
+**/*.lsp
+out

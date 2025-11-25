@@ -2,6 +2,18 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` directory.
 
+## 0.6.5 -- 25 Nov 2025
+
+This release provides dependency upgrades to address CVEs in commons-fileupload, as well
+as other version bumps:
+
+* Clojure 1.11.4
+* commons-fileupload/commons-fileupload 1.6.0
+* Jetty 9.4.58.v20250814
+* servlet-api (downgrade) 3.0.1 (from 3.1.0)
+
+[Closed Issues](https://github.com/pedestal/pedestal/issues?q=is%3Aclosed%20milestone%3A%220.6.5%22)
+
 ## 0.6.4 -- 14 May 2024
 
 This release is just to provide dependency upgrades to address CVEs in Jetty and Clojure.

@@ -11,19 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.4.0
+        uses: actions/checkout@v5
       - name: Setup Java
-        uses: actions/setup-java@v3.10.0
+        uses: actions/setup-java@v5
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'corretto'
       - name: Setup Clojure
-        uses: DeLaGuardo/setup-clojure@10.2
+        uses: DeLaGuardo/setup-clojure@13.4
         with:
-          cli: 1.11.1.1165
+          cli: 1.12.3.1577
 
       - name: Cache Clojure dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.m2/repository
@@ -36,15 +36,17 @@ jobs:
         run: |
           clojure -version
           clojure -M -e '*clojure-version*'
-      - name: Dependencies and Prep
-        working-directory: service
-        run: clojure -X:deps:local prep
-      - name: Compile services
+      - name: Local Install
+        run: clojure -T:build install
+      - name: Compile service module
         working-directory: service
         run: clojure -T:build compile-java :aliases '[:local :servlet-api]'
-      - name: Execute tests
+      - name: Execute tests (Clojure 1.12)
         working-directory: tests
-        run: clojure -X:test
-      - name: Vulnerabilities Check
-        working-directory: jetty
-        run: clojure -J-Dclojure.main.report=stderr -J-Dorg.slf4j.simpleLogger.log.org.apache.commons=error -X:nvd :classpath \""$(clojure -Alocal -Spath)\""
+        run: clojure -X:test:1.12
+      - name: Execute tests (Clojure 1.11)
+        working-directory: tests
+        run: clojure -X:test:1.11
+      - name: Collect Code Coverage
+        working-directory: tests
+        run: clojure -M:coverage

@@ -10,7 +10,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.build
-  "Seperated out to avoid unnecessary code loading."
+  "Separated out to avoid unnecessary code loading."
   (:require [borkdude.rewrite-edn :as r]
             [clojure.tools.build.api :as b]
             [clojure.string :as str]))
@@ -26,11 +26,10 @@
                      k'))))))
 
 (defn update-version-in-deps
-  "Updates intra-module dependencies to use the provided version; this uses rewrite-edn to do so without losing
+  "Updates dependencies to use the provided version; this uses rewrite-edn to do so without losing
   formatting or comments."
-  [module-dir version]
-  (let [deps-path (str module-dir "/deps.edn")
-        nodes (-> deps-path
+  [deps-path version]
+  (let [nodes (-> deps-path
                   slurp
                   r/parse-string)
         ;; Since this is specific to io.pedestal, we don't have to worry about
@@ -41,6 +40,7 @@
                            node
                            (affected-keys node)))
         nodes' (r/update nodes :deps fix-deps)]
+    (println "Updating" deps-path)
     (b/write-file {:path deps-path
                    :string (str nodes')})))
 
@@ -51,7 +51,7 @@
   (let [lines (-> path
                   slurp
                   str/split-lines)
-        lines' (map #(if-let [replacement (f %)]
+        lines' (mapv #(if-let [replacement (f %)]
                        replacement
                        %)
                     lines)]
@@ -88,3 +88,10 @@
                    "
                                                             line)]
                      (str prefix version suffix)))))
+
+(defn update-version-in-misc-files
+      [version]
+      (fixup-version "docs/antora.yml"
+                     (fn [line]
+                         (when (str/includes? line "libs_version")
+                               (str "    libs_version: " version)))))

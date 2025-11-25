@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.11.2"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.4"}
 
         org.apache.tomcat.embed/tomcat-embed-jasper {:mvn/version "9.0.80"}
         org.apache.tomcat.embed/tomcat-embed-core {:mvn/version "9.0.80"}
