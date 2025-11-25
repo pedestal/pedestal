@@ -13,11 +13,11 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [net.lewisship.build :refer [requiring-invoke deploy-jar]]
-            [net.lewisship.trace :as trace :refer [trace]]
             [clojure.tools.build.api :as b]
+            [babashka.fs :as fs]
+            [clj-commons.ansi :refer [perr pout]]
             [net.lewisship.build.versions :as v]))
 
-(trace/setup-default)
 
 ;; General notes: have to do a *lot* of fighting with executing particular build commands from the root
 ;; rather than in each module's sub-directory.
@@ -49,7 +49,8 @@
   [dir overrides]
   (binding [b/*project-root* dir]
     (println "Reading" dir "...")
-    (let [basis (b/create-basis {:override-deps overrides})
+    (let [basis-opts {:override-deps overrides}
+          basis      (b/create-basis basis-opts)
           roots (:classpath-roots basis)]
       (map (fn [path]
              (if (str/starts-with? path "/")
@@ -112,6 +113,40 @@
       (System/exit exit))))
 
 
+(defn lint
+  "Runs clj-kondo on all sources across all modules."
+  [options]
+  (let [classpath    (conj (->> (build-project-classpath)
+                                (remove #(str/ends-with? % ".jar"))
+                                (remove #(str/ends-with? % "/classes")))
+                           ;; Pedestal is an odd duck, all the tests are in a sub-module that
+                           ;; (of course) is not published along with the other modules.
+                           "tests/test")
+        ;; Alternate idea is to locate all `deps.edn` files, and then find
+        ;; all `src` and `test` below. That will help cover examples and guides as well
+        ;; as modules.
+        kondo-run!   (requiring-resolve 'clj-kondo.core/run!)
+        kondo-print! (requiring-resolve 'clj-kondo.core/print!)
+        results      (kondo-run! (merge {:lint   classpath
+                                         :config [{:output  {:progress    false
+                                                             :linter-name true}
+                                                   :lint-as '{io.pedestal.http.route-test/defhandler    clojure.core/defn
+                                                              io.pedestal.http.route-test/defon-request clojure.core/defn}
+                                                   :linters
+                                                   {:unresolved-symbol
+                                                    {:exclude '[(clojure.test/is [match?])]}
+                                                    :deprecated-var          {:level :off}
+                                                    :deprecated-namespace    {:level :off}
+                                                    :single-key-in           {:level :error}
+                                                    :used-underscore-binding {:level :error}}}]}
+                                        options))]
+    (kondo-print! results)
+    (when (pos? (get-in results [:summary :error] 0))
+      (perr [:bold.red "Linter found errors."])
+      (System/exit -1)))
+
+  (pout [:bold.green "clj-kondo approves 😉"]))
+
 (defn- workspace-dirty?
   []
   (not (str/blank? (b/git-process {:git-args "status -s"}))))
@@ -120,7 +155,7 @@
 (defn- ensure-workspace-clean
   []
   (when (workspace-dirty?)
-    (println "Error: workspace contains changes, those must be committed first")
+    (perr [:red [:bold "ERROR: "] "workspace contains changes, those must be committed first"])
     (System/exit 1)))
 
 (defn deploy-all
@@ -147,6 +182,11 @@
       (run! #(deploy-jar (assoc % :sign-key-id sign-key-id)) artifacts-data)))
   (println "done"))
 
+(defn install
+  "Installs all libraries to local Maven repository."
+  [_]
+  (deploy-all {:force true :dry-run true}))
+
 (defn update-version
   "Updates the version of the library.
 
@@ -165,12 +205,13 @@
   ;; Ensure the version number is parsable
   (v/parse-version version)
   (doseq [dir module-dirs]
-    (println "Updating" dir "...")
-    (requiring-invoke io.pedestal.build/update-version-in-deps dir version))
+    (requiring-invoke io.pedestal.build/update-version-in-deps (str dir "/deps.edn") version))
 
-  (println "Updating service-template (Leiningen template project) ...")
+  (doseq [path (->> (fs/glob "docs" "**/deps.edn")
+                    (map str))]
+    (requiring-invoke io.pedestal.build/update-version-in-deps path version))
 
-  (requiring-invoke io.pedestal.build/update-service-template version)
+  (requiring-invoke io.pedestal.build/update-version-in-misc-files version)
 
   (b/write-file {:path version-file
                  :string version})
@@ -198,7 +239,7 @@
   the stability suffix is for non-release versions; it can be \"-SNAPSHOT\" or
   \"-beta-<index>\" or \"-rc-<index>\".
 
-  :level - :major, :minor, :patch, :snapshot, :beta, :rc, :release
+  :level - :major, :minor, :patch, :snapshot, :beta, :rc, :alpha, :release
   :dry-run - print new version number, but don't update
   :commit - see update-version
   :tag - see update-version
@@ -222,7 +263,7 @@
   by `clj -T:build advance-version :level :snapshot :commit true`."
   [options]
   (let [{:keys [level dry-run]} options
-        advance-levels #{:major :minor :patch :release :snapshot :beta :rc}
+        advance-levels #{:major :minor :patch :release :snapshot :beta :rc :alpha}
         _ (validate level advance-levels
                     (str ":level must be one of: "
                          (->> advance-levels (map name) (str/join ", "))))
@@ -232,3 +273,16 @@
       (update-version (-> options
                           (dissoc :level :dry-run)
                           (assoc :version new-version))))))
+
+
+(defn cve-check
+  [_]
+  (let [cp (->> (build-full-classpath (build-project-classpath))
+                (filter #(str/ends-with? % ".jar"))
+                (str/join ":"))
+        {:keys [exit]} (do
+                         (println "Running CVE check")
+                         (b/process {:command-args ["clojure"
+                                                    "-T:nvd" ":classpath"
+                                                    (str \" cp \")]}))]
+    (System/exit exit)))
