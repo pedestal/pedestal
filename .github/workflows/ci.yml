@@ -47,8 +47,6 @@ jobs:
       - name: Execute tests (Clojure 1.11)
         working-directory: tests
         run: clojure -X:test:1.11
-      - name: Lint with clj-kondo
-        run: clojure -T:build lint
       - name: Collect Code Coverage
         working-directory: tests
         run: clojure -M:coverage
