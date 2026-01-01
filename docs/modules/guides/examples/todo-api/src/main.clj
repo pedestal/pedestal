@@ -146,8 +146,8 @@
 (def routes
   #{["/todo" :post [db-interceptor
                     list-create]]
-    ["/todo" :get [entity-render db-interceptor list-view]]
-    ["/todo/:list-id" :get echo :route-name :list-view]
+    ["/todo" :get echo :route-name :list-query-form]
+    ["/todo/:list-id" :get [entity-render db-interceptor list-view]]
     ["/todo/:list-id" :post echo :route-name :list-item-create]
     ["/todo/:list-id/:item-id" :get echo :route-name :list-item-view]
     ["/todo/:list-id/:item-id" :put echo :route-name :list-item-update]
