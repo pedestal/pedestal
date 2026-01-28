@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -12,13 +12,12 @@
 (ns io.pedestal.http.response
   "Utilities used to write Ring responses."
   {:added "0.7.0"}
-  (:require [charred.api :as json]
+  (:require [io.pedestal.json :as json]
             [clojure.java.io :as io]
             [cognitect.transit :as transit]
             [io.pedestal.interceptor.chain :as interceptor.chain]
             [ring.util.response :as ring-response])
-  (:import (charred JSONWriter)
-           (java.io OutputStreamWriter Writer)))
+  (:import (java.io OutputStreamWriter)))
 
 ;; Support for things in io.pedestal.http that are deprecated in 0.7.0
 
@@ -43,27 +42,16 @@
 ;; Modern stuff
 
 (defn- stream-xform
+  "Returns a Pedestal response function; this will be passed an output stream to which the actual response
+  should be written."
   [obj writer-fn]
   (fn [output-stream]
     (with-open [writer (io/writer output-stream)]
-      (writer-fn obj writer)
-      (.flush writer))))
-
-(defn- write-json-noclose
-  ;; Calling json/write-json closes the writer, which doesn't work with Pedestal and Servlet API.
-  ;; Instead, we create a writer via json/json-writer-fn and write the object to it.
-  [obj ^Writer stream-writer]
-  (let [writer-fn               (json/json-writer-fn nil)
-        ^JSONWriter json-writer (writer-fn stream-writer)]
-    (.writeObject json-writer obj)
-    ;; The feels dirty, but some JSON could still be in the JSONWriter's internal writer
-    ;; that wraps stream-writer, and that needs to be flushed but not closed, and
-    ;; JSONWriter implements a close() but not a flush().
-    (.flush (.-w json-writer))))
+      (writer-fn obj writer))))
 
 (defn stream-json
   [obj]
-  (stream-xform obj write-json-noclose))
+  (stream-xform obj json/stream-json))
 
 (defn stream-transit
   [obj transit-format transit-opts]

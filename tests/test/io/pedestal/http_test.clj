@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -23,7 +23,7 @@
             [charred.api :as json]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
-  (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
+  (:import (java.io ByteArrayOutputStream File FileInputStream IOException OutputStream)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
@@ -235,7 +235,7 @@
 
 ;; data response fn tests
 
-(defn- slurp-output-stream [output-stream]
+(defn- slurp-output-stream [^ByteArrayOutputStream output-stream]
   (.flush output-stream)
   (.close output-stream)
   (.toString output-stream "UTF-8"))

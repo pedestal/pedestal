@@ -11,7 +11,7 @@
 
 (ns io.pedestal.json.protocols
   {:added "0.8.2"}
-  (:import (java.io Reader)))
+  (:import (java.io OutputStream Reader)))
 
 (defprotocol JSONProcessor
 
@@ -23,4 +23,9 @@
     :key-fn - converts a string key to a key
     :eof-error? - if true, then throw exception at unexpected EOF; otherwise return :eof
     :eof-value - value to return at EOF
-    :value-fn - called on each map value, passed the key and value"))
+    :value-fn - called on each map value, passed the key and value")
+
+  (stream-json [this object ^OutputStream stream]
+    "Writes the object, as JSON, to the given output stream.  
+
+Returns the output stream, still open."))

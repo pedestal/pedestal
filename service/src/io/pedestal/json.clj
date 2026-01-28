@@ -14,10 +14,12 @@
   {:added "0.8.2"}
   (:require [io.pedestal.internal :as i]
             [io.pedestal.json.protocols :as p])
-  (:import (java.io Reader)))
+  (:import (java.io OutputStream Reader)))
 
 (def ^:dynamic *json-processor*
-  "The default JSON processor, used when reading or outputting JSON."
+  "The default JSON processor, used when reading or outputting JSON.  
+  
+  The configuration default uses the charred library."
   (let [v (i/read-config "io.pedestal.json-processor"
                          "PEDESTAL_JSON_PROCESSOR"
                          :default-value "io.pedestal.json.charred/processor")]
@@ -33,3 +35,10 @@
    (read-json *json-processor* reader options))
   ([processor ^Reader reader options]
    (p/read-json processor reader options)))
+
+(defn stream-json
+  "Writes JSON to the output stream.  Returns the output stream, which will still be open."
+  ([object ^OutputStream stream]
+   (stream-json *json-processor* object stream))
+  ([processor object ^OutputStream stream]
+   (p/stream-json processor object stream)))
