@@ -10,9 +10,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.12.3"}
+ :deps {org.clojure/clojure {:mvn/version "1.12.4"}
         io.pedestal/pedestal.common {:mvn/version "0.8.1"}
-        io.opentelemetry/opentelemetry-api {:mvn/version "1.55.0"}}
+        io.opentelemetry/opentelemetry-api {:mvn/version "1.58.0"}}
 
  :aliases
  {:local
