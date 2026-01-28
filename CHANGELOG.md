@@ -5,6 +5,12 @@
 
 ## 0.8.2 - UNRELEASED
 
+Changes:
+
+*It is now possible to configure the JSON Processor used by Pedestal.
+
+[Closed Issues](https://github.com/pedestal/pedestal/issues?q=is%3Aclosed%20milestone%3A%220.8.2%22)
+
 ## 0.8.1 - 27 Oct 2025
 
 *BREAKING CHANGES:*
