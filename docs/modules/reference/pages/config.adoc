@@ -10,6 +10,7 @@ These sub-systems are:
 - xref:logging.adoc[]
 - xref:metrics.adoc[]
 - Tracing
+- JSON Processing
 
 
 == Configuration Values
@@ -107,7 +108,6 @@ When not specified, clj:pr-str[] is used.
 [#disable-handler-names]
 === io.pedestal.interceptor.disable-default-handler-names / PEDESTAL_DISABLE_DEFAULT_HANDLER_NAMES
 
-
 - type: boolean
 - default: false
 
@@ -115,11 +115,21 @@ If true, then Pedestal will not automatically convert
 xref:interceptors.adoc#handler[handler function] class names to an interceptor name (the interceptor
 will be anonymous instead).
 
+=== io.pedestal.json-processor / PEDESTAL_JSON_PROCESSOR
+
+- type: function
+- default: io.pedestal.json.charred/processor
+
+Defines what implementation of the io.pedestal.json.protocols/JSONProcessor to use; this function returns an instance 
+of the JSONProcessor protocol.
+
+This allows for either more involved use of the link:https://github.com/cnuernber/charred[charred] library, or 
+replacing charred with something else, such as https://github.com/dakrone/cheshire[cheshire].
+
 [#suppress-deprecation-warnings]
 === io.pedestal.suppress-deprecation-warnings / PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS
 
 - type: boolean
-
 - default: false
 
 If true, then deprecation warnings are suppressed.
@@ -153,4 +163,3 @@ api:TracingSource[ns=io.pedestal.tracing.spi], used to emit tracing events.
 
 The default, gets its value
 from `io.opentelemetry.api.GlobalOpenTelemetry.getTracer(java.lang.String)`.
-

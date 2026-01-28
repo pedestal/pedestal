@@ -1,4 +1,4 @@
-; Copyright 2023-2025 Nubank NA
+; Copyright 2023-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -16,7 +16,7 @@
   the content type header.  This results in new keys on the request map, depending on the type
   of data parsed."
   (:require [clojure.edn :as edn]
-            [charred.api :as json]
+            [io.pedestal.json :as json]
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
             [cognitect.transit :as transit]
@@ -83,7 +83,7 @@
 
 (defn custom-json-parser
   "Return a function that, given a request, will read the body of request
-  using a JSON parser via charred.api/read-json. Provided options are merged onto
+  using a JSON parser via [[read-json]]. Provided options are merged onto
   defaults:
 
   - :key-fn - keyword
@@ -105,14 +105,12 @@
         options' (cond-> full-options
                    value-fn (assoc :value-fn value-fn))]
     (fn [request]
-      (let [encoding (or (:character-encoding request) "UTF-8")]
-        (assoc request
-               :json-params
-               (json/read-json
-                 (InputStreamReader.
-                   ^InputStream (:body request)
-                   ^String encoding)
-                 options'))))))
+      (let [encoding    (or (:character-encoding request) "UTF-8")
+            reader      (InputStreamReader.
+                          ^InputStream (:body request)
+                          ^String encoding)
+            json-params (json/read-json reader options')]
+        (assoc request :json-params json-params)))))
 
 (defn custom-transit-parser
   "Return a transit-parser fn that, given a request, will read the
@@ -199,4 +197,3 @@
      {:name  ::body-params
       :enter (fn [context]
                (update context :request #(parse-content-type parser-map %)))})))
-
