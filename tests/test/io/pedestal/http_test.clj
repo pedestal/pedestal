@@ -23,7 +23,7 @@
             [charred.api :as json]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
-  (:import (java.io ByteArrayOutputStream File FileInputStream IOException OutputStream)
+  (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
@@ -191,8 +191,9 @@
   (let [response (response-for (app) :post "/transit-params"
                                :headers {"Content-Type" "application/transit+json"}
                                :body "[\"^ \",\"~:a\",1]")]
-    (is (= 200 (:status response)))
-    (is (= "{:a 1}" (:body response)) response)))
+    (is (match? {:status 200
+                 :body "{:a 1}"}
+                response))))
 
 (deftest plaintext-body-with-transit-interceptor-test
   ;; Explicit request for plain-text content-type is honored by transit-body interceptor.
