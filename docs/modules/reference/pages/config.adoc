@@ -118,7 +118,7 @@ will be anonymous instead).
 === io.pedestal.json-processor / PEDESTAL_JSON_PROCESSOR
 
 - type: function
-- default: io.pedestal.json.charred/processor
+- default: api:processor[ns=io.pedestal.json.charred]
 
 Defines what implementation of the io.pedestal.json.protocols/JSONProcessor to use; this function returns an instance 
 of the JSONProcessor protocol.
