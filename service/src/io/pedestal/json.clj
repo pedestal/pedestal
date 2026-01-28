@@ -10,14 +10,16 @@
 ; You must not remove this notice, or any other, from this software
 
 (ns io.pedestal.json
-  "Abstraction around JSON parsing and printing."
+  "Abstraction around JSON parsing and printing.
+ 
+  The functions here are wrappers around the protocol methods of [[JSONProcessor]]."
   {:added "0.8.2"}
   (:require [io.pedestal.internal :as i]
             [io.pedestal.json.protocols :as p])
   (:import (java.io OutputStream Reader)))
 
 (def ^:dynamic *json-processor*
-  "The default JSON processor, used when reading or outputting JSON.  
+  "The default [[JSONProcessor]], used when reading or outputting JSON.  
   
   The configuration default uses the charred library."
   (let [v (i/read-config "io.pedestal.json-processor"

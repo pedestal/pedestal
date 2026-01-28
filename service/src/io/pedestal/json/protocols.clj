@@ -18,12 +18,20 @@
   "A wrapper around an underlying JSON parsing and encoding library."
 
   (read-json [this ^Reader reader options]
-    "Reads JSON from the provided Reader.  Options:
+    "Reads JSON from the provided Reader. 
     
-    :key-fn - converts a string key to a key
-    :eof-error? - if true, then throw exception at unexpected EOF; otherwise return :eof
-    :eof-value - value to return at EOF
-    :value-fn - called on each map value, passed the key and value")
+    The JSONProcesser must support the following options:
+    
+    | Option      | Type    | Description
+    |---          |---      |---
+    | :key-fn     | fn      | Converts string keys; defaults to `keyword`
+    | :eof-error? | boolean | If true, then throw an exception if the reader is at EOF (default is false)
+    | :eof-value  | any     | Value to return if reader is at EOF (defaults to :eof)
+    | :value-fn   | any     | Passed the key and the value and returns an updated value
+    
+    Generally, any additional options are passed through to the underlying JSONProcessor
+    implementation, but care should be given because different implementations will support different
+    options.")
 
   (stream-json [this object ^OutputStream stream]
     "Writes the object, as JSON, to the given output stream.  
