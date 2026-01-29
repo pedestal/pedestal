@@ -188,7 +188,7 @@ a seq of routing maps, with the following structure:
 <8> A vector of interceptors (converted via api:IntoInterceptor[ns=io.pedestal.interceptor])
 <9> The parts of the path, as strings or keywords.
 <10> The path parameters, in the order they appear in the path.
-<11> A regular exprssion for the path that some routers may use when matching.
+<11> A regular expression for the path that some routers may use when matching.
 
 This ficticious example defines a URI that includes an id in the request path, but has also defined query parameters
 constraints.
