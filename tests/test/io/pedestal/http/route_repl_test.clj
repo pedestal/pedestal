@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -51,7 +51,7 @@
 
 (defn- exercise
   [routing-table]
-  {:pre [(internal/is-routing-table? routing-table)]}
+  {:pre [(route/is-routing-table? routing-table)]}
   (update routing-table
           :routes
           (fn [routes]

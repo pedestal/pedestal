@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 ; Copyright 2013 Relevance, Inc.
 
