@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -191,8 +191,9 @@
   (let [response (response-for (app) :post "/transit-params"
                                :headers {"Content-Type" "application/transit+json"}
                                :body "[\"^ \",\"~:a\",1]")]
-    (is (= 200 (:status response)))
-    (is (= "{:a 1}" (:body response)) response)))
+    (is (match? {:status 200
+                 :body "{:a 1}"}
+                response))))
 
 (deftest plaintext-body-with-transit-interceptor-test
   ;; Explicit request for plain-text content-type is honored by transit-body interceptor.
@@ -235,7 +236,7 @@
 
 ;; data response fn tests
 
-(defn- slurp-output-stream [output-stream]
+(defn- slurp-output-stream [^ByteArrayOutputStream output-stream]
   (.flush output-stream)
   (.close output-stream)
   (.toString output-stream "UTF-8"))

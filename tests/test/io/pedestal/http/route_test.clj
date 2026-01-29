@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -1481,7 +1481,7 @@
   ;; throw an exception when a context path is supplied.
   ;; see https://github.com/pedestal/pedestal/issues/610
 
-  (let [routes (route/expand-routes #{["/:a-parameter" :get `home-page]})]
+  (let [routes (expand-routes #{["/:a-parameter" :get `home-page]})]
     (is (= "/some/context/a-value"
            ((route/url-for-routes routes) ::home-page :params {:a-parameter "a-value"} :context "some/context")))))
 
@@ -1565,4 +1565,3 @@
            :two   {:interceptors [i-1 i-2 i-3 table-route-handler]}
            :three {:interceptors [i-1 i-2 table-route-handler]}}
           by-name))))
-

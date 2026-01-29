@@ -1,4 +1,4 @@
-; Copyright 2023-2025 Nubank NA
+; Copyright 2023-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -273,7 +273,7 @@
           ;; that the payload was sent).  This result is either :success or an exception.
           (when resp-ch
             (try
-              (async/put! resp-ch result)
+              (put! resp-ch result)
               (catch Exception ex
                 (log/error :msg "Invalid response channel"
                            :exception ex))))

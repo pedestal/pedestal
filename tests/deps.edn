@@ -18,7 +18,7 @@
  ;; Because no artifact is generated from this module, test-only dependencies are top-level.
  :deps  {criterium/criterium                            {:mvn/version "0.4.6"}
 
-         nubank/matcher-combinators                     {:mvn/version "3.9.2"}
+         nubank/matcher-combinators                     {:mvn/version "3.10.0"}
          nubank/mockfn                                  {:mvn/version "0.7.0"}
          expound/expound                                {:mvn/version "0.9.0"}
          medley/medley                                  {:mvn/version "1.4.0"}
@@ -49,13 +49,13 @@
          io.pedestal/pedestal.common                    {:local/root "../common"}
          io.pedestal/pedestal.error                     {:local/root "../error"}
 
-         com.stuartsierra/component                     {:mvn/version "1.1.0"}
+         com.stuartsierra/component                     {:mvn/version "1.2.0"}
 
          io.github.hlship/trace                         {:mvn/version "1.4"}
          com.walmartlabs/test-reporting                 {:mvn/version "1.2"}
-         com.clojure-goes-fast/clj-async-profiler       {:mvn/version "1.6.2"}
+         com.clojure-goes-fast/clj-async-profiler       {:mvn/version "1.7.0"}
 
-         ch.qos.logback/logback-classic                 {:mvn/version "1.5.20"}
+         ch.qos.logback/logback-classic                 {:mvn/version "1.5.26"}
 
          ;; For testing of SSEs
          cloud.prefab/sse-handler                       {:mvn/version "1.0.1"}
@@ -82,15 +82,15 @@
 
 
   :1.12
-  {:override-deps {org.clojure/clojure {:mvn/version "1.12.3"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.12.4"}}}
 
   :1.11
   {:override-deps {org.clojure/clojure ^:antq/exclude {:mvn/version "1.11.4"}}}
 
   :build
   {:ns-default build
-   :deps {io.github.clojure/tools.build {:mvn/version "0.10.10"}
-          babashka/fs {:mvn/version "0.5.27"}}}
+   :deps {io.github.clojure/tools.build {:mvn/version "0.10.12"}
+          babashka/fs {:mvn/version "0.5.30"}}}
 
   ;; clj -X:test
   :test
@@ -102,11 +102,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.55.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.55.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.55.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.55.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.55.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.58.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.58.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.58.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.58.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.58.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

@@ -20,5 +20,12 @@
         <packageUrl regex="true">^pkg:maven/org\.apache\.commons/commons-fileupload2-core@.*$</packageUrl>
         <cve>CVE-2025-48976</cve>
     </suppress>
+    <suppress>
+        <!-- https://nvd.nist.gov/vuln/detail/CVE-2024-22871 -->
+        <notes><![CDATA[
+   file name: clojure-1.12.0.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.clojure/clojure@.*$</packageUrl>
+        <cpe>cpe:/a:clojure:clojure</cpe>
+    </suppress>
 </suppressions>
-
