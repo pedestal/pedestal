@@ -43,7 +43,8 @@ From the `tests` subdirectory, execute `clj -X:test`.
 ## License
 Copyright 2013 Relevance, Inc.
 
-Copyright 2014-2025 Cognitect, Inc.
+Copyright 2014-2022 Cognitect, Inc.
+Copyright 2023-2026 Nubank NA
 
 The use and distribution terms for this software are covered by the
 Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
