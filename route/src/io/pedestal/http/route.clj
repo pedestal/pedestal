@@ -439,6 +439,7 @@
        (map check-satifies-expandable-routes)
        (map -expand-routes)
        (mapcat types/fragment-routes)
+       (map internal/inject-path-re)
        definition/verify-unique-route-names
        internal/->RoutingTable))
 
@@ -658,5 +659,3 @@
   (if-not dev-mode?
     `(expand-routes ~@route-exprs)
     (internal/create-routes-from-fn route-exprs &env `expand-routes)))
-
-

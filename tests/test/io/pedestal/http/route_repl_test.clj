@@ -52,11 +52,11 @@
 (defn- exercise
   [routing-table]
   {:pre [(internal/is-routing-table? routing-table)]}
-  ;; These two keys do not compare well.
   (update routing-table
           :routes
           (fn [routes]
-            (mapv #(dissoc % :interceptors) routes))))
+            ;; These two keys do not compare well.
+            (mapv #(dissoc % :interceptors :path-re) routes))))
 
 ;; This is io.pedestal.http.route/routes-from if dev mode was always enabled.
 (defmacro routes-from

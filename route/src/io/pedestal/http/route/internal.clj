@@ -14,6 +14,7 @@
   {:no-doc true
    :added  "0.7.0"}
   (:require [clj-commons.format.table :as t]
+            [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.types :as types]))
 
 (defn- uniform?
@@ -28,6 +29,10 @@
 ;; This is used to let expanded-routes identify that the routes have already been expanded
 ;; and verified as a routing table.
 (defrecord RoutingTable [routes])
+
+(defn inject-path-re
+  [route]
+  (assoc route :path-re (path/path-regex route)))
 
 (defn is-routing-table?
   [routing-table]

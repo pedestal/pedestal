@@ -7,7 +7,8 @@
 
 Changes:
 
-*It is now possible to configure the JSON Processor used by Pedestal.
+* It is now possible to configure the JSON Processor used by Pedestal
+* Expanded routes now, again, include the :path-re key (as in Pedestal 0.7 and earlier)
 
 [Closed Issues](https://github.com/pedestal/pedestal/issues?q=is%3Aclosed%20milestone%3A%220.8.2%22)
 
