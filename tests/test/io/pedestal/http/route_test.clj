@@ -1446,8 +1446,7 @@
 ;; Verb neutral routing
 ;; -------------------------
 (deftest verb-neutral-routing
-  (let [test-routes       (-> [["/app" :get identity :route-name :quux]]
-                              table/table-routes
+  (let [test-routes       (-> #{["/app" :get identity :route-name :quux]}
                               expand-routes
                               :routes)
         test-request      {:path-info "/app" :request-method :get}
