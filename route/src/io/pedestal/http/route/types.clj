@@ -34,3 +34,6 @@
   ;; no harm.
   (->RoutingFragmentImpl (vec routes)))
 
+;; This is used to let expanded-routes identify that the routes have already been expanded
+;; and verified as a routing table.
+(defrecord RoutingTable [routes])

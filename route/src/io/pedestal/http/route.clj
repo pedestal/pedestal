@@ -441,7 +441,7 @@
        (mapcat types/fragment-routes)
        (map internal/inject-path-re)
        definition/verify-unique-route-names
-       internal/->RoutingTable))
+       types/->RoutingTable))
 
 
 (defn- route-context

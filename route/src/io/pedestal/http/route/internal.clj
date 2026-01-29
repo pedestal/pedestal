@@ -15,7 +15,8 @@
    :added  "0.7.0"}
   (:require [clj-commons.format.table :as t]
             [io.pedestal.http.route.path :as path]
-            [io.pedestal.http.route.types :as types]))
+            [io.pedestal.http.route.types :as types])
+  (:import [io.pedestal.http.route.types RoutingTable]))
 
 (defn- uniform?
   "Are all values of the projection of k onto coll the same?"
@@ -25,10 +26,6 @@
        distinct
        count
        (>= 1)))
-
-;; This is used to let expanded-routes identify that the routes have already been expanded
-;; and verified as a routing table.
-(defrecord RoutingTable [routes])
 
 (defn inject-path-re
   [route]
