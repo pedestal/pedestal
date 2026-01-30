@@ -79,7 +79,7 @@ some magic comments to pare it down to just the final version.
 
 == The Hard Way
 
-Pedestal includes effective support for handilng content type issues on
+Pedestal includes effective support for handling content type issues on
 both the request and the response.
 
 In order to appreciate what Pedestal offers, we'll do it "the hard way",
