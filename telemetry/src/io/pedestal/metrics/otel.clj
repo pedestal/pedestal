@@ -74,11 +74,17 @@
         attributes' (map->Attributes attributes)]
     (if as-longs?
       (let [histogram (-> builder .ofLongs .build)]
-        (fn [^long value]
-          (.record ^LongHistogram histogram value attributes')))
+        (fn
+          ([^long value]
+           (.record ^LongHistogram histogram value attributes'))
+          ([^long value event-attributes]
+           (.record ^LongHistogram histogram value (map->Attributes (merge attributes event-attributes))))))
       (let [histogram (.build builder)]
-        (fn [^double value]
-          (.record histogram value attributes'))))))
+        (fn
+          ([^double value]
+           (.record histogram value attributes'))
+          ([^double value event-attributes]
+           (.record histogram value (map->Attributes (merge attributes event-attributes)))))))))
 
 (defn- new-gauge
   [^Meter meter metric-name attributes value-fn]
