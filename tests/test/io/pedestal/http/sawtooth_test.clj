@@ -301,3 +301,19 @@
     (is (nil?
           (router-fn (request :ge "/repos/pedestal"))))))
 
+(deftest nested-prefix-with-partial-path-match
+  ;; When routes share a multi-level prefix (e.g., /api/admin/...) and a request
+  ;; is made to a partial prefix (e.g., /api), the router should return nil
+  ;; rather than throwing a NullPointerException.
+  (let [routes    #{["/api/admin/users/:id" :get (constantly {:status 200}) :route-name :get-admin-user]
+                    ["/api/admin/stats" :get (constantly {:status 200}) :route-name :admin-stats]}
+        router-fn (sawtooth/router (route/expand-routes routes))]
+    ;; These partial paths should return nil, not throw NPE
+    (is (nil? (router-fn (request :get "/api"))))
+    (is (nil? (router-fn (request :get "/api/admin"))))
+    ;; Full paths should still match
+    (is (match? [{:route-name :get-admin-user} {:id "123"}]
+                (router-fn (request :get "/api/admin/users/123"))))
+    (is (match? [{:route-name :admin-stats} {}]
+                (router-fn (request :get "/api/admin/stats"))))))
+
