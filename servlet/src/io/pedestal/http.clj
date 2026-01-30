@@ -1,4 +1,4 @@
-; Copyright 2023-2025 Nubank NA
+; Copyright 2023-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -248,7 +248,7 @@
                               ;; This checks for an expanded route; a seq of maps, each presumably a route.
                               (and (seq? routes) (every? map? routes))
                               (do
-                                (internal/deprecated ::route-maps-seq
+                                (deprecated ::route-maps-seq
                                   :in "0.8.0"
                                   :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map")
                                 (route/expand-routes {:children routes}))

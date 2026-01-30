@@ -469,7 +469,7 @@ already stored there, by applying a function to the stored value.  Of course, th
 and the original map isn't changed, even by `update-in`: new immutable copies of the
 nested and containing maps are created.
 
-Using the update style is s more concise than our prior code, and, to a more experienced Clojure developer, often
+Using the update style is more concise than our prior code, and, to a more experienced Clojure developer, often
 more readable.
 
 Let's see how this interceptor would change if we refactor it that way.

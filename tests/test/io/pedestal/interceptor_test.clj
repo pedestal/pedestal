@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -300,9 +300,9 @@
      :error (fn [ctx ex] (assoc ctx :caught-exception ex))}))
 
 (deftest throwing-the-exception-is-not-a-suppression
-  (let [ctx (chain/execute {} [error-handling-interceptor
-                               rethrowing-error-handling-interceptor
-                               failing-interceptor])]
+  (let [ctx (execute {} [error-handling-interceptor
+                         rethrowing-error-handling-interceptor
+                         failing-interceptor])]
     ;; When an exception handling interceptor re-throws the existing exception,
     ;; then the original wrapped exception propagates up.
     (is (match? {:stage       :enter
@@ -312,12 +312,12 @@
 
 
 (deftest chain-execution-error-suppression-test
-  (is (nil? (::chain/suppressed (chain/execute {} [error-handling-interceptor failing-interceptor])))
+  (is (nil? (::chain/suppressed (execute {} [error-handling-interceptor failing-interceptor])))
       "The `io.pedestal.interceptor.chain/suppressed` key should not be set when an exception is handled.")
 
-  (let [ctx (chain/execute {} [error-handling-interceptor
-                               throwing-error-handling-interceptor
-                               failing-interceptor])]
+  (let [ctx (execute {} [error-handling-interceptor
+                         throwing-error-handling-interceptor
+                         failing-interceptor])]
     ;; Check that correct data is captured; the error handling interceptor was invoked
     ;; in stage :error and threw a new exception.
     (is (match? {:stage          :error
@@ -420,11 +420,11 @@
                                (chain/bind context *rebindable* value))}))]
     ;; This is the expected leave order
     (is (match? {:order [:d :c :b :a]}
-                (chain/execute nil
-                               [(step :a)
-                                (step :b)
-                                (step :c)
-                                (step :d)])))
+                (execute nil
+                         [(step :a)
+                          (step :b)
+                          (step :c)
+                          (step :d)])))
 
     (is (match? {:order [:f :e :d :c :b :a]
                  :peek  {:f nil
@@ -433,15 +433,15 @@
                          :c :early
                          :b :late
                          :a :late}}
-                (chain/execute nil
-                               [(step :a)
-                                (step :b)
-                                (rebinder :late)
-                                (step :c)
-                                (step :d)
-                                (rebinder :early)
-                                (step :e)
-                                (step :f)])))))
+                (execute nil
+                         [(step :a)
+                          (step :b)
+                          (rebinder :late)
+                          (step :c)
+                          (step :d)
+                          (rebinder :early)
+                          (step :e)
+                          (step :f)])))))
 
 
 (deftest interceptor-leave-ordering-after-a-change-in-bindings-async
@@ -467,28 +467,28 @@
                                (>! ch context)
                                context))})]
 
-    (chain/execute nil
-                   [capture
-                    (step :a)
-                    (step :b)
-                    (step :c)
-                    (step :d)])
+    (execute nil
+             [capture
+              (step :a)
+              (step :b)
+              (step :c)
+              (step :d)])
 
     ;; This is the expected leave order
 
     (is (match? {:order [:d :c :b :a]}
                 (<!!? ch)))
 
-    (chain/execute nil
-                   [capture
-                    (step :a)
-                    (step :b)
-                    (rebinder :late)
-                    (step :c)
-                    (step :d)
-                    (rebinder :early)
-                    (step :e)
-                    (step :f)])
+    (execute nil
+             [capture
+              (step :a)
+              (step :b)
+              (rebinder :late)
+              (step :c)
+              (step :d)
+              (rebinder :early)
+              (step :e)
+              (step :f)])
 
     (is (match? {:order [:f :e :d :c :b :a]
                  :peek  {:f nil
@@ -511,8 +511,8 @@
                                         (reset! *capture (:response context))
                                         (.countDown latch)
                                         context)})
-        context  (chain/execute nil [capturer
-                                     (interceptor async-handler)])]
+        context  (execute nil [capturer
+                               (interceptor async-handler)])]
     (is (nil? context)
         "nil context when it goes async")
 
@@ -537,7 +537,7 @@
   (let [names (fn [context] (->> context
                                  chain/queue
                                  (map :name)))
-        ctx   (chain/enqueue {} [(tracer :a)])]
+        ctx   (enqueue {} [(tracer :a)])]
     (is (= [:a]
            (names ctx)))
 

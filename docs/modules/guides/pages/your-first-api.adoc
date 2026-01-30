@@ -349,6 +349,8 @@ create the actual list.
 [source,clojure]
 .src/main.clj
 ----
+include::example$todo-api/src/main.clj[tag=list_create_preamble]
+
 include::example$todo-api/src/main.clj[tag=list_create]
 
 include::example$todo-api/src/main.clj[tag=routes_with_list_create]

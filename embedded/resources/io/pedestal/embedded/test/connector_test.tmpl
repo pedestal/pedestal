@@ -36,5 +36,5 @@
                :body "Hello, Pedestal User."}
               (response-for *connector* :post "/hello"
                 :body (json/write-json-str {:name "Pedestal User"})
-                :headers {"Content-Type" "application/json"}))))
+                :headers {"content-type" "application/json"}))))
 
