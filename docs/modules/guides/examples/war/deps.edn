@@ -1,6 +1,6 @@
 {:paths ["src" "resources"]
  :deps
- {io.pedestal/pedestal.servlet {:mvn/version "0.8.1-beta-1"}
+ {io.pedestal/pedestal.servlet {:mvn/version "0.8.2-beta-1"}
   org.eclipse.jetty.ee10.websocket/jetty-ee10-websocket-jakarta-server
   {:mvn/version "12.0.21"}                                  ; <1>
   org.slf4j/slf4j-simple       {:mvn/version "2.0.17"}}
