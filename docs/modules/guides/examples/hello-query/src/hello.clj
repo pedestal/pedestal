@@ -102,6 +102,7 @@
   (reset! *connector nil))
 
 (defn restart []                                            ;; <3>
-  (stop)
+  (when @*connector
+    (stop))
   (start))
 ;; end::connector[]
