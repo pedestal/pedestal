@@ -17,23 +17,14 @@
   (:import (charred JSONWriter)
            (java.io OutputStream Writer)))
 
-(defn- write-json-noclose
-  ;; Calling charred/write-json closes the writer, which doesn't work with Pedestal and Servlet API.
-  ;; Instead, we create a writer via json/json-writer-fn and write the object to it.
-  [obj ^Writer stream-writer writer-fn]
-  (let [^JSONWriter json-writer (writer-fn stream-writer)]
-    (.writeObject json-writer obj)
-    ;; The feels dirty, but some JSON could still be in the JSONWriter's internal writer
-    ;; that wraps stream-writer, and that needs to be flushed but not closed, and
-    ;; JSONWriter implements a close() but not a flush().
-    (.flush (.-w json-writer))))
-
 (defn stream-json
   "Writes the object as JSON to the stream and returns the stream.  Some gymnastics occur to ensure
   that the stream is not closed."
   [object ^OutputStream stream writer-fn]
-  (with-open [writer (io/writer stream)]
-    (write-json-noclose object writer writer-fn)
+  (with-open [stream-writer (io/writer stream)]
+    (let [^JSONWriter json-writer (writer-fn stream-writer)]
+      (.writeObject json-writer object)
+      (.flush json-writer))
     stream))
 
 (defn processor
