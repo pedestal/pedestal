@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2022 Cognitect, Inc.
 
 ; The use and distribution terms for this software are covered by the
@@ -21,7 +21,7 @@
 
          ;; Ring 1.11 is the first version to support Servlet API 4.0
          ring/ring-core                   {:mvn/version "1.15.3"}
-         com.cnuernber/charred            {:mvn/version "1.037"}
+         com.cnuernber/charred            {:mvn/version "1.038"}
          org.clojure/tools.reader         {:mvn/version "1.6.0"}
          com.cognitect/transit-clj        {:mvn/version "1.0.333"}
          commons-codec/commons-codec      {:mvn/version "1.20.0"}
