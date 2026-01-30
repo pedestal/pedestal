@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -13,22 +13,20 @@
 
 (ns io.pedestal.http.route.linear-search
   (:require [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.internal :as internal]))
 
 (defn- path-matcher [route]
-  (let [{:keys [path-params]} route
-        path-re (path/path-regex route)]
+  (let [{:keys [path-params path-re]} route]
     (fn [req]
       (when req
-       (when-let [m (re-matches path-re (:path-info req))]
-         (zipmap path-params (rest m)))))))
+        (when-let [m (re-matches path-re (:path-info req))]
+          (zipmap path-params (rest m)))))))
 
 (defn- matcher-components [route]
   (let [{:keys [method scheme host port query-constraints]} route]
     (list (when (and method (not= method :any)) #(= method (:request-method %)))
-          (when host   #(= host (:server-name %)))
-          (when port   #(= port (:server-port %)))
+          (when host #(= host (:server-name %)))
+          (when port #(= port (:server-port %)))
           (when scheme #(= scheme (:scheme %)))
           (when query-constraints
             (fn [request]
@@ -40,10 +38,10 @@
 
 (defn- matcher [route]
   (let [base-matchers (remove nil? (matcher-components route))
-        base-match (if (seq base-matchers)
-                     (apply every-pred base-matchers)
-                     (constantly true))
-        path-match (path-matcher route)]
+        base-match    (if (seq base-matchers)
+                        (apply every-pred base-matchers)
+                        (constantly true))
+        path-match    (path-matcher route)]
     (fn [request]
       (and (base-match request) (path-match request)))))
 

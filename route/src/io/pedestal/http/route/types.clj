@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -34,3 +34,6 @@
   ;; no harm.
   (->RoutingFragmentImpl (vec routes)))
 
+;; This is used to let expanded-routes identify that the routes have already been expanded
+;; and verified as a routing table.
+(defrecord RoutingTable [routes])

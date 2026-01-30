@@ -1393,7 +1393,7 @@
     "/a/a/b/b/c"))
 
 (deftest nested-path-params
-  (let [routes (fn [spec] (-> spec expand-routes :routes first))
+  (let [routes          (fn [spec] (-> spec expand-routes :routes first))
         terse-with-root `[[["/base/:resource/:thing" {:get add-user}]]]
         terse-sans-root `[[["/:resource/:thing" {:get add-user}]]]
         table-with-root #{["/base/:resource/:thing" :get add-user]}
@@ -1446,8 +1446,10 @@
 ;; Verb neutral routing
 ;; -------------------------
 (deftest verb-neutral-routing
-  (let [test-routes       [{:path "/app" :method :quux}]
-        test-request      {:path-info "/app" :request-method :quux}
+  (let [test-routes       (-> #{["/app" :get identity :route-name :quux]}
+                              expand-routes
+                              :routes)
+        test-request      {:path-info "/app" :request-method :get}
         test-bad-request  {:path-info "/app" :request-method :foo}
         expand-route-path (fn [route] (->> (:path route)
                                            path/parse-path
@@ -1556,9 +1558,9 @@
 (deftest table-routes-interceptor-opt-is-prefix
 
   (let [routes  (table-routes {:interceptors [i-1 i-2]}
-                                    [["/root/one" :get table-route-handler :route-name :one]
-                                     ["/root/two" :get [i-3 table-route-handler] :route-name :two]
-                                     ["/root/three" :get [table-route-handler] :route-name :three]])
+                              [["/root/one" :get table-route-handler :route-name :one]
+                               ["/root/two" :get [i-3 table-route-handler] :route-name :two]
+                               ["/root/three" :get [table-route-handler] :route-name :three]])
         by-name (medley/index-by :route-name (:routes routes))]
     (is (match?
           {:one   {:interceptors [i-1 i-2 table-route-handler]}

@@ -1,4 +1,4 @@
-; Copyright 2024 Nubank NA
+; Copyright 2024-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -16,7 +16,6 @@
   specs are optional unless this namespace is required."
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [io.pedestal.http.route.internal :as internal]
             [io.pedestal.interceptor.specs :as i]
             [io.pedestal.http.route.types :as types]
             [io.pedestal.http.route.definition.table :as table]
@@ -172,7 +171,7 @@
 ;; --- EXPANDED ROUTING TABLE ---
 
 (s/def ::routing-table (s/and
-                         internal/is-routing-table?
+                         route/is-routing-table?
                          (s/keys :req-un [::routes])))
 
 (s/def ::routes (s/coll-of ::routing-entry))

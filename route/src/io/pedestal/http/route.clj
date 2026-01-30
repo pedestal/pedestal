@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2014-2022 Cognitect, Inc.
 ; Copyright 2013 Relevance, Inc.
 
@@ -439,8 +439,9 @@
        (map check-satifies-expandable-routes)
        (map -expand-routes)
        (mapcat types/fragment-routes)
+       (map internal/inject-path-re)
        definition/verify-unique-route-names
-       internal/->RoutingTable))
+       types/->RoutingTable))
 
 
 (defn- route-context
@@ -658,5 +659,3 @@
   (if-not dev-mode?
     `(expand-routes ~@route-exprs)
     (internal/create-routes-from-fn route-exprs &env `expand-routes)))
-
-
