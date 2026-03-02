@@ -41,10 +41,10 @@ serve as your guide.
 === Looking for work?
 
 If you're looking for a task to work on, check out the
-https://github.com/pedestal/pedestal/issues?labels=primed[primed label] in our issues.
+https://github.com/pedestal/pedestal/issues?q=state%3Aopen%20label%3Aprimed[primed label] in our issues.
 
 Less defined tasks will be marked with the
-https://github.com/pedestal/pedestal/issues?labels=discuss[discuss
+https://github.com/pedestal/pedestal/issues?q=state%3Aopen%20label%3Adiscuss[discuss
 label]. Jump in here if you want to be a part of something big.
 
 === New Features
