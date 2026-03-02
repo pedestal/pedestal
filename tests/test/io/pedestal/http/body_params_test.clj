@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -138,3 +138,10 @@
         new-context (i nil-content-type-context)
         new-request (:request new-context)]
     (is (= (slurp (:body new-request)) klingon))))
+
+(deftest transit-false-is-stored-into-request
+  (let [transit-context (as-context "application/transit+json" "[\"~#'\",false]")
+        new-context     (i transit-context)
+        new-request     (:request new-context)]
+    (is (= false
+           (:transit-params new-request)))))
