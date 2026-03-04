@@ -82,6 +82,9 @@ In `io.pedestal.connector.test`, the response header keys are now unchanged; pre
     * `io.pedestal.http.route.definition/symbol->keyword`
     * `io.pedestal.http.route.definition/capture-constraint`
     * `io.pedestal.http.request.servlet-support`
+* JSON Processor is changed from `cheshire` to `charred`
+    * This will change JSON when serializing values from libraries that have built-in `cheshire` integrations, for example [`clojurewerkz/money`](https://github.com/clojurewerkz/money)
+    * If you want to keep using `cheshire`, consider upgrading to version 0.8.2, which allows configuration of JSON Processor.
 
 Newly deprecated namespaces (these may be removed or made non-public in the future):
 
