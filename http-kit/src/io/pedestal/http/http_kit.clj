@@ -99,7 +99,7 @@
 
 (defn create-connector
   "Creates a Pedestal connector around an Http-Kit network connector.  The connector map is used to specify
-  the :ip and :port keys of the options passed to org.httpkit.server/run-server.  Other options are as provided
+  the :ip and :port keys of the options passed to org.httpkit.server/run-server. Other options are as provided
   in the options map, or from [[default-options]]."
   [connector-map options]
   (let [{:keys [host port interceptors initial-context join?]} connector-map
