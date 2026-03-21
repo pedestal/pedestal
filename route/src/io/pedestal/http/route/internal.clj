@@ -77,8 +77,9 @@
 
 (defn- print-routing-table-with-header
   [routing-table]
-  (println "Routing table:")
-  (print-routing-table routing-table))
+  (binding [*out* *err*]
+    (println "Routing table:")
+    (print-routing-table routing-table)))
 
 (defn- wrap-routing-table-fn
   [routing-table-fn]

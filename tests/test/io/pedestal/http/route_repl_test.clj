@@ -15,7 +15,8 @@
             [io.pedestal.http.route.internal :as internal]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.route :as route :as route]
-            [io.pedestal.environment :refer [dev-mode?]]))
+            [io.pedestal.environment :refer [dev-mode?]])
+  (:import (java.io StringWriter)))
 
 (use-fixtures :once
               tc/no-ansi-fixture
@@ -25,6 +26,16 @@
               (fn [f]
                 (with-redefs [dev-mode? true]
                   (f))))
+
+(defmacro with-err-str
+  "Evaluates exprs in a context in which *err* is bound to a fresh
+  StringWriter.  Returns the string created by any nested printing
+  calls."
+  [& body]
+  `(let [s# (new StringWriter)]
+     (binding [*err* s#]
+       ~@body
+       (str s#))))
 
 (deftest dev-mode-enabled
   ;; Sanity check that dev-mode is enabled when running tests or a REPL.
@@ -147,18 +158,16 @@
 
 (deftest static-routes-printed-once
   (let [expanded-routes (route/expand-routes sample-routes)
-        out-str         (with-out-str
-                          (println)
+        err-str         (with-err-str
                           (is (= expanded-routes
                                  (internal/wrap-routing-table expanded-routes))))]
-    (is (= "
-Routing table:
+    (is (= "Routing table:
 ┌──────┬──────┬───────────────────────────────────────┐
 │Method│ Path │                  Name                 │
 ├──────┼──────┼───────────────────────────────────────┤
 │  :get│/hello│:io.pedestal.http.route-repl-test/hello│
 └──────┴──────┴───────────────────────────────────────┘
-" out-str))))
+" err-str))))
 
 (deftest dynamic-routes-printed-at-startup-and-when-changed
   (let [expanded-routes (route/expand-routes sample-routes)
@@ -166,30 +175,27 @@ Routing table:
         *wrapped        (atom nil)
         f               (fn []
                           @*routes)
-        out-str         (with-out-str
-                          (println)
+        err-str         (with-err-str
                           (reset! *wrapped
                                   (internal/wrap-routing-table f)))
         wrapped         @*wrapped
-        _               (is (= "
-Routing table:
+        _               (is (= "Routing table:
 ┌──────┬──────┬───────────────────────────────────────┐
 │Method│ Path │                  Name                 │
 ├──────┼──────┼───────────────────────────────────────┤
 │  :get│/hello│:io.pedestal.http.route-repl-test/hello│
 └──────┴──────┴───────────────────────────────────────┘
-" out-str))
-        out-str         (with-out-str
+" err-str))
+        err-str         (with-err-str
                           (is (= expanded-routes (wrapped))))
         ;; No change, no output
-        _               (is (= out-str ""))
+        _               (is (= err-str ""))
         new-routes      (route/expand-routes #{["/login" :post hello-handler :route-name ::login]})
         _               (reset! *routes new-routes)
-        out-str         (with-out-str
+        out-str         (with-err-str
                           (println)
                           (is (= new-routes (wrapped))))]
-    (is (= out-str "
-Routing table:
+    (is (= out-str "Routing table:
 ┌──────┬──────┬───────────────────────────────────────┐
 │Method│ Path │                  Name                 │
 ├──────┼──────┼───────────────────────────────────────┤

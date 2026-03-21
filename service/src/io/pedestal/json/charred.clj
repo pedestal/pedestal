@@ -15,7 +15,7 @@
             [clojure.java.io :as io]
             [io.pedestal.json.protocols :as p])
   (:import (charred JSONWriter)
-           (java.io OutputStream Writer)))
+           (java.io OutputStream)))
 
 (defn stream-json
   "Writes the object as JSON to the stream and returns the stream.  Some gymnastics occur to ensure

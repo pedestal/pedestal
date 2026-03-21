@@ -55,7 +55,7 @@
          com.walmartlabs/test-reporting                 {:mvn/version "1.2"}
          com.clojure-goes-fast/clj-async-profiler       {:mvn/version "1.7.0"}
 
-         ch.qos.logback/logback-classic                 {:mvn/version "1.5.26"}
+         ch.qos.logback/logback-classic                 {:mvn/version "1.5.32"}
 
          ;; For testing of SSEs
          cloud.prefab/sse-handler                       {:mvn/version "1.0.1"}
@@ -90,7 +90,7 @@
   :build
   {:ns-default build
    :deps {io.github.clojure/tools.build {:mvn/version "0.10.12"}
-          babashka/fs {:mvn/version "0.5.30"}}}
+          babashka/fs {:mvn/version "0.5.31"}}}
 
   ;; clj -X:test
   :test
@@ -102,11 +102,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.58.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.58.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.58.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.58.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.58.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.59.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.59.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.59.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.59.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.59.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"

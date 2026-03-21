@@ -285,9 +285,10 @@
                                     {}
                                     token->paths)]
         (fn [remaining-path params-map]
-          (with-split-path remaining-path [first-term more-path]
-                           (when-let [matcher (literal-term->matcher first-term)]
-                             (matcher more-path params-map))))))))
+          (when remaining-path
+            (with-split-path remaining-path [first-term more-path]
+                             (when-let [matcher (literal-term->matcher first-term)]
+                               (matcher more-path params-map)))))))))
 
 (defn- subdivide-by-path
   [matched paths]

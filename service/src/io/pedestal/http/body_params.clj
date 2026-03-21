@@ -134,7 +134,7 @@
 
                              nil))]
       (cond-> request
-        transit-params (assoc :transit-params transit-params)))))
+        (some? transit-params) (assoc :transit-params transit-params)))))
 
 
 (defn form-parser
