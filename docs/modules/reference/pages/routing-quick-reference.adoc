@@ -56,7 +56,7 @@ Tab["#{} set"] --> tabr
 tabr([table/table-routes]) --> frag
 Terse["[] vector"] --> terser
 terser([terse/terse-routes]) --> frag
-Verb["{}] map"] --> verbr
+Verb["{} map"] --> verbr
 verbr([terse/map-routes->vec-routes]) --> frag
 frag[Routing Fragment] --> expand
 expand([expand-routes]) --> table

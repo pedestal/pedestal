@@ -2,7 +2,7 @@
 :page-toclevels: 1
 
 Pedestal primarily is configured via the xref:connector-map.adoc[]; however, there are sub-systems within
-Pedestal that can operate outside a service, or before a service map is used to create and start a server.
+Pedestal that can operate before a connector map is used to create and start a connector.
 
 These sub-systems are:
 
@@ -21,7 +21,7 @@ Configuration values are one of the following types:
 - keyword
 - function
 
-For functions config types, the value is converted to a fully qualified symbol and that is resolved
+For function config types, the value is converted to a fully qualified symbol and that is resolved
 to a function.
 
 == Configuration Order
@@ -161,5 +161,4 @@ The kind of values provided to the api:MetricSource[ns=io.pedestal.metrics.spi].
 A function that returns an instance of
 api:TracingSource[ns=io.pedestal.tracing.spi], used to emit tracing events.
 
-The default, gets its value
-from `io.opentelemetry.api.GlobalOpenTelemetry.getTracer(java.lang.String)`.
+The default function gets tracing sources via  `io.opentelemetry.api.GlobalOpenTelemetry.getTracer(java.lang.String)`.

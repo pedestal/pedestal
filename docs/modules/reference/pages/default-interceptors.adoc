@@ -2,7 +2,7 @@
 :default_api_ns: io.pedestal.service.interceptors
 
 Pedestal provides a "default set" of interceptors when using
-the api:with-default-interceptors[ns=io.pedestal.channel] function.
+the api:with-default-interceptors[ns=io.pedestal.connector] function.
 
 
 These are presented in the order that they appear in the interceptor
@@ -60,4 +60,3 @@ Adds security-related headers to the outgoing response.
 should replace the call to `with-default-interceptors` with the exact interceptors
 it requires, configured according the application's needs.
 ====
-
