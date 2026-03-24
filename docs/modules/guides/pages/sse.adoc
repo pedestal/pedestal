@@ -1,22 +1,18 @@
-= Server Sent Events
-
-WARNING: This document is out of date and will be updated.
+= Server-Sent Events
 
 == Welcome
 
-Server-sent events (SSE) make it possible to stream events to a client application.
+Server-sent events (SSE) make it possible to stream events from a server to a client application.
 They are appropriate when you only need a unidirectional flow of events from the
-server to the client (if you need a bidirectional connection, then WebSockets are
+server to the client (if you need a bidirectional connection, then
+xref:reference:websockets.adoc[WebSockets] are
 a better choice).
-
-TIP: SSEs have largely been eclipsed by WebSockets, which
-xref:reference:websockets.adoc[Pedestal also supports].
 
 == What You Will Learn
 
 After reading this guide, you will be able to:
 
-- Configure Pedestal to accept SSE connections.
+- Configure Pedestal to stream SSE connections.
 - Send events from Pedestal over the connection using {core_async}.
 - Connect to the server-sent event stream from a JavaScript client.
 
@@ -35,7 +31,7 @@ just skip those sections.
 
 include::partial$getting-help.adoc[]
 
-== Server Sent Events Overview
+== Server-Sent Events Overview
 
 In typical client/server interactions, the client, usually a web browser, sends a single request to the server,
 and the server responds with a single response.
@@ -47,119 +43,143 @@ more content to it.
 With SSEs, the response content type is `text/event-stream`.  This event stream consists of
 multiple "events", short text-based messages.
 
-
-
 == Where We Are Going
 
-We'll be creating a new Pedestal service project, adding a simple route to stream a counter using server-sent events, and adding a simple HTML page that uses a JavaScript https://developer.mozilla.org/en-US/docs/Web/API/EventSource[EventSource] to open a connection to the stream.
+We'll be creating a new Pedestal project, adding a simple route to stream a counter using server-sent events,
+and testing it with `curl`.
 
-== Before We Begin
+== Setting Up
 
-This guide will use http://leiningen.org/[Leiningen] to generate and
-build a template project. If you haven't already installed it, please
-take a few minutes to set it up.
-
-== Generate Our New Project
+Create a new project directory with a `deps.edn` and a source file:
 
 ----
-$ lein new pedestal-service server-sent-events
-Generating a pedestal-service application called server-sent-events.
-$ cd server-sent-events
+$ mkdir sse-demo
+$ cd sse-demo
+$ mkdir src
 ----
-
-== Add Hiccup
-
-We will be using Hiccup to generate our index page, so we will need to add the
-dependency in our project.clj.
 
 [source,clojure]
-.project.clj
+.deps.edn
 ----
-include::example$server-sent-events/project.clj[tags=add-hiccup]
+include::example$server-sent-events/deps.edn[]
 ----
 
-== Clean Up
+== Starting Simple
 
-Here's the `service.clj` file generated from the template:
+Let's start with a basic home page and the server plumbing, then add SSE support.
+
+We'll need several namespaces for SSE support, so let's bring them all in from the start:
 
 [source,clojure]
-.src/server_sent_events/service.clj
+.src/sse_demo.clj
 ----
-include::example$server-sent-events/src/server_sent_events/service.clj[tags=original-service]
+include::example$server-sent-events/src/sse_demo.clj[tags=ns]
 ----
 
-Let's simplify things by commenting out the 'Terse/Vector-based routes' section and removing unnecessary code.
+A simple handler to verify things are working:
 
 [source,clojure]
-.src/server_sent_events/service.clj
+.src/sse_demo.clj
 ----
-include::example$server-sent-events/src/server_sent_events/service.clj[tags=cleaned-up]
-----
-
-== Server-Sent Event Route
-
-Now let's add our server-sent event route. First Lets require SSE and {core_async}.
-
-[source,clojure]
-.src/server_sent_events/service.clj
-----
-include::example$server-sent-events/src/server_sent_events/service.clj[tags=require-sse]
+include::example$server-sent-events/src/sse_demo.clj[tags=home-page]
 ----
 
-Now we'll add our counter route. We create the `/counter` route by calling
-api:start-event-stream[ns=io.pedestal.http.sse]
-and passing in our `stream-ready` handler.
+Start the REPL, load the namespace, and verify it works:
 
-This creates an interceptor that will handle setting up the connection and call the provided callback, `stream-ready`.
+----
+$ clj
+Clojure 1.12
+user=> (require 'sse-demo)
+nil
+user=> (sse-demo/start)
+...
+----
 
-The `stream-ready`  callback receives a {core_async} event channel and the SSE context as parameters.
-The SSE context is the xref:reference:context-map.adoc[] with additional keys related to the event stream.
+----
+$ curl http://localhost:8890/
+Hello, World!
+----
 
-WARNING: The  callback  *must* send at least one event in order to properly initialize the stream.
-If it doesn't, the client will think the stream is broken and keep reconnecting.
+== Adding a Server-Sent Event Route
 
-[NOTE]
-====
-An event stream is a particular kind of asynchronous response. The event stream interceptor,
-returned by `start-event-stream`, will return a context with a response map, which will trigger a response
-being sent to the client. However, the response will include whatever series of values are put into the
-provided response channel.
-====
-
+Now let's add SSE support.
+We write a _stream-ready_ callback; this function is called once the SSE connection is established.
+It receives a {core_async} channel and the SSE context as parameters.
 
 You send events on the channel using regular {core_async} functions, such as `put!` or `>!!`,
 and ultimately terminate the connection by calling `clojure.core.async/close!` on the channel.
 
-Here our event consists the :name and :data keys, but could also contain an
-:id+for the event.
+Each event is a map with :name and :data keys (and, optionally, an :id key).
+All values are converted to strings before being sent.
 
-Importantly, it is not the job of your callback to send all of the events; your callback is supposed set in motion
+WARNING: The callback *must* send at least one event in order to properly initialize the stream.
+If it doesn't, the client will think the stream is broken and keep reconnecting.
+
+Importantly, it is not the job of your callback to send all of the events; your callback should set in motion
 the concurrent machinery that sends the events.  Events will continue to be sent to the client even after
 the callback returns, until either the client closes the connection, or your code closes the channel.
 
+In this example, we send ten counter events at one-second intervals:
+
 [source,clojure]
-.src/server_sent_events/service.clj
+.src/sse_demo.clj
 ----
-include::example$server-sent-events/src/server_sent_events/service.clj[tags=counter-route]
+include::example$server-sent-events/src/sse_demo.clj[tags=stream-ready]
+----
+<1> The work is done in a future, so the callback returns immediately.
+<2> Each event is a map with :name and :data keys.
+<3> Closing the channel terminates the SSE connection.
+
+Now we create an interceptor that calls
+api:start-stream[ns=io.pedestal.http.sse]
+to initiate the event stream:
+
+[source,clojure]
+.src/sse_demo.clj
+----
+include::example$server-sent-events/src/sse_demo.clj[tags=counter-interceptor]
+----
+<1> `start-stream` sets up the SSE connection and calls `stream-ready` once it's established.
+    It returns the context with a `:response` key, which is an open-ended streaming response.
+
+[NOTE]
+====
+An event stream is a particular kind of asynchronous response.
+`start-stream` returns a context with a response that "stays open", and the server keeps appending
+events from the channel to the response body.
+====
+
+Finally, add the `/counter` route:
+
+[source,clojure]
+.src/sse_demo.clj
+----
+include::example$server-sent-events/src/sse_demo.clj[tags=routes]
 ----
 
-Now let's start up our server.
+And the connector plumbing:
 
+[source,clojure]
+.src/sse_demo.clj
 ----
-> lein run
-INFO  org.eclipse.jetty.util.log  - Logging initialized @3094ms to org.eclipse.jetty.util.log.Slf4jLog
-
-Creating your server...
-INFO  org.eclipse.jetty.server.Server  - jetty-9.4.52.v20230823; built: 2023-08-23T19:29:37.669Z; git: abdcda73818a1a2c705da276edb0bf6581e7997e; jvm 11.0.19+7-LTS
-INFO  o.e.j.server.handler.Con[textHandler  - Started o.e.j.s.ServletContextHandler@38f183e9{/,null,AVAILABLE}
-INFO  o.e.jetty.server.AbstractConnector  - Started ServerConnector@b439e50{HTTP/1.1, (http/1.1, h2c)}{localhost:8080}
-INFO  org.eclipse.jetty.server.Server  - Started @3196ms
+include::example$server-sent-events/src/sse_demo.clj[tags=connector]
 ----
 
-We can check out our event stream in another terminal using +curl+.
+== Trying It Out
+
+Restart the connector to pick up the changes:
 
 ----
-> curl http://localhost:8080/counter
+user=> (require :reload 'sse-demo)
+nil
+user=> (sse-demo/restart)
+...
+----
+
+Now test the event stream with `curl` in another terminal:
+
+----
+$ curl http://localhost:8890/counter
 event: counter
 data: 0
 
@@ -189,47 +209,57 @@ data: 8
 
 event: counter
 data: 9
->
 ----
 
-The events above will arrive at one second intervals.
+The events arrive at one-second intervals, then the connection closes.
 
-SSE data will always be received as a string. If you want to send JSON (or any
+SSE data is always received as a string. If you want to send JSON (or any
 other data format), it's up to the sender to encode it and the receiver to
-decode it accordingly. This agreement must be arranged out-of-band.
+decode it accordingly.
 
 [IMPORTANT]
 None of the Pedestal interceptors are invoked
 when sending SSE events. The interceptors are used for the initial connection
 request from the client, but not on the events themselves.
 
-Now let's stop our server with Ctrl+C and update our `/index` route to return an
-HTML page that connects to our counter route. Since we are adding inline JS
-we'll also update our service configuration not to include secure headers, which
-include 'unsafe-inline' by default (this is an example, not production code
-after all).
+== Connecting from JavaScript
 
-[source,clojure]
-.src/server_sent_events/service.clj
-----
-include::example$server-sent-events/src/server_sent_events/service.clj[tags=html-home]
-----
+To consume the event stream from a browser, use the standard
+https://developer.mozilla.org/en-US/docs/Web/API/EventSource[EventSource] API:
 
-Now we should be able to restart our server and navigate to
-http://localhost:8080 and watch our counter increment.
+[source,javascript]
+----
+const eventSource = new EventSource("/counter");
+eventSource.addEventListener("counter", (event) => {
+    console.log("Counter:", event.data);
+});
+----
 
 Coverage of the JavaScript EventSource (SSE) API is beyond the scope of this
-Pedestal guide. If you are unfamiliar with the API, consult this
-link:https://www.html5rocks.com/en/tutorials/eventsource/basics/[tutorial] for a
-basic introduction.
+Pedestal guide. Consult the
+https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events[MDN documentation]
+for a thorough introduction.
+
+== The Whole Shebang
+
+For reference, here is the complete source:
+
+[source.hide-callouts,clojure]
+.src/sse_demo.clj
+----
+include::example$server-sent-events/src/sse_demo.clj[tag=**]
+----
+
+[source,clojure]
+.deps.edn
+----
+include::example$server-sent-events/deps.edn[]
+----
 
 == Wrapping Up
 
 We've covered a minimal setup for server-sent event configuration and usage and
-demonstrated how to receive events from JavaScript.
+demonstrated how to receive events with `curl` and from JavaScript.
 
-This guide was based on the examples in the 
-link:{repo_root}/samples/tree/master/server-sent-events[server-sent-event sample project]
-and the
+For more details, see the
 xref:reference:server-sent-events.adoc[Server-Sent Events Reference].
-

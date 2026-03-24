@@ -36,7 +36,7 @@ If you prefer to be explicit, set the value to :sawtooth.
 == Caveats
 
 The behavior of Sawtooth is not defined when there _are_ route conflicts;
-The prefix-tree allows for route conflicts between static paths and those with path parameters, and silently
+The older prefix-tree router allows for route conflicts between static paths and those with path parameters, and silently
 prefers the path parameters routes over the static routes.
 
 == Additional Notes
@@ -59,7 +59,7 @@ For example, consider the following route paths:
 
 None of these routes are in conflict.  If the request path is `/user/search` it will always match the third route.
 If the request path is `/user/12487` is will match the first route.  If the request path is `/user/12487/profile`, Sawtooth will
-match the second route - because routes that do not contain the wild-card path paramer must match the exact number of terms.
+match the second route - because routes that do not contain the wild-card path parameter must match the exact number of terms.
 
 In terms of operation, Sawtooth will match the first term (say "user"), and will only consider the first three routes,
 ignoring the fourth. It is then tasked with matching the request against the literal term `search` (third route),
