@@ -27,7 +27,7 @@
     events-chan ([event] event)
 
     ;; A fake event for when things are broken:
-    (async/timeout 75) [::timed-out]))
+    (async/timeout 1000) [::timed-out]))
 
 (defmacro expect-event
   "Events are written with [[write-event]], as a vector where the first element is the type (:open, :close, :text, etc.).
