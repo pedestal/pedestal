@@ -20,6 +20,7 @@
             [clojure.edn :as edn]
             [io.pedestal.http :as bootstrap]
             [clj-http.client :as http]
+            [hato.client :as hc]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.servlet :as servlet]
@@ -33,11 +34,7 @@
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
            (java.nio ByteBuffer)
-           (java.nio.channels Pipe)
-           (java.security.cert X509Certificate)
-           (javax.net.ssl SSLContext X509TrustManager)
-           (java.net.http HttpClient HttpRequest HttpClient$Version HttpResponse$BodyHandlers)
-           (java.net URI)))
+           (java.nio.channels Pipe)))
 
 (use-fixtures :once tc/instrument-specs-fixture)
 
@@ -340,21 +337,8 @@
                                                 :sni-host-check? false
                                                 :keystore        "test/io/pedestal/http/keystore.jks"
                                                 :key-password    "password"}}
-    ;; clj-http does not support http2 so we're using java's native http client
-    (let [req (-> (HttpRequest/newBuilder)
-                  (.uri (URI/create "https://localhost:4348/"))
-                  (.GET)
-                  (.build))
-          trust-manager (reify X509TrustManager
-                          (checkClientTrusted [_ _ _])
-                          (checkServerTrusted [_ _ _])
-                          (getAcceptedIssuers [_] (into-array X509Certificate [])))
-          ssl-context (doto (SSLContext/getInstance "TLS")
-                        (.init nil (into-array [trust-manager]) nil))
-          client (-> (HttpClient/newBuilder)
-                     (.version HttpClient$Version/HTTP_2)
-                     (.sslContext ssl-context)
-                     (.build))
-          response (.send client req (HttpResponse$BodyHandlers/ofString))]
-      (is (= (.statusCode response) 200))
-      (is (= (.body response) "Hello World")))))
+    ;; clj-http does not support http2 so we're using hato
+    (let [response (hc/get "https://localhost:4348/" {:http-client {:ssl-context {:insecure? true}
+                                                                    :version     :http-2}})]
+      (is (= (:status response) 200))
+      (is (= (:body response) "Hello World")))))
