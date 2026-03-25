@@ -60,11 +60,13 @@
   (let [done-ch        (chan)
         async-identity (fn [context]
                          (go context))]
-    (execute (chain/add-observer nil event-observer)
+    (execute (chain/add-observer nil (fn [event]
+                                       (event-observer event)
+                                       (when (get-in event [:context-out ::done?])
+                                         (close! done-ch))))
              {:name  ::terminate
               :leave (fn [context]
-                       (close! done-ch)
-                       context)}
+                       (assoc context ::done? true))}
              {:name  ::outer
               :enter async-identity
               :leave async-identity}
