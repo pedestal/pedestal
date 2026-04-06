@@ -355,3 +355,11 @@
                      ::service/service-fn)
         response (response-for app :get "/hello-async")]
     (is (= "Hello async" (:body response)))))
+
+(deftest can-provide-seq-of-expanded-routes
+  (let [app      (-> {::service/routes (-> async-hello-routes route/expand-routes :routes list*)}
+                     service/default-interceptors
+                     service/service-fn
+                     ::service/service-fn)
+        response (response-for app :get "/hello-async")]
+    (is (= "Hello async" (:body response)))))

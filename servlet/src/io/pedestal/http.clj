@@ -28,6 +28,7 @@
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.ring-middlewares :as middlewares]
             [io.pedestal.http.csrf :as csrf]
+            [io.pedestal.http.route.types :as types]
             [io.pedestal.http.secure-headers :as sec-headers]
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.interceptor :refer [interceptor]]
@@ -251,7 +252,7 @@
                                 (deprecated ::route-maps-seq
                                   :in "0.8.0"
                                   :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map")
-                                (route/expand-routes {:children routes}))
+                                (-> routes types/fragment route/expand-routes))
                               :else (throw (ex-info (str "Routes specified in the service map don't fulfill the contract, "
                                                          "they must be expanded routes, a function that returns expanded routes, or a RoutingFragment")
                                                     {:routes routes})))]

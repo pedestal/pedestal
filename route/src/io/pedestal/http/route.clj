@@ -508,6 +508,8 @@
            (format "No router implementation exists for key %s. Please use one of %s."
                    router-type
                    (keys router-implementations)))
+   (assert (or (fn? routing-table)
+               (is-routing-table? routing-table)))
    (let [router-ctor    (if (fn? router-type)
                           router-type
                           (router-type router-implementations))
