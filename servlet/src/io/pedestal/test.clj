@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -217,7 +217,9 @@
         body (-> ^MockState state
                  .responseStream
                  (.toString "UTF-8"))]
-    (assoc response :body body)))
+    (-> response
+        (assoc :body body)
+        (dissoc ::state))))
 
 (defn create-responder
   "Given a service map, this returns a function that wraps [[response-for]].
