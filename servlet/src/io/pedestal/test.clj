@@ -163,10 +163,11 @@
                        :url     url
                        :options options
                        :state   state})))
-    {:status  (.-responseStatus state)
-     :body    (.-responseStream state)
-     :headers (extract-headers state)
-     ::state  state}))
+    (with-meta
+      {:status  (.-responseStatus state)
+       :body    (.-responseStream state)
+       :headers (extract-headers state)}
+      {::state state})))
 
 (defn raw-response-for
   "Return a Ring response map for an HTTP request of type `verb`
@@ -188,7 +189,7 @@
   (let [servlet-resp (servlet-response-for interceptor-service-fn verb url options)]
     (log/debug :in :response-for
                :servlet-resp servlet-resp)
-    (let [{::keys [state]} servlet-resp
+    (let [state          (-> servlet-resp meta ::state)
           content-length (.-responseContentLength ^MockState state)]
       (cond-> servlet-resp
         (pos? content-length)
@@ -213,13 +214,12 @@
   {:deprecated "0.8.0"}
   [interceptor-service-fn verb url & {:as options}]
   (deprecated `response-for :in "0.8.0")
-  (let [{::keys [state] :as response} (raw-response-for interceptor-service-fn verb url options)
+  (let [response (raw-response-for interceptor-service-fn verb url options)
+        state    (-> response meta ::state)
         body (-> ^MockState state
                  .responseStream
                  (.toString "UTF-8"))]
-    (-> response
-        (assoc :body body)
-        (dissoc ::state))))
+    (assoc response :body body)))
 
 (defn create-responder
   "Given a service map, this returns a function that wraps [[response-for]].
