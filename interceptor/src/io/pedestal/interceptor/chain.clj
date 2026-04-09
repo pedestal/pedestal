@@ -1,4 +1,4 @@
-; Copyright 2023-2025 Nubank NA
+; Copyright 2023-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -25,7 +25,6 @@
 
 (declare ^:private execute-continue)
 
-
 (defn- name-for
   [interceptor]
   ;; Generally, interceptors will have a :name key that's a keyword, but there still
@@ -43,7 +42,8 @@
              (merge {:execution-id   execution-id
                      :stage          stage
                      :interceptor    interceptor-name
-                     :exception-type (keyword throwable-str)}
+                     :exception-type (keyword throwable-str)
+                     :exception t}
                     (ex-data t))
              t)))
 
@@ -133,8 +133,7 @@
         (let [context-out (callback context-in error)]
           (notify-observer interceptor :error context-in context-out))
         (catch Throwable t
-          ;; The error handling interceptor can rethrow the wrapped exception OR it can
-          ;; rethrow the actual/original exception.
+          ;; The error handling interceptor can rethrow the wrapped exception
           (if (identical? t error)
             (do
               (log/debug :rethrow t :execution-id (::excecution-id context))
