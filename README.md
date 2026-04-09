@@ -18,13 +18,20 @@ Pedestal features:
 - Default integration with [Jetty 12](https://eclipse.dev/jetty/) and [Http-Kit](https://github.com/http-kit/http-kit)
 
 You can stand up a basic Pedestal server in just a few lines of code
-(see the [guides in the documentation](https://pedestal.io/pedestal/0.7/guides/hello-world.html)), but Pedestal is designed to grow with you, 
+(see the [guides in the documentation](https://pedestal.io/pedestal/0.8/guides/hello-world.html)), but Pedestal is designed to grow with you, 
 as your application matures and expands.
 
 See the [full documentation](http://pedestal.io) for far more detail about
 using Pedestal, its design, and its philosophy.
 
 Pedestal requires Clojure 1.11 or later, and works with Servlet API 5.0 and Java 17 and up.
+
+## Code Of Conduct
+
+The Pedestal project is committed to providing a welcoming, inclusive, and harassment-free experience for everyone,
+regardless of background, identity, or experience level.
+
+[Our full Code Of Conduct](https://pedestal.io/pedestal/0.8/code-of-conduct.html).
 
 ## Support
 
