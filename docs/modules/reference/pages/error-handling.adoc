@@ -63,6 +63,10 @@ defined in its exception data map:
 | Keyword
 | Keywordized form of the exception's Java class name
 
+| :exception
+| Throwable
+| The original exception (also available via clj:ex-cause[]).
+
 |===
 
 The exception originally caught is provided as the clj:ex-cause[] of the provided exception.
@@ -77,10 +81,12 @@ handling and execute any remaining :leave handlers.
 2. Return the context map with the exception re-attached (using
   api:with-error[]).  This indicates that the
 handler doesn't recognize that exception and declines to handle
-it. Pedestal will continue looking for a handler.
-3. Throw a new exception. This indicates that the interceptor _intended_
+it. Pedestal will continue looking for an error handler.
+3. Rethrow the exception passed in; this works the same as case #2, and Pedestal
+will continue looking for an error handler.
+4. Throw a new exception. This indicates that the interceptor _intended_
 to handle the error, but something went wrong. Pedestal
-will start looking for a error handler for this new exception.
+will start looking for an error handler for this new exception.
 
 In that last case, Pedestal keeps track of the exceptions that were
 overridden. These are in a seq bound to
