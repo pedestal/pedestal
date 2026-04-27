@@ -97,7 +97,7 @@
   the event; a comment example is to use a histogram to track the size of incoming requests
   or outgoing responses.
 
-  Returns a function that records the dimension of an event."
+  Returns a function that records the dimension of an event, optionally with per-event attributes."
   ([metric-name attributes]
    (histogram *default-metric-source* metric-name attributes))
   ([metric-source metric-name attributes]

@@ -132,7 +132,7 @@
   (when-not (:name interceptor)
     (i/deprecated ::anon-interceptor
       :in "0.8.0"
-      :noun "anonymous (unnamed) interceptors"))
+      :noun "anonymous (unnamed) interceptor support"))
   true)
 
 (defn interceptor

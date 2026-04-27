@@ -505,6 +505,26 @@
     (is (match? [[:record-long "histogram.test" 42 clojure-domain-attributes]]
                 (events)))))
 
+(deftest histogram-with-event-attributes
+  (let [update-fn (metrics/histogram :histogram.attr {:domain               "clojure"
+                                                      ::metrics/description "histogram description"
+                                                      ::metrics/unit        "laughs"})]
+    (is (match? [[:setDescription "histogram.attr" "histogram description"]
+                 [:setUnit "histogram.attr" "laughs"]
+                 [:ofLongs "histogram.attr"]
+                 [:build-long "histogram.attr"]]
+                (events)))
+
+    (update-fn 42)
+
+    (is (match? [[:record-long "histogram.attr" 42 clojure-domain-attributes]]
+                (events)))
+
+    (update-fn 43 {:event-a :event-v})
+
+    (is (match? [[:record-long "histogram.attr" 43 (m/via str "{domain=\"clojure\", event-a=\"event-v\"}")]]
+                (events)))))
+
 (deftest double-histogram
   (let [update-fn (metrics/histogram :histogram.test {:domain               "clojure"
                                                       ::metrics/description "histogram description"
