@@ -79,14 +79,16 @@
   "Create an SslConnectionFactory instance."
   [server options]
   (let [{:keys [alpn container-options]}    options
-        {:keys [keystore-scal-interval]
+        {:keys [keystore-scal-interval keystore]
          :or   {keystore-scal-interval 60}} container-options
         ssl-context                         (ssl-context-factory container-options)
         factory                             (SslConnectionFactory. ssl-context (if alpn
                                                                                  (.getProtocol ^ALPNServerConnectionFactory alpn)
                                                                                  "http/1.1"))]
-    (.addBean server (doto (KeyStoreScanner. ssl-context)
-                       (.setScanInterval keystore-scal-interval)))
+    ;; When keystore is a filesystem path, enable scanning.
+    (when (string? keystore)
+      (.addBean server (doto (KeyStoreScanner. ssl-context)
+                         (.setScanInterval keystore-scal-interval))))
     factory))
 
 (defn- http-configuration
