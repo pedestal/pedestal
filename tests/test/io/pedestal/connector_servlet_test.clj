@@ -14,6 +14,7 @@
             [clojure.core.async :refer [go]]
             [io.pedestal.connector :as conn]
             [io.pedestal.http.response :refer [respond-with]]
+            [io.pedestal.test :as test]
             [io.pedestal.connector.servlet :as servlet])
   (:import (io.pedestal.servlet ConnectorServlet)
            (io.pedestal.servlet.mock MockState)
@@ -42,7 +43,8 @@
                                  ["/hello-async" :get hello-async]}))))
 
 (defn- expect [path expected-response async?]
-  (let [mock-state      (MockState. (str "http://locahost:8080/" path) "GET" "http" "locahost" 8080 path "" {} nil)
+  (let [mock-state      (MockState. (str "http://locahost:8080/" path) "GET" "http" "locahost" 8080 path "" {}
+                                    (test/body->input-stream nil))
         servlet         (ConnectorServlet.)
         params          {"io.pedestal.connector.bridge-fn" "io.pedestal.connector-servlet-test/create-bridge"}
         config          (reify ServletConfig
@@ -64,4 +66,3 @@
 
 (deftest round-trip-async
   (expect "hello-async" "Salutations!" true))
-

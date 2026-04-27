@@ -22,7 +22,7 @@
             [cognitect.transit :as transit]
             [io.pedestal.internal :refer [deprecated]]
             [ring.middleware.params :as params])
-  (:import (java.io EOFException InputStream InputStreamReader PushbackReader)
+  (:import (java.io EOFException InputStream InputStreamReader PushbackInputStream PushbackReader)
            (java.util.regex Pattern)))
 
 (defn- search-for-parser
@@ -42,14 +42,24 @@
     identity))
 
 
+(defn- non-empty-input-stream
+  [o]
+  (when (instance? InputStream o)
+    (let [pbis (PushbackInputStream. o)
+          b    (.read pbis)]
+      (when-not (= b -1)
+        (.unread pbis b)
+        pbis))))
+
 (defn- parse-content-type
   "Runs the request through the appropriate parser.  Returns the request unchanged if the :body
-  is nil (or absent)."
+  is nil, absent, or empty."
   [parser-map request]
-  (if (-> request :body some?)
-    (let [parser-fn (parser-for parser-map (:content-type request))]
-      (parser-fn request))
-    request))
+  (let [{:keys [body]} request]
+    (if-let [body' (non-empty-input-stream body)]
+      (let [parser-fn (parser-for parser-map (:content-type request))]
+        (parser-fn (assoc request :body body')))
+      request)))
 
 (defn add-parser
   "Adds a parser to the parser map; content type can either be a string (to exactly match the content type),

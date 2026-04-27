@@ -17,6 +17,7 @@
             [io.pedestal.http.body-params :as body-params]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.interceptor.chain :as chain]
+            [matcher-combinators.matchers :as m]
             [ring.util.io :as ringio]
             [io.pedestal.http.params :as params]))
 
@@ -73,17 +74,22 @@
      ["/content-type-from-extension.edn" :get okpage :route-name :edn-index]
      ["/content-type-from-handler" :get okpage-html :route-name :page-html]]))
 
-(defn- test-content-type
-  [m u s c]
-  (let [r (:response (app content-type-routes (request m u)))]
-    (is (= c (some-> r :headers (get "Content-Type"))))
-    (is (= s (:status r)))))
-
 (deftest content-type
-  (test-content-type :get "/content-type-from-extension.json" 200 "application/json")
-  (test-content-type :get "/no-such-url" 404 nil)
-  (test-content-type :get "/content-type-from-extension.edn" 200 "application/edn")
-  (test-content-type :get "/content-type-from-handler" 200 "text/html"))
+  (is (match? {:response {:status  200
+                          :headers {"Content-Type" "application/json"}}}
+              (app content-type-routes (request :get "/content-type-from-extension.json"))))
+
+  (is (match? {:response {:status  404
+                          :headers {"Content-Type" m/absent}}}
+              (app content-type-routes (request :get "/no-such-url"))))
+
+  (is (match? {:response {:status  200
+                          :headers {"Content-Type" "application/edn"}}}
+              (app content-type-routes (request :get "/content-type-from-extension.edn"))))
+
+  (is (match? {:response {:status  200
+                          :headers {"Content-Type" "text/html"}}}
+              (app content-type-routes (request :get "/content-type-from-handler")))))
 
 (def params-routes
   (table/table-routes
@@ -92,46 +98,52 @@
      ["/pecho/:user-id" :get [echo] :route-name :pecho]
      ["/fecho" :post [(body-params/body-params) params/keyword-params echo] :route-name :echo-form]]))
 
-(defn- test-query
-  [req query-params params form-params]
-  (let [r (:response (app params-routes req))]
-    (when query-params
-      (is (= query-params (-> r :body :query-params))))
-    (when params
-      (is (= params (-> r :body :params))))
-    (when form-params
-      (is (= form-params (-> r :body :form-params))))
-    (is (= 200 (:status r)))))
-
 (defn- param-get [u q] (request :get u :query-string q))
 (defn- param-post [u b q] (form-post u b :query-string q))
 
 (deftest query-params
-  (test-query (param-get "/echo" "q=searchterm") {:q "searchterm"} {:q "searchterm"} nil)
-  (test-query (param-get "/echo" "c=%20&b=2") {:b "2" :c " "} {:b "2" :c " "} nil)
-  (test-query (param-post "/fecho" nil "a=b") {:a "b"} {:a "b"} {})
-  (test-query (param-post "/fecho" "foo=bar" "c=d") {:c "d"} {:c "d" :foo "bar"} {:foo "bar"}))
+  (is (match? {:response {:status 200
+                          :body   {:query-params {:q "searchterm"}
+                                   :params       {:q "searchterm"}}}}
+              (app params-routes (param-get "/echo" "q=searchterm"))))
 
-(defn- test-path-params
-  [method uri expected-path-params]
-  (let [req (request method uri)
-        res (:response (app params-routes req))]
-    (is (= expected-path-params
-           (-> res :body :path-params)))))
+  (is (match? {:response {:status 200
+                          :body   {:query-params {:b "2" :c " "}
+                                   :params       {:b "2" :c " "}}}}
+              (app params-routes (param-get "/echo" "c=%20&b=2"))))
+
+  (is (match? {:response {:status 200
+                          :body   {:query-params {:a "b"}
+                                   :params       {:a "b"}
+                                   ;; Prior to 0.8.2., this was an empty list, but
+                                   ;; PR #1006 changed the missing body logic to not invoke
+                                   ;; body parsers at all.
+                                   :form-params  m/absent}}}
+              (app params-routes (param-post "/fecho" nil "a=b"))))
+
+  (is (match? {:response {:status 200
+                          :body   {:query-params {:c "d"}
+                                   :params       {:c "d" :foo "bar"}
+                                   :form-params  {:foo "bar"}}}}
+              (app params-routes (param-post "/fecho" "foo=bar" "c=d")))))
 
 (deftest path-params
-  (test-path-params :get "/pecho/john%20doe" {:user-id "john doe"})
-  (test-path-params :get "/pecho/%E2%99%A0%E2%99%A5%E2%99%A6%E2%99%A3" {:user-id "♠♥♦♣"})
-  (test-path-params :get "/pecho/abcdefghiklmnopqrstuvwxyz0123456789-._~" {:user-id "abcdefghiklmnopqrstuvwxyz0123456789-._~"})
-  (test-path-params :get "/pecho/:#[]@" {:user-id ":#[]@"})
-  (test-path-params :get "/pecho/!$&'()*,;=" {:user-id "!$&'()*,;="}))
+  (is (match? {:response {:body {:path-params {:user-id "john doe"}}}}
+              (app params-routes (request :get "/pecho/john%20doe"))))
 
-(defn- test-method-params
-  [method uri _body query-string expected-query-params expected-request-method]
-  (let [req (request method uri :query-string query-string)
-        r   (:response (app params-routes req))]
-    (is (= expected-query-params (-> r :body :query-params)))
-    (is (= expected-request-method (-> r :body :request-method)))))
+  (is (match? {:response {:body {:path-params {:user-id "♠♥♦♣"}}}}
+              (app params-routes (request :get "/pecho/%E2%99%A0%E2%99%A5%E2%99%A6%E2%99%A3"))))
+
+  (is (match? {:response {:body {:path-params {:user-id "abcdefghiklmnopqrstuvwxyz0123456789-._~"}}}}
+              (app params-routes (request :get "/pecho/abcdefghiklmnopqrstuvwxyz0123456789-._~"))))
+
+  (is (match? {:response {:body {:path-params {:user-id ":#[]@"}}}}
+              (app params-routes (request :get "/pecho/:#[]@"))))
+
+  (is (match? {:response {:body {:path-params {:user-id "!$&'()*,;="}}}}
+              (app params-routes (request :get "/pecho/!$&'()*,;=")))))
 
 (deftest method-params
-  (test-method-params :post "/echo" nil "_method=put&q=searchterm" {:q "searchterm"} :put))
+  (is (match? {:response {:body {:query-params   {:q "searchterm"}
+                                 :request-method :put}}}
+              (app params-routes (request :post "/echo" :query-string "_method=put&q=searchterm")))))

@@ -5,7 +5,13 @@
 
 ## 0.8.2 - UNRELEASED
 
-Changes:
+*Breaking Changes:
+
+* The `body-params` interceptor now detects that the body is empty (not just nil) and does not attempt to
+  parse the body; this means that derived keys (such as :form-params) may be absent, rather than nil or
+  an empty map.
+
+Other Changes:
 
 * It is now possible to configure the JSON Processor used by Pedestal
 * Expanded routes now, again, include the :path-re key (as in Pedestal 0.7 and earlier)

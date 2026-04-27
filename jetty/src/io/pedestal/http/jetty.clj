@@ -25,7 +25,6 @@
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2 HTTP2Cipher)
-           (org.eclipse.jetty.http2.api.server ServerSessionListener)
            (org.eclipse.jetty.http2.server HTTP2CServerConnectionFactory HTTP2ServerConnectionFactory)
            (org.eclipse.jetty.server ConnectionFactory
                                      Server
