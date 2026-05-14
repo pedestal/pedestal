@@ -83,14 +83,14 @@
 
 
   :1.12
-  {:override-deps {org.clojure/clojure {:mvn/version "1.12.4"}}}
+  {:override-deps {org.clojure/clojure {:mvn/version "1.12.5"}}}
 
   :1.11
   {:override-deps {org.clojure/clojure ^:antq/exclude {:mvn/version "1.11.4"}}}
 
   :build
   {:ns-default build
-   :deps {io.github.clojure/tools.build {:mvn/version "0.10.12"}
+   :deps {io.github.clojure/tools.build {:mvn/version "0.10.13"}
           babashka/fs {:mvn/version "0.5.33"}}}
 
   ;; clj -X:test
@@ -103,11 +103,11 @@
 
   :otel
   ;; Enable the implementations of OpenTelemetry and configure sources, to allow experimenting at the REPL.
-  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.61.0"}
-                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.61.0"}
-                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.61.0"}
-                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.61.0"}
-                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.61.0"}}
+  {:extra-deps {io.opentelemetry/opentelemetry-sdk                         {:mvn/version "1.62.0"}
+                io.opentelemetry/opentelemetry-sdk-metrics                 {:mvn/version "1.62.0"}
+                io.opentelemetry/opentelemetry-sdk-extension-autoconfigure {:mvn/version "1.62.0"}
+                io.opentelemetry/opentelemetry-exporter-otlp               {:mvn/version "1.62.0"}
+                io.opentelemetry/opentelemetry-exporter-logging            {:mvn/version "1.62.0"}}
    :jvm-opts   ["-Dotel.exporter.oltp.endpoint=http://localhost:4317"
                 ;; Without this, get a warning and no-op behavior:
                 "-Dotel.java.global-autoconfigure.enabled=true"
