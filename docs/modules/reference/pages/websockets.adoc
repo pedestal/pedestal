@@ -83,6 +83,32 @@ as well as callbacks for specific events in the WebSocket lifecyle.
 
 |===
 
+== Connector-Specific Options
+
+The callbacks above (`:on-open`, `:on-close`, `:on-text`, `:on-binary`) are supported by all network connectors.
+Additional options in the websocket options map are defined by, and passed through to, the network connector.
+Unrecognized keys are silently ignored.
+
+=== Jetty
+
+The Jetty connector supports the following additional options:
+
+.Jetty Connection Options
+|===
+| Key | Type | Description
+
+| :subprotocols
+| Vector of String
+| An optional list of WebSocket subprotocols supported by the endpoint.
+  During the upgrade handshake, the client and server negotiate which subprotocol to use.
+
+| :configure
+| (ServerEndpointConfig.Builder) -> nil
+| An optional callback for low-level configuration of the endpoint.
+  Passed the `jakarta.websocket.server.ServerEndpointConfig.Builder` before the connection is established.
+
+|===
+
 Essentially, the :on-open callback is invoked when the client initiates the connection.
 
 It is intended that, when the client connects, some form of server-side process will be initiated
