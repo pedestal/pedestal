@@ -83,24 +83,32 @@ as well as callbacks for specific events in the WebSocket lifecyle.
 
 |===
 
-== Connector-Specific Options
+== Connection Options
 
-The callbacks above (`:on-open`, `:on-close`, `:on-text`, `:on-binary`) are supported by all network connectors.
-Additional options in the websocket options map are defined by, and passed through to, the network connector.
-Unrecognized keys are silently ignored.
+The following option is supported by all network connectors:
 
-=== Jetty
-
-The Jetty connector supports the following additional options:
-
-.Jetty Connection Options
+.Universal Connection Options
 |===
 | Key | Type | Description
 
 | :subprotocols
 | Vector of String
 | An optional list of WebSocket subprotocols supported by the endpoint.
-  During the upgrade handshake, the client and server negotiate which subprotocol to use.
+  During the upgrade handshake, the client and server negotiate which subprotocol to use;
+  the server selects the first entry in `:subprotocols` that the client also supports and
+  echoes it in the `Sec-WebSocket-Protocol` response header.
+  Supported by the Jetty and Http-Kit connectors.
+
+|===
+
+Additional options may be supported by specific network connectors.
+Unrecognized keys are silently ignored.
+
+=== Jetty-Specific Options
+
+.Jetty Connection Options
+|===
+| Key | Type | Description
 
 | :configure
 | (ServerEndpointConfig.Builder) -> nil

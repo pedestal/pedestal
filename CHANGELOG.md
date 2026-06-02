@@ -16,7 +16,10 @@ Other Changes:
 * It is now possible to configure the JSON Processor used by Pedestal
 * Expanded routes now, again, include the :path-re key (as in Pedestal 0.7 and earlier)
 * The result of `expand-routes`, the RoutingTable record, is now public in the io.pedestal.http.route.types namespace
-* When the routing table is automatically printed in dev mode, it now printed to `*err*`. 
+* When the routing table is automatically printed in dev mode, it now printed to `*err*`.
+* The `:subprotocols` key in WebSocket options is now supported by the Http-Kit connector, in addition to Jetty.
+  During the upgrade handshake, the server selects the first entry in `:subprotocols` that the client also supports
+  and includes it in the `Sec-WebSocket-Protocol` response header.
 
 [Closed Issues](https://github.com/pedestal/pedestal/issues?q=is%3Aclosed%20milestone%3A%220.8.2%22)
 
