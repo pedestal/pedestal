@@ -15,7 +15,8 @@
   Http-Kit provides features similar to the Servlet API, including WebSockets, but does not
   implement any of the underlying Servlet API or WebSocket interfaces."
   {:added "0.8.0"}
-  (:require [io.pedestal.http.response :as response]
+  (:require [clojure.string :as string]
+            [io.pedestal.http.response :as response]
             [io.pedestal.log :as log]
             [io.pedestal.service.data :as data :refer [convert]]
             [io.pedestal.service.protocols :as p]
@@ -177,11 +178,20 @@
           ;; the test contract (nil or InputStream).
           (update response :body test/coerce-response-body))))))
 
+(defn- negotiate-subprotocol
+  "Given the server's list of supported subprotocols and the Ring request,
+  returns the first server subprotocol that the client also supports,
+  or nil if none match."
+  [server-subprotocols request]
+  (when-let [client-header (get-in request [:headers "sec-websocket-protocol"])]
+    (let [client-protocols (into #{} (map string/trim) (string/split client-header #","))]
+      (first (filter client-protocols server-subprotocols)))))
+
 (defn- initialize-websocket*
   "Knit together Pedestal's lifecycle with Http-Kit's."
   [ch context ws-opts]
   (let [{:keys [request]} context
-        {:keys [on-close]} ws-opts
+        {:keys [on-close subprotocols]} ws-opts
         ;; Http-Kit always wants to setup on-receive before the open, so we do that but allow
         ;; for the actual callback to be provided after the open callback.
         *on-text   (atom nil)
@@ -226,20 +236,39 @@
                            f         @*callback]
                        (when f
                          (f ws-channel @*proc message))))
-        ch-opts    (cond-> {:on-receive on-receive
-                            :on-open    (fn [_]
-                                          (when-let [f (:on-open ws-opts)]
-                                            (reset! *proc (f ws-channel request)))
+        open-fn    (fn [_]
+                     (when-let [f (:on-open ws-opts)]
+                       (reset! *proc (f ws-channel request)))
 
-                                          (when-let [f (:on-text ws-opts)]
-                                            (ws/on-text ws-channel f))
+                     (when-let [f (:on-text ws-opts)]
+                       (ws/on-text ws-channel f))
 
-                                          (when-let [f (:on-binary ws-opts)]
-                                            (ws/on-binary ws-channel :byte-buffer f)))}
-                     on-close (assoc :on-close
-                                     (fn [_ status-code]
-                                        (on-close ws-channel @*proc status-code))))
-        hk-response (hk/as-channel request ch-opts)]
+                     (when-let [f (:on-binary ws-opts)]
+                       (ws/on-binary ws-channel :byte-buffer f)))
+        hk-response
+        (if subprotocols
+          ;; When subprotocols are specified we must send the handshake manually so that we
+          ;; can include the negotiated Sec-WebSocket-Protocol header.
+          (when-let [sec-ws-accept (hk/websocket-handshake-check request)]
+            (hk/on-receive ch (partial on-receive ch))
+            (when on-close
+              (hk/on-close ch (fn [_ status-code]
+                                (on-close ws-channel @*proc status-code))))
+            (let [negotiated (negotiate-subprotocol subprotocols request)
+                  headers    (cond-> {"Upgrade"              "websocket"
+                                      "Connection"           "Upgrade"
+                                      "Sec-WebSocket-Accept" sec-ws-accept}
+                               negotiated (assoc "Sec-WebSocket-Protocol" negotiated))]
+              (.sendHandshake ^AsyncChannel ch headers))
+            (open-fn nil)
+            {:body ch})
+          ;; No subprotocol negotiation — use the standard as-channel path.
+          (hk/as-channel request
+                         (cond-> {:on-receive on-receive
+                                  :on-open    open-fn}
+                           on-close (assoc :on-close
+                                           (fn [_ status-code]
+                                             (on-close ws-channel @*proc status-code))))))]
     ;; The :status is needed to keep the interceptor terminator checker from complaining.
     (assoc context :response (assoc hk-response :status 200))))
 

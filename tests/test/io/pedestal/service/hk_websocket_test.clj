@@ -94,12 +94,19 @@
                                     (websocket/send-text! conn (str "oneshot: " text))
                                     (websocket/close! conn))))))}))
 
+(def subprotocol-handler
+  (websocket/websocket-interceptor
+    ::subprotocol-handler
+    (assoc default-ws-opts
+           :subprotocols ["graphql-ws" "chat"])))
+
 (def routes
   (table/table-routes
     [["/ws/echo/:prefix" :get echo-prefix]
      ["/ws/reverser" :get byte-reverser]
      ["/ws/countdown" :get countdown]
-     ["/ws/oneshot" :get oneshot]]))
+     ["/ws/oneshot" :get oneshot]
+     ["/ws/subprotocol" :get subprotocol-handler]]))
 
 (def ws-uri "ws://localhost:8080")
 
@@ -280,6 +287,31 @@
     ;; The connection (send-ch) closes, but the WebSocketChannel does not.
 
     (is (= false @*closed?))))
+
+(deftest subprotocol-is-negotiated
+  ;; Server supports ["graphql-ws" "chat"]; client offers ["chat" "graphql-ws"].
+  ;; Server selects "graphql-ws" — its first preference that the client also supports.
+  (with-connector routes
+    (let [*negotiated (promise)
+          session     @(ws/websocket (str ws-uri "/ws/subprotocol")
+                                     {:subprotocols ["chat" "graphql-ws"]
+                                      :on-open      (fn [^java.net.http.WebSocket ws]
+                                                      (deliver *negotiated (.getSubprotocol ws)))})]
+      (expect-event :open)
+      (is (= "graphql-ws" (deref *negotiated 1000 ::timeout)))
+      (ws/close! session))))
+
+(deftest no-subprotocol-when-none-match
+  ;; Client requests a subprotocol the server does not support; no Sec-WebSocket-Protocol header is sent.
+  (with-connector routes
+    (let [*negotiated (promise)
+          session     @(ws/websocket (str ws-uri "/ws/subprotocol")
+                                     {:subprotocols ["unknown-protocol"]
+                                      :on-open      (fn [^java.net.http.WebSocket ws]
+                                                      (deliver *negotiated (.getSubprotocol ws)))})]
+      (expect-event :open)
+      (is (= "" (deref *negotiated 1000 ::timeout)))
+      (ws/close! session))))
 
 (deftest thrown-exception-is-reported-and-does-not-kill-loop
   (let [*messages (atom [])

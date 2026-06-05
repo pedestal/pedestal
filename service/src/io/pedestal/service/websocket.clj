@@ -81,7 +81,19 @@
   :on-binary callback passed the WebSocketChannel, the process object, and the binary data (as a ByteBuffer); return value is ignored.
 
   Note that in order to override the type of binary data passed to the callback, you must make use of [[on-binary]] from
-  your :on-open callback."
+  your :on-open callback.
+
+  :subprotocols - an optional vector of Strings listing the WebSocket subprotocols supported by the endpoint.
+  During the upgrade handshake, the client and server negotiate which subprotocol to use.
+  The server selects the first entry in :subprotocols that the client also supports.
+  Supported by the Jetty and Http-Kit connectors.
+
+  Additional options may be supported by specific network connectors; unrecognized keys are silently ignored.
+
+  Jetty-specific options:
+
+  :configure - an optional callback passed the jakarta.websocket.server.ServerEndpointConfig.Builder,
+  allowing low-level configuration of the endpoint before the connection is established."
   [context ws-opts]
   ;; The Pedestal Connector is responsible for putting this key into the context:
   (initialize-websocket (:websocket-channel-source context) context ws-opts))
