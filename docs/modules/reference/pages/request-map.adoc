@@ -68,7 +68,7 @@ of the Ring request specification, and is kept for compatibility reasons.].
 | No
 | Map
 | *No*
-| Present after succesful routing, a map from keyword id to string value of path parameters defined by the route.
+| Present after successful routing, a map from keyword id to string value of path parameters defined by the route.
 
 | :protocol
 | Yes
