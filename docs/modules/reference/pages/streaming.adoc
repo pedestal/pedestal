@@ -82,6 +82,11 @@ channel will be sent to the client as it is produced.
 
 If the client disconnects, the channel will be closed.
 
+This is operating at a very low level, as the interceptor pipeline has already completed.
+
+In a traditional request, interceptors are resonsible for encoding, such as converting EDN data to JSON.
+When supplying a channel, it is the process putting values into the channel that is responsible.
+
 == Uses
 
 Here are some examples of potentially large values that you might want
