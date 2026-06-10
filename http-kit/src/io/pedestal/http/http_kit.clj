@@ -1,4 +1,4 @@
-; Copyright 2025 Nubank NA
+; Copyright 2025-2026 Nubank NA
 ;
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -115,7 +115,11 @@
                              response-commited-ch (chan)
                              request'             (assoc request
                                                          :io.pedestal.http.request/response-commited-ch response-commited-ch
-                                                         :path-info uri)
+                                                         :path-info uri
+                                                         :headers (reduce-kv (fn [m k v]
+                                                                               (assoc m k (string/replace v "\n" ",")))
+                                                                             {}
+                                                                             (:headers request)))
                              *async-channel       (atom nil)
                              interceptors'        (into [(async-responder *async-channel)
                                                         (response-committer response-commited-ch)
