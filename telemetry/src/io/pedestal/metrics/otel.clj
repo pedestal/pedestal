@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -15,8 +15,9 @@
   (:require [io.pedestal.metrics.spi :as spi]
             [io.pedestal.telemetry.internal :as i])
   (:import (io.opentelemetry.api.common Attributes)
-           (io.opentelemetry.api.metrics DoubleGaugeBuilder DoubleHistogramBuilder LongCounterBuilder
-                                         LongHistogram Meter ObservableDoubleMeasurement ObservableLongMeasurement)
+           (io.opentelemetry.api.metrics DoubleCounterBuilder DoubleGaugeBuilder DoubleHistogramBuilder LongCounterBuilder
+                                         LongGaugeBuilder LongHistogram LongHistogramBuilder Meter ObservableDoubleMeasurement 
+                                         ObservableLongMeasurement)
            (java.util.function Consumer)))
 
 (defn- convert-metric-name
@@ -32,7 +33,8 @@
                        (dissoc attributes
                                :io.pedestal.metrics/unit
                                :io.pedestal.metrics/description
-                               :io.pedestal.metrics/value-type))))
+                               :io.pedestal.metrics/value-type
+                               :io.pedestal.metrics/configurator))))
 
 (defn- use-doubles?
   [attributes]
@@ -40,22 +42,23 @@
 
 (defn- new-counter
   [^Meter meter metric-name attributes]
-  (let [{:io.pedestal.metrics/keys [description unit]} attributes
+  (let [{:io.pedestal.metrics/keys [description unit configurator]} attributes
         as-doubles? (use-doubles? attributes)
-        ^LongCounterBuilder builder'
-                    (-> (.counterBuilder meter (convert-metric-name metric-name))
+        builder     (-> (.counterBuilder meter (convert-metric-name metric-name))
                         (cond->
                           description (.setDescription description)
-                          unit (.setUnit unit)))
+                          unit (.setUnit unit)
+                          as-doubles? .ofDoubles
+                          configurator configurator))
         attributes' (map->Attributes attributes)]
     (if as-doubles?
-      (let [counter (-> builder' .ofDoubles .build)]
+      (let [counter (.build ^DoubleCounterBuilder builder)]
         (fn
           ([]
            (.add counter 1.0 attributes'))
           ([^double increment]
            (.add counter increment attributes'))))
-      (let [counter (.build builder')]
+      (let [counter (.build ^LongCounterBuilder builder)]
         (fn
           ([]
            (.add counter 1 attributes'))
@@ -64,22 +67,23 @@
 
 (defn- new-histogram
   [^Meter meter metric-name attributes]
-  (let [{:io.pedestal.metrics/keys [description unit]} attributes
+  (let [{:io.pedestal.metrics/keys [description unit configurator]} attributes
         as-longs?   (not (use-doubles? attributes))
-        ^DoubleHistogramBuilder builder
-                    (-> (.histogramBuilder meter (convert-metric-name metric-name))
+        builder     (-> (.histogramBuilder meter (convert-metric-name metric-name))
                         (cond->
                           description (.setDescription description)
-                          unit (.setUnit unit)))
+                          unit (.setUnit unit)
+                          as-longs? .ofLongs
+                          configurator configurator))
         attributes' (map->Attributes attributes)]
     (if as-longs?
-      (let [histogram (-> builder .ofLongs .build)]
+      (let [histogram (.build ^LongHistogramBuilder builder)]
         (fn
           ([^long value]
            (.record ^LongHistogram histogram value attributes'))
           ([^long value event-attributes]
            (.record ^LongHistogram histogram value (map->Attributes (merge attributes event-attributes))))))
-      (let [histogram (.build builder)]
+      (let [histogram (.build ^DoubleHistogramBuilder builder)]
         (fn
           ([^double value]
            (.record histogram value attributes'))
@@ -88,7 +92,7 @@
 
 (defn- new-gauge
   [^Meter meter metric-name attributes value-fn]
-  (let [{:io.pedestal.metrics/keys [description unit]} attributes
+  (let [{:io.pedestal.metrics/keys [description unit configurator]} attributes
         attributes' (map->Attributes attributes)
         as-longs?   (not (use-doubles? attributes))
         callback    (if as-longs?
@@ -98,14 +102,16 @@
                       (reify Consumer
                         (accept [_ measurement]
                           (.record ^ObservableDoubleMeasurement measurement (value-fn) attributes'))))
-        ^DoubleGaugeBuilder builder
+        builder
                     (-> (.gaugeBuilder meter (convert-metric-name metric-name))
                         (cond->
                           description (.setDescription description)
-                          unit (.setUnit unit)))]
+                          unit (.setUnit unit)
+                          as-longs? .ofLongs
+                          configurator configurator))]
     (if as-longs?
-      (-> builder .ofLongs (.buildWithCallback callback))
-      (.buildWithCallback builder callback))))
+      (.buildWithCallback ^LongGaugeBuilder builder callback)
+      (.buildWithCallback ^DoubleGaugeBuilder builder callback))))
 
 ;; Future work:
 ;; Tag to configure granularity of the timer
@@ -182,4 +188,3 @@
          (let [k [metric-name attributes]]
            (or (get @*timers k)
                (write-to-cache *timers k (new-timer meter metric-name attributes time-source-fn)))))))))
-
