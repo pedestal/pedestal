@@ -119,11 +119,13 @@
   Option            | Notes
   ------            |---
   :allowed-origins  | Passed to [[allow-origin]]
+  :secure-headers   | Passed to [[secure-headers]]
   :session-options  | If non-nil, passed to [[session]]
   :extra-mime-types | Passed to [[content-type]]"
   [connector-map & {:as options}]
   (let [{:keys [allowed-origins
                 session-options
+                secure-headers
                 extra-mime-types]} options]
     (with-interceptors connector-map
                        [(tracing/request-tracing-interceptor)
@@ -136,7 +138,7 @@
                         (ring-middlewares/content-type {:mime-types extra-mime-types})
                         route/query-params
                         (io.pedestal.http.body-params/body-params)
-                        (io.pedestal.http.secure-headers/secure-headers)])))
+                        (io.pedestal.http.secure-headers/secure-headers secure-headers)])))
 
 (defn start!
   "A convienience function for starting the connector.
