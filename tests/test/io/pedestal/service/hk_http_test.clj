@@ -1,4 +1,4 @@
-; Copyright 2025 Nubank NA
+; Copyright 2025-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -22,7 +22,9 @@
             [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.connector :as connector]))
+            [io.pedestal.connector :as connector])
+  (:import (java.net URI)
+           (java.net.http HttpClient HttpRequest HttpResponse$BodyHandlers)))
 
 (defn hello-page
   [_request]
@@ -41,12 +43,18 @@
     {:status 200
      :body   (str "Hello, " (:name json-params) "!")}))
 
+(defn echo-header
+  [request]
+  {:status 200
+   :body   (get-in request [:headers "x-test"] "(missing)")})
+
 (def routes
   (table/table-routes
     {}
     [["/hello" :get hello-page :route-name ::hello]
      ["/hello" :post echo-name]
-     ["/async/hello" :get async-hello]]))
+     ["/async/hello" :get async-hello]
+     ["/echo-header" :get echo-header :route-name ::echo-header]]))
 
 (def port 38348)
 
@@ -98,3 +106,16 @@
                       {:as      :stream
                        :headers {"content-type" "application/json"}
                        :body    (json/write-json-str {:name "Mr. Client"})}))))
+
+(deftest duplicate-request-headers-joined-with-comma
+  ;; Http-Kit internally joins duplicate headers with \n; Pedestal must normalize to , per Ring spec.
+  (let [java-client (HttpClient/newHttpClient)
+        request     (-> (HttpRequest/newBuilder)
+                        (.uri (URI/create (str base-url "/echo-header")))
+                        (.header "X-Test" "value-a")
+                        (.header "X-Test" "value-b")
+                        (.GET)
+                        (.build))
+        response    (.send java-client request (HttpResponse$BodyHandlers/ofString))]
+    (is (= 200 (.statusCode response)))
+    (is (= "value-a,value-b" (.body response)))))
