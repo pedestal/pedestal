@@ -110,7 +110,7 @@
   (let [buf (convert :byte-buffer nil)]
     (is (instance? ByteBuffer buf))
     (is (= 0
-           (.limit buf)))))
+           (.limit ^ByteBuffer buf)))))
 
 
 (deftest data-input-stream-byte-buffer

@@ -1,4 +1,4 @@
-; Copyright 2024-2025 Nubank NA
+; Copyright 2024-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -25,6 +25,13 @@
 (def *now (atom 0))
 
 (def *events (atom nil))
+
+(def *configured (atom nil))
+
+(defn configurator
+  [builder]
+  (reset! *configured builder)
+  builder)
 
 (defn- events
   "Returns value of **events before clearing it."
@@ -203,6 +210,7 @@
                                                              (fn [] @*now))]
     (reset! *events [])
     (reset! *now 0)
+    (reset! *configured nil)
     (f)))
 
 (use-fixtures :each mock-metric-fixture)
@@ -233,12 +241,14 @@
     (is (match? [[:add-long "foo.bar.baz" 5 empty-attributes]]
                 (events)))))
 
-(deftest counter-with-description-and-unit
+(deftest counter-with-customizers
   (let [metric-name :gnip.gnop
         f           (metrics/counter metric-name
                                      {::metrics/description "description"
                                       ::metrics/unit        "unit"
+                                      ::metrics/configurator configurator
                                       :domain               "clojure"})]
+    (is (instance? LongCounterBuilder @*configured))
     (is (match? [[:setDescription "gnip.gnop" "description"]
                  [:setUnit "gnip.gnop" "unit"]
                  [:build-long-counter "gnip.gnop"]]
@@ -266,10 +276,11 @@
 (deftest increment-double-counter
   (let [metric-name :test.counter
         attributes  {:domain              "clojure"
-                     ::metrics/value-type :double}]
-
+                     ::metrics/value-type :double
+                     ::metrics/configurator configurator}]
+    
     (metrics/increment-counter metric-name attributes)
-
+    
     (is (match? [[:ofDoubles "test.counter"]
                  [:build-double-counter "test.counter"]
                  [:add-double "test.counter" 1.0 clojure-domain-attributes]]
@@ -357,8 +368,8 @@
 
 (defn- extract-callback [events]
   (let [[_ _ _ callback] (->> events
-                            (filter #(-> % first (= :buildWithCallback)))
-                            first)]
+                              (filter #(-> % first (= :buildWithCallback)))
+                              first)]
     callback))
 
 (deftest create-gauge
@@ -366,6 +377,7 @@
         _                  (metrics/gauge :example.gauge
                                           {::metrics/description "gauge description"
                                            ::metrics/unit        "yawns"
+                                           ::metrics/configurator configurator
                                            :domain               "clojure"}
                                           f)
         setup-events       (events)
@@ -379,6 +391,8 @@
                              (record [_ value attributes]
                                (event :olm-record value attributes)))]
 
+    (is (instance? LongGaugeBuilder @*configured))
+    
     ;; The callback is passed the OLM and its job is to call the function and report its value
     ;; to the OLM via its .record method.
 
@@ -391,7 +405,7 @@
         _                  (metrics/gauge :example.gauge
                                           {::metrics/description "gauge description"
                                            ::metrics/unit        "yawns"
-                                           ::metrics/value-type :double
+                                           ::metrics/value-type  :double
                                            :domain               "clojure"}
                                           f)
         setup-events       (events)
@@ -492,8 +506,12 @@
 
 (deftest histogram
   (let [update-fn (metrics/histogram :histogram.test {:domain               "clojure"
+                                                      ::metrics/configurator configurator
                                                       ::metrics/description "histogram description"
                                                       ::metrics/unit        "laughs"})]
+    
+    (is (instance? LongHistogramBuilder @*configured))
+    
     (is (match? [[:setDescription "histogram.test" "histogram description"]
                  [:setUnit "histogram.test" "laughs"]
                  [:ofLongs "histogram.test"]
@@ -529,7 +547,7 @@
   (let [update-fn (metrics/histogram :histogram.test {:domain               "clojure"
                                                       ::metrics/description "histogram description"
                                                       ::metrics/unit        "laughs"
-                                                      ::metrics/value-type :double})]
+                                                      ::metrics/value-type  :double})]
     (is (match? [[:setDescription "histogram.test" "histogram description"]
                  [:setUnit "histogram.test" "laughs"]
                  [:build-double "histogram.test"]]

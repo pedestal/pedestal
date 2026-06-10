@@ -271,7 +271,7 @@
                    (when-let [[t] (expect-event :error)]
                      (is (= e
                             ;; The actual exception gets wrapped a couple of times:
-                            (-> t .getCause .getCause))))))))
+                            (-> t ex-cause ex-cause))))))))
 
 
 (deftest exception-during-on-text-is-identified
