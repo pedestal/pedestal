@@ -1,0 +1,221 @@
+    = WebSockets
+
+== Welcome
+
+WebSockets provide a persistent, bidirectional connection between a client and a server.
+Once established, either party may send messages to the other at any time — making
+WebSockets the right choice for real-time features such as chat, live notifications,
+and collaborative editing.
+
+If you only need a unidirectional stream of events _from_ the server, consider
+xref:sse.adoc[Server-Sent Events] instead.
+
+== What You Will Learn
+
+After reading this guide, you will be able to:
+
+- Define a WebSocket route in Pedestal.
+- Handle WebSocket lifecycle events: open, message, and close.
+- Send text messages back to a connected client.
+- Connect to the WebSocket endpoint from a JavaScript client.
+
+== Guide Assumptions
+
+This guide is for intermediate users who have worked through some sample applications
+or the first few xref:hello-world.adoc[] guides.
+In particular, you should know how to run a build, start a REPL, and start and stop
+your server.
+
+== Getting Help if You're Stuck
+
+include::partial$getting-help.adoc[]
+
+== WebSocket Overview
+
+A WebSocket connection starts like any other HTTP request: the client sends a GET request
+with a special `Upgrade: websocket` header.
+If the server accepts, both sides switch to the WebSocket protocol on the same TCP connection.
+From that point on, either party can send text or binary messages at any time until
+one of them closes the connection.
+
+Unlike SSE, where messages flow only from server to client, WebSockets are fully bidirectional.
+
+== Where We Are Going
+
+We'll create a simple echo endpoint at `/ws/echo`.
+When a client sends a text message, the server echoes it back prefixed with `"echo: "`.
+
+== Setting Up
+
+Create a new project directory:
+
+----
+$ mkdir websocket-demo
+$ cd websocket-demo
+$ mkdir -p src
+----
+
+[source,clojure]
+.deps.edn
+----
+include::example$websockets/deps.edn[]
+----
+
+== Starting Simple
+
+Let's start with the namespace and a basic home page to confirm the server is running
+before we add WebSocket support.
+
+[source,clojure]
+.src/websocket_demo.clj
+----
+include::example$websockets/src/websocket_demo.clj[tags=ns]
+----
+
+[source,clojure]
+.src/websocket_demo.clj
+----
+include::example$websockets/src/websocket_demo.clj[tags=home-page]
+----
+
+Start the REPL, load the namespace, and verify the home page works:
+
+----
+$ clj
+Clojure 1.12
+user=> (require 'websocket-demo)
+nil
+user=> (websocket-demo/start)
+...
+----
+
+----
+$ curl http://localhost:8890/
+Hello, World!
+----
+
+== Adding a WebSocket Route
+
+WebSocket connections are handled by a _websocket interceptor_, created with
+api:websocket-interceptor[ns=io.pedestal.service.websocket].
+You provide callback functions for the WebSocket lifecycle events you care about.
+
+[source,clojure]
+.src/websocket_demo.clj
+----
+include::example$websockets/src/websocket_demo.clj[tags=ws-interceptor]
+----
+<1> `:on-open` is called when the connection is first established.
+    Its return value becomes the _process object_ — passed as the second argument to all
+    subsequent callbacks.
+    For a simple echo endpoint there's no shared state needed, so we return `nil`.
+<2> `:on-text` receives each text message from the client.
+    api:send-text![ns=io.pedestal.service.websocket] sends a reply back to the same client.
+<3> `:on-close` is called when the connection closes, regardless of which side initiated it.
+    The `reason` is a keyword such as `:normal` or `:abnormal`.
+
+[NOTE]
+====
+There is also an `:on-binary` callback for binary (byte) messages.
+====
+
+Now add the route.
+WebSocket upgrade requests are ordinary HTTP GET requests, so the route uses `:get` as
+the method:
+
+[source,clojure]
+.src/websocket_demo.clj
+----
+include::example$websockets/src/websocket_demo.clj[tags=routes]
+----
+<1> WebSocket upgrade requests are always GET requests.
+
+And the connector plumbing (unchanged from the basic setup):
+
+[source,clojure]
+.src/websocket_demo.clj
+----
+include::example$websockets/src/websocket_demo.clj[tags=connector]
+----
+
+== Trying It Out
+
+Restart the connector to pick up the changes:
+
+----
+user=> (require :reload 'websocket-demo)
+nil
+user=> (websocket-demo/restart)
+...
+----
+
+Install https://github.com/vi/websocat[websocat] if you don't have it:
+
+----
+$ brew install websocat        # macOS
+$ cargo install websocat       # or via Rust
+----
+
+Then connect and send a message:
+
+----
+$ websocat ws://localhost:8890/ws/echo
+hello
+echo: hello
+goodbye
+echo: goodbye
+----
+
+Type a line and press Enter; the server echoes it back prefixed with `"echo: "`.
+Press Ctrl-C to close the connection.
+
+== Connecting from JavaScript
+
+To connect from a browser, use the standard
+https://developer.mozilla.org/en-US/docs/Web/API/WebSocket[WebSocket API]:
+
+[source,javascript]
+----
+const socket = new WebSocket("ws://localhost:8890/ws/echo");
+
+socket.addEventListener("open", () => {
+    socket.send("hello from the browser");
+});
+
+socket.addEventListener("message", (event) => {
+    console.log("Received:", event.data);
+});
+
+socket.addEventListener("close", () => {
+    console.log("Connection closed");
+});
+----
+
+Coverage of the JavaScript WebSocket API is beyond the scope of this guide.
+Consult the
+https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications[MDN documentation]
+for a thorough introduction.
+
+== The Whole Shebang
+
+For reference, here is the complete source:
+
+[source.hide-callouts,clojure]
+.src/websocket_demo.clj
+----
+include::example$websockets/src/websocket_demo.clj[tag=**]
+----
+
+[source,clojure]
+.deps.edn
+----
+include::example$websockets/deps.edn[]
+----
+
+== Wrapping Up
+
+We've set up a minimal WebSocket endpoint, handled the open/message/close lifecycle,
+and tested it with `websocat` and from JavaScript.
+
+For more details — connection limits, binary messages, subprotocols, and the full API — see the
+xref:reference:websockets.adoc[WebSockets Reference].
