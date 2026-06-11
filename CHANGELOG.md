@@ -18,6 +18,8 @@ Other Changes:
 * Expanded routes now, again, include the :path-re key (as in Pedestal 0.7 and earlier)
 * The result of `expand-routes`, the RoutingTable record, is now public in the io.pedestal.http.route.types namespace
 * When the routing table is automatically printed in dev mode, it now printed to `*err*`.
+* Added `:max-idle-timeout`, `:max-binary-message-buffer-size`, and `:max-text-message-buffer-size` options
+  to `upgrade-request-to-websocket`; supported by Jetty, ignored by Http-Kit.
 * The `:subprotocols` key in WebSocket options is now supported by the Http-Kit connector, in addition to Jetty.
   During the upgrade handshake, the server selects the first entry in `:subprotocols` that the client also supports
   and includes it in the `Sec-WebSocket-Protocol` response header.

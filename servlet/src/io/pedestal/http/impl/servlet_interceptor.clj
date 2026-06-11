@@ -1,4 +1,4 @@
-; Copyright 2023-2025 Nubank NA
+; Copyright 2023-2026 Nubank NA
 ; Copyright 2013 Relevance, Inc.
 ; Copyright 2014-2022 Cognitect, Inc.
 
@@ -453,19 +453,21 @@
 (defn- websocket-channel-callback
   "Creates the callback from the FnEndpoint to handle lifecycle (open, close, error) of the WebSocket."
   [request *ws-channel ws-opts]
-  (let [*proc (atom nil)]
+  (let [{:keys [max-idle-timeout
+                max-binary-message-buffer-size
+                max-text-message-buffer-size]} ws-opts
+        *proc (atom nil)]
     (fn [event-type ^Session session extra]
       (case event-type
         :on-open
         (let [ws-channel (reify WebSocketChannel
                            (id [_]
                              (.getId session))
-                           
+
                            (on-text [this callback]
                              (.addMessageHandler session String (message-handler this *proc callback)))
                            (on-binary [this format callback]
                              (.addMessageHandler session
-
                                                  ByteBuffer
                                                  (message-handler this *proc
                                                                   (fn [ws-channel proc data]
@@ -481,6 +483,12 @@
                            (close! [_]
                              (.close session
                                      (CloseReason. CloseReason$CloseCodes/NORMAL_CLOSURE nil))))]
+          (when max-idle-timeout
+            (.setMaxIdleTimeout session (long max-idle-timeout)))
+          (when max-binary-message-buffer-size
+            (.setMaxBinaryMessageBufferSize session (int max-binary-message-buffer-size)))
+          (when max-text-message-buffer-size
+            (.setMaxTextMessageBufferSize session (int max-text-message-buffer-size)))
           (when-let [f (:on-open ws-opts)]
             (reset! *proc (f ws-channel request)))
           (when-let [f (:on-text ws-opts)]

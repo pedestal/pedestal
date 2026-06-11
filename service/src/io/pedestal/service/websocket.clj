@@ -92,6 +92,15 @@
   The server selects the first entry in :subprotocols that the client also supports.
   Supported by the Jetty and Http-Kit connectors.
 
+  :max-idle-timeout - maximum time in milliseconds that the connection may be idle before it is closed.
+  Supported by Jetty; ignored by Http-Kit.
+
+  :max-binary-message-buffer-size - maximum size in bytes of a binary message that may be received.
+  Supported by Jetty; ignored by Http-Kit.
+
+  :max-text-message-buffer-size - maximum size in bytes of a text message that may be received.
+  Supported by Jetty; ignored by Http-Kit.
+
   Additional options may be supported by specific network connectors; unrecognized keys are silently ignored.
 
   Jetty-specific options:

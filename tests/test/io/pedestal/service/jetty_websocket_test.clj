@@ -208,5 +208,40 @@
     (is (match? [(m/pred (every-pred string? seq))]
                 (expect-event :channel-id)))))
 
+(deftest max-idle-timeout-closes-connection
+  (with-connector (table/table-routes
+                    [["/ws/idle" :get (websocket/websocket-interceptor
+                                        ::idle-ws
+                                        {:on-close         (fn [_ _ reason]
+                                                             (write-event :close reason))
+                                         :max-idle-timeout 300})]])
+    @(ws/websocket (str ws-uri "/ws/idle") {})
+    ;; Server closes the connection once idle timeout elapses with no messages.
+    (expect-event :close)))
+
+(deftest max-text-message-buffer-size-closes-connection
+  (with-connector (table/table-routes
+                    [["/ws/text-limit" :get (websocket/websocket-interceptor
+                                              ::text-limit-ws
+                                              {:on-text                    (fn [_ _ _] nil)
+                                               :on-close                   (fn [_ _ reason]
+                                                                             (write-event :close reason))
+                                               :max-text-message-buffer-size 5})]])
+    (let [session @(ws/websocket (str ws-uri "/ws/text-limit") {})]
+      (ws/send! session "this message is much longer than 5 bytes")
+      (expect-event :close))))
+
+(deftest max-binary-message-buffer-size-closes-connection
+  (with-connector (table/table-routes
+                    [["/ws/binary-limit" :get (websocket/websocket-interceptor
+                                                ::binary-limit-ws
+                                                {:on-binary                      (fn [_ _ _] nil)
+                                                 :on-close                       (fn [_ _ reason]
+                                                                                   (write-event :close reason))
+                                                 :max-binary-message-buffer-size 5})]])
+    (let [session @(ws/websocket (str ws-uri "/ws/binary-limit") {})]
+      (ws/send! session (as-buffer "this message is much longer than 5 bytes"))
+      (expect-event :close))))
+
 
 
