@@ -104,47 +104,47 @@
   in the options map, or from [[default-options]]."
   [connector-map options]
   (let [{:keys [host port interceptors initial-context join?]} connector-map
-        options'     (merge default-options
-                            options
-                            {:ip   host
-                             :port port})
-        *server      (atom nil)
+        options'         (merge default-options
+                                options
+                                {:ip   host
+                                 :port port})
+        *server          (atom nil)
         initial-context' (response/terminate-when-response initial-context)
-        root-handler (fn [request]
-                       (let [{:keys [uri async-channel]} request
-                             response-commited-ch (chan)
-                             request'             (assoc request
-                                                         :io.pedestal.http.request/response-commited-ch response-commited-ch
-                                                         :path-info uri
-                                                         :headers (reduce-kv (fn [m k v]
-                                                                               (assoc m k (string/replace v "\n" ",")))
-                                                                             {}
-                                                                             (:headers request)))
-                             *async-channel       (atom nil)
-                             interceptors'        (into [(async-responder *async-channel)
-                                                        (response-committer response-commited-ch)
-                                                         response-converter]
-                                                        interceptors)
-                             context              (-> initial-context'
-                                                      (assoc :request request'
-                                                             :websocket-channel-source async-channel)
-                                                      (chain/on-enter-async (fn [_]
-                                                                              (reset! *async-channel (or async-channel
-                                                                                                         (throw (ex-info "No async channel in request map"
-                                                                                                                         {:request request}))))))
-                                                      (chain/execute interceptors'))]
-                         ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
-                         (if-let [async-channel @*async-channel]
-                           ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
-                           ;; via hk/send!.
-                           {:body async-channel}
-                           (or (:response context)
-                               (do
-                                 (log/error :msg "Execution completed without producing a response"
-                                            :request request)
-                                 {:status  500
-                                  :headers {"Content-Type" "text/plain"}
-                                  :body    "Execution completed without producing a response"})))))]
+        root-handler     (fn [request]
+                           (let [{:keys [uri async-channel]} request
+                                 response-commited-ch (chan)
+                                 request'             (assoc request
+                                                             :io.pedestal.http.request/response-commited-ch response-commited-ch
+                                                             :path-info uri
+                                                             :headers (reduce-kv (fn [m k v]
+                                                                                   (assoc m k (string/replace v "\n" ",")))
+                                                                                 {}
+                                                                                 (:headers request)))
+                                 *async-channel       (atom nil)
+                                 interceptors'        (into [(async-responder *async-channel)
+                                                             (response-committer response-commited-ch)
+                                                             response-converter]
+                                                            interceptors)
+                                 context              (-> initial-context'
+                                                          (assoc :request request'
+                                                                 :websocket-channel-source async-channel)
+                                                          (chain/on-enter-async (fn [_]
+                                                                                  (reset! *async-channel (or async-channel
+                                                                                                             (throw (ex-info "No async channel in request map"
+                                                                                                                             {:request request}))))))
+                                                          (chain/execute interceptors'))]
+                             ;; When processing goes async, chain/execute will return nil but we'll have captured the Http-Kit async channel.
+                             (if-let [async-channel @*async-channel]
+                               ;; Returning this to Http-Kit causes it to set things up for an async response to be delivered
+                               ;; via hk/send!.
+                               {:body async-channel}
+                               (or (:response context)
+                                   (do
+                                     (log/error :msg "Execution completed without producing a response"
+                                                :request request)
+                                     {:status  500
+                                      :headers {"Content-Type" "text/plain"}
+                                      :body    "Execution completed without producing a response"})))))]
     (reify p/PedestalConnector
 
       (start-connector! [this]
@@ -201,8 +201,11 @@
         *on-text   (atom nil)
         *on-binary (atom nil)
         *proc      (atom nil)
+        id         (str (random-uuid))
         ws-channel (reify ws/WebSocketChannel
 
+                     (id [_] id)
+                     
                      (on-text [_ callback]
                        (when @*on-text
                          (throw (ex-info "on-text callback has already been set"
@@ -250,29 +253,29 @@
                      (when-let [f (:on-binary ws-opts)]
                        (ws/on-binary ws-channel :byte-buffer f)))
         hk-response
-        (if subprotocols
-          ;; When subprotocols are specified we must send the handshake manually so that we
-          ;; can include the negotiated Sec-WebSocket-Protocol header.
-          (when-let [sec-ws-accept (hk/websocket-handshake-check request)]
-            (hk/on-receive ch (partial on-receive ch))
-            (when on-close
-              (hk/on-close ch (fn [_ status-code]
-                                (on-close ws-channel @*proc status-code))))
-            (let [negotiated (negotiate-subprotocol subprotocols request)
-                  headers    (cond-> {"Upgrade"              "websocket"
-                                      "Connection"           "Upgrade"
-                                      "Sec-WebSocket-Accept" sec-ws-accept}
-                               negotiated (assoc "Sec-WebSocket-Protocol" negotiated))]
-              (.sendHandshake ^AsyncChannel ch headers))
-            (open-fn nil)
-            {:body ch})
-          ;; No subprotocol negotiation — use the standard as-channel path.
-          (hk/as-channel request
-                         (cond-> {:on-receive on-receive
-                                  :on-open    open-fn}
-                           on-close (assoc :on-close
-                                           (fn [_ status-code]
-                                             (on-close ws-channel @*proc status-code))))))]
+                   (if subprotocols
+                     ;; When subprotocols are specified we must send the handshake manually so that we
+                     ;; can include the negotiated Sec-WebSocket-Protocol header.
+                     (when-let [sec-ws-accept (hk/websocket-handshake-check request)]
+                       (hk/on-receive ch (partial on-receive ch))
+                       (when on-close
+                         (hk/on-close ch (fn [_ status-code]
+                                           (on-close ws-channel @*proc status-code))))
+                       (let [negotiated (negotiate-subprotocol subprotocols request)
+                             headers    (cond-> {"Upgrade"              "websocket"
+                                                 "Connection"           "Upgrade"
+                                                 "Sec-WebSocket-Accept" sec-ws-accept}
+                                          negotiated (assoc "Sec-WebSocket-Protocol" negotiated))]
+                         (.sendHandshake ^AsyncChannel ch headers))
+                       (open-fn nil)
+                       {:body ch})
+                     ;; No subprotocol negotiation — use the standard as-channel path.
+                     (hk/as-channel request
+                                    (cond-> {:on-receive on-receive
+                                             :on-open    open-fn}
+                                      on-close (assoc :on-close
+                                                      (fn [_ status-code]
+                                                        (on-close ws-channel @*proc status-code))))))]
     ;; The :status is needed to keep the interceptor terminator checker from complaining.
     (assoc context :response (assoc hk-response :status 200))))
 

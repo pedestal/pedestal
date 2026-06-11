@@ -100,13 +100,21 @@
     (assoc default-ws-opts
            :subprotocols ["graphql-ws" "chat"])))
 
+(def id-reporter
+  (websocket/websocket-interceptor
+    ::id-reporter
+    {:on-open (fn [channel _request]
+                (write-event :channel-id (websocket/id channel))
+                nil)}))
+
 (def routes
   (table/table-routes
     [["/ws/echo/:prefix" :get echo-prefix]
      ["/ws/reverser" :get byte-reverser]
      ["/ws/countdown" :get countdown]
      ["/ws/oneshot" :get oneshot]
-     ["/ws/subprotocol" :get subprotocol-handler]]))
+     ["/ws/subprotocol" :get subprotocol-handler]
+     ["/ws/id" :get id-reporter]]))
 
 (def ws-uri "ws://localhost:8080")
 
@@ -300,6 +308,12 @@
       (expect-event :open)
       (is (= "graphql-ws" (deref *negotiated 1000 ::timeout)))
       (ws/close! session))))
+
+(deftest channel-id-is-non-empty-string
+  (with-connector routes
+    @(ws/websocket (str ws-uri "/ws/id") {})
+    (is (match? [(m/pred (every-pred string? seq))]
+                (expect-event :channel-id)))))
 
 (deftest no-subprotocol-when-none-match
   ;; Client requests a subprotocol the server does not support; no Sec-WebSocket-Protocol header is sent.

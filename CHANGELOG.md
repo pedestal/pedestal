@@ -10,6 +10,7 @@
 * The `body-params` interceptor now detects that the body is empty (not just nil) and does not attempt to
   parse the body; this means that derived keys (such as :form-params) may be absent, rather than nil or
   an empty map.
+* Added `id` method to `WebSocketChannel` protocol.
 
 Other Changes:
 

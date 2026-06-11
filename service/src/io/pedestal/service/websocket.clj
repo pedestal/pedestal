@@ -49,7 +49,11 @@
     Returns true on success, false if the channel has closed.")
 
   (close! [this]
-    "Closes the channel, preventing further sends or receives.  Returns nil."))
+    "Closes the channel, preventing further sends or receives.  Returns nil.")
+  
+  (id [this]
+    "Returns a unique identifier assigned to this session. The contents of the string are intentionally opaque
+    and defined by the underlying websocket implementation."))
 
 (defprotocol InitializeWebSocket
   "Converts a native value (supplied by the network connector) into a WebSocketChannel.
@@ -164,5 +168,3 @@
         (close! ws-channel)))
     ;; Return the channel used to send messages to the client
     send-ch))
-
-

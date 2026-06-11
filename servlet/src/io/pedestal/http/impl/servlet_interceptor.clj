@@ -458,6 +458,9 @@
       (case event-type
         :on-open
         (let [ws-channel (reify WebSocketChannel
+                           (id [_]
+                             (.getId session))
+                           
                            (on-text [this callback]
                              (.addMessageHandler session String (message-handler this *proc callback)))
                            (on-binary [this format callback]
