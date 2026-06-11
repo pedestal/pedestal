@@ -1,4 +1,4 @@
-; Copyright 2025 Nubank NA
+; Copyright 2025-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -49,7 +49,11 @@
     Returns true on success, false if the channel has closed.")
 
   (close! [this]
-    "Closes the channel, preventing further sends or receives.  Returns nil."))
+    "Closes the channel, preventing further sends or receives.  Returns nil.")
+  
+  (id [this]
+    "Returns a unique identifier assigned to this session. The contents of the string are intentionally opaque
+    and defined by the underlying websocket implementation."))
 
 (defprotocol InitializeWebSocket
   "Converts a native value (supplied by the network connector) into a WebSocketChannel.
@@ -87,6 +91,15 @@
   During the upgrade handshake, the client and server negotiate which subprotocol to use.
   The server selects the first entry in :subprotocols that the client also supports.
   Supported by the Jetty and Http-Kit connectors.
+
+  :max-idle-timeout - maximum time in milliseconds that the connection may be idle before it is closed.
+  Supported by Jetty; ignored by Http-Kit.
+
+  :max-binary-message-buffer-size - maximum size in bytes of a binary message that may be received.
+  Supported by Jetty; ignored by Http-Kit.
+
+  :max-text-message-buffer-size - maximum size in bytes of a text message that may be received.
+  Supported by Jetty; ignored by Http-Kit.
 
   Additional options may be supported by specific network connectors; unrecognized keys are silently ignored.
 
@@ -164,5 +177,3 @@
         (close! ws-channel)))
     ;; Return the channel used to send messages to the client
     send-ch))
-
-

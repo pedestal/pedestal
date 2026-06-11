@@ -115,7 +115,30 @@ Unrecognized keys are silently ignored.
 | An optional callback for low-level configuration of the endpoint.
   Passed the `jakarta.websocket.server.ServerEndpointConfig.Builder` before the connection is established.
 
+| :max-idle-timeout
+| long
+| Maximum time in milliseconds the connection may be idle (no messages sent or received) before
+  the server closes it.
+
+| :max-binary-message-buffer-size
+| int
+| Maximum size in bytes of a binary message that the server will buffer.
+  Messages exceeding this limit cause the connection to be closed.
+
+| :max-text-message-buffer-size
+| int
+| Maximum size in bytes of a text message that the server will buffer.
+  Messages exceeding this limit cause the connection to be closed.
+
 |===
+
+[NOTE]
+====
+When Jetty enforces a limit (idle timeout or message size), it closes the underlying TCP connection
+directly rather than performing a WebSocket close handshake.
+As a result, the `:on-close` callback receives `:abnormal` (WebSocket close code 1006)
+rather than a more specific reason code.
+====
 
 Essentially, the :on-open callback is invoked when the client initiates the connection.
 

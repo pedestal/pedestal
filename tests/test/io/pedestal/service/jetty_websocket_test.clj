@@ -1,4 +1,4 @@
-; Copyright 2025 Nubank NA
+; Copyright 2025-2026 Nubank NA
 
 ; The use and distribution terms for this software are covered by the
 ; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0)
@@ -91,12 +91,20 @@
                       (websocket/send-text! conn (str "oneshot: " text))
                       (websocket/close! conn)))))
 
+(def id-reporter
+  (websocket/websocket-interceptor
+    ::id-reporter
+    {:on-open (fn [channel _request]
+                (write-event :channel-id (websocket/id channel))
+                nil)}))
+
 (def routes
   (table/table-routes
     [["/ws/echo/:prefix" :get echo-prefix]
      ["/ws/reverser" :get byte-reverser]
      ["/ws/countdown" :get countdown]
-     ["/ws/oneshot" :get oneshot]]))
+     ["/ws/oneshot" :get oneshot]
+     ["/ws/id" :get id-reporter]]))
 
 (def ws-uri "ws://localhost:8080")
 
@@ -193,6 +201,47 @@
                        ;; Note: differs from Http-Kit
                        [:close :normal]])
                     events))))))
+
+(deftest channel-id-is-non-empty-string
+  (with-connector routes
+    @(ws/websocket (str ws-uri "/ws/id") {})
+    (is (match? [(m/pred (every-pred string? seq))]
+                (expect-event :channel-id)))))
+
+(deftest max-idle-timeout-closes-connection
+  (with-connector (table/table-routes
+                    [["/ws/idle" :get (websocket/websocket-interceptor
+                                        ::idle-ws
+                                        {:on-close         (fn [_ _ reason]
+                                                             (write-event :close reason))
+                                         :max-idle-timeout 300})]])
+    @(ws/websocket (str ws-uri "/ws/idle") {})
+    ;; Server closes the connection once idle timeout elapses with no messages.
+    (expect-event :close)))
+
+(deftest max-text-message-buffer-size-closes-connection
+  (with-connector (table/table-routes
+                    [["/ws/text-limit" :get (websocket/websocket-interceptor
+                                              ::text-limit-ws
+                                              {:on-text                    (fn [_ _ _] nil)
+                                               :on-close                   (fn [_ _ reason]
+                                                                             (write-event :close reason))
+                                               :max-text-message-buffer-size 5})]])
+    (let [session @(ws/websocket (str ws-uri "/ws/text-limit") {})]
+      (ws/send! session "this message is much longer than 5 bytes")
+      (expect-event :close))))
+
+(deftest max-binary-message-buffer-size-closes-connection
+  (with-connector (table/table-routes
+                    [["/ws/binary-limit" :get (websocket/websocket-interceptor
+                                                ::binary-limit-ws
+                                                {:on-binary                      (fn [_ _ _] nil)
+                                                 :on-close                       (fn [_ _ reason]
+                                                                                   (write-event :close reason))
+                                                 :max-binary-message-buffer-size 5})]])
+    (let [session @(ws/websocket (str ws-uri "/ws/binary-limit") {})]
+      (ws/send! session (as-buffer "this message is much longer than 5 bytes"))
+      (expect-event :close))))
 
 
 
