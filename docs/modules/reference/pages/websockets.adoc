@@ -44,6 +44,14 @@ api:upgrade-request-to-websocket[]
 instead of attaching a response.
 In many cases, the final interceptor is created via api:websocket-interceptor[].
 
+Because a WebSocket upgrade is always initiated by the client as an HTTP GET request, the
+route must be defined with `:get` as the HTTP method:
+
+[source,clojure]
+----
+["/ws/chat" :get my-websocket-interceptor]
+----
+
 [NOTE]
 ====
 A WebSocket upgrade request has _no_ response.  If your application includes interceptors that
