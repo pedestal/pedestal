@@ -46,7 +46,8 @@ From the root directory:
 # Install all modules to local Maven repository
 clj -T:build install
 
-# Build and deploy all modules (requires clean workspace)
+# Build and deploy all modules (normally done by the Release workflow in CI; requires clean
+# workspace and CLOJARS_USERNAME/CLOJARS_PASSWORD)
 clj -T:build deploy-all
 
 # Dry run (build and install locally, don't deploy)
@@ -90,10 +91,18 @@ clj -M:otel
 clj -M:otel-agent
 ```
 
-### Version Management
+### Releasing and Version Management
 
 ```bash
-# Advance version and commit/tag
+# Cut a release: advances the version, updates CHANGELOG.md, commits, tags, and pushes.
+# The pushed tag triggers the Release workflow (.github/workflows/release.yml), which
+# deploys all modules to Clojars and creates a GitHub release. See RELEASING.md.
+clj -T:build release :level :release
+
+# Preview the version numbers without changing anything
+clj -T:build release :level :beta :dry-run true
+
+# Advance version and commit/tag without releasing
 clj -T:build advance-version :level :patch :commit true :tag true
 
 # Valid levels: :major, :minor, :patch, :release, :snapshot, :beta, :rc, :alpha

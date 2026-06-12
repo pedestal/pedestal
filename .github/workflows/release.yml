@@ -1,0 +1,78 @@
+name: Release
+on:
+  push:
+    tags:
+      - '[0-9]*'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Verify tag matches VERSION.txt
+        run: |
+          version="$(tr -d '[:space:]' < VERSION.txt)"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match VERSION.txt ($version)"
+            exit 1
+          fi
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13.6.1
+        with:
+          cli: 1.12.5.1654
+
+      - name: Cache Clojure dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.gitlibs
+            ~/.deps.clj
+          # List all files containing dependencies:
+          key: cljdeps-${{ hashFiles('deps.edn', '**/deps.edn') }}
+
+      - name: Deploy to Clojars
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
+        run: clojure -T:build deploy-all
+
+  github-release:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Check for prerelease
+        id: meta
+        run: |
+          case "$GITHUB_REF_NAME" in
+            *-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+      - name: Extract changelog entry
+        if: steps.meta.outputs.prerelease == 'false'
+        run: |
+          awk -v ver="$GITHUB_REF_NAME" '
+            index($0, "## " ver " ") == 1 { found = 1; next }
+            /^## / && found { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+      - name: Create GitHub release
+        if: steps.meta.outputs.prerelease == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+      - name: Create GitHub prerelease
+        if: steps.meta.outputs.prerelease == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          generate_release_notes: true

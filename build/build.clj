@@ -17,7 +17,10 @@
             [clojure.tools.build.api :as b]
             [babashka.fs :as fs]
             [clj-commons.ansi :refer [perr pout]]
-            [net.lewisship.build.versions :as v]))
+            [net.lewisship.build.versions :as v])
+  (:import (java.time LocalDate)
+           (java.time.format DateTimeFormatter)
+           (java.util Locale)))
 
 
 ;; General notes: have to do a *lot* of fighting with executing particular build commands from the root
@@ -165,20 +168,29 @@
 
   The workspace must be clean (no uncommitted changes).
 
+  Credentials are read from environment variables CLOJARS_USERNAME and CLOJARS_PASSWORD
+  (a Clojars deploy token). Artifacts are deployed unsigned by default; this is normally
+  executed by the Release workflow in CI.
+
   :dry-run - install to local Maven repository, but do not deploy to remote
   :force - deactivate the dirty workspace check
-  :sign-key-id - key id to sign with, if not provided, defaults to environment variable CLOJARS_GPG_ID"
-  [{:keys [dry-run sign-key-id force]}]
+  :sign - if true, GPG-sign artifacts before deploying (default: false)
+  :sign-key-id - key id to sign with (implies :sign); defaults to environment variable CLOJARS_GPG_ID"
+  [{:keys [dry-run sign sign-key-id force]}]
   (when-not force
     (ensure-workspace-clean))
 
   (println (str "Building version " version (when dry-run " (dry run)") " ..."))
 
   (let [build-and-install (requiring-resolve 'io.pedestal.deploy/build-and-install)
-        artifacts-data    (mapv #(build-and-install % version) module-dirs)]
+        artifacts-data    (mapv #(build-and-install % version) module-dirs)
+        sign?             (boolean (or sign sign-key-id))]
     (when-not dry-run
       (println "Deploying ...")
-      (run! #(deploy-jar (assoc % :sign-key-id sign-key-id)) artifacts-data)))
+      (run! #(deploy-jar (assoc %
+                                :sign-artifacts? sign?
+                                :sign-key-id sign-key-id))
+            artifacts-data)))
   (println "done"))
 
 (defn install
@@ -273,6 +285,97 @@
                           (dissoc :level :dry-run)
                           (assoc :version new-version))))))
 
+
+(defn ^:private git!
+  "Runs a git command, inheriting IO; exits on failure."
+  [& args]
+  (let [{:keys [exit]} (b/process {:command-args (into ["git"] args)})]
+    (when-not (zero? exit)
+      (perr [:red [:bold "ERROR: "] "git " (str/join " " args) " failed"])
+      (System/exit exit))))
+
+(def ^:private changelog-file "CHANGELOG.md")
+
+(defn ^:private stamp-changelog-release-date
+  "Replaces the version's UNRELEASED heading in CHANGELOG.md with today's date.
+  Returns the new heading."
+  [version]
+  (let [unreleased-heading (str "## " version " - UNRELEASED")
+        date               (.format (LocalDate/now)
+                                    (DateTimeFormatter/ofPattern "d MMM yyyy" Locale/ENGLISH))
+        released-heading   (str "## " version " - " date)
+        content            (slurp changelog-file)]
+    (when-not (str/includes? content unreleased-heading)
+      (perr [:red [:bold "ERROR: "] changelog-file " does not contain heading: " unreleased-heading])
+      (System/exit 1))
+    (b/write-file {:path   changelog-file
+                   :string (str/replace-first content unreleased-heading released-heading)})
+    released-heading))
+
+(defn ^:private add-unreleased-changelog-heading
+  "Adds an UNRELEASED heading for the next version above the just-released heading."
+  [next-base-version released-heading]
+  (let [content (slurp changelog-file)]
+    (b/write-file {:path   changelog-file
+                   :string (str/replace-first content released-heading
+                                              (str "## " next-base-version " - UNRELEASED\n\n"
+                                                   released-heading))})))
+
+(defn ^:private release-versions
+  [current-version level]
+  (let [new-version (-> current-version v/parse-version (v/advance level) v/unparse-version)
+        final?      (not (str/includes? new-version "-"))]
+    {:new-version  new-version
+     :final?       final?
+     :next-version (when final?
+                     (-> new-version
+                         v/parse-version
+                         (v/advance :patch)
+                         (v/advance :snapshot)
+                         v/unparse-version))}))
+
+(defn release
+  "Cuts a release: advances the version, updates CHANGELOG.md, commits, tags, and pushes.
+  The pushed tag triggers the Release workflow in CI, which deploys all modules to Clojars
+  and creates a GitHub release.
+
+  For final releases (e.g. \"1.2.3\"), the version's UNRELEASED heading in CHANGELOG.md is
+  stamped with today's date and, after tagging, the version is advanced to the next patch
+  SNAPSHOT (with a fresh UNRELEASED changelog heading) to reopen development.
+  Beta/RC releases skip the changelog and snapshot steps.
+
+  :level - :major, :minor, :patch, :release (the default), :snapshot, :beta, :rc, :alpha
+  :dry-run - print the computed versions, but change nothing"
+  [{:keys [level dry-run]
+    :or   {level :release}}]
+  (validate level #{:major :minor :patch :release :snapshot :beta :rc :alpha}
+            ":level must be one of: major, minor, patch, release, snapshot, beta, rc, alpha")
+  (if dry-run
+    (let [{:keys [new-version next-version]} (release-versions version level)]
+      (if next-version
+        (pout "Would release version " [:bold new-version] ", then advance to " [:bold next-version])
+        (pout "Would release version " [:bold new-version])))
+    (do
+      (ensure-workspace-clean)
+      (git! "pull" "--ff-only")
+      (let [current-version (-> version-file slurp str/trim)
+            {:keys [new-version final? next-version]} (release-versions current-version level)]
+        (pout "Releasing version " [:bold new-version] " ...")
+        (let [released-heading (when final?
+                                 (stamp-changelog-release-date new-version))]
+          (update-version {:version new-version})
+          (git! "commit" "-a" "-m" (str "Release " new-version))
+          (git! "tag" new-version)
+          (git! "push" "origin" "HEAD")
+          (git! "push" "origin" new-version)
+          (pout [:green "Pushed tag " [:bold new-version] "; CI will deploy to Clojars and create the GitHub release"])
+          (when final?
+            (add-unreleased-changelog-heading (str/replace next-version #"-SNAPSHOT$" "")
+                                              released-heading)
+            (update-version {:version next-version})
+            (git! "commit" "-a" "-m" (str "Advance to version " next-version))
+            (git! "push" "origin" "HEAD")
+            (pout [:green "Advanced to " [:bold next-version]])))))))
 
 (defn cve-check
   [_]
