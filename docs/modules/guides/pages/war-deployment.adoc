@@ -178,7 +178,7 @@ include::example$war/Dockerfile[]
 
 A Dockerfile describes how to build a Docker image -- a snapshot of a virtual computer
 running some kind of Linux with everything installed and configured and ready to go.
-Most of the work was done for us in the image we extend from, and standard jetty 12 image.
+Most of the work was done for us in the image we extend from, the standard jetty 12 Docker image.
 
 It's just a matter of enabling WAR deployments and copying the `app.war` file into the image.
 
@@ -276,5 +276,5 @@ provided by the default interceptors.
 Deploying a Pedestal application as a WAR file is a completely viable approach, especially
 useful when the Pedestal application must work along-side pure-Java servlets and servlet filters.
 
-In fact, the Clojure code is the smallest part of this guide - much work was needed to package up the code into a WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
-
+In fact, the Clojure code is the smallest part of this guide - far more work was needed to package up the code into a 
+WAR file, and a bit more (specific to this guide) to deploy that WAR file into a Docker container.
