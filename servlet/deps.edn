@@ -14,11 +14,11 @@
          "java"
          "target/classes"]
  :deps  {org.clojure/clojure              {:mvn/version "1.12.5"}
-         io.pedestal/pedestal.log         {:mvn/version "0.8.2-beta-8"}
-         io.pedestal/pedestal.telemetry   {:mvn/version "0.8.2-beta-8"}
-         io.pedestal/pedestal.interceptor {:mvn/version "0.8.2-beta-8"}
-         io.pedestal/pedestal.route       {:mvn/version "0.8.2-beta-8"}
-         io.pedestal/pedestal.service     {:mvn/version "0.8.2-beta-8"}
+         io.pedestal/pedestal.log         {:mvn/version "0.8.2-beta-9"}
+         io.pedestal/pedestal.telemetry   {:mvn/version "0.8.2-beta-9"}
+         io.pedestal/pedestal.interceptor {:mvn/version "0.8.2-beta-9"}
+         io.pedestal/pedestal.route       {:mvn/version "0.8.2-beta-9"}
+         io.pedestal/pedestal.service     {:mvn/version "0.8.2-beta-9"}
 
          org.clojure/core.async           {:mvn/version "1.9.865"}
 
