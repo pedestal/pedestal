@@ -83,16 +83,18 @@
                 key-fn) and parameter value (after URL decoding),
                 returns value for the map, default does nothing."
   [^String string & options]
-  (let [{:keys [key-fn value-fn]
-         :or   {key-fn   keyword
-                value-fn (fn [_ v] v)}} options
-        end (count string)]
-    (loop [i   0
-           m   (transient {})
-           key nil
-           b   (StringBuilder.)]
-      (if (= end i)
-        (persistent! (add! m key (value-fn key (decode-query-part (str b)))))
+  (if (str/blank? string)
+    {}
+    (let [{:keys [key-fn value-fn]
+           :or   {key-fn   keyword
+                  value-fn (fn [_ v] v)}} options
+          end (count string)]
+      (loop [i   0
+             m   (transient {})
+             key nil
+             b   (StringBuilder.)]
+        (if (= end i)
+          (persistent! (add! m key (value-fn key (decode-query-part (str b)))))
         (let [c (.charAt string i)]
           (cond
             (and (= \= c) (not key))                        ; unescaped = is allowed in values
@@ -109,7 +111,7 @@
             (recur (inc i)
                    m
                    key
-                   (.append b c))))))))
+                   (.append b c)))))))))
 
 (defn- parse-query-string-params
   "Some platforms decode the query string automatically, providing a map of
