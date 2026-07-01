@@ -1069,6 +1069,10 @@
 
 (deftest t-query-params
   (are [s m] (= m (route/parse-query-string s))
+    ""
+    {}
+    nil
+    {}
     "a=1&b=2"
     {:a "1" :b "2"}
     "a=&b=2"
