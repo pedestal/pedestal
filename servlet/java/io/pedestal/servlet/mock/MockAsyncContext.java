@@ -53,7 +53,7 @@ class MockAsyncContext implements AsyncContext {
 
     @Override
     public void complete() {
-    state.complete();
+        state.complete();
     }
 
     @Override
