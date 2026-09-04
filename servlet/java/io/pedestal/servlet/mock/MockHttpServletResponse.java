@@ -190,7 +190,7 @@ class MockHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void flushBuffer() throws IOException {
-        state.complete();
+        state.responseCommitted = true;
     }
 
     @Override

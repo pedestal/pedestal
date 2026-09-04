@@ -146,7 +146,11 @@
   against url `url`, when applied to interceptor-service-fn. Useful
   for integration testing pedestal applications and getting all
   relevant middlewares invoked, including ones which integrate with
-  the servlet infrastructure."
+  the servlet infrastructure.
+
+  A synchronous response is complete when the servlet returns. When the interceptor
+  chain goes asynchronous, this waits for the AsyncContext to be completed, up to
+  the :timeout option (in milliseconds, default 5000)."
   {:deprecated "0.8.0"}
   [interceptor-service-fn verb url & {:keys [timeout]
                                       :or   {timeout 5000}
@@ -157,7 +161,8 @@
         servlet-request  (.-request state)
         servlet-response (.-response state)]
     (.service servlet servlet-request servlet-response)
-    (when-not (.waitForCompletion state timeout)
+    (when (and (.-asyncStarted state)
+               (not (.waitForCompletion state timeout)))
       (throw (ex-info (str "Operation did not complete within " timeout " ms")
                       {:verb    verb
                        :url     url

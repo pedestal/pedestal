@@ -62,9 +62,10 @@ class MockServletOutputStream extends ServletOutputStream {
     @Override
     public void flush() throws IOException {
         super.flush();
-        // Flushing (not closing!) the stream signals to the Servlet API that the response
-        // is complete.
-        state.complete();
+        // Flushing commits the response (status, headers and buffered content are sent to the client)
+        // but does not complete it; body writers may flush many times. The response is complete
+        // when the servlet returns, or when the AsyncContext is completed.
+        state.responseCommitted = true;
     }
 }
 

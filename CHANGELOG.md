@@ -23,6 +23,11 @@ Other Changes:
 * The `:subprotocols` key in WebSocket options is now supported by the Http-Kit connector, in addition to Jetty.
   During the upgrade handshake, the server selects the first entry in `:subprotocols` that the client also supports
   and includes it in the `Sec-WebSocket-Protocol` response header.
+* `io.pedestal.test/response-for` (and the mock Servlet API behind it) no longer treats the first flush of the
+  response output stream as the end of the response: a synchronous response is complete when the servlet returns,
+  and an asynchronous one when the `AsyncContext` is completed. Previously, an asynchronous handler whose body was
+  written with several flushes (e.g., transit) could be observed with a partial body, and a synchronous response whose
+  body failed to write would wait for the full timeout.
 
 [Closed Issues](https://github.com/pedestal/pedestal/issues?q=is%3Aclosed%20milestone%3A%220.8.2%22)
 

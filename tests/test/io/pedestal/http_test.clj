@@ -23,7 +23,7 @@
             [charred.api :as json]
             [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
-  (:import (java.io ByteArrayOutputStream File FileInputStream IOException)
+  (:import (java.io ByteArrayOutputStream File FileInputStream InputStream IOException OutputStream)
            (java.nio ByteBuffer)
            (java.nio.channels Pipe)))
 
@@ -65,6 +65,31 @@
   [request]
   (hello-page request))
 
+(defn hello-async-chunked-page
+  "An asynchronous handler whose body is written in several chunks, flushing the
+  stream between them (as streaming writers, such as transit, do)."
+  [_request]
+  (async/go
+    {:status  200
+     :headers {"Content-Type" "text/plain"}
+     :body    (fn [^OutputStream output-stream]
+                (doseq [chunk ["HE" "LL" "O"]]
+                  (.write output-stream (.getBytes ^String chunk "UTF-8"))
+                  (.flush output-stream)
+                  ;; Give the test thread a chance to observe a partial body
+                  (Thread/sleep 20)))}))
+
+(defn failing-body-page
+  "A synchronous handler whose body fails while being written to the response."
+  [_request]
+  {:status  200
+   :headers {"Content-Type" "text/plain"}
+   :body    (proxy [InputStream] []
+              (read
+                ([] (throw (IOException. "Stream closed")))
+                ([_b] (throw (IOException. "Stream closed")))
+                ([_b _off _len] (throw (IOException. "Stream closed")))))})
+
 (defn transit-params
   [{:keys [transit-params] :as _request}]
   {:status  200
@@ -103,6 +128,8 @@
      ["/token" {:get hello-token-page}]
      ["/bytebuffer" {:get hello-byte-buffer-page}]
      ["/bytechannel" {:get hello-byte-channel-page}]
+     ["/async-chunked" {:get hello-async-chunked-page}]
+     ["/failing-body" {:get failing-body-page}]
      ["/edn" {:get get-edn}]
      ["/just-status" {:get just-status-page}]
      ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
@@ -169,6 +196,21 @@
   (let [response (response-for (app) :get "/bytechannel")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
+
+(deftest async-response-is-complete-only-when-the-async-context-completes
+  ;; The chain goes async at the handler, so the servlet returns before the body is written;
+  ;; the response must only be returned once the AsyncContext is completed, not on the first
+  ;; flush of the output stream.
+  (let [response (response-for (app) :get "/async-chunked")]
+    (is (= 200 (:status response)))
+    (is (= "HELLO" (:body response)))))
+
+(deftest sync-response-is-complete-when-the-servlet-returns
+  ;; The body write fails before anything is flushed; a synchronous response is complete
+  ;; once the servlet returns, so this must not wait for a completion that never comes.
+  (let [response (response-for (app) :get "/failing-body" :timeout 1000)]
+    (is (= 200 (:status response)))
+    (is (= "" (:body response)))))
 
 (deftest json-body-test
   (let [response (response-for (app) :get "/data-as-json")]

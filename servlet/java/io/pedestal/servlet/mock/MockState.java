@@ -70,13 +70,17 @@ public class MockState {
         servletOutputStream = new MockServletOutputStream(this, responseStream);
     }
 
+    /**
+     * Marks the response as complete; invoked when the AsyncContext is completed.
+     */
     void complete() {
         completed.countDown();
     }
 
     /**
-     * Waits for the response to complete (which occurs when the
-     * response output stream is flushed).
+     * Waits for an asynchronous response to complete, which occurs when the AsyncContext is completed.
+     * Only meaningful when {@link #asyncStarted} is true; a synchronous response is complete
+     * as soon as the servlet's service method returns.
      *
      * @param millis max wait time
      * @return true if complete, false if time out
