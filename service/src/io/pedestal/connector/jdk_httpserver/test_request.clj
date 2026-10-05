@@ -17,14 +17,13 @@
            server-port -1}
     :as   ring-request}]
   (let [baos (ByteArrayOutputStream.)
-        response-headers (Headers. {})
+        response-headers (Headers.)
         *response (promise)
         *status (promise)
         scheme (or scheme
                  (if keystore
                    :https
                    :http))]
-    (def _ring-request ring-request)
     (proxy [HttpExchange IDeref] []
       (deref [] @*response)
       (close []
