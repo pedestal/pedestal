@@ -2,23 +2,29 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as string])
   (:import (clojure.lang IDeref)
-           (com.sun.net.httpserver Headers HttpExchange)
+           (com.sun.net.httpserver Headers HttpContext HttpExchange)
            (java.io ByteArrayOutputStream)
            (java.net URI)))
 
 (defn http-exchange
   "Creates a mock implementation of com.sun.net.httpserver.HttpExchange.
   When deref'ed, it waits untli `.close` and returns a ring-like response."
-  [{:keys [uri query-string headers request-method server-name server-port scheme protocol #_remote-addr body]
+  [{:keys [context-path keystore]
+    :or   {context-path "/"}}
+   {:keys [uri query-string headers request-method server-name server-port scheme protocol #_remote-addr body]
     :or   {server-name "0"
            protocol    "HTTP/1.1"
-           scheme      :http
            server-port -1}
     :as   ring-request}]
   (let [baos (ByteArrayOutputStream.)
         response-headers (Headers. {})
         *response (promise)
-        *status (promise)]
+        *status (promise)
+        scheme (or scheme
+                 (if keystore
+                   :https
+                   :http))]
+    (def _ring-request ring-request)
     (proxy [HttpExchange IDeref] []
       (deref [] @*response)
       (close []
@@ -37,6 +43,8 @@
                                       :body   (io/input-stream (.toByteArray baos))}
                                (seq headers) (assoc :headers headers)))))
       (getResponseBody [] baos)
+      (getHttpContext [] (proxy [HttpContext] []
+                           (getPath [] context-path)))
       (getRequestBody [] (if (string? body)
                            (io/input-stream (.getBytes (str body)))
                            body))

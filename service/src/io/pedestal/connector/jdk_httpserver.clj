@@ -1,21 +1,22 @@
 (ns io.pedestal.connector.jdk-httpserver
-  (:require [io.pedestal.connector.jdk-httpserver.test-request :as test-request]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
             [clojure.string :as string]
-            [io.pedestal.log :as log]
-            [io.pedestal.response-mime :as response-mime]
+            [io.pedestal.connector.jdk-httpserver.test-request :as test-request]
             [io.pedestal.http.response :as response]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.response-mime :as response-mime]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.lang Fn IPersistentCollection)
-           (com.sun.net.httpserver HttpExchange HttpHandler HttpServer HttpsExchange)
-           (java.io InputStream OutputStream)
+           (com.sun.net.httpserver HttpExchange HttpHandler HttpServer HttpsConfigurator HttpsExchange HttpsParameters HttpsServer)
+           (java.io FileInputStream InputStream OutputStream)
            (java.lang AutoCloseable)
            (java.net InetSocketAddress)
            (java.nio ByteBuffer)
            (java.nio.channels Channels ReadableByteChannel)
-           (java.time Duration)))
+           (java.security KeyStore)
+           (java.time Duration)
+           (javax.net.ssl KeyManagerFactory SSLContext TrustManagerFactory)))
 
 (set! *warn-on-reflection* true)
 
@@ -84,7 +85,9 @@
                   headers (.getRequestHeaders http-exchange)
                   query (.getQuery request-uri)
                   https? (instance? HttpsExchange http-exchange)
-                  path (.getPath request-uri)
+                  http-context (.getHttpContext http-exchange)
+                  context (.getPath http-context)
+                  uri (.getPath request-uri)
                   remote-addr (some-> http-exchange
                                 .getRemoteAddress
                                 .getAddress
@@ -111,10 +114,13 @@
                                               :server-name (str (or (.getHost request-uri)
                                                                   (some-> headers (.getFirst "host") (string/split #":([0-9]+)$") first)))
                                               :server-port (.getPort request-uri)
-                                              :path-info path
                                               :query-string query
                                               :body (.getRequestBody http-exchange)
-                                              :uri path)
+                                              :context context
+                                              :path-info (case context
+                                                           "/" uri
+                                                           (subs uri (count context) (count uri)))
+                                              :uri uri)
                                        (cond->
                                          content-type (assoc :content-type content-type)
                                          https? (assoc :ssl-client-cert (-> ^HttpsExchange http-exchange
@@ -122,13 +128,36 @@
                                                                           .getLocalCertificates #_.getPeerCertificates
                                                                           first))))))))})
 
+(defn https-configurator
+  ^HttpsConfigurator
+  [{:keys [keystore key-password]}]
+  (when keystore
+    (let [ks (KeyStore/getInstance "JKS")
+          kmf (KeyManagerFactory/getInstance "SunX509")
+          tmf (TrustManagerFactory/getInstance "SunX509")
+          password (.toCharArray (str key-password))
+          ssl-context (SSLContext/getInstance "TLS")]
+      (with-open [stream (io/input-stream keystore)]
+        (.load ks stream password))
+      (.init kmf ks password)
+      (.init tmf ks)
+      (.init ssl-context (.getKeyManagers kmf) (.getTrustManagers tmf) nil)
+      (proxy [HttpsConfigurator] [ssl-context]
+        (configure [params]
+          (let [default-ssl-parameters (.getDefaultSSLParameters ssl-context)]
+            (.setSSLParameters ^HttpsParameters params default-ssl-parameters)))))))
+
 (defn create-connector
   [{:keys [port host initial-context interceptors]}
-   {:keys [context-path backlog ^Duration stop-delay exception-analyzer]
-    :or   {context-path "/"
-           stop-delay   (Duration/ofSeconds 0)
-           backlog      0}}]
-  (let [http-server (HttpServer/create)
+   {:keys [context-path backlog ^Duration stop-delay]
+    :or   {context-path       "/"
+           stop-delay         (Duration/ofSeconds 0)
+           backlog            0}
+    :as   options}]
+  (let [configurator (https-configurator options)
+        ^HttpServer http-server (if configurator
+                                  (HttpsServer/create)
+                                  (HttpServer/create))
         exchange-interceptors (into [(interceptor/interceptor {:name  ::http-exchange-close
                                                                :leave (fn [{:keys [http-exchange]
                                                                             :as   ctx}]
@@ -147,7 +176,9 @@
             exchange-interceptors))))
     (reify p/PedestalConnector
       (start-connector! [this]
-        (doto http-server
+        (when (instance? HttpsServer http-server)
+          (.setHttpsConfigurator ^HttpsServer http-server (https-configurator options)))
+        (doto ^HttpServer http-server
           (.bind (InetSocketAddress. (str host) (int port)) backlog)
           .start)
         this)
@@ -155,7 +186,7 @@
         (.stop http-server (.toSeconds stop-delay))
         this)
       (test-request [_ request]
-        (let [http-exchange (test-request/http-exchange request)]
+        (let [http-exchange (test-request/http-exchange options request)]
           (chain/execute (assoc context :http-exchange http-exchange)
             exchange-interceptors)
           @http-exchange)))))

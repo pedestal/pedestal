@@ -1,18 +1,21 @@
 (ns io.pedestal.connector.jdk-httpserver-test
   (:require [charred.api :as json]
-            [io.pedestal.connector.jdk-httpserver :as jdk-httpserver]
+            [clj-http.client :as http]
+            [clojure.core.async :as async]
             [clojure.test :refer [deftest is use-fixtures]]
+            [io.pedestal.connector :as connector]
+            [io.pedestal.connector.jdk-httpserver :as jdk-httpserver]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.http.response :as response]
-            [matcher-combinators.matchers :as m]
-            [ring.util.response :refer [response]]
-            [org.httpkit.client :as client]
-            [clojure.core.async :refer [go]]
-            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.http.route.definition.table :as table]
+            [io.pedestal.interceptor :refer [interceptor]]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.connector :as connector])
+            [matcher-combinators.matchers :as m]
+            [org.httpkit.client :as client]
+            [ring.util.response :refer [response]])
   (:import (java.net URI)
-           (java.net.http HttpClient HttpRequest HttpResponse$BodyHandlers)))
+           (java.net.http HttpClient HttpRequest HttpResponse$BodyHandlers)
+           (java.security.cert X509Certificate)))
 
 (defn hello-page
   [_request]
@@ -22,7 +25,7 @@
   (interceptor
     {:name  ::async-hello
      :enter (fn [context]
-              (go
+              (async/go
                 (response/respond-with context 200 "ASYNC HELLO")))}))
 
 (defn echo-name
@@ -116,3 +119,65 @@
                          :x-permitted-cross-domain-policies "none"
                          :content-security-policy           "object-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:;"}}
         (get! "/hello"))))
+
+(deftest context-path
+  (let [*captures (atom [])
+        conn (-> 1337
+               connector/default-connector-map
+               (connector/with-interceptor {:name  ::capture
+                                            :enter (fn [{:keys [request]
+                                                         :as   ctx}]
+                                                     (swap! *captures conj (select-keys request [:uri :path-info :context]))
+                                                     ctx)})
+               (connector/with-default-interceptors)
+               (connector/with-routes #{["/hello/:name" :get (fn [{:keys [path-params]}]
+                                                               {:body   (str "Hello " (:name path-params) "!")
+                                                                :status 200})
+                                         :route-name :my-route]})
+               (jdk-httpserver/create-connector {:context-path "/my-custom-path"}))]
+    (is (= "Hello response-for!"
+          (-> conn
+            (test/response-for :get "/my-custom-path/hello/response-for")
+            :body)))
+    (try
+      (connector/start! conn)
+      (is (= "Hello real-server!"
+            (with-open [http-client (HttpClient/newHttpClient)]
+              (-> "http://0:1337/my-custom-path/hello/real-server"
+                URI/create
+                HttpRequest/newBuilder
+                .build
+                (as-> % (.send http-client % (HttpResponse$BodyHandlers/ofString)))
+                .body))))
+
+      (finally
+        (connector/stop! conn)))
+    (is (= [{:context   "/my-custom-path"
+             :path-info "/hello/response-for"
+             :uri       "/my-custom-path/hello/response-for"}
+            {:context   "/my-custom-path"
+             :path-info "/hello/real-server"
+             :uri       "/my-custom-path/hello/real-server"}]
+          @*captures))))
+
+(deftest https-round-trip-with-ssl
+  (let [*requests (atom [])
+        conn (-> 1337
+               connector/default-connector-map
+               (connector/with-interceptor {:name  ::respond
+                                            :enter (fn [{:keys [request]
+                                                         :as   ctx}]
+                                                     (swap! *requests conj (-> request
+                                                                             (select-keys [:scheme :ssl-client-cert])
+                                                                             (update :ssl-client-cert #(instance? X509Certificate %))))
+                                                     (assoc ctx :response {:body   "Hello World"
+                                                                           :status 200}))})
+               (jdk-httpserver/create-connector {:keystore     "test/io/pedestal/http/keystore.jks"
+                                                 :key-password "password"}))]
+    (try
+      (connector/start! conn)
+      (let [response (http/get "https://localhost:1337" {:insecure? true})]
+        (is (= (:status response) 200))
+        (is (= (:body response) "Hello World")))
+      (finally
+        (connector/stop! conn)))))
