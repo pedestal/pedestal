@@ -152,7 +152,7 @@
 
 (defn create-connector
   [{:keys [port host initial-context interceptors]}
-   {:keys [context-path backlog ^Duration stop-delay]
+   {:keys [context-path backlog ^Duration stop-delay executor]
     :or   {context-path       "/"
            stop-delay         (Duration/ofSeconds 0)
            backlog            0}
@@ -172,13 +172,15 @@
 
                                 interceptors)
         context (response/terminate-when-response initial-context)]
-    (.createContext http-server context-path
-      (reify HttpHandler
-        (handle [_ http-exchange]
-          (chain/execute (assoc context :http-exchange http-exchange)
-            exchange-interceptors))))
     (reify p/PedestalConnector
       (start-connector! [this]
+        (when executor
+          (.setExecutor http-server executor))
+        (.createContext http-server context-path
+          (reify HttpHandler
+            (handle [_ http-exchange]
+              (chain/execute (assoc context :http-exchange http-exchange)
+                exchange-interceptors))))
         (when https-configurator
           (.setHttpsConfigurator ^HttpsServer http-server https-configurator))
         (doto http-server
