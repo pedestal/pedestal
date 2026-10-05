@@ -8,8 +8,8 @@
             [io.pedestal.response-mime :as response-mime]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.lang Fn IPersistentCollection)
-           (com.sun.net.httpserver HttpExchange HttpHandler HttpServer HttpsConfigurator HttpsExchange HttpsParameters HttpsServer)
-           (java.io FileInputStream InputStream OutputStream)
+           (com.sun.net.httpserver HttpExchange HttpHandler HttpsConfigurator HttpServer HttpsExchange HttpsParameters HttpsServer)
+           (java.io InputStream OutputStream)
            (java.lang AutoCloseable)
            (java.net InetSocketAddress)
            (java.nio ByteBuffer)
@@ -21,7 +21,8 @@
 (set! *warn-on-reflection* true)
 
 (defprotocol StreamableResponseBody
-  (write-body-to-stream [_ output-stream]))
+  (write-body-to-stream [_ output-stream]
+    "Writes the response into a output-stream. It should always close the output-stream once its onde"))
 
 (extend-protocol StreamableResponseBody
   Fn
@@ -34,18 +35,20 @@
       (.append w this)))
   ByteBuffer
   (write-body-to-stream [this output-stream]
-    (.write (Channels/newChannel ^OutputStream output-stream) this))
+    (with-open [os ^OutputStream output-stream]
+      (.write (Channels/newChannel os) this)))
 
   ReadableByteChannel
   (write-body-to-stream [this output-stream]
-    (.transferTo (Channels/newInputStream this) output-stream))
+    (with-open [os output-stream]
+      (.transferTo (Channels/newInputStream this) os)))
 
   IPersistentCollection
   (write-body-to-stream [this output-stream]
     (write-body-to-stream (str this) output-stream))
   InputStream
   (write-body-to-stream [this output-stream]
-    (with-open [os ^AutoCloseable output-stream]
+    (with-open [os ^OutputStream output-stream]
       (.transferTo this os)))
   nil
   (write-body-to-stream [_ output-stream]
@@ -70,13 +73,16 @@
                             :else vs)
                         :when (some? v)]
                   (.add response-headers k (str v)))
-                (if-not (contains? response :body)
-                  (.sendResponseHeaders http-exchange status -1)
-                  (let [content-length (or (some-> response-headers
-                                             (.getFirst "content-length")
-                                             parse-long)
-                                         0)]
-                    (.sendResponseHeaders http-exchange status content-length)
+                (let [content-length (some-> response-headers
+                                       (.getFirst "content-length")
+                                       parse-long)
+                      response-length (cond
+                                        (not (contains? response :body)) -1
+                                        (nil? content-length) 0
+                                        (zero? content-length) -1
+                                        :else content-length)]
+                  (.sendResponseHeaders http-exchange status response-length)
+                  (when-not (== -1 response-length)
                     (write-body-to-stream body (.getResponseBody http-exchange)))))
               ctx))
    :enter (fn [{:keys [^HttpExchange http-exchange]
