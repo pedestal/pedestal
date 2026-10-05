@@ -61,7 +61,7 @@
 (defn new-connector
   []
   (-> (connector/default-connector-map port)
-    (connector/with-default-interceptors)
+    connector/with-default-interceptors
     (connector/with-routes routes)
     (jdk-httpserver/create-connector nil)))
 
@@ -99,12 +99,13 @@
 
 (deftest duplicate-request-headers-joined-with-comma
   (let [java-client (HttpClient/newHttpClient)
-        request (-> (HttpRequest/newBuilder)
-                  (.uri (URI/create (str base-url "/echo-header")))
+        request (-> (str base-url "/echo-header")
+                  URI/create
+                  HttpRequest/newBuilder
                   (.header "X-Test" "value-a")
                   (.header "X-Test" "value-b")
-                  (.GET)
-                  (.build))
+                  .GET
+                  .build)
         response (.send java-client request (HttpResponse$BodyHandlers/ofString))]
     (is (= 200 (.statusCode response)))
     (is (= "value-a,value-b" (.body response)))))
@@ -129,7 +130,7 @@
                                                          :as   ctx}]
                                                      (swap! *captures conj (select-keys request [:uri :path-info :context]))
                                                      ctx)})
-               (connector/with-default-interceptors)
+               connector/with-default-interceptors
                (connector/with-routes #{["/hello/:name" :get (fn [{:keys [path-params]}]
                                                                {:body   (str "Hello " (:name path-params) "!")
                                                                 :status 200})
@@ -180,4 +181,7 @@
         (is (= (:status response) 200))
         (is (= (:body response) "Hello World")))
       (finally
-        (connector/stop! conn)))))
+        (connector/stop! conn)))
+    (is (= [{:scheme          :https
+             :ssl-client-cert true}]
+          @*requests))))

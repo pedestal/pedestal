@@ -40,7 +40,7 @@
 
   ReadableByteChannel
   (write-body-to-stream [this output-stream]
-    (with-open [os output-stream]
+    (with-open [os ^OutputStream output-stream]
       (.transferTo (Channels/newInputStream this) os)))
 
   IPersistentCollection
@@ -134,24 +134,21 @@
                                                                           .getLocalCertificates #_.getPeerCertificates
                                                                           first))))))))})
 
-(defn https-configurator
+(defn https-configurator-factory
   ^HttpsConfigurator
   [{:keys [keystore key-password]}]
   (when keystore
     (let [ks (KeyStore/getInstance "JKS")
           kmf (KeyManagerFactory/getInstance "SunX509")
           tmf (TrustManagerFactory/getInstance "SunX509")
-          password (.toCharArray (str key-password))
-          ssl-context (SSLContext/getInstance "TLS")]
+          ssl-context (SSLContext/getInstance "TLS")
+          password (.toCharArray (str key-password))]
       (with-open [stream (io/input-stream keystore)]
         (.load ks stream password))
       (.init kmf ks password)
       (.init tmf ks)
       (.init ssl-context (.getKeyManagers kmf) (.getTrustManagers tmf) nil)
-      (proxy [HttpsConfigurator] [ssl-context]
-        (configure [params]
-          (let [default-ssl-parameters (.getDefaultSSLParameters ssl-context)]
-            (.setSSLParameters ^HttpsParameters params default-ssl-parameters)))))))
+      (HttpsConfigurator. ssl-context))))
 
 (defn create-connector
   [{:keys [port host initial-context interceptors]}
@@ -160,8 +157,8 @@
            stop-delay         (Duration/ofSeconds 0)
            backlog            0}
     :as   options}]
-  (let [configurator (https-configurator options)
-        ^HttpServer http-server (if configurator
+  (let [https-configurator (https-configurator-factory options)
+        ^HttpServer http-server (if https-configurator
                                   (HttpsServer/create)
                                   (HttpServer/create))
         exchange-interceptors (into [(interceptor/interceptor {:name  ::http-exchange-close
@@ -182,9 +179,9 @@
             exchange-interceptors))))
     (reify p/PedestalConnector
       (start-connector! [this]
-        (when (instance? HttpsServer http-server)
-          (.setHttpsConfigurator ^HttpsServer http-server (https-configurator options)))
-        (doto ^HttpServer http-server
+        (when https-configurator
+          (.setHttpsConfigurator ^HttpsServer http-server https-configurator))
+        (doto http-server
           (.bind (InetSocketAddress. (str host) (int port)) backlog)
           .start)
         this)
