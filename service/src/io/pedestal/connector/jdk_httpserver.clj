@@ -2,6 +2,7 @@
   (:require [io.pedestal.connector.jdk-httpserver.test-request :as test-request]
             [clojure.java.io :as io]
             [clojure.string :as string]
+            [io.pedestal.log :as log]
             [io.pedestal.response-mime :as response-mime]
             [io.pedestal.http.response :as response]
             [io.pedestal.interceptor :as interceptor]
@@ -41,10 +42,6 @@
   IPersistentCollection
   (write-body-to-stream [this output-stream]
     (write-body-to-stream (str this) output-stream))
-  byte/1
-  (write-body-to-stream [this output-stream]
-    (with-open [os ^AutoCloseable output-stream]
-      (OutputStream/.write os ^byte/1 this)))
   InputStream
   (write-body-to-stream [this output-stream]
     (with-open [os ^AutoCloseable output-stream]
@@ -53,8 +50,14 @@
   (write-body-to-stream [_ output-stream]
     (.close ^AutoCloseable output-stream)))
 
+(extend (Class/forName "[B")
+  StreamableResponseBody
+  {:write-body-to-stream (fn [^"[B" this ^OutputStream output-stream]
+                           (with-open [os output-stream]
+                             (.write os this)))})
+
 (def http-exchange-io
-  {:name  :http-exchange-io
+  {:name  ::http-exchange-io
    :leave (fn [{:keys [^HttpExchange http-exchange response]
                 :as   ctx}]
             (let [{:keys [status body headers]} response]
@@ -121,17 +124,16 @@
 
 (defn create-connector
   [{:keys [port host initial-context interceptors]}
-   {:keys [context-path backlog ^Duration stop-delay]
+   {:keys [context-path backlog ^Duration stop-delay exception-analyzer]
     :or   {context-path "/"
            stop-delay   (Duration/ofSeconds 0)
            backlog      0}}]
   (let [http-server (HttpServer/create)
-        addr (InetSocketAddress. (str host) (int port))
-        exchange-interceptors (into [(interceptor/interceptor {:name  :http-exchange-close
+        exchange-interceptors (into [(interceptor/interceptor {:name  ::http-exchange-close
                                                                :leave (fn [{:keys [http-exchange]
                                                                             :as   ctx}]
                                                                         (when (instance? AutoCloseable http-exchange)
-                                                                          (AutoCloseable/.close http-exchange))
+                                                                          (.close ^AutoCloseable http-exchange))
                                                                         ctx)})
                                      (interceptor/interceptor http-exchange-io)
                                      (interceptor/interceptor response-mime/apply-default-content-type)]
@@ -145,8 +147,9 @@
             exchange-interceptors))))
     (reify p/PedestalConnector
       (start-connector! [this]
-        (.bind http-server addr backlog)
-        (.start http-server)
+        (doto http-server
+          (.bind (InetSocketAddress. (str host) (int port)) backlog)
+          .start)
         this)
       (stop-connector! [this]
         (.stop http-server (.toSeconds stop-delay))
