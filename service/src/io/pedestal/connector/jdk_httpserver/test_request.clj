@@ -54,11 +54,16 @@
         (deliver *status response-code))
       (getProtocol [] protocol)
       (getRemoteAddress [] #_remote-addr)
-      (getRequestHeaders [] (Headers. (into (if (contains? ring-request :body)
-                                              {"transfer-encoding" ["chunked"]}
-                                              {})
-                                        (map (fn [[k vs]]
-                                               [k (if (coll? vs)
-                                                    (vec vs)
-                                                    [vs])]))
-                                        headers))))))
+      (getRequestHeaders []
+        (let [headers (Headers.)]
+          (reduce-kv (fn [^Headers h k vs]
+                       (doto h (.put k vs)))
+            (Headers.)
+            (into (if (contains? ring-request :body)
+                    {"transfer-encoding" ["chunked"]}
+                    {})
+              (map (fn [[k vs]]
+                     [k (if (coll? vs)
+                          (vec vs)
+                          [vs])]))
+              headers)))))))
