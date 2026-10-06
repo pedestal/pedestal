@@ -17,6 +17,7 @@
             [io.pedestal.service.protocols :as sp]
             [clojure.core.async :as async]
             [io.pedestal.http.response :as response]
+            [io.pedestal.response-mime :as response-mime]
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
@@ -48,7 +49,7 @@
     (.getBufferSize response)))
 
 (defprotocol WriteableBody
-  (default-content-type [body] "Get default HTTP content-type for `body`.")
+  (^:deprecated default-content-type [body] "Get default HTTP content-type for `body`.")
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
 
 (extend-protocol WriteableBody
@@ -341,15 +342,8 @@
   if none has been supplied, and a default can be identified from
   the response body."
   (interceptor
-    {:name  ::apply-default-content-type
-     :leave (fn [context]
-              (let [{:keys [response]} context
-                    {:keys [headers body]} response
-                    content-type (get headers "Content-Type")
-                    default-type (when (nil? content-type)
-                                   (default-content-type body))]
-                (cond-> context
-                  default-type (assoc-in [:response :headers "Content-Type"] default-type))))}))
+    (assoc response-mime/apply-default-content-type
+      :name ::apply-default-content-type)))
 
 (def ^{:deprecated "0.8.0"} exception-debug
   "An interceptor which catches errors, renders them to readable text
