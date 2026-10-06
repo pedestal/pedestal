@@ -9,7 +9,6 @@
 
 (extend-protocol ResponseMime
   nil (default [_])
-  byte/1 (default [_] "application/octet-stream")
   File (default [_] "application/octet-stream")
   InputStream (default [_] "application/octet-stream")
   String (default [_] "text/plain")
@@ -17,6 +16,10 @@
   Fn (default [_] "application/octet-stream")
   IPersistentCollection (default [_] "application/edn")
   ReadableByteChannel (default [_] "application/octet-stream"))
+
+(extend (Class/forName "[B")
+  ResponseMime
+  {:default (fn [_] "application/octet-stream")})
 
 (def apply-default-content-type
   "An interceptor that will apply a default content type header,
