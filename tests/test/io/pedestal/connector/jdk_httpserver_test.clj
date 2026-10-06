@@ -13,7 +13,8 @@
             [matcher-combinators.matchers :as m]
             [org.httpkit.client :as client]
             [ring.util.response :refer [response]])
-  (:import (java.net URI)
+  (:import (java.lang AutoCloseable)
+           (java.net URI)
            (java.net.http HttpClient HttpRequest HttpResponse$BodyHandlers)
            (java.security.cert X509Certificate)))
 
@@ -143,13 +144,17 @@
     (try
       (connector/start! conn)
       (is (= "Hello real-server!"
-            (with-open [http-client (HttpClient/newHttpClient)]
-              (-> "http://0:1337/my-custom-path/hello/real-server"
-                URI/create
-                HttpRequest/newBuilder
-                .build
-                (as-> % (.send http-client % (HttpResponse$BodyHandlers/ofString)))
-                .body))))
+            (let [http-client (HttpClient/newHttpClient)]
+              (try
+                (-> "http://0:1337/my-custom-path/hello/real-server"
+                  URI/create
+                  HttpRequest/newBuilder
+                  .build
+                  (as-> % (.send http-client % (HttpResponse$BodyHandlers/ofString)))
+                  .body)
+                (finally
+                  (when (instance? AutoCloseable http-client)
+                    (.close ^AutoCloseable http-client)))))))
 
       (finally
         (connector/stop! conn)))
