@@ -13,6 +13,7 @@
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
   {:added "0.8.0"}
   (:require [io.pedestal.service.impl :as impl]
+            [io.pedestal.response-mime :as response-mime]
             [clojure.core.async :refer [<! go close!]]
             [org.httpkit.server :as hk])
   (:import (clojure.core.async.impl.protocols ReadPort)
@@ -55,36 +56,36 @@
 (extend-protocol HttpKitResponse
 
   nil
-  (convert-response-body [_ _] [nil nil])
+  (convert-response-body [this _] [(response-mime/default this) nil])
 
   ;; Pass Http-Kit Async Channel right through; this occurs for SSE or WebSocket requests
   AsyncChannel
   (convert-response-body [ch _] [nil ch])
 
   String
-  (convert-response-body [s _] ["text/plain" s])
+  (convert-response-body [s _] [(response-mime/default s) s])
 
   InputStream
-  (convert-response-body [stream _] ["application/octet-stream" stream])
+  (convert-response-body [stream _] [(response-mime/default stream) stream])
 
   File
-  (convert-response-body [file _] ["application/octet-stream" file])
+  (convert-response-body [file _] [(response-mime/default file) file])
 
   ByteBuffer
   (convert-response-body [buffer _]
-    ["application/octet-stream" (impl/byte-buffer->input-stream buffer)])
+    [(response-mime/default buffer) (impl/byte-buffer->input-stream buffer)])
 
   ReadableByteChannel
   (convert-response-body [channel _]
-    ["application/octet-stream" (impl/byte-channel->input-stream channel)])
+    [(response-mime/default channel) (impl/byte-channel->input-stream channel)])
 
   Fn
   (convert-response-body [f _]
-    ["application/octet-stream" (impl/function->input-stream f)])
+    [(response-mime/default f) (impl/function->input-stream f)])
 
   IPersistentCollection
   (convert-response-body [coll _]
-    ["application/edn" (pr-str coll)])
+    [(response-mime/default coll) (pr-str coll)])
 
   ReadPort                                                  ; core.async
   (convert-response-body [response-ch request]
@@ -95,4 +96,4 @@
   HttpKitResponse
 
   {:convert-response-body (fn [byte-array _]
-                            ["application/octet-stream" byte-array])})
+                            [(response-mime/default byte-array) byte-array])})
