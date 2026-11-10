@@ -5,6 +5,10 @@
 
 ## 0.8.3 - UNRELEASED
 
+* Terse routes now accept a Var (`{:get #'list-orders}`) or a function as a handler, in the verb map or in a handler
+  vector. A Var produces the same route as the quoted symbol it replaces, including the route name
+  (`:myapp.service/list-orders`), so route specifications no longer need to be quoted.
+
 ## 0.8.2 - 6 Oct 2026
 
 *Breaking Changes:

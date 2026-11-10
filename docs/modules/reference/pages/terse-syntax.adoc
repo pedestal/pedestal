@@ -60,18 +60,25 @@ include::partial$constraints.adoc[]
 
 (def routes
   [[:hello-world :http
-    ["/order" {:get  `list-orders <1>
-               :post [:post-without-id `create-order]} <2>
+    ["/order" {:get  #'list-orders <1>
+               :post [:post-without-id #'create-order]} <2>
      ["/:id" <3>
       ^:interceptors [load-order-from-db]
       ^:constraints  {:id #"[0-9]+"}
-      {:get `view-order
-       :put `update-order
-       :post [:post-by-id `create-order]}]]]])
+      {:get #'view-order
+       :put #'update-order
+       :post [:post-by-id #'create-order]}]]]])
 ----
-<1> Pedestal will convert the symbol `myapp.service/list-orders` to a keyword and use that as the route name
+<1> Pedestal converts the Var `#'myapp.service/list-orders` to the keyword `:myapp.service/list-orders` and uses that as the route name
 <2> The route name will be :post-without-id
 <3> Nested routes inherit a path prefix from the containing route; this will match on `/order/:id`.
+
+[NOTE]
+====
+Before 0.8.3, handlers in terse routes were usually quoted symbols, such as `{:get `list-orders}`,
+often with the entire route specification syntax-quoted. Quoted symbols and lists are deprecated.
+A Var (`{:get #'list-orders}`) produces exactly the same route, including its route name, without quoting.
+====
 
 == Detailed Reference
 
@@ -129,10 +136,19 @@ all requests.
 
 === Handler or Interceptors
 
-The "handler position" be anything that satisfies the api:IntoInterceptor[ns=io.pedestal.interceptor] protocol. This includes:
+The value for a verb in the verb map is one of:
 
-- Function value
-- Symbol
-- Var
-- Map
-- List
+- A Var, such as `#'list-orders`; the Var's value is converted to an interceptor, and the route name is a keyword built
+  from the Var's namespace and name (`:myapp.service/list-orders`) (added in 0.8.3)
+- A function, which is a handler; the route name is the name of the interceptor created from the function
+  (from its :name metadata, or derived from the function's class name, see
+  api:*default-handler-names*[ns=io.pedestal.interceptor]); when that interceptor has no name, use the vector form
+  to provide a route name (added in 0.8.3)
+- An interceptor
+- A vector: an optional route name (a keyword), an optional interceptor vector with `^:interceptors` metadata,
+  and then the handler: a Var, a function, an interceptor, or a symbol
+- A symbol (deprecated), resolved like the Var it names
+- A list (deprecated), which is evaluated
+
+The values in an interceptor vector can be anything that satisfies the
+api:IntoInterceptor[ns=io.pedestal.interceptor] protocol, including functions, Vars, maps, and interceptors.

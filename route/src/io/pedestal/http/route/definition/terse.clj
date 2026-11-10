@@ -17,7 +17,7 @@
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
-  (:import (clojure.lang APersistentVector IPersistentList Symbol)
+  (:import (clojure.lang APersistentVector Fn IPersistentList Symbol Var)
            (io.pedestal.interceptor Interceptor)))
 
 (defn- unexpected-vector-in-route [spec]
@@ -27,7 +27,7 @@
   (format "Cannot expand '%s' as a route. Expected a verb map or path string, but found a %s instead" spec (type spec)))
 
 (defn- invalid-handler [handler original]
-  (format "While parsing a verb map, found a %s as a handler. It must be a symbol that resolves to an interceptor or an actual interceptor. The full vector is %s" (type handler) original))
+  (format "While parsing a verb map, found a %s as a handler. It must be an interceptor, a function, or a var (or a symbol that resolves to one of those). The full vector is %s" (type handler) original))
 
 (defn- missing-handler [_handler _original]
   (format "When parsing a verb map, tried in vain to find a handler (as the first symbol that resolves to an interceptor or interceptor map in a vector). Looking in %s" vector))
@@ -59,7 +59,7 @@
   (expand-verb-action [expandable-verb-action]
     "Expand `expandable-verb-action` into a verbose-form verb-map."))
 
-(def ^:private valid-handler? (some-fn seq? symbol? interceptor/interceptor?))
+(def ^:private valid-handler? (some-fn seq? symbol? var? fn? interceptor/interceptor?))
 (def ^:private interceptor-vector? (every-pred vector? (comp :interceptors meta)))
 (def ^:private constraint-map? (every-pred map? (comp :constraints meta)))
 
@@ -98,7 +98,17 @@
 
   Interceptor
   (expand-verb-action [interceptor]
-    {:handler interceptor}))
+    {:handler interceptor})
+
+  ;; A Var is handled exactly like the quoted symbol that resolves to it: the route name
+  ;; is built from the Var's namespace and name.
+  Var
+  (expand-verb-action [v] v)
+
+  ;; A function is a handler; the route name is the name of the interceptor created from it.
+  Fn
+  (expand-verb-action [f]
+    {:handler f}))
 
 (defn- expand-verbs
   "Expand tersely specified verb-map into a verbose verb-map."

@@ -28,10 +28,11 @@ Verbose syntax is composed of a sequence of maps; each map defines a single rout
 
 include::partial$constraints.adoc[]
 
-Handlers, the values in the :verbs map, can be a symbol or a map.
+Handlers, the values in the :verbs map, can be a symbol, a Var, or a map.
 
 A symbol will be resolved to a Var; the value in the Var will be converted to an Interceptor record.
 In cases where the interceptor is anonymous (has no :name), the symbol is converted to a keyword and used as the :name.
+A Var is handled the same way as the symbol that resolves to it (added in 0.8.3).
 
 The :name of the interceptor becomes the name of the route.
 
@@ -45,7 +46,7 @@ When a handler is a map, it has the following keys:
 }
 ----
 <1> :route-name is optional and will be derived from the handler.
-<2> The handler may be either a symbol or an interceptor.
+<2> The handler may be a symbol, a Var, a function, or an interceptor.
 <3> :interceptors is optional and identifies interceptors appended to the containing route's interceptors
 
 Ultimately, the handler (converted to an interceptor) is appended to the list of interceptors.

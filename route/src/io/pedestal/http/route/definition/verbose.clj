@@ -44,18 +44,26 @@
     (handler-interceptor interceptor route-name)
     (handler-interceptor (io.pedestal.interceptor/interceptor interceptor) route-name)))
 
+(defn- symbol-or-var->keyword
+  "The route name derived from a symbol or Var handler; a Var is treated the same as
+  the symbol that resolves to it."
+  [handler]
+  (if (var? handler)
+    (internal/var->keyword handler)
+    (internal/symbol->keyword handler)))
+
 (defn- handler-map
   [m]
   (cond
-    (symbol? m)
-    (let [handler-name (internal/symbol->keyword m)]
+    (or (symbol? m) (var? m))
+    (let [handler-name (symbol-or-var->keyword m)]
       {:route-name handler-name
        :handler    (resolve-interceptor m handler-name)})
 
     (instance? IPersistentMap m)
     (let [{:keys [route-name handler interceptors]} m
           handler-name     (cond
-                             (symbol? handler) (internal/symbol->keyword handler)
+                             (or (symbol? handler) (var? handler)) (symbol-or-var->keyword handler)
                              (interceptor? handler) (:name handler))
           interceptor      (resolve-interceptor
                              handler (or route-name handler-name))
@@ -64,7 +72,8 @@
                        route-name
                        (if interceptor-name
                          interceptor-name
-                         (throw (ex-info "Handler was not symbol or interceptor with name, no route name provided"
+                         (throw (ex-info (str "Handler was not a symbol, a var, or an interceptor with a name, "
+                                              "and no route name was provided")
                                          {:handler-spec m}))))
        :handler      (resolve-interceptor handler (or route-name handler-name))
        :interceptors (mapv #(resolve-interceptor % nil) interceptors)})))

@@ -205,6 +205,16 @@
       (keyword (name (ns-name ns)) (name n))
       (throw (ex-info "Could not resolve symbol" {:symbol s})))))
 
+(defn var->keyword
+  "Converts a Var to a keyword built from its namespace and name, as [[symbol->keyword]] does
+  for the symbol that resolves to the Var."
+  {:added "0.8.3"}
+  [v]
+  (let [{ns :ns n :name} (meta v)]
+    (if (and ns n)
+      (keyword (name (ns-name ns)) (name n))
+      (throw (ex-info "Var has no namespace or name, so it can't provide a route name" {:var v})))))
+
 (defn capture-constraint
   "Add parenthesis to a regex in order to capture its value during evaluation."
   [[k v]]
