@@ -38,10 +38,17 @@
   ^HttpServlet [interceptor-service-fn]
   (servlets/servlet :service interceptor-service-fn))
 
+(def ^:private use-connector-test
+  (str "Use io.pedestal.connector.test/response-for instead; it takes a connector"
+       " (which does not need to be started) and the same options."))
+
 (defn parse-url
   {:deprecated "0.8.0"}
   [url]
-  (deprecated `parse-url :in "0.8.0")
+  (deprecated `parse-url :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "There is no replacement: only io.pedestal.test/response-for needs it."
+    :docs "io-pedestal-test")
   (let [[_ scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
         [host port] (when raw-host (string/split raw-host #":"))]
     {:scheme       scheme
@@ -155,7 +162,10 @@
   [interceptor-service-fn verb url & {:keys [timeout]
                                       :or   {timeout 5000}
                                       :as   options}]
-  (deprecated `servlet-response-for :in "0.8.0")
+  (deprecated `servlet-response-for :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-connector-test
+    :docs "io-pedestal-test")
   (let [servlet          (test-servlet interceptor-service-fn)
         state            (new-mock-state verb url options)
         servlet-request  (.-request state)
@@ -190,7 +200,10 @@
   :headers : An optional map that are the headers"
   {:deprecated "0.8.0"}
   [interceptor-service-fn verb url & {:as options}]
-  (deprecated `raw-response-for :in "0.8.0")
+  (deprecated `raw-response-for :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-connector-test
+    :docs "io-pedestal-test")
   (let [servlet-resp (servlet-response-for interceptor-service-fn verb url options)]
     (log/debug :in :response-for
                :servlet-resp servlet-resp)
@@ -218,7 +231,10 @@
   :headers : An optional map that are the request headers"
   {:deprecated "0.8.0"}
   [interceptor-service-fn verb url & {:as options}]
-  (deprecated `response-for :in "0.8.0")
+  (deprecated `response-for :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-connector-test
+    :docs "io-pedestal-test")
   (let [response (raw-response-for interceptor-service-fn verb url options)
         state    (-> response meta ::state)
         body (-> ^MockState state
@@ -233,7 +249,10 @@
   {:added "0.8.0"
    :deprecated "0.8.0"}
   [service-map]
-  (deprecated `create-responder :in "0.8.0")
+  (deprecated `create-responder :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-connector-test
+    :docs "io-pedestal-test")
   (let [service-fn (-> service-map
                        http/create-servlet
                        ::http/service-fn)]
@@ -249,5 +268,8 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   [f]
-  (deprecated `disable-routing-table-output-fixture :in "0.8.0")
+  (deprecated `disable-routing-table-output-fixture :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use io.pedestal.connector.test/disable-routing-table-output-fixture instead."
+    :docs "io-pedestal-test")
   (test/disable-routing-table-output-fixture f))

@@ -68,14 +68,21 @@
   (expand-verb-action [symbol]
     (deprecated ::symbol
       :noun "expanding a quoted symbol as a terse route verb action"
-      :in "0.8.0")
+      :in "0.8.0"
+      :removed-in "1.0"
+      :replacement (str "Use a Var instead (#'handler gives the same route name as the symbol), or the function"
+                        " itself; then the route specification doesn't need to be quoted.")
+      :docs "quoted-routes")
     symbol)
 
   IPersistentList
   (expand-verb-action [l]
     (deprecated ::persistent-list
       :in "0.8.0"
-      :noun "expanding a quoted list form as a terse route verb action")
+      :noun "expanding a quoted list form as a terse route verb action"
+      :removed-in "1.0"
+      :replacement "Call the function when the routes are defined instead, without quoting the route specification."
+      :docs "quoted-routes")
     (expand-verb-action (eval l)))
 
   APersistentVector

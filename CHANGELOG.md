@@ -17,6 +17,9 @@
   a function in an interceptor list is called as a handler, so its return value becomes the `:response`.
   In interceptor chain error messages, an unnamed interceptor created from a function is now identified by
   that function.
+* Deprecation warnings now say that Pedestal 1.0 removes the deprecated functionality (for unnamed interceptors,
+  what 1.0 does instead), name the replacement, and link to its section in the new "Removed in Pedestal 1.0" part
+  of the [deprecations page](https://pedestal.io/pedestal/0.8/deprecations.html).
 
 ## 0.8.2 - 6 Oct 2026
 

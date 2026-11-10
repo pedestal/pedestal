@@ -17,6 +17,10 @@
            (jakarta.servlet Filter DispatcherType)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler FilterHolder)))
 
+(def ^:private no-replacement
+  (str "There is no replacement: use Jetty's API directly, for example in a function"
+       " passed as the :context-configurator container option."))
+
 (def dispatch-types {:forward DispatcherType/FORWARD
                      :include DispatcherType/INCLUDE
                      :request DispatcherType/REQUEST
@@ -30,7 +34,10 @@
    - a keyword representation of DispatcherType (see `dispatch-types`)
    - `:all` which generates an EnumSet of all DispatcherTypes"
   ^EnumSet [dispatches]
-  (deprecated `dispatcher-set :in "0.8.0")
+  (deprecated `dispatcher-set :in "0.8.0"
+    :removed-in "1.0"
+    :replacement no-replacement
+    :docs "jetty-util")
   (cond
     (instance? EnumSet dispatches) dispatches
     (instance? DispatcherType dispatches) (EnumSet/of dispatches)
@@ -46,7 +53,10 @@
 
 (defn  filter-holder
   ^FilterHolder  [^Filter servlet-filter init-params]
-  (deprecated `filter-holder :in "0.8.0")
+  (deprecated `filter-holder :in "0.8.0"
+    :removed-in "1.0"
+    :replacement no-replacement
+    :docs "jetty-util")
   (let [holder (FilterHolder. servlet-filter)]
     (doseq [[k v] init-params]
       (.setInitParameter holder k v))
@@ -60,7 +70,10 @@
     :path - The pathSpec string that applies to the filter; defaults to '/*'
     :dispatches - A keyword signaling the defaults to :request"
   ^ServletContextHandler [^ServletContextHandler context filter-opts]
-  (deprecated `add-servlet-filter :in "0.8.0")
+  (deprecated `add-servlet-filter :in "0.8.0"
+    :removed-in "1.0"
+    :replacement no-replacement
+    :docs "jetty-util")
   (let [{servlet-filter :filter
          path           :path
          dispatches     :dispatches

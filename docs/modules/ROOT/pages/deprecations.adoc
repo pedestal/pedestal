@@ -1,5 +1,139 @@
 = Deprecations
 
+[#pedestal-1-0]
+== Removed in Pedestal 1.0
+
+Pedestal 1.0 removes the deprecated functionality below. Since 0.8.3, each deprecation warning says so,
+names the replacement, and links to its section here.
+
+[#io-pedestal-http]
+=== io.pedestal.http
+
+The service map API is replaced by connectors: api:*[ns=io.pedestal.connector] builds a connector map,
+and a connector, such as api:create-connector[ns=io.pedestal.http.jetty] or
+api:create-connector[ns=io.pedestal.http.http-kit], runs it; see xref:reference:connector.adoc[].
+
+[cols="1,2"]
+|===
+| Deprecated | Use instead
+
+| create-server, server, create-provider, interceptor-chain-provider, create-servlet, service-fn, servlet
+| A connector; to test it without starting it, api:response-for[ns=io.pedestal.connector.test]
+
+| start, stop
+| api:start![ns=io.pedestal.connector], api:stop![ns=io.pedestal.connector]
+
+| default-interceptors
+| api:with-default-interceptors[ns=io.pedestal.connector], or your own list with
+  api:with-interceptors[ns=io.pedestal.connector]
+
+| dev-interceptors
+| api:optionally-with-dev-mode-interceptors[ns=io.pedestal.connector]
+
+| enable-debug-interceptor-observer, default-debug-observer-omit
+| api:with-interceptor-observer[ns=io.pedestal.connector.dev],
+  api:default-debug-observer-omit[ns=io.pedestal.connector.dev]
+
+| servlet-init, servlet-service, servlet-destroy (with the ClojureVarServlet)
+| For a WAR file, the ConnectorServlet with api:create-bridge[ns=io.pedestal.connector.servlet];
+  see xref:guides:war-deployment.adoc[]
+
+| response?, respond-with, json-response
+| api:response?[ns=io.pedestal.http.response], api:respond-with[ns=io.pedestal.http.response],
+  api:json-response[ns=io.pedestal.http.response]
+
+| edn-response (also in io.pedestal.http.response)
+| The data as the response :body: a collection is written as EDN (application/edn)
+
+| log-request, not-found, html-body, json-body, transit-body-interceptor, transit-json-body,
+  transit-msgpack-body, transit-body
+| The same names in api:*[ns=io.pedestal.service.interceptors] (transit-body is transit-json-body)
+
+| A seq of route maps as :io.pedestal.http/routes
+| The route specifications, or the result of api:expand-routes[ns=io.pedestal.http.route]
+|===
+
+[#io-pedestal-test]
+=== io.pedestal.test
+
+Replaced by api:*[ns=io.pedestal.connector.test], which tests a connector without starting it;
+see xref:reference:unit-testing.adoc[].
+
+[cols="1,2"]
+|===
+| Deprecated | Use instead
+
+| response-for, raw-response-for, servlet-response-for, create-responder
+| api:response-for[ns=io.pedestal.connector.test], passed the connector, with the same options
+
+| disable-routing-table-output-fixture
+| api:disable-routing-table-output-fixture[ns=io.pedestal.connector.test]
+
+| parse-url
+| No replacement; only io.pedestal.test needs it
+|===
+
+[#websockets]
+=== Non-routed WebSockets
+
+The :io.pedestal.http/websockets service map key, and add-endpoint and add-endpoints in
+io.pedestal.websocket, are replaced by routed WebSockets: put
+api:websocket-interceptor[ns=io.pedestal.service.websocket] in a route, so that the route's other
+interceptors (such as authentication) run before the upgrade; see xref:reference:websockets.adoc#upgrade[].
+
+[#server-sent-events]
+=== Server-sent events
+
+start-event-stream and sse-setup in io.pedestal.http.sse are replaced by
+api:start-stream[ns=io.pedestal.http.sse], called from your own interceptor;
+see xref:reference:server-sent-events.adoc[].
+
+[#quoted-routes]
+=== Quoted route specifications and expressions
+
+Pedestal 1.0 no longer resolves symbols or evaluates lists in route specifications and interceptor lists;
+these usually come from syntax-quoting the whole route specification.
+
+- For a handler, use a Var (`{:get #'list-orders}`): it gives the same route, including the route name
+  (`:myapp.service/list-orders`). A function also works; see xref:reference:terse-syntax.adoc[].
+- For an expression that returns an interceptor, such as `(body-params/body-params)`, call it when the
+  routes are defined: remove the quote.
+
+[#anonymous-interceptors]
+=== Anonymous interceptors
+
+An interceptor without a :name still works, but its name is missing from logs, traces, and errors.
+Pedestal 1.0 will give such an interceptor a name automatically. To choose the name, add a :name key
+(a namespaced keyword), or use api:definterceptor[ns=io.pedestal.interceptor];
+see xref:reference:interceptors.adoc[].
+
+[#jetty-util]
+=== io.pedestal.http.jetty.util
+
+dispatcher-set, filter-holder, and add-servlet-filter have no replacement: use Jetty's API directly,
+for example in a function passed as the :context-configurator container option; see xref:reference:jetty.adoc[].
+The io.pedestal.http.jetty.container namespace becomes internal.
+
+[#insecure-ssl]
+=== The :insecure-ssl? Jetty option
+
+Use the :sni-host-check? container option instead, with the opposite value: `:insecure-ssl? true`
+becomes `:sni-host-check? false`.
+
+[#array-coerce-fn]
+=== The :array-coerce-fn JSON parser option
+
+Use the :value-fn option of api:custom-json-parser[ns=io.pedestal.http.body-params] instead.
+
+[#add-satisfies-constraints]
+=== Other
+
+- add-satisfies-constraints? in io.pedestal.http.route.prefix-tree: no replacement; only Pedestal's routers need it.
+- exception-debug in io.pedestal.http.impl.servlet-interceptor: use
+  api:uncaught-exception[ns=io.pedestal.connector.dev].
+- The default-content-type function of the WriteableBody protocol: Pedestal no longer calls it; remove it from
+  your implementations.
+
 == 0.8.0
 
 The focus of release 0.8 is to improve and unify routing, and to support xref:reference:jetty.adoc[]

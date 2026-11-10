@@ -164,30 +164,53 @@
                "PEDESTAL_SUPPRESS_DEPRECATION_WARNINGS"
                :as :boolean))
 
+(def deprecations-url
+  "The documentation page that deprecation warnings link to; the :docs option of [[deprecated]] is an anchor
+  on this page."
+  "https://pedestal.io/pedestal/0.8/deprecations.html")
+
 (defn deprecated*
-  [label in noun]
-  (when-not (contains? @*deprecations label)
-    (swap! *deprecations conj label)
-    (perr
-      [:yellow
-       [:bold "WARNING: "]
-       (or noun label)
-       " "
-       (if in
-         (list "was deprecated in version "
-               [:bold in])
-         "has been deprecated")
-       " and may be removed in a future release"]
-      [:bold "\nCall stack: ... "]
-      (call-stack 4))))
+  ([label in noun]
+   (deprecated* label in noun nil))
+  ([label in noun {:keys [removed-in outcome replacement docs]}]
+   (when-not (contains? @*deprecations label)
+     (swap! *deprecations conj label)
+     (perr
+       [:yellow
+        [:bold "WARNING: "]
+        (or noun label)
+        " "
+        (if in
+          (list "was deprecated in version "
+                [:bold in])
+          "has been deprecated")
+        (cond
+          removed-in (list " and will be removed in " [:bold "Pedestal " removed-in])
+          outcome outcome
+          :else " and may be removed in a future release")
+        (when replacement
+          (list "\n" replacement))
+        (when docs
+          (list "\nSee " deprecations-url "#" docs))]
+       [:bold "\nCall stack: ... "]
+       (call-stack 4)))))
 
 (defmacro deprecated
-  [label & {:keys [in noun]}]
+  "Prints a warning (once per label) that something is deprecated.
+
+  Options:
+  :in          - the version that deprecated it
+  :noun        - describes what is deprecated (defaults to the label)
+  :removed-in  - the version that will remove it, e.g. \"1.0\"
+  :outcome     - instead of :removed-in, the end of the first line, for something that changes rather than goes away
+  :replacement - a sentence that says what to use instead
+  :docs        - the anchor of its section on the deprecations page, see [[deprecations-url]]"
+  [label & {:keys [in noun] :as options}]
   ;; When running normally, `deprecated` is has zero runtime cost.
   ;; When enabled at macro expansion time, it may still be disabled later, at runtime.
   (when-not *suppress?*
     `(when-not *suppress?*
-       (deprecated* ~label ~in ~noun))))
+       (deprecated* ~label ~in ~noun ~(not-empty (dissoc options :in :noun))))))
 
 (defmacro with-deprecations-suppressed
   [& body]

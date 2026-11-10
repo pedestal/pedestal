@@ -78,14 +78,20 @@
   (-interceptor [l]
     (i/deprecated ::expression
       :noun "conversion of expressions to interceptors"
-      :in "0.7.0")
+      :in "0.7.0"
+      :removed-in "1.0"
+      :replacement "Call the function when the interceptors are defined instead, without quoting the expression."
+      :docs "quoted-routes")
     (-interceptor (eval l)))
 
   Cons
   (-interceptor [c]
     (i/deprecated ::expression
       :noun "conversion of expressions to interceptors"
-      :in "0.7.0")
+      :in "0.7.0"
+      :removed-in "1.0"
+      :replacement "Call the function when the interceptors are defined instead, without quoting the expression."
+      :docs "quoted-routes")
     (-interceptor (eval c)))
 
   Symbol
@@ -126,7 +132,10 @@
   (when-not (:name interceptor)
     (i/deprecated ::anon-interceptor
       :in "0.8.0"
-      :noun "anonymous (unnamed) interceptor support"))
+      :noun "anonymous (unnamed) interceptor support"
+      :outcome "; in Pedestal 1.0, an interceptor without a :name will be given one automatically"
+      :replacement "Give each interceptor a :name (a namespaced keyword) to choose the name yourself."
+      :docs "anonymous-interceptors"))
   true)
 
 (defn interceptor

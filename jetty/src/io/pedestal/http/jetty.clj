@@ -107,7 +107,10 @@
                            (not (nil? sni-host-check?)) sni-host-check?
                            :else                        (not insecure-ssl?))]
         (when insecure-ssl?
-          (deprecated :insecure-ssl? :in "0.8.0" :noun ":insecure-ssl? Jetty option"))
+          (deprecated :insecure-ssl? :in "0.8.0" :noun ":insecure-ssl? Jetty option"
+            :removed-in "1.0"
+            :replacement "Use the :sni-host-check? option instead, with the opposite value."
+            :docs "insecure-ssl"))
         (doto http-conf
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
@@ -229,7 +232,10 @@
                                                                  (when websockets
                                                                    (deprecated ::websockets
                                                                      :in "0.8.0"
-                                                                     :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)")
+                                                                     :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)"
+                                                                     :removed-in "1.0"
+                                                                     :replacement "Use routed WebSockets instead: io.pedestal.service.websocket/websocket-interceptor in a route."
+                                                                     :docs "websockets")
                                                                    (with-deprecations-suppressed
                                                                      (ws/add-endpoints container websockets))))))
     (when daemon?

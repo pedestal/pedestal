@@ -190,7 +190,10 @@
   Returns nil."
   {:deprecated "0.8.0"}
   [^ServerContainer container ^String path ws-endpoint-map]
-  (deprecated `add-endpoint :in "0.8.0")
+  (deprecated `add-endpoint :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use a routed WebSocket instead: io.pedestal.service.websocket/websocket-interceptor in a route."
+    :docs "websockets")
   (let [config (create-server-endpoint-config path ws-endpoint-map)]
     (.addEndpoint container config)
     nil))
@@ -199,7 +202,10 @@
   "Adds all websocket endpoints in the path-map."
   {:deprecated "0.8.0"}
   [^ServerContainer container websockets-map]
-  (deprecated `add-endpoints :in "0.8.0")
+  (deprecated `add-endpoints :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use routed WebSockets instead: io.pedestal.service.websocket/websocket-interceptor in a route."
+    :docs "websockets")
   (doseq [[path endpoint] websockets-map]
     (add-endpoint container path endpoint)))
 

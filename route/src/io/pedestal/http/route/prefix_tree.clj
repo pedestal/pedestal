@@ -446,7 +446,10 @@
   the request satisfies all path and query constraints."
   {:deprecated "0.8.0"}
   [route]
-  (internal/deprecated `add-satisfies-constraints? :in "0.8.0")
+  (internal/deprecated `add-satisfies-constraints? :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "There is no replacement: only Pedestal's routers need it."
+    :docs "add-satisfies-constraints")
   (route.internal/add-satisfies-constraints? route))
 
 (defn router

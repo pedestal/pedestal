@@ -52,6 +52,17 @@
   (require 'io.pedestal.http.jetty)
   (catch Exception _))
 
+;; Deprecation warnings
+;; --------------------
+
+(def ^:private use-a-connector
+  (str "Use a connector instead, built with io.pedestal.connector and io.pedestal.http.jetty/create-connector"
+       " (or io.pedestal.http.http-kit/create-connector); test it with io.pedestal.connector.test/response-for."))
+
+(def ^:private use-the-connector-servlet
+  (str "For a WAR file, use the io.pedestal.servlet.ConnectorServlet class"
+       " with io.pedestal.connector.servlet/create-bridge instead."))
+
 ;; edn and json response formats
 
 (defn edn-response
@@ -60,7 +71,10 @@
   DEPRECATED: Use io.pedestal.http.response/edn-response instead."
   {:deprecated "0.8.0"}
   [obj]
-  (deprecated `edn-response :in "0.8.0")
+  (deprecated `edn-response :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use the data as the response :body instead; a collection is written as EDN (application/edn)."
+    :docs "io-pedestal-http")
   (response/edn-response obj))
 
 (defn json-response
@@ -98,7 +112,10 @@
   DEPRECATED: Use io.pedestal.http.response/response? instead."
   {:deprecated "0.8.0"}
   [resp]
-  (deprecated `response? :in "0.8.0")
+  (deprecated `response? :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use io.pedestal.http.response/response? instead."
+    :docs "io-pedestal-http")
   (response/response? resp))
 
 (def ^{:deprecated "0.8.0"} not-found
@@ -139,10 +156,16 @@
 
   DEPRECATED: Use io.pedestal.service.interceptors/transit-body-interceptor instead."
   ([iname default-content-type transit-format]
-   (deprecated `transit-body-interceptor :in "0.8.0")
+   (deprecated `transit-body-interceptor :in "0.8.0"
+     :removed-in "1.0"
+     :replacement "Use io.pedestal.service.interceptors/transit-body-interceptor instead."
+     :docs "io-pedestal-http")
    (interceptors/transit-body-interceptor iname default-content-type transit-format {}))
   ([iname default-content-type transit-format transit-opts]
-   (deprecated `transit-body-interceptor :in "0.8.0")
+   (deprecated `transit-body-interceptor :in "0.8.0"
+     :removed-in "1.0"
+     :replacement "Use io.pedestal.service.interceptors/transit-body-interceptor instead."
+     :docs "io-pedestal-http")
    (interceptors/transit-body-interceptor iname default-content-type transit-format transit-opts)))
 
 (def ^{:deprecated "0.8.0"} transit-json-body
@@ -213,7 +236,11 @@
   Note that none of the default interceptors will parse the content of the request body (for POST or other requests);
   individual _routes_ that are of type POST should include the [[body-params]] interceptor to do so."
   [service-map]
-  (deprecated `default-interceptors :in "0.8.0")
+  (deprecated `default-interceptors :in "0.8.0"
+    :removed-in "1.0"
+    :replacement (str "Use io.pedestal.connector/with-default-interceptors instead,"
+                      " or list your interceptors with io.pedestal.connector/with-interceptors.")
+    :docs "io-pedestal-http")
   (let [{::keys [interceptors
                  request-logger
                  routes
@@ -251,7 +278,10 @@
                               (do
                                 (deprecated ::route-maps-seq
                                   :in "0.8.0"
-                                  :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map")
+                                  :noun "passing a seq of route maps as :io.pedestal.http/routes in the service map"
+                                  :removed-in "1.0"
+                                  :replacement "Pass the route specifications, or the result of io.pedestal.http.route/expand-routes, instead."
+                                  :docs "io-pedestal-http")
                                 (-> routes types/fragment route/expand-routes))
                               :else (throw (ex-info (str "Routes specified in the service map don't fulfill the contract, "
                                                          "they must be expanded routes, a function that returns expanded routes, or a RoutingFragment")
@@ -281,7 +311,10 @@
 
   This should normally be invoked after [[default-interceptors]]."
   [service-map]
-  (deprecated `dev-interceptors :in "0.8.0")
+  (deprecated `dev-interceptors :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use io.pedestal.connector/optionally-with-dev-mode-interceptors instead."
+    :docs "io-pedestal-http")
   (update service-map ::interceptors
           #(into [cors/dev-allow-origin servlet-interceptor/exception-debug] %)))
 
@@ -292,7 +325,10 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   [key-path]
-  (deprecated `default-debug-observer-omit :in "0.8.0")
+  (deprecated `default-debug-observer-omit :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use io.pedestal.connector.dev/default-debug-observer-omit instead."
+    :docs "io-pedestal-http")
   (dev/default-debug-observer-omit key-path))
 
 (defn ^{:added "0.7.0"}
@@ -309,7 +345,10 @@
   ([service-map]
    (enable-debug-interceptor-observer service-map {:omit dev/default-debug-observer-omit}))
   ([service-map debug-observer-options]
-   (deprecated `enable-debug-interceptor-observer :in "0.8.0")
+   (deprecated `enable-debug-interceptor-observer :in "0.8.0"
+     :removed-in "1.0"
+     :replacement "Use io.pedestal.connector.dev/with-interceptor-observer instead."
+     :docs "io-pedestal-http")
    (update service-map ::initial-context
            chain/add-observer (chain.debug/debug-observer debug-observer-options))))
 
@@ -319,7 +358,10 @@
   that accepts a servlet, servlet request, and servlet response, and initiates the interceptor chain."
   [{::keys [interceptors initial-context service-fn-options]
     :as    service-map}]
-  (deprecated `service-fn :in "0.8.0")
+  (deprecated `service-fn :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-a-connector
+    :docs "io-pedestal-http")
   (assoc service-map ::service-fn
          (servlet-interceptor/http-interceptor-service-fn interceptors initial-context service-fn-options)))
 
@@ -327,7 +369,10 @@
   "Converts the service-fn in the service map to a servlet instance."
   [{service-fn ::service-fn
     :as        service-map}]
-  (deprecated `servlet :in "0.8.0")
+  (deprecated `servlet :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-a-connector
+    :docs "io-pedestal-http")
   (assoc service-map ::servlet
          (servlet/servlet :service service-fn)))
 
@@ -341,7 +386,10 @@
 
   Note: Additional options are passed to default-interceptors if :interceptors is not set."
   [service-map]
-  (deprecated `create-servlet :in "0.8.0")
+  (deprecated `create-servlet :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-a-connector
+    :docs "io-pedestal-http")
   (-> service-map
       default-interceptors
       service-fn
@@ -352,7 +400,10 @@
   "Called from [[create-provider]], uses the ::chain-provider or ::type key of the service map
   to create the chain provider. "
   [service-map]
-  (deprecated `interceptor-chain-provider :in "0.8.0")
+  (deprecated `interceptor-chain-provider :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-a-connector
+    :docs "io-pedestal-http")
   (let [{::keys [chain-provider type]} service-map]
     (cond
       (fn? chain-provider) (chain-provider service-map)
@@ -368,7 +419,10 @@
   "Applies [[default-interceptors]] (if not already applied) and creates the interceptor chain
   provider (the basis for starting an embedded servlet container)."
   [service-map]
-  (deprecated `create-provider :in "0.8.0")
+  (deprecated `create-provider :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-a-connector
+    :docs "io-pedestal-http")
   (-> service-map
       default-interceptors
       interceptor-chain-provider))
@@ -412,7 +466,10 @@
 
    A typical embedded app will call [[create-server]], rather than calling this function directly."
   [service-map]
-  (deprecated `server :in "0.8.0")
+  (deprecated `server :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-a-connector
+    :docs "io-pedestal-http")
   (let [{type ::type
          :or  {type :jetty}} service-map
         ;; Ensure that if a host arg was supplied, we default to a safe option, "localhost"
@@ -446,7 +503,10 @@
   ([service-map]
    (create-server service-map log/maybe-init-java-util-log))
   ([service-map init-fn]
-   (deprecated `create-server :in "0.8.0")
+   (deprecated `create-server :in "0.8.0"
+     :removed-in "1.0"
+     :replacement use-a-connector
+     :docs "io-pedestal-http")
    (init-fn)
    (-> service-map
        create-provider                                      ;; Creates/connects a backend to the interceptor chain
@@ -461,7 +521,10 @@
 
   Returns the server map unchanged."
   [server-map]
-  (deprecated `start :in "0.8.0")
+  (deprecated `start :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use io.pedestal.connector/start! instead."
+    :docs "io-pedestal-http")
   ((::start-fn server-map))
   server-map)
 
@@ -470,7 +533,10 @@
 
   Returns the server map unchanged."
   [server-map]
-  (deprecated `stop :in "0.8.0")
+  (deprecated `stop :in "0.8.0"
+    :removed-in "1.0"
+    :replacement "Use io.pedestal.connector/stop! instead."
+    :docs "io-pedestal-http")
   ((::stop-fn server-map))
   server-map)
 
@@ -478,17 +544,26 @@
 
 (defn servlet-init
   [service config]
-  (deprecated `servlet-init :in "0.8.0")
+  (deprecated `servlet-init :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-the-connector-servlet
+    :docs "io-pedestal-http")
   (let [service (create-servlet service)]
     (.init ^Servlet (::servlet service) config)
     service))
 
 (defn servlet-destroy [service]
-  (deprecated `servlet-destroy :in "0.8.0")
+  (deprecated `servlet-destroy :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-the-connector-servlet
+    :docs "io-pedestal-http")
   (dissoc service ::servlet))
 
 (defn servlet-service [service servlet-req servlet-resp]
-  (deprecated `servlet-service :in "0.8.0")
+  (deprecated `servlet-service :in "0.8.0"
+    :removed-in "1.0"
+    :replacement use-the-connector-servlet
+    :docs "io-pedestal-http")
   (.service ^Servlet (::servlet service) servlet-req servlet-resp))
 
 (defn respond-with
@@ -498,11 +573,20 @@
   {:added      "0.7.0"
    :deprecated "0.8.0"}
   ([context status]
-   (deprecated `respond-with :in "0.8.0")
+   (deprecated `respond-with :in "0.8.0"
+     :removed-in "1.0"
+     :replacement "Use io.pedestal.http.response/respond-with instead."
+     :docs "io-pedestal-http")
    (response/respond-with context status))
   ([context status body]
-   (deprecated `respond-with :in "0.8.0")
+   (deprecated `respond-with :in "0.8.0"
+     :removed-in "1.0"
+     :replacement "Use io.pedestal.http.response/respond-with instead."
+     :docs "io-pedestal-http")
    (response/respond-with context status body))
   ([context status headers body]
-   (deprecated `respond-with :in "0.8.0")
+   (deprecated `respond-with :in "0.8.0"
+     :removed-in "1.0"
+     :replacement "Use io.pedestal.http.response/respond-with instead."
+     :docs "io-pedestal-http")
    (response/respond-with context status headers body)))

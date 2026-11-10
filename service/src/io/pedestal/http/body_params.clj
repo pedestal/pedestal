@@ -109,7 +109,11 @@
                                      :eof-value  nil} options)
         value-fn (when array-coerce-fn
                    (deprecated ::array-coerce-fn
-                     :noun ":array-coerce-fn option to io.pedestal.http.body-params/custom-json-parser")
+                     :in "0.8.0"
+                     :noun ":array-coerce-fn option to io.pedestal.http.body-params/custom-json-parser"
+                     :removed-in "1.0"
+                     :replacement "Use the :value-fn option instead."
+                     :docs "array-coerce-fn")
                    (fn [k v]
                      (into (array-coerce-fn k) v)))
         options' (cond-> full-options
