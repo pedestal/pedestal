@@ -3,6 +3,8 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
+## 0.8.4 - UNRELEASED
+
 ## 0.8.3 - 10 Nov 2026
 
 * Terse routes now accept a Var (`{:get #'list-orders}`) or a function as a handler, in the verb map or in a handler
