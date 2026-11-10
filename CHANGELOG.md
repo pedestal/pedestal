@@ -12,6 +12,11 @@
   writes it), with a default content type of `application/edn`; a `java.io.ByteArrayOutputStream` body is written as
   its bytes (`application/octet-stream`). This works with every connector. Previously, such a body produced
   an empty response or a 500 error.
+* An interceptor that attaches an invalid `:response` (not a map, or without a positive integer `:status`) still fails
+  the request, but the exception message now names the route, describes the value, and explains the usual cause:
+  a function in an interceptor list is called as a handler, so its return value becomes the `:response`.
+  In interceptor chain error messages, an unnamed interceptor created from a function is now identified by
+  that function.
 
 ## 0.8.2 - 6 Oct 2026
 

@@ -13,12 +13,28 @@
   "Internal namespace subject to change at any time."
   {:added "0.8.0"}
   (:require clojure.core.async.impl.protocols
-            [clojure.core.async :refer [go <!]])
+            [clojure.core.async :refer [go <!]]
+            [clojure.string :as string]
+            [clj-commons.format.exceptions :as exceptions])
   (:import (clojure.core.async.impl.protocols ReadPort)))
 
 (defn channel?
   [c]
   (instance? ReadPort c))
+
+(defn fn-name
+  "Derives a keyword from the class name of function f: its namespace and the function name
+  (prefixed by the names of any enclosing functions)."
+  {:added "0.8.3"}
+  [f]
+  (let [class-name (-> f class .getName)
+        [namespace-name & raw-function-ids] (string/split class-name #"\$")
+        fn-name    (->> raw-function-ids
+                        (map #(string/replace % #"__\d+" ""))
+                        (map exceptions/demangle)
+                        (string/join "/"))]
+    (keyword (exceptions/demangle namespace-name)
+             fn-name)))
 
 (defn wrap-handler
   [handler-fn]

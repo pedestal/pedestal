@@ -14,10 +14,8 @@
 (ns io.pedestal.interceptor
   "Public API for creating interceptors, and various utility fns for
   common interceptor creation patterns."
-  (:require [clojure.string :as string]
-            [io.pedestal.internal :as i]
-            [io.pedestal.interceptor.impl :as impl]
-            [clj-commons.format.exceptions :as exceptions])
+  (:require [io.pedestal.internal :as i]
+            [io.pedestal.interceptor.impl :as impl])
   (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
            (java.io Writer)))
 
@@ -45,14 +43,7 @@
 (defn- default-handler-name
   [f]
   (when *default-handler-names*
-    (let [class-name (-> f class .getName)
-          [namespace-name & raw-function-ids] (string/split class-name #"\$")
-          fn-name    (->> raw-function-ids
-                          (map #(string/replace % #"__\d+" ""))
-                          (map exceptions/demangle)
-                          (string/join "/"))]
-      (keyword (exceptions/demangle namespace-name)
-               fn-name))))
+    (impl/fn-name f)))
 
 (defn- fn->interceptor
   [f]
@@ -78,7 +69,10 @@
   ;; request and response maps).
   Fn
   (-interceptor [f]
-    (-interceptor (fn->interceptor f)))
+    ;; The function is kept in the metadata, so that an unnamed interceptor can still be
+    ;; identified in error messages.
+    (with-meta (-interceptor (fn->interceptor f))
+               {::handler-fn f}))
 
   IPersistentList
   (-interceptor [l]

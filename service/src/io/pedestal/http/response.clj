@@ -110,20 +110,57 @@
                              :headers headers
                              :body    body})))
 
+(defn- describe-value
+  [value]
+  (if (or (number? value) (keyword? value) (symbol? value) (boolean? value) (char? value))
+    (str (pr-str value) " (a " (.getName (class value)) ")")
+    (str "a " (.getName (class value)))))
+
+(defn- describe-map
+  "Describes a map by its keys only, as the values may be large or sensitive."
+  [m]
+  (let [ks (->> m keys (sort-by str))]
+    (str (if (seq ks)
+           (str "a map with keys " (pr-str (vec (take 10 ks))) (when (< 10 (count ks)) " (and more)"))
+           "an empty map")
+         (when (contains? m :request-method)
+           " (it looks like the request map)"))))
+
+(defn- invalid-response
+  [context problem]
+  (let [{:keys [response route]} context
+        route-name (:route-name route)]
+    (ex-info (str problem
+                  (when route-name
+                    (str ", in route " route-name))
+                  ". A response must be a map with a positive integer :status."
+                  " A function in an interceptor list is called as a handler, so its return value becomes"
+                  " the :response; to change the context instead, use an interceptor with an :enter function.")
+             (cond-> {:response response}
+               route-name (assoc :route-name route-name)))))
+
+;; Called after each interceptor's :enter. The exception thrown for an invalid :response is caught by
+;; the interceptor chain, which adds the name of the interceptor and switches to the :error stage.
+;; This stays a private Var with the same signature: some libraries replace it (via alter-var-root).
 (defn- terminate-when-response*
-  [{:keys [response]}]
+  [{:keys [response] :as context}]
   (cond
     (nil? response) false
 
     (not (map? response))
-    (throw (ex-info "Interceptor attached a :response that is not a map"
-                    {:response response}))
+    (throw (invalid-response context
+                             (str "Interceptor attached a :response that is not a map: "
+                                  (describe-value response))))
 
     (let [status (:status response)]
       (not (and (int? status)
                 (pos? status))))
-    (throw (ex-info "Response map must have positive integer value for :status"
-                    {:response response}))
+    (throw (invalid-response context
+                             (if (contains? response :status)
+                               (str "Interceptor attached a :response map whose :status is not a positive integer: "
+                                    (pr-str (:status response)))
+                               (str "Interceptor attached a :response map without a :status: "
+                                    (describe-map response)))))
 
     ;; Explicitly do *not* check for :headers or :body
 

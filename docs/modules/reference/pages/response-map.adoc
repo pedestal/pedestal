@@ -12,8 +12,29 @@ When an interceptor attaches a response map (or a handler function returns a res
 - Must be a map
 - Must contain a positive integer value for the :status
 
-If the response fails the above validations, an exception is thrown. footnote:[Prior to Pedestal 0.7,
+If the response fails the above validations, an exception is thrown and the request fails: the interceptor chain
+switches to the :error stage, as for any other exception. footnote:[Prior to Pedestal 0.7,
 an invalid :response would be ignored instead, and the https://github.com/pedestal/pedestal/issues/830[execution would continue], subverting the developer's expectations.]
+
+The exception message names the interceptor that attached the response and, once routing has matched a route,
+the route name. It describes the invalid value by its type, or for a map, by its keys.
+
+The usual cause is a function in a list of interceptors: Pedestal treats a function as a handler, so the value
+it returns becomes the :response. A function meant to change the request must be an interceptor instead,
+with an :enter function that returns the updated context:
+
+[source,clojure]
+----
+;; Wrong: a handler; the request map it returns becomes the :response
+(defn add-user [request]
+  (assoc request :user (current-user request)))
+
+;; Right: an interceptor that updates the request in the context
+(def add-user
+  {:name  ::add-user
+   :enter (fn [context]
+            (update context :request #(assoc % :user (current-user %))))})
+----
 
 The function api:respond-with[] is the easiest way to add a response map to the interceptor context.
 

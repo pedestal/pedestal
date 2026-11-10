@@ -30,7 +30,10 @@
   ;; Generally, interceptors will have a :name key that's a keyword, but there still
   ;; (for some reason) the occasionally anonymous interceptor.
   (or (get interceptor :name)
-      (pr-str interceptor)))
+      ;; An unnamed interceptor created from a function is identified by that function.
+      (if-let [f (-> interceptor meta ::interceptor/handler-fn)]
+        (str (pr-str interceptor) " (function " (-> f impl/fn-name str (subs 1)) ")")
+        (pr-str interceptor))))
 
 (defn- throwable->ex-info
   [^Throwable t execution-id interceptor-name stage]

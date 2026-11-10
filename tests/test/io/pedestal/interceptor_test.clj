@@ -405,6 +405,25 @@
   (is (= (keyword "io.pedestal.interceptor-test" "fn/foo")
          (:name (interceptor (fn foo [_request] nil))))))
 
+(defn failing-handler [_request] (throw (ex-info "Boom!" {})))
+
+(deftest unnamed-handler-is-identified-by-its-function-in-errors
+  (binding [interceptor/*default-handler-names* false]
+    (let [handler (interceptor failing-handler)]
+      (is (nil? (:name handler)))
+      (when-let [e (is (thrown? Exception (execute {} [handler])))]
+        (is (= "clojure.lang.ExceptionInfo in Interceptor #Interceptor{} (function io.pedestal.interceptor-test/failing-handler) - Boom!"
+               (ex-message e)))
+        (is (= "#Interceptor{} (function io.pedestal.interceptor-test/failing-handler)"
+               (:interceptor (ex-data e))))))))
+
+(deftest unnamed-map-interceptor-is-unchanged-in-errors
+  (when-let [e (is (thrown? Exception
+                            (execute {} [(i/with-deprecations-suppressed
+                                           (interceptor {:enter (fn [_] (throw (ex-info "Boom!" {})))}))])))]
+    (is (= "clojure.lang.ExceptionInfo in Interceptor #Interceptor{} - Boom!"
+           (ex-message e)))))
+
 (deftest interceptor-leave-ordering-after-a-change-in-bindings
   (let [step     (fn [interceptor-name]
                    (interceptor
