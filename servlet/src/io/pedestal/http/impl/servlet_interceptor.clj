@@ -27,6 +27,7 @@
             [io.pedestal.metrics :as metrics]
             [io.pedestal.service.websocket :as ws :refer [InitializeWebSocket WebSocketChannel]]
             [io.pedestal.service.data :refer [convert]]
+            [io.pedestal.internal :as internal]
     ;; for side effects:
             io.pedestal.http.route
             [io.pedestal.service.impl :as impl])
@@ -37,7 +38,7 @@
            (clojure.lang Fn IPersistentCollection)
            (jakarta.websocket CloseReason CloseReason$CloseCodes MessageHandler$Whole Session)
            (jakarta.websocket.server ServerContainer ServerEndpointConfig ServerEndpointConfig$Builder)
-           (java.io File IOException InputStream OutputStreamWriter EOFException)
+           (java.io ByteArrayOutputStream File IOException InputStream OutputStream OutputStreamWriter EOFException)
            (java.nio.channels ReadableByteChannel)
            (java.nio ByteBuffer)))
 
@@ -117,6 +118,32 @@
    :write-body-to-stream
    (fn [^bytes byte-array output-stream]
      (io/copy byte-array output-stream))})
+
+(defn- write-edn
+  [value ^OutputStream output-stream]
+  (let [writer (OutputStreamWriter. output-stream)]
+    (binding [*out* writer]
+      (pr value))
+    (.flush writer)))
+
+;; Simple values (keywords, numbers, UUIDs, ...) are written as EDN, the same as collections.
+(doseq [t internal/simple-body-types]
+  (extend t
+
+    WriteableBody
+
+    {:default-content-type (fn [_] "application/edn")
+     :write-body-to-stream write-edn}))
+
+(extend ByteArrayOutputStream
+
+  WriteableBody
+
+  {:default-content-type (fn [_] "application/octet-stream")
+   :write-body-to-stream
+   (fn [^ByteArrayOutputStream body ^OutputStream output-stream]
+     (.writeTo body output-stream)
+     (.flush output-stream))})
 
 
 (defn- write-body [^HttpServletResponse servlet-resp body]

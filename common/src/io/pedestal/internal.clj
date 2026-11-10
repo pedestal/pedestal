@@ -15,7 +15,9 @@
             [clojure.java.io :as io]
             [clojure.string :as string]
             [clj-commons.ansi :refer [perr]]
-            [clj-commons.format.exceptions :as e]))
+            [clj-commons.format.exceptions :as e])
+  (:import (clojure.lang Keyword Symbol)
+           (java.util UUID)))
 
 (defn vec-conj
   [v value]
@@ -204,3 +206,9 @@
   "Returns a spec predicate that checks if a value is an instance of the given class."
   [^Class clazz]
   #(instance? clazz %))
+
+(def simple-body-types
+  "Classes of simple values that may be the :body of a response: keywords, symbols, UUIDs, numbers,
+  booleans, and characters. Each connector writes them as EDN (as `pr` does), the same as collections,
+  with a default content type of application/edn."
+  [Keyword Symbol UUID Number Boolean Character])

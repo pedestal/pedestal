@@ -16,6 +16,8 @@ type of the value in the :body key of the xref:response-map.adoc[].
 | byte array | application/octet-stream | direct byte copy | no
 | string     | text/plain               | bytes according to platform's default character encoding | no
 | Clojure collection | application/edn  | text representation of data, same as Clojure's writer | no
+| keyword, symbol, UUID, number, boolean, or character | application/edn | text representation of the value, same as Clojure's writer (added in 0.8.3) | no
+| ByteArrayOutputStream | application/octet-stream | the bytes written to the stream (added in 0.8.3) | no
 | Clojure function   | nil              | depends on the function                               | no
 | File               | application/octet-stream | bytes of the file copied to the output stream | no
 | InputStream        | application/octet-stream | bytes of the input stream copied to the output stream | no

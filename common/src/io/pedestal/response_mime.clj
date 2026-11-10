@@ -1,6 +1,7 @@
 (ns io.pedestal.response-mime
+  (:require [io.pedestal.internal :as i])
   (:import (clojure.lang Fn IPersistentCollection)
-           (java.io File InputStream)
+           (java.io ByteArrayOutputStream File InputStream)
            (java.nio ByteBuffer)
            (java.nio.channels ReadableByteChannel)))
 
@@ -18,6 +19,16 @@
   ReadableByteChannel (default [_] "application/octet-stream"))
 
 (extend (Class/forName "[B")
+  ResponseMime
+  {:default (fn [_] "application/octet-stream")})
+
+;; Simple values (keywords, numbers, UUIDs, ...) are written as EDN, the same as collections.
+(doseq [t i/simple-body-types]
+  (extend t
+    ResponseMime
+    {:default (fn [_] "application/edn")}))
+
+(extend ByteArrayOutputStream
   ResponseMime
   {:default (fn [_] "application/octet-stream")})
 

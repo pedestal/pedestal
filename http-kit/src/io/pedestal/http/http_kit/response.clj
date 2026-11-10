@@ -13,12 +13,13 @@
   "Utilities for converting Pedestal response :body types to those compatible with Http-Kit."
   {:added "0.8.0"}
   (:require [io.pedestal.service.impl :as impl]
+            [io.pedestal.internal :as i]
             [io.pedestal.response-mime :as response-mime]
             [clojure.core.async :refer [<! go close!]]
             [org.httpkit.server :as hk])
   (:import (clojure.core.async.impl.protocols ReadPort)
            (clojure.lang Fn IPersistentCollection)
-           (java.io File InputStream)
+           (java.io ByteArrayOutputStream File InputStream)
            (java.nio ByteBuffer)
            (java.nio.channels ReadableByteChannel)
            (org.httpkit.server AsyncChannel)))
@@ -97,3 +98,19 @@
 
   {:convert-response-body (fn [byte-array _]
                             [(response-mime/default byte-array) byte-array])})
+
+;; Simple values (keywords, numbers, UUIDs, ...) are written as EDN, the same as collections.
+(doseq [t i/simple-body-types]
+  (extend t
+
+    HttpKitResponse
+
+    {:convert-response-body (fn [value _]
+                              [(response-mime/default value) (pr-str value)])}))
+
+(extend ByteArrayOutputStream
+
+  HttpKitResponse
+
+  {:convert-response-body (fn [^ByteArrayOutputStream body _]
+                            [(response-mime/default body) (.toByteArray body)])})

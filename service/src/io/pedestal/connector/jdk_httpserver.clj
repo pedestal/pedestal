@@ -5,11 +5,12 @@
             [io.pedestal.http.response :as response]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
+            [io.pedestal.internal :as i]
             [io.pedestal.response-mime :as response-mime]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.lang Fn IPersistentCollection)
            (com.sun.net.httpserver HttpExchange HttpHandler HttpsConfigurator HttpServer HttpsExchange HttpsParameters HttpsServer)
-           (java.io InputStream OutputStream)
+           (java.io ByteArrayOutputStream InputStream OutputStream)
            (java.lang AutoCloseable)
            (java.net InetSocketAddress)
            (java.nio ByteBuffer)
@@ -59,6 +60,19 @@
   {:write-body-to-stream (fn [^"[B" this ^OutputStream output-stream]
                            (with-open [os output-stream]
                              (.write os this)))})
+
+;; Simple values (keywords, numbers, UUIDs, ...) are written as EDN, the same as collections.
+(doseq [t i/simple-body-types]
+  (extend t
+    StreamableResponseBody
+    {:write-body-to-stream (fn [value output-stream]
+                             (write-body-to-stream (pr-str value) output-stream))}))
+
+(extend ByteArrayOutputStream
+  StreamableResponseBody
+  {:write-body-to-stream (fn [^ByteArrayOutputStream this ^OutputStream output-stream]
+                           (with-open [os output-stream]
+                             (.writeTo this os)))})
 
 (def http-exchange-io
   {:name  ::http-exchange-io

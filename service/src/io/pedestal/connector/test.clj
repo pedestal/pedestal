@@ -19,11 +19,12 @@
             [io.pedestal.service.impl :as impl]
             [clojure.core.async :refer [<!! put! chan]]
             [io.pedestal.interceptor :refer [interceptor]]
+            [io.pedestal.internal :as i]
             [io.pedestal.service.data :as data]
             [io.pedestal.service.protocols :as p])
   (:import (clojure.core.async.impl.protocols Channel)
            (clojure.lang Fn IPersistentCollection)
-           (java.io ByteArrayInputStream File InputStream)
+           (java.io ByteArrayInputStream ByteArrayOutputStream File InputStream)
            (java.nio ByteBuffer)
            (java.nio.channels ReadableByteChannel)))
 
@@ -122,6 +123,24 @@
   {:coerce-response-body
    (fn [^bytes bytes]
      (ByteArrayInputStream. bytes))})
+
+;; Simple values (keywords, numbers, UUIDs, ...) are written as EDN, the same as collections.
+(doseq [t i/simple-body-types]
+  (extend t
+
+    ResponseBodyCoercion
+
+    {:coerce-response-body
+     (fn [value]
+       (-> value pr-str coerce-response-body))}))
+
+(extend ByteArrayOutputStream
+
+  ResponseBodyCoercion
+
+  {:coerce-response-body
+   (fn [^ByteArrayOutputStream body]
+     (ByteArrayInputStream. (.toByteArray body)))})
 
 (defn- convey-response
   [ch]

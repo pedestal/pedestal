@@ -8,6 +8,10 @@
 * Terse routes now accept a Var (`{:get #'list-orders}`) or a function as a handler, in the verb map or in a handler
   vector. A Var produces the same route as the quoted symbol it replaces, including the route name
   (`:myapp.service/list-orders`), so route specifications no longer need to be quoted.
+* A response `:body` that is a keyword, symbol, UUID, number, boolean, or character is now written as EDN (as `pr`
+  writes it), with a default content type of `application/edn`; a `java.io.ByteArrayOutputStream` body is written as
+  its bytes (`application/octet-stream`). This works with every connector. Previously, such a body produced
+  an empty response or a 500 error.
 
 ## 0.8.2 - 6 Oct 2026
 
