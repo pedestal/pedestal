@@ -15,9 +15,8 @@
   (:require [io.pedestal.http.route.definition :as route.definition]
             [io.pedestal.http.route.definition.verbose :as verbose]
             [io.pedestal.interceptor :as interceptor]
-            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
-  (:import (clojure.lang APersistentVector Fn IPersistentList Symbol Var)
+  (:import (clojure.lang APersistentVector Fn Var)
            (io.pedestal.interceptor Interceptor)))
 
 (defn- unexpected-vector-in-route [spec]
@@ -27,7 +26,7 @@
   (format "Cannot expand '%s' as a route. Expected a verb map or path string, but found a %s instead" spec (type spec)))
 
 (defn- invalid-handler [handler original]
-  (format "While parsing a verb map, found a %s as a handler. It must be an interceptor, a function, or a var (or a symbol that resolves to one of those). The full vector is %s" (type handler) original))
+  (format "While parsing a verb map, found a %s as a handler. It must be an interceptor, a function, or a var. The full vector is %s" (type handler) original))
 
 (defn- missing-handler [_handler _original]
   (format "When parsing a verb map, tried in vain to find a handler (as the first symbol that resolves to an interceptor or interceptor map in a vector). Looking in %s" vector))
@@ -59,32 +58,15 @@
   (expand-verb-action [expandable-verb-action]
     "Expand `expandable-verb-action` into a verbose-form verb-map."))
 
+;; Pedestal no longer resolves symbols or evaluates lists in routes, but a handler may still be a
+;; symbol or a list here. This is so that a compatibility shim, which extends the IntoInterceptor and
+;; ExpandableVerbAction protocols to symbols and lists, gets the same routes as Pedestal 0.8. Without
+;; such a shim, a symbol or a list fails when it is converted to an interceptor.
 (def ^:private valid-handler? (some-fn seq? symbol? var? fn? interceptor/interceptor?))
 (def ^:private interceptor-vector? (every-pred vector? (comp :interceptors meta)))
 (def ^:private constraint-map? (every-pred map? (comp :constraints meta)))
 
 (extend-protocol ExpandableVerbAction
-  Symbol
-  (expand-verb-action [symbol]
-    (deprecated ::symbol
-      :noun "expanding a quoted symbol as a terse route verb action"
-      :in "0.8.0"
-      :removed-in "1.0"
-      :replacement (str "Use a Var instead (#'handler gives the same route name as the symbol), or the function"
-                        " itself; then the route specification doesn't need to be quoted.")
-      :docs "quoted-routes")
-    symbol)
-
-  IPersistentList
-  (expand-verb-action [l]
-    (deprecated ::persistent-list
-      :in "0.8.0"
-      :noun "expanding a quoted list form as a terse route verb action"
-      :removed-in "1.0"
-      :replacement "Call the function when the routes are defined instead, without quoting the route specification."
-      :docs "quoted-routes")
-    (expand-verb-action (eval l)))
-
   APersistentVector
   (expand-verb-action [vector]
     ;; Take this apart by hand so we can provide nice error

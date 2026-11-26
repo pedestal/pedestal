@@ -13,8 +13,8 @@
 
 (ns io.pedestal.http.default-interceptors-test
   (:require [clojure.test :refer [deftest is]]
-            [io.pedestal.http :as http]
-            [io.pedestal.http.body-params :as body-params]
+            [io.pedestal.connector :as conn]
+            [io.pedestal.http.route :as route]
             [io.pedestal.http.route.definition.table :as table]
             [io.pedestal.interceptor.chain :as chain]
             [matcher-combinators.matchers :as m]
@@ -28,13 +28,19 @@
 (defn okpage-html [_request] (resp 200 "OK" "Content-Type" "text/html"))
 (defn echo [request] (resp 200 request))
 
+;; Was (http/default-interceptors {:io.pedestal.http/routes routes}); now the interceptors of
+;; with-default-interceptors and with-routes. The old defaults also had route/method-param (before the
+;; router); with-default-interceptors doesn't, so it is added here, at the same place.
 (defn default-interceptors [routes]
-  (http/default-interceptors {:io.pedestal.http/routes routes}))
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors)
+      (conn/with-interceptor (route/method-param))
+      (conn/with-routes routes)))
 
 (defn app [routes request]
   (chain/execute
     (chain/enqueue {:request request}
-                   (::http/interceptors (default-interceptors routes)))))
+                   (:interceptors (default-interceptors routes)))))
 
 (defn request [method uri & {:as params}]
   (merge
@@ -96,7 +102,10 @@
     {}
     [["/echo" :any echo :route-name :echo]
      ["/pecho/:user-id" :get [echo] :route-name :pecho]
-     ["/fecho" :post [(body-params/body-params) params/keyword-params echo] :route-name :echo-form]]))
+;; This route had (body-params/body-params) before params/keyword-params: the old default interceptors
+     ;; didn't parse the body. with-default-interceptors does, and a second body-params fails on the
+     ;; consumed body (IOException: Stream closed), so the route no longer adds it.
+     ["/fecho" :post [params/keyword-params echo] :route-name :echo-form]]))
 
 (defn- param-get [u q] (request :get u :query-string q))
 (defn- param-post [u b q] (form-post u b :query-string q))

@@ -52,18 +52,31 @@
     (internal/var->keyword handler)
     (internal/symbol->keyword handler)))
 
+(defn- check-symbol
+  "Converts a symbol handler to an interceptor before its route name is derived from the symbol.
+  Pedestal doesn't convert symbols to interceptors, so this fails, before any route name is derived;
+  but a compatibility shim, which extends IntoInterceptor to symbols, gets the same route as
+  Pedestal 0.8 (the route name comes from the symbol). Returns the handler."
+  [handler]
+  (when (symbol? handler)
+    (i/interceptor handler))
+  handler)
+
 (defn- handler-map
   [m]
+  ;; The symbol cases are kept for a compatibility shim, which extends IntoInterceptor and
+  ;; ExpandableVerbAction to symbols and lists: with it, a symbol handler gets the same route name
+  ;; as in Pedestal 0.8. Without it, check-symbol fails.
   (cond
     (or (symbol? m) (var? m))
-    (let [handler-name (symbol-or-var->keyword m)]
+    (let [handler-name (symbol-or-var->keyword (check-symbol m))]
       {:route-name handler-name
        :handler    (resolve-interceptor m handler-name)})
 
     (instance? IPersistentMap m)
     (let [{:keys [route-name handler interceptors]} m
           handler-name     (cond
-                             (or (symbol? handler) (var? handler)) (symbol-or-var->keyword handler)
+                             (or (symbol? handler) (var? handler)) (symbol-or-var->keyword (check-symbol handler))
                              (interceptor? handler) (:name handler))
           interceptor      (resolve-interceptor
                              handler (or route-name handler-name))

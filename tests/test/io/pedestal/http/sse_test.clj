@@ -18,7 +18,7 @@
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.connector :as conn]
             [clojure.core.async :refer [go >! <! timeout close! chan put!]]
-            [io.pedestal.http.sse :as sse :refer [start-event-stream]]
+            [io.pedestal.http.sse :as sse]
             [io.pedestal.test-common :refer [<!!?]]
             [clojure.test :refer [deftest is]]
             [io.pedestal.http.cors :as cors])
@@ -31,11 +31,16 @@
            (java.util.concurrent Flow$Subscriber)))
 
 (deftest sse-start-stream
+  ;; Pedestal 1.0 removed start-event-stream; its replacement is start-stream, called from your own
+  ;; interceptor (here with the arguments that start-event-stream used to pass).
   (let [fake-context        {:request {:headers {"origin" "http://foo.com:8080"}}}
         interceptor-context (chain/enqueue* fake-context
                                             (cors/allow-origin ["http://foo.com:8080"])
-                                            ;; The `stream-ready-fn` takes the channel and the context
-                                            (start-event-stream (fn [ch _context] ch)))
+                                            (interceptor/interceptor
+                                              {:name  ::start-stream
+                                               :enter (fn [context]
+                                                        ;; The `stream-ready-fn` takes the channel and the context
+                                                        (sse/start-stream (fn [ch _context] ch) context 10 10))}))
         {{body                                          :body
           {content-type  "Content-Type"
            connection    "Connection"

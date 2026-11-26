@@ -11,7 +11,9 @@
 
 (ns io.pedestal.deprecations-test
   "Every deprecation warning in Pedestal's sources says what Pedestal 1.0 does with the deprecated
-  functionality, names the replacement, and links to a section of the deprecations page that exists."
+  functionality, names the replacement, and links to a section of the deprecations page that exists.
+  Every removed! call (the errors for removed options that would otherwise be silently ignored) names
+  the replacement and links to such a section too."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [clojure.test :refer [deftest is testing]])
@@ -45,30 +47,67 @@
                      (recur (inc j) (dec depth)))
         (recur (inc j) depth)))))
 
-(defn- deprecation-calls
-  []
+(defn- calls
+  "Finds the forms in the modules' sources that start with a match of re (which ends at the symbol)."
+  [re]
   (for [module modules
         ^File file (file-seq (io/file ".." module "src"))
         :when (string/ends-with? (.getName file) ".clj")
         :let [source  (slurp file)
-              matcher (re-matcher #"\((?:i/|internal/)?deprecated\s" source)]
+              matcher (re-matcher re source)]
         start (take-while some? (repeatedly #(when (.find matcher) (.start matcher))))]
     {:file (str module "/" (.getPath (.relativize (.toURI (io/file ".." module)) (.toURI file))))
      :line (inc (count (filter #{\newline} (subs source 0 start))))
      :form (form-at source start)}))
 
+(defn- deprecation-calls
+  []
+  (calls #"\((?:i/|internal/)?deprecated\s"))
+
+(defn- removal-sites
+  "Calls to removed!."
+  []
+  (calls #"\((?:i/|internal/)?removed!\s"))
+
+(defn- anchors
+  []
+  (->> (slurp deprecations-page)
+       (re-seq #"(?m)^\[#([a-z0-9-]+)\]")
+       (map second)
+       set))
+
+(defn- literal-docs-anchor
+  [form]
+  (second (re-find #":docs\s+\"([^\"]+)\"" form)))
+
 (deftest every-deprecation-warning-says-what-1-0-does
   (let [calls   (deprecation-calls)
-        anchors (->> (slurp deprecations-page)
-                     (re-seq #"(?m)^\[#([a-z0-9-]+)\]")
-                     (map second)
-                     set)]
-    (is (< 40 (count calls)) "found the deprecation warnings")
+        anchors (anchors)]
+    ;; Pedestal 1.0 removed the rest; at most the warning for anonymous interceptors remains (it goes
+    ;; away when unnamed interceptors get a name automatically).
+    (is (<= (count calls) 1) "found the deprecation warnings")
     (doseq [{:keys [file line form]} calls]
       (testing (str file ":" line)
         (is (string/includes? form ":replacement"))
         (is (or (string/includes? form ":removed-in")
                 (string/includes? form ":outcome")))
-        (let [anchor (second (re-find #":docs\s+\"([^\"]+)\"" form))]
+        (let [anchor (literal-docs-anchor form)]
+          (is (contains? anchors anchor)
+              (str "no section [#" anchor "] in " deprecations-page)))))))
+
+(deftest every-removal-names-the-replacement-and-its-section
+  (let [sites   (removal-sites)
+        anchors (anchors)]
+    ;; The :insecure-ssl? and :websockets options of Jetty's create-server, and the :array-coerce-fn
+    ;; option of custom-json-parser.
+    (is (= #{["jetty/src/io/pedestal/http/jetty.clj" 2]
+             ["service/src/io/pedestal/http/body_params.clj" 1]}
+           (->> sites (map :file) frequencies set))
+        "found the removal sites")
+    (doseq [{:keys [file line form]} sites]
+      (testing (str file ":" line)
+        (is (string/includes? form ":replacement"))
+        (let [anchor (literal-docs-anchor form)]
+          (is (some? anchor) "a literal :docs anchor")
           (is (contains? anchors anchor)
               (str "no section [#" anchor "] in " deprecations-page)))))))

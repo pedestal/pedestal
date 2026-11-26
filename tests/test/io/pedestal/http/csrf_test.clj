@@ -10,11 +10,12 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.http.csrf-test
-  (:require [io.pedestal.http :as service]
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.connector.test :as test]
+            [io.pedestal.http.jetty :as jetty]
             [io.pedestal.http.ring-middlewares :as rm]
             [clojure.test :refer [deftest is are testing]]
             [io.pedestal.http.csrf :as csrf]
-            [io.pedestal.test :refer [response-for]]
             [clojure.string :as s]))
 
 (def success-msg "Success!")
@@ -37,19 +38,23 @@
                   headers (merge {} (when token {"csrf-token" token}))]
               (assoc-in context [:response :headers] headers)))})
 
+;; Was syntax-quoted: the handlers are now Vars and the interceptor expressions are called.
 (def request-handling-routes
-  `[[:request-handling "csrf-test.pedestal"
-     ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (csrf/anti-forgery)]
-      ["/leaf" {:any [:leaf terminator]}]
-      ["/rotate-token" {:any [:rotate-token rotate-token-handler]}]]]])
+  [[:request-handling "csrf-test.pedestal"
+    ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (csrf/anti-forgery)]
+     ["/leaf" {:any [:leaf #'terminator]}]
+     ["/rotate-token" {:any [:rotate-token #'rotate-token-handler]}]]]])
 
-(defn make-app [options]
-  (-> options
-      service/default-interceptors
-      service/service-fn
-      ::service/service-fn))
+;; Was default-interceptors with the ::service/routes option.
+(def app
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors)
+      (conn/with-routes request-handling-routes)
+      (jetty/create-connector nil)))
 
-(def app (make-app {::service/routes request-handling-routes}))
+(defn- response-for
+  [connector verb url & {:as options}]
+  (test/response-for connector verb url options))
 
 (def url "http://csrf-test.pedestal/anti-forgery/leaf")
 

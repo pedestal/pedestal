@@ -15,10 +15,10 @@
             #_:clj-kondo/ignore
             [net.lewisship.trace :refer [trace]]
             [charred.api :as json]
-            [io.pedestal.http :as service]
-            [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.http.body-params :refer [body-params]]
-            [io.pedestal.test :refer [response-for]]))
+            [io.pedestal.connector :as conn]
+            [io.pedestal.connector.test :as test]
+            [io.pedestal.http.jetty :as jetty]
+            [io.pedestal.interceptor :refer [interceptor]]))
 
 ;; Going to create a simple, default application with two cases:
 ;; 1. A simple POST request to a handler that succeeds
@@ -41,21 +41,25 @@
 (defn fail-handler [_]
   (throw (Exception. "Failure inside fail-handler.")))
 
+;; The /echo route had (body-params): with-default-interceptors includes it.
 (def ^:private routes
-  #{["/echo" :post [(body-params) echo-handler] :route-name ::echo]
+  #{["/echo" :post echo-handler :route-name ::echo]
     ["/fail" :get [eat-exception fail-handler] :route-name ::fail]})
 
-(def service-fn
-  (-> {::service/routes routes}
-      service/default-interceptors
-      service/service-fn
-      ::service/service-fn))
+;; Was an io.pedestal.http service-fn, run with io.pedestal.test/response-for (through the servlet API);
+;; io.pedestal.connector.test/response-for executes the interceptor chain without the servlet API,
+;; so the results below are not directly comparable with newer runs.
+(def connector
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors)
+      (conn/with-routes routes)
+      (jetty/create-connector nil)))
 
 (defn json-response-for
   [url body-data]
-  (response-for service-fn :post url
-                :headers {"Content-Type" "application/json"}
-                :body (json/write-json-str body-data)))
+  (test/response-for connector :post url
+                     :headers {"content-type" "application/json"}
+                     :body (json/write-json-str body-data)))
 
 (comment
   (c/with-progress-reporting
@@ -65,7 +69,7 @@
 
   (c/with-progress-reporting
     (c/bench
-      (do (response-for service-fn :get "/fail")
+      (do (test/response-for connector :get "/fail")
           nil)))
   )
 

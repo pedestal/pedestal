@@ -16,7 +16,7 @@
   common interceptor creation patterns."
   (:require [io.pedestal.internal :as i]
             [io.pedestal.interceptor.impl :as impl])
-  (:import (clojure.lang Cons Fn IPersistentList IPersistentMap Symbol Var)
+  (:import (clojure.lang Fn IPersistentMap Var)
            (java.io Writer)))
 
 (def ^:dynamic ^{:added "0.8.0"} *default-handler-names*
@@ -73,29 +73,6 @@
     ;; identified in error messages.
     (with-meta (-interceptor (fn->interceptor f))
                {::handler-fn f}))
-
-  IPersistentList
-  (-interceptor [l]
-    (i/deprecated ::expression
-      :noun "conversion of expressions to interceptors"
-      :in "0.7.0"
-      :removed-in "1.0"
-      :replacement "Call the function when the interceptors are defined instead, without quoting the expression."
-      :docs "quoted-routes")
-    (-interceptor (eval l)))
-
-  Cons
-  (-interceptor [c]
-    (i/deprecated ::expression
-      :noun "conversion of expressions to interceptors"
-      :in "0.7.0"
-      :removed-in "1.0"
-      :replacement "Call the function when the interceptors are defined instead, without quoting the expression."
-      :docs "quoted-routes")
-    (-interceptor (eval c)))
-
-  Symbol
-  (-interceptor [sym] (-interceptor (resolve sym)))
 
   Var
   (-interceptor [v] (-interceptor (deref v)))

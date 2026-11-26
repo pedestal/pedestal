@@ -17,13 +17,11 @@
             [io.pedestal.connector :as connector]
             [io.pedestal.connector.jdk-httpserver :as jdk-httpserver]
             [io.pedestal.connector.test :as test]
-            [io.pedestal.http :as http]
             [io.pedestal.http.http-kit :as hk]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.http.jetty :as jetty]
             [io.pedestal.http.route.definition.table :as table]
-            [io.pedestal.internal :as i]
-            [io.pedestal.test :as servlet-test])
+            [io.pedestal.servlet-support :as servlet-support])
   (:import (java.io ByteArrayOutputStream)))
 
 (def a-uuid #uuid "6a721905-7cb3-45f8-93cb-cab9c90b4100")
@@ -91,14 +89,15 @@
       (connector/with-routes routes)))
 
 (deftest servlet-writes-simple-bodies
-  ;; The io.pedestal.http and io.pedestal.test path, as used by common-io
-  (let [service-fn (i/with-deprecations-suppressed
-                     (-> {::http/routes routes}
-                         http/default-interceptors
-                         http/service-fn
-                         ::http/service-fn))]
-    (check-responses #(i/with-deprecations-suppressed
-                        (servlet-test/response-for service-fn :get % :timeout 1000)))))
+  ;; Was the io.pedestal.http and io.pedestal.test path: an FnServlet running
+  ;; http-interceptor-service-fn (what io.pedestal.http/service-fn built), with the default interceptors.
+  (let [servlet (servlet-support/create-servlet (connector-map) {:servlet :fn-servlet})]
+    (check-responses #(servlet-support/response-for servlet :get % :timeout 1000))))
+
+(deftest connector-servlet-writes-simple-bodies
+  ;; The same, through the ConnectorServlet and io.pedestal.connector.servlet/create-bridge (WAR deployment).
+  (let [servlet (servlet-support/create-servlet (connector-map))]
+    (check-responses #(servlet-support/response-for servlet :get % :timeout 1000))))
 
 (deftest jetty-connector-writes-simple-bodies
   (let [conn (jetty/create-connector (connector-map) nil)]
@@ -112,9 +111,10 @@
   (let [conn (jdk-httpserver/create-connector (connector-map) nil)]
     (check-responses #(test/response-for conn :get %))))
 
+;; The default-content-type method of WriteableBody was removed in Pedestal 1.0 (see removals-test);
+;; the default content types are checked by check-responses, above.
 (deftest write-body-to-stream-matches-pr
-  (doseq [[_ body expected-body expected-content-type] cases]
+  (doseq [[_ body expected-body] cases]
     (let [output-stream (ByteArrayOutputStream.)]
       (si/write-body-to-stream body output-stream)
-      (is (= expected-body (.toString output-stream "UTF-8")))
-      (is (= expected-content-type (si/default-content-type body))))))
+      (is (= expected-body (.toString output-stream "UTF-8"))))))

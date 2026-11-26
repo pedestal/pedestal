@@ -12,7 +12,8 @@
 (ns io.pedestal.http.definition.table-test
   (:require [clojure.test :refer [deftest is testing]]
             [io.pedestal.http.route.definition.table :refer [table-routes]]
-            [io.pedestal.interceptor :as interceptor])
+            [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.quoted-routes-shim :as shim])
   (:import (java.lang AssertionError)))
 
 (deftest can-support-extra-key-value-pairs
@@ -37,6 +38,7 @@
         #".*\Qadditional key :path conflicts with standard route key\E.*"
         (table-routes [["/api/foo" :get identity :path :conflict]]))))
 
+
 (defn handler
   [_request]
   {:status 200})
@@ -49,12 +51,13 @@
 
 (deftest route-name-from-a-var-handler
   ;; Without default handler names, the interceptor created from the handler has no name: the route name
-  ;; comes from the Var, as it does from the quoted symbol (and as in terse routes).
+  ;; comes from the Var, as it did from the quoted symbol (and as in terse routes).
   (doseq [default-handler-names? [true false]]
     (testing (str "with *default-handler-names* " default-handler-names?)
       (binding [interceptor/*default-handler-names* default-handler-names?]
         (is (= [::handler] (route-names #{["/t" :get #'handler]})))
         (is (= [::handler] (route-names #{["/t" :get [#'handler]]})))
-        (is (= [::handler] (route-names `#{["/t" :get handler]}))
-            "the same route name as the quoted symbol")))))
-
+        (is (= [::handler]
+               (shim/with-shim
+                 (route-names `#{["/t" :get handler]})))
+            "the same route name as the symbol, under a compatibility shim")))))

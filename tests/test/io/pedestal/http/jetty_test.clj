@@ -18,18 +18,21 @@
 (ns io.pedestal.http.jetty-test
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [clojure.edn :as edn]
-            [io.pedestal.http :as bootstrap]
             [clj-http.client :as http]
             [hato.client :as hc]
+            [io.pedestal.connector :as conn]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.http.impl.servlet-interceptor :as servlet-interceptor]
             [io.pedestal.service.resources :as resources]
             [io.pedestal.test-common :as tc]
             [io.pedestal.http.jetty :as jetty]
             io.pedestal.http.jetty.specs)
-  (:import (jakarta.servlet.http HttpServletResponse)
+  (:import (jakarta.servlet DispatcherType)
+           (jakarta.servlet.http HttpServletResponse)
+           (java.util EnumSet)
+           (org.eclipse.jetty.ee10.servlet FilterHolder ServletContextHandler)
+           (org.eclipse.jetty.servlets DoSFilter)
+           (org.eclipse.jetty.server.handler.gzip GzipHandler)
            (org.eclipse.jetty.util.thread QueuedThreadPool)
            (org.eclipse.jetty.server Server Request)
            (org.eclipse.jetty.server.handler AbstractHandler)
@@ -79,36 +82,50 @@
                                         :pedestal.http.impl.servlet-interceptor/async-supported?))}
    :body    (:body request)})
 
-(defn jetty-server
-  [app options]
-  (jetty/server {::bootstrap/servlet (servlet/servlet :service (servlet-interceptor/http-interceptor-service-fn [(interceptor app)]))}
-                (assoc options :join? false)))
+;; Was jetty/server with an io.pedestal.http.servlet/servlet running only the app; now a connector
+;; whose only interceptor is the app. Jetty options go in the :container-options key of
+;; create-connector's second argument (the old options map was {:port ... :container-options ...}).
+
+(defn jetty-connector
+  [app {:keys [port container-options]}]
+  (jetty/create-connector (-> (conn/default-connector-map port)
+                              (conn/with-interceptor (interceptor app)))
+                          {:container-options container-options}))
+
+(defn- jetty-server
+  "Creates a connector (not started) and returns its Jetty Server. The connector doesn't expose the
+  Server, so it is captured with the :configurator container option (which runs last)."
+  ^Server [app options]
+  (let [*server      (atom nil)
+        configurator (get-in options [:container-options :configurator] identity)]
+    (jetty-connector app (assoc-in options [:container-options :configurator]
+                                   (fn [server]
+                                     (reset! *server (configurator server)))))
+    @*server))
 
 (defmacro with-server [app options & body]
-  `(let [server# (jetty-server ~app ~options)]
+  `(let [connector# (jetty-connector ~app ~options)]
      (try
-       ((:start-fn server#))
+       (conn/start! connector#)
        ~@body
-       (finally ((:stop-fn server#))))))
+       (finally (conn/stop! connector#)))))
 
 ;; -----------------
 ;; !!! CAUTION !!!
 ;;
-;; Using this macro creates a full service which introduces many interceptors
+;; Using this macro creates a full connector which introduces many interceptors
 ;; into the interceptor chain.
-;; This doesn't isolate the service as well as `with-server`.
+;; This doesn't isolate the connector as well as `with-server`.
 ;;
 ;; Prefer `with-server` unless you're testing something that
-;; requires routes/service-map/etc.
+;; requires routes/default interceptors/etc.
 ;; -----------------------------
-(defmacro with-service-server [service-map & body]
-  `(let [server# (bootstrap/create-server (merge {::bootstrap/type  :jetty
-                                                  ::bootstrap/join? false}
-                                                 ~service-map))]
+(defmacro with-connector-server [connector-map container-options & body]
+  `(let [connector# (jetty/create-connector ~connector-map {:container-options ~container-options})]
      (try
-       (bootstrap/start server#)
+       (conn/start! connector#)
        ~@body
-       (finally (bootstrap/stop server#)))))
+       (finally (conn/stop! connector#)))))
 
 (deftest http-roundrip
   (with-server hello-world {:port 4347}
@@ -163,9 +180,9 @@
                          (.setAttribute server "ANewAttribute" 42)
                          (.setHandler server new-handler)
                          server)
-        ^Server server (::jetty/server (jetty-server hello-world
-                                              {:join? false :port 4347 :container-options {:max-threads  max-threads
-                                                                                           :configurator configurator}}))]
+        ^Server server (jetty-server hello-world
+                                     {:port 4347 :container-options {:max-threads  max-threads
+                                                                     :configurator configurator}})]
     (is (= (.getMaxThreads ^QueuedThreadPool (.getThreadPool server)) max-threads))
     (is (= (.getAttribute server "ANewAttribute") 42))
     (is (identical? new-handler (.getHandler server)))
@@ -174,14 +191,14 @@
 
 (deftest setting-daemon-threads
   (testing "default (daemon off)"
-    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false}))]
-      (is (not (.. server getThreadPool isDaemon)))))
+    (let [server (jetty-server hello-world {:port 4347})]
+      (is (not (.isDaemon ^QueuedThreadPool (.getThreadPool server))))))
   (testing "daemon on"
-    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? true}}))]
-      (is (.. server getThreadPool isDaemon))))
+    (let [server (jetty-server hello-world {:port 4347 :container-options {:daemon? true}})]
+      (is (.isDaemon ^QueuedThreadPool (.getThreadPool server)))))
   (testing "daemon off"
-    (let [server (::jetty/server (jetty-server hello-world {:port 4347 :join? false :container-options {:daemon? false}}))]
-      (is (not (.. server getThreadPool isDaemon))))))
+    (let [server (jetty-server hello-world {:port 4347 :container-options {:daemon? false}})]
+      (is (not (.isDaemon ^QueuedThreadPool (.getThreadPool server)))))))
 
 
 (deftest default-character-encoding
@@ -236,35 +253,40 @@
 ;; Servlet Context Path tests
 ;; --------------------------
 
-(def routes
-  (route/expand-routes
-    #{["/hello" :get `hello-world :route-name :hello]}))
+;; Was a syntax-quoted symbol; the Var gives the same route.
+(def route-spec
+  #{["/hello" :get #'hello-world :route-name :hello]})
 
-(def service-map
-  {::bootstrap/type   :jetty
-   ::bootstrap/routes routes
-   ::bootstrap/port   4347})
+(def routes
+  (route/expand-routes route-spec))
+
+;; Was the service map {::bootstrap/type :jetty ::bootstrap/routes routes ::bootstrap/port 4347},
+;; with the default interceptors.
+(defn connector-map
+  []
+  (-> (conn/default-connector-map 4347)
+      (conn/with-default-interceptors)
+      (conn/with-routes route-spec)))
 
 (deftest test-run-jetty-context-path
   (testing "default context-path"
-    (with-service-server service-map
-                         (let [response (http/get "http://localhost:4347/hello")
-                               url-for  (route/url-for-routes routes)]
-                           (is (= (:status response) 200))
-                           (is (.startsWith ^String (get-in response [:headers "content-type"])
-                                            "text/plain"))
-                           (is (= (:body response) "Hello World"))
-                           (is (= (url-for :hello) "/hello")))))
+    (with-connector-server (connector-map) nil
+                           (let [response (http/get "http://localhost:4347/hello")
+                                 url-for  (route/url-for-routes routes)]
+                             (is (= (:status response) 200))
+                             (is (.startsWith ^String (get-in response [:headers "content-type"])
+                                              "text/plain"))
+                             (is (= (:body response) "Hello World"))
+                             (is (= (url-for :hello) "/hello")))))
   (testing "custom context-path"
-    (with-service-server (merge service-map
-                                {::bootstrap/container-options {:context-path "/context"}})
-                         (let [response (http/get "http://localhost:4347/context/hello")
-                               url-for  (route/url-for-routes routes :context "/context")]
-                           (is (= (:status response) 200))
-                           (is (.startsWith ^String (get-in response [:headers "content-type"])
-                                            "text/plain"))
-                           (is (= (:body response) "Hello World"))
-                           (is (= (url-for :hello) "/context/hello"))))))
+    (with-connector-server (connector-map) {:context-path "/context"}
+                           (let [response (http/get "http://localhost:4347/context/hello")
+                                 url-for  (route/url-for-routes routes :context "/context")]
+                             (is (= (:status response) 200))
+                             (is (.startsWith ^String (get-in response [:headers "content-type"])
+                                              "text/plain"))
+                             (is (= (:body response) "Hello World"))
+                             (is (= (url-for :hello) "/context/hello"))))))
 
 (def small-buffer-size
   (interceptor
@@ -275,40 +297,36 @@
               context)}))
 
 (deftest access-an-async-response
-  (with-service-server (-> service-map
-                           (assoc ::bootstrap/routes
-                                  (route/expand-routes
-                                    (resources/file-routes {:file-root "file-root"})))
-                           bootstrap/default-interceptors
-                           (update ::bootstrap/interceptors conj small-buffer-size))
-                       (is (match?
-                             {:status 200
-                              :body   (slurp "file-root/sub/image.jpg")}
-                             (http/get "http://localhost:4347/sub/image.jpg")))))
+  ;; Was default-interceptors, then small-buffer-size appended after the routing interceptors.
+  (with-connector-server (-> (conn/default-connector-map 4347)
+                             (conn/with-default-interceptors)
+                             (conn/with-routes (resources/file-routes {:file-root "file-root"}))
+                             (conn/with-interceptor small-buffer-size))
+                         nil
+                         (is (match?
+                               {:status 200
+                                :body   (slurp "file-root/sub/image.jpg")}
+                               (http/get "http://localhost:4347/sub/image.jpg")))))
 
 (defn hello-page2 [_request]
   {:status  200
    :headers {"Content-Type" "text/plain"}
    :body    (route/url-for :hello)})
 
-(def routes2
-  (route/expand-routes
-    #{["/hello" :get `hello-page2 :route-name :hello]}))
-
-(def service-map2
-  {::bootstrap/type   :jetty
-   ::bootstrap/routes routes2
-   ::bootstrap/port   4347})
+(def route-spec2
+  #{["/hello" :get #'hello-page2 :route-name :hello]})
 
 (deftest test-run-jetty-custom-context-with-servletcontext
   (testing "custom context-path via servlet context"
-    (with-service-server (merge service-map2
-                                {::bootstrap/container-options {:context-path "/context2"}})
-                         (let [response (http/get "http://localhost:4347/context2/hello")]
-                           (is (= (:status response) 200))
-                           (is (.startsWith ^String (get-in response [:headers "content-type"])
-                                            "text/plain"))
-                           (is (= (:body response) "/context2/hello"))))))
+    (with-connector-server (-> (conn/default-connector-map 4347)
+                               (conn/with-default-interceptors)
+                               (conn/with-routes route-spec2))
+                           {:context-path "/context2"}
+                           (let [response (http/get "http://localhost:4347/context2/hello")]
+                             (is (= (:status response) 200))
+                             (is (.startsWith ^String (get-in response [:headers "content-type"])
+                                              "text/plain"))
+                             (is (= (:body response) "/context2/hello"))))))
 
 (def ^:private create-server #'jetty/create-server)
 
@@ -342,3 +360,60 @@
                                                                     :version     :http-2}})]
       (is (= (:status response) 200))
       (is (= (:body response) "Hello World")))))
+
+;; Moved from io.pedestal.http.jetty-util-test (io.pedestal.http.jetty.util was removed in Pedestal 1.0).
+
+;; NOTE:
+;;   In later versions of Jetty, GZip became a `Handler` to allow it to optimize
+;;   async requests.  The Gzip ServletFilter example has been updated.
+;;
+;;   Servlet Filters are now tested using DoSFilter
+
+(deftest simple-gzip-handler
+  (testing "A Simple GZip Handler"
+    (with-server hello-world {:port              4347
+                              :container-options {:context-configurator (fn [^ServletContextHandler c]
+                                                                          (let [gzip-handler (GzipHandler.)]
+                                                                            (.insertHandler c gzip-handler)
+                                                                            c))}}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (.startsWith ^String (:orig-content-encoding response) "gzip"))
+        (is (= (:body response) "Hello World"))))))
+
+;; jetty-util/add-servlet-filter and filter-holder were removed; as the deprecation suggests,
+;; the :context-configurator uses Jetty's API directly (what those functions did).
+
+(defn- add-servlet-filter
+  [^ServletContextHandler context ^FilterHolder holder]
+  (.addFilter context holder "/*" (EnumSet/of DispatcherType/REQUEST))
+  context)
+
+(defn- custom-dos
+  ^FilterHolder []
+  (doto (FilterHolder. (DoSFilter.))
+    (.setInitParameter "maxRequestsPerSec" "1")             ;; Default is 25
+    (.setInitParameter "insertHeaders" "true")))
+
+(deftest simple-dos-filter
+  (testing "A Simple DoS filter"
+    (with-server hello-world {:port              4347
+                              :container-options {:context-configurator #(add-servlet-filter % (FilterHolder. DoSFilter))}}
+      (let [response (http/get "http://localhost:4347")]
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= "close" (get-in response [:headers "connection"])))
+        (is (= (:body response) "Hello World")))))
+  (testing "A FilterHolder (also DoS)"
+    (with-server hello-world {:port              4347
+                              :container-options {:context-configurator #(add-servlet-filter % (custom-dos))}}
+      (let [response (http/get "http://localhost:4347")]
+        (http/get "http://localhost:4347")
+        (is (= (:status response) 200))
+        (is (.startsWith ^String (get-in response [:headers "content-type"])
+                         "text/plain"))
+        (is (= "close" (get-in response [:headers "connection"])))
+        (is (= (:body response) "Hello World"))))))

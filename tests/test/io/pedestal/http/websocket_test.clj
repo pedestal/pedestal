@@ -14,9 +14,8 @@
   (:require
     [clojure.test :refer [deftest is use-fixtures]]
     [hato.websocket :as ws]
-    [io.pedestal.http :as http]
+    [io.pedestal.connector :as conn]
     [io.pedestal.http.jetty :as jetty]
-    [io.pedestal.http.route :as route]
     [io.pedestal.http.route.definition.table :as table]
     [io.pedestal.interceptor :as interceptor]
     [io.pedestal.test-common :as tc]
@@ -25,6 +24,7 @@
     [io.pedestal.async-events :as async-events :refer [<event!! expect-event write-event]]
     [io.pedestal.websocket :as websocket])
   (:import (jakarta.websocket CloseReason CloseReason$CloseCodes Session)
+           (jakarta.websocket.server ServerEndpointConfig$Builder)
     #_:clj-kondo/ignore
            (java.net.http WebSocket)
            (java.nio ByteBuffer)))
@@ -41,7 +41,7 @@
                 (trace :in :on-open :session session :config _config)
                 (write-event :open session)
                 nil)
-   :on-close  (fn [_ _session reason]
+   :on-close  (fn [_ _session ^CloseReason reason]
                 (trace :in :on-close :session _session :reason reason)
                 (write-event :close
                              (-> reason .getCloseCode .getCode)
@@ -81,32 +81,40 @@
                                     (write-event :text (pr-str ws-config)))))))}))
 
 
+;; Non-routed WebSockets (the ::http/websockets service map key) were removed in Pedestal 1.0.
+;; The endpoint maps of the ws-map are now routed: each path gets a route whose interceptor is
+;; io.pedestal.websocket/websocket-upgrade, which passes the same endpoint map to
+;; create-server-endpoint-config (the path of the endpoint is the route's path).
+;; The server was created with io.pedestal.http/create-server (with the default interceptors);
+;; now it is a Jetty connector, with the same container options.
+
 (defn ws-server
   [websockets]
-  (http/create-server (cond-> {::http/type   jetty/server
-                               ::http/join?  false
-                               ::http/port   8080
-                               ::http/routes (route/routes-from
-                                               (table/table-routes {}
-                                                                   [["/routed/ws/echo/:prefix"
-                                                                     :get
-                                                                     echo-prefix-interceptor]
-                                                                    ["/routed/ws/config"
-                                                                     :get
-                                                                     extract-ws-config-interceptor]]))
-                               ::http/container-options {:ws-idle-timeout    9999
-                                                         :ws-max-text-size   8888
-                                                         :ws-max-binary-size 7777}}
-                        websockets (assoc ::http/websockets websockets))))
+  (-> (conn/default-connector-map 8080)
+      (conn/with-default-interceptors)
+      (conn/with-routes
+        (table/table-routes {}
+                            (into [["/routed/ws/echo/:prefix"
+                                    :get
+                                    echo-prefix-interceptor]
+                                   ["/routed/ws/config"
+                                    :get
+                                    extract-ws-config-interceptor]]
+                                  (for [[path endpoint-map] websockets]
+                                    [path :get (websocket/websocket-upgrade endpoint-map)
+                                     :route-name (keyword (str *ns*) path)]))))
+      (jetty/create-connector {:container-options {:ws-idle-timeout    9999
+                                                   :ws-max-text-size   8888
+                                                   :ws-max-binary-size 7777}})))
 
 (defmacro with-server
   [ws-map & body]
   `(let [server# (ws-server ~ws-map)]
      (try
-       (http/start server#)
+       (conn/start! server#)
        (do ~@body)
        (finally
-         (http/stop server#)))))
+         (conn/stop! server#)))))
 
 (deftest configuration-options
   (let [*builder (atom nil)
@@ -119,16 +127,19 @@
                                     (reset! *session session)
                                     (write-event :open session)))]
     (with-server ws-map
-                 (let [config (-> *builder deref .build)]
-                   (is (= "/ws" (.getPath config)))
-                   (is (= ["sub" "protocols"]
-                          (-> config .getSubprotocols vec))))
-
                  (let [session @(ws/websocket ws-uri {})]
                    (expect-event :open)
+
+                   ;; A routed endpoint is configured when the request is upgraded; a non-routed
+                   ;; endpoint was configured when the server started, before the connection.
+                   (let [config (.build ^ServerEndpointConfig$Builder @*builder)]
+                     (is (= "/ws" (.getPath config)))
+                     (is (= ["sub" "protocols"]
+                            (-> config .getSubprotocols vec))))
+
                    (ws/send! session "hello")
 
-                   (let [session @*session]
+                   (let [^Session session @*session]
                      (is (= 100000 (.getMaxIdleTimeout session))))))))
 
 (deftest client-sends-text

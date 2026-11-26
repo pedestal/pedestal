@@ -1,6 +1,7 @@
 (ns resource-playground
   "Used to compare performance of different resource exposing techniques (service-map configuration vs. routes"
-  (:require [io.pedestal.http :as http]
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.http.jetty :as jetty]
             [io.pedestal.service.resources :as resources]
             [io.pedestal.http.route.prefix-tree :as pf]
             [criterium.core :as c]
@@ -14,20 +15,20 @@
 
 (defn create-server
   []
-  (http/create-server
-    {::http/port          8890
-     ::http/type          :jetty
-     ::http/join?         false
-     ;    ::http/file-path     "file-root"
-     ; ::http/resource-path ""
-     ::http/routes        (route/routes-from
-                            #{["/version" :get version-handler :route-name ::version]}
-                            (resources/file-routes
-                              {:file-root "file-root"
-                               :prefix    "/files"})
-                            (resources/resource-routes
-                              {:resource-root ""
-                               :prefix        "/resources"}))}))
+  ;; Was io.pedestal.http/create-server with a service map (port 8890, Jetty, the default interceptors);
+  ;; the commented-out ::http/file-path and ::http/resource-path options would now be
+  ;; (conn/with-interceptor (ring-middlewares/file "file-root")) or (ring-middlewares/resource "").
+  (-> (conn/default-connector-map 8890)
+      (conn/with-default-interceptors)
+      (conn/with-routes
+        #{["/version" :get version-handler :route-name ::version]}
+        (resources/file-routes
+          {:file-root "file-root"
+           :prefix    "/files"})
+        (resources/resource-routes
+          {:resource-root ""
+           :prefix        "/resources"}))
+      (jetty/create-connector nil)))
 
 (def *service (atom nil))
 
@@ -37,7 +38,7 @@
     :already-started
     (do
       (reset! *service (-> (create-server)
-                            (http/start)))
+                            (conn/start!)))
       :started)))
 
 (defn stop
@@ -45,7 +46,7 @@
   (if-not (some? @*service)
     :not-running
     (do
-      (swap! *service http/stop)
+      (swap! *service conn/stop!)
       (reset! *service nil)
       :stopped)))
 

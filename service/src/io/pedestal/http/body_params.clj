@@ -20,7 +20,7 @@
             [io.pedestal.http.params :as pedestal-params]
             [io.pedestal.interceptor :refer [interceptor]]
             [cognitect.transit :as transit]
-            [io.pedestal.internal :refer [deprecated]]
+            [io.pedestal.internal :refer [removed!]]
             [ring.middleware.params :as params])
   (:import (java.io EOFException InputStream InputStreamReader PushbackInputStream PushbackReader)
            (java.util.regex Pattern)))
@@ -98,26 +98,15 @@
 
   - :key-fn - keyword
   - :eof-error? - false
-  - :eof-value - nil
-
-  The deprecated :array-coerce-fn is supported in 0.8.0, but overrides the :value-fn
-  option, if provided."
+  - :eof-value - nil"
   [& {:as options}]
-  (let [{:keys [array-coerce-fn]
-         :as   full-options} (merge {:key-fn     keyword
-                                     :eof-error? false
-                                     :eof-value  nil} options)
-        value-fn (when array-coerce-fn
-                   (deprecated ::array-coerce-fn
-                     :in "0.8.0"
-                     :noun ":array-coerce-fn option to io.pedestal.http.body-params/custom-json-parser"
-                     :removed-in "1.0"
-                     :replacement "Use the :value-fn option instead."
-                     :docs "array-coerce-fn")
-                   (fn [k v]
-                     (into (array-coerce-fn k) v)))
-        options' (cond-> full-options
-                   value-fn (assoc :value-fn value-fn))]
+  (when (contains? options :array-coerce-fn)
+    (removed! "The :array-coerce-fn option of io.pedestal.http.body-params/custom-json-parser"
+      :replacement "Use the :value-fn option instead."
+      :docs "array-coerce-fn"))
+  (let [options' (merge {:key-fn     keyword
+                         :eof-error? false
+                         :eof-value  nil} options)]
     (fn [request]
       (let [encoding    (or (:character-encoding request) "UTF-8")
             reader      (InputStreamReader.

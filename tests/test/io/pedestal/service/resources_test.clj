@@ -12,24 +12,30 @@
 (ns io.pedestal.service.resources-test
   (:require [clojure.java.io :as io]
             [clojure.test :refer [deftest is testing]]
-            [io.pedestal.http :as http]
-            [io.pedestal.test :as test]
-            [io.pedestal.service.resources :as resources]
-            [io.pedestal.http.route :as route]))
+            [io.pedestal.connector :as conn]
+            [io.pedestal.servlet-support :as servlet-support]
+            [io.pedestal.service.resources :as resources]))
 
-(defn service-map
+;; Was a service map ({::http/port 8888 ::http/routes (route/routes-from ...)}) passed to
+;; io.pedestal.test/create-responder, which ran it through the servlet API with the default interceptors.
+;; Now a connector map, run in a ConnectorServlet by io.pedestal.servlet-support (the servlet path matters
+;; here: large resources are written asynchronously, depending on the servlet response's buffer size).
+
+(defn connector-map
   [xf]
-  {::http/port   8888
-   ::http/routes (route/routes-from
-                   (resources/resource-routes (xf {:resource-root "io/pedestal/public"
-                                                   :prefix        "/res"}))
-                   (resources/file-routes (xf {:file-root "file-root"
-                                               :prefix    "/file"})))})
+  (-> (conn/default-connector-map 8888)
+      (conn/with-default-interceptors)
+      (conn/with-routes
+        (resources/resource-routes (xf {:resource-root "io/pedestal/public"
+                                        :prefix        "/res"}))
+        (resources/file-routes (xf {:file-root "file-root"
+                                    :prefix    "/file"})))))
+
 (defn create-responder
   ([] (create-responder identity))
   ([xf]
-   (-> (service-map xf)
-       test/create-responder)))
+   (-> (connector-map xf)
+       servlet-support/create-responder)))
 
 (deftest get-resource-that-exists
   (let [responder (create-responder)]
@@ -46,10 +52,10 @@
                 (responder :get "/res")))))
 
 (deftest resources-with-default-prefix
-  (let [responder        (-> {::http/port   8888
-                              ::http/routes (route/routes-from
-                                              (resources/resource-routes {:resource-root "clojure"}))}
-                             test/create-responder)
+  (let [responder        (-> (conn/default-connector-map 8888)
+                             (conn/with-default-interceptors)
+                             (conn/with-routes (resources/resource-routes {:resource-root "clojure"}))
+                             servlet-support/create-responder)
         expected-content (-> "clojure/test.clj" io/resource slurp)]
     (is (match? {:status 200
                  :body   expected-content}
@@ -233,11 +239,11 @@
   ;; see tests build.clj for generation of test jar
   ;; and tests deps.edn :paths for how we include it on classpath
 
-  (let [service-map {::http/port   8888
-                     ::http/routes (route/routes-from
-                                     (resources/resource-routes {:resource-root "pedestal/test"
-                                                                 :prefix "/res space"}))}
-        responder (test/create-responder service-map)
+  (let [responder (-> (conn/default-connector-map 8888)
+                      (conn/with-default-interceptors)
+                      (conn/with-routes (resources/resource-routes {:resource-root "pedestal/test"
+                                                                    :prefix        "/res space"}))
+                      servlet-support/create-responder)
         content   (-> "pedestal/test/path with spaces/some data.edn" io/resource slurp)]
     (is (match? {:status 200
                  :body   content}

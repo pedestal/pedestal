@@ -22,7 +22,6 @@
             [io.pedestal.http.response :as response]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.internal :refer [deprecated]]
             [io.pedestal.log :as log])
   (:import (io.pedestal.websocket FnEndpoint)
            (jakarta.servlet.http HttpServletRequest)
@@ -180,34 +179,6 @@
     {:name  ::websocket-upgrade
      :enter (fn [context]
               (upgrade-request-to-websocket context ws-endpoint-map))}))
-
-(defn add-endpoint
-  "Adds a WebSocket endpoint to a ServerContainer.
-
-  The endpoint is constructed around a ServerEndpointConfig creates by
-  [[create-server-endpoint-config]].
-
-  Returns nil."
-  {:deprecated "0.8.0"}
-  [^ServerContainer container ^String path ws-endpoint-map]
-  (deprecated `add-endpoint :in "0.8.0"
-    :removed-in "1.0"
-    :replacement "Use a routed WebSocket instead: io.pedestal.service.websocket/websocket-interceptor in a route."
-    :docs "websockets")
-  (let [config (create-server-endpoint-config path ws-endpoint-map)]
-    (.addEndpoint container config)
-    nil))
-
-(defn add-endpoints
-  "Adds all websocket endpoints in the path-map."
-  {:deprecated "0.8.0"}
-  [^ServerContainer container websockets-map]
-  (deprecated `add-endpoints :in "0.8.0"
-    :removed-in "1.0"
-    :replacement "Use routed WebSockets instead: io.pedestal.service.websocket/websocket-interceptor in a route."
-    :docs "websockets")
-  (doseq [[path endpoint] websockets-map]
-    (add-endpoint container path endpoint)))
 
 (defprotocol WebSocketSendAsync
   (ws-send-async [msg ^RemoteEndpoint$Async remote-endpoint]

@@ -21,7 +21,6 @@
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
             [io.pedestal.metrics :as metrics]
@@ -50,14 +49,16 @@
     (.getBufferSize response)))
 
 (defprotocol WriteableBody
-  (^:deprecated default-content-type [body] "Get default HTTP content-type for `body`.")
+  "Writes a response body to the servlet's output stream.
+
+  Pedestal 1.0 removed the default-content-type method, which Pedestal stopped calling in 0.8.3: remove it
+  from your implementations (a deftype or defrecord that still defines it fails to compile)."
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
 
 (extend-protocol WriteableBody
 
   String
 
-  (default-content-type [_] "text/plain")
   (write-body-to-stream [string output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
       (.write writer string)
@@ -65,7 +66,6 @@
 
   IPersistentCollection
 
-  (default-content-type [_] "application/edn")
   (write-body-to-stream [o output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
       (binding [*out* writer]
@@ -74,19 +74,16 @@
 
   Fn
 
-  (default-content-type [_] nil)
   (write-body-to-stream [f output-stream]
     (f output-stream))
 
   File
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [file output-stream]
     (io/copy file output-stream))
 
   InputStream
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [input-stream output-stream]
     (try
       (io/copy input-stream output-stream)
@@ -98,24 +95,20 @@
 
   ReadableByteChannel
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [_ _])
 
   ByteBuffer
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [_ _])
 
   nil
-  (default-content-type [_] nil)
   (write-body-to-stream [_ _]))
 
 (extend (Class/forName "[B")
 
   WriteableBody
 
-  {:default-content-type (fn [_] "application/octet-stream")
-   :write-body-to-stream
+  {:write-body-to-stream
    (fn [^bytes byte-array output-stream]
      (io/copy byte-array output-stream))})
 
@@ -132,15 +125,13 @@
 
     WriteableBody
 
-    {:default-content-type (fn [_] "application/edn")
-     :write-body-to-stream write-edn}))
+    {:write-body-to-stream write-edn}))
 
 (extend ByteArrayOutputStream
 
   WriteableBody
 
-  {:default-content-type (fn [_] "application/octet-stream")
-   :write-body-to-stream
+  {:write-body-to-stream
    (fn [^ByteArrayOutputStream body ^OutputStream output-stream]
      (.writeTo body output-stream)
      (.flush output-stream))})
@@ -372,17 +363,6 @@
     (assoc response-mime/apply-default-content-type
       :name ::apply-default-content-type)))
 
-(def ^{:deprecated "0.8.0"} exception-debug
-  "An interceptor which catches errors, renders them to readable text
-  and sends them to the user. This interceptor is intended for
-  development time assistance in debugging problems in pedestal
-  services. Including it in interceptor paths on production systems
-  may present a security risk by exposing call stacks of the
-  application when exceptions are encountered.
-
-  DEPRECATED: Use io.pedestal.connector.dev/uncaught-exception instead."
-  (assoc dev/uncaught-exception :name ::exception-debug))
-
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the
   Servlet.service method. It executes the interceptors on an initial
@@ -431,7 +411,7 @@
   :exception-analyzer - function that analyzes exceptions that propagate
   up to the stylobate interceptor, defaults to [[default-exception-analyzer]].
 
-  This is normally called automatically from io.pedestal.http/service-fn."
+  This is normally called by a servlet-based connector, such as io.pedestal.http.jetty/create-connector."
   ([interceptors] (http-interceptor-service-fn interceptors {}))
   ([interceptors initial-context]
    (http-interceptor-service-fn interceptors initial-context nil))

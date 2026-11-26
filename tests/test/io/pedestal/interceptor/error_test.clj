@@ -13,8 +13,8 @@
   (:require [clojure.test :refer [deftest is]]
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.test :refer [response-for]]
-            [io.pedestal.http :as service]
+            [io.pedestal.connector :as conn]
+            [io.pedestal.servlet-support :as servlet-support]
             [ring.util.response :as ring-resp]
             [io.pedestal.interceptor.error :as error-int]))
 
@@ -40,21 +40,26 @@
   [_request]
   (throw (Exception. "Just testing the error-handler, this is not a real exception")))
 
+;; Was syntax-quoted; the handlers are now Vars.
 (def request-handling-routes
-  `[[:request-handling "error-dispatch.pedestal"
-     ["/" ^:interceptors [service-error-handler]
-      ["/div" {:any bad-page}]
-      ["/div2" {:any [::another-bad-one bad-page]}]
-      ["/drop" {:any drop-through}]]]])
+  [[:request-handling "error-dispatch.pedestal"
+    ["/" ^:interceptors [service-error-handler]
+     ["/div" {:any #'bad-page}]
+     ["/div2" {:any [::another-bad-one #'bad-page]}]
+     ["/drop" {:any #'drop-through}]]]])
 
-(defn make-app [options]
-  (-> options
-      service/default-interceptors
-      service/service-fn
-      ::service/service-fn))
-
+;; Was default-interceptors and service-fn, called through io.pedestal.test/response-for.
+;; The 500 response for an uncaught exception comes from the servlet interceptors, so the
+;; connector map runs in a ConnectorServlet (see io.pedestal.servlet-support).
 (def app (binding [interceptor/*default-handler-names* false]
-           (make-app {::service/routes request-handling-routes})))
+           (servlet-support/create-servlet
+             (-> (conn/default-connector-map -1)
+                 (conn/with-default-interceptors)
+                 (conn/with-routes request-handling-routes)))))
+
+(defn- response-for
+  [servlet verb url]
+  (servlet-support/response-for servlet verb url))
 
 (def url "http://error-dispatch.pedestal/div")
 (def url-two (str url "2"))

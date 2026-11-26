@@ -99,6 +99,9 @@
     (let [last-interceptor   (some-> interceptors last)
           interceptor-name   (:name last-interceptor)
           ;; A Var gives the same route name as the symbol that resolves to it (as in terse routes).
+          ;; The symbol case is kept for a compatibility shim, which extends IntoInterceptor to symbols
+          ;; and lists, so that it gets the same route names as Pedestal 0.8. Without such a shim,
+          ;; a symbol handler has already failed when it was converted to an interceptor.
           default-route-name (cond
                                interceptor-name interceptor-name
                                (symbol? last-handler) (internal/symbol->keyword last-handler)

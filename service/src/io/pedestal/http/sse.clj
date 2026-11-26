@@ -17,8 +17,6 @@
             [ring.util.response :as ring-response]
             [clojure.core.async :refer [go chan >! <!! timeout alts! put! close! thread]]
             [io.pedestal.log :as log]
-            [io.pedestal.internal :as i]
-            [io.pedestal.interceptor :as interceptor]
             [clojure.string :as string])
   (:import (com.fasterxml.jackson.core.util ByteArrayBuilder)))
 
@@ -202,42 +200,3 @@
                                    (when on-client-disconnect
                                      {:on-client-disconnect #(on-client-disconnect context*)}))))
      context*)))
-
-(defn ^{:deprecated "0.8.0"} start-event-stream
-  "Returns an interceptor which will start a Server Sent Event stream
-  with the requesting client, and set the ServletResponse to go
-  async. After the request handling context has been paused in the
-  Servlet thread, `stream-ready-fn` will be called in a future, with
-  the resulting context from setting up the SSE event stream.
-
-  opts is a map with optional keys:
-
-  :on-client-disconnect - A function of one argument which will be
-    called when the client permanently disconnects.
-
-  DEPRECATED: Invoke start-stream from your own interceptor."
-  ([stream-ready-fn]
-   (start-event-stream stream-ready-fn 10 10))
-  ([stream-ready-fn heartbeat-delay]
-   (start-event-stream stream-ready-fn heartbeat-delay 10))
-  ([stream-ready-fn heartbeat-delay bufferfn-or-n]
-   (start-event-stream stream-ready-fn heartbeat-delay bufferfn-or-n {}))
-  ([stream-ready-fn heartbeat-delay bufferfn-or-n opts]
-   (i/deprecated `start-event-stream :in "0.8.0"
-     :removed-in "1.0"
-     :replacement "Call io.pedestal.http.sse/start-stream from your own interceptor instead."
-     :docs "server-sent-events")
-   (interceptor/interceptor
-     {:name  (keyword (str (gensym "io.pedestal.http.sse/start-event-stream")))
-      :enter (fn [context]
-               (log/trace :msg "switching to sse")
-               (start-stream stream-ready-fn context heartbeat-delay bufferfn-or-n opts))})))
-
-(defn ^{:deprecated "0.7.0"} sse-setup
-  "See start-event-stream. This function is for backward compatibility."
-  [& args]
-  (i/deprecated `sse-setup :in "0.7.0"
-    :removed-in "1.0"
-    :replacement "Call io.pedestal.http.sse/start-stream from your own interceptor instead."
-    :docs "server-sent-events")
-  (apply start-event-stream args))
