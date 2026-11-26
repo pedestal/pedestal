@@ -98,9 +98,11 @@
     ctx
     (let [last-interceptor   (some-> interceptors last)
           interceptor-name   (:name last-interceptor)
+          ;; A Var gives the same route name as the symbol that resolves to it (as in terse routes).
           default-route-name (cond
                                interceptor-name interceptor-name
                                (symbol? last-handler) (internal/symbol->keyword last-handler)
+                               (var? last-handler) (internal/var->keyword last-handler)
                                :else nil)]
       (assert default-route-name (error ctx "the last interceptor does not have a name and there is no explicit :route-name"))
       (assoc ctx :route-name default-route-name))))
