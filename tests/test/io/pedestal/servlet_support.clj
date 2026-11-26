@@ -25,43 +25,20 @@
   - :fn-servlet: an io.pedestal.servlet.FnServlet (io.pedestal.http.servlet/servlet) running
     io.pedestal.http.impl.servlet-interceptor/http-interceptor-service-fn; this is what
     io.pedestal.http/create-servlet built in 0.8."
-  (:require [clojure.core.async :refer [put! close!]]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [io.pedestal.connector.servlet :as connector-servlet]
-            [io.pedestal.http.container :as container]
             [io.pedestal.http.impl.servlet-interceptor :as si]
-            [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.interceptor.chain :as chain])
+            [io.pedestal.http.servlet :as servlet])
   (:import (io.pedestal.servlet ConnectorServlet)
-           (io.pedestal.servlet.mock MockHttpServletResponse MockState)
+           (io.pedestal.servlet.mock MockState)
            (jakarta.servlet Servlet ServletConfig)
            (java.io BufferedInputStream ByteArrayInputStream File InputStream)
-           (java.nio.channels Channels ReadableByteChannel)
            (java.util HashMap Map$Entry)))
 
-;; Copied from io.pedestal.test (removed in 1.0): NIO bodies are written by the container,
-;; so the mock response needs its own implementation.
-
-(extend-protocol container/WriteNIOByteBody
-
-  MockHttpServletResponse
-
-  (write-byte-channel-body [response body resume-chan context]
-    (let [instream-body (Channels/newInputStream ^ReadableByteChannel body)]
-      (try (io/copy instream-body (.getOutputStream response))
-           (put! resume-chan context)
-           (catch Throwable t
-             (put! resume-chan (chain/with-error context t)))
-           (finally (close! resume-chan)))))
-
-  (write-byte-buffer-body [response body resume-chan context]
-    (let [out-chan (Channels/newChannel (.getOutputStream response))]
-      (try (.write out-chan body)
-           (put! resume-chan context)
-           (catch Throwable t
-             (put! resume-chan (chain/with-error context t)))
-           (finally (close! resume-chan))))))
+;; NIO bodies (ByteBuffer, ReadableByteChannel) are written by the default implementation of
+;; io.pedestal.http.container/WriteNIOByteBody for any HttpServletResponse (io.pedestal.test, removed in 1.0,
+;; extended the protocol to the mock response itself).
 
 (def ^:dynamic *connector-map* nil)
 

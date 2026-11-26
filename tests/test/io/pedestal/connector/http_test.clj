@@ -229,9 +229,10 @@
 (deftest sync-response-is-complete-when-the-servlet-returns
   ;; The body write fails before anything is flushed; a synchronous response is complete
   ;; once the servlet returns, so this must not wait for a completion that never comes.
+  ;; Since nothing was sent, the response is replaced by a 500 (before 1.0: a 200 with an empty body).
   (let [response (servlet-response-for :get "/failing-body" :timeout 1000)]
-    (is (= 200 (:status response)))
-    (is (= "" (:body response)))))
+    (is (= 500 (:status response)))
+    (is (= "Internal server error: exception" (:body response)))))
 
 (deftest json-body-test
   (let [response (response-for (app) :get "/data-as-json")]

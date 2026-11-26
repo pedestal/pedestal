@@ -193,9 +193,15 @@ class MockHttpServletResponse implements HttpServletResponse {
         state.responseCommitted = true;
     }
 
+    // The mock has no separate buffer: what was written before the response was committed
+    // (by a flush) is the buffered content.
+
     @Override
     public void resetBuffer() {
-
+        if (state.responseCommitted) {
+            throw new IllegalStateException("Response already committed");
+        }
+        state.responseStream.reset();
     }
 
     @Override
@@ -205,7 +211,11 @@ class MockHttpServletResponse implements HttpServletResponse {
 
     @Override
     public void reset() {
-
+        resetBuffer();
+        state.responseStatus = 0;
+        state.responseContentLength = 0;
+        state.setResponseHeaders.clear();
+        state.addedResponseHeaders.clear();
     }
 
     @Override

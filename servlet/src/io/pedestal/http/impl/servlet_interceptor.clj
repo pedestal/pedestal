@@ -175,14 +175,15 @@
       (async/>! resume-chan context)
       (async/close! resume-chan)))
 
+  ;; NIO bodies are written by io.pedestal.http.container/WriteNIOByteBody: through the output stream
+  ;; by default, or in a container-specific way (such as embedded Jetty's, which avoids copying the body).
+
   ReadableByteChannel
   (write-body-async [body servlet-response resume-chan context]
-    ;; Writing NIO is container specific, based on the implementation details of Response
     (container/write-byte-channel-body servlet-response body resume-chan context))
 
   ByteBuffer
   (write-body-async [body servlet-response resume-chan context]
-    ;; Writing NIO is container specific, based on the implementation details of Response
     (container/write-byte-buffer-body servlet-response body resume-chan context)))
 
 ;; Should we also set character encoding explicitly - if so, where
@@ -307,16 +308,38 @@
   (when-not (is-broken-pipe? exception)
     exception))
 
+(defn- send-error-if-uncommitted
+  "Called when writing the response failed (the exception reached the stylobate). If nothing has been sent
+  to the client yet (the response is not committed), discards the status, headers and buffered body, and
+  sends a 500 instead. Once the response is committed, the status has been sent and can't be changed."
+  [{:keys [^HttpServletResponse servlet-response] :as context}]
+  (when (and servlet-response
+             (response/response-expected? context)
+             (not (.isCommitted servlet-response)))
+    (try
+      (.reset servlet-response)
+      (send-error context "Internal server error: exception")
+      (catch Throwable t
+        ;; For example, embedded Jetty closes the output when an NIO body fails: the 500 status is sent,
+        ;; but not its body. The exception that caused the 500 has already been through the exception analyzer.
+        (log/warn :msg "Writing the error response failed"
+                  :exception t)))))
+
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
   async case. This is just to make sure exceptions get returned
   somehow; application code should probably catch and log exceptions
-  in its own interceptors."
+  in its own interceptors.
+
+  The exceptions that reach the stylobate are those thrown while writing the response (including
+  the asynchronous write of a ByteBuffer or ReadableByteChannel body): if the response isn't committed yet,
+  the client receives a 500; otherwise, the response ends after what was already sent."
   [error-analyzer context exception]
   (when-let [exception' (error-analyzer context exception)]
     (log/error :msg "error-stylobate triggered"
                :exception exception'
                :context context))
+  (send-error-if-uncommitted context)
   (leave-stylobate context))
 
 (defn- error-ring-response
