@@ -36,7 +36,7 @@
     (keyword (exceptions/demangle namespace-name)
              fn-name)))
 
-(defn- class->derived-name
+(defn ^:private class->derived-name
   "Like fn-name, but for a name that's only derived: the number in the name of a function
   created by eval (for example, a form at the top of a file or entered at the REPL), which changes
   from one run to the next, is dropped; and a class that isn't a Clojure function class (no $ in

@@ -57,7 +57,7 @@
     (internal/var->keyword handler)
     (internal/symbol->keyword handler)))
 
-(defn- check-symbol
+(defn ^:private check-symbol
   "Converts a symbol handler to an interceptor before its route name is derived from the symbol.
   Pedestal doesn't convert symbols to interceptors, so this fails, before any route name is derived;
   but a compatibility shim, which extends IntoInterceptor to symbols, gets the same route as

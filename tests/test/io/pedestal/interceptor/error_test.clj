@@ -57,7 +57,7 @@
                  (conn/with-default-interceptors)
                  (conn/with-routes request-handling-routes)))))
 
-(defn- response-for
+(defn ^:private response-for
   [servlet verb url]
   (servlet-support/response-for servlet verb url))
 

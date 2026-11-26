@@ -39,7 +39,7 @@
 
 (def ^:private *closed-channels (atom 0))
 
-(defn- tracking-channel
+(defn ^:private tracking-channel
   "Wraps a channel to count how many times it is closed."
   ^ReadableByteChannel [^ReadableByteChannel channel]
   (reify ReadableByteChannel
@@ -49,7 +49,7 @@
       (swap! *closed-channels inc)
       (.close channel))))
 
-(defn- failing-channel
+(defn ^:private failing-channel
   "A channel that returns n bytes (the letter A), then throws."
   ^ReadableByteChannel [n]
   (let [*remaining (atom n)]
@@ -66,7 +66,7 @@
       (close [_]
         (swap! *closed-channels inc)))))
 
-(defn- fn-body
+(defn ^:private fn-body
   "A function body that writes s, flushes when flush? is true, then throws."
   [^String s flush?]
   (fn [^OutputStream output-stream]
@@ -100,7 +100,7 @@
 
 (def ^:private error-text "Internal server error: exception")
 
-(defn- root-cause
+(defn ^:private root-cause
   [t]
   (if-let [cause (ex-cause t)]
     (recur cause)
@@ -127,7 +127,7 @@
                     ~@body)]
      [result# @*events#]))
 
-(defn- mock-get
+(defn ^:private mock-get
   [servlet-kind path]
   (let [servlet (servlet-support/create-servlet connector-map {:servlet servlet-kind})]
     (servlet-support/response-for servlet :get path)))
@@ -141,7 +141,7 @@
        (finally
          (conn/stop! connector#)))))
 
-(defn- jetty-get
+(defn ^:private jetty-get
   [path]
   (http/get (str "http://localhost:" port path) {:throw-exceptions false}))
 

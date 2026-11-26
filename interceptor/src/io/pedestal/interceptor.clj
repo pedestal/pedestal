@@ -108,7 +108,7 @@
          true)
     false))
 
-(defn- with-name
+(defn ^:private with-name
   "Gives an interceptor without a :name a derived name, from the function it was created from (a handler),
   or else from its :enter, :leave, or :error function. Without any function (which isn't a valid
   interceptor), the interceptor is returned unchanged."

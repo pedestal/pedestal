@@ -24,7 +24,7 @@
             [io.pedestal.connector.test :as test]
             [io.pedestal.http.jetty :as jetty]))
 
-(defn- echo-url
+(defn ^:private echo-url
   [request]
   {:status 200
    :body   (select-keys request [:scheme :server-name :server-port :uri :query-string])})
@@ -34,7 +34,7 @@
       (conn/with-interceptor echo-url)
       (jetty/create-connector nil)))
 
-(defn- request-for
+(defn ^:private request-for
   [url]
   (-> (test/response-for connector :get url)
       :body

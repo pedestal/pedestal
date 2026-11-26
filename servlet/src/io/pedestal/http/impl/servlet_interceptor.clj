@@ -308,7 +308,7 @@
   (when-not (is-broken-pipe? exception)
     exception))
 
-(defn- send-error-if-uncommitted
+(defn ^:private send-error-if-uncommitted
   "Called when writing the response failed (the exception reached the stylobate). If nothing has been sent
   to the client yet (the response is not committed), discards the status, headers and buffered body, and
   sends a 500 instead. Once the response is committed, the status has been sent and can't be changed."

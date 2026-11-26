@@ -79,7 +79,7 @@
 
 ;; The rest is io.pedestal.test/response-for, unchanged except that it takes a servlet.
 
-(defn- parse-url
+(defn ^:private parse-url
   [url]
   (let [[_ scheme raw-host path query-string] (re-matches #"(?:([^:]+)://)?([^/]+)?(?:/([^\?]*)(?:\?(.*))?)?" url)
         [host port] (when raw-host (string/split raw-host #":"))]
@@ -114,7 +114,7 @@
       is
       (BufferedInputStream. is 8000))))
 
-(defn- create-request-headers
+(defn ^:private create-request-headers
   [headers]
   (let [result (HashMap.)]
     (assert (every? string? (keys headers))
@@ -125,7 +125,7 @@
       (.put result k v))
     result))
 
-(defn- new-mock-state
+(defn ^:private new-mock-state
   ^MockState [verb url {:keys [body headers]
                         :or   {body ""}}]
   (let [{:keys [scheme host port path query-string]} (parse-url url)]
@@ -140,7 +140,7 @@
       (create-request-headers headers)
       (body->input-stream body))))
 
-(defn- extract-headers
+(defn ^:private extract-headers
   [^MockState state]
   (let [set-headers (reduce (fn [result ^Map$Entry e]
                               (assoc result (.getKey e) (.getValue e)))

@@ -36,7 +36,7 @@
   {:into-interceptor (select-keys (:impls interceptor/IntoInterceptor) into-interceptor-types)
    :verb-action      (select-keys (:impls terse/ExpandableVerbAction) verb-action-types)})
 
-(defn- install-shim!
+(defn ^:private install-shim!
   []
   (extend-protocol interceptor/IntoInterceptor
     Symbol
@@ -55,7 +55,7 @@
     IPersistentList
     (expand-verb-action [l] (terse/expand-verb-action (eval l)))))
 
-(defn- restore-protocol!
+(defn ^:private restore-protocol!
   "Puts back the extension of the protocol to each type as it was in saved: re-extends the protocol
   when there was an extension, and removes the shim's extension when there was none."
   [protocol-var types saved]
@@ -64,7 +64,7 @@
       (extend type @protocol-var method-map)
       (-reset-methods (alter-var-root protocol-var update :impls dissoc type)))))
 
-(defn- restore!
+(defn ^:private restore!
   [{:keys [into-interceptor verb-action]}]
   (restore-protocol! #'interceptor/IntoInterceptor into-interceptor-types into-interceptor)
   (restore-protocol! #'terse/ExpandableVerbAction verb-action-types verb-action))

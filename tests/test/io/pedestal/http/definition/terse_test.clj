@@ -152,7 +152,7 @@
 (def ^:private unsupported-interceptor
   "You're trying to use something as an interceptor that isn't supported by the protocol")
 
-(defn- no-verb-action-for
+(defn ^:private no-verb-action-for
   [^Class c]
   (re-pattern (str "\\QNo implementation of method: :expand-verb-action of protocol: "
                    "#'io.pedestal.http.route.definition.terse/ExpandableVerbAction found for class: "

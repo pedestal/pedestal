@@ -36,7 +36,7 @@
 
 (def ^:private deprecations-url "https://pedestal.io/pedestal/0.8/deprecations.html#")
 
-(defn- root-cause
+(defn ^:private root-cause
   [t]
   (if-let [c (ex-cause t)]
     (recur c)
@@ -44,7 +44,7 @@
 
 ;; Removed namespaces: their source is gone, so require fails with Clojure's error
 
-(defn- check-removed-namespace
+(defn ^:private check-removed-namespace
   [ns-sym]
   (let [path (-> ns-sym name (string/replace "-" "_") (string/replace "." "/"))]
     (testing (str "require " ns-sym)
@@ -73,7 +73,7 @@
 
 ;; Removed vars: their namespace still loads, but they don't resolve
 
-(defn- check-removed-var
+(defn ^:private check-removed-var
   [qualified-sym]
   (testing (str qualified-sym)
     (is (contains? (loaded-libs) (symbol (namespace qualified-sym))))
@@ -115,7 +115,7 @@
 
 ;; Removed options: each throws an error that says what to use instead
 
-(defn- check-removal
+(defn ^:private check-removal
   "Checks the root cause of the exception: its message says that what was removed (noun) was removed
   in Pedestal 1.0, contains each of the replacement's key words, and links to the anchor.
   Returns the root cause."

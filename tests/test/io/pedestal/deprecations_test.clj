@@ -47,7 +47,7 @@
                      (recur (inc j) (dec depth)))
         (recur (inc j) depth)))))
 
-(defn- calls
+(defn ^:private calls
   "Finds the forms in the modules' sources that start with a match of re (which ends at the symbol)."
   [re]
   (for [module modules
@@ -60,23 +60,23 @@
      :line (inc (count (filter #{\newline} (subs source 0 start))))
      :form (form-at source start)}))
 
-(defn- deprecation-calls
+(defn ^:private deprecation-calls
   []
   (calls #"\((?:i/|internal/)?deprecated\s"))
 
-(defn- removal-sites
+(defn ^:private removal-sites
   "Calls to removed!."
   []
   (calls #"\((?:i/|internal/)?removed!\s"))
 
-(defn- anchors
+(defn ^:private anchors
   []
   (->> (slurp deprecations-page)
        (re-seq #"(?m)^\[#([a-z0-9-]+)\]")
        (map second)
        set))
 
-(defn- literal-docs-anchor
+(defn ^:private literal-docs-anchor
   [form]
   (second (re-find #":docs\s+\"([^\"]+)\"" form)))
 

@@ -41,7 +41,7 @@
   (write-byte-channel-body [servlet-response body resume-chan context])
   (write-byte-buffer-body [servlet-response body resume-chan context]))
 
-(defn- write-through-output-stream
+(defn ^:private write-through-output-stream
   "Calls (write-fn output-stream), flushes the response, and puts the context (with the error attached,
   if any) on resume-chan."
   [^HttpServletResponse servlet-response write-fn resume-chan context]

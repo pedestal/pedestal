@@ -43,7 +43,7 @@
   [_request]
   {:status 200})
 
-(defn- route-names
+(defn ^:private route-names
   [route-spec]
   (->> (table-routes route-spec)
        :routes

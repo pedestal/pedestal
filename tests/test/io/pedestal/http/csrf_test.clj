@@ -52,7 +52,7 @@
       (conn/with-routes request-handling-routes)
       (jetty/create-connector nil)))
 
-(defn- response-for
+(defn ^:private response-for
   [connector verb url & {:as options}]
   (test/response-for connector verb url options))
 

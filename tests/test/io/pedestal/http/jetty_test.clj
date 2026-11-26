@@ -92,7 +92,7 @@
                               (conn/with-interceptor (interceptor app)))
                           {:container-options container-options}))
 
-(defn- jetty-server
+(defn ^:private jetty-server
   "Creates a connector (not started) and returns its Jetty Server. The connector doesn't expose the
   Server, so it is captured with the :configurator container option (which runs last)."
   ^Server [app options]
@@ -386,12 +386,12 @@
 ;; jetty-util/add-servlet-filter and filter-holder were removed; as the deprecation suggests,
 ;; the :context-configurator uses Jetty's API directly (what those functions did).
 
-(defn- add-servlet-filter
+(defn ^:private add-servlet-filter
   [^ServletContextHandler context ^FilterHolder holder]
   (.addFilter context holder "/*" (EnumSet/of DispatcherType/REQUEST))
   context)
 
-(defn- custom-dos
+(defn ^:private custom-dos
   ^FilterHolder []
   (doto (FilterHolder. (DoSFilter.))
     (.setInitParameter "maxRequestsPerSec" "1")             ;; Default is 25

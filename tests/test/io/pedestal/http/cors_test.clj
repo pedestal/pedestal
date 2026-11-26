@@ -27,14 +27,14 @@
                      :patch [:another-hello #'hello-world]}]]])
 
 ;; Was ::service/allowed-origins in the service map, with default-interceptors.
-(defn- make-app
+(defn ^:private make-app
   [allowed-origins]
   (-> (conn/default-connector-map -1)
       (conn/with-default-interceptors :allowed-origins allowed-origins)
       (conn/with-routes routes)
       (jetty/create-connector nil)))
 
-(defn- response-for
+(defn ^:private response-for
   [connector verb url & {:as options}]
   (test/response-for connector verb url options))
 

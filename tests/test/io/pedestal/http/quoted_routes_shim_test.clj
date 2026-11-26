@@ -98,7 +98,7 @@
    :table table-var-spec
    :plain plain-var-spec})
 
-(defn- table-of
+(defn ^:private table-of
   [spec]
   ;; The plain-quoted specification has unqualified symbols, resolved (and evaluated) in *ns*.
   (binding [*ns* (the-ns 'io.pedestal.http.quoted-routes-shim-test)]
@@ -109,7 +109,7 @@
          sort
          vec)))
 
-(defn- root-cause
+(defn ^:private root-cause
   [t]
   (if-let [c (ex-cause t)]
     (recur c)
@@ -128,7 +128,7 @@
    :table [AssertionError
            "Assert failed: In row 1, the handler should have been an interceptor but was io.pedestal.http.quoted-routes-shim-test/"]})
 
-(defn- assert-rejected
+(defn ^:private assert-rejected
   [label spec]
   (testing label
     (let [[exception-class message-start] (rejections label)]

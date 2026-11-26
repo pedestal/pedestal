@@ -48,7 +48,7 @@
     ["/unterminated"
      ["/leaf" {:get [:leaf2 #'leaf-handler]}]]]])
 
-(defn- response-for
+(defn ^:private response-for
   [connector verb url & {:as options}]
   (test/response-for connector verb url options))
 
@@ -94,7 +94,7 @@
   {:leave (fn [context]
             (assoc context :response (ring-response/not-found "Custom Not Found")))})
 
-(defn- make-app-with-not-found
+(defn ^:private make-app-with-not-found
   "Was default-interceptors with the ::service/not-found-interceptor option. with-default-interceptors
   always uses io.pedestal.service.interceptors/not-found, so the interceptors are listed, in the same order."
   [not-found-interceptor]

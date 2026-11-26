@@ -18,7 +18,7 @@
 (def app-routes
   [[["/hello" {:get #'hello-page}]]])
 
-(defn- response-for
+(defn ^:private response-for
   [connector verb url & {:as options}]
   (test/response-for connector verb url options))
 

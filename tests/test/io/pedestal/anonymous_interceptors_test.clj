@@ -34,7 +34,7 @@
   []
   (interceptor {:enter (fn [context] context)}))
 
-(defn- silently
+(defn ^:private silently
   "Invokes f, returning its result and everything printed to *out* and *err*; deprecation warnings
   are reset first, so that a warning already printed once would be printed again."
   [f]
@@ -139,7 +139,7 @@
 
 ;; Route names don't change: a derived name is never used as a route name.
 
-(defn- routing-table
+(defn ^:private routing-table
   [route-spec]
   (->> (route/expand-routes route-spec)
        :routes
