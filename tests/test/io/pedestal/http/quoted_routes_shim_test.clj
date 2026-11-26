@@ -65,14 +65,19 @@
 
 ;; What Pedestal 0.8.3 produced for the quoted specifications (out-baseline.edn of the hook check,
 ;; with its namespace replaced by this one): [path method route-name interceptor-names] per route.
+;;
+;; One intended difference: in table routes without default handler names, the handler interceptors
+;; had no name (nil) in 0.8.3. Pedestal 1.0 gives every unnamed interceptor a name derived from its
+;; function, here the handler's (::list-orders, ::create-order, ::get-order). The route names, paths,
+;; and methods are those of 0.8.3: route names never come from a derived name.
 (def expected-tables
   {[:plain false] [["/p" :get ::list-orders [::list-orders]]
                    ["/p/:id" :put :p/put [:p/put]]]
    [:plain true]  [["/p" :get ::list-orders [::list-orders]]
                    ["/p/:id" :put :p/put [:p/put]]]
-   [:table false] [["/t/orders" :get ::list-orders [nil]]
-                   ["/t/orders" :post :t-create [::body-params/body-params nil]]
-                   ["/t/orders/:id" :get ::get-order [::audit nil]]]
+   [:table false] [["/t/orders" :get ::list-orders [::list-orders]]                         ; 0.8.3: [nil]
+                   ["/t/orders" :post :t-create [::body-params/body-params ::create-order]] ; 0.8.3: [... nil]
+                   ["/t/orders/:id" :get ::get-order [::audit ::get-order]]]                ; 0.8.3: [... nil]
    [:table true]  [["/t/orders" :get ::list-orders [::list-orders]]
                    ["/t/orders" :post :t-create [::body-params/body-params ::create-order]]
                    ["/t/orders/:id" :get ::get-order [::audit ::get-order]]]

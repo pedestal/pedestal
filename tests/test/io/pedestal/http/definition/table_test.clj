@@ -50,8 +50,9 @@
        (mapv :route-name)))
 
 (deftest route-name-from-a-var-handler
-  ;; Without default handler names, the interceptor created from the handler has no name: the route name
-  ;; comes from the Var, as it did from the quoted symbol (and as in terse routes).
+  ;; Without default handler names, the interceptor created from the handler has only a derived name,
+  ;; which route names ignore: the route name comes from the Var, as it did from the quoted symbol
+  ;; (and as in terse routes).
   (doseq [default-handler-names? [true false]]
     (testing (str "with *default-handler-names* " default-handler-names?)
       (binding [interceptor/*default-handler-names* default-handler-names?]

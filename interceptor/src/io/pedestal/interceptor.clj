@@ -22,8 +22,12 @@
 (def ^:dynamic ^{:added "0.8.0"} *default-handler-names*
   "If true (the default) then functions converted to interceptor
   will get a default interceptor name based on the function class name.
+  This name is a real name: routes may take their route name from it.
 
-  If false, for compatibility, the interceptor will have no :name.
+  If false, for compatibility with routes defined for earlier releases, the interceptor
+  gets the same name, but only as a derived name (as any unnamed interceptor does, see [[interceptor]]):
+  it appears in logs, traces, and errors, but a route never takes its route name from it,
+  so such a route needs a route name from elsewhere (an explicit route name, or a Var handler).
 
   The system property `io.pedestal.interceptor.disable-default-handler-names`
   (or environment variable `PEDESTAL_DISABLE_DEFAULT_HANDLER_NAMES`)
@@ -69,8 +73,8 @@
   ;; request and response maps).
   Fn
   (-interceptor [f]
-    ;; The function is kept in the metadata, so that an unnamed interceptor can still be
-    ;; identified in error messages.
+    ;; The function is kept in the metadata: an unnamed interceptor gets its derived name from it
+    ;; (see interceptor), and one built without that step can still be identified in error messages.
     (with-meta (-interceptor (fn->interceptor f))
                {::handler-fn f}))
 
@@ -104,32 +108,43 @@
          true)
     false))
 
-(defn- anon-deprecated
+(defn- with-name
+  "Gives an interceptor without a :name a derived name, from the function it was created from (a handler),
+  or else from its :enter, :leave, or :error function. Without any function (which isn't a valid
+  interceptor), the interceptor is returned unchanged."
   [interceptor]
-  (when-not (:name interceptor)
-    (i/deprecated ::anon-interceptor
-      :in "0.8.0"
-      :noun "anonymous (unnamed) interceptor support"
-      :outcome "; in Pedestal 1.0, an interceptor without a :name will be given one automatically"
-      :replacement "Give each interceptor a :name (a namespaced keyword) to choose the name yourself."
-      :docs "anonymous-interceptors"))
-  true)
+  (if (some? (:name interceptor))
+    interceptor
+    (if-let [f (->> [(-> interceptor meta ::handler-fn)
+                     (:enter interceptor)
+                     (:leave interceptor)
+                     (:error interceptor)]
+                    (filter fn?)
+                    first)]
+      (impl/derive-name interceptor f)
+      interceptor)))
 
 (defn interceptor
   "Given a value, produces and returns an Interceptor (Record)
 
   t can be anything that extends the [[IntoInterceptor]] protocol; notably, this includes functions, which
   will be wrapped as interceptors, but act as handlers (a handler receives the request map and returns
-  the response map)."
+  the response map).
+
+  An interceptor without a :name is given one, derived from the class name of its function: for a handler,
+  the handler function; otherwise its :enter, :leave, or :error function (the first one present).
+  For example, `(defn get-order [request] ...)` in namespace `my.app` gives `:my.app/get-order`, and an
+  anonymous `(fn [context] ...)` inside `(defn audit [] ...)` gives `:my.app/audit/fn`.
+  Such a name appears in logs, traces, and errors, but a route never takes its route name from it.
+  To choose the name, give the interceptor a :name (a namespaced keyword)."
   [t]
   {:pre  [(if-not (satisfies? IntoInterceptor t)
             (throw (ex-info "You're trying to use something as an interceptor that isn't supported by the protocol; Perhaps you need to extend it?"
                             {:t    t
                              :type (type t)}))
             true)]
-   :post [(valid-interceptor? %)
-          (anon-deprecated %)]}
-  (-interceptor t))
+   :post [(valid-interceptor? %)]}
+  (with-name (-interceptor t)))
 
 (defprotocol ^{:added "0.8.0"} Handler
   (handle [_ request]

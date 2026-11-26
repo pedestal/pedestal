@@ -20,6 +20,7 @@
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.types :as types]
             [io.pedestal.interceptor :refer [interceptor?] :as i]
+            [io.pedestal.interceptor.impl :as impl]
             [clojure.string :as string])
   (:import (clojure.lang IPersistentMap)))
 
@@ -33,8 +34,12 @@
 (defn- handler-interceptor
   [handler route-name]
   (cond
-    (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
-                             (assoc interceptor :name (or interceptor-name route-name)))
+    ;; An interceptor without an explicit name (none, or one derived automatically) takes the route name,
+    ;; when there is one; otherwise it keeps its derived name.
+    (interceptor? handler) (if (or (impl/explicit-name handler)
+                                   (nil? route-name))
+                             handler
+                             (impl/rename handler route-name))
     (fn? handler) (handler->interceptor route-name handler)))
 
 
@@ -77,10 +82,11 @@
     (let [{:keys [route-name handler interceptors]} m
           handler-name     (cond
                              (or (symbol? handler) (var? handler)) (symbol-or-var->keyword (check-symbol handler))
-                             (interceptor? handler) (:name handler))
+                             (interceptor? handler) (impl/explicit-name handler))
           interceptor      (resolve-interceptor
                              handler (or route-name handler-name))
-          interceptor-name (:name interceptor)]
+          ;; A name derived automatically (for an unnamed interceptor) never becomes the route name.
+          interceptor-name (impl/explicit-name interceptor)]
       {:route-name   (if route-name
                        route-name
                        (if interceptor-name

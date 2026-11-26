@@ -83,9 +83,10 @@
 (deftest every-deprecation-warning-says-what-1-0-does
   (let [calls   (deprecation-calls)
         anchors (anchors)]
-    ;; Pedestal 1.0 removed the rest; at most the warning for anonymous interceptors remains (it goes
-    ;; away when unnamed interceptors get a name automatically).
-    (is (<= (count calls) 1) "found the deprecation warnings")
+    ;; Pedestal 1.0 removed everything deprecated in 0.8, and unnamed interceptors now get a name
+    ;; automatically, without a warning: no deprecation warning remains. A new one (in 1.x) changes
+    ;; this count, and must pass the checks below.
+    (is (= 0 (count calls)) "found the deprecation warnings")
     (doseq [{:keys [file line form]} calls]
       (testing (str file ":" line)
         (is (string/includes? form ":replacement"))
