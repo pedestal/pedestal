@@ -125,9 +125,9 @@ When using custom verbs, you will want to configure your interceptors to support
 [source,clojure]
 ----
 (def routes #{{:verbs #{:get :stats :version}}
-              ["/" :get (conj common-interceptors `home-page)]
-              ["/" :stats (conj common-interceptors `stats)]
-              ["/" :version (conj common-interceptors `version)]})
+              ["/" :get (conj common-interceptors #'home-page)]
+              ["/" :stats (conj common-interceptors #'stats)]
+              ["/" :version (conj common-interceptors #'version)]})
 ----
 
 NOTE: :any is a wildcard verb. During request routing, :any will match
@@ -138,10 +138,11 @@ all requests for any verb.
 The "handler position" can be anything that satisfies the api:IntoInterceptor[ns=io.pedestal.interceptor] protocol. This includes:
 
 - Function value
-- Symbol
 - Var
 - Map
-- List (of the above)
+- Vector (of the above)
+
+Pedestal 1.0 no longer resolves symbols, nor evaluates lists, in routes; see xref:ROOT:deprecations.adoc#quoted-routes[Quoted route specifications].
 
 The options provided to `table-routes` may include an :interceptors key; this is a seq of interceptors that is
 prefixed to any interceptors provided by the route.
@@ -150,6 +151,9 @@ prefixed to any interceptors provided by the route.
 
 A route name clause is the keyword :route-name followed by a keyword. Route names must be unique.
 Route name is required unless route name can be deduced from the handler, or final interceptor.
+When the handler (or the final interceptor in a vector) is a Var, such as `#'view-user`, and its value has no :name
+of its own, the route name is a keyword built from the Var's namespace and name (`:myapp.service/view-user`),
+as in xref:terse-syntax.adoc[].
 
 === Constraint Clause
 

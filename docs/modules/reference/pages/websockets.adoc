@@ -220,13 +220,18 @@ the built-in approach to transmitting messages does not.
 [#upgrade]
 == Upgrading from Pedestal 0.7
 
-In Pedestal 0.7, WebSockets are specified using the :io.pedestal.http/websockets key of
-the service map.  This approach is supported in Pedestal 0.8, but is *deprecated*, and may
-be removed in a later release entirely.
+In Pedestal 0.7, WebSockets were specified using the :io.pedestal.http/websockets key of
+the service map.  This approach was deprecated in Pedestal 0.8, and removed in Pedestal 1.0: a :websockets key
+in the connector map throws an exception.
 
-WebSocket requests are routed entirely outside of the xref:interceptors.adoc[interceptor chain], so they do not
+Those WebSocket requests were routed entirely outside of the xref:interceptors.adoc[interceptor chain], so they did not
 benefit from logging, exception handling, telemetry, or any other application-specific behaviors
 provided by the interceptor chain.
 
 In the service map, the :io.pedestal.http/websockets key
-maps string routes to endpoint maps.  There is no facility for using path parameters in these requests.
+mapped string routes to endpoint maps.  There was no facility for using path parameters in these requests.
+
+To upgrade, define a `:get` route for each path, and use api:websocket-interceptor[] as its final interceptor,
+as described in the "WebSockets in Pedestal" section above. The callbacks of an endpoint map must be adapted to the
+websocket options described above, whose callbacks receive different arguments.
+See also xref:ROOT:deprecations.adoc#websockets[Non-routed WebSockets].

@@ -87,8 +87,8 @@ routing table::
 A verbose, expanded version of routes that can be used by a router.
 
 server::
-A server is responsible for low-level communication with HTTP clients; A _server map_ is created from the service map,
-and can be used to start and stop the server. Many examples use the xref:reference:jetty.adoc[] server implementation.
+A server is responsible for low-level communication with HTTP clients; a Pedestal connector creates the server
+from the connector map, and is used to start and stop it. Many examples use the xref:reference:jetty.adoc[] server implementation.
 
 
 servlet::

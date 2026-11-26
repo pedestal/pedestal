@@ -111,9 +111,10 @@ When not specified, clj:pr-str[] is used.
 - type: boolean
 - default: false
 
-If true, then Pedestal will not automatically convert
-xref:interceptors.adoc#handler[handler function] class names to an interceptor name (the interceptor
-will be anonymous instead).
+If true, then the name that Pedestal derives from a
+xref:interceptors.adoc#handler[handler function]'s class name is not used as a route name: the interceptor
+still gets that name, as any unnamed interceptor does (it appears in logs, traces, and errors), but a route
+that ends with it needs a route name from elsewhere, such as an explicit route name or a Var handler.
 
 === io.pedestal.json-processor / PEDESTAL_JSON_PROCESSOR
 
