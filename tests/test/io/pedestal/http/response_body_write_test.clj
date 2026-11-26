@@ -26,10 +26,14 @@
             [mockfn.macros :as mock]
             [mockfn.matchers :as m])
   (:import (java.io ByteArrayInputStream IOException OutputStream)
+           (java.net ServerSocket)
            (java.nio ByteBuffer)
            (java.nio.channels Channels ReadableByteChannel)))
 
-(def ^:private port 4347)
+(def ^:private port
+  "A free port, so that this test doesn't depend on a port that another test or process uses."
+  (with-open [socket (ServerSocket. 0)]
+    (.getLocalPort socket)))
 
 (def ^:private large-size
   "Larger than the response buffer of the mock (1500 bytes) and of Jetty (32 KiB)."
@@ -67,13 +71,16 @@
         (swap! *closed-channels inc)))))
 
 (defn ^:private fn-body
-  "A function body that writes s, flushes when flush? is true, then throws."
-  [^String s flush?]
-  (fn [^OutputStream output-stream]
-    (.write output-stream (.getBytes s "UTF-8"))
-    (when flush?
-      (.flush output-stream))
-    (throw (IOException. "Body write failed"))))
+  "A function body that writes s, flushes when flush? is true, then throws an IOException
+  (with the message \"Body write failed\", unless another is given)."
+  ([s flush?]
+   (fn-body s flush? "Body write failed"))
+  ([^String s flush? ^String message]
+   (fn [^OutputStream output-stream]
+     (.write output-stream (.getBytes s "UTF-8"))
+     (when flush?
+       (.flush output-stream))
+     (throw (IOException. message)))))
 
 (def ^:private bodies
   {"/byte-buffer"           #(ByteBuffer/wrap (.getBytes "Hello ByteBuffer" "UTF-8"))
@@ -82,7 +89,8 @@
    "/channel-fails-late"    #(failing-channel large-size)
    "/fn-fails-at-once"      #(fn-body "" false)
    "/fn-fails-buffered"     #(fn-body "buffered" false)
-   "/fn-fails-after-flush"  #(fn-body "PARTIAL" true)})
+   "/fn-fails-after-flush"  #(fn-body "PARTIAL" true)
+   "/fn-broken-pipe"        #(fn-body "" false "Broken pipe")})
 
 (def ^:private handler
   (interceptor
@@ -147,6 +155,18 @@
 
 (def ^:private servlet-kinds [:connector-servlet :fn-servlet])
 
+(defn ^:private await-closed-channel
+  "Waits (up to 2 seconds) for a tracked channel to be closed, which may happen after the client
+  has received the response; returns true if it was."
+  []
+  (loop [remaining 100]
+    (cond
+      (pos? @*closed-channels) true
+      (zero? remaining) false
+      :else (do
+              (Thread/sleep 20)
+              (recur (dec remaining))))))
+
 ;; NIO bodies are written correctly
 
 (deftest nio-bodies-through-a-servlet-response-that-is-not-jetty
@@ -174,8 +194,8 @@
     (let [response (jetty-get "/byte-channel")]
       (is (= 200 (:status response)))
       (is (= large-body (:body response))))
-    ;; Closed by Jetty and by Pedestal's callback.
-    (is (pos? @*closed-channels) "the channel is closed")))
+    ;; Closed by Jetty and by Pedestal's callback, possibly after the client has the body.
+    (is (await-closed-channel) "the channel is closed")))
 
 ;; A write that fails before anything is sent: 500
 
@@ -217,17 +237,33 @@
         (is (match? [{:level :error :msg "error-stylobate triggered" :cause "Channel read failed"}
                      {:level :warn :msg "Writing the error response failed"}]
                     events))
-        (is (pos? @*closed-channels) "the channel is closed")))))
+        (is (await-closed-channel) "the channel is closed")))))
 
-(deftest analyzer-that-suppresses-the-exception-still-gets-a-500
-  ;; The exception analyzer decides what is logged, not what the client receives.
+(deftest analyzer-that-suppresses-the-exception-gets-no-500
+  ;; When the exception analyzer returns nil, the stylobate neither logs the exception nor sends a 500:
+  ;; the response is left as it was when writing the body failed.
   (let [servlet  (servlet-support/create-servlet connector-map {:exception-analyzer (constantly nil)})
         [response events] (capturing-logs (servlet-support/response-for servlet :get "/fn-fails-at-once"))]
-    (is (= 500 (:status response)))
-    (is (= error-text (:body response)))
+    (is (= 200 (:status response)))
+    (is (= "" (:body response)))
     (is (= [] events))))
 
-;; A write that fails after part of the body was sent: unchanged, the status was already sent.
+(deftest broken-pipe-is-quietly-ignored
+  ;; The default exception analyzer suppresses a broken pipe: nothing is logged, and no 500 is sent.
+  (doseq [servlet-kind servlet-kinds]
+    (testing servlet-kind
+      (let [[response events] (capturing-logs (mock-get servlet-kind "/fn-broken-pipe"))]
+        (is (= 200 (:status response)))
+        (is (= "" (:body response)))
+        (is (= [] events)))))
+  (testing "through Jetty"
+    (with-jetty
+      (let [[response events] (capturing-logs (jetty-get "/fn-broken-pipe"))]
+        (is (= 200 (:status response)))
+        (is (= "" (:body response)))
+        (is (= [] events))))))
+
+;; A write that fails after part of the body was sent: the status was already sent, so the response stays a 200.
 
 (deftest failure-after-the-response-is-committed-through-the-mock
   (doseq [servlet-kind servlet-kinds]

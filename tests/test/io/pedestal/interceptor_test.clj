@@ -19,7 +19,7 @@
             [io.pedestal.test-common :refer [<!!?]]
             [io.pedestal.interceptor :as interceptor :refer [interceptor]]
             [io.pedestal.interceptor.chain :as chain :refer [execute enqueue]])
-  (:import (clojure.lang ExceptionInfo Keyword)
+  (:import (clojure.lang Keyword)
            (java.util.concurrent CountDownLatch TimeUnit)))
 
 (defn trace
@@ -398,7 +398,8 @@
 (deftest handler-to-interceptor-default-name
   (let [interceptor (interceptor anon-handler)]
     (is (= {:response ::anon-response} ((-> interceptor :enter) nil)))
-    (is (= ::anon-handler (:name interceptor)))))
+    (is (= ::anon-handler (:name interceptor))))
+  (is (= ::anon-handler (:name (interceptor #'anon-handler))) "a Var is converted through its value"))
 
 (deftest default-name-from-inline
   ;; The extra "fn/" prefix is actually part of deftest
@@ -582,18 +583,3 @@
                              (tracer :b)
                              [(tracer :c) (tracer :d)]))))))
 
-(deftest symbols-and-expressions-are-not-converted
-  ;; Pedestal 1.0 no longer resolves symbols or evaluates expressions (from quoted route specifications):
-  ;; IntoInterceptor isn't extended to them any more. Vars are still converted.
-  (is (= ::anon-handler (:name (interceptor #'anon-handler))))
-  (doseq [[value type] [[`anon-handler clojure.lang.Symbol]
-                        ['(io.pedestal.interceptor-test/tracer :a) clojure.lang.PersistentList]
-                        [`(tracer :a) clojure.lang.Cons]]]
-    (testing (str type)
-      (is (= type (class value)))
-      (is (not (satisfies? interceptor/IntoInterceptor value)))
-      (when-let [e (is (thrown? ExceptionInfo (interceptor value)))]
-        (is (= {:t value :type type} (ex-data e)))
-        (is (= (str "You're trying to use something as an interceptor that isn't supported by the protocol;"
-                    " Perhaps you need to extend it?")
-               (ex-message e)))))))

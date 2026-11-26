@@ -28,9 +28,8 @@
 (defn okpage-html [_request] (resp 200 "OK" "Content-Type" "text/html"))
 (defn echo [request] (resp 200 request))
 
-;; Was (http/default-interceptors {:io.pedestal.http/routes routes}); now the interceptors of
-;; with-default-interceptors and with-routes. The old defaults also had route/method-param (before the
-;; router); with-default-interceptors doesn't, so it is added here, at the same place.
+;; The interceptors of with-default-interceptors and with-routes, plus route/method-param before the router
+;; (with-default-interceptors doesn't include it).
 (defn default-interceptors [routes]
   (-> (conn/default-connector-map -1)
       (conn/with-default-interceptors)

@@ -38,14 +38,13 @@
                   headers (merge {} (when token {"csrf-token" token}))]
               (assoc-in context [:response :headers] headers)))})
 
-;; Was syntax-quoted: the handlers are now Vars and the interceptor expressions are called.
 (def request-handling-routes
   [[:request-handling "csrf-test.pedestal"
     ["/anti-forgery" ^:interceptors [(rm/session) token-sniffer (csrf/anti-forgery)]
      ["/leaf" {:any [:leaf #'terminator]}]
      ["/rotate-token" {:any [:rotate-token #'rotate-token-handler]}]]]])
 
-;; Was default-interceptors with the ::service/routes option.
+;; The default interceptors, with the routes.
 (def app
   (-> (conn/default-connector-map -1)
       (conn/with-default-interceptors)

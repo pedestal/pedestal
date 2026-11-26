@@ -68,8 +68,7 @@
 
 (defn- create-and-start-server
   [_]
-  ;; Was the io.pedestal.http service map with ::http/file-path, default-interceptors and dev-interceptors
-  ;; (which put the dev interceptors first).
+  ;; The dev-mode interceptors come first; files are served from ../docs.
   (-> (conn/default-connector-map 8080)
       (conn/optionally-with-dev-mode-interceptors)
       (conn/with-default-interceptors)

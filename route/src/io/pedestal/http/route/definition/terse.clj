@@ -28,8 +28,8 @@
 (defn- invalid-handler [handler original]
   (format "While parsing a verb map, found a %s as a handler. It must be an interceptor, a function, or a var. The full vector is %s" (type handler) original))
 
-(defn- missing-handler [_handler _original]
-  (format "When parsing a verb map, tried in vain to find a handler (as the first symbol that resolves to an interceptor or interceptor map in a vector). Looking in %s" vector))
+(defn ^:private missing-handler [_handler original]
+  (format "When parsing a verb map, tried in vain to find a handler (a function, a Var, or an interceptor, after the optional route name and interceptor vectors in a vector). Looking in %s" original))
 
 (defn- leftover-declarations [vector original]
   (format "This vector for the verb map has extra elements. The leftover elements are %s from the original data %s" vector original))
@@ -89,8 +89,7 @@
   (expand-verb-action [interceptor]
     {:handler interceptor})
 
-  ;; A Var is handled exactly like the quoted symbol that resolves to it: the route name
-  ;; is built from the Var's namespace and name.
+  ;; A Var: the route name is built from the Var's namespace and name.
   Var
   (expand-verb-action [v] v)
 

@@ -46,9 +46,8 @@
   #{["/echo" :post echo-handler :route-name ::echo]
     ["/fail" :get [eat-exception fail-handler] :route-name ::fail]})
 
-;; Was an io.pedestal.http service-fn, run with io.pedestal.test/response-for (through the servlet API);
 ;; io.pedestal.connector.test/response-for executes the interceptor chain without the servlet API,
-;; so the results below are not directly comparable with newer runs.
+;; so the results below (measured through the servlet API) are not directly comparable with newer runs.
 (def connector
   (-> (conn/default-connector-map -1)
       (conn/with-default-interceptors)

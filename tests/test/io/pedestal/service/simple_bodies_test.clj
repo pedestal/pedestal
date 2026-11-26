@@ -89,8 +89,7 @@
       (connector/with-routes routes)))
 
 (deftest servlet-writes-simple-bodies
-  ;; Was the io.pedestal.http and io.pedestal.test path: an FnServlet running
-  ;; http-interceptor-service-fn (what io.pedestal.http/service-fn built), with the default interceptors.
+  ;; An FnServlet running http-interceptor-service-fn, with the default interceptors.
   (let [servlet (servlet-support/create-servlet (connector-map) {:servlet :fn-servlet})]
     (check-responses #(servlet-support/response-for servlet :get % :timeout 1000))))
 

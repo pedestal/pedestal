@@ -40,7 +40,6 @@
   [_request]
   (throw (Exception. "Just testing the error-handler, this is not a real exception")))
 
-;; Was syntax-quoted; the handlers are now Vars.
 (def request-handling-routes
   [[:request-handling "error-dispatch.pedestal"
     ["/" ^:interceptors [service-error-handler]
@@ -48,7 +47,7 @@
      ["/div2" {:any [::another-bad-one #'bad-page]}]
      ["/drop" {:any #'drop-through}]]]])
 
-;; Was default-interceptors and service-fn, called through io.pedestal.test/response-for.
+;; The default interceptors, with the routes.
 ;; The 500 response for an uncaught exception comes from the servlet interceptors, so the
 ;; connector map runs in a ConnectorServlet (see io.pedestal.servlet-support).
 (def app (binding [interceptor/*default-handler-names* false]

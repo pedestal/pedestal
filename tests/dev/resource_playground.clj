@@ -15,8 +15,7 @@
 
 (defn create-server
   []
-  ;; Was io.pedestal.http/create-server with a service map (port 8890, Jetty, the default interceptors);
-  ;; the commented-out ::http/file-path and ::http/resource-path options would now be
+  ;; To serve files or resources with a middleware instead, add
   ;; (conn/with-interceptor (ring-middlewares/file "file-root")) or (ring-middlewares/resource "").
   (-> (conn/default-connector-map 8890)
       (conn/with-default-interceptors)

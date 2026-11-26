@@ -127,7 +127,7 @@
       (is (= [["/orders" :get ::orders [::orders]]]
              (routing-table [[["/orders" {:get [::orders list-orders]}]]])))
       (is (thrown-with-msg? ExceptionInfo
-                            #"\QHandler was not a symbol, a var, or an interceptor with a name, and no route name was provided\E"
+                            #"\QHandler was not a var or an interceptor with a name, and no route name was provided\E"
                             (routing-table [[["/orders" {:get list-orders}]]]))))))
 
 (deftest map-routes-accept-vars-and-functions
@@ -159,8 +159,7 @@
                    (.getName c) "\\E")))
 
 (deftest only-quoted-symbols-are-removed
-  ;; Was only-quoted-symbols-are-deprecated: Pedestal 1.0 deleted the support for the quoted symbols
-  ;; that 0.8 warned about, so they fail with Clojure's error for a protocol without an extension.
+  ;; Quoted symbols are not supported: they fail with Clojure's error for a protocol without an extension.
   (is (= 9 (count (routing-table var-spec))))
   (when-let [e (is (thrown? ExceptionInfo (routing-table quoted-spec)))]
     ;; The first symbol that is converted is the audit interceptor.

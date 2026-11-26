@@ -113,7 +113,7 @@ When not specified, clj:pr-str[] is used.
 
 If true, then the name that Pedestal derives from a
 xref:interceptors.adoc#handler[handler function]'s class name is not used as a route name: the interceptor
-still gets that name, as any unnamed interceptor does (it appears in logs, traces, and errors), but a route
+still gets a name derived the same way, as any unnamed interceptor does (it appears in logs, traces, and errors), but a route
 that ends with it needs a route name from elsewhere, such as an explicit route name or a Var handler.
 
 === io.pedestal.json-processor / PEDESTAL_JSON_PROCESSOR

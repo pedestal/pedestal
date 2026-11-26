@@ -75,7 +75,8 @@
         :on-close (maybe-invoke-callback on-close session event-value)))))
 
 (defn create-server-endpoint-config
-  "Adds a WebSocket endpoint to a ServerContainer.
+  "Creates the configuration (a jakarta.websocket.server.ServerEndpointConfig) of a WebSocket endpoint,
+  which [[upgrade-request-to-websocket]] passes to the ServerContainer to upgrade a request.
 
   The path provides the mapping to the endpoint, and must start with a slash.
 

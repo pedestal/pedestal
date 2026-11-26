@@ -51,8 +51,12 @@
 (defprotocol WriteableBody
   "Writes a response body to the servlet's output stream.
 
-  Pedestal 1.0 removed the default-content-type method, which Pedestal stopped calling in 0.8.3: remove it
-  from your implementations (a deftype or defrecord that still defines it fails to compile)."
+  Pedestal extends this protocol to String, byte arrays, collections and simple values (written as EDN),
+  functions (called with the output stream), File, InputStream and ByteArrayOutputStream.
+  Extend it to support other types of response body.
+
+  ByteBuffer, ReadableByteChannel and core.async channel bodies are written asynchronously,
+  through the WriteableBodyAsync protocol."
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
 
 (extend-protocol WriteableBody
@@ -299,7 +303,9 @@
   it can also log or otherwise report an exception itself, and then prevent
   the stylobate interceptor from reporting the exception, by returning nil.
 
-  If a non-nil value is returned, it must be an exception, which will be logged.
+  If a non-nil value is returned, it must be an exception, which will be logged; if the response
+  has not been committed yet, the client then receives a 500 response.
+  When nil is returned, the stylobate does neither.
 
   This implementation returns the exception, unless it represents a broken pipe (a common
   exception that occurs when, during a long response, the client terminates the socket connection)."
@@ -332,14 +338,16 @@
   in its own interceptors.
 
   The exceptions that reach the stylobate are those thrown while writing the response (including
-  the asynchronous write of a ByteBuffer or ReadableByteChannel body): if the response isn't committed yet,
-  the client receives a 500; otherwise, the response ends after what was already sent."
+  the asynchronous write of a ByteBuffer or ReadableByteChannel body). When the exception analyzer
+  returns an exception, it is logged and, if the response isn't committed yet, the client receives a 500;
+  otherwise, the response ends after what was already sent. When the analyzer returns nil (as the default
+  one does for a broken pipe), the exception is ignored."
   [error-analyzer context exception]
   (when-let [exception' (error-analyzer context exception)]
     (log/error :msg "error-stylobate triggered"
                :exception exception'
-               :context context))
-  (send-error-if-uncommitted context)
+               :context context)
+    (send-error-if-uncommitted context))
   (leave-stylobate context))
 
 (defn- error-ring-response

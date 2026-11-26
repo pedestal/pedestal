@@ -40,7 +40,6 @@
    :body    "Leaf handled!"
    :headers {}})
 
-;; Was syntax-quoted; the handlers are now Vars.
 (def request-handling-routes
   [[:request-handling "request-handling.pedestal"
     ["/terminated" ^:interceptors [#'terminator]

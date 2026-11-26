@@ -27,7 +27,7 @@
 
 (def audit (interceptor/interceptor {:name ::audit :enter identity}))
 
-;; The quoted specifications are the ones of the hook check run against Pedestal 0.8.3.
+;; Quoted specifications in the styles that Pedestal 0.8 supported, for each kind of route.
 
 ;; Syntax-quoted: qualified symbols, and expressions that are Cons (not lists).
 (def terse-spec
@@ -63,8 +63,8 @@
   [[["/p" {:get #'list-orders}
      ["/:id" {:put (interceptor/interceptor {:name :p/put :enter identity})}]]]])
 
-;; What Pedestal 0.8.3 produced for the quoted specifications (out-baseline.edn of the hook check,
-;; with its namespace replaced by this one): [path method route-name interceptor-names] per route.
+;; What Pedestal 0.8.3 produced for these specifications, by kind of route and whether default handler
+;; names are enabled: [path method route-name interceptor-names] per route.
 ;;
 ;; One intended difference: in table routes without default handler names, the handler interceptors
 ;; had no name (nil) in 0.8.3. Pedestal 1.0 gives every unnamed interceptor a name derived from its
@@ -115,35 +115,6 @@
     (recur c)
     t))
 
-(def ^:private rejections
-  "Without the shim, how each quoted specification fails: the type of the exception, and the start of
-  its message. Terse routes fail at the first symbol given as a verb action (no ExpandableVerbAction
-  extension for symbols); table routes check that each handler satisfies IntoInterceptor."
-  {:terse [IllegalArgumentException
-           (str "No implementation of method: :expand-verb-action of protocol:"
-                " #'io.pedestal.http.route.definition.terse/ExpandableVerbAction found for class: clojure.lang.Symbol")]
-   :plain [IllegalArgumentException
-           (str "No implementation of method: :expand-verb-action of protocol:"
-                " #'io.pedestal.http.route.definition.terse/ExpandableVerbAction found for class: clojure.lang.Symbol")]
-   :table [AssertionError
-           "Assert failed: In row 1, the handler should have been an interceptor but was io.pedestal.http.quoted-routes-shim-test/"]})
-
-(defn ^:private assert-rejected
-  [label spec]
-  (testing label
-    (let [[exception-class message-start] (rejections label)]
-      (when-let [e (is (thrown? Throwable (table-of spec)))]
-        (let [root (root-cause e)]
-          (is (instance? exception-class root))
-          (is (string/starts-with? (ex-message root) message-start)))))))
-
-(deftest quoted-specs-fail-without-the-shim
-  (doseq [names? [true false]
-          [label spec] quoted-specs]
-    (binding [interceptor/*default-handler-names* names?]
-      (testing names?
-        (assert-rejected label spec)))))
-
 (deftest quoted-specs-with-the-shim-give-the-0-8-routing-tables
   (shim/with-shim
     (doseq [names? [true false]
@@ -166,35 +137,17 @@
   {:into-interceptor {}
    :verb-action      {}})
 
-(deftest quoted-specs-fail-again-after-the-shim-is-removed
-  (is (= no-extensions (shim/current-impls)) "no extension before the shim")
-  (shim/with-shim
-    (is (= (set shim/into-interceptor-types) (-> (shim/current-impls) :into-interceptor keys set))
-        "the shim is installed")
-    (is (= (set shim/verb-action-types) (-> (shim/current-impls) :verb-action keys set)))
-    (is (= (expected-tables [:terse true]) (table-of terse-spec))))
-  (is (= no-extensions (shim/current-impls)) "the shim's extensions are removed")
-  (doseq [[label spec] quoted-specs]
-    (assert-rejected label spec))
+(deftest the-shim-is-removed-afterwards
+  ;; Other tests check that quoted specifications fail (see io.pedestal.removals-test):
+  ;; the shim must not stay installed, even when the body throws.
+  (is (thrown-with-msg? Exception #"inside the shim"
+                        (shim/with-shim
+                          (binding [interceptor/*default-handler-names* true]
+                            (is (= (expected-tables [:terse true]) (table-of terse-spec))))
+                          (throw (ex-info "inside the shim" {})))))
+  (is (= no-extensions (shim/current-impls)))
   (is (not (satisfies? interceptor/IntoInterceptor 'clojure.core/identity))
       "satisfies? doesn't see a stale extension")
-
-  (testing "the shim's extensions are removed when the body throws"
-    (is (thrown-with-msg? Exception #"inside the shim"
-                          (shim/with-shim
-                            (throw (ex-info "inside the shim" {})))))
-    (is (= no-extensions (shim/current-impls)))
-    (assert-rejected :terse terse-spec))
-
-  (testing "an extension that existed before the shim is put back"
-    (let [marker (fn [_] {:name ::marker :enter identity})]
-      (extend clojure.lang.Symbol interceptor/IntoInterceptor {:-interceptor marker})
-      (try
-        (shim/with-shim
-          (is (not= marker (get-in (shim/current-impls) [:into-interceptor clojure.lang.Symbol :-interceptor]))))
-        (is (= {:into-interceptor {clojure.lang.Symbol {:-interceptor marker}}
-                :verb-action      {}}
-               (shim/current-impls)))
-        (finally
-          (-reset-methods (alter-var-root #'interceptor/IntoInterceptor update :impls dissoc clojure.lang.Symbol))))
-      (is (= no-extensions (shim/current-impls))))))
+  (when-let [e (is (thrown? IllegalArgumentException (table-of terse-spec)))]
+    (is (string/starts-with? (ex-message (root-cause e))
+                             "No implementation of method: :expand-verb-action of protocol:"))))

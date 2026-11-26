@@ -151,9 +151,13 @@ prefixed to any interceptors provided by the route.
 
 A route name clause is the keyword :route-name followed by a keyword. Route names must be unique.
 Route name is required unless route name can be deduced from the handler, or final interceptor.
-When the handler (or the final interceptor in a vector) is a Var, such as `#'view-user`, and its value has no :name
-of its own, the route name is a keyword built from the Var's namespace and name (`:myapp.service/view-user`),
-as in xref:terse-syntax.adoc[].
+When the handler (or the final interceptor in a vector) is a Var, such as `#'view-user`, and the interceptor it
+becomes has no :name of its own, the route name is a keyword built from the Var's namespace and name
+(`:myapp.service/view-user`), as in xref:terse-syntax.adoc[].
+A handler function gets a name of its own from its class when default handler names are enabled
+(see xref:config.adoc#disable-handler-names[the configuration]); that name wins over the Var's. For a `defn`, the two are the same; for a Var
+whose value is not a `defn`, such as `(def view-user (partial view :user))`, the route name comes from
+the Var only when default handler names are disabled.
 
 === Constraint Clause
 

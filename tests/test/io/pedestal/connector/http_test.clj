@@ -12,7 +12,7 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.connector.http-test
-  "Ported from io.pedestal.http-test (io.pedestal.http and io.pedestal.test were removed in Pedestal 1.0).
+  "HTTP behavior of an application built from a connector map.
 
   Interceptor behavior is tested with io.pedestal.connector.test/response-for on a Jetty connector;
   servlet behavior (NIO bodies, async completion, body write failures) through the Servlet API,
@@ -131,9 +131,8 @@
 (def add-binding
   {:enter #(chain/bind % *req* {:a 1})})
 
-;; Was syntax-quoted; the handlers are now Vars (same route names), and service/... interceptors
-;; are now in io.pedestal.service.interceptors (transit-body is transit-json-body).
-;; The /transit-params route no longer adds (body-params): with-default-interceptors includes it.
+;; The handlers are Vars: a route without an explicit route name takes it from its Var.
+;; The /transit-params route needs no body-params interceptor: with-default-interceptors includes it.
 (def app-routes
   [[["/about" {:get [:about #'about-page]}]
     ["/hello" {:get [^:interceptors [clobberware] #'hello-page]}]
@@ -160,7 +159,7 @@
     ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit #'get-plaintext-edn]}
      ^:interceptors [interceptors/transit-json-body]]]])
 
-;; Built when the namespace is loaded, before the specs are instrumented, as app-interceptors was:
+;; Built when the namespace is loaded, before the specs are instrumented:
 ;; the "/hello" and "/with-binding" routes put ^:interceptors before the handler without a route name,
 ;; which the terse expander accepts but the :io.pedestal.http.route.specs/terse-routes spec rejects.
 (def app-connector-map
@@ -229,7 +228,7 @@
 (deftest sync-response-is-complete-when-the-servlet-returns
   ;; The body write fails before anything is flushed; a synchronous response is complete
   ;; once the servlet returns, so this must not wait for a completion that never comes.
-  ;; Since nothing was sent, the response is replaced by a 500 (before 1.0: a 200 with an empty body).
+  ;; Since nothing was sent, the response is replaced by a 500.
   (let [response (servlet-response-for :get "/failing-body" :timeout 1000)]
     (is (= 500 (:status response)))
     (is (= "Internal server error: exception" (:body response)))))
@@ -289,6 +288,12 @@
     (is (= 400 (:status resp)))
     (is (= "Bad Request - URLDecoder: Incomplete trailing escape (%) pattern"
            (:body resp)))))
+
+(deftest default-edn-response-test
+  ;; A map body without a content type is written as EDN.
+  (let [edn-resp (response-for (app) :get "/edn")]
+    (is (= "{:a 1}" (:body edn-resp)))
+    (is (= "application/edn" (get-in edn-resp [:headers "Content-Type"])))))
 
 (deftest adding-a-binding-to-context-appears-in-user-request
   (is (= ":req was bound to {:a 1}"
@@ -354,8 +359,8 @@
                (slurp-output-stream output-stream))))))
 
 (def anti-forgery-app-connector-map
-  ;; Was ::service/enable-csrf {} in the service map: sessions, body params, then anti-forgery.
-  ;; with-default-interceptors has the session and body-params interceptors; anti-forgery is added after them.
+  ;; Sessions, body params, then anti-forgery: with-default-interceptors has the session and body-params
+  ;; interceptors; anti-forgery is added after them.
   (-> (conn/default-connector-map -1)
       (conn/with-default-interceptors :session-options {})
       (conn/with-interceptor (csrf/anti-forgery {}))
@@ -387,10 +392,9 @@
   [[["/hello-async" {:get #'hello-async}]]])
 
 (deftest can-provide-expanded-routes
-  ;; Was can-provide-seq-of-expanded-routes: a seq of route maps is no longer accepted (removed with
-  ;; io.pedestal.http); its replacement is the result of expand-routes. with-routes doesn't accept a
-  ;; routing table (it calls expand-routes again, and a RoutingTable isn't ExpandableRoutes), so the
-  ;; routing table is passed to route/router, as with-routes does.
+  ;; with-routes doesn't accept a routing table (the result of expand-routes): it calls expand-routes
+  ;; again, and a RoutingTable isn't ExpandableRoutes. So the routing table is passed to route/router,
+  ;; as with-routes does.
   (let [connector (-> (conn/default-connector-map -1)
                       (conn/with-default-interceptors)
                       (conn/with-interceptors [(route/router (route/expand-routes async-hello-routes) :sawtooth)

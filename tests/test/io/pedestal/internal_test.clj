@@ -102,7 +102,7 @@
 (deftest deprecation-warning-for-pedestal-1-0
   (is (= (str "WARNING: io.pedestal.internal-test/old-fn was deprecated in version 0.8.0 and will be removed in Pedestal 1.0\n"
               "Use io.pedestal.internal-test/new-fn instead.\n"
-              "See https://pedestal.io/pedestal/0.8/deprecations.html#an-anchor")
+              "See https://pedestal.io/pedestal/1.0/deprecations.html#an-anchor")
          (deprecation-warning #(i/deprecated `old-fn
                                  :in "0.8.0"
                                  :removed-in "1.0"
@@ -135,7 +135,7 @@
 
 (deftest removed-message-names-the-replacement-and-the-section
   (is (= (str "io.pedestal.internal-test/old-fn was removed in Pedestal 1.0. Use new-fn instead."
-              " See https://pedestal.io/pedestal/0.8/deprecations.html#an-anchor")
+              " See https://pedestal.io/pedestal/1.0/deprecations.html#an-anchor")
          (i/removed-message "io.pedestal.internal-test/old-fn"
                             {:replacement "Use new-fn instead."
                              :docs        "an-anchor"})))
@@ -151,7 +151,7 @@
                               :docs "an-anchor"
                               :option :old)))]
     (is (= (str "The :old option was removed in Pedestal 1.0. Use the :new option instead."
-                " See https://pedestal.io/pedestal/0.8/deprecations.html#an-anchor")
+                " See https://pedestal.io/pedestal/1.0/deprecations.html#an-anchor")
            (ex-message e)))
     ;; :replacement and :docs are only in the message; other options are in the data.
     (is (= {:option     :old

@@ -82,9 +82,8 @@
                                         :pedestal.http.impl.servlet-interceptor/async-supported?))}
    :body    (:body request)})
 
-;; Was jetty/server with an io.pedestal.http.servlet/servlet running only the app; now a connector
-;; whose only interceptor is the app. Jetty options go in the :container-options key of
-;; create-connector's second argument (the old options map was {:port ... :container-options ...}).
+;; A connector whose only interceptor is the app. Jetty options go in the :container-options key of
+;; create-connector's second argument.
 
 (defn jetty-connector
   [app {:keys [port container-options]}]
@@ -253,15 +252,13 @@
 ;; Servlet Context Path tests
 ;; --------------------------
 
-;; Was a syntax-quoted symbol; the Var gives the same route.
 (def route-spec
   #{["/hello" :get #'hello-world :route-name :hello]})
 
 (def routes
   (route/expand-routes route-spec))
 
-;; Was the service map {::bootstrap/type :jetty ::bootstrap/routes routes ::bootstrap/port 4347},
-;; with the default interceptors.
+;; The routes, with the default interceptors.
 (defn connector-map
   []
   (-> (conn/default-connector-map 4347)
@@ -297,7 +294,7 @@
               context)}))
 
 (deftest access-an-async-response
-  ;; Was default-interceptors, then small-buffer-size appended after the routing interceptors.
+  ;; small-buffer-size runs after the default interceptors, including routing.
   (with-connector-server (-> (conn/default-connector-map 4347)
                              (conn/with-default-interceptors)
                              (conn/with-routes (resources/file-routes {:file-root "file-root"}))
@@ -361,8 +358,6 @@
       (is (= (:status response) 200))
       (is (= (:body response) "Hello World")))))
 
-;; Moved from io.pedestal.http.jetty-util-test (io.pedestal.http.jetty.util was removed in Pedestal 1.0).
-
 ;; NOTE:
 ;;   In later versions of Jetty, GZip became a `Handler` to allow it to optimize
 ;;   async requests.  The Gzip ServletFilter example has been updated.
@@ -383,8 +378,7 @@
         (is (.startsWith ^String (:orig-content-encoding response) "gzip"))
         (is (= (:body response) "Hello World"))))))
 
-;; jetty-util/add-servlet-filter and filter-holder were removed; as the deprecation suggests,
-;; the :context-configurator uses Jetty's API directly (what those functions did).
+;; The :context-configurator adds a servlet filter with Jetty's API.
 
 (defn ^:private add-servlet-filter
   [^ServletContextHandler context ^FilterHolder holder]

@@ -149,7 +149,7 @@
 (defn- create-server
   "Construct a Jetty Server instance."
   ^Server [servlet options]
-  (let [{:keys [host port websockets container-options]} options
+  (let [{:keys [host port container-options]} options
         {:keys [ssl? ssl-port max-streams
                 h2? h2c? connection-factory-fns
                 context-configurator context-path configurator daemon? reuse-addr?
@@ -159,12 +159,10 @@
                 h2c?         true
                 max-streams  128
                 reuse-addr?  true}} container-options
-        ^ThreadPool thread-pool (thread-pool options)
-        server                  (Server. thread-pool)
+        ;; Check the options before creating anything (such as the thread pool).
         _                       (do
-                                  (when websockets
-                                    (removed! (str "Support for non-routed WebSockets (the :io.pedestal.http/websockets"
-                                                   " service map key, or :websockets in the connector map)")
+                                  (when (contains? options :websockets)
+                                    (removed! "Support for non-routed WebSockets (the :websockets key of the connector map)"
                                       :replacement (str "Use routed WebSockets instead:"
                                                         " io.pedestal.service.websocket/websocket-interceptor in a route.")
                                       :docs "websockets"))
@@ -190,6 +188,8 @@
                                              h2c?)
                                     (throw (ex-info "HTTP2-Cleartext can not be enabled unless a non-nil HTTP port is provided"
                                                     {:container-options container-options}))))
+        ^ThreadPool thread-pool (thread-pool options)
+        server                  (Server. thread-pool)
         http-conf               (http-configuration container-options)
         http                    (HttpConnectionFactory. http-conf)
         http2c                  (when h2c?
@@ -249,16 +249,16 @@
     (configurator server)))
 
 (defn create-connector
-  "Creates a connector from the service map and the connector-specific options.
+  "Creates a connector from the connector map and the connector-specific options.
 
   Returns a connector in an unstarted state."
-  [service-map options]
-  (let [{:keys [interceptors initial-context join?]} service-map
+  [connector-map options]
+  (let [{:keys [interceptors initial-context join?]} connector-map
         ;; The options may include an :exception-analyzer function.
         service-fn        (si/http-interceptor-service-fn interceptors initial-context options)
         servlet           (servlet/servlet :service service-fn)
-        ;; Mixing service-map and options; another bit of relic that maybe can be fixed.
-        server            (create-server servlet (merge service-map options))
+        ;; Mixing connector-map and options; another bit of relic that maybe can be fixed.
+        server            (create-server servlet (merge connector-map options))
         ;; Normally, apply-default-content-type is provided by http-interceptor-service-fn, but since
         ;; we are bypassing that for testing, need to explicitly add it back in.
         test-interceptors (into [si/apply-default-content-type] interceptors)

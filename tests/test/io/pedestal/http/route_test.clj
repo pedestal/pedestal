@@ -193,8 +193,8 @@
                     :verbs        {:get {:route-name :intercepted
                                          :handler    #'request-inspection}}
                     :interceptors [#'interceptor-1 #'interceptor-2]}
-                   {:path         "/intercepted-by-fn-symbol"
-                    :verbs        {:get {:route-name :intercepted-by-fn-symbol
+                   {:path         "/intercepted-by-fn-var"
+                    :verbs        {:get {:route-name :intercepted-by-fn-var
                                          :handler    #'request-inspection}}
                     :interceptors [#'interceptor-3]}
                    {:path         "/intercepted-by-fn-list"
@@ -238,7 +238,7 @@
        [^:constraints {:q #".+"} {:get #'search-query}]]
       ["/intercepted" {:get [:intercepted #'request-inspection]}
        ^:interceptors [#'interceptor-1 #'interceptor-2]]
-      ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol #'request-inspection]}
+      ["/intercepted-by-fn-var" {:get [:intercepted-by-fn-var #'request-inspection]}
        ^:interceptors [#'interceptor-3]]
       ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list #'request-inspection]}
        ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
@@ -296,7 +296,7 @@
        [^:constraints {:q #".+"} {:get search-query}]]
       ["/intercepted" {:get [:intercepted request-inspection]}
        ^:interceptors [interceptor-1 interceptor-2]]
-      ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol request-inspection]}
+      ["/intercepted-by-fn-var" {:get [:intercepted-by-fn-var request-inspection]}
        ^:interceptors [(interceptor-3)]]
       ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list request-inspection]}
        ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
@@ -332,7 +332,7 @@
          [^:constraints {:q #".+"} {:get #'search-query}]]
         ["/intercepted" {:get [:intercepted #'request-inspection]}
          ^:interceptors [#'interceptor-1 #'interceptor-2]]
-        ["/intercepted-by-fn-symbol" {:get [:intercepted-by-fn-symbol #'request-inspection]}
+        ["/intercepted-by-fn-var" {:get [:intercepted-by-fn-var #'request-inspection]}
          ^:interceptors [#'interceptor-3]]
         ["/intercepted-by-fn-list" {:get [:intercepted-by-fn-list #'request-inspection]}
          ^:interceptors [(interceptor-3 ::fn-called-explicitly)]]
@@ -366,7 +366,7 @@
       ["/search" :get search-query :constraints {:q #".+"}]
       ["/search" :get search-form]
       ["/intercepted" :get [interceptor-1 interceptor-2 request-inspection] :route-name :intercepted]
-      ["/intercepted-by-fn-symbol" :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-symbol]
+      ["/intercepted-by-fn-var" :get [(interceptor-3) request-inspection] :route-name :intercepted-by-fn-var]
       ["/intercepted-by-fn-list" :get [(interceptor-3 ::fn-called-explicitly) request-inspection] :route-name :intercepted-by-fn-list]
       ["/trailing-slash/child-path" :get trailing-slash :route-name :admin-trailing-slash]
       ["/hierarchical/intercepted" :get [interceptor-1 interceptor-2 request-inspection] :route-name :hierarchical-intercepted]
@@ -390,7 +390,7 @@
       ["/search" :get #'search-query :constraints {:q #".+"}]
       ["/search" :get #'search-form]
       ["/intercepted" :get [#'interceptor-1 #'interceptor-2 #'request-inspection] :route-name :intercepted]
-      ["/intercepted-by-fn-symbol" :get [(interceptor-3) #'request-inspection] :route-name :intercepted-by-fn-symbol]
+      ["/intercepted-by-fn-var" :get [(interceptor-3) #'request-inspection] :route-name :intercepted-by-fn-var]
       ["/intercepted-by-fn-list" :get [(interceptor-3 ::fn-called-explicitly) #'request-inspection] :route-name :intercepted-by-fn-list]
       ["/trailing-slash/child-path" :get #'trailing-slash :route-name :admin-trailing-slash]
       ["/hierarchical/intercepted" :get [#'interceptor-1 #'interceptor-2 #'request-inspection] :route-name :hierarchical-intercepted]
@@ -402,7 +402,7 @@
       ["/search" :get #'search-query :constraints {:q #".+"}]
       ["/search" :post #'search-form]
       ["/intercepted" :get [#'interceptor-1 #'interceptor-2 #'request-inspection] :route-name :intercepted]
-      ["/intercepted-by-fn-symbol" :get [(interceptor-3) #'request-inspection] :route-name :intercepted-by-fn-symbol]
+      ["/intercepted-by-fn-var" :get [(interceptor-3) #'request-inspection] :route-name :intercepted-by-fn-var]
       ["/intercepted-by-fn-list" :get [(interceptor-3 ::fn-called-explicitly) #'request-inspection] :route-name :intercepted-by-fn-list]
       ["/trailing-slash/child-path" :get #'trailing-slash :route-name :admin-trailing-slash]
       ["/hierarchical/intercepted" :get [#'interceptor-1 #'interceptor-2 #'request-inspection] :route-name :hierarchical-intercepted]
@@ -557,7 +557,7 @@
 ;                   (-> (test-query-execute routes {:request {:request-method :get
 ;                                                             :scheme "do-not-match-scheme"
 ;                                                             :server-name "do-not-match-host"
-;                                                             :path-info "/intercepted-by-fn-symbol"
+;                                                             :path-info "/intercepted-by-fn-var"
 ;                                                             :query-params {}}})
 ;                       :response
 ;                       :request

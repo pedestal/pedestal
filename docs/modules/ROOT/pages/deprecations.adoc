@@ -73,7 +73,9 @@ see xref:reference:unit-testing.adoc[].
 | Removed | Use instead
 
 | response-for, raw-response-for, servlet-response-for, create-responder
-| api:response-for[ns=io.pedestal.connector.test], passed the connector, with the same options
+| api:response-for[ns=io.pedestal.connector.test], passed the connector (which doesn't need to be started).
+It doesn't go through the Servlet API. Request header names are passed as given, not lower-cased:
+use lower-case names, such as `"content-type"`.
 
 | disable-routing-table-output-fixture
 | api:disable-routing-table-output-fixture[ns=io.pedestal.connector.test]

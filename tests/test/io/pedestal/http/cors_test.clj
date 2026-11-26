@@ -26,7 +26,7 @@
   [[["/hello-world" {:get   #'hello-world
                      :patch [:another-hello #'hello-world]}]]])
 
-;; Was ::service/allowed-origins in the service map, with default-interceptors.
+;; The default interceptors, with the :allowed-origins option.
 (defn ^:private make-app
   [allowed-origins]
   (-> (conn/default-connector-map -1)

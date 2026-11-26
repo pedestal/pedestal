@@ -34,7 +34,7 @@
   (:import (clojure.lang Cons IPersistentList PersistentList Symbol)
            (java.io FileNotFoundException)))
 
-(def ^:private deprecations-url "https://pedestal.io/pedestal/0.8/deprecations.html#")
+(def ^:private deprecations-url "https://pedestal.io/pedestal/1.0/deprecations.html#")
 
 (defn ^:private root-cause
   [t]
@@ -143,7 +143,7 @@
   (testing "the replacement option"
     (is (fn? (body-params/custom-json-parser :value-fn (fn [_ v] v))))))
 
-(def ^:private service-map
+(def ^:private connector-map
   {:port            0
    :host            "localhost"
    :interceptors    []
@@ -151,25 +151,29 @@
    :join?           false})
 
 (deftest jetty-insecure-ssl-is-removed
-  (doseq [value [true false]]
+  ;; Passing the key throws, whatever its value.
+  (doseq [value [true false nil]]
     (testing (str ":insecure-ssl? " value)
       (removal "The :insecure-ssl? Jetty container option"
                [":sni-host-check?" ":insecure-ssl? true becomes :sni-host-check? false"]
                "insecure-ssl"
-               (jetty/create-connector service-map {:container-options {:insecure-ssl? value}})))))
+               (jetty/create-connector connector-map {:container-options {:insecure-ssl? value}})))))
 
 (deftest jetty-non-routed-websockets-are-removed
-  (removal "Support for non-routed WebSockets (the :io.pedestal.http/websockets service map key, or :websockets in the connector map)"
-           ["io.pedestal.service.websocket/websocket-interceptor" "routed WebSockets"]
-           "websockets"
-           (jetty/create-connector (assoc service-map :websockets {"/ws" {}}) {})))
+  ;; Passing the key throws, whatever its value.
+  (doseq [value [{"/ws" {}} nil]]
+    (testing (str ":websockets " (pr-str value))
+      (removal "Support for non-routed WebSockets (the :websockets key of the connector map)"
+               ["io.pedestal.service.websocket/websocket-interceptor" "routed WebSockets"]
+               "websockets"
+               (jetty/create-connector (assoc connector-map :websockets value) {})))))
 
 (deftest jetty-connector-without-removed-options-is-created
   ;; Control for the two tests above.
   (doseq [options [{}
                    {:container-options {:sni-host-check? false}}]]
     (testing (pr-str options)
-      (let [connector (jetty/create-connector (assoc service-map
+      (let [connector (jetty/create-connector (assoc connector-map
                                                      :interceptors [(interceptor/interceptor
                                                                       {:name  ::hello
                                                                        :enter #(assoc % :response {:status 200 :body "hello"})})])

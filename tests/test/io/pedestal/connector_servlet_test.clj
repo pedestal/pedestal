@@ -44,7 +44,7 @@
 
 (defn- expect [path expected-response async?]
   (let [mock-state      (MockState. (str "http://locahost:8080/" path) "GET" "http" "locahost" 8080 path "" {}
-                                    ;; Was (io.pedestal.test/body->input-stream nil): an empty body
+                                    ;; An empty body
                                     (ByteArrayInputStream. (byte-array 0)))
         servlet         (ConnectorServlet.)
         params          {"io.pedestal.connector.bridge-fn" "io.pedestal.connector-servlet-test/create-bridge"}

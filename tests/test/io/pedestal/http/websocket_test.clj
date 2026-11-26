@@ -81,12 +81,9 @@
                                     (write-event :text (pr-str ws-config)))))))}))
 
 
-;; Non-routed WebSockets (the ::http/websockets service map key) were removed in Pedestal 1.0.
-;; The endpoint maps of the ws-map are now routed: each path gets a route whose interceptor is
-;; io.pedestal.websocket/websocket-upgrade, which passes the same endpoint map to
-;; create-server-endpoint-config (the path of the endpoint is the route's path).
-;; The server was created with io.pedestal.http/create-server (with the default interceptors);
-;; now it is a Jetty connector, with the same container options.
+;; Each path of the ws-map gets a route whose interceptor is io.pedestal.websocket/websocket-upgrade,
+;; which passes the endpoint map to create-server-endpoint-config (the path of the endpoint is the route's path).
+;; The server is a Jetty connector with the default interceptors.
 
 (defn ws-server
   [websockets]
@@ -102,7 +99,7 @@
                                     extract-ws-config-interceptor]]
                                   (for [[path endpoint-map] websockets]
                                     [path :get (websocket/websocket-upgrade endpoint-map)
-                                     :route-name (keyword (str *ns*) path)]))))
+                                     :route-name (keyword "io.pedestal.http.websocket-test" path)]))))
       (jetty/create-connector {:container-options {:ws-idle-timeout    9999
                                                    :ws-max-text-size   8888
                                                    :ws-max-binary-size 7777}})))

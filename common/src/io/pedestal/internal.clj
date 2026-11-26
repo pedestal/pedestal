@@ -167,7 +167,7 @@
 (def deprecations-url
   "The documentation page that deprecation warnings link to; the :docs option of [[deprecated]] is an anchor
   on this page."
-  "https://pedestal.io/pedestal/0.8/deprecations.html")
+  "https://pedestal.io/pedestal/1.0/deprecations.html")
 
 (defn deprecated*
   ([label in noun]

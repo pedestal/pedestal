@@ -62,3 +62,15 @@
                (shim/with-shim
                  (route-names `#{["/t" :get handler]})))
             "the same route name as the symbol, under a compatibility shim")))))
+
+(def wrapped
+  "A Var whose value is not a defn: the name derived from its function is not the Var's name."
+  (partial (fn [_x request] (handler request)) :x))
+
+(deftest route-name-from-a-var-whose-function-has-another-name
+  (testing "with default handler names, the function's own name wins over the Var's"
+    (binding [interceptor/*default-handler-names* true]
+      (is (= [(keyword "clojure.core" "partial/fn")] (route-names #{["/t" :get #'wrapped]})))))
+  (testing "without default handler names, the interceptor has no name of its own: the Var gives the route name"
+    (binding [interceptor/*default-handler-names* false]
+      (is (= [::wrapped] (route-names #{["/t" :get #'wrapped]}))))))

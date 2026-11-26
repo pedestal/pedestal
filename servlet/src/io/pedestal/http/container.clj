@@ -35,24 +35,25 @@
    [[with-error]], before writing it to the channel.
 
    Pedestal extends this protocol to any jakarta.servlet.http.HttpServletResponse, by copying the body to the
-   response's output stream on the calling thread (so NIO bodies work in any servlet container, such as when
-   deploying a WAR file), and to the response class of its embedded Jetty, which sends the body without copying it.
-   Since 1.0."
+   response's output stream on a separate thread (so NIO bodies work in any servlet container, such as when
+   deploying a WAR file), and to the response class of its embedded Jetty, which sends the body without copying it."
   (write-byte-channel-body [servlet-response body resume-chan context])
   (write-byte-buffer-body [servlet-response body resume-chan context]))
 
 (defn ^:private write-through-output-stream
-  "Calls (write-fn output-stream), flushes the response, and puts the context (with the error attached,
+  "On a separate thread (so that a blocking copy never runs on a core.async dispatch thread), calls
+  (write-fn output-stream), flushes the response, and puts the context (with the error attached,
   if any) on resume-chan."
   [^HttpServletResponse servlet-response write-fn resume-chan context]
-  (let [context' (try
-                   (write-fn (.getOutputStream servlet-response))
-                   (.flushBuffer servlet-response)
-                   context
-                   (catch Throwable t
-                     (chain/with-error context t)))]
-    (async/put! resume-chan context')
-    (async/close! resume-chan)))
+  (async/thread
+    (let [context' (try
+                     (write-fn (.getOutputStream servlet-response))
+                     (.flushBuffer servlet-response)
+                     context
+                     (catch Throwable t
+                       (chain/with-error context t)))]
+      (async/put! resume-chan context')
+      (async/close! resume-chan))))
 
 (extend-protocol WriteNIOByteBody
 

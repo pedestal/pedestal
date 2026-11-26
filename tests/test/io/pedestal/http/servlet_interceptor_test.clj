@@ -49,18 +49,7 @@
                     ((:error stylobate) context e)))
     (is (identical? e @*exception))))
 
-(deftest exception-debug-is-removed
-  ;; Pedestal 1.0 deleted the exception-debug interceptor; its replacement is dev/uncaught-exception.
-  (is (nil? (resolve 'io.pedestal.http.impl.servlet-interceptor/exception-debug)))
-  (let [root (fn [t] (if-let [c (ex-cause t)] (recur c) t))]
-    (doseq [form ['io.pedestal.http.impl.servlet-interceptor/exception-debug
-                  '(io.pedestal.http.impl.servlet-interceptor/exception-debug {} nil)]]
-      (when-let [e (is (thrown? Exception (eval form)))]
-        (is (= "No such var: io.pedestal.http.impl.servlet-interceptor/exception-debug"
-               (ex-message (root e))))))))
-
 (deftest dev-uncaught-exception-interceptor-invokes-formatter
-  ;; Was dev-exception-debug-interceptor-invokes-formatter: exception-debug was uncaught-exception with another name.
   (let [e        (RuntimeException. "For testing of formatting")
         expected (binding [exceptions/*fonts* nil]
                    (exceptions/format-exception e))

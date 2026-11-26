@@ -91,7 +91,7 @@
                        route-name
                        (if interceptor-name
                          interceptor-name
-                         (throw (ex-info (str "Handler was not a symbol, a var, or an interceptor with a name, "
+                         (throw (ex-info (str "Handler was not a var or an interceptor with a name, "
                                               "and no route name was provided")
                                          {:handler-spec m}))))
        :handler      (resolve-interceptor handler (or route-name handler-name))

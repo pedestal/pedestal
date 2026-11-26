@@ -178,5 +178,9 @@ An exception analyzer function is passed the xref:context-map.adoc[] and the unh
 it may return nil to prevent the exception from being logged, or return the exception itself,
 or an alternate exception, to have that be the exception that is logged.
 
+When the analyzer returns an exception and nothing has been sent to the client yet (the response is not committed),
+Pedestal discards the response and sends a 500 status instead. When the analyzer returns nil, Pedestal does
+not change the response.
+
 When not specified, the api:default-exception-analyzer[ns=io.pedestal.http.impl.servlet-interceptor] function is used;
 this is where the logic to check for a broken pipe exception lives.

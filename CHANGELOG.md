@@ -5,7 +5,7 @@
 
 ## 1.0.0 - UNRELEASED
 
-Pedestal 1.0 removes what 0.8 deprecated. The [deprecations page](https://pedestal.io/pedestal/0.8/deprecations.html)
+Pedestal 1.0 removes what 0.8 deprecated. The [deprecations page](https://pedestal.io/pedestal/1.0/deprecations.html)
 says what to use instead of each removed feature.
 
 *BREAKING CHANGES:*
@@ -27,16 +27,15 @@ says what to use instead of each removed feature.
   warning. Route names don't change. Error messages identify such an interceptor by its derived name, which is
   also the `:interceptor` value of the exception data.
 * When writing the response body fails before the response is committed, the client now gets a 500 instead of a 200
-  with an empty body.
+  with an empty body, unless the exception analyzer suppresses the exception, as the default one does for a broken pipe.
 
 Other changes:
 
 * `ByteBuffer` and `ReadableByteChannel` response bodies now work in any servlet container (for example, in a WAR
   file), not just with the embedded Jetty connector.
-* A table route whose handler is a Var gets its route name from the Var, as terse routes do, also when default
-  handler names are disabled.
-* The mock servlet response (`io.pedestal.servlet.mock.MockHttpServletResponse`) now implements `reset` and
-  `resetBuffer`.
+* A table route whose handler is a Var, and whose handler interceptor has no name of its own (as when default handler
+  names are disabled), gets its route name from the Var, as terse routes do. With default handler names enabled,
+  the name derived from the function still wins.
 * Upgrade `transit-clj` to 1.2.372.
 
 ## 0.8.3 - 10 Nov 2026

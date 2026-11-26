@@ -16,9 +16,7 @@
             [io.pedestal.servlet-support :as servlet-support]
             [io.pedestal.service.resources :as resources]))
 
-;; Was a service map ({::http/port 8888 ::http/routes (route/routes-from ...)}) passed to
-;; io.pedestal.test/create-responder, which ran it through the servlet API with the default interceptors.
-;; Now a connector map, run in a ConnectorServlet by io.pedestal.servlet-support (the servlet path matters
+;; A connector map, run in a ConnectorServlet by io.pedestal.servlet-support (the servlet path matters
 ;; here: large resources are written asynchronously, depending on the servlet response's buffer size).
 
 (defn connector-map

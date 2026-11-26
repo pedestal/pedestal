@@ -31,8 +31,7 @@
            (java.util.concurrent Flow$Subscriber)))
 
 (deftest sse-start-stream
-  ;; Pedestal 1.0 removed start-event-stream; its replacement is start-stream, called from your own
-  ;; interceptor (here with the arguments that start-event-stream used to pass).
+  ;; start-stream, called from an interceptor.
   (let [fake-context        {:request {:headers {"origin" "http://foo.com:8080"}}}
         interceptor-context (chain/enqueue* fake-context
                                             (cors/allow-origin ["http://foo.com:8080"])

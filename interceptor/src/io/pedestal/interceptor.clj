@@ -25,7 +25,7 @@
   This name is a real name: routes may take their route name from it.
 
   If false, for compatibility with routes defined for earlier releases, the interceptor
-  gets the same name, but only as a derived name (as any unnamed interceptor does, see [[interceptor]]):
+  gets a name derived the same way, but only as a derived name (as any unnamed interceptor does, see [[interceptor]]):
   it appears in logs, traces, and errors, but a route never takes its route name from it,
   so such a route needs a route name from elsewhere (an explicit route name, or a Var handler).
 
@@ -136,7 +136,13 @@
   For example, `(defn get-order [request] ...)` in namespace `my.app` gives `:my.app/get-order`, and an
   anonymous `(fn [context] ...)` inside `(defn audit [] ...)` gives `:my.app/audit/fn`.
   Such a name appears in logs, traces, and errors, but a route never takes its route name from it.
-  To choose the name, give the interceptor a :name (a namespaced keyword)."
+  A function built by a combinator, such as `partial` or `comp`, gets a generic name from the combinator's
+  class (for example, `:clojure.core/partial/fn`).
+  To choose the name, give the interceptor a :name (a namespaced keyword).
+
+  The mark that the name is derived is kept in the interceptor's metadata: rebuilding the interceptor from a plain
+  map (such as `(interceptor (into {} i))`), or replacing its metadata, makes the derived name an explicit name,
+  which a route may then take as its route name."
   [t]
   {:pre  [(if-not (satisfies? IntoInterceptor t)
             (throw (ex-info "You're trying to use something as an interceptor that isn't supported by the protocol; Perhaps you need to extend it?"

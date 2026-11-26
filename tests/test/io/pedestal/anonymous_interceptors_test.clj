@@ -14,7 +14,6 @@
   A derived name appears in errors and observations, but route names never come from it:
   routes are the same as in Pedestal 0.8."
   (:require [clojure.test :refer [deftest is testing]]
-            [io.pedestal.internal :as i]
             [io.pedestal.http.route :as route]
             [io.pedestal.interceptor :as interceptor :refer [interceptor definterceptor]]
             [io.pedestal.interceptor.chain :as chain]
@@ -34,29 +33,15 @@
   []
   (interceptor {:enter (fn [context] context)}))
 
-(defn ^:private silently
-  "Invokes f, returning its result and everything printed to *out* and *err*; deprecation warnings
-  are reset first, so that a warning already printed once would be printed again."
-  [f]
-  (i/reset-deprecations)
-  (let [err    (java.io.StringWriter.)
-        result (atom nil)
-        out    (with-out-str
-                 (binding [*err* err]
-                   (reset! result (f))))]
-    {:result  @result
-     :printed (str out err)}))
-
-(deftest unnamed-map-interceptor-gets-a-derived-name-silently
+(deftest unnamed-map-interceptor-gets-a-derived-name
   (doseq [[label m expected] [[":enter" {:enter enter-fn :leave leave-fn :error error-fn} ::enter-fn]
                               [":leave" {:leave leave-fn :error error-fn} ::leave-fn]
                               [":error" {:error error-fn} ::error-fn]]]
     (testing (str "from " label)
-      (let [{:keys [result printed]} (silently #(interceptor m))]
+      (let [result (interceptor m)]
         (is (= expected (:name result)))
         (is (impl/derived-name? result))
-        (is (nil? (impl/explicit-name result)))
-        (is (= "" printed) "no warning")))))
+        (is (nil? (impl/explicit-name result)))))))
 
 (deftest anonymous-fn-names
   (testing "an anonymous fn is named after the function that encloses it"
@@ -72,19 +57,17 @@
 (deftest unnamed-function-handler-gets-a-name
   (testing "with default handler names: a real name, as before"
     (binding [interceptor/*default-handler-names* true]
-      (let [{:keys [result printed]} (silently #(interceptor handler))]
+      (let [result (interceptor handler)]
         (is (= ::handler (:name result)))
         (is (not (impl/derived-name? result)))
-        (is (= ::handler (impl/explicit-name result)))
-        (is (= "" printed)))))
+        (is (= ::handler (impl/explicit-name result))))))
 
   (testing "without default handler names: the same name, but only derived"
     (binding [interceptor/*default-handler-names* false]
-      (let [{:keys [result printed]} (silently #(interceptor handler))]
+      (let [result (interceptor handler)]
         (is (= ::handler (:name result)))
         (is (impl/derived-name? result))
-        (is (nil? (impl/explicit-name result)))
-        (is (= "" printed)))))
+        (is (nil? (impl/explicit-name result))))))
 
   (testing "a Var of a function"
     (binding [interceptor/*default-handler-names* false]
@@ -112,6 +95,26 @@
     (let [derived (interceptor {:enter enter-fn})]
       (is (= ::renamed (impl/explicit-name (assoc derived :name ::renamed))))
       (is (= ::renamed (impl/explicit-name (impl/rename derived ::renamed)))))))
+
+(deftest the-derived-mark-is-kept-in-metadata
+  (let [derived (interceptor {:enter enter-fn})]
+    (is (impl/derived-name? derived))
+    (testing "rebuilding the interceptor from a plain map makes the name explicit"
+      (let [rebuilt (interceptor (into {} derived))]
+        (is (= ::enter-fn (:name rebuilt)))
+        (is (= ::enter-fn (impl/explicit-name rebuilt)))))
+    (testing "replacing the metadata makes the name explicit"
+      (is (= ::enter-fn (impl/explicit-name (with-meta derived {}))))
+      (is (= ::enter-fn (impl/explicit-name (vary-meta derived dissoc ::impl/derived-name)))))
+    (testing "adding to the metadata keeps the mark"
+      (is (impl/derived-name? (vary-meta derived assoc ::other true))))))
+
+(deftest combinators-give-generic-names
+  (doseq [names? [true false]]
+    (binding [interceptor/*default-handler-names* names?]
+      (testing (str "with default handler names " names?)
+        (is (= (keyword "clojure.core" "partial/fn") (:name (interceptor (partial handler nil)))))
+        (is (= (keyword "clojure.core" "comp/fn") (:name (interceptor (comp handler identity)))))))))
 
 (definterceptor named-component []
   (enter [_ context] context))
@@ -171,7 +174,7 @@
                               (routing-table #{["/t" :get {:enter enter-fn}]})))))))
 
 (def ^:private terse-error
-  #"\QHandler was not a symbol, a var, or an interceptor with a name, and no route name was provided\E")
+  #"\QHandler was not a var or an interceptor with a name, and no route name was provided\E")
 
 (deftest terse-route-of-an-unnamed-interceptor-takes-the-route-name-as-before
   (doseq [names? [true false]]

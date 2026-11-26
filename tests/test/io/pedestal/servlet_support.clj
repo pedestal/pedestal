@@ -13,7 +13,6 @@
   "Test helper (not a test namespace): runs a connector map through the Jakarta Servlet API without
   starting a servlet container, using the mock servlet objects of io.pedestal.servlet.mock.
 
-  Pedestal 1.0 removed io.pedestal.test, whose response-for did this for the io.pedestal.http service map.
   io.pedestal.connector.test/response-for does not go through the Servlet API (it executes the interceptor
   chain directly), so tests of servlet behavior (writing response bodies, NIO and async responses,
   the 500 response for an uncaught exception, ...) use this namespace instead.
@@ -23,8 +22,7 @@
   - :connector-servlet (the default): an io.pedestal.servlet.ConnectorServlet whose ConnectorBridge is
     created by io.pedestal.connector.servlet/create-bridge, as when deploying a WAR file.
   - :fn-servlet: an io.pedestal.servlet.FnServlet (io.pedestal.http.servlet/servlet) running
-    io.pedestal.http.impl.servlet-interceptor/http-interceptor-service-fn; this is what
-    io.pedestal.http/create-servlet built in 0.8."
+    io.pedestal.http.impl.servlet-interceptor/http-interceptor-service-fn."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [io.pedestal.connector.servlet :as connector-servlet]
@@ -37,8 +35,7 @@
            (java.util HashMap Map$Entry)))
 
 ;; NIO bodies (ByteBuffer, ReadableByteChannel) are written by the default implementation of
-;; io.pedestal.http.container/WriteNIOByteBody for any HttpServletResponse (io.pedestal.test, removed in 1.0,
-;; extended the protocol to the mock response itself).
+;; io.pedestal.http.container/WriteNIOByteBody for any HttpServletResponse, including the mock response.
 
 (def ^:dynamic *connector-map* nil)
 
@@ -77,7 +74,7 @@
        (let [{:keys [interceptors initial-context]} connector-map]
          (servlet/servlet :service (si/http-interceptor-service-fn interceptors initial-context options')))))))
 
-;; The rest is io.pedestal.test/response-for, unchanged except that it takes a servlet.
+;; Requests through the servlet's service method.
 
 (defn ^:private parse-url
   [url]
