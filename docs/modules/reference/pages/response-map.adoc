@@ -36,7 +36,7 @@ with an :enter function that returns the updated context:
             (update context :request #(assoc % :user (current-user %))))})
 ----
 
-The function api:respond-with[] is the easiest way to add a response map to the interceptor context.
+The function api:respond-with[ns=io.pedestal.http.response] is the easiest way to add a response map to the interceptor context.
 
 [cols="s,d,d,d", options="header", grid="rows"]
 |===

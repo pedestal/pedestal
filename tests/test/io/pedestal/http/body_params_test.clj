@@ -13,7 +13,9 @@
 
 (ns io.pedestal.http.body-params-test
   (:require [clojure.instant :as inst]
+            [clojure.string :as string]
             [io.pedestal.http.body-params :refer [body-params default-parser-map]]
+            [io.pedestal.internal :as internal]
             [clojure.test :refer [deftest is]]
             [matcher-combinators.matchers :as m])
   (:import (java.io ByteArrayInputStream)))
@@ -70,13 +72,23 @@
     (is (= (json-params {:bigdec true})
            {:bd 1.0001M}))))
 
-(deftest json-parser-supports-array-coercen-fn-option
+(deftest json-parser-supports-value-fn-option
+  ;; :value-fn replaces the :array-coerce-fn option, which Pedestal 1.0 removed.
   (letfn [(json-context [] (as-context "application/json" "{ \"a\": [1, 2, 3] }"))
            (json-params [options] (:json-params (json-request (json-context) options)))]
     (is (= (json-params {})
            {:a [1 2 3]}))
-    (is (= (json-params {:array-coerce-fn (fn [_] #{})})
+    (is (= (json-params {:value-fn (fn [_ v] (if (vector? v) (set v) v))})
            {:a #{1 2 3}}))))
+
+(deftest json-parser-array-coerce-fn-option-is-removed
+  (let [e (is (thrown? Exception
+                       (default-parser-map :json-options {:array-coerce-fn (fn [_] #{})})))]
+    (is (match? {::internal/removed "The :array-coerce-fn option of io.pedestal.http.body-params/custom-json-parser"}
+                (ex-data e)))
+    (is (string/includes? (ex-message e) "was removed in Pedestal 1.0"))
+    (is (string/includes? (ex-message e) "Use the :value-fn option instead."))
+    (is (string/includes? (ex-message e) "#array-coerce-fn"))))
 
 (deftest parses-form-data
   (let [form-context (as-context  "application/x-www-form-urlencoded" "foo=BAR")

@@ -48,20 +48,20 @@
     (route/expand-routes
       (table/table-routes
         {:host "example.com" :scheme :https}
-        [["/user" :get `get-users]
-         ["/user/:user-id" :get `get-user :constraints {:user-id #"[0-9]+"}]
-         ["/user/:user-id" :post `create-user :constraints {:user-id #"[0-9]+"}]
-         ["/user/:user-id/collection" :get `get-user-collection :constraints {:user-id #"[0-9]+"}]])
+        [["/user" :get #'get-users]
+         ["/user/:user-id" :get #'get-user :constraints {:user-id #"[0-9]+"}]
+         ["/user/:user-id" :post #'create-user :constraints {:user-id #"[0-9]+"}]
+         ["/user/:user-id/collection" :get #'get-user-collection :constraints {:user-id #"[0-9]+"}]])
       (table/table-routes
-        [["/api/stats" :get `stats]
-         ["/api/shutdown" :post `shutdown]
-         ["/resources/*path" :get `get-resource]
-         ["/resources/*path" :head `head-resource]])
+        [["/api/stats" :get #'stats]
+         ["/api/shutdown" :post #'shutdown]
+         ["/resources/*path" :get #'get-resource]
+         ["/resources/*path" :head #'head-resource]])
       (table/table-routes
         {:port 9999}
-        [["/" :get `root]
-         ["/internal" :get `internal]
-         ["/internal/monitor" :any `monitor]]))))
+        [["/" :get #'root]
+         ["/internal" :get #'internal]
+         ["/internal/monitor" :any #'monitor]]))))
 
 (deftest dynamic-table-as-expected
   (is (= [{:host       "example.com"
@@ -255,11 +255,11 @@
               (:routes
                 (route/expand-routes
                   (table/table-routes
-                    [["/user" :get `get-users]
-                     ["/user/:user-id" :get `get-user]
-                     ["/user/:user-id" :post `create-user]
+                    [["/user" :get #'get-users]
+                     ["/user/:user-id" :get #'get-user]
+                     ["/user/:user-id" :post #'create-user]
                      ;; A conflict:
-                     ["/user/:search" :get `user-search]])))))]
+                     ["/user/:search" :get #'user-search]])))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"
@@ -273,10 +273,10 @@
               (:routes
                 (route/expand-routes
                   (table/table-routes
-                    [["/pages" :get `list-pages]
-                     ["/pages/:id" :get `get-page]
-                     ["/pages/:search" :get `search-pages]
-                     ["/pages/:file" :any `page-content]])))))]
+                    [["/pages" :get #'list-pages]
+                     ["/pages/:id" :get #'get-page]
+                     ["/pages/:search" :get #'search-pages]
+                     ["/pages/:file" :any #'page-content]])))))]
     (is (match?
           (m/via string/split-lines
                  ["Conflicting routes were identified:"

@@ -13,6 +13,7 @@
 
 (ns io.pedestal.http.route.definition.table
   (:require [io.pedestal.interceptor :as interceptor]
+            [io.pedestal.interceptor.impl :as impl]
             [io.pedestal.http.route.types :as types]
             [io.pedestal.http.route.internal :as internal]
             [io.pedestal.http.route.path :as path]))
@@ -97,10 +98,16 @@
   (if route-name
     ctx
     (let [last-interceptor   (some-> interceptors last)
-          interceptor-name   (:name last-interceptor)
+          ;; A name derived automatically (for an unnamed interceptor) never becomes the route name.
+          interceptor-name   (some-> last-interceptor impl/explicit-name)
+          ;; A Var gives the same route name as the symbol that resolves to it (as in terse routes).
+          ;; The symbol case is kept for a compatibility shim, which extends IntoInterceptor to symbols
+          ;; and lists, so that it gets the same route names as Pedestal 0.8. Without such a shim,
+          ;; a symbol handler has already failed when it was converted to an interceptor.
           default-route-name (cond
                                interceptor-name interceptor-name
                                (symbol? last-handler) (internal/symbol->keyword last-handler)
+                               (var? last-handler) (internal/var->keyword last-handler)
                                :else nil)]
       (assert default-route-name (error ctx "the last interceptor does not have a name and there is no explicit :route-name"))
       (assoc ctx :route-name default-route-name))))

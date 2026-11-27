@@ -11,6 +11,7 @@
 
 (ns io.pedestal.http.servlet-interceptor-test
   (:require [clj-commons.format.exceptions :as exceptions]
+            [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [clojure.test :refer [deftest is]]
             [clojure.string :as string]
@@ -48,11 +49,11 @@
                     ((:error stylobate) context e)))
     (is (identical? e @*exception))))
 
-(deftest dev-exception-debug-interceptor-invokes-formatter
+(deftest dev-uncaught-exception-interceptor-invokes-formatter
   (let [e        (RuntimeException. "For testing of formatting")
         expected (binding [exceptions/*fonts* nil]
                    (exceptions/format-exception e))
-        f        (:error si/exception-debug)
+        f        (:error dev/uncaught-exception)
         context  (f {} e)]
     (is (match?
           {:response {:status 500

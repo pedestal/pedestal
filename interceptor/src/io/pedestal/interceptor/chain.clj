@@ -27,8 +27,9 @@
 
 (defn- name-for
   [interceptor]
-  ;; Generally, interceptors will have a :name key that's a keyword, but there still
-  ;; (for some reason) the occasionally anonymous interceptor.
+  ;; Interceptors created by io.pedestal.interceptor/interceptor always have a :name (derived
+  ;; automatically when not provided). An Interceptor record built directly (map->Interceptor)
+  ;; may still have none.
   (or (get interceptor :name)
       ;; An unnamed interceptor created from a function is identified by that function.
       (if-let [f (-> interceptor meta ::interceptor/handler-fn)]

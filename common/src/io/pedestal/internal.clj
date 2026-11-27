@@ -167,7 +167,7 @@
 (def deprecations-url
   "The documentation page that deprecation warnings link to; the :docs option of [[deprecated]] is an anchor
   on this page."
-  "https://pedestal.io/pedestal/0.8/deprecations.html")
+  "https://pedestal.io/pedestal/1.0/deprecations.html")
 
 (defn deprecated*
   ([label in noun]
@@ -216,6 +216,31 @@
   [& body]
   `(binding [*suppress?* true]
      ~@body))
+
+(defn removed-message
+  "Returns the message of the exception thrown when code uses something that Pedestal 1.0 removed:
+  what was removed, what to use instead, and where it is documented."
+  [noun {:keys [replacement docs]}]
+  (str noun " was removed in Pedestal 1.0."
+       (when replacement
+         (str " " replacement))
+       (when docs
+         (str " See " deprecations-url "#" docs))))
+
+(defn removed!
+  "Throws an exception that says that something was removed in Pedestal 1.0, what to use instead,
+  and where it is documented. Unlike [[deprecated]], it can't be suppressed.
+
+  Options:
+  :replacement - a sentence that says what to use instead
+  :docs        - the anchor of its section on the deprecations page, see [[deprecations-url]]
+
+  Other options are added to the exception's data."
+  [noun & {:as options}]
+  (throw (ex-info (removed-message noun options)
+                  (-> options
+                      (dissoc :replacement :docs)
+                      (assoc ::removed noun)))))
 
 (defn reset-deprecations
   []

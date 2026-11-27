@@ -13,7 +13,7 @@
   (:require [clojure.string :as string]
             [io.pedestal.test-common :as tc]
             [io.pedestal.internal :as i :refer [read-config]]
-            [clojure.test :refer [deftest is use-fixtures]])
+            [clojure.test :refer [deftest is testing use-fixtures]])
   (:import (java.io StringWriter)))
 
 (def test-overridden ::test-value)
@@ -102,7 +102,7 @@
 (deftest deprecation-warning-for-pedestal-1-0
   (is (= (str "WARNING: io.pedestal.internal-test/old-fn was deprecated in version 0.8.0 and will be removed in Pedestal 1.0\n"
               "Use io.pedestal.internal-test/new-fn instead.\n"
-              "See https://pedestal.io/pedestal/0.8/deprecations.html#an-anchor")
+              "See https://pedestal.io/pedestal/1.0/deprecations.html#an-anchor")
          (deprecation-warning #(i/deprecated `old-fn
                                  :in "0.8.0"
                                  :removed-in "1.0"
@@ -132,3 +132,32 @@
     (let [warn #(i/deprecated ::once :replacement "Use something else.")]
       (is (string/includes? (capture-output *err* (warn)) "Use something else."))
       (is (= "" (capture-output *err* (warn)))))))
+
+(deftest removed-message-names-the-replacement-and-the-section
+  (is (= (str "io.pedestal.internal-test/old-fn was removed in Pedestal 1.0. Use new-fn instead."
+              " See https://pedestal.io/pedestal/1.0/deprecations.html#an-anchor")
+         (i/removed-message "io.pedestal.internal-test/old-fn"
+                            {:replacement "Use new-fn instead."
+                             :docs        "an-anchor"})))
+  (is (= "old-fn was removed in Pedestal 1.0. Use new-fn instead."
+         (i/removed-message "old-fn" {:replacement "Use new-fn instead."})))
+  (is (= "old-fn was removed in Pedestal 1.0."
+         (i/removed-message "old-fn" nil))))
+
+(deftest removed!-throws-with-message-and-data
+  (when-let [e (is (thrown? clojure.lang.ExceptionInfo
+                            (i/removed! "The :old option"
+                              :replacement "Use the :new option instead."
+                              :docs "an-anchor"
+                              :option :old)))]
+    (is (= (str "The :old option was removed in Pedestal 1.0. Use the :new option instead."
+                " See https://pedestal.io/pedestal/1.0/deprecations.html#an-anchor")
+           (ex-message e)))
+    ;; :replacement and :docs are only in the message; other options are in the data.
+    (is (= {:option     :old
+            ::i/removed "The :old option"}
+           (ex-data e))))
+  (testing "it can't be suppressed"
+    (is (thrown? clojure.lang.ExceptionInfo
+                 (i/with-deprecations-suppressed
+                   (i/removed! "something"))))))

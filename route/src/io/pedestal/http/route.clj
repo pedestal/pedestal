@@ -432,9 +432,6 @@
   to have unique route names (or an exception is thrown)."
   [& route-specs]
   {:pre [(seq route-specs)]}
-  ;; This is the case when the ::http/route is the result of
-  ;; calling expand-routes; this prevents expand-routes from being invoked
-  ;; a second time.
   (when-not (seq route-specs)
     (throw (IllegalArgumentException. "Must provide at least one routing specification")))
   (->> route-specs
@@ -625,7 +622,7 @@
   on the provided path and verb (e.g., :get or :post).
 
   Uses :sawtooth as the default router, if unspecified; this should match the configuration
-  in the application's service map.
+  in the application's connector map.
 
   Returns the matched route (a map from the routing table), or nil if routing was unsuccessful.
 

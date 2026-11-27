@@ -15,8 +15,13 @@
   io.pedestal.http.request-handling-test
   (:require [ring.util.response :as ring-response]
             [clojure.test :refer [deftest is are]]
-            [io.pedestal.test :refer [response-for]]
-            [io.pedestal.http :as service])
+            [io.pedestal.connector :as conn]
+            [io.pedestal.connector.test :as test]
+            [io.pedestal.http.jetty :as jetty]
+            [io.pedestal.http.ring-middlewares :as ring-middlewares]
+            [io.pedestal.http.route :as route]
+            [io.pedestal.http.secure-headers :as secure-headers]
+            [io.pedestal.service.interceptors :as interceptors])
   (:import (java.io File)))
 
 (defn terminator
@@ -36,25 +41,26 @@
    :headers {}})
 
 (def request-handling-routes
-  `[[:request-handling "request-handling.pedestal"
-     ["/terminated" ^:interceptors [terminator]
-      ["/leaf" {:get [:leaf1 leaf-handler]}]]
-     ["/unterminated"
-      ["/leaf" {:get [:leaf2 leaf-handler]}]]]])
+  [[:request-handling "request-handling.pedestal"
+    ["/terminated" ^:interceptors [#'terminator]
+     ["/leaf" {:get [:leaf1 #'leaf-handler]}]]
+    ["/unterminated"
+     ["/leaf" {:get [:leaf2 #'leaf-handler]}]]]])
 
-(defn make-app
-  [options]
-  (-> options
-      service/default-interceptors
-      service/service-fn
-      ::service/service-fn))
-
+(defn ^:private response-for
+  [connector verb url & {:as options}]
+  (test/response-for connector verb url options))
 
 (defn make-app-for-dir
+  "Was default-interceptors with the ::service/resource-path and ::service/file-path options, which
+  added the resource and file interceptors just before the router."
   [dir]
-  (make-app {::service/routes        request-handling-routes
-             ::service/resource-path "public"
-             ::service/file-path     dir}))
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors)
+      (conn/with-interceptors [(ring-middlewares/resource "public")
+                               (ring-middlewares/file dir)])
+      (conn/with-routes request-handling-routes)
+      (jetty/create-connector nil)))
 
 ;; For reasons that are proving hard to track down, the instrumented code
 ;; doesn't route correctly, resulting in 404s. It was easier to just skip
@@ -87,9 +93,21 @@
   {:leave (fn [context]
             (assoc context :response (ring-response/not-found "Custom Not Found")))})
 
+(defn ^:private make-app-with-not-found
+  "Was default-interceptors with the ::service/not-found-interceptor option. with-default-interceptors
+  always uses io.pedestal.service.interceptors/not-found, so the interceptors are listed, in the same order."
+  [not-found-interceptor]
+  (-> (conn/default-connector-map -1)
+      (conn/with-interceptors [interceptors/log-request
+                               not-found-interceptor
+                               (ring-middlewares/content-type)
+                               route/query-params
+                               (secure-headers/secure-headers)])
+      (conn/with-routes request-handling-routes)
+      (jetty/create-connector nil)))
+
 (deftest custom-not-found-test
-  (let [app (make-app {::service/routes                request-handling-routes
-                       ::service/not-found-interceptor custom-not-found})]
+  (let [app (make-app-with-not-found custom-not-found)]
     (is (= "Custom Not Found"
            (:body (response-for app :get "http://request-handling.pedestal/unrouted"))))))
 

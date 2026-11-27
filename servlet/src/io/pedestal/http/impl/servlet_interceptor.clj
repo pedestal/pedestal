@@ -21,7 +21,6 @@
             [io.pedestal.interceptor.chain :as chain]
             [io.pedestal.log :as log]
             [io.pedestal.interceptor :refer [interceptor]]
-            [io.pedestal.connector.dev :as dev]
             [io.pedestal.http.container :as container]
             [io.pedestal.http.request.map :as request-map]
             [io.pedestal.metrics :as metrics]
@@ -50,14 +49,20 @@
     (.getBufferSize response)))
 
 (defprotocol WriteableBody
-  (^:deprecated default-content-type [body] "Get default HTTP content-type for `body`.")
+  "Writes a response body to the servlet's output stream.
+
+  Pedestal extends this protocol to String, byte arrays, collections and simple values (written as EDN),
+  functions (called with the output stream), File, InputStream and ByteArrayOutputStream.
+  Extend it to support other types of response body.
+
+  ByteBuffer, ReadableByteChannel and core.async channel bodies are written asynchronously,
+  through the WriteableBodyAsync protocol."
   (write-body-to-stream [body output-stream] "Write `body` to the stream output-stream."))
 
 (extend-protocol WriteableBody
 
   String
 
-  (default-content-type [_] "text/plain")
   (write-body-to-stream [string output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
       (.write writer string)
@@ -65,7 +70,6 @@
 
   IPersistentCollection
 
-  (default-content-type [_] "application/edn")
   (write-body-to-stream [o output-stream]
     (let [writer (OutputStreamWriter. output-stream)]
       (binding [*out* writer]
@@ -74,19 +78,16 @@
 
   Fn
 
-  (default-content-type [_] nil)
   (write-body-to-stream [f output-stream]
     (f output-stream))
 
   File
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [file output-stream]
     (io/copy file output-stream))
 
   InputStream
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [input-stream output-stream]
     (try
       (io/copy input-stream output-stream)
@@ -98,24 +99,20 @@
 
   ReadableByteChannel
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [_ _])
 
   ByteBuffer
 
-  (default-content-type [_] "application/octet-stream")
   (write-body-to-stream [_ _])
 
   nil
-  (default-content-type [_] nil)
   (write-body-to-stream [_ _]))
 
 (extend (Class/forName "[B")
 
   WriteableBody
 
-  {:default-content-type (fn [_] "application/octet-stream")
-   :write-body-to-stream
+  {:write-body-to-stream
    (fn [^bytes byte-array output-stream]
      (io/copy byte-array output-stream))})
 
@@ -132,15 +129,13 @@
 
     WriteableBody
 
-    {:default-content-type (fn [_] "application/edn")
-     :write-body-to-stream write-edn}))
+    {:write-body-to-stream write-edn}))
 
 (extend ByteArrayOutputStream
 
   WriteableBody
 
-  {:default-content-type (fn [_] "application/octet-stream")
-   :write-body-to-stream
+  {:write-body-to-stream
    (fn [^ByteArrayOutputStream body ^OutputStream output-stream]
      (.writeTo body output-stream)
      (.flush output-stream))})
@@ -184,14 +179,15 @@
       (async/>! resume-chan context)
       (async/close! resume-chan)))
 
+  ;; NIO bodies are written by io.pedestal.http.container/WriteNIOByteBody: through the output stream
+  ;; by default, or in a container-specific way (such as embedded Jetty's, which avoids copying the body).
+
   ReadableByteChannel
   (write-body-async [body servlet-response resume-chan context]
-    ;; Writing NIO is container specific, based on the implementation details of Response
     (container/write-byte-channel-body servlet-response body resume-chan context))
 
   ByteBuffer
   (write-body-async [body servlet-response resume-chan context]
-    ;; Writing NIO is container specific, based on the implementation details of Response
     (container/write-byte-buffer-body servlet-response body resume-chan context)))
 
 ;; Should we also set character encoding explicitly - if so, where
@@ -307,7 +303,9 @@
   it can also log or otherwise report an exception itself, and then prevent
   the stylobate interceptor from reporting the exception, by returning nil.
 
-  If a non-nil value is returned, it must be an exception, which will be logged.
+  If a non-nil value is returned, it must be an exception, which will be logged; if the response
+  has not been committed yet, the client then receives a 500 response.
+  When nil is returned, the stylobate does neither.
 
   This implementation returns the exception, unless it represents a broken pipe (a common
   exception that occurs when, during a long response, the client terminates the socket connection)."
@@ -316,16 +314,40 @@
   (when-not (is-broken-pipe? exception)
     exception))
 
+(defn ^:private send-error-if-uncommitted
+  "Called when writing the response failed (the exception reached the stylobate). If nothing has been sent
+  to the client yet (the response is not committed), discards the status, headers and buffered body, and
+  sends a 500 instead. Once the response is committed, the status has been sent and can't be changed."
+  [{:keys [^HttpServletResponse servlet-response] :as context}]
+  (when (and servlet-response
+             (response/response-expected? context)
+             (not (.isCommitted servlet-response)))
+    (try
+      (.reset servlet-response)
+      (send-error context "Internal server error: exception")
+      (catch Throwable t
+        ;; For example, embedded Jetty closes the output when an NIO body fails: the 500 status is sent,
+        ;; but not its body. The exception that caused the 500 has already been through the exception analyzer.
+        (log/warn :msg "Writing the error response failed"
+                  :exception t)))))
+
 (defn- error-stylobate
   "Makes sure we send an error response on an exception, even in the
   async case. This is just to make sure exceptions get returned
   somehow; application code should probably catch and log exceptions
-  in its own interceptors."
+  in its own interceptors.
+
+  The exceptions that reach the stylobate are those thrown while writing the response (including
+  the asynchronous write of a ByteBuffer or ReadableByteChannel body). When the exception analyzer
+  returns an exception, it is logged and, if the response isn't committed yet, the client receives a 500;
+  otherwise, the response ends after what was already sent. When the analyzer returns nil (as the default
+  one does for a broken pipe), the exception is ignored."
   [error-analyzer context exception]
   (when-let [exception' (error-analyzer context exception)]
     (log/error :msg "error-stylobate triggered"
                :exception exception'
-               :context context))
+               :context context)
+    (send-error-if-uncommitted context))
   (leave-stylobate context))
 
 (defn- error-ring-response
@@ -371,17 +393,6 @@
   (interceptor
     (assoc response-mime/apply-default-content-type
       :name ::apply-default-content-type)))
-
-(def ^{:deprecated "0.8.0"} exception-debug
-  "An interceptor which catches errors, renders them to readable text
-  and sends them to the user. This interceptor is intended for
-  development time assistance in debugging problems in pedestal
-  services. Including it in interceptor paths on production systems
-  may present a security risk by exposing call stacks of the
-  application when exceptions are encountered.
-
-  DEPRECATED: Use io.pedestal.connector.dev/uncaught-exception instead."
-  (assoc dev/uncaught-exception :name ::exception-debug))
 
 (defn- interceptor-service-fn
   "Returns a function which can be used as an implementation of the
@@ -431,7 +442,7 @@
   :exception-analyzer - function that analyzes exceptions that propagate
   up to the stylobate interceptor, defaults to [[default-exception-analyzer]].
 
-  This is normally called automatically from io.pedestal.http/service-fn."
+  This is normally called by a servlet-based connector, such as io.pedestal.http.jetty/create-connector."
   ([interceptors] (http-interceptor-service-fn interceptors {}))
   ([interceptors initial-context]
    (http-interceptor-service-fn interceptors initial-context nil))

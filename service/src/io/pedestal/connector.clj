@@ -10,8 +10,9 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns io.pedestal.connector
-  "Replacement for io.pedestal.http that is not (directly) linked to the Jakarta Servlet API and is generally
-   simpler to use."
+  "Builds the connector map that defines a Pedestal application (routes, interceptors, initial context, ...),
+   from which a connector, such as Jetty or Http-Kit, handles HTTP requests. Not (directly) linked to
+   the Jakarta Servlet API."
   {:added "0.8.0"}
   (:require [io.pedestal.http.route :as route]
             [io.pedestal.http.tracing :as tracing]

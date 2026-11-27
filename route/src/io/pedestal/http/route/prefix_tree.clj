@@ -14,7 +14,6 @@
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
             [io.pedestal.http.route.definition :as definition]
-            [io.pedestal.internal :as internal]
             [io.pedestal.http.route.internal :as route.internal]))
 
 ;; The Node record is only used as a faster map
@@ -440,17 +439,6 @@
                      (create-payload-fn (:routes node))
                      node))
                  tree))
-
-(defn add-satisfies-constraints?
-  "Given a route, add a function of the request which returns true if
-  the request satisfies all path and query constraints."
-  {:deprecated "0.8.0"}
-  [route]
-  (internal/deprecated `add-satisfies-constraints? :in "0.8.0"
-    :removed-in "1.0"
-    :replacement "There is no replacement: only Pedestal's routers need it."
-    :docs "add-satisfies-constraints")
-  (route.internal/add-satisfies-constraints? route))
 
 (defn router
   "Given a sequence of routes, return a router function."

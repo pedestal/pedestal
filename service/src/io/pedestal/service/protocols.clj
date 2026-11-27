@@ -30,13 +30,13 @@
 
 
 (defprotocol PedestalConnector
-  "A connector to an HTTP network adaptor, created from a service map.
+  "A connector to an HTTP network adaptor, created from a connector map.
 
   The connector, once started, will handle incoming requests and outgoing responses, building
-  on the interceptors and initial context provided in the service map."
+  on the interceptors and initial context provided in the connector map."
 
   (start-connector! [this]
-    "Starts (or restarts) the connector.  If the :join? key of the service map is true, this method will block
+    "Starts (or restarts) the connector.  If the :join? key of the connector map is true, this method will block
     until the connector is stopped.
 
     Invoking start-connector when the connector is already started results in connector-defined behavior.

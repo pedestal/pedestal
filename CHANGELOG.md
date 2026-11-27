@@ -3,8 +3,39 @@
 
 **NOTE:** Whenever upgrading versions of Pedestal, please be sure to clean your project's `out` or `target` directory.
 
-## 0.8.4 - UNRELEASED
+## 1.0.0 - UNRELEASED
 
+Pedestal 1.0 removes what 0.8 deprecated. The [deprecations page](https://pedestal.io/pedestal/1.0/deprecations.html)
+says what to use instead of each removed feature.
+
+*BREAKING CHANGES:*
+
+* Removed the `io.pedestal.http` namespace (the service map API), together with `io.pedestal.http.specs` and
+  `io.pedestal.http.jetty/server`, which only served it: build a connector with `io.pedestal.connector` instead.
+* Removed `io.pedestal.test`: use `io.pedestal.connector.test/response-for`.
+* Removed `io.pedestal.http.jetty.util`. `io.pedestal.http.jetty.container` is now internal.
+* Removed non-routed WebSockets (`add-endpoint`, `add-endpoints`, and the `:websockets` key): use a routed WebSocket.
+* Removed `start-event-stream` and `sse-setup`: call `io.pedestal.http.sse/start-stream` from your own interceptor.
+* Route specifications and interceptor lists no longer resolve symbols or evaluate lists (which usually came from
+  quoting the route specification): use Vars (`#'handler` gives the same route name) and functions.
+* Removed `edn-response` (in `io.pedestal.http.response`), `exception-debug`, `add-satisfies-constraints?` (in
+  `io.pedestal.http.route.prefix-tree`), and the `default-content-type` method of the `WriteableBody` protocol.
+* Removed the `:insecure-ssl?` Jetty option (use `:sni-host-check?`) and the `:array-coerce-fn` JSON parser option
+  (use `:value-fn`). Passing either, or a `:websockets` key, throws an error that names the replacement, as they
+  would otherwise be ignored silently.
+* An interceptor without a `:name` now gets one automatically, derived from its function, instead of a deprecation
+  warning. Route names don't change. Error messages identify such an interceptor by its derived name, which is
+  also the `:interceptor` value of the exception data.
+* When writing the response body fails before the response is committed, the client now gets a 500 instead of a 200
+  with an empty body, unless the exception analyzer suppresses the exception, as the default one does for a broken pipe.
+
+Other changes:
+
+* `ByteBuffer` and `ReadableByteChannel` response bodies now work in any servlet container (for example, in a WAR
+  file), not just with the embedded Jetty connector.
+* A table route whose handler is a Var, and whose handler interceptor has no name of its own (as when default handler
+  names are disabled), gets its route name from the Var, as terse routes do. With default handler names enabled,
+  the name derived from the function still wins.
 * Upgrade `transit-clj` to 1.2.372.
 
 ## 0.8.3 - 10 Nov 2026

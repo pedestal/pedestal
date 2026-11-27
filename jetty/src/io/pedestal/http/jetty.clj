@@ -17,11 +17,10 @@
             [clojure.string :as string]
             [io.pedestal.http.response :as response]
             [io.pedestal.http.servlet :as servlet]
-            [io.pedestal.internal :refer [deprecated with-deprecations-suppressed]]
+            [io.pedestal.internal :refer [removed!]]
             [io.pedestal.http.impl.servlet-interceptor :as si]
             [io.pedestal.service.protocols :as p]
-            [io.pedestal.connector.test :as test]
-            [io.pedestal.websocket :as ws])
+            [io.pedestal.connector.test :as test])
   (:import (jakarta.websocket.server ServerContainer)
            (org.eclipse.jetty.ee10.servlet ServletContextHandler ServletHolder)
            (org.eclipse.jetty.http2 HTTP2Cipher)
@@ -99,18 +98,9 @@
       ;; In 0.7 and earlier, was a namespaced key
       (::http-configuration options)
       ;; Otherwise, build on the fly
-      (let [{:keys [sni-host-check? insecure-ssl?]} options
+      (let [{:keys [sni-host-check?]} options
             http-conf ^HttpConfiguration (HttpConfiguration.)
-            sni-enabled? (cond
-                           (and (nil? sni-host-check?)
-                                (nil? insecure-ssl?))   true
-                           (not (nil? sni-host-check?)) sni-host-check?
-                           :else                        (not insecure-ssl?))]
-        (when insecure-ssl?
-          (deprecated :insecure-ssl? :in "0.8.0" :noun ":insecure-ssl? Jetty option"
-            :removed-in "1.0"
-            :replacement "Use the :sni-host-check? option instead, with the opposite value."
-            :docs "insecure-ssl"))
+            sni-enabled? (if (nil? sni-host-check?) true sni-host-check?)]
         (doto http-conf
           (.setSendDateHeader true)
           (.setSendXPoweredBy false)
@@ -159,7 +149,7 @@
 (defn- create-server
   "Construct a Jetty Server instance."
   ^Server [servlet options]
-  (let [{:keys [host port websockets container-options]} options
+  (let [{:keys [host port container-options]} options
         {:keys [ssl? ssl-port max-streams
                 h2? h2c? connection-factory-fns
                 context-configurator context-path configurator daemon? reuse-addr?
@@ -169,9 +159,20 @@
                 h2c?         true
                 max-streams  128
                 reuse-addr?  true}} container-options
-        ^ThreadPool thread-pool (thread-pool options)
-        server                  (Server. thread-pool)
+        ;; Check the options before creating anything (such as the thread pool).
         _                       (do
+                                  (when (contains? options :websockets)
+                                    (removed! "Support for non-routed WebSockets (the :websockets key of the connector map)"
+                                      :replacement (str "Use routed WebSockets instead:"
+                                                        " io.pedestal.service.websocket/websocket-interceptor in a route.")
+                                      :docs "websockets"))
+
+                                  (when (contains? container-options :insecure-ssl?)
+                                    (removed! "The :insecure-ssl? Jetty container option"
+                                      :replacement (str "Use the :sni-host-check? container option instead, with the opposite"
+                                                        " value: :insecure-ssl? true becomes :sni-host-check? false.")
+                                      :docs "insecure-ssl"))
+
                                   (when-not (string/starts-with? context-path "/")
                                     (throw (ex-info "context-path must begin with a '/'" {:container-options container-options})))
 
@@ -187,6 +188,8 @@
                                              h2c?)
                                     (throw (ex-info "HTTP2-Cleartext can not be enabled unless a non-nil HTTP port is provided"
                                                     {:container-options container-options}))))
+        ^ThreadPool thread-pool (thread-pool options)
+        server                  (Server. thread-pool)
         http-conf               (http-configuration container-options)
         http                    (HttpConnectionFactory. http-conf)
         http2c                  (when h2c?
@@ -217,8 +220,7 @@
         servlet-context-handler (doto (ServletContextHandler. ServletContextHandler/SESSIONS)
                                   (.setContextPath context-path)
                                   (.addServlet (ServletHolder. ^Servlet servlet) "/*"))]
-      ;; Always initialize the container for WebSockets, even when no :websockets key, to ensure that
-      ;; routed websockets also work.
+      ;; Always initialize the container for WebSockets, so that routed WebSockets work.
       (JakartaWebSocketServletContainerInitializer/configure servlet-context-handler
                                                              (reify JakartaWebSocketServletContainerInitializer$Configurator
                                                                (^void accept [_this ^ServletContext _context
@@ -228,16 +230,7 @@
                                                                  (when ws-max-text-size
                                                                    (.setDefaultMaxTextMessageBufferSize container ws-max-text-size))
                                                                  (when ws-max-binary-size
-                                                                   (.setDefaultMaxBinaryMessageBufferSize container ws-max-binary-size))
-                                                                 (when websockets
-                                                                   (deprecated ::websockets
-                                                                     :in "0.8.0"
-                                                                     :noun "non-routed websockets (via the :io.pedestal.http/websockets service map key)"
-                                                                     :removed-in "1.0"
-                                                                     :replacement "Use routed WebSockets instead: io.pedestal.service.websocket/websocket-interceptor in a route."
-                                                                     :docs "websockets")
-                                                                   (with-deprecations-suppressed
-                                                                     (ws/add-endpoints container websockets))))))
+                                                                   (.setDefaultMaxBinaryMessageBufferSize container ws-max-binary-size)))))
     (when daemon?
       ;; Reflective; it is up to the caller to ensure that the thread-pool has a daemon boolean property if
       ;; :daemon? flag is true.
@@ -255,47 +248,17 @@
     ;; And only after that perform final configuration of the server
     (configurator server)))
 
-
-(defn- start
-  [^Server server
-   {:keys [join?] :or {join? true}}]
-  (.start server)
-  (when join? (.join server))
-  server)
-
-(defn- stop
-  [^Server server]
-  (.stop server)
-  server)
-
-(defn server
-  "Called from [[io.pedestal.http/server]] to create a Jetty server instance.
-   The container option :insecure-ssl? is deprecated in favor of :sni-host-check?
-   which is more precise but inverse to the deprecated key."
-  [service-map options]
-  (let [server (create-server (:io.pedestal.http/servlet service-map) options)]
-    {::server  server
-     :start-fn #(start server options)
-     :stop-fn  #(stop server)}))
-
-
-;; io.pedestal.http does a bit of inversion of control to create the service fn and servlet
-;; before invoking server; in the new model (io.pedestal.service) the service is responsible
-;; for this itself.
-
 (defn create-connector
-  "Creates a connector from the service map and the connector-specific options.
+  "Creates a connector from the connector map and the connector-specific options.
 
   Returns a connector in an unstarted state."
-  [service-map options]
-  (let [{:keys [interceptors initial-context join?]} service-map
+  [connector-map options]
+  (let [{:keys [interceptors initial-context join?]} connector-map
         ;; The options may include an :exception-analyzer function.
         service-fn        (si/http-interceptor-service-fn interceptors initial-context options)
         servlet           (servlet/servlet :service service-fn)
-        ;; Mixing service-map and options; another bit of relic that maybe can be fixed
-        ;; with changes to io.pedestal.http (that are probably ok to do as it only concerns implementation
-        ;; details).
-        server            (create-server servlet (merge service-map options))
+        ;; Mixing connector-map and options; another bit of relic that maybe can be fixed.
+        server            (create-server servlet (merge connector-map options))
         ;; Normally, apply-default-content-type is provided by http-interceptor-service-fn, but since
         ;; we are bypassing that for testing, need to explicitly add it back in.
         test-interceptors (into [si/apply-default-content-type] interceptors)

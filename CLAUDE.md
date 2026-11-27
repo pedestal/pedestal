@@ -164,15 +164,19 @@ The context flows through the interceptor chain:
 
 Interceptors can return a core.async channel for asynchronous processing.
 
-#### Service Map
+#### Connector Map
 
-The service map (`::http/...` keys) configures the HTTP service:
-- `::http/routes` - Route definitions
-- `::http/router` - Router type (`:prefix-tree`, `:map-tree`, etc.)
-- `::http/type` - Server type (`:jetty`, `:http-kit`)
-- `::http/host` and `::http/port` - Bind address
-- `::http/interceptors` - Custom interceptor chain
-- Security: `::http/allowed-origins`, `::http/enable-csrf`, `::http/secure-headers`
+The connector map (unqualified keys, created by `io.pedestal.connector/default-connector-map`) configures the HTTP service:
+- `:host` and `:port` - Bind address
+- `:router` - Router type (`:sawtooth`, `:prefix-tree`, `:map-tree`, `:linear-search`, or a function)
+- `:interceptors` - The interceptor chain, built with `with-default-interceptors`, `with-interceptor(s)` and `with-routes`
+- `:initial-context` - Initial context map for every request
+- `:join?` - Whether starting the connector blocks the current thread
+- Security (CORS, CSRF, secure headers) is configured through the options of `with-default-interceptors`, or by adding those interceptors directly
+
+A connector-specific function, such as `io.pedestal.http.jetty/create-connector` or `io.pedestal.http.http-kit/create-connector`, turns the connector map into a Pedestal connector.
+
+The service map (`::http/...` keys) and the `io.pedestal.http` namespace were removed in 1.0.
 
 #### Routing
 
@@ -233,25 +237,24 @@ Convert :response to HTTP and return
 
 Default interceptors include: tracing, logging, CORS, session handling, body parsing, routing, secure headers, static file serving, and response formatting.
 
-### Modern API (v0.8.0+)
+### Connector API
 
-The `io.pedestal.connector` namespace provides a cleaner API not tied to Jakarta Servlet:
+The `io.pedestal.connector` namespace (added in 0.8.0) is the API for building services; it is not tied to Jakarta Servlet:
 
 ```clojure
-(require '[io.pedestal.connector :as conn])
+(require '[io.pedestal.connector :as conn]
+         '[io.pedestal.http.jetty :as jetty])
 
 (-> (conn/default-connector-map "0.0.0.0" 8080)
     (conn/with-default-interceptors)
     (conn/with-routes routes)
+    (jetty/create-connector nil)
     conn/start!)
 ```
 
-This is the recommended approach for new applications. The default router is now `:sawtooth` (changed in 0.8.0).
+The default router is `:sawtooth` (changed in 0.8.0).
 
-**Legacy vs Modern:**
-- **Modern** (0.8.0+): `io.pedestal.connector` namespace - simpler, not tied to Servlet API
-- **Legacy** (deprecated): `io.pedestal.http` namespace - still works but will be removed in future
-- All new development should use `io.pedestal.connector`
+The older `io.pedestal.http` namespace (the service map API) was deprecated in 0.8 and removed in 1.0, along with `io.pedestal.test`; see `docs/modules/ROOT/pages/deprecations.adoc` for what replaces each removed function.
 
 ## REPL-Driven Development
 
@@ -288,7 +291,8 @@ Use `io.pedestal.connector.test/response-for` to test interceptor chains:
 ```clojure
 (require '[io.pedestal.connector.test :as test])
 
-(test/response-for service-fn
+;; connector: created (for example by jetty/create-connector), but not started
+(test/response-for connector
                    :get "/users/123"
                    :headers {"Accept" "application/json"})
 ```
@@ -299,7 +303,7 @@ Use `io.pedestal.connector.test/response-for` to test interceptor chains:
 
 - Core protocol definitions and specs use `io.pedestal.X` namespaces
 - Implementation details under `io.pedestal.X.impl`
-- HTTP-related code under `io.pedestal.http`
+- HTTP-related code under `io.pedestal.http.*` (for example `io.pedestal.http.route`, `io.pedestal.http.jetty`); the `io.pedestal.http` namespace itself no longer exists
 - Test code mirrors source structure under `tests/test`
 
 ### Testing
@@ -314,12 +318,12 @@ Use `io.pedestal.connector.test/response-for` to test interceptor chains:
 
 **Naming:**
 - Interceptor names must be namespaced keywords: `::my-interceptor`
-- Anonymous (unnamed) interceptors are **deprecated** in 0.8.0
-- Functions converted to interceptors now get default names based on their class name
-- To disable default handler names: set `io.pedestal.interceptor/*default-handler-names*` to false
+- An interceptor without a `:name` gets one automatically in 1.0, derived from its function (shown in logs, traces, and errors); this derived name never changes route names
+- Functions converted to interceptors get default names based on their class name
+- To disable default handler names as route names: set `io.pedestal.interceptor/*default-handler-names*` to false
 
 **Creation:**
-- Use `defbefore`, `defafter` helpers for simple interceptors
+- Use interceptor maps with `io.pedestal.interceptor/interceptor` for simple interceptors
 - Use `definterceptor` macro to define interceptor record types (new in 0.8.0)
 - Interceptors can be created from functions, records, or maps
 
@@ -415,7 +419,7 @@ The build system in `build/build.clj` handles all modules:
 - `PedestalConnector` - custom server implementations
 
 **Configuration Over Code:**
-- Service/connector map for declarative configuration
+- Connector map for declarative configuration
 - Interceptor chain composition via data structures
 - Route definitions as data (vectors, maps, sets)
 
@@ -427,6 +431,20 @@ The build system in `build/build.clj` handles all modules:
 
 ## Important Notes and Breaking Changes
 
+### Version 1.0 Breaking Changes
+
+Pedestal 1.0 removes what 0.8 deprecated (details and replacements in `docs/modules/ROOT/pages/deprecations.adoc`):
+- `io.pedestal.http` (the service map API), `io.pedestal.http.specs` and `io.pedestal.http.jetty/server`: use `io.pedestal.connector` and a connector
+- `io.pedestal.test`: use `io.pedestal.connector.test`
+- `io.pedestal.http.jetty.util`; `io.pedestal.http.jetty.container` is now internal
+- Non-routed WebSockets (`add-endpoint`, `add-endpoints`, the `:websockets` key): use `websocket-interceptor` in a route
+- `start-event-stream` and `sse-setup`: call `io.pedestal.http.sse/start-stream` from an interceptor
+- Quoted route specifications: symbols are no longer resolved, nor lists evaluated, in routes and interceptor lists; use Vars (`#'handler`, same route name as the symbol) or functions
+- `edn-response`, `exception-debug`, `add-satisfies-constraints?` (prefix-tree router), and `default-content-type` of the `WriteableBody` protocol
+- The `:insecure-ssl?` Jetty option (use `:sni-host-check?`) and the `:array-coerce-fn` JSON parser option (use `:value-fn`)
+
+The `:insecure-ssl?`, `:array-coerce-fn` and `:websockets` options throw an exception that names the replacement, rather than being silently ignored. Table routes take the route name from a Var handler, as terse routes do.
+
 ### Version 0.8.0 Breaking Changes
 
 **Always clean your target directory when upgrading Pedestal versions:**
@@ -437,8 +455,8 @@ rm -rf target/
 **Key Breaking Changes:**
 - Minimum Clojure version: 1.11
 - Sawtooth router is now the default (was prefix-tree)
-- Anonymous interceptors are deprecated
-- `io.pedestal.http` namespace deprecated (use `io.pedestal.connector`)
+- Anonymous interceptors deprecated (1.0 names them automatically)
+- `io.pedestal.http` namespace deprecated in favor of `io.pedestal.connector` (removed in 1.0)
 - Many 0.7.0 deprecated APIs removed
 - WebSocket upgrade requests now go through routing (not special-cased)
 - Static file serving now goes through routing (not via interceptors)
@@ -447,12 +465,12 @@ rm -rf target/
 ### WebSockets and Server-Sent Events
 
 **WebSockets:**
-- Now handled through regular routing (0.8.0+)
-- Implement `InitializeWebSocket` protocol for WebSocket endpoints
-- WebSocket routes defined like any other route with `:ws true` flag
+- Handled through regular routing (0.8.0+); the only option in 1.0
+- Define a `:get` route whose final interceptor is `io.pedestal.service.websocket/websocket-interceptor` (or calls `upgrade-request-to-websocket`)
+- Connectors implement the `InitializeWebSocket` protocol to support the upgrade
 
 **Server-Sent Events (SSE):**
-- Use `io.pedestal.http.sse` namespace
+- Use `io.pedestal.http.sse/start-stream`, called from your own interceptor
 - Return streaming response with proper SSE formatting
 - SSE fields now terminated with single `\n` (both `\n` and `\r\n` are valid per spec)
 - See `samples/server-sent-events` for examples
@@ -477,9 +495,9 @@ If you see routing conflict warnings with the Sawtooth router:
 - Reorder routes or use constraints to disambiguate
 - The Sawtooth router will prefer literal matches over parameterized ones
 
-### Anonymous Interceptor Warnings
+### Interceptor Names
 
-If you see deprecation warnings about anonymous interceptors:
+Unnamed interceptors get a name derived from their function, which may be hard to read in logs, traces, and errors. To choose the name:
 - Add `:name` keys to all interceptor maps
 - Use namespace-qualified keywords: `{:name ::my-interceptor ...}`
 - For functions, add `:name` metadata: `^{:name ::handler} (fn [req] ...)`

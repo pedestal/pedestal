@@ -76,7 +76,8 @@ include::partial$constraints.adoc[]
 [NOTE]
 ====
 Before 0.8.3, handlers in terse routes were usually quoted symbols, such as `{:get `list-orders}`,
-often with the entire route specification syntax-quoted. Quoted symbols and lists are deprecated.
+often with the entire route specification syntax-quoted. Pedestal 1.0 no longer resolves symbols or evaluates lists
+in routes; see xref:ROOT:deprecations.adoc#quoted-routes[Quoted route specifications].
 A Var (`{:get #'list-orders}`) produces exactly the same route, including its route name, without quoting.
 ====
 
@@ -146,9 +147,7 @@ The value for a verb in the verb map is one of:
   to provide a route name (added in 0.8.3)
 - An interceptor
 - A vector: an optional route name (a keyword), an optional interceptor vector with `^:interceptors` metadata,
-  and then the handler: a Var, a function, an interceptor, or a symbol
-- A symbol (deprecated), resolved like the Var it names
-- A list (deprecated), which is evaluated
+  and then the handler: a Var, a function, or an interceptor
 
 The values in an interceptor vector can be anything that satisfies the
 api:IntoInterceptor[ns=io.pedestal.interceptor] protocol, including functions, Vars, maps, and interceptors.

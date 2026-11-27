@@ -31,7 +31,11 @@
 
 (defn instrument-specs-fixture
   [f]
-  (require 'io.pedestal.http.specs)
+  ;; Pedestal 1.0 removed io.pedestal.http.specs, which loaded these.
+  (require 'io.pedestal.interceptor.specs)
+  (require 'io.pedestal.http.route.specs)
+  (require 'io.pedestal.websocket.specs)
+  (require 'io.pedestal.http.impl.servlet-interceptor.specs)
   (require 'io.pedestal.http.jetty.specs)
   (require 'io.pedestal.http.http-kit.specs)
   (stest/instrument)

@@ -12,9 +12,10 @@
 
 (ns ^{:doc "Integration tests of CORS processing."}
   io.pedestal.http.cors-test
-  (:require [io.pedestal.http :as service]
+  (:require [io.pedestal.connector :as conn]
+            [io.pedestal.connector.test :as test]
+            [io.pedestal.http.jetty :as jetty]
             [ring.util.response :as ring-resp]
-            [io.pedestal.test :refer [response-for]]
             [clojure.test :refer [deftest is]]))
 
 (defn hello-world
@@ -22,14 +23,22 @@
   (ring-resp/response "Hello World!"))
 
 (def routes
-  `[[["/hello-world" {:get   hello-world
-                      :patch [:another-hello hello-world]}]]])
+  [[["/hello-world" {:get   #'hello-world
+                     :patch [:another-hello #'hello-world]}]]])
 
-(def app
-  (::service/service-fn (-> {::service/routes          routes
-                             ::service/allowed-origins ["http://foo.com:8080"]}
-                            service/default-interceptors
-                            service/service-fn)))
+;; The default interceptors, with the :allowed-origins option.
+(defn ^:private make-app
+  [allowed-origins]
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors :allowed-origins allowed-origins)
+      (conn/with-routes routes)
+      (jetty/create-connector nil)))
+
+(defn ^:private response-for
+  [connector verb url & {:as options}]
+  (test/response-for connector verb url options))
+
+(def app (make-app ["http://foo.com:8080"]))
 
 (deftest no-origin-test
   (let [response (response-for app :get "/hello-world")]
@@ -52,10 +61,7 @@
     (is (= nil (get-in response [:headers "Origin"])))))
 
 (def allowed-origins-as-map-app
-  (::service/service-fn (-> {::service/routes          routes
-                             ::service/allowed-origins {:allowed-origins ["http://foo.com:8080"]}}
-                            service/default-interceptors
-                            service/service-fn)))
+  (make-app {:allowed-origins ["http://foo.com:8080"]}))
 
 (deftest allowed-origins-as-map-no-origin-test
   (let [response (response-for allowed-origins-as-map-app :get "/hello-world")]

@@ -89,10 +89,10 @@ Pedestal will convert supplied longs or doubles to the correct type for the part
 
 Pedestal has a small amount of built-in metrics.
 
-:io.pedestal.http/request::
+:io.pedestal.service.interceptors/request::
 
 A counter of the number of incoming requests, produced by the
-api:log-request[ns=io.pedestal.http] interceptor.
+api:log-request[ns=io.pedestal.service.interceptors] interceptor.
 
 :io.pedestal.http.cors/origin-real::
 A counter for the number of requests that are allowed, produced by the

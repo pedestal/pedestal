@@ -20,7 +20,6 @@ Spec namespaces:
 * api:*[ns=io.pedestal.http-kit.specs]
 * api:*[ns=io.pedestal.http.impl.servlet-interceptor.specs]
 * api:*[ns=io.pedestal.http.jetty.specs]
-* api:*[ns=io.pedestal.http.specs]
 * api:*[ns=io.pedestal.interceptor.specs]
 * api:*[ns=io.pedestal.route.specs]
 * api:*[ns=io.pedestal.websocket.specs]

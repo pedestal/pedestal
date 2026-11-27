@@ -24,7 +24,7 @@ The :error key is used for error handling.
 
 An interceptor must
 provide a :name
-footnote:[Omitting the name may result in a deprecation warning; in the future it may cause a runtime exception.]
+footnote:[An interceptor without a :name is given one automatically, derived from its function.]
 and at least one of :enter, :leave and :error.
 
 Each function is called with a xref:context-map.adoc[] and must return either a context
@@ -166,21 +166,13 @@ Pedestal extends that protocol to the following types:
 | Function
 | The function is interpreted as a link:#handler[handler].
 
-| List
-| The list is evaluated and its result is used as an interceptor. footnote:[This is supported behavior
-  related to the xref:table-syntax.adoc[table router syntax], but is no longer commonly used and is deprecated.]
-  Support for List is deprecated.
-
-| Cons
-| Same as List (and also deprecated)
-
-| Symbol
-| The symbol is resolved and its target is converted to an interceptor.
-
 | Var
 | The var is de-referenced and its value is converted to an interceptor.
 
 |===
+
+Pedestal 1.0 removed the List, Cons, and Symbol cases: lists are no longer evaluated, nor symbols resolved;
+see xref:ROOT:deprecations.adoc#quoted-routes[Quoted route specifications].
 
 Most of these cases are provided to make routing syntax
 easier, or reflect earlier attempts to improve
@@ -248,8 +240,8 @@ position of an interceptor stack.
 Handlers return a response map; alternately, an asynchronous handler should return a channel that conveys the response map.
 
 Interceptors should always have names
-footnote:[In Pedestal 0.8.0 anonymous interceptors are deprecated; in a future release anonymous interceptors
-may result in a runtime exeption.].  When a handler function is converted to an Interceptor, Pedestal
+footnote:[Since Pedestal 1.0, an interceptor without a :name is given one automatically, derived from its function.].
+When a handler function is converted to an Interceptor, Pedestal
 will check to see if the function has :name metadata and use that as the Interceptor's name.
 
 Failing that, Pedestal will generate an interceptor name from the function's class name; this does not

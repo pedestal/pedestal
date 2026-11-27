@@ -11,8 +11,6 @@
 
 (ns io.pedestal.http.jetty.specs
   (:require [io.pedestal.http.jetty :as jetty]
-            io.pedestal.http.specs
-            [io.pedestal.http :as http]
             [io.pedestal.internal :refer [is-a]]
             [io.pedestal.connector.specs :as connector]
             [clojure.spec.alpha :as s])
@@ -30,7 +28,6 @@
                    ::context-configurator
                    ::context-path
                    ::ssl?
-                   ::insecure-ssl?
                    ::sni-host-check?
                    ::ssl-port
                    ::h2?
@@ -61,7 +58,6 @@
 (s/def ::ssl-port pos-int?)
 (s/def ::h2c? boolean?)
 (s/def ::h2? boolean?)
-(s/def ::insecure-ssl? boolean?)
 (s/def ::sni-host-check? boolean?)
 (s/def ::keystore-scal-interval pos-int?)
 (s/def ::connection-factory-fns (s/coll-of fn?))
@@ -71,15 +67,6 @@
 (s/def ::http-configuration (is-a HttpConfiguration))
 (s/def ::security-provider string?)
 (s/def ::client-auth #{:need :want :none})
-
-
-(s/fdef jetty/server
-        :args (s/cat
-                :service-options ::http/container-options
-                :container-options (s/and ::http/container-options
-                            ;; "Refine" the :container-options key for Jetty-specific options
-                            (s/keys :opt-un [::container-options])))
-        :ret ::http/container-lifecycle)
 
 (s/fdef jetty/create-connector
   :args (s/cat :connector-map ::connector/connector-map

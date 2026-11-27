@@ -64,24 +64,23 @@ We can extend this approach to test coordination across multiple interceptors as
 The value in exercising the end-to-end operation of your service endpoints is
 that it provides quick feedback that you've wired things up correctly. Pedestal
 provides the test helper
-api:response-for[ns=io.pedestal.test]
+api:response-for[ns=io.pedestal.connector.test]
 utility function to facilitate testing of services without having to spin up an
 http server.
 
 This style of testing ensures that routing is correct, and it fully exercises routing, interceptors,
 and any business logic.
 
-The `response-for` helper function is specific to servlet-based
-services and simulates the receipt of a servlet request and creation
-of a servlet response - but does so without the overhead of an actual HTTP connection, which
+The `response-for` helper function works with any xref:connector.adoc[] and
+simulates the receipt of a request and creation
+of a response - but does so without the overhead of an actual HTTP connection, which
 ensures your tests are fast.
 
-`response-for takes as arguments a service function, verb and url as
+`response-for` takes as arguments a connector, verb and url as
 required parameters; headers and a request body are
 optional. Let us examine those parameters in more detail.
 
-The _service function_ refers to the :io.pedestal.http/service-fn key
-value in the service map during service initialization.
+The _connector_ is a Pedestal connector that has been created, but *not started*.
 
 The _verb_ is an HTTP method represented as a keyword (i.e., :get,
 :post, :delete, etc...).
@@ -93,14 +92,14 @@ The _headers_ and request _body_ inputs are optional and specified with the
 
 === Usage
 
-Before using `response-for` in tests, a test service must be
-created. This is done by calling `io.pedestal.http/create-servlet`
-with the service map as a parameter. The resulting service-fn can be
+Before using `response-for` in tests, a connector must be
+created, from the xref:connector-map.adoc[], for example by calling
+api:create-connector[ns=io.pedestal.http.jetty]. The connector is not started; it can be
 bound to a var and used in subsequent tests.
 
 [source,clojure]
 ----
-(def service (:io.pedestal.http/service-fn (io.pedestal.http/create-servlet service-map)))
+(def service (io.pedestal.http.jetty/create-connector connector-map nil))
 ----
 
 ==== Testing GET
@@ -170,7 +169,7 @@ Here's an example:
 ----
 (require '[io.pedestal.http.route :as http.routes])
 
-(def routes #{["/user/:id/items" :post `user-items]} ; <1>
+(def routes #{["/user/:id/items" :post #'user-items]} ; <1>
 
 (def url-for (http.routes/url-for-routes (http.routes/expand-routes routes))))
 
@@ -179,7 +178,7 @@ Here's an example:
                                                  :path-params {:id 1}
                                                  :query-params {:sort "ASC"})))))
 ----
-<1> The namespace qualified symbol for `user-items` will be the default route name (as a keyword)
+<1> The default route name is a keyword built from the namespace and name of the Var `#'user-items`
 <2> The route name is used to get the URL back
 
 ==== Testing Async interactions

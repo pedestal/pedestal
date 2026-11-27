@@ -16,30 +16,7 @@
             [clojure.java.io :as io]
             [cognitect.transit :as transit]
             [io.pedestal.interceptor.chain :as interceptor.chain]
-            [ring.util.response :as ring-response])
-  (:import (java.io OutputStreamWriter)))
-
-;; Support for things in io.pedestal.http that are deprecated in 0.7.0
-
-(defn- capture-output-to-stream
-  [f]
-  (fn [output-stream]
-    (with-open [writer (OutputStreamWriter. output-stream)]
-      (binding [*out* writer]
-        (f))
-      (.flush writer))))
-
-(defn- data-response
-  "Given printing function f (which writes to *out*), returns a response wrapped around
-  a function that will stream a response to.
-
-  This is sloppy and the corresponding i.o.p.http functions have been deprecated or rewritten."
-  [f content-type]
-  (ring-response/content-type
-    (ring-response/response (capture-output-to-stream f))
-    content-type))
-
-;; Modern stuff
+            [ring.util.response :as ring-response]))
 
 (defn- stream-xform
   "Returns a Pedestal response function; this will be passed an output stream to which the actual response
@@ -59,13 +36,6 @@
     (transit/write
       (transit/writer output-stream transit-format transit-opts)
       obj)))
-
-(defn edn-response
-  "Return a Ring response that will print the given `obj` to the HTTP output stream in EDN format."
-  {:added      "0.8.0"
-   :deprecated "0.8.0"}
-  [obj]
-  (data-response #(pr obj) "application/edn;charset=UTF-8"))
 
 (defn json-response
   "Return a Ring response that will print the given `obj` to the HTTP output stream in JSON format."

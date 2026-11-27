@@ -10,11 +10,10 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http.jetty.container
-  "Extends Pedestal protocols onto Jetty container classes.
+(ns ^:no-doc io.pedestal.http.jetty.container
+  "Internal: extends Pedestal protocols onto Jetty container classes; subject to change at any time.
 
-  There is no reason to directly require this namespace."
-  {:deprecated "Deprecated in 0.8.0, will be made internal."}
+  There is no reason to directly require this namespace: io.pedestal.http.jetty loads it."
   (:require [io.pedestal.http.container :as container]
             [io.pedestal.interceptor.chain :as chain]
             [clojure.core.async :as async])

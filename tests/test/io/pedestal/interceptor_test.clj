@@ -398,7 +398,8 @@
 (deftest handler-to-interceptor-default-name
   (let [interceptor (interceptor anon-handler)]
     (is (= {:response ::anon-response} ((-> interceptor :enter) nil)))
-    (is (= ::anon-handler (:name interceptor)))))
+    (is (= ::anon-handler (:name interceptor))))
+  (is (= ::anon-handler (:name (interceptor #'anon-handler))) "a Var is converted through its value"))
 
 (deftest default-name-from-inline
   ;; The extra "fn/" prefix is actually part of deftest
@@ -408,20 +409,29 @@
 (defn failing-handler [_request] (throw (ex-info "Boom!" {})))
 
 (deftest unnamed-handler-is-identified-by-its-function-in-errors
+  ;; Without default handler names, the handler still gets a name derived from its function
+  ;; (one that route names ignore), and errors show it.
   (binding [interceptor/*default-handler-names* false]
     (let [handler (interceptor failing-handler)]
-      (is (nil? (:name handler)))
+      (is (= ::failing-handler (:name handler)))
       (when-let [e (is (thrown? Exception (execute {} [handler])))]
-        (is (= "clojure.lang.ExceptionInfo in Interceptor #Interceptor{} (function io.pedestal.interceptor-test/failing-handler) - Boom!"
+        (is (= "clojure.lang.ExceptionInfo in Interceptor :io.pedestal.interceptor-test/failing-handler - Boom!"
                (ex-message e)))
-        (is (= "#Interceptor{} (function io.pedestal.interceptor-test/failing-handler)"
+        (is (= ::failing-handler
                (:interceptor (ex-data e))))))))
 
-(deftest unnamed-map-interceptor-is-unchanged-in-errors
+(deftest record-built-without-interceptor-is-identified-in-errors
+  ;; interceptor always gives a name; an Interceptor record built directly may still have none.
   (when-let [e (is (thrown? Exception
-                            (execute {} [(i/with-deprecations-suppressed
-                                           (interceptor {:enter (fn [_] (throw (ex-info "Boom!" {})))}))])))]
+                            (execute {} [(interceptor/map->Interceptor
+                                           {:enter (fn [_] (throw (ex-info "Boom!" {})))})])))]
     (is (= "clojure.lang.ExceptionInfo in Interceptor #Interceptor{} - Boom!"
+           (ex-message e))))
+  (when-let [e (is (thrown? Exception
+                            (execute {} [(with-meta (interceptor/map->Interceptor
+                                                      {:enter (fn [_] (throw (ex-info "Boom!" {})))})
+                                                    {::interceptor/handler-fn failing-handler})])))]
+    (is (= "clojure.lang.ExceptionInfo in Interceptor #Interceptor{} (function io.pedestal.interceptor-test/failing-handler) - Boom!"
            (ex-message e)))))
 
 (deftest interceptor-leave-ordering-after-a-change-in-bindings
@@ -572,3 +582,4 @@
              (chain/enqueue* ctx
                              (tracer :b)
                              [(tracer :c) (tracer :d)]))))))
+

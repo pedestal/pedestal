@@ -20,6 +20,7 @@
             [io.pedestal.http.route.path :as path]
             [io.pedestal.http.route.types :as types]
             [io.pedestal.interceptor :refer [interceptor?] :as i]
+            [io.pedestal.interceptor.impl :as impl]
             [clojure.string :as string])
   (:import (clojure.lang IPersistentMap)))
 
@@ -33,8 +34,12 @@
 (defn- handler-interceptor
   [handler route-name]
   (cond
-    (interceptor? handler) (let [{interceptor-name :name :as interceptor} handler]
-                             (assoc interceptor :name (or interceptor-name route-name)))
+    ;; An interceptor without an explicit name (none, or one derived automatically) takes the route name,
+    ;; when there is one; otherwise it keeps its derived name.
+    (interceptor? handler) (if (or (impl/explicit-name handler)
+                                   (nil? route-name))
+                             handler
+                             (impl/rename handler route-name))
     (fn? handler) (handler->interceptor route-name handler)))
 
 
@@ -52,27 +57,41 @@
     (internal/var->keyword handler)
     (internal/symbol->keyword handler)))
 
+(defn ^:private check-symbol
+  "Converts a symbol handler to an interceptor before its route name is derived from the symbol.
+  Pedestal doesn't convert symbols to interceptors, so this fails, before any route name is derived;
+  but a compatibility shim, which extends IntoInterceptor to symbols, gets the same route as
+  Pedestal 0.8 (the route name comes from the symbol). Returns the handler."
+  [handler]
+  (when (symbol? handler)
+    (i/interceptor handler))
+  handler)
+
 (defn- handler-map
   [m]
+  ;; The symbol cases are kept for a compatibility shim, which extends IntoInterceptor and
+  ;; ExpandableVerbAction to symbols and lists: with it, a symbol handler gets the same route name
+  ;; as in Pedestal 0.8. Without it, check-symbol fails.
   (cond
     (or (symbol? m) (var? m))
-    (let [handler-name (symbol-or-var->keyword m)]
+    (let [handler-name (symbol-or-var->keyword (check-symbol m))]
       {:route-name handler-name
        :handler    (resolve-interceptor m handler-name)})
 
     (instance? IPersistentMap m)
     (let [{:keys [route-name handler interceptors]} m
           handler-name     (cond
-                             (or (symbol? handler) (var? handler)) (symbol-or-var->keyword handler)
-                             (interceptor? handler) (:name handler))
+                             (or (symbol? handler) (var? handler)) (symbol-or-var->keyword (check-symbol handler))
+                             (interceptor? handler) (impl/explicit-name handler))
           interceptor      (resolve-interceptor
                              handler (or route-name handler-name))
-          interceptor-name (:name interceptor)]
+          ;; A name derived automatically (for an unnamed interceptor) never becomes the route name.
+          interceptor-name (impl/explicit-name interceptor)]
       {:route-name   (if route-name
                        route-name
                        (if interceptor-name
                          interceptor-name
-                         (throw (ex-info (str "Handler was not a symbol, a var, or an interceptor with a name, "
+                         (throw (ex-info (str "Handler was not a var or an interceptor with a name, "
                                               "and no route name was provided")
                                          {:handler-spec m}))))
        :handler      (resolve-interceptor handler (or route-name handler-name))

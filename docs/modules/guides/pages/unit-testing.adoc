@@ -31,7 +31,7 @@ makes it fast and easy to test the whole stack in this way.
 This document describes unit testing when using
 api:*[ns=io.pedestal.connector] APIs to create your service, the
 xref:0.7@unit-testing.adoc[0.7 version of this documentation] discusses the
-equivalent work when using the api:*[ns=io.pedestal.http] APIs.
+equivalent work when using the `io.pedestal.http` APIs, which were removed in Pedestal 1.0.
 ====
 
 We'll start with isolated testing of interceptors, before moving on to grander things.

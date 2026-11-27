@@ -18,8 +18,7 @@
             io.pedestal.http.route.specs
             [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.internal :as i]
-            [io.pedestal.test-common :as tc])
+            [io.pedestal.quoted-routes-shim :as shim])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn list-orders [_] {:status 200 :body "list-orders"})
@@ -45,7 +44,8 @@
   (fn [_] {:status 200 :body "anonymous-handler"}))
 
 (def quoted-spec
-  "The deprecated style: the specification is syntax-quoted, so the handlers are symbols."
+  "The style that Pedestal 1.0 removed: the specification is syntax-quoted, so the handlers are symbols.
+  It only works with a compatibility shim (see io.pedestal.quoted-routes-shim)."
   `[[["/api" ^:interceptors [audit]
       ["/orders" {:get  list-orders
                   :post [::create create-order]}
@@ -91,10 +91,11 @@
       :response))
 
 (deftest vars-give-the-same-routing-table-as-quoted-symbols
+  ;; Pedestal 1.0 only expands quoted symbols with a compatibility shim, which resolves them as 0.8 did.
   (doseq [default-handler-names? [true false]]
     (testing (str "with *default-handler-names* " default-handler-names?)
       (binding [interceptor/*default-handler-names* default-handler-names?]
-        (let [expected (i/with-deprecations-suppressed
+        (let [expected (shim/with-shim
                          (routing-table quoted-spec))]
           (is (= 9 (count expected)))
           (is (= expected (routing-table var-spec))))))))
@@ -126,7 +127,7 @@
       (is (= [["/orders" :get ::orders [::orders]]]
              (routing-table [[["/orders" {:get [::orders list-orders]}]]])))
       (is (thrown-with-msg? ExceptionInfo
-                            #"\QHandler was not a symbol, a var, or an interceptor with a name, and no route name was provided\E"
+                            #"\QHandler was not a var or an interceptor with a name, and no route name was provided\E"
                             (routing-table [[["/orders" {:get list-orders}]]]))))))
 
 (deftest map-routes-accept-vars-and-functions
@@ -148,11 +149,35 @@
     (is (match? {:status 200 :body "delete-order"} (response-for table :delete "/api/orders/1")))
     (is (match? {:status 200 :body "anonymous-handler"} (response-for table :get "/api/anonymous")))))
 
-(deftest only-quoted-symbols-are-deprecated
-  (binding [i/*suppress?* false]
-    (i/reset-deprecations)
-    (is (not (string/includes? (tc/with-err-str (routing-table var-spec)) "quoted symbol")))
-    (is (string/includes? (tc/with-err-str (routing-table quoted-spec)) "quoted symbol"))))
+(def ^:private unsupported-interceptor
+  "You're trying to use something as an interceptor that isn't supported by the protocol")
+
+(defn ^:private no-verb-action-for
+  [^Class c]
+  (re-pattern (str "\\QNo implementation of method: :expand-verb-action of protocol: "
+                   "#'io.pedestal.http.route.definition.terse/ExpandableVerbAction found for class: "
+                   (.getName c) "\\E")))
+
+(deftest only-quoted-symbols-are-removed
+  ;; Quoted symbols are not supported: they fail with Clojure's error for a protocol without an extension.
+  (is (= 9 (count (routing-table var-spec))))
+  (when-let [e (is (thrown? ExceptionInfo (routing-table quoted-spec)))]
+    ;; The first symbol that is converted is the audit interceptor.
+    (is (string/starts-with? (ex-message e) unsupported-interceptor))
+    (is (= `audit (:t (ex-data e)))))
+  (is (thrown-with-msg? IllegalArgumentException (no-verb-action-for clojure.lang.Symbol)
+                        (routing-table `[[["/orders" {:get list-orders}]]])))
+  (testing "a symbol in the vector form reaches IntoInterceptor"
+    (when-let [e (is (thrown? ExceptionInfo (routing-table `[[["/orders" {:get [::orders list-orders]}]]])))]
+      (is (string/starts-with? (ex-message e) unsupported-interceptor))
+      (is (= `list-orders (:t (ex-data e))))))
+  (testing "a symbol in an interceptor vector"
+    (when-let [e (is (thrown? ExceptionInfo (routing-table `[[["/orders" ^:interceptors [audit] {:get [::orders ~#'list-orders]}]]])))]
+      (is (string/starts-with? (ex-message e) unsupported-interceptor))
+      (is (= `audit (:t (ex-data e))))))
+  (testing "an expression"
+    (is (thrown-with-msg? IllegalArgumentException (no-verb-action-for clojure.lang.PersistentList)
+                          (routing-table '[[["/orders" {:get (io.pedestal.http.definition.terse-test/list-orders nil)}]]])))))
 
 (deftest vars-and-functions-conform-to-the-terse-spec
   ;; The spec requires a route name in the vector form (for symbols too), so every vector here has one.

@@ -11,17 +11,26 @@
 ;
 ; You must not remove this notice, or any other, from this software.
 
-(ns io.pedestal.http-test
+(ns io.pedestal.connector.http-test
+  "HTTP behavior of an application built from a connector map.
+
+  Interceptor behavior is tested with io.pedestal.connector.test/response-for on a Jetty connector;
+  servlet behavior (NIO bodies, async completion, body write failures) through the Servlet API,
+  with io.pedestal.servlet-support (a ConnectorServlet and the mock servlet objects)."
   (:require [clojure.test :refer [deftest is use-fixtures]]
             [clojure.core.async :as async]
+            [io.pedestal.connector :as conn]
+            [io.pedestal.connector.test :as test]
             [io.pedestal.interceptor.chain :as chain]
-            [io.pedestal.test :refer [response-for]]
+            [io.pedestal.servlet-support :as servlet-support]
             [io.pedestal.test-common :as tc]
-            [io.pedestal.http :as service]
+            [io.pedestal.http.csrf :as csrf]
+            [io.pedestal.http.jetty :as jetty]
             [io.pedestal.http.impl.servlet-interceptor :as si]
+            [io.pedestal.http.response :as response]
             [io.pedestal.http.route :as route]
+            [io.pedestal.service.interceptors :as interceptors]
             [charred.api :as json]
-            [io.pedestal.http.body-params :refer [body-params]]
             [ring.util.response :as ring-resp])
   (:import (java.io ByteArrayOutputStream File FileInputStream InputStream IOException OutputStream)
            (java.nio ByteBuffer)
@@ -122,44 +131,55 @@
 (def add-binding
   {:enter #(chain/bind % *req* {:a 1})})
 
+;; The handlers are Vars: a route without an explicit route name takes it from its Var.
+;; The /transit-params route needs no body-params interceptor: with-default-interceptors includes it.
 (def app-routes
-  `[[["/about" {:get [:about about-page]}]
-     ["/hello" {:get [^:interceptors [clobberware] hello-page]}]
-     ["/token" {:get hello-token-page}]
-     ["/bytebuffer" {:get hello-byte-buffer-page}]
-     ["/bytechannel" {:get hello-byte-channel-page}]
-     ["/async-chunked" {:get hello-async-chunked-page}]
-     ["/failing-body" {:get failing-body-page}]
-     ["/edn" {:get get-edn}]
-     ["/just-status" {:get just-status-page}]
-     ["/with-binding" {:get [^:interceptors [add-binding] with-binding-page]}]
-     ["/text-as-html" {:get [::text-as-html hello-page]}
-      ^:interceptors [service/html-body]]
-     ["/plaintext-body-with-html-interceptor" {:get hello-plaintext-page}
-      ^:interceptors [service/html-body]]
-     ["/plaintext-body-no-interceptors" {:get hello-plaintext-no-content-type-page}]
-     ["/data-as-json" {:get [::data-as-json get-edn]}
-      ^:interceptors [service/json-body]]
-     ["/plaintext-body-with-json-interceptor" {:get get-plaintext-edn}
-      ^:interceptors [service/json-body]]
-     ["/data-as-transit" {:get [::data-as-transit get-edn]}
-      ^:interceptors [service/transit-body]]
-     ["/transit-params" {:post transit-params}
-      ^:interceptors [(body-params)]]
-     ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit get-plaintext-edn]}
-      ^:interceptors [service/transit-body]]]])
+  [[["/about" {:get [:about #'about-page]}]
+    ["/hello" {:get [^:interceptors [clobberware] #'hello-page]}]
+    ["/token" {:get #'hello-token-page}]
+    ["/bytebuffer" {:get #'hello-byte-buffer-page}]
+    ["/bytechannel" {:get #'hello-byte-channel-page}]
+    ["/async-chunked" {:get #'hello-async-chunked-page}]
+    ["/failing-body" {:get #'failing-body-page}]
+    ["/edn" {:get #'get-edn}]
+    ["/just-status" {:get #'just-status-page}]
+    ["/with-binding" {:get [^:interceptors [add-binding] #'with-binding-page]}]
+    ["/text-as-html" {:get [::text-as-html #'hello-page]}
+     ^:interceptors [interceptors/html-body]]
+    ["/plaintext-body-with-html-interceptor" {:get #'hello-plaintext-page}
+     ^:interceptors [interceptors/html-body]]
+    ["/plaintext-body-no-interceptors" {:get #'hello-plaintext-no-content-type-page}]
+    ["/data-as-json" {:get [::data-as-json #'get-edn]}
+     ^:interceptors [interceptors/json-body]]
+    ["/plaintext-body-with-json-interceptor" {:get #'get-plaintext-edn}
+     ^:interceptors [interceptors/json-body]]
+    ["/data-as-transit" {:get [::data-as-transit #'get-edn]}
+     ^:interceptors [interceptors/transit-json-body]]
+    ["/transit-params" {:post #'transit-params}]
+    ["/plaintext-body-with-transit-interceptor" {:get [::plaintext-from-transit #'get-plaintext-edn]}
+     ^:interceptors [interceptors/transit-json-body]]]])
 
-(def app-interceptors
-  (service/default-interceptors {::service/routes app-routes}))
-
-(defn make-app [interceptors]
-  (-> interceptors
-      service/service-fn
-      ::service/service-fn))
+;; Built when the namespace is loaded, before the specs are instrumented:
+;; the "/hello" and "/with-binding" routes put ^:interceptors before the handler without a route name,
+;; which the terse expander accepts but the :io.pedestal.http.route.specs/terse-routes spec rejects.
+(def app-connector-map
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors)
+      (conn/with-routes app-routes)))
 
 (defn app
+  "A Jetty connector (not started), for io.pedestal.connector.test/response-for."
   []
-  (make-app app-interceptors))
+  (jetty/create-connector app-connector-map nil))
+
+(defn response-for
+  [connector verb url & {:as options}]
+  (test/response-for connector verb url options))
+
+(defn servlet-response-for
+  "Through the Servlet API: a ConnectorServlet with the same connector map."
+  [verb url & {:as options}]
+  (servlet-support/response-for (servlet-support/create-servlet app-connector-map) verb url options))
 
 (deftest html-body-test
   (let [response (response-for (app) :get "/text-as-html")]
@@ -187,13 +207,13 @@
 
 (deftest plaintext-from-byte-buffer
   ;; Response bodies that are ByteBuffers toggle async behavior in supported containers
-  (let [response (response-for (app) :get "/bytebuffer")]
+  (let [response (servlet-response-for :get "/bytebuffer")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
 
 (deftest plaintext-from-byte-channel
   ;; Response bodies that are ReadableByteChannels toggle async behavior in supported containers
-  (let [response (response-for (app) :get "/bytechannel")]
+  (let [response (servlet-response-for :get "/bytechannel")]
     (is (= "text/plain" (get-in response [:headers "Content-Type"])))
     (is (= "HELLO" (:body response)))))
 
@@ -201,22 +221,23 @@
   ;; The chain goes async at the handler, so the servlet returns before the body is written;
   ;; the response must only be returned once the AsyncContext is completed, not on the first
   ;; flush of the output stream.
-  (let [response (response-for (app) :get "/async-chunked")]
+  (let [response (servlet-response-for :get "/async-chunked")]
     (is (= 200 (:status response)))
     (is (= "HELLO" (:body response)))))
 
 (deftest sync-response-is-complete-when-the-servlet-returns
   ;; The body write fails before anything is flushed; a synchronous response is complete
   ;; once the servlet returns, so this must not wait for a completion that never comes.
-  (let [response (response-for (app) :get "/failing-body" :timeout 1000)]
-    (is (= 200 (:status response)))
-    (is (= "" (:body response)))))
+  ;; Since nothing was sent, the response is replaced by a 500.
+  (let [response (servlet-response-for :get "/failing-body" :timeout 1000)]
+    (is (= 500 (:status response)))
+    (is (= "Internal server error: exception" (:body response)))))
 
 (deftest json-body-test
   (let [response (response-for (app) :get "/data-as-json")]
     (is (match?
           {:headers {"Content-Type" "application/json;charset=UTF-8"}
-           :body "{\"a\":1}"}
+           :body    "{\"a\":1}"}
           response))))
 
 (deftest plaintext-body-with-json-interceptor-test
@@ -230,11 +251,13 @@
     (is (= "[\"^ \",\"~:a\",1]" (:body response)))))
 
 (deftest transit-request-body-test
+  ;; io.pedestal.connector.test/response-for does not lower-case request header names (a servlet
+  ;; container does), and only "content-type" sets the request's :content-type.
   (let [response (response-for (app) :post "/transit-params"
-                               :headers {"Content-Type" "application/transit+json"}
+                               :headers {"content-type" "application/transit+json"}
                                :body "[\"^ \",\"~:a\",1]")]
     (is (match? {:status 200
-                 :body "{:a 1}"}
+                 :body   "{:a 1}"}
                 response))))
 
 (deftest plaintext-body-with-transit-interceptor-test
@@ -266,9 +289,11 @@
     (is (= "Bad Request - URLDecoder: Incomplete trailing escape (%) pattern"
            (:body resp)))))
 
-(deftest response-for-nil-headers
-  (is (thrown? AssertionError
-               (response-for (app) :get "/" :headers {"cookie" nil}))))
+(deftest default-edn-response-test
+  ;; A map body without a content type is written as EDN.
+  (let [edn-resp (response-for (app) :get "/edn")]
+    (is (= "{:a 1}" (:body edn-resp)))
+    (is (= "application/edn" (get-in edn-resp [:headers "Content-Type"])))))
 
 (deftest adding-a-binding-to-context-appears-in-user-request
   (is (= ":req was bound to {:a 1}"
@@ -283,28 +308,6 @@
   (.close output-stream)
   (.toString output-stream "UTF-8"))
 
-(deftest edn-response-test
-  (let [obj           {:a 1 :b 2 :c [1 2 3]}
-        output-stream (ByteArrayOutputStream.)]
-    (is (= (with-out-str (pr obj))
-           (do (si/write-body-to-stream
-                 (-> obj
-                     service/edn-response
-                     :body)
-                 output-stream)
-               (slurp-output-stream output-stream))))))
-
-(deftest transit-response-test
-  (let [obj           {:a 1 :b 2 :c [1 2 3]}
-        output-stream (ByteArrayOutputStream.)]
-    (is (= (with-out-str (pr obj))
-           (do (si/write-body-to-stream
-                 (-> obj
-                     service/edn-response
-                     :body)
-                 output-stream)
-               (slurp-output-stream output-stream))))))
-
 (deftest default-edn-output-test
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
@@ -316,18 +319,12 @@
                  output-stream)
                (slurp-output-stream output-stream))))))
 
-(deftest default-edn-response-test
-  (let [edn-resp (response-for (app) :get "/edn")]
-    (is (= "{:a 1}" (:body edn-resp))
-        #_(= "application/edn"
-             (headers "Content-Type")))))
-
 (deftest json-response-test
   (let [obj           {:a 1 :b 2 :c [1 2 3]}
         output-stream (ByteArrayOutputStream.)]
     (si/write-body-to-stream
       (-> obj
-          service/json-response
+          response/json-response
           :body)
       output-stream)
     (is (= (json/write-json-str obj)
@@ -361,13 +358,17 @@
            (do (si/write-body-to-stream body-file output-stream)
                (slurp-output-stream output-stream))))))
 
-(def anti-forgery-app-interceptors
-  (service/default-interceptors {::service/routes      app-routes
-                                 ::service/enable-csrf {}}))
+(def anti-forgery-app-connector-map
+  ;; Sessions, body params, then anti-forgery: with-default-interceptors has the session and body-params
+  ;; interceptors; anti-forgery is added after them.
+  (-> (conn/default-connector-map -1)
+      (conn/with-default-interceptors :session-options {})
+      (conn/with-interceptor (csrf/anti-forgery {}))
+      (conn/with-routes app-routes)))
 
 (defn af-app
   []
-  (make-app anti-forgery-app-interceptors))
+  (jetty/create-connector anti-forgery-app-connector-map nil))
 
 (deftest html-body-test-csrf-token
   (let [response (response-for (af-app) :get "/token")
@@ -377,7 +378,7 @@
     (is (= "HELLO" (subs body 0 5)))
     (is (not-empty (subs body 4)))))
 
-;;; Async request handlers
+;;; Routes
 
 (def hello-async
   {:enter (fn [context]
@@ -388,20 +389,16 @@
                       :body   "Hello async"})))})
 
 (def async-hello-routes
-  `[[["/hello-async" {:get hello-async}]]])
+  [[["/hello-async" {:get #'hello-async}]]])
 
-(deftest channel-returning-request-handler
-  (let [app      (-> {::service/routes async-hello-routes}
-                     service/default-interceptors
-                     service/service-fn
-                     ::service/service-fn)
-        response (response-for app :get "/hello-async")]
-    (is (= "Hello async" (:body response)))))
-
-(deftest can-provide-seq-of-expanded-routes
-  (let [app      (-> {::service/routes (-> async-hello-routes route/expand-routes :routes list*)}
-                     service/default-interceptors
-                     service/service-fn
-                     ::service/service-fn)
-        response (response-for app :get "/hello-async")]
+(deftest can-provide-expanded-routes
+  ;; with-routes doesn't accept a routing table (the result of expand-routes): it calls expand-routes
+  ;; again, and a RoutingTable isn't ExpandableRoutes. So the routing table is passed to route/router,
+  ;; as with-routes does.
+  (let [connector (-> (conn/default-connector-map -1)
+                      (conn/with-default-interceptors)
+                      (conn/with-interceptors [(route/router (route/expand-routes async-hello-routes) :sawtooth)
+                                               route/path-params-decoder])
+                      (jetty/create-connector nil))
+        response  (response-for connector :get "/hello-async")]
     (is (= "Hello async" (:body response)))))

@@ -129,8 +129,10 @@
                    [(route/router routes)])))
 
 (deftest function-in-a-route-names-the-step-and-the-route
+  ;; Without default handler names, the step still has the name derived from its function (the route
+  ;; name doesn't use it).
   (doseq [[default-handler-names? step] [[true ":io.pedestal.interceptor.terminator-test/add-user"]
-                                         [false "#Interceptor{} (function io.pedestal.interceptor.terminator-test/add-user)"]]]
+                                         [false ":io.pedestal.interceptor.terminator-test/add-user"]]]
     (testing (str "with *default-handler-names* " default-handler-names?)
       (binding [i/*default-handler-names* default-handler-names?]
         (when-let [e (is (thrown? ExceptionInfo (execute-route)))]

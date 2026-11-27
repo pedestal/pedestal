@@ -12,8 +12,9 @@
 (ns playground
   "Used primarily to test telemetry using the Open Telemetry Java Agent."
   (:require [io.pedestal.metrics :as m]
-            [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
+            [io.pedestal.connector :as conn]
+            [io.pedestal.http.jetty :as jetty]
+            [io.pedestal.http.ring-middlewares :as ring-middlewares]
             [io.pedestal.tracing :as tel]
             [io.pedestal.internal :as i]
             [net.lewisship.trace :refer [trace]]
@@ -67,15 +68,14 @@
 
 (defn- create-and-start-server
   [_]
-  (->> {::http/port   8080
-        ::http/type   :jetty
-        ::http/join?  false
-        ::http/file-path "../docs"
-        ::http/routes (route/routes-from routes)}
-       http/default-interceptors
-       http/dev-interceptors
-       http/create-server
-       http/start))
+  ;; The dev-mode interceptors come first; files are served from ../docs.
+  (-> (conn/default-connector-map 8080)
+      (conn/optionally-with-dev-mode-interceptors)
+      (conn/with-default-interceptors)
+      (conn/with-interceptor (ring-middlewares/file "../docs"))
+      (conn/with-routes routes)
+      (jetty/create-connector nil)
+      (conn/start!)))
 
 (defn start
   []
@@ -89,7 +89,7 @@
   []
   (if server
     (do
-      (http/stop server)
+      (conn/stop! server)
       (alter-var-root #'server (constantly nil))
       :stopped)
     :not-running))
